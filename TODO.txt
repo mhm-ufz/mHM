@@ -1,0 +1,56 @@
+                    ===================================
+                               TODO for mHM
+                       NEXT RELEASE :: June 1st, 2014
+                    ===================================
+
+
+=================================================================================================
+                     TASKS FOR NEXT RELEASE
+=================================================================================================
+
+automatic make test 
+(Resp.: Jule, Matthias C)
+-- test case 1 :: w/o restart read
+-- test case 2 :: w/o restart write
+-- test case 3 :: w/o routing
+-- test case 4 :: w/o optimization
+
+chunk read-in of data 
+(Resp.: Stephan)
+
+OpneMP and further speed-up (use analysis tool of Matthias C) 
+(Resp.: Olda, Stephan)
+
+lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
+(Resp.: Rohini)
+
+proper implementation of John's LAI model as a new process, i.e. Process #9 
+(Resp.: TBA)
+-- case 1 :: lai read from file as monthly values
+-- case 2 :: lai calculated on weekly basis 
+
+PET module
+(Resp.: Matthias Zink)
+-- case 0 :: PET input file
+-- case 1 :: Hargreaves-Samani
+-- case 2 :: Priestley-Taylor
+-- case 3 :: Penman-Monteith
+
+L0=L1 bug
+(Resp.: Martin, Rohini)
+
+Licence
+(Resp.: Diana, Luis)
+
+=================================================================================================
+                      UNDER CONSTRUCTION
+=================================================================================================
+
+Stephan Thober
+mo_multi_param_reg
+-- old parts of documentation should be converted to doxygen style
+-- pet_correct: constant hard-coded, not documented  
+
+=================================================================================================
+                      SOLVED
+=================================================================================================

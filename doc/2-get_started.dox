@@ -1,0 +1,226 @@
+/**
+\page getstarted Getting Started
+
+This chapter will introduce the structure of mHM technically.
+
+\section receive Receive mHM
+
+The current release of mHM is available through a code repository provided by the version control system SVN
+(<a href="http://subversion.apache.org/">http://subversion.apache.org/</a>).
+Comprehensive instructions on accessing the repository can be found at <a href="https://svn.ufz.de/mhm/browser/">https://svn.ufz.de/mhm/browser/</a>.
+
+\section NETCDF Install NETCDF
+
+The mHM input and output file format is NETCDF, so the according library is required on your system. Please go to
+<a href="http://www.unidata.ucar.edu/software/netcdf/">www.unidata.ucar.edu/software/netcdf</a> in order to download the current version.
+
+\li <b>on Linux:</b> Install as described in the online documentation.
+\li <b>on Windows:</b> An installed distribution of NETCDF has not proofed to be successful on windows yet, since there will be conflicts of the
+gfortran build version in netcdf and the available versions of gfortran on Windows. Please let us know if you find a solution for that.
+\li <b>on MacOS:</b> Use the short guide below.
+
+\subsection netcdfmacos Short Guide to NETCDF on MacOS
+
+<b>Download and unpack zlib v. 1.2.5</b>, go to the related folder and use the following commands:
+\code
+    cd /Downloads/zlib-1.2.5/
+    ./configure --prefix=/usr/local
+    make
+    make check
+    make test
+    sudo make install
+\endcode
+
+<b>Download and unpack szib v. 2.1</b>, go to the related folder and use the following commands:
+\code
+    cd /Downloads/szip-2.1/
+    sudo ./configure --prefix=/usr/local
+    F77=/usr/local/bin/gfortran ./configure --prefix=/usr/local
+    make
+    sudo make check
+    sudo make install
+\endcode
+
+<b>Download and unpack hdf5 v. 1.8.12</b>, go to the related folder and use the following commands:
+\code
+    cd /Downloads/hdf5-1.8.12/
+    FC=gfortran ./configure --prefix=/usr/local --with-zlib=/usr/local --with-szlib=/usr/local --enable-production --enable-hl --with-pthread --with-pic
+    make
+    make check
+    sudo make install
+\endcode
+
+<b>Download and unpack netCDF for C v. 4.3.0</b>, which is needed for Fortran. This fixes a bug in source <code>ncgen3/load.c</code> ONLY for OSX 10.9 Mavericks.
+Include <code>#include <config.h></code> before <code>#include <stdio.h></code>. Go to the related folder and use with the following commands:
+\code
+    cd /Downloads/netcdf-4.3.0/
+    CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure --prefix=/usr/local/
+    make
+    make check
+    sudo make install
+\endcode
+
+<b>Download and unpack netCDF for Fortran v. 4.2.0</b>, go to the related folder and use the following commands:
+
+For NAG compiler only:
+\code
+  FC=nagfor LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' FCFLAGS="-fpp -mismatch_all -kind=byte" FFLAGS="-fpp -mismatch_all -kind=byte" ./configure --prefix=/usr/local/netcdf_4.2_nag53
+\endcode
+For gfortran compiler only:
+\code
+  FC=gfortran LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' ./configure --prefix=/usr/local/netcdf_4.2_gfortran49
+\endcode
+Compile. Note that it is possible that some tests fail during the make check according to the settings of your compiler.
+\code
+    make
+    make check
+    sudo make install
+\endcode
+
+\section compile Compile mHM
+
+Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system.
+Before compiling, make sure that you individual requirements hold.
+
+Open <code>Makefile</code> and adjust at least the following settings:
+\li <code>system := [SYSNAME]</code><br>
+    Choose an arbitrary name of your system and add your settings in <code>make.config/[SYSNAME].alias</code> .
+    For assistance you can adapt the existing profiles in <code>make.config/</code> .
+\li <code>compiler := [COMPILER]</code><br>
+    Choose a compiler that was defined in <code>make.config/[SYSNAME].[COMPILER]</code> .
+\li <code>release := debug|release</code><br>
+    Debug mode checks all dependencies and code fractions and will we slower during compilation.
+\li <code>netcdf := netcdf4</code><br>
+    Choose the netcdf version your system is using.
+
+Additional assistance for editing Makefiles are available throughout the internet.
+Finally, mHM can be compiled with the simple command
+\code
+make
+\endcode
+In between two compilations, it might be useful to apply the command <code>make cleanclean</code> in order to start the next <code>make</code> from scratch
+(without using old temporary files).
+
+
+\section test Test mHM on Two Example Basins
+
+The mHM distribution usually comes with an example test case located in 
+\code
+test/
+\endcode
+The directory provides input data for two basins and output examples. All parameters and paths are allready set by default to the test case,
+so you can just start the simulation with the command
+\code
+./mhm
+\endcode
+This will run mHM on two basins simultanously and create output files for discharge and interception in <code>test/output_b*</code>.
+The chapter \ref output provides further information on visualising mHM results.
+
+\section owncatch Run your own Simulation
+
+Pretty much the first step mHM takes during runtime is reading the three configuration files:
+\li <code>mhm.nml</code>
+\li <code>mhm_output.nml</code>
+\li <code>mhm_parameters.nml</code>
+
+When editing these files, we recommend to use syntax highlighting for Fortran, which is featured in emacs, for example.
+
+\subsection mhmnml Main Configuration: Paths, Periods, Switches
+
+The file <code>mhm.nml</code> contains the main configuration for running mHM in your catchments. Since the comments should explain 
+each single setting, this section will only roughly describe the structure of the file. By the way, paths can be relative, absolute and even symbolic links.
+
+\li <b>Common Settings:</b> Defines output path, input look-up tables and input data format (all "nc" or all "bin") for all basins in your simulation.
+\li <b>Basin wise paths:</b> Set paths for input and output. Create a block for each basin. Remove needless blocks.
+\li <b>Resolution:</b> Hourly or Daily time step. Hydrologic resolution should be factorisable with the input resolutions (e.g. meteo: 4000, hydro: 2000, morph: 100). 
+    The routing resolutions determines the velocity of water from cell to cell (keep it greater than the hydro resolution). If you change the routing, remember to recalibrate the model (see \ref calibration).
+\li <b>Restart:</b> mHM does provide you the option to save the whole model configuration (incl. states, fluxes, routing network, and model parameters) at the end of the simulation period. mHM is then able to restart a new simulation with this model configuration. This reduces the amount of computational time in the newly started simulation because mHM does not have to re-setup the model configuration (e.g., parameter fields and routing network).
+\li <b>Periods:</b> Your actual period of interest should be subsequent of a warming period, where model dynamics can set in properly. Remember to expand your input data by that period, too.
+\li <b>Soil Layers:</b> Soil parameters (not properties) are upscaled vertically in mHM. In this section you specify the number of horizons and depths for the hydrological processing. (This for example you do not find in any other model)
+\li <b>Land Cover:</b> You can provide different land cover files for different years.
+\li <b>LAI data:</b> Switch for choosing LAI option. The user can either select to run mHM with monthly look-up-table
+LAI values defined for 10 land classes or choose to run mHM using gridded LAI input data (e.g., MODIS).
+Gridded LAI data must be provided on a daily time-step at the Level-0 resolution.
+\li <b>Process Switches:</b> Currently only the routing switch is implemented.
+\li <b>Annual Cycles:</b> Values for pan evaporation hold in impervious regions only. The meteorological forcing table disaggregates daily input data to hourly values.
+
+
+\subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
+
+The file <code>mhm_output.nml</code> regulates how often (e.g. <code>timeStep_model_outputs = 24</code>) and which variables (fluxes and states) should be
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on varibales that are of actual interest, 
+because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
+
+\subsection mhmparameters Regionalised Parameters: Initial Values and Ranges
+
+The file <code>mhm_parameters.nml</code> contains all global parameters and their initial values. They have been determined by calibration in German basins
+and seem to be transferabel to other catchments. If you come up with a very different catchment or routing resolution, these parameters should be recalibrated
+(see section \ref calibration).
+
+
+\section calibration Calibration and Optimization
+
+By default, mHM runs without caring about observed discharge data. It will use default values of the global regionalised parameters \gamma, defined in 
+<code>mhm_parameters.nml</code> . In order to fit discharge to observed data, mHM has to be recalibrated. This will optimise the \gamma parameters 
+such that mHM arrives at a best fit for discharge. The optimization procedure runs mHM many many times, sampling parameters in their given ranges for each iteration,
+until the objective function converges to a confident best fit.
+
+\subsection optiroutines The Optimization Routines
+
+mHM comes with four available optimization methods:
+\li <b>MCMC:</b> The Monte Carlo Markov Chain sampling of parameter sets is recommended for estimation of parameter uncertainties. Intermediate results are written to <code>mcmc_tmp_parasets.nc</code> .
+\li <b>DDS:</b> The Dynamically Dimensioned Search is an optimization routine known improve the objective within a small number of iterations. However, the result of DDS is not neccessarily close to your global optimum. Intermediate results are written to <code>dds_results.out</code> .
+\li <b>Simulated Annealing:</b> Simulated Annealing is a global optimization algorithm. SA is known to require a large number of iterations before convergence (e.g. 100 times more than DDS), but finds parameter sets closer to the global minimum like DDS. Intermediate results are written to <code>anneal_results.out</code> .
+\li <b>SCE:</b> The Shuffled Complex Evolution is a global optimization algorithm which is based on the shuffling of parameter complexes. It needs more iterations compared to the DDS (e.g. 20 times more), but less compared to Simulated Annealing. The increasing computational effort (i.e. iterations) leads to more reliable estimation of the global optimum compared to DDS. Intermediate results are written to <code>sce_results.out</code> .
+
+Objective functions currently implemented in mHM are:
+\li <b>NSE:</b> Nash-Sutcliffe Efficiency, assuming constant + linearly relative errors. Recommended for fitting high flows.
+\li <b>lnNSE:</b> logarithmic Nash-Sutcliffe Efficiency, recommended for fitting low flows.
+\li <b>0.5*(NSE+lnNSE):</b> weights both NSE and lnNSE by 50%, roughly fits high and low flows.
+\li <b>Likelihood:</b> The confidence bands are probability density functions that capture variable errors, recommended for hydrological discharge.
+
+\subsection optisettings Calibration Settings for mHM
+
+The following settings in <code>mhm.nml</code> are required for calibrating mHM:
+
+\li <code>optimize = .true.</code>
+\li <code>opti_method = 1</code><br>
+    Choose methods: 0 (MCMC), 1 (DDS), 2 (SA), 3 (SCE)
+\li <code>opti_function = 1</code><br>
+    Choose objective functions: 1 (NSE), 2 (lnNSE), 3 (50% NSE+lnNSE), 4 (Likelihood)
+\li <code>nIterations = 40000</code><br>
+    Maximum number of iterations (mHM runs), optimisers will exit earlier if convergence criteria are reached.
+\li <code>seed = -9</code><br>
+    The default value -9 will take a seed number from the system clock. Be warned that simulations might not be random if you define a positive seed here.
+
+More specific settings are offered at the very end of the file <code>mhm.nml</code>.
+
+In <code>mhm_parameters.nml</code> you find the initial values and ranges from which the optimiser will sample parameters.
+Most ranges are very sensitive and have been determined by detailed sensitivity analysis, so we do not recommend to change them.
+With the FLAG column you may choose which parameters are allowed to be optimised. The parameter <code>gain_loss_GWreservoir_karstic</code> is not meant to be optimised.
+
+Please mind that optimization runs will take long and may demand a huge amount of hardware ressources. We recommend to submit those jobs to a cluster computing system.
+
+\subsection optiafter Final Calibration Results
+
+During calibration, mHM does not write out fluxes, states and discharge, so you need to perform a final run with the calibrated parameters.
+When the simulations are finished, the optimal parameter set is written to
+\code
+[OUTPUT_DIRECTORY]/FinalParams.out
+[OUTPUT_DIRECTORY]/FinalParams.nml
+\endcode 
+You can run mHM directly with the generated namelist (by renaming it) or incorporate the results in <code>FinalParams.out</code> as new initial values into <code>mhm_parameters.nml</code>.
+There are two scripts that help you with that:
+\li <code>pre-proc/create_multiple_mhm_parameter_nml.sh</code><br>
+    Useful for many optimisation runs (many lines in <code>FinalParams.out</code>)
+\li <code>post-proc/opt2nml-params.pl</code><br>
+    Useful to analize where the optimisation arrived. Using two arguments, <code>pathto/FinalParams.out</code> and <code>pathto/mhm_parameters.nml</code>,
+    it will (1) create a new <code>mhm_parameters.nml.opt</code> filled with the new values and (2) directly show the new parameters within their ranges and warn
+    if some have been close to their end of range by 1%.
+
+As soon as the new parameters are set, deactivate the <code>optimize</code> switch in <code>mhm.nml</code> and <b>rerun</b> mHM
+once in order to obtain the final optimised output.
+
+You should also have a look at the parameter evolution (e.g. <code>sce_results.out</code>) or final results. If any of the parameters stick to the very end of their allowed range, the result is not optimal and you will be in serious trouble. Possible reasons might be bad parameter ranges (even though they have been optimised mathematically, but in a basin or resoluion not comparable to yours) or bad input data.
+
+*/

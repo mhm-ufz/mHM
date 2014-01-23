@@ -1,0 +1,99 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Intel compiler 11.1.0764 at burnet.hpc.csiro.au
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+INTELDIR := /apps/intel/fc/11.1.064
+INTELLIB := /apps/intel/fc/11.1.064
+INTELBIN := $(INTELDIR)/bin/intel64
+
+# Compiling
+F90 := $(INTELBIN)/ifort
+FC  := $(F90)
+CC  := $(INTELBIN)/icc
+ifeq ($(release),debug)
+    F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
+    FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
+    CFLAGS   += -g -debug -traceback -fp-stack-check -O0 -debug -Wall -Wcheck
+else
+    # -vec-report1 to see vectorized loops; -vec-report2 to see also non-vectorized loops
+    F90FLAGS += -O3 -vec-report0 -override-limits
+    FCFLAGS  += -O3 -vec-report0 -override-limits
+    CFLAGS   += -O3
+endif
+F90FLAGS += -assume byterecl -cpp -fp-model precise -m64
+FCFLAGS  += -assume byterecl -cpp -fp-model precise -m64 -fixed
+MODFLAG  := -module # space significant
+CFLAGS   += -m64 -std=c99
+DEFINES  += -DINTEL -DINTEL_COMPILER
+
+# Linking
+ifeq ($(istatic),static)
+    LIBS += -static-intel
+endif
+LIBS += -L$(INTELLIB) -limf -lm -lsvml
+ifneq ($(istatic),static)
+     LIBS += -lintlc
+endif
+RPATH += -Wl,-rpath,$(INTELLIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+MKLDIR := /apps/intel/mkl/10.3.4.191/mkl
+MKLINC := $(MKLDIR)/include
+MKLLIB := $(MKLDIR)/lib/intel64
+MKL95DIR := $(MKLDIR)
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR := /apps/netcdf/3.6.3
+else
+    NCDIR   := /apps/netcdf/4.1.3
+    SZLIB   := /apps/szip/2.1/lib
+    HDF5LIB := /apps/hdf5/1.8.8/lib
+endif
+
+# PROJ
+PROJ4DIR := /apps/proj/4.7.0
+FPROJDIR :=
+
+# LAPACK
+LAPACKDIR   := /home/apps/lapack/3.4.0
+LAPACKLIB   := $(LAPACKDIR)/lib
+GFORTRANDIR := /home/apps/gcc/4.6.1
+GFORTRANLIB := $(GFORTRANDIR)/lib
+
+# Documentation
+DOXYGENDIR :=
+DOTDIR     :=
+TEXDIR     :=
+PERLDIR    :=

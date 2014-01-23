@@ -1,0 +1,298 @@
+/**
+\mainpage Introduction to mHM
+
+This chapter is divided in the following sections:\n
+- \ref description
+- \ref mHM         
+- \ref model       
+- \ref mpr         
+- \ref param_est   
+- \ref cal         
+
+\section description Short Description
+
+This document describes the source code for the mesoscale Hydrologic
+Model mHM.  mHM is based on accepted hydrological conceptualizations
+and is able to reproduce as accurately as possible not only observed
+discharge hydrographs at any point within a basin but also the
+distribution of soil moisture among other state variables and
+fluxes. To achieve these goals and to ensure a reliable performance in
+ungauged basins, this model employs a multiscale parameter
+regionalization technique to obtain effective at the scale of
+interest.
+
+This model is driven by daily or hourly precipitation, temperature
+fields that are acquired either from satellite products or from
+observation networks. In the latter case, the driving meteorological
+data has to be prepared in advance. A module for external drift
+Kriging is available upon request.
+
+\section mHM The Grid-based mHM Model
+
+The mHM hydrologic model is based on numerical approximations of
+dominant hydrological processes that have been tested in various
+models: HBV \cite Bergstroem1976, \cite HB2004, \cite BRK2008 and VIC
+\cite LLW1994. This model includes also a number of new features that
+will be described in the next section. In general, this model
+simulates the following processes: canopy interception, snow
+accumulation and melting, soil moisture dynamics, infiltration and
+surface runoff, evapotranspiration, subsurface storage and discharge
+generation, deep percolation and baseflow, and discharge attenuation
+and flood routing (\ref fig_mhm "mHM"). More information about the model
+can be found in
+\cite SKA2010.
+
+\image html mhm5-logo.png "Typical mHM cell" 
+\anchor fig_mhm \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm 
+
+
+Dominant processes of the hydrological cycle at mesoscale span over
+several orders of magnitude \cite BS1995. In this model, three
+levels (\ref fig_levels "mHM levels") will be differentiated to better
+represent the spatial variability of state and inputs variables:
+
+  \li  \e Level-0: Spatial discretization suitable to
+      describe the main features of the terrain, the main soil
+      characteristics (pedotop), and the land cover. The cell
+      size at this level is denoted by \f$ \ell_0 \f$.
+
+  \li \e Level-1: Spatial discretization used to
+      describe dominant hydrological processes
+      \cite Bloeschl2001 at the mesoscale as well as the main
+      geological formations of the basin. The cell size at this
+      level is denoted by \f$ \ell_1 \f$.
+
+  \li \e Level-2: Spatial discretization suitable to
+      describe the variability of the meteorological forcings at
+      the mesoscale, for example the formation of convective
+      precipitation. The cell size at this level is denoted by
+      \f$ \ell_2 \f$.
+
+\image html levels.png "Hierarchy of data and modeling levels in mHM" 
+\anchor fig_levels \image latex levels.pdf "Hierarchy of data and modeling levels in mHM" width=10cm
+
+
+\section model Model Formulation
+
+A mesoscale basin is an open natural system, composed of very
+heterogeneous materials and having fuzzy boundary conditions. The
+continuity assumption of the the input variables is quite difficult
+to justify considering that the spatial heterogeneity of a basin is
+mostly described by discrete attributes such soil texture types,
+land cover classes, and geological formations. Due to these reasons,
+a system of ordinary differential equations ODEs was adopted to
+describe the evolution of the state variables at a given location
+\f$ i \f$ within the domain \f$ \Omega \f$. This system of ODE is
+
+\f{eqnarray*}{
+      \dot{x}_{1i}  & = & P_i(t) - F_i(t) - E_{1i}(t)         \\
+      \dot{x}_{2i}  & = & S_i(t) - M_i(t)                     \\
+      \dot{x}_{3i}^l  & = & (1-\rho^l) I_i^{l-1}(t)  - E_{3i}^l(t) - I_i^l(t)\\
+      \dot{x}_{4i}  & = & \rho^1 \big(R_i(t) + M_i(t)\big) - E_{2i}(t) -  q_{1i}(t)\\
+      \dot{x}_{5i}  & = & I_i^L(t) - q_{2i}(t)- q_{3i}(t)- C_i(t)         \\
+      \dot{x}_{6i}  & = & C_i(t) - q_{4i}(t)         \\
+      \dot{x}_{7i}  & = & \hat{Q}_{i}^{0}(t)-\hat{Q}_{i}^{1}(t)
+ \f} 
+\f$  \quad  \forall i \in \Omega \f$.
+
+where 
+
+<b>Inputs | Description  </b>                                            
+--------- | ---------------------------------------------------------
+\f$P\f$   | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$E_p\f$ | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$T\f$   | Daily mean air temperature,               \f$^{\circ}C\f$
+
+<b>Fluxes    | Description  </b>                                            
+------------ | ---------------------------------------------------------
+\f$S\f$      | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$R\f$      | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$M\f$      | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$E_p\f$    | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$F\f$      | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$E_1\f$    | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$  
+\f$E_2\f$    | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$  
+\f$E_3\f$    | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$I\f$      | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$C\f$      | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$q_{1}\f$  | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
+\f$q_{2}\f$  | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$q_{3}\f$  | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+\f$q_{4}\f$  | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ 
+
+<b> Outputs      | Description </b>                                           
+---------------- | ---------------------------------------------------------
+\f$Q_{i}^{0}\f$  |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ 
+\f$Q_{i}^{1}\f$  |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$  
+
+<b> States | Description  </b>                                            
+---------- | ---------------------------------------------------------
+\f$x_1\f$  | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$
+\f$x_2\f$  | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$ 
+\f$x_3\f$  | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$ 
+\f$x_4\f$  | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$ 
+\f$x_5\f$  | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$
+\f$x_6\f$  | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$ 
+\f$x_7\f$  | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$ 
+
+<b> Indices  | Description </b>                                          
+------------ | ---------------------------------------------------------
+\f$l\f$      | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$ 
+\f$t\f$      | Time index for each \f$\Delta t\f$ interval 
+\f$\rho^l\f$ | Overall influx fraction accounting for the impervious cover within a cell 
+
+
+\section mpr The Multiscale Parameter Regionalization Technique
+
+mHM requires at most 28  parameters (depending of the configuration)
+per cell to account for the spatial variability of the dominant
+hydrological processes at a mesoscale river basin. These \e effective
+\e parameters have to be estimated through calibration. Calibrating
+this model with a significant number of free parameters for every grid
+cell would lead to over-parameterization in a mesoscale
+catchment. This, in turn, would tend to increase the predictive
+uncertainty of the model due to the \e equifinality \cite Beven1993
+of feasible solutions. Moreover, the high dimensionality of this
+optimization problem is also a daunting task for the state-of-the-art
+optimization algorithms \cite PG2009. To overcome this problem a
+multiscale parameter regionalization (MPR) was employed in the mHM
+model \cite SKA2010.
+
+\image html upscaling.png "MPR"
+\anchor fig_mpr \image latex upscaling.pdf "MPR" width=10cm
+
+Based on this regionalization method, model parameters at a coarser
+grid (Level-1) are linked with their corresponding ones at a finer
+resolution (Level-0) (\ref fig_mpr "MPR"). The linkage is done with upscaling
+operators. Model parameters at the finer scale are, in turn,
+regionalized with nonlinear transfer functions that couple catchment
+descriptors with the global parameters. Process understanding and
+empirical evidence are used to define these a priori
+relationships. The general form of an upscaling operator
+\f$\mathrm{O}\f$ is:
+
+\f[
+  \beta_{ki}(t)=  \mathrm{O}_k \Big \langle \beta_{kj}(t) \quad \forall j \in i \Big \rangle_{i}
+\f]
+
+where
+
+\f[
+  \beta_{kj}(t)=  f_k \Big( u_j(t), \gamma  \Big).
+\f]
+
+Here \f$k=1,\ldots,K\f$ with \f$K\f$ denoting the number of distributed model
+parameters. \f$ u_j\f$ denotes a \f$v\f$-dimensional predictor vector for
+cell \f$j\f$ at level-0 which is contained by cell \f$i\f$ at level-1
+(e.g. land cover, elevation, soil texture).
+
+\f$ \gamma \f$ is a \f$s\f$-dimensional vector of transfer
+parameters(super parameters), with \f$s\f$ denoting the number of free
+parameters to be calibrated or total degrees of freedom.
+\f$\mathrm{O}_k \langle \bullet \rangle_{i}\f$ denotes the kind of
+operator applied for the regionalization of the parameter \f$k\f$.
+Several types of operators were employed, e.g. majority
+\f$\mathcal{M}\f$, arithmetic mean \f$\mathcal{A}\f$, maximum difference
+\f$\mathcal{D}\f$, geometric mean \f$\mathcal{G}\f$, and harmonic mean
+\f$\mathcal{H}\f$. This table also shows the
+type of relationship employed for the transfer function and the
+predictors. By establishing such a relationships, the calibration
+algorithm finds good solutions for the transfer functions parameters
+(\f$s=\f$ 45) instead of the model parameters for every grid cell. This,
+in turn, implies a great reduction of complexity since \f$ K \times n
+\gg s\f$, where \f$n\f$ denotes the total number of cells of a given basin
+at level-1. 
+
+\section param_est The Parameter Estimation Problem
+
+Let \f$\mathbf{M}\{\mathbf{f},\mathbf{g}\}\f$  be a dynamic, spatially
+distributed, parameter efficient, integrated model that relates a
+number of state variables \f$\mathbf{x}\f$ with some \e observables
+called: inputs \f$\mathbf{u}\f$ and outputs \f$\mathbf{y}\f$. In general,
+the system is described by the following system of equations
+
+\f{eqnarray*}{
+ \dot{\mathbf{x}}(i,t) & = &\mathbf{f}(\mathbf{x},\mathbf{u}, \beta, \gamma )(i,t) + \eta(i,t)\\
+ \mathbf{y}(i,t)    &=& \mathbf{g}(\mathbf{x}, \mathbf{u}, \beta, \gamma )_{\Omega} +  \epsilon(i,t)\\
+\f}
+
+where
+
+  \li \f$\mathbf{f}\f$ is a system of functional relationships in mHM
+      (continuous or discrete) that denote the evolution of the
+      system over time.
+  \li \f$\mathbf{g}\f$ is a vector of functional relationships
+      used to quantify the expected output (e.g. runoff) of the model denoted
+      by \f$\mathbf{\hat{y}}\f$.
+  \li \f${\epsilon}\f$ denotes the uncertainty of the system originated by
+      defects on measurements of both the inputs and outputs.
+  \li \f${\eta}\f$ denotes the uncertainty originated by the simplification
+      included during the formulation of \f$\mathbf{M}\f$ or due to
+      the lack of knowledge of the relevant processes (i.e. any kind
+      of model structure deficiency). This term is ignored
+      in the present case.
+  \li \f${\beta}\f$ denotes the fields of effective mHM parameters at
+  level-1 estimated as described in section (\ref mpr "MPR").
+  \li \f$ \gamma\f$ is a vector of global parameters characterized by a
+      probability density function \f$\Phi_{\gamma_s}\f$. 
+  \li \f$i\f$, \f$t\f$ represent a point in space and time
+     respectively.
+
+In general, \f$\gamma\f$ can be estimated, for example, by
+\f[
+    \min_{\hat{{\gamma}}}=\|\mathbf{y} -\mathbf{\hat{y}}\|
+\f]
+
+where \f$\|\cdot\|\f$ denotes a robust estimator. Many procedures to
+estimate global parameters are provided in mHM (e.g. simulated
+annealing \cite AK90, dynamically dimensioned search \cite TS2007.
+Other techniques can be found in the CHS Fortran Library. 
+
+
+\section cal Model Calibration
+
+Good parameter sets for \f$ \gamma \f$ were identified with a
+split-sampling technique using an adaptive constrained optimization
+algorithm based on simulated annealing (SA) \cite AK90. The overall
+model efficiency was estimated as a weighted combination of four
+estimators based on the Nash-Sutcliffe efficiency (NSE) between
+observed and calculated streamflows using three different time scales
+(daily, monthly and annual) as well as the logarithms of the
+streamflow to downplay the effects of the peak flows over the low
+flows \cite HB2005. These objective functions are denoted by
+\f$\phi_k,\, k=1,4\f$. Every objective function should be normalized
+in the interval [0,1], with 1 representing the best posible solution.
+The overall objective function to be minimized is then
+
+\f[
+    \Phi = \Big(\sum_i w_i^p (1-\phi_i)^p \Big)^{\frac{1}{p}}
+\f]
+
+where \f$p>1\f$, and \f$\sum_{i=1}^4 w_i =1\f$. Here \f$p\f$ is an exponent
+according to the compromise programming technique \cite Duc84 and
+\f$w_i\f$ denote the degree of importance of each objective. High values
+of \f$p\f$, say \f$p=6\f$, should be chosen to avoid substitution of
+objective function values at low levels. In general, the
+estimators related to daily streamflows were twice as important as
+the long-term ones, thus
+\f$\{w_i\}=\{\frac{2}{4},\frac{1}{4},\frac{1}{4},\frac{2}{4} \}\f$.
+The NSE for a given time interval \f$t'\f$ is given by
+
+\f[
+    \phi_k = 1 - \frac{\displaystyle \sum_{t'} \left(y_k(t') - \hat{y}_k(t')\right)^2}
+                      {\displaystyle \sum_{t'} \left(y_k(t') - \overline{y}_k(t')\right)^2 }
+\f]
+
+where \f$\overline{y}_k(t')\f$ is the mean value of the observations
+time series over the calibration period. The index \f$k\f$ denotes here
+the daily, monthly, yearly, and the transformed \f$\ln y(t)\f$
+streamflow discharges. \f$y\f$ and \f$\hat{y}\f$ denote the observed and
+simulated streamflows at a given time scale.
+
+\section links Helpful links
+
+Coding and Documentation Style (see \ref style) \n
+Setup netCDF on your MacOS system (see \ref NETCDF) \n
+Data Preparation for mHM (see \ref data) \n
+
+*/
