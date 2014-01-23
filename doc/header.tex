@@ -1,0 +1,93 @@
+\documentclass{book}
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{makeidx}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{ifthen}
+\usepackage[table]{xcolor}
+\usepackage{textcomp}
+\usepackage{alltt}
+\usepackage{ifpdf}
+\ifpdf
+\usepackage[pdftex,
+            pagebackref=true,
+            colorlinks=true,
+            linkcolor=blue,
+            unicode
+           ]{hyperref}
+\else
+\usepackage[ps2pdf,
+            pagebackref=true,
+            colorlinks=true,
+            linkcolor=blue,
+            unicode
+           ]{hyperref}
+\usepackage{pspicture}
+\fi
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[scaled=.90]{helvet}
+\usepackage{courier}
+\usepackage{sectsty}
+\usepackage{amssymb}
+\usepackage[titles]{tocloft}
+\usepackage{doxygen}
+\lstset{language=C++,inputencoding=utf8,basicstyle=\footnotesize,breaklines=true,breakatwhitespace=true,tabsize=4,numbers=left }
+\makeindex
+\setcounter{tocdepth}{3}
+\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\familydefault}{\sfdefault}
+\hfuzz=15pt
+\setlength{\emergencystretch}{15pt}
+\hbadness=750
+\tolerance=750
+\begin{document}
+\hypersetup{pageanchor=false,citecolor=blue}
+\begin{titlepage}
+\vspace*{2.0cm}
+\begin{center}
+{\Huge \bf multiscale Hydrologic Model}\\
+\vspace*{1cm}
+{\Huge mHM}\\
+\vspace*{1cm}
+\includegraphics[totalheight=5.0cm]{../figures/mhm5-logo.pdf}\\
+\vspace*{1.5cm}
+{\Large Documentation for version 5.0}\\
+\vspace*{2.5cm}
+{\large Edited by Luis Samaniego}\\
+\vspace*{0.5cm}
+{\large in cooperation with}\\
+\vspace*{0.5cm}
+{\large 
+Matthias Cuntz,
+John Craven,
+Giovanni Dalmasso,
+Rohini Kumar,
+Juliane Mai,
+Jude Musuuza,\\
+Vladyslav Prykhodko,
+David Sch\"{a}fer,
+Christoph Schneider,
+Martin Schr\"{o}n,\\
+Diana Spieler,
+Stephan Thober,
+Matthias Zink }\\
+\vspace*{2cm}
+{\large Helmholtz Centre for Environmental Research - UFZ}\\
+\vspace*{0.25cm}
+{\large \copyright 2005-2013}\\
+\vspace*{0.75cm}
+\includegraphics[totalheight=1.75cm]{../figures/ufz_logo.pdf}\\
+
+\end{center}
+\end{titlepage}
+\clearemptydoublepage
+\pagenumbering{roman}
+\tableofcontents
+\clearemptydoublepage
+\pagenumbering{arabic}
+\hypersetup{pageanchor=true,citecolor=blue}

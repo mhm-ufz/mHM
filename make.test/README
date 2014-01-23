@@ -1,0 +1,57 @@
+----------------------------------------
+        MAKE TEST
+----------------------------------------
+
+To run all the test cases type 
+
+     $ make test
+
+on your command line. If test case was running properly, i.e. is 
+consistent with the pre-defined output, command line output will be 
+
+     $ case #[id] o.k. 
+
+otherwise, if the test scenario failed either during runtime or 
+because of inconsistent output 
+
+     $ case #[id] failed
+
+will be written on standard output. Additionally, you will find a file
+mhm.output in each specific test case folder case_[id]/ containing the 
+mHM print-outs. Inspecting this file might help you to find the reason 
+of failure. Only if all test cases pass the make test, a new feature
+of mHM is allowed to be committed via
+
+     $ svn commit -m "mo_[module name]: I have added this feature."
+
+Please be aware that the test cases only include switches specified 
+within a namelist. This means that you should run "make test" with 
+the Makefile setting for
+
+    (1a) compiler = Gnu
+    (1b) compiler = Nag
+    (1c) compiler = Intel
+    (2a) openmp   = true
+    (2b) openmp   = false
+
+----------------------------------------
+        TEST CASES
+----------------------------------------
+
+case 0 :: DEFAULT
+
+case 1 :: RESTART READING AND WRITING
+   restart_flag_states_read   = .TRUE.      (default: .FALSE.)
+   restart_flag_states_write  = .TRUE.      (default: .TRUE. )
+   restart_flag_config_read   = .TRUE.      (default: .FALSE.)
+   restart_flag_config_write  = .TRUE.      (default: .TRUE. )
+
+case 2 :: ROUTING DEACTIVATED
+   processCase(8) = 0                       (default: 1)
+
+case 3 :: OPTIMIZATION ACTIVATED
+   optimize       = .TRUE.                  (default: .FALSE.)
+   opti_method    = 1                       (default: 3      )
+   nIterations    = 6                       (default: 400    )
+   
+   

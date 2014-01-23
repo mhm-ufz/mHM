@@ -1,0 +1,480 @@
+/**
+\page data Data Preparation for mHM
+
+This chapter is divided in the following sections:\n
+- \ref starting
+- \ref meteo
+- \ref morph    
+- \ref gis   
+- \ref tables
+- \ref lcover  
+
+\section starting Getting Started
+
+To run mHM the user requires a number of datasets. The follwing subsection gives
+a short overview and references to freely available datasets.
+
+\subsection meteo_data Meteorological variables 
+
+Meteorological data is usually available from the weather services of the countries of modelling
+interest. Freely available alternatives are the EOBS (http://www.ecad.eu/download/ensembles/download.php) 
+and the WATCH datasets (http://www.eu-watch.org/gfx_content/documents/README-WFDEI.pdf). 
+
+You may have difficulties
+finding measurement data for Potential Evapotranspiration (PET). One possible solution,
+would be to calculate PET from the much easier available variables mean, maximum and minimum 
+air temperature, using the Hargreaves-Samani method.
+
+The three meteorological variables needed:
+
+<b> Name                         | Unit                    | Temporal resolution </b> 
+---------------------------------|-------------------------|---------------------
+Precipitation                    | \f$\mathrm{mm}\f$       | hourly to daily  
+Average air temperature          | \f$^\circ \mathrm{C}\f$ | hourly to daily 
+Potential evapotranspiration     | \f$\mathrm{mm}\f$       | hourly to daily                
+
+\subsection morph_data Morphological variables
+
+In addition to the Digital Elevation Models (DEM) usually provided by federal authorities, a number of free alternatives exists.
+SRTM data is available from 60° South to 60° North in a 3" (~ 90 m) resolution (http://srtm.csi.cgiar.org/), the ASTER-GDEM 
+covers the entire globe with a resolution of 1" (http://gdem.ersdac.jspacesystems.or.jp/). Hydrographically corrected 
+SRTM data and a number of derived products in different resolutions are available from the HydroSHEDS project 
+(http://hydrosheds.cr.usgs.gov/index.php).
+
+Soil and hydrogeological data is usually provided by the geological surveys. On the soil side the
+Harmonized World Soil Database would be a free alternative (http://webarchive.iiasa.ac.at/Research/LUC/External-World-soil-database/HTML/).
+
+<b> Name                 | Unit  | Temporal resolution </b>        
+------------------------ | ----- | ---
+Digital elevation model  | \f$\mathrm{m}\f$ | -
+Soil maps with textural properties (\% sand and clay contents, bulk density per horizon, and root depth zone) | -  | -
+Geological maps with aquifer properties  (specific yield, permeability, aquifer thickness)                    | -  | -  
+Streamflow location      | \f$(\mathrm{m}, \mathrm{m})\f$ (lat,lon)                                                | -
+
+
+\subsection luse_data Land Cover
+
+Free land cover data is available from different sources. The Corine programm provides land cover scenes for Europe 
+with resolutions of 100m and 250m (http://www.eea.europa.eu/publications/COR0-landcover), the Global Land Cover Map 2000 
+a dateset covers the entire world in a resolution of 1km.
+
+<b> Name                 | Unit  | Temporal resolution </b>        
+------------------------ | ----- | ---
+Land cover scenes        |  -    | monthly to annual
+Leaf area index          |  -    |  weekly to monthly 
+
+
+\subsection gauge_data Gauging Station Information 
+
+Streamflow measurments should also be available from federal authorities. In addition, the Global Runoff Data Center provides
+timeseries of varying length for several thousand gauging stations all over the world (http://www.bafg.de/GRDC)
+
+<b> Name                 | Unit                               | Temporal resolution </b>        
+------------------------ | -----------------------------------| ---
+Streamflow  measurements | \f$\mathrm{m}^3 \mathrm{s}^{-1}\f$ | hourly to daily
+
+\subsection optional Optional Data  
+
+<b> Name                         | Unit                                     | Temporal resolution </b>
+-------------------------------- | ---------------------------------------- | ---
+Snow cover                       | -                                        | daily to weekly
+Land surface temperature         | \f$\mathrm{K}\f$                         | daily to weekly
+Groundwater station location     | \f$(\mathrm{m}, \mathrm{m})\f$ (lat,lon) |  - 
+Groundwater head measurements    | \f$\mathrm{m}\f$                         | weekly to monthly
+Eddy covariance station location | \f$(\mathrm{m}, \mathrm{m})\f$ (lat,lon) |  - 
+Eddy covariance  measurements    | \f$\mathrm{m}\f$                         | hourly
+
+
+
+\section meteo  Preparation of the Forcings
+
+Forcing data should be available from federal databases like DWD for Germany. Be sure to bring data in the netcdf format, like
+\code
+    precipitation-1950-2013.nc
+\endcode
+These files can be edited with the CDO module package in order to select or change data.
+Please read the according CDO and NCKS reference sheets for details and make sure to load the CDO modules before starting.
+
+\subsection extractncsize Extract Data to the Size of a Catchment
+
+Let FULLMAP.nc be the the forcing data of a region much greater than your catchment.
+Let X1, X2, Y1, Y2 be the coordinates (lon and lat) of a rectangular overlapping the catchment.
+The forcing data MAP.nc for your catchment can be extracted by the CDO command:
+\code
+    cdo sellonlatbox,X1,X2,Y1,Y2 FULLMAP.nc MAP.nc
+\endcode
+Optionally, certain pixels can be extracted, too:
+\code
+    ncks -d x,1,1 -d y,2,2 MAP.nc PIXEL.nc
+\endcode
+
+\subsection extractncdata Extact Data to the Time Period of Interest
+
+Let MAP.nc be the forcing data including your period of interest. Let DATE1 and DATE2 be the starting and ending dates of your period, respectively.
+Their date format is YYYY-MM-DD. The data PERIOD.nc can be extracted by the CDO command:
+\code
+    cdo seldate,DATE1,DATE2 MAP.nc PERIOD.nc
+\endcode
+Please note that a reference date according to DATE1 should be provided in PERIOD.nc:
+\code
+    cdo setreftime,DATE1,00:00:00,days PERIOD.nc FINAL.nc
+\endcode
+ 
+\subsection datatypes Data Types
+
+Any data provided for mHM should be of the data type DOUBLE. You should convert all data related to a variable VAR (e.g. tavg) with the following CDO command:
+\code
+    cdo -b F64 selname,VAR FINAL.nc FINAL64.nc
+\endcode
+
+The only exception here is the time, its data type has to be INTEGER. This can be changed with NCAP2:
+\code
+    ncap2 -s 'time=int(time)' STILLNOTFINAL.nc FINAL.nc
+\endcode
+
+\subsection varnames Variable Names
+
+In mHM the variable names of the forcing are hard-coded. They need to be
+- "tavg" for average temperature
+- "pre" for precipitation
+- "pet" for evapotranspiration
+
+For example, you can change the variable name TEMPERATURE in your NETCDF file with the following CDO command:
+\code
+    cdo chname,TEMPERATURE,tavg TEMPDATA.nc TEMPDATA-FINAL.nc
+\endcode
+
+\subsection headerfiles The Header File
+
+Every meteorological data file should come with an additional file "header.txt" in the same directory.
+In the following example, we have only one pixel of data (ncols=nrows=1) and a cell size of 4km. The lat lon coordinates should be adapted to your morphological data of your catchment.
+\code
+ncols         1
+nrows         1
+xllcorner     639357.3
+yllcorner     5723706.2
+cellsize      4000
+NODATA_value  -9999
+\endcode
+
+\subsection nodata NODATA values
+
+In order to be consistent in your data, you should specify the same NODATA value everywhere. For example, specify "-9999" in your header file as NODATA value.
+Usually, this should be changed also in NC files by the <code>ncatted</code> command. The following example overwrites or adds (o) the NODATA attribute "_FillValue"
+with value "-9999" of type double (d) to the variable "pre":
+\code
+ncatted -O -a _FillValue,pre,o,d,-9999. INOUT.nc
+\endcode
+
+\section latlon Preparation of the LatLon Grid
+
+As input mHM additionally needs a <code>latlon.nc</code> file specifying the geographical location of every grid cell.
+This file has to be adjusted for every resolution of the level-1 hydrological simulations.
+
+In order to do that a python script was delivered, which can be found in <code>pre-proc/</code>.
+As input, a file <code>header.txt</code> is needed, but the existing header files for meteorological data should not be modified.
+Therefore, copy one of these files that you generated for meteo data (see \ref meteo):
+\code
+cp [INPUT_DIRECTOY]/input/meteo/pre/header.txt [INPUT_DIRECTORY]/input/latlon/
+\endcode
+Edit the new file <code>header.txt</code> such that <code>cellsize</code> equals your hydrologic resolution. You have to adapt <code>ncols</code> and <code>nrows</code>
+to that resolution such that it covers the whole region. For example, reducing the cell size from 2000 to 100, the number of columns and rows should be increased by a factor of 20.
+
+By default, coordinates are created in <code>epsg:31463</code> projection, which is DHDN / 3-degree Gauss-Kruger zone 3.
+This can be changed in the variable <code>coord_system</code> in <code>pre-proc/create_latlon.py</code> (see <a href="http://www.spatialreference.org/ref/epsg/31463/">www.spatialreference.org/ref/epsg/31463</a> for help).
+
+Change to the directory where you like to have header and latlon file located, or change paths in the script code. Then execute:
+\code
+cd [INPUT_DIRECTORY]/latlon/
+python [MHM_DIRECTORY]/pre-proc/create_latlon.py
+\endcode
+
+Keep in mind that you need one latlon file for each hydrologic resolution in mHM. Since the filename <code>latlon.nc</code> is hard-coded in mHM,
+we recommend to create different directories for each resolution you need, containing the related header and latlon file.
+
+
+\section morph  Preparation of the Morphological Data
+
+MHM needs several morphological input datasets. All these have to be provided as raster maps in the ArcGis ascii-format, which stores the above header and the actual data
+ as plain text. Some of the raster files need to be complemented by look-up tables providing additional information. The tables and their structure are described in more detail in subsection \ref tables.
+ Take care of the follwing limitations to mHM input data during data processing:
+ \arg All gridded input, i.e. your morphological and your meteorological data, needs to cover the same spatial domain. That means, that the values xllcorner, yllcorner,
+    xllcorner+ncols*cellsize and yllcorner+nrows*cellsize have to be identical for all files!
+ \arg MHM allows you to provide your meteorological forcing in a different horizontal resolution than the morphological data. The larger cellsize however needs to be a multiple of
+    the smaller.  
+
+The required datasets and their corresponding filenames:
+
+<b> Description	  	    	       	    | Raster file name  | Table file name        </b> 	 
+--------------------------------------------|-------------------|----------------
+Sink filled Digital Elevevation Model (DEM) | dem.asc	        | -
+Slope map   	        		    | slope.asc	        | -
+Aspect Map			            | aspect.asc	| -
+Flow Direction map		            | fdir.asc	        | -
+Flow Accumulation map                       | facc.asc	   	| -
+Gauge(s) position map  		       	    | idgauges.asc      | [gauge-id].txt
+Soil map	     		       	    | soil_class.asc    | soil_classdefinition.txt
+Hydrogeological map		       	    | geology_class.asc | geology_classdefinition.txt
+Leaf Area Index (LAI) map	       	    | LAI_class.asc     | LAI_classdefinition.txt
+Land use map   			       	    | your choice       | -
+
+\section gis A possible GIS workflow 
+
+In the following paragraphs a possible GIS workflow is outlined using the software ArcMAP 10 with the Spatial Analyst Extension
+ and optionally the Arc Hydro Tools (http://downloads.esri.com/blogs/hydro/AH2/ArcHydroTools_2_0.zip)
+
+\subsection gnrl General considerations 
+
+\arg As the spatial discretizations (i.e. resolutions, origin) of your datasets will most likely differ, it is recommended to set the following envirnmental settings on every processing step outlined
+   in the following paragraphs.
+         \image html environments.png "Button 'Environments...' in all Toolbox windows"		
+      	 \anchor fig_environments \image latex environments.png "Button 'Environments...' in all Toolbox windows" width=14cm		
+   Point to the largest of your input data grids in 'Extent' and 'Snap Raster', which is usually the dataset with the coarsest horizontal resolution. In the likely case, that this is your meteorological 
+   input, create a grid from any of your netcdf-files first.
+         \image html netcdf_to_raster.png "System Toolboxes -> Multidimension Tools -> Make NetCDF Raster Layer"		
+	  \anchor fig_netcdf_to_raster \image latex netcdf_to_raster.png "System Toolboxes -> Multidimension Tools -> Make NetCDF Raster Layer" width=14cm		  
+   Save the output grid (right click the raster in the 'Table of Contents' -> 'Data' -> 'Export Data...').
+
+\arg If the map projections of your datasets differ, a harmonization of these becomes necessary. Repeat the depicted step to convert all your input files. Which projection to choose is highly 
+   dependent on your simulation domain and size. For the current model version an equal-area projection is strongly recommended.
+     \image html project.png "System Toolboxes -> Data Management Tools -> Projections and Transformations -> Raster -> Project Raster"
+     \anchor fig_project \image latex project.png "System Toolboxes -> Data Management Tools -> Projections and Transformations -> Raster -> Project Raster" width=14cm 	
+
+\arg If your input datasets are not already in the desired level-0 resolution, resample the DEM, the hydrogeological, LAI, soil and land use maps.       
+    Choosing an appropiate resolution depends on data quality and needed level of simulation detail, but keep in mind that:
+
+     1. Your different input resolution levels must be multiples of each other. E.g. you should choose a level-0 resolution of 100m (instead of 90m in case you are using SRTM data) if your
+        meteorological input resolution is 4km.
+
+     2. Model runtime directly depends on the number of grid cells.
+
+     \image html resample.png "System Toolboxes -> Data Management Tools -> Raster -> Raster Processing -> Resample"
+     \anchor fig_resample \image latex resample.png "System Toolboxes -> Data Management Tools -> Raster -> Raster Processing -> Resample" width=14cm    
+
+\arg  It is important that all your morphological input files exactly cover the same spatial domain. That also means that if a cell contains valid data in any one of the datasets, the very same cell must 
+    also be definied in all the others. One possibility to solve this typical problem would be to set such 'doubtful' cells to the corresponding NODATA_value. Therefore create a mask as
+    depicted below, which only contains cells, that are defined everywhere.  
+     \image html data_mask.png "System Toolboxes -> Spatial Analyst Tools -> Map Algebra -> Raster Calculator"
+     \anchor fig_data_mask \image latex data_mask.png "System Toolboxes -> Spatial Analyst Tools -> Map Algebra -> Raster Calculator" width=14cm   
+
+    Mask all the mentioned datasets with the output of the 'Raster Calculator' follwing the procedure described in \ref mask of this tutorial. In case the described processing step is necessary, 
+    accomplish it <b> before </b> you reach  subsection \ref hydro ! Masking these maps would most likely disturb the hydrological 
+    properties of your catchment data and result in unexpected model behaviour.
+
+\subsection slope Slope map
+     \image html slope.png "System Toolboxes -> Spatial Analyst Tools -> Surface -> Slope"
+     \anchor fig_slope \image latex slope.png "System Toolboxes -> Spatial Analyst Tools -> Surface -> Slope" width=14cm 
+
+
+\subsection aspect Aspect map 
+     \image html aspect.png "System Toolboxes -> Spatial Analyst Tools -> Surface -> Aspect"
+     \anchor fig_aspect \image latex aspect.png "System Toolboxes -> Spatial Analyst Tools -> Surface -> Aspect" width=14cm 
+
+
+\subsection fill Fill DEM sinks 
+     \image html fill.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Fill"
+     \anchor fig_fill \image latex fill.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Fill" width=14cm 
+
+
+\subsection hydro Flow direction and flow accumulation 
+
+  Depending on quality and resolution of the DEM map, these steps can be done with the respective tools from the Spatial Anaylst Extension or by using the Arc Hydro Tools.
+
+  \subsubsection spatial_analyst Spatial Analyst
+
+     If a high quality DEM, with a resolution fine enough to represent small scale river morphology is available, you may calculate flow direction and flow accumulation directly.
+
+     \arg Flow Directon
+          \image html fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction"
+     	  \anchor fig_fdir \image latex fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction" width=14cm 
+     \arg Flow Accumulation
+          \image html facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation"
+     	  \anchor fig_facc \image latex facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation" width=14cm 
+
+  \subsubsection arc_hydro_tools Arc Hydro Tools 
+
+     Using the Arc Hydro Tools is recommended in case of doubtful DEM quality and/or coarse map resolutions. 
+
+     \arg In a first step the original DEM must be reconditioned, i.e. the given altitudes will be reassigned in dependence of a stream network. The latter must be given as a Line Shapefile. 
+       In case the necessary stream network file is not available, you can get one from the USGS HydroSHEDS download portal http://hydrosheds.cr.usgs.gov/dataavail.php.
+          \image html hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"
+     	  \anchor fig_agree \image latex hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"  width=14cm
+     \arg Fill the sinks in the resulting reconditioned DEM     
+          \image html hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks"
+     	  \anchor fig_hydro_fill \image latex hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks" width=14cm
+     \arg Calculate Flow Direction
+          \image html hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction"
+     	  \anchor fig_hydro_fdir \image latex hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction" width=14cm
+     \arg Create a Flow Accumulation map
+          \image html hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation"
+     	  \anchor fig_hydro_facc \image latex hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation" width=14cm
+
+
+\subsection gauges Gauges map 
+
+  \arg Assuming that you have the positions of your gauges in a table, which has at least the colums x, y, id (in any order and/or amongst other columns), you are able to 
+     to convert your data into a Point Shapefile. Choose the appropiate fields and do not forget to set the coordinate system information.
+      	  \image html xy_gauges.png "Right click on the table in Arc Catalog - > Create Feature Class -> From XY Table"
+     	  \anchor fig_xy_gauges \image latex xy_gauges.png "Right click on the table in Arc Catalog - > Create Feature Class -> From XY Table" width=8cm
+     
+
+  \arg Check the positions of your gauges against the previously created Flow Accumulation map. If the points do not exactly match the stream-like features on the Flow Accumulation grid, 
+     edit the Shapefile (right click on the Point Feature in the Table of Contents -> Edit Features -> Start Editing) and move the gauges to do so. Changing the depiction of the Flow Accumulation map might
+     facilitate this step (i.e. right click the Flow Accumulation map in the Table of Contents -> Properties -> Tab 'Symbology' -> Choose 'Stretched' in the 'Show' box on the left hand side and Type 
+     'Standard Deviations' in the center box. It might also be necessary to invert the color ramp by (un-)checking the 'Invert' check box). Remember to stop the editing process and save your edits 
+     (Editor Toolbar -> Editor -> Stop Editing). 
+     	     \image html move_gauge.png "Mismatching gauges (left) should be replaced (right)"
+     	     \anchor fig_move_gauge \image latex move_gauge.png "Mismatching gauges (left) should be corrected (right)" width=14cm
+
+  \arg Convert the resulting shapefile into an raster map with level-0 resolution.
+            \image html point_to_raster.png "System Toolboxes -> Conversion Tools -> To Raster -> Point to Raster"
+  	    \anchor fig_point_to_raster \image latex point_to_raster.png "System Toolboxes -> Conversion Tools -> To Raster -> Point to Raster" width=14cm
+
+
+\subsection watershed Watershed delineation 
+
+\arg Edit the (possibly corrected) gauges shapefile created during the last processing step again and remove all but the outlet gauge. If you need 
+   the unedited file, create a copy of the original Shapefile before editing it.
+
+\arg Delineate the basin 
+       	  \image html basin.png "System Toolboxes -> Spatial Analyst -> Hydrology -> Watershed"
+     	  \anchor fig_basin \image latex basin.png "System Toolboxes -> Spatial Analyst -> Hydrology -> Watershed" width=14cm    	      
+
+ \subsection mask Mask the datasets
+
+ Mask all mHM input raster files with the created watershed mask
+    \image html mask.png "System Toolboxes -> Spatial Analysis Tools > Extraction > Extract by Mask"
+    \anchor fig_mask \image latex mask.png  "System Toolboxes -> Spatial Analysis Tools > Extraction > Extract by Mask" width=14cm
+
+\subsection format Write the ascii grids
+
+ Convert the processed and masked raster maps into ASCII files   
+     \image html ascii.png "System Toolboxes -> Conversion Tools -> From Raster -> Raster to ASCII"
+     \anchor fig_ascii \image latex ascii.png "System Toolboxes -> Conversion Tools -> From Raster -> Raster to ASCII" width=14cm
+
+
+\section lcover Land Cover Data
+
+Unlike the other classified datasets (soils, hydrogeology, LAI), where as much information as available can be added, the land use data is restricted to
+three different classes, which are listed below:
+
+Class | Description
+------|------------
+1     | Forest
+2     | Impervious
+3     | Pervious
+
+
+\section tables Table Data
+
+As previously stated, the input datasets 'soil_class.asc', 'geology_class.asc', 'idgauges.asc' and 
+'LAI_class.asc' need to be complemented by look-up-tables.
+All these look-up tables specify the total number of classes/units to read in the very first line, 
+following the keywords 'nSoil_Types', 'nGeo_Formations' and 'NoLAIclasses' respectively. The second line
+acts as a header describing the contents of the following data. In the subsection \ref soil_table
+\ref, hydrogeo_table and \ref lai_table screenshots of shorted, but sufficient table 
+files are presented. All fields are further listed and described in the repective tables.
+
+\subsection soil_table The soil look-up table
+ 
+\image html soil_classdefinition.png "A possible 'soil_classdefinion.txt' file"
+\anchor fig_soil_classdefinition \image latex soil_classdefinition.png "A possible 'soil_classdefinion.txt' file" width=16cm
+
+Field     | Description
+----------|---------------------
+MU_GLOBAL | Soil id as given in the corresponding 'soil_class.asc' map. All raster map ids must be given here
+HORIZON   | Horizon number starting at the top of the soil column. Your are free to provide any number of horizons for each soil individually
+UD[mm]    | Upper depth of the horizon in millimeter. Should be 0 for the first, and the lower depth of the superimposing horizon for all others
+LD[mm]    | Lower depth of the horizon in millimeter
+CLAY[%]   | Clay content in percent
+SAND[%]   | Sand content in percent
+BD[gcm-3] | Mineral bulk density in grams per cubic centimeter
+
+\subsection hydrogeo_table The hydrogeolgy look-up table
+
+\image html geology_classdefinition.png "A possible 'geology_classdefinion.txt' file"
+\anchor fig_geology_classdefinition \image latex geology_classdefinition.png "A possible 'geology_classdefinion.txt' file" width=16cm
+
+Field        | Description
+-------------|---------------------
+GeoParam(i)  | Parameter number of the formation, the link to 'mhm_parameter.nml'
+ClassUnit    | Class id as present in the 'hydrogeology_class.asc' raster map
+Karstic      | Presence of karstic formation (0: False, 1: True)
+Description  | Text description of the unit
+
+\subsection lai_table The LAI look-up table 
+
+\image html lai_classdefinition.png "A possible 'LAI_classdefinion.txt' file"
+\anchor fig_lai_classdefinition \image latex lai_classdefinition.png "A possible 'LAI_classdefinion.txt' file" width=16cm
+
+
+Field        | Description
+-------------|---------------------
+ID           | LAI class id as given in the file LAI_class.asc
+LAND-USE     | Description of the LAI class
+Jan. to Dec. | Monthly LAI values
+
+\subsection gauge_files The gauge files 
+    
+\image html gauge.png "A possible gauge file"
+\anchor gauge \image latex gauge.png "A possible gauge file" width=16cm
+
+
+The structure of the gauge files is different from the look-up tables listed 
+so far. The following table describes its content.
+
+Line      | Description
+----------|-----------------
+1         | Gives basic information about the gauging station (Station-Id:Station-Name/River-Name)
+2         | Specifies the nodata value
+3         | The number of measurements per day
+4         | The start date of the time series in the format given in parentheses
+5         | The end date of the time series in the format given in parentheses	
+6 to end  | The measurement data in cubic meter per second preceded by the actual date in the same format as the dates of lines four and five
+
+For every gauge id given in 'idgauges.asc' one gauge file has to be created as outlined above. The file name has to <b> exactly </b> reflect the gauge id and carry a '.txt' extension.
+The table data file for a gauge with an id of 0343 in 'idgauges.asc' should 
+therfore be named '0343.txt'.
+
+\section post-gis Post-GIS preparation
+
+Make sure that all decimals are indicated with dots, not commas:
+\code
+    perl -i.bak -pe 's/\,/\./g' *.asc
+\endcode
+
+Make sure that accuracy of your llcorners is reasonable. For example, the following code removes all but one digits after the dot:
+\code
+    perl -i.bak -pe  's/(^[xy].+)\.(\d)\d+/$1\.$2/g' *.asc
+\endcode
+
+Make sure that your files cover the same spatial domain. In case your grid origins match, but you are missing rows and columns,
+the perl script <code>pre-proc/enlargegrid.pl</code> will pad your data at the top and the right end of the grid.
+\code
+/basin/input/morph/$ ~/mhm/pre-proc/enlargegrid.pl aspect.pl
+ 31 rows with 47 cols.
+/basin/input/morph/$ ~/mhm/pre-proc/enlargegrid.pl 50 40
+ aspect.asc
+ dem.asc
+ facc.asc
+ fdir.asc
+/basin/input/morph/$ ~/mhm/pre-proc/enlargegrid.pl aspect.pl
+ 40 rows with 50 cols.
+\endcode
+
+If your data differs more substantially the program 'mHM/pre-proc/resize_grid.py' will harmonize your grids. 
+\code
+	python match_grids.py source_grid target_grid out_grid
+\endcode
+
+The script takes three Input arguments:
+1. The source grid to be enlarged
+2. The target grid which could also be an header file as described in subsection \ref headerfiles
+3. An output file
+
+The program will fail, if your target grid is smaller than the source grid or if the cellsizes of both grids are not divisable. 
+If necessary the source grid will be shifted in order to make both origins match. This 'shift' is only accomplished by changing 
+the values of the corner coordinates, no real interpolation will be done.
+
+*/
+

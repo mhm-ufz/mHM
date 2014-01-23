@@ -1,0 +1,43 @@
+/**
+\page output Visualising Output
+
+mHM usually writes two files into the output directory specified in mhm.nml:
+\code
+    daily_discharge.out
+    mHM_Fluxes_States.nc
+\endcode
+
+The first file  daily_discharge.out is ASCII type and can be read by any standard editor or ASCII interpreting scripts.
+In mHM_Fluxes_States.nc all the spatial and temporal output is written.
+This is a binary NETCDF file which can be visualised with NCVIEW (part of the NETCDF library), VISIT (LLNL Software) or analysis scripts based on Python (PyNGL).
+
+For a quick analysis we recommend NCVIEW since it quickly visualises those files via command-line and X-forwarding. Make sure to load the NC module before starting.
+\code
+    ncview FILE.nc
+\endcode
+In order to hide unnecessary output messages, you may pipe them to a log file:
+\code
+    ncview FILE.nc 1> ~/log/ncview.out 2> ~/log/ncview.err
+\endcode
+If you want to transfer large nc files through servers or visualise them locally, it might be useful to compress the data before. 
+The featured nc file deflation with the <code>ncks</code> module will decrease the file size usually by 30-60%. Choose the deflation level from minimum (0) to maximum (9). The <code>-4</code> switch in the following command will convert netcdf3 files to version 4 simultanously.
+\code
+ncks -4 -L 9 IN.nc OUT.nc
+\endcode
+
+<b>Using X-Forwarding under Windows</b>
+
+On Windows we recommend CYGWIN including MINTTY, OPENSSH and XINIT, XMING as the X server. An alternative is PUTTY using X-forwarding.
+The workflow in MINTTY is as follows:
+\code
+    /bin/XWin.exe -multiwindow
+    ssh -Y SERVERNAME
+    module load ncview
+    ncview FILE.nc
+\endcode
+In some cases it has proven to be necessary to add the following line to /etc/profile
+\code
+    export DISPLAY=:0
+\endcode
+
+*/

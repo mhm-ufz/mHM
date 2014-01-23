@@ -1,0 +1,103 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Absoft compiler at Matthias' iMac
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+ABSOFT := /Applications/Absoft11.1
+ABSOFTBIN := $(ABSOFT)/bin
+ABSOFTINC := $(ABSOFT)/f90includes64
+ABSOFTLIB := $(ABSOFT)/lib64
+
+GNUDIR := /usr/local
+GNULIB := $(GNUDIR)/lib
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(ABSOFTBIN)/f90
+FC  := $(F90)
+CC  := $(GNUBIN)/gcc
+ifeq ($(release),debug)
+    # -s for initialize to 0;
+    # -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end interface
+    # Vectorisation: -YLOOP_ANALYZER -LNO:simd_verbose=on -LNO:simd=2 (1: default; 2: aggressive)
+    F90FLAGS += -g -en -Ra -Rb -Rc -Rn -Rp -Rs -YNDFP=1 -O0 -z0
+    #F90FLAGS += -g -en     -Rb -Rc     -Rp -Rs -YNDFP=1 -O0 -z0
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    #CFLAGS   += -Wall -W -O -g
+else
+    F90FLAGS += -O3
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -O3
+endif
+#F90FLAGS += -m64 -cpp -f free -safefp -OPT:roundoff=0 #-stack:1f40000
+F90FLAGS += -m64 -cpp -safefp -OPT:roundoff=0 -p $(OBJPATH) #-stack:1f40000
+# -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end F90FLAGS += -Z399
+MODFLAG  := -YMOD_OUT_DIR=# space significant
+FCFLAGS += $(F90FLAGS)
+CFLAGS  +=
+DEFINES += -DABSOFT -DgFortran
+LDFLAGS += -m64
+
+# IMSL
+IMSLDIR := /opt/imsl/fnl600/macab110e64
+
+# MKL
+MKLDIR := /opt/intel/composerxe-2011.4.184/mkl
+MKLINC := $(MKLDIR)/include/intel64/lp64
+MKLLIB := $(MKLDIR)/lib
+MKL95DIR := /opt/lib/mkl95_lapack/absoft
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR := $(ABSOFT)
+    NCINC := $(ABSOFTINC)
+    NCLIB := $(ABSOFTLIB)
+else
+    NCDIR   := $(ABSOFT)
+    NCINC   := $(ABSOFTINC)
+    NCLIB   := $(ABSOFTLIB)
+    SZLIB   := /usr/local
+    HDF5LIB := $(ABSOFTLIB)
+endif
+
+# PROJ
+PROJ4DIR := /usr/local
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   :=
+GFORTRANDIR := /usr/local
+
+# Documentation
+DOXYGENDIR := /Applications/Program/Doxygen.app/Contents/Resources
+DOTDIR     := /usr/local/bin
+TEXDIR     := /usr/texbin
+PERLDIR    := /usr/bin
