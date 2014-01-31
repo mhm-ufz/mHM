@@ -682,7 +682,7 @@ CONTAINS
     integer(i4)                              :: igauge_start, igauge_end
     integer(i4)                              :: day, month, year
     real(dp)                                 :: newTime
-
+    
 
     ! initalize igauge_start
     igauge_start = 1
@@ -704,19 +704,20 @@ CONTAINS
        end if
 
        ! header
-       write(formHeader, *) '( 4a8, ' , basin%nGauges(bb),'(2X, a5, i7.7, 2X, a5, i7.7) )' 
+       write(formHeader, *) '( 4a8, ' , basin%nGauges(bb),'(2X, a5, i10.10, 2X, a5, i10.10) )' 
        write(udaily_discharge, formHeader) 'No', 'Day', 'Mon', 'Year', &
             ( 'Qobs_', gauge%gaugeId(gg), &
             'Qsim_', gauge%gaugeId(gg), gg=igauge_start, igauge_end )
+
        ! form data
-       write(formData, *) '( 4I8, ' , basin%nGauges(bb),'(2X,   f12.7 , 2X,  f12.7  ) )' 
+       write(formData, *) '( 4I8, ' , basin%nGauges(bb),'(2X,   f15.7 , 2X,  f15.7  ) )' 
 
        ! write data
        newTime  = real(evalPer%julStart,dp) - 0.5_dp
 
-       do tt = 1, (evalPer%julEnd - evalPer%julStart + 1)
+       do tt = 1, (evalPer%julEnd - evalPer%julStart + 1)          
           call dec2date(newTime, yy=year, mm=month, dd=day)
-          write(udaily_discharge, formData) tt, day, month, year, ( Qobs(tt,gg), Qsim(tt,gg), gg=igauge_start, igauge_end )
+          write(udaily_discharge, formData) tt, day, month, year, ( Qobs(tt,gg), Qsim(tt,gg) , gg=igauge_start, igauge_end )
           newTime = newTime + 1.0_dp
        end do
 
