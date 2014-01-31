@@ -8,6 +8,10 @@
                      TASKS FOR NEXT RELEASE
 =================================================================================================
 
+substitute numerical recipes code
+
+transfer mo_file to a namelist to allow for more flexible filenames
+
 automatic make test 
 (Resp.: Jule, Matthias C)
 -- test case 1 :: w/o restart read
