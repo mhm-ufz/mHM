@@ -75,7 +75,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2011-2014 Matthias Cuntz, Juliane Mai, Stephan Thober
+#    Copyright 2011-2013 Matthias Cuntz, Juliane Mai, Stephan Thober
 #
 # Written Matthias Cuntz & Juliane Mai, UFZ Leipzig, Germany, Nov. 2011 - mc (at) macu.de
 

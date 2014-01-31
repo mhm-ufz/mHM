@@ -761,7 +761,7 @@ CONTAINS
     if ( abs(fo) .lt. tiny(0.0_dp) ) fo = 0.0000001_dp * maxit_in
 
     file_write: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(n+2)*30)
        if (.not. ldummy) then
           write(999,*) '0', fo, gamma(:)%old
        else
@@ -979,7 +979,7 @@ CONTAINS
        history_out(iTotalCounter/LEN_IN,2) = maxit_in * fBest*normPhi
 
        file_write2: if (present(tmp_file)) then
-          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append',recl=(n+2)*30)
           write(999,*) iTotalCounter, maxit_in * fBest*normPhi, gamma(:)%best
           close(999)
        end if file_write2

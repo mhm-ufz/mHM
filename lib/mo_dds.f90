@@ -262,7 +262,7 @@ CONTAINS
     if (present(history)) history(1) = of_new
 
     file_write: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
        if (imaxit .lt. 0.0_dp) then
           write(999,*) '0', of_best, pini
        else
@@ -311,7 +311,7 @@ CONTAINS
        if (present(history)) history(i+1) = of_best
 
        file_write2: if (present(tmp_file)) then
-          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
           if (imaxit .lt. 0.0_dp) then
              write(999,*) i, of_best, dds
           else
@@ -537,7 +537,7 @@ CONTAINS
     if (present(history)) history(1) = of_new
 
     file_write: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
        if (imaxit .lt. 0.0_dp) then
           write(999,*) '0', of_best, mdds
        else
@@ -605,7 +605,7 @@ CONTAINS
        end if
 
        file_write2: if (present(tmp_file)) then
-          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
           if (imaxit .lt. 0.0_dp) then
              write(999,*) i, of_best, mdds
           else

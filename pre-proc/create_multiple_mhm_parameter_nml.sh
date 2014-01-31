@@ -74,7 +74,7 @@ while getopts "hn:p:qz" Option ; do
         q) quiet=1;;
         z) zeros=1;;
         *) printf "Error ${pprog}: unimplemented option.\n\n";  usage 1>&2; exit 1;;
-    esac
+    esac 
 done
 shift $((${OPTIND} - 1))
 #
@@ -288,7 +288,7 @@ if [[ ${skip} -gt 0 ]] ; then
     # deletes trailing and leading spaces and skips some lines
     sed -e 's/^ *//g' -e 's/ *$//g' -e "1,${skip}d" ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
 else
-    tr "${delim}" ';' < ${infile} > sinfile.${pid}
+    sed -e 's/^ *//g' -e 's/ *$//g' ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
 fi
 
 for k in ${list} ; do

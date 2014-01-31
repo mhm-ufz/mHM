@@ -634,7 +634,7 @@ CONTAINS
        call write_best_final()
     end if
     file_write_initial: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append',recl=(nn+6)*30)
        if (.not. maxit) then
           write(999,*) 0,1,ngs1,fpini,fpini,1.0_dp, pini
        else
@@ -1195,7 +1195,7 @@ CONTAINS
       logical, intent(in) :: to_file
 
       if (to_file) then
-         open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append')
+         open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append',recl=(nn+6)*30)
          if (.not. maxit) then
             write(999,*) nloop,icall,ngs1,bestf_tmp,worstf,gnrng, (bestx(jj),jj=1,nn)
          else
@@ -1242,7 +1242,7 @@ CONTAINS
 
       if (to_file) then
          write(format_str2,'(A13,I3,A9)') '(I4, E22.14, ',nn,'(E22.14))'
-         open(unit=999,file=trim(adjustl(popul_file)), action='write', position='append')
+         open(unit=999,file=trim(adjustl(popul_file)), action='write', position='append',recl=(nn+2)*30)
          if (.not. maxit) then
             do ii = 1, npt1
                write(999,*) nloop, xf(ii), (x(ii,jj),jj=1,nn)
@@ -1584,7 +1584,7 @@ CONTAINS
     !
     use mo_kind,         only: i4, i8, dp
     use mo_xor4096,      only: n_save_state
-    use iso_fortran_env, only: output_unit, error_unit
+    use iso_fortran_env, only: output_unit
 #ifndef GFORTRAN
     use ieee_arithmetic, only: ieee_is_finite
 #endif
