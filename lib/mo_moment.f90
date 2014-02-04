@@ -1317,7 +1317,7 @@ CONTAINS
     p(:) = s(:)*s(:)
     var = sum(p(:), mask=maske)
     var = (var-ep*ep/n)/(n-1.0_dp)
-    if ( abs(var) .lt. tiny(0.0_dp) ) stop 'kurtosis_dp: no kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_dp)) stop 'kurtosis_dp: no kurtosis when zero variance'
     ! Kurtosis
     p(:) = p(:)*s(:)*s(:)
     kurtosis_dp = sum(p(:), mask=maske)
@@ -1358,7 +1358,7 @@ CONTAINS
     p(:) = s(:)*s(:)
     var = sum(p(:), mask=maske)
     var = (var-ep*ep/n)/(n-1.0_sp)
-    if (abs(var) .lt. tiny(0.0_sp) ) stop 'kurtosis_sp: no kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_sp)) stop 'kurtosis_sp: no kurtosis when zero variance'
     ! Kurtosis
     p(:) = p(:)*s(:)*s(:)
     kurtosis_sp = sum(p(:), mask=maske)
@@ -1673,7 +1673,7 @@ CONTAINS
     if (present(stddev))   stddev   = sqrt(var)
     if (.not. (present(skewness) .or. present(kurtosis))) return
     ! Skewness
-    if ( abs(var) .lt. tiny(0.0_dp) ) stop 'moment_dp: no skewness or kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_dp)) stop 'moment_dp: no skewness or kurtosis when zero variance'
     p(:) = p(:)*s(:)
     if (present(skewness)) then
        skewness = sum(p(:), mask=maske)
@@ -1911,7 +1911,7 @@ CONTAINS
     var = (var-ep*ep/n)/(n-1.0_sp)
     stddev = sqrt(var)
     ! Skewness
-    if ( abs(var) .lt. tiny(0.0_sp)) stop 'skewness_sp: no skewness when zero variance'
+    if (abs(var) .lt. tiny(0.0_sp)) stop 'skewness_sp: no skewness when zero variance'
     p(:) = p(:)*s(:)
     skewness_sp = sum(p(:), mask=maske)
     skewness_sp = skewness_sp/(n*stddev*stddev*stddev)
