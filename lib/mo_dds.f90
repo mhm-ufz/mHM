@@ -264,9 +264,11 @@ CONTAINS
     file_write: if (present(tmp_file)) then
        open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
        if (imaxit .lt. 0.0_dp) then
-          write(999,*) '0', of_best, pini
-       else
+          ! Maximize
           write(999,*) '0', -of_best, pini
+       else
+          ! Minimize
+          write(999,*) '0', of_best, pini
        end if
        close(999)
     end if file_write
@@ -313,9 +315,11 @@ CONTAINS
        file_write2: if (present(tmp_file)) then
           open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
           if (imaxit .lt. 0.0_dp) then
-             write(999,*) i, of_best, dds
-          else
+             ! Maximize
              write(999,*) i, -of_best, dds
+          else
+             ! Minimize
+             write(999,*) i, of_best, dds
           end if
           close(999)
        end if file_write2
@@ -539,9 +543,11 @@ CONTAINS
     file_write: if (present(tmp_file)) then
        open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
        if (imaxit .lt. 0.0_dp) then
-          write(999,*) '0', of_best, mdds
-       else
+          ! Maximize
           write(999,*) '0', -of_best, mdds
+       else
+          ! Minimize
+          write(999,*) '0', of_best, mdds
        end if
        close(999)
     end if file_write
@@ -607,9 +613,11 @@ CONTAINS
        file_write2: if (present(tmp_file)) then
           open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
           if (imaxit .lt. 0.0_dp) then
-             write(999,*) i, of_best, mdds
-          else
+             ! Maximize
              write(999,*) i, -of_best, mdds
+          else
+             ! Minimize
+             write(999,*) i, of_best, mdds
           end if
           close(999)
        end if file_write2
