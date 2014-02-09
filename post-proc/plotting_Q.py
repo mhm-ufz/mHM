@@ -15,24 +15,32 @@ from matplotlib.patches import Rectangle
 # input dirs and files
 ######################
 #
-QFile     = '../old_code/sub_00020/output_b1/daily_discharge.out' # 'daily_Q.out'
-
 # -------------------------------------------------------------------------
 # Command line arguments
 #
+infile    = '../test/output_b1/daily_discharge.out'
+gaugeid   = '0000411'
 pdffile   = ''
 import optparse
 parser = optparse.OptionParser(usage='%prog [options]',
-                               description="Plotting file following template of MC.")
+                               description="Plotting discharge of gauge ID")
+
+parser.add_option('-i', '--infile', action='store', dest='infile', type='string',
+                  default=infile, metavar='File',
+                  help='Name input file containing discharge time series.')
+parser.add_option('-g', '--gaugeid', action='store', dest='gaugeid', type='string',
+                  default=gaugeid, metavar='File',
+                  help='Name of pdf output file (default: open X-window).')
+
 parser.add_option('-p', '--pdffile', action='store', dest='pdffile', type='string',
                   default=pdffile, metavar='File',
                   help='Name of pdf output file (default: open X-window).')
 (opts, args) = parser.parse_args()
 
+infile   = opts.infile
+gaugeid  = opts.gaugeid
 pdffile  = opts.pdffile
 del parser, opts, args
-#if os.path.exists(pdffile):   # delete existing outputfile before start new
-#        sys.exit('ERROR: Output file does already exists!')
 # -------------------------------------------------------------------------
 # Customize plots
 #
@@ -112,20 +120,20 @@ ifig = 0
 # read discharge file
 ######################
 #
-QHead       = np.array(ufz.fread(QFile, header=True, skip=1, squeeze=False))
-Qdata       = np.array(ufz.fread(QFile, skip=1, squeeze=False))
+QHead       = np.array(ufz.fread(infile, header=True, skip=1, squeeze=False))
+Qdata       = np.array(ufz.fread(infile, skip=1, squeeze=False))
 #
 ######################
 # prepare data for plot
 ######################
-
+gauge = gaugeid.zfill(10)
 # time  = Qdata[:,np.where(QHead == 't')[0]]
-day    = Qdata[:,np.where(QHead == 'Day')[0]]
+day   = Qdata[:,np.where(QHead == 'Day')[0]]
 month = Qdata[:,np.where(QHead == 'Mon')[0]]
 year  = Qdata[:,np.where(QHead == 'Year')[0]]
 time  = ufz.date2dec(dy=day,mo=month,yr=year) - ufz.date2dec(dy=1,mo=1,yr=year[0])
-Qobs  = Qdata[:,np.where(QHead == 'Qobs_0000411')[0]]
-Qcal  = Qdata[:,np.where(QHead == 'Qsim_0000411')[0]]
+Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]]
+Qcal  = Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0]]
 #
 ###################################################################
 # plot
@@ -145,7 +153,8 @@ l1 = ax.plot(time, Qcal, 'k-', label=ur'Q$_{sim}$')
 # observed series
 l2 = ax.plot(time, Qobs, marker='o', linestyle='', markerfacecolor='None', markeredgecolor='r' , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
 #
-plt.title('First run mHM v5.0: 20.02.2013 19:12:50')
+catch=[s for s in infile.split('/') if 'sub' in s][0].split('_')[1].upper()
+plt.title(catch)
 NSE = 1. - np.sum((Qcal-Qobs)**2) / np.sum((Qobs-np.mean(Qobs))**2)
 plt.figtext(0.15, 0.85, r'NSE = '+ str(np.round(NSE,4)) )
 # legend
