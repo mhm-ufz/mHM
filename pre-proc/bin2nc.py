@@ -6,7 +6,7 @@
 #
 from __future__ import print_function
 
-import ufz
+import ufz     as ufz
 import numpy   as np
 import netCDF4 as nc  
 import struct  as struct
@@ -15,12 +15,12 @@ import struct  as struct
 # Command line arguments
 # -------------------------------------------------------------------------
 
-headerfile         = '../test/input/meteo/pre/header.txt'
-outfile            = '../test/input/meteo/pre/out.nc'
-indir              = '../test/input/meteo/pre/'
-years              = '1980,1981'
+headerfile         = '../test_basin/input/meteo/pre/header.txt'
+outfile            = '../test_basin/input/meteo/pre/out.nc'
+indir              = '../test_basin/input/meteo/pre/'
+years              = '1989,1993'
 #
-latlonfile         = '../test/input/latlon/latlon.nc'
+latlonfile         = '../test_basin/input/latlon/latlon.nc'
 variable           = 'pre'
 variable_long_name = 'daily sum of precipitation'
 variable_unit      = 'mm d-1'
@@ -31,8 +31,17 @@ parser = optparse.OptionParser(usage='%prog [options]',
 
 # usage example with command line arguments
 # -------------------------------------------------------------------------
-# python bin2nc.py -f '../test/input/meteo/tavg/header.txt' -o '../test/input/meteo/tavg/out.nc' -i '../test/input/meteo/tavg/' \
-#                  -y '1980,1981' -c '../test/input/latlon/latlon.nc' -v 'tavg' -l 'daily mean air temperature' -u 'degC'
+# Precipitation:
+#
+# python bin2nc.py -f ../test_basin/input/meteo/pre/header.txt -o ../test_basin/input/meteo/pre/pre.nc -i ../test_basin/input/meteo/pre/ -y 1989,1993 -c ../test_basin/input/latlon/latlon.nc -v pre -l 'daily sum of precipitation' -u 'mm d-1'
+#
+# Temperature
+#
+# python bin2nc.py -f '../test_basin/input/meteo/tavg/header.txt' -o '../test_basin/input/meteo/tavg/out.nc' -i '../test_basin/input/meteo/tavg/' -y '1989,1993' -c '../test_basin/input/latlon/latlon.nc' -v 'tavg' -l 'daily mean air temperature' -u 'degC'
+#
+# PET
+#
+# python bin2nc.py -f '../test_basin/input/meteo/pet/header.txt' -o '../test_basin/input/meteo/pet/out.nc' -i '../test_basin/input/meteo/pet/' -y '1989,1993' -c '../test_basin/input/latlon/latlon.nc' -v 'pet' -l 'daily sum of potential evapotranspiration' -u 'mm d-1'
 # -------------------------------------------------------------------------
 
 parser.add_option('-f', '--header', action='store', dest='headerfile', type='string',
@@ -40,26 +49,26 @@ parser.add_option('-f', '--header', action='store', dest='headerfile', type='str
                   help='Header file containing information about e.g. number of rows and columns. (default: header.txt).')
 parser.add_option('-o', '--outfile', action='store', dest='outfile', type='string',
                   default=outfile, metavar='NetCDF file.',
-                  help='Name of NetCDF file. (default: outfile=../test/input/meteo/out.nc).')
+                  help='Name of NetCDF file. (default: outfile=../test_basin/input/meteo/out.nc).')
 parser.add_option('-i', '--indir', action='store', dest='indir', type='string',
-                  default=indir, metavar='Directory containing *.bin files',
-                  help='Directory containing annual files [YYYY].bin (default: ../test/input/meteo/pre/).')
+                  default=indir, metavar='Directory of *.bin files.',
+                  help='Directory containing annual files [YYYY].bin (default: ../test_basin/input/meteo/pre/).')
 parser.add_option('-y', '--years', action='store', dest='years', type='string',
-                  default=years, metavar='Yearly files to be converted.',
-                  help='Yearly files to be converted via -y <from year>,<to year> (e.g. defualt= -y 1980,1981).')
+                  default=years, metavar='Years of *.bin files.',
+                  help='Yearly files to be converted via -y <from year>,<to year> (default: "1989,1993").')
 parser.add_option('-c', '--coordinates', action='store', dest='latlonfile', type='string',
-                  default=latlonfile, metavar='NetCDF containing latitude and longitide grid.',
-                  help='NetCDF containing latitude and longitide grid. <You may use create_latlon.py>. ' +
-                        'defualt= ../test/input/latlon/latlon.nc')
+                  default=latlonfile, metavar='Latlon file.',
+                  help='NetCDF containing latitude and longitide grid. You may use create_latlon.py. ' +
+                        '(default: ../test_basin/input/latlon/latlon.nc)')
 parser.add_option('-v', '--varname', action='store', dest='variable', type='string',
-                  default=variable, metavar='Variable name in NetCDF (e.g. pre, tavg, pet)',
-                  help='Variable name used in NetCDF (e.g. pre, tavg, pet).')
+                  default=variable, metavar='NetCDF Variable.',
+                  help='Variable name used in NetCDF and has to be exactly one of {pre, tavg, pet} (default: pre).')
 parser.add_option('-l', '--varnamelong', action='store', dest='variable_long_name', type='string',
-                  default=variable_long_name, metavar='Attribute long_name of variable in NetCDF (e.g. <daily sum of precipitation>).',
-                  help='Attribute long_name of variable in NetCDF (e.g. <daily sum of precipitation>).')
+                  default=variable_long_name, metavar='Long_name in NetCDF.',
+                  help='Attribute long_name of variable in NetCDF (default: "daily sum of precipitation").')
 parser.add_option('-u', '--variable_unit', action='store', dest='variable_unit', type='string',
-                  default=variable_unit, metavar='The attribute unit of variable in NetCDF (e.g. <mm d-1>).',
-                  help='The attribute unit of variable in NetCDF (e.g. <mm d-1>).')
+                  default=variable_unit, metavar='Unit in NetCDF.',
+                  help='The attribute unit of variable in NetCDF (default: "mm d-1").')
 
 (opts, args) = parser.parse_args()
 
@@ -138,8 +147,7 @@ ufz.writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, co
 # create variable and write attributes of it to NetCDF file
 varAtt  = ([['long_name'     , variable_long_name           ],
             ['units'         , variable_unit                ],
-            ['missing_value' , float(info[5][0])            ],
-            ['fill_value'    , float(info[5][0])            ],
+            ['_FillValue'    , float(info[5][0])            ],
             ['coordinates'   , 'lon lat'                    ]])
 varName = variable
 #var     = mask_upscale
