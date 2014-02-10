@@ -9,30 +9,40 @@ import numpy       as np    # module for number crunching
 import scipy.stats.mstats as scim
 import ufz
 import matplotlib as mpl
-from matplotlib.patches import Rectangle
 #
 ######################
 # input dirs and files
 ######################
 #
-QFile     = '../old_code/sub_00020/output_b1/daily_discharge.out' # 'daily_Q.out'
-
 # -------------------------------------------------------------------------
 # Command line arguments
 #
+infile    = '../test_basin/output_b1/daily_discharge.out'
+gaugeid   = '55555'
 pdffile   = ''
+usetex    = False
 import optparse
 parser = optparse.OptionParser(usage='%prog [options]',
-                               description="Plotting file following template of MC.")
+                               description="Plotting discharge of gauge ID")
+
+parser.add_option('-i', '--infile', action='store', dest='infile', type='string',
+                  default=infile, metavar='File',
+                  help='Name input file containing discharge time series (default: "../test_basin/output_b1/daily_discharge.out").')
+parser.add_option('-g', '--gaugeid', action='store', dest='gaugeid', type='string',
+                  default=gaugeid, metavar='String',
+                  help='Gauge ID as defined in gaugeinfo.txt (default: 55555).')
 parser.add_option('-p', '--pdffile', action='store', dest='pdffile', type='string',
                   default=pdffile, metavar='File',
                   help='Name of pdf output file (default: open X-window).')
+parser.add_option('-t', '--usetex', action='store_true', default=usetex, dest="usetex",
+                  help="Use LaTeX to render text in pdf.")
 (opts, args) = parser.parse_args()
 
+infile   = opts.infile
+gaugeid  = opts.gaugeid
 pdffile  = opts.pdffile
+usetex   = opts.usetex
 del parser, opts, args
-#if os.path.exists(pdffile):   # delete existing outputfile before start new
-#        sys.exit('ERROR: Output file does already exists!')
 # -------------------------------------------------------------------------
 # Customize plots
 #
@@ -77,29 +87,33 @@ frameon    = True        # if True, draw a frame around the legend. If None, use
 llxbbox2   = 0.60        # Tight bounding of symbol and text (w/o lines)
 llhtextpad2= 0.          #                   "
 llhlength2 = 1.0         #                   "
-#
+
+sotextsize = 12
 if (outtype == 'pdf'):
     mpl.use('PDF') # set directly after import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
     # Customize: http://matplotlib.sourceforge.net/users/customizing.html
     mpl.rc('ps', papersize='a4', usedistiller='xpdf') # ps2pdf
+    mpl.rc('figure', figsize=(11.69,8.27)) # a4 portrait
+    if usetex:
+        mpl.rc('text', usetex=True)
+        mpl.rc('text.latex', unicode=True)
+        mpl.rcParams['text.latex.preamble']=r'\usepackage{wasysym}'
+    else:
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif']  = 'Times'
+    mpl.rc('font', size=sotextsize)
 else:
     import matplotlib.pyplot as plt
-#
-#mpl.rc('figure',     figsize=( 8.27, 11.69)) # a4 portrait
-mpl.rc('figure',     figsize=(11.69,  8.27)) # a4 landscape
-#mpl.rc('figure',     figsize=( 8, 5)) # for AGU 2012 Poster
-mpl.rc('font',       **{'family':'sans-serif','sans-serif':['Helvetica']})
-mpl.rc('font',       size=textsize)
-mpl.rc('lines',      linewidth=lwidth, color='black')
-mpl.rc('axes',       linewidth=alwidth, labelcolor='black')
-mpl.rc('legend',     fontsize=textsize)
-mpl.rc('path',       simplify=False) # do not remove
-mpl.rc('text',       usetex=True)
-mpl.rc('text.latex', unicode=True)
+    mpl.rc('figure', figsize=(4./5.*11.69,4./5.*8.27)) # a4 portrait
+    mpl.rc('font', size=textsize)
+mpl.rc('lines', linewidth=lwidth, color='black')
+mpl.rc('axes', linewidth=alwidth, labelcolor='black')
+mpl.rc('path', simplify=False) # do not remove
 
 ##############################################################################################
+
 if (outtype == 'pdf'):
     print 'Plot PDF ', pdffile
     pdf_pages = PdfPages(pdffile)
@@ -112,20 +126,20 @@ ifig = 0
 # read discharge file
 ######################
 #
-QHead       = np.array(ufz.fread(QFile, header=True, skip=1, squeeze=False))
-Qdata       = np.array(ufz.fread(QFile, skip=1, squeeze=False))
+QHead       = np.array(ufz.fread(infile, header=True, skip=1, squeeze=False))
+Qdata       = np.array(ufz.fread(infile, skip=1, squeeze=False))
 #
 ######################
 # prepare data for plot
 ######################
-
+gauge = gaugeid.zfill(10)
 # time  = Qdata[:,np.where(QHead == 't')[0]]
-day    = Qdata[:,np.where(QHead == 'Day')[0]]
+day   = Qdata[:,np.where(QHead == 'Day')[0]]
 month = Qdata[:,np.where(QHead == 'Mon')[0]]
 year  = Qdata[:,np.where(QHead == 'Year')[0]]
 time  = ufz.date2dec(dy=day,mo=month,yr=year) - ufz.date2dec(dy=1,mo=1,yr=year[0])
-Qobs  = Qdata[:,np.where(QHead == 'Qobs_0000411')[0]]
-Qcal  = Qdata[:,np.where(QHead == 'Qsim_0000411')[0]]
+Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]]
+Qcal  = Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0]]
 #
 ###################################################################
 # plot
@@ -139,13 +153,14 @@ ax        = fig.add_subplot(111)
 #
 ax.set_xlim(1, Qcal.shape[0])
 ax.set_xlabel('Time')
-ax.set_ylabel('Discharge Q [m$^3~s^{-1}$]')
+ax.set_ylabel('Discharge Q [m$^3~$s$^{-1}$]')
 # simulation
 l1 = ax.plot(time, Qcal, 'k-', label=ur'Q$_{sim}$')
 # observed series
 l2 = ax.plot(time, Qobs, marker='o', linestyle='', markerfacecolor='None', markeredgecolor='r' , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
 #
-plt.title('First run mHM v5.0: 20.02.2013 19:12:50')
+#catch=[s for s in infile.split('/') if 'sub' in s][0].split('_')[1].upper()
+#plt.title(catch)
 NSE = 1. - np.sum((Qcal-Qobs)**2) / np.sum((Qobs-np.mean(Qobs))**2)
 plt.figtext(0.15, 0.85, r'NSE = '+ str(np.round(NSE,4)) )
 # legend
