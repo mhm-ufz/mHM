@@ -1072,6 +1072,7 @@ CONTAINS
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
 
+    ! allocate
     allocate ( rowOut        ( nNodes ) )
     allocate ( colOut        ( nNodes ) )
     allocate ( nLinkFromN    ( nNodes ) )  ! all network vectors valid from (1 : nLinks)
@@ -1082,6 +1083,18 @@ CONTAINS
     allocate ( nLinkToCol    ( nNodes ) )
     allocate ( fDir0         ( nrows0, ncols0 ) )
     allocate ( draSC0        ( nrows0, ncols0 ) )
+
+    ! initialize
+    rowOut       = nodata_i4    
+    colOut       = nodata_i4    
+    nLinkFromN   = nodata_i4    
+    netPerm      = nodata_i4    
+    nLinkFromRow = nodata_i4    
+    nLinkFromCol = nodata_i4    
+    nLinkToRow   = nodata_i4    
+    nLinkToCol   = nodata_i4    
+    fDir0        = nodata_i4    
+    draSC0       = nodata_i4    
 
     ! get fDir at L0
     fDir0(:,:) =   UNPACK( L0_fDir  (iStart0:iEnd0),  mask0, nodata_i4 )
@@ -1495,7 +1508,7 @@ CONTAINS
        ! stream bed slope
        nLinkSlope(ii) = ( nLinkSlope(ii) - elev0(frow, fcol) ) / nLinkLength(ii)
 
-       if ( nLinkSlope(ii) <= 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
+       if ( nLinkSlope(ii) < 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
 
        ! calculate area of floodplains (avoid overwriting)
        nLinkAFloodPlain(ii) = sum ( areaCell0(:,:),  mask = ( floodPlain0(:,:) == ii ) )
@@ -1786,6 +1799,7 @@ CONTAINS
   subroutine moveUp(elev0, fDir0, fi, fj, ss, nn)
 
     use mo_mhm_constants,    only: deltaH
+    use mo_utils,            only: le, ge
 
     implicit none
 
@@ -1811,9 +1825,9 @@ CONTAINS
 
     !E
     if   (jp                <= ncols ) then
-       if ( (   fdir0(ii,jp) == 16        )                 .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+       if ( (   fdir0(ii,jp) == 16        )                   .and. &
+            ( le(( elev0(ii,jp)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = ii
@@ -1825,9 +1839,9 @@ CONTAINS
     !SE
     if ( ( ip                <= nrows ) .and. &
          ( jp                <= ncols )      ) then
-       if ( (   fdir0(ip,jp) == 32        )                 .and. &
-            ( ( elev0(ip,jp)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+       if ( (   fdir0(ip,jp) == 32        )                   .and. &
+            ( le(( elev0(ip,jp)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = ip
@@ -1840,8 +1854,8 @@ CONTAINS
     if ( ( ip               <= nrows )  .and. &
          ( jp               <= ncols )     ) then
        if ( (   fdir0(ip,jj) == 64        )                 .and. &
-            ( ( elev0(ip,jj)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(ip,jj)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = ip
@@ -1855,8 +1869,8 @@ CONTAINS
          ( jp                <= ncols ) .and. &
          ( jm                >= 1         )     ) then
        if ( (   fdir0(ip,jm) == 128       )                 .and. &
-            ( ( elev0(ip,jm)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(ip,jm)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = ip
@@ -1869,8 +1883,8 @@ CONTAINS
     if ( ( jm                 >= 1         ) .and. &
          (jp                 <= ncols      ) ) then
        if ( (   fdir0(ii,jm)  == 1         )                 .and. &
-            ( ( elev0(ii,jm)   - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)   - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(ii,jm)   - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)   - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = ii
@@ -1884,8 +1898,8 @@ CONTAINS
          ( jp                <= ncols     ) .and. &
          ( jm                >= 1         )      )  then
        if ( (   fdir0(im,jm) == 2         )                 .and. &
-            ( ( elev0(im,jm)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(im,jm)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = im
@@ -1898,8 +1912,8 @@ CONTAINS
     if ( (  im                >= 1         ) .and. &
          ( jp                 <= ncols     ) ) then
        if ( (   fdir0(im,jj)  == 4         )                 .and. &
-            ( ( elev0(im,jj)   - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)   - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(im,jj)   - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)   - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = im
@@ -1912,8 +1926,8 @@ CONTAINS
     if ( ( im                >= 1       ) .and. &
          ( jp                <= ncols   )         )  then
        if ( (   fdir0(im,jp) == 8           )               .and. &
-            ( ( elev0(im,jp)  - elev0(fi,fj) ) <= deltaH )  .and. &
-            ( ( elev0(ii,jp)  - elev0(fi,fj) ) >= 0.0_dp )        &
+            ( le(( elev0(im,jp)  - elev0(fi,fj) ), deltaH) )  .and. &
+            ( ge(( elev0(ii,jp)  - elev0(fi,fj) ), 0.0_dp) )        &
             ) then
           nn = nn + 1
           ss(nn,1) = im

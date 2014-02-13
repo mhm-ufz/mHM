@@ -4,7 +4,8 @@
 
 To run all the test cases type 
 
-     $ make test
+     $ cd check/
+     $ ./check.sh
 
 on your command line. If test case was running properly, i.e. is 
 consistent with the pre-defined output, command line output will be 
@@ -20,12 +21,26 @@ will be written on standard output. Additionally, you will find a file
 mhm.output in each specific test case folder case_[id]/ containing the 
 mHM print-outs. Inspecting this file might help you to find the reason 
 of failure. Only if all test cases pass the make test, a new feature
-of mHM is allowed to be committed via
+of mHM is allowed to be merged back to the trunk which consists of two
+steps:
 
-     $ svn commit -m "mo_[module name]: I have added this feature."
+(1) Update your branch to current status of the trunk, i.e.
+    include features already apparent in the trunk but not your branch
+
+     $ cd my-branch/
+     $ svn merge https://svn.ufz.de/svn/mhm/trunk
+     $ svn commit -m "mhm: branches: my-branch: I have the current trunk \
+                      in my branch and solved all conflicts"
+
+(2) Merge your branch to the trunk
+
+     $ cd trunk/
+     $ svn merge --reintegrate https://svn.ufz.de/svn/mhm/branches/my-branch
+     $ svn commit -m "mhm: trunk: successfully integrated feature \
+                      <this-is-the-feature>"
 
 Please be aware that the test cases only include switches specified 
-within a namelist. This means that you should run "make test" with 
+within a namelist. This means that you should run "./check.sh" with 
 the Makefile setting for
 
     (1a) compiler = Gnu
