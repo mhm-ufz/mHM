@@ -162,7 +162,7 @@ CONTAINS
        write(uconfig, 103) 'No. of cells L11            ', L11_nCells
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
-    write(uconfig, 103)    'Time Step [h]               ', int(timeStep/3600._dp)
+    write(uconfig, 103)    'Time Step [h]               ', timeStep
     write(uconfig, 125)    'Hydrology Resolution [m]      ', resolutionHydrology
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 125) 'Routing Resolution [m]        ', resolutionRouting
