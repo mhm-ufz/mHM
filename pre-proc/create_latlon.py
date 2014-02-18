@@ -28,10 +28,9 @@ latlonfile = 'latlon.nc'
 
 import numpy as np                       # array manipulation
 import netCDF4 as nc                     # netCDF interphase
-import ufz
 import time, os, sys                     # call current time for timestamp
 from pyproj      import Proj
-from writenetcdf import *
+from writenetcdf import writenetcdf      # from ufz
 
 # check input files
 
