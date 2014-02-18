@@ -55,7 +55,7 @@ dirPrecipitation_dummy(1) = "test_basin/input/meteo/pre/"
 dirTemperature_dummy(1)   = "test_basin/input/meteo/tavg/"
 dirReferenceET_dummy(1)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "test_basin/input/latlon/"
+dirLatLon_dummy(1)        = "test_basin/input/latlon1/"
 !> directory where output should be written to
 dirOut_dummy(1)           = "test_basin/output_b1/"
 !> directory where restart output should be written
@@ -75,7 +75,7 @@ dirPrecipitation_dummy(2) = "test_basin/input/meteo/pre/"
 dirTemperature_dummy(2)   = "test_basin/input/meteo/tavg/"
 dirReferenceET_dummy(2)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(2)        = "test_basin/input/latlon/"
+dirLatLon_dummy(2)        = "test_basin/input/latlon2/"
 !> directory where output should be written to
 dirOut_dummy(2)           = "test_basin/output_b2/"
 !> directory where restart output should be written
@@ -99,13 +99,15 @@ timestep            = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m]
 !-----------------------------------------------------------------------------
-resolutionHydrology = 24000
+resolutionHydrology_dummy(1) = 24000 
+resolutionHydrology_dummy(2) = 12000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
 !-----------------------------------------------------------------------------
-resolutionRouting   = 24000
+resolutionRouting_dummy(1)   = 48000 
+resolutionRouting_dummy(2)   = 24000 
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n

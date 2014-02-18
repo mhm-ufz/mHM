@@ -638,7 +638,7 @@ CONTAINS
 
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
-                                    resolutionHydrology , &
+                                    resolutionHydrology(iBasin) , &
                                     level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
                                     level1%yllcorner(iBasin), level1%cellsize, level1%nodata_value        )
 

@@ -137,9 +137,9 @@ CONTAINS
 
     ! grid information
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp, &
-         resolutionRouting ,                                                                      &
+         resolutionRouting(iBasin) ,                                                              &
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin),                 &
-         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        ) 
+         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        )
     ! level-1 information
     call get_basin_info (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
          iStartMask=iStartMask1, iEndMask=iEndMask1, mask=mask1 ) 

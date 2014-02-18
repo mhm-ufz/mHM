@@ -6,10 +6,13 @@
 #
 from __future__ import print_function
 
-import ufz     as ufz
 import numpy   as np
 import netCDF4 as nc  
-import struct  as struct
+import struct
+from writenetcdf import writenetcdf # from ufz
+from readnetcdf  import readnetcdf  # from ufz
+from fread       import fread       # from ufz
+from autostring  import astr        # from ufz
 
 # -------------------------------------------------------------------------
 # Command line arguments
@@ -89,7 +92,7 @@ del parser, opts, args
 # -------------------------------------------------------------------------
 
 # info = (ncols, nrows, xllcorner, yllcorner, cellsize, NODATA_value)
-info         = ufz.fread(headerfile,cskip=1)
+info         = fread(headerfile,cskip=1)
 
 ncols        = int(info[0][0])
 nrows        = int(info[1][0])
@@ -114,35 +117,35 @@ varName = 'time'
 dims    = None
 varAtt  = ([['units'    , startTime],
             ['calendar' , 'standard']])
-thand   = ufz.writenetcdf(fhandle, name=varName, dims=dims, attributes=varAtt, isdim=True, vartype='i4')
+thand   = writenetcdf(fhandle, name=varName, dims=dims, attributes=varAtt, isdim=True, vartype='i4')
 #
 varAtt  = ([['axis'     , 'X']])
 varName = 'xc'
 dims    = ncols
 var     = np.arange(xllcorner, xllcorner + ncols * cellsize, cellsize)
-ufz.writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
+writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
 #
 varAtt  = ([['axis'     , 'Y']])
 varName = 'yc'
 dims    = nrows
 var     = np.arange(yllcorner + nrows * cellsize, yllcorner, -cellsize)
-ufz.writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
+writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
 # Variables
 # lon
 varAtt  = ([['units'         , 'degrees_east'],
             ['long_name'     , 'longitude'   ]])
 #
 varName = 'lon'
-var     = ufz.readnetcdf(latlonfile,var=varName)
+var     = readnetcdf(latlonfile,var=varName)
 dims    = ['yc','xc']
-ufz.writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, comp=True)
+writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, comp=True)
 # lat
 varAtt  = ([['units'        , 'degrees_north'],
             ['long_name'     , 'latitude'    ]])
 varName = 'lat'
-var     = ufz.readnetcdf(latlonfile,var=varName)
+var     = readnetcdf(latlonfile,var=varName)
 dims    = ['yc','xc']
-ufz.writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, comp=True)
+writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, comp=True)
 #
 # create variable and write attributes of it to NetCDF file
 varAtt  = ([['long_name'     , variable_long_name           ],
@@ -152,7 +155,7 @@ varAtt  = ([['long_name'     , variable_long_name           ],
 varName = variable
 #var     = mask_upscale
 dims    = ['time','yc','xc']
-vhandle = ufz.writenetcdf(fhandle, name=varName, dims=dims, attributes=varAtt, vartype='f8',comp=True)
+vhandle = writenetcdf(fhandle, name=varName, dims=dims, attributes=varAtt, vartype='f8',comp=True)
 # -------------------------------------------------------------------------
 # Read binary files
 # -------------------------------------------------------------------------
@@ -172,16 +175,16 @@ for iyear in range(startyear, endyear+1):
   leap       = (((iyear % 4) == 0) & ((iyear % 100) != 0)) | ((iyear % 400) == 0)
   days_year  = 365 + leap
   bindata    = open(indir + str(iyear) + '.bin', "rb").read()
-  values     = np.array(struct.unpack(ufz.astr(ncols*nrows*days_year)+'f',bindata[0:4*ncols*nrows*days_year]))
+  values     = np.array(struct.unpack(astr(ncols*nrows*days_year)+'f',bindata[0:4*ncols*nrows*days_year]))
   # create daily fields and roll axis, because for netcdf writer first dimension has to be time
   var        = np.rollaxis(np.reshape(values, (nrows, ncols, days_year), order='Fortran'),2,0)
   from_day   = to_day
   to_day     = to_day + days_year
   # write data to nc file
-  ufz.writenetcdf(fhandle, vhandle, var=var, time=np.arange(from_day, to_day))
+  writenetcdf(fhandle, vhandle, var=var, time=np.arange(from_day, to_day))
   # write time steps to nc
   times      = np.arange(from_day, to_day)
-  ufz.writenetcdf(fhandle, thand  , time=np.arange(times[0], times[-1]+1), var=times)
+  writenetcdf(fhandle, thand  , time=np.arange(times[0], times[-1]+1), var=times)
 # close netcdf
 fhandle.close()
 

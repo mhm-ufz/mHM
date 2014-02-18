@@ -18,20 +18,19 @@ coord_sys = 'epsg:31463'
 #   specifies the grid properties
 #   for example, use a copy of the input/meteo/pre/header.txt
 #   and adapt cellsize, ncols, nrows to your hydrologic resolution
-headerfile = 'header.txt'
+headerfile = '/home/spieler/mHM_spieler/test_basin/input/latlon2/header.txt'
 
 # OUTPUT FILE
 #   path to the output file, latlon.nc is hard-coded in mHM
-latlonfile = 'latlon.nc'
+latlonfile = '/home/spieler/mHM_spieler/test_basin/input/latlon2/latlon.nc'
 
 #############################################
 
 import numpy as np                       # array manipulation
 import netCDF4 as nc                     # netCDF interphase
-import ufz
 import time, os, sys                     # call current time for timestamp
 from pyproj      import Proj
-from writenetcdf import *
+from writenetcdf import writenetcdf      # from ufz
 
 # check input files
 
