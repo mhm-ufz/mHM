@@ -47,8 +47,8 @@ cs          = np.int(header_info[4,1])
 missVal     = header_info[5,1]
 
 # create x and y grid
-xx          = np.arange( xllcorner + cs/2, xllcorner + cs/2 + ncols*cs, cs)
-yy          = np.arange( yllcorner + cs/2, yllcorner + cs/2 + nrows*cs, cs)
+xx          = np.arange( xllcorner + cs/2,            xllcorner + cs/2 + ncols*cs, cs)
+yy          = np.arange( yllcorner + cs/2 + nrows*cs, yllcorner + cs/2,-cs)
 xx, yy      = np.meshgrid(xx,yy)
 
 #
