@@ -8,10 +8,10 @@
 Number of basins                       2
 Total No. of nodes                     1
 Total No. of reaches                   0
-No. of cells L0                   222958
-No. of cells L1                      682
-Time Step [h]                          0
-Hydrology Resolution [m]            2000.
+No. of cells L0                    93090
+No. of cells L1                       68
+Time Step [h]                          1
+Hydrology Resolution [m]           24000.
 Flag READ  restart states              F
 Flag WRITE restart states              T
 Flag READ  restart config.             F
@@ -22,9 +22,9 @@ Flag WRITE restart config.             T
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            6     1  1979    31    12  1979
-Evaluation Period (2)         1     1  1980    31    12  1982
-Simulation Period (1)+(2)     6     1  1979    31    12  1982
+Warming Period (1)            6     1  1989    31    12  1989
+Evaluation Period (2)         1     1  1990    31    12  1993
+Simulation Period (1)+(2)     6     1  1989    31    12  1993
 
 
 --------------------------------------------------
@@ -32,10 +32,11 @@ Simulation Period (1)+(2)     6     1  1979    31    12  1982
 --------------------------------------------------
       Year    Land cover scene     Land Cover File
 
-      1979                   1         lc_1993.asc
-      1980                   1         lc_1993.asc
-      1981                   1         lc_1993.asc
-      1982                   1         lc_1993.asc
+      1989                   1         lc_1990.asc
+      1990                   1         lc_1990.asc
+      1991                   2         lc_1990.asc
+      1992                   2         lc_1990.asc
+      1993                   2         lc_1990.asc
 
 -------------------------------------------------------
   Initial Transfer Function Parameter Ranges (gammas)  
@@ -88,6 +89,7 @@ Simulation Period (1)+(2)     6     1  1979    31    12  1982
         45          1.000       1000.000        100.000                      GeoParam(7,:)
         46          1.000       1000.000        100.000                      GeoParam(8,:)
         47          1.000       1000.000        100.000                      GeoParam(9,:)
+        48      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
@@ -96,22 +98,22 @@ Simulation Period (1)+(2)     6     1  1979    31    12  1982
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test/input/morph/                 
-Directory to land cover input                ../../test/input/luse/                  
-Directory to precipitation input             ../../test/input/meteo/pre/             
-Directory to temperature input               ../../test/input/meteo/tavg/            
-Directory to reference ET input              ../../test/input/meteo/pet/             
+Directory to morphological input             ../../test_basin/input/morph/           
+Directory to land cover input                ../../test_basin/input/luse/            
+Directory to precipitation input             ../../test_basin/input/meteo/pre/       
+Directory to temperature input               ../../test_basin/input/meteo/tavg/      
+Directory to reference ET input              ../../test_basin/input/meteo/pet/       
 Directory to write output by default         output_b1/                              
 Directory to write output when restarted     output_b1/                              
 
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test/input/morph/                 
-Directory to land cover input                ../../test/input/luse/                  
-Directory to precipitation input             ../../test/input/meteo/pre/             
-Directory to temperature input               ../../test/input/meteo/tavg/            
-Directory to reference ET input              ../../test/input/meteo/pet/             
+Directory to morphological input             ../../test_basin/input/morph/           
+Directory to land cover input                ../../test_basin/input/luse/            
+Directory to precipitation input             ../../test_basin/input/meteo/pre/       
+Directory to temperature input               ../../test_basin/input/meteo/tavg/      
+Directory to reference ET input              ../../test_basin/input/meteo/pet/       
 Directory to write output by default         output_b2/                              
 Directory to write output when restarted     output_b2/                              
 

@@ -149,7 +149,7 @@ function usage () {
     printf "           (DEFAULT: all found on specified system)\n"
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           (DEFAULT: debug)\n"
-    printf "    -s     System on which mHM will be compiled, e.g. 'eve' "
+    printf "    -s     System on which mHM will be compiled, e.g. 'eve' "\n
     printf "           (DEFAULT: eve). \n"
     printf "\n"
     printf "Example\n"
