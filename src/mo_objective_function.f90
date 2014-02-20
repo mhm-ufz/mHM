@@ -91,6 +91,7 @@ CONTAINS
     use mo_global_variables, only: gauge
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -150,7 +151,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -328,6 +329,7 @@ CONTAINS
     use mo_errormeasures,    only: lnnse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -378,7 +380,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
@@ -459,6 +461,7 @@ CONTAINS
     use mo_errormeasures,    only: nse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -509,7 +512,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_nse = 0.0_dp
     do gg=1,nGaugesTotal
@@ -592,6 +595,7 @@ CONTAINS
     use mo_errormeasures,    only: nse, lnnse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -642,7 +646,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_equal_nse_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
