@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.4 at eve.ufz.de
+# Setup file for Intel compiler 13.1.0 at eve.ufz.de
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -28,67 +28,70 @@
 # Define subirectories if another structure
 
 # Paths
-GNUDIR := /usr
-GNULIB := $(GNUDIR)/lib64
-GNUBIN := $(GNUDIR)/bin
+INTEL    := /opt/intel/composer_xe_2013.2.146
+INTELDIR := /usr/local/intel/13.1.0
+INTELLIB := $(INTELDIR)
+INTELBIN := $(INTEL)/bin/intel64
 
 # Compiling
-F90 := $(GNUBIN)/gfortran44
+F90 := $(INTELBIN)/ifort
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc44
-# GNU Fortran version >= 4.4
+CC  := $(INTELBIN)/icc
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
-    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
+    FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
+    CFLAGS   += -g -debug -traceback -fp-stack-check -O0 -debug -Wall -Wcheck
 else
-    F90FLAGS += -O3
-    FCFLAGS  += -ffixed-form -O3
+    # -vec-report1 to see vectorized loops; -vec-report2 to see also non-vectorized loops
+    F90FLAGS += -O3 -vec-report0 -override-limits
+    FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -cpp
-MODFLAG  := -J# space significant
-FCFLAGS  +=
-CFLAGS   +=
-DEFINES  += -DGFORTRAN -DgFortran
+F90FLAGS += -assume byterecl -cpp -fp-model source -m64 # precise -> source: suppress warning, computation identical
+MODFLAG  := -module # space significant
+FCFLAGS  += -assume byterecl -cpp -fp-model source -m64 -fixed
+CFLAGS   += -m64 -std=c99
+DEFINES  += -DINTEL -DINTEL_COMPILER
 
 # Linking
-LIBS += -L$(GNULIB)
-RPATH += -Wl,-rpath,$(GNULIB)
-ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
-else
-    LDPATH := /usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+ifeq ($(istatic),static)
+    LIBS += -static-intel
 endif
+LIBS += -L$(INTELLIB) -limf -lm -lsvml
+ifneq ($(istatic),static)
+     LIBS += -lintlc
+endif
+RPATH += -Wl,-rpath,$(INTELLIB)
 
 # IMSL
 IMSLDIR :=
 
 # MKL
-INTEL  := /usr/local/intel/composerxe-2011.4.191
 MKLDIR := $(INTEL)/mkl
 MKLINC := $(MKLDIR)/include/intel64/lp64
-MKLLIB := $(MKLDIR)/lib/intel64
-INTELLIB := $(INTEL)/compiler/lib/intel64
+MKLLIB := $(INTELDIR)/mkl/lib/intel64
+MKL95DIR := $(MKLDIR)
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := /usr/local/netcdf/3.6.3_gcc44
+    NCDIR := /usr/local/netcdf/3.6.3_intel_12.0.4
 else
-    NCDIR   := /usr/local/netcdf/4.1.1_gcc44
+    NCDIR   := /usr/local/netcdf/4.1.1_intel_12.0.4
     SZLIB   := /usr/local/szip/2.1/lib
     HDF5LIB := /usr/local/hdf5/1.8.6/lib
 endif
 
 # PROJ
 PROJ4DIR := /usr/local/proj/4.7.0
-FPROJDIR := /usr/local/fproj/4.7.0_gcc44
+FPROJDIR := /usr/local/fproj/4.7.0_intel11.1.075
 
 # LAPACK
 LAPACKDIR   :=
 LAPACKLIB   :=
-GFORTRANDIR := $(GNUDIR)
-GFORTRANLIB := $(GNULIB)
+GFORTRANDIR := /usr
+GFORTRANLIB := $(GFORTRANDIR)/lib64
 
 # Documentation
 DOXYGENDIR := /usr/local/doxygen/1.8.2-1/bin
@@ -119,4 +122,14 @@ ifneq (,$(findstring $(system),eve))
             endif
         endif
     endif
+endif
+
+# Lapack on Eve needs libgfortran
+ifeq ($(lapack),true)
+    ifneq (exists, $(shell if [ -d "$(GFORTRANDIR)" ] ; then echo 'exists' ; fi))
+        $(error Error: GFORTRAN path '$(GFORTRANDIR)' not found.)
+    endif
+    GFORTRANLIB ?= $(GFORTRANDIR)/lib
+    iLIBS        += -L$(GFORTRANLIB) -lgfortran
+    RPATH       += -Wl,-rpath,$(GFORTRANLIB)
 endif

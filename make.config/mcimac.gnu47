@@ -38,9 +38,9 @@ FC  := $(F90)
 CC  := $(GNUBIN)/gcc
 # GNU Fortran version >= 4.4
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
-    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
     #CFLAGS   += -Wall -W -O -g
 else
     F90FLAGS += -O3

@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.4 at eve.ufz.de
+# Setup file for Gnu compiler 4.7 with easybuild/goolf/1.4.10 at eve.ufz.de
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2012 Matthias Cuntz
+#    Copyright 2013 Matthias Cuntz
 
 # The Makefile assumes the standard bin, include and lib directories
 # i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
@@ -27,20 +27,23 @@
 #   SOMELIB ?= SOMEDIR/lib
 # Define subirectories if another structure
 
+# system setup
+EASYBUILD := /global/easybuild/software
+
 # Paths
-GNUDIR := /usr
+GNUDIR := $(EASYBUILD)/GCC/4.8.1
 GNULIB := $(GNUDIR)/lib64
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(GNUBIN)/gfortran44
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc44
+CC  := $(GNUBIN)/gcc
 # GNU Fortran version >= 4.4
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
-    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
 else
     F90FLAGS += -O3
     FCFLAGS  += -ffixed-form -O3
@@ -53,12 +56,13 @@ CFLAGS   +=
 DEFINES  += -DGFORTRAN -DgFortran
 
 # Linking
-LIBS += -L$(GNULIB)
+LIBS  += -L$(GNULIB)
 RPATH += -Wl,-rpath,$(GNULIB)
+iLDPATH = $(GNUDIR)/lib:$(GNUDIR)/lib/gcc/x86_64-unknown-linux-gnu/4.7.2
 ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+    LDPATH += :$(iLDPATH)
 else
-    LDPATH := /usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+    LDPATH := $(iLDPATH)
 endif
 
 # IMSL
@@ -70,19 +74,24 @@ MKLDIR := $(INTEL)/mkl
 MKLINC := $(MKLDIR)/include/intel64/lp64
 MKLLIB := $(MKLDIR)/lib/intel64
 INTELLIB := $(INTEL)/compiler/lib/intel64
+MKL95DIR := /usr/local/intel/interfaces/lapack95_gfortran46
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := /usr/local/netcdf/3.6.3_gcc44
+    NCDIR := /usr/local/netcdf/3.6.3_gcc46
 else
-    NCDIR   := /usr/local/netcdf/4.1.1_gcc44
-    SZLIB   := /usr/local/szip/2.1/lib
-    HDF5LIB := /usr/local/hdf5/1.8.6/lib
+    ZLIB    := $(EASYBUILD)/zlib/1.2.7-GCC-4.8.1/lib
+    SZLIB   := $(EASYBUILD)/Szip/2.1-GCC-4.8.1/lib
+    HDF5LIB := $(EASYBUILD)/HDF5/1.8.9-GCC-4.8.1/lib
+    NCDIR   := $(EASYBUILD)/netCDF/4.2.1.1-GCC-4.8.1
+    NCFDIR  := $(EASYBUILD)/netCDF-Fortran/4.2-GCC-4.8.1
 endif
 
 # PROJ
 PROJ4DIR := /usr/local/proj/4.7.0
-FPROJDIR := /usr/local/fproj/4.7.0_gcc44
+FPROJDIR := /usr/local/fproj/4.7.0_gcc46
 
 # LAPACK
 LAPACKDIR   :=
@@ -91,21 +100,16 @@ GFORTRANDIR := $(GNUDIR)
 GFORTRANLIB := $(GNULIB)
 
 # Documentation
-DOXYGENDIR := /usr/local/doxygen/1.8.2-1/bin
+DOXYGENDIR := $(EASYBUILD)/Doxygen/1.8.3.1-GCC-4.8.1/bin
 DOTDIR     := /usr/local/graphviz/2.28.0-2/bin
 TEXDIR     := /usr/local/texlive/2011/bin/x86_64-linux
 PERLDIR    := /usr/bin
+iiLDPATH := $(EASYBUILD)/flex/2.5.37-GCC-4.8.1/lib:$(EASYBUILD)/Bison/2.7-GCC-4.8.1/lib
 ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH += :$(iiLDPATH)
 else
-    LDPATH := /usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH := $(iiLDPATH)
 endif
-LDPATH     += :/usr/local/libcroco/0.6.8-1/lib:/usr/local/pango/1.32.4-1/lib
-LDPATH     += :/usr/local/harfbuzz/0.9.9-1/lib:/usr/local/cairo/1.12.8-2/lib
-LDPATH     += :/usr/local/fontconfig/2.10.2-1/lib:/usr/local/freetype/2.4.10-1/lib
-LDPATH     += :/usr/local/expat/2.1.0-1/lib:/usr/local/pixman/0.28.0-1/lib
-LDPATH     += :/usr/local/libxml2/2.8.0/lib:/usr/local/gdk-pixbuf/2.26.5-1/lib
-LDPATH     += :/usr/local/glib/2.34.3-1/lib:/usr/local/libffi/3.0.11-1/lib
 
 # Check some dependices, e.g. IMSL needs intel11 on eve
 ifneq (,$(findstring $(system),eve))
