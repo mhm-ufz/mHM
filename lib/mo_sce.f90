@@ -748,7 +748,11 @@ CONTAINS
 #ifndef GFORTRAN
     xf(1:npt1) = merge(xf(1:npt1), large, ieee_is_finite(xf(1:npt1))) ! NaN and Infinite
 #else
+#ifdef GFORTRAN41
     xf(1:npt1) = merge(xf(1:npt1), large, xf(1:npt1) == xf(1:npt1))   ! only NaN
+#else
+    xf(1:npt1) = merge(xf(1:npt1), large, .not. isnan(xf(1:npt1)))   ! only NaN
+#endif
 #endif
     call sort_matrix(x(1:npt1,1:nn),xf(1:npt1))
     !
@@ -928,7 +932,11 @@ CONTAINS
 #ifndef GFORTRAN
                 cf(1:npg) = merge(cf(1:npg), large, ieee_is_finite(cf(1:npg))) ! NaN and Infinite
 #else
+#ifdef GFORTRAN41
                 cf(1:npg) = merge(cf(1:npg), large, cf(1:npg) == cf(1:npg))   ! only NaN
+#else
+                cf(1:npg) = merge(cf(1:npg), large, .not. isnan(cf(1:npg)))   ! only NaN
+#endif
 #endif
                 call sort_matrix(cx(1:npg,1:nn),cf(1:npg))
                 !
@@ -1053,7 +1061,11 @@ CONTAINS
 #ifndef GFORTRAN
                 cf(1:npg) = merge(cf(1:npg), large, ieee_is_finite(cf(1:npg))) ! NaN and Infinite
 #else
+#ifdef GFORTRAN41
                 cf(1:npg) = merge(cf(1:npg), large, cf(1:npg) == cf(1:npg))   ! only NaN
+#else
+                cf(1:npg) = merge(cf(1:npg), large, .not. isnan(cf(1:npg)))   ! only NaN
+#endif
 #endif
                 call sort_matrix(cx(1:npg,1:nn),cf(1:npg))
                 !
@@ -1696,7 +1708,11 @@ CONTAINS
 #ifndef GFORTRAN
     if ((fnew .gt. fw) .or. (.not. ieee_is_finite(fnew))) then
 #else
+#ifdef GFORTRAN41
     if ((fnew .gt. fw) .or. (fnew .ne. fnew)) then
+#else
+    if ((fnew .gt. fw) .or. isnan(fnew)) then
+#endif
 #endif
        do j = 1, m
           if (maskpara(j)) then
@@ -1726,7 +1742,11 @@ CONTAINS
 #ifndef GFORTRAN
        if ((fnew .gt. fw) .or. (.not. ieee_is_finite(fnew))) then
 #else
+#ifdef GFORTRAN41
        if ((fnew .gt. fw) .or. (fnew .ne. fnew)) then
+#else
+       if ((fnew .gt. fw) .or. isnan(fnew)) then
+#endif
 #endif
           !
           ! if both reflection and contraction fail, choose another point
