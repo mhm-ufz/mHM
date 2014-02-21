@@ -342,7 +342,7 @@ done # compiler loop
 cleanup
 echo ''
 echo '##################################################################################################################'
-echo '#     All cases with the specified compilers were o.k.                                                          #'
+echo '#     All cases with the specified compilers were o.k.                                                           #'
 echo '#     Output is cleaned up.                                                                                      #'
 echo '##################################################################################################################'
 echo ''
