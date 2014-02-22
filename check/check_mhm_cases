@@ -178,7 +178,7 @@ function cleanup ()
 
     # using brace expansion
 
-    # but ${pid} not known when clean is directly called by "./check_mhm_cases clean" --> files included in ${rmfiles}
+    # old ${pid} not known when called "./check_mhm_cases clean" --> include in ${rmfiles}
     # eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/*.${pid}.*
 
     for i in $(echo ${rmfiles}) ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i} ; done
@@ -227,6 +227,7 @@ if [ $# -gt 0 ] ; then
 fi
 
 # check for cdo
+set +e
 icdo=$(which cdo)
 if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] ; then
@@ -236,6 +237,7 @@ if [[ "${icdo}z" == "z" ]] ; then
         icdo=$(which cdo)
     fi
 fi
+set -e
 if [[ "${icdo}z" == "z" ]] ; then printf "Error ${pprog}: cdo not found.\n\n" ; exit 1 ; fi
 
 # ---------------------------------------------------------------------------------------------------------------------
