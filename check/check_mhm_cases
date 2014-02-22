@@ -173,10 +173,14 @@ function cleanup ()
 
     # everything in case_?? dirs
     case_dirs=$(ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe}"
+    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out"
     rmdirs="output_b1 output_b2"
+
     # using brace expansion
-    eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/*.${pid}.*
+
+    # but ${pid} not known when clean is directly called by "./check_mhm_cases clean" --> files included in ${rmfiles}
+    # eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/*.${pid}.*
+
     for i in $(echo ${rmfiles}) ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i} ; done
     for i in $(echo ${rmdirs})  ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i}/* ; done
 
@@ -245,8 +249,8 @@ for compiler in ${compilers} ; do
     make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe}
 
     cd check
-    #case_dirs=$(ls -d case_*)
-    case_dirs=$(ls -d case_00)
+    case_dirs=$(ls -d case_*)
+    #case_dirs=$(ls -d case_00)
 
     nRecordsDiffer_allCases=0
     for case_dir in ${case_dirs} ; do
