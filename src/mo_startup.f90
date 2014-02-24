@@ -90,11 +90,9 @@ CONTAINS
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: processMatrix, soilDB
-    use mo_global_variables, only: soilDB
+    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, restart_flag_config_read, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
-    use mo_global_variables, only: restart_flag_config_read, dirRestartIn
     USE mo_restart,          ONLY: read_restart_L11_config, read_restart_config
 
     use mo_net_startup,      only: L11_variable_init, L11_flow_direction, L11_set_network_topology,  &
@@ -113,9 +111,18 @@ CONTAINS
     end if
 
     ! L0 and L1 initialization
-    call L0_check_input(iBasin)
+    if (iBasin .eq. 1) then 
+       call L0_check_input(iBasin)
+    else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
+       call L0_check_input(iBasin)
+    end if
+
     if ( .not. restart_flag_config_read ) then
-       call L0_variable_init(iBasin, soilDB%is_present)
+       if (iBasin .eq. 1) then 
+          call L0_variable_init(iBasin, soilDB%is_present)
+       else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
+          call L0_variable_init(iBasin, soilDB%is_present)
+       end if
        call L1_variable_init(iBasin)
     else
        call read_restart_config( iBasin, soilDB%is_present, dirRestartIn(iBasin ) )
@@ -446,7 +453,6 @@ CONTAINS
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
 
     integer(i4)                               :: i, j, k
-
     !--------------------------------------------------------
     ! STEPS::
     ! 1) Estimate each variable locally for a given basin
@@ -638,7 +644,7 @@ CONTAINS
 
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
-                                    resolutionHydrology , &
+                                    resolutionHydrology(iBasin) , &
                                     level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
                                     level1%yllcorner(iBasin), level1%cellsize, level1%nodata_value        )
 

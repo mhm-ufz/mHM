@@ -19,7 +19,7 @@ coord_sys = 'epsg:31467'
 #   specifies the grid properties
 #   for example, use a copy of the header.txt
 #   and adapt cellsize, ncols, nrows to your hydrologic resolution
-headerfile = 'header.txt'
+headerfile = '/home/spieler/mHM_spieler/test_basin/input/latlon2/header.txt'
 
 # OUTPUT FILE
 #   path to the output file, latlon.nc is hard-coded in mHM

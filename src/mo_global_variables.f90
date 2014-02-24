@@ -21,7 +21,7 @@ MODULE mo_global_variables
   !           Luis Samaniego, Nov 2013  - documentation of dimensions
 
   USE mo_kind,          ONLY: i4, i8, dp
-  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths
+  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
 
   IMPLICIT NONE
 
@@ -35,9 +35,12 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
-  integer(i4),   public                              :: timeStep            ! [h] simulation time step (= TS) in [h]
-  real(dp),      public                              :: resolutionHydrology ! [m] resolution of hydrologic modelling - Level 1
-  real(dp),      public                              :: resolutionRouting   ! [m] resolution of routing              - Level 11
+  integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m] resolution of hydrologic modelling
+                                                                                         ! Level 1
+  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m] resolution of routing
+                                                                                         ! Level 11
+  integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: restart_flag_states_read   ! flag for reading restart files 
   !                                                                                ! for state variables
   logical,       public                              :: restart_flag_states_write  ! flag for writing restrat files 
@@ -310,7 +313,7 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L2_iEnd            ! Ending cell index of a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iStartMask      ! Starting cell index of mask a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iEndMask        ! Ending cell index of mask a given basin at L2
-     logical,     dimension(:), allocatable     :: L2_mask            ! Mask of level2    
+     logical,     dimension(:), allocatable     :: L2_mask            ! Mask of level2
 
   end type basinInfo
   type(basinInfo), public                       :: basin              ! Basin structure

@@ -1,7 +1,8 @@
-nGaugesTotal          2
+nGaugesTotal          3
 !basinId nGauges       gaugelist
 1              1       00398
 2              1       00398
+3              1       00398
 
 ! --- Gauges -----------------------------------------------------------------------------
 !> namelist controlling the gauging station information

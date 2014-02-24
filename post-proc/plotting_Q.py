@@ -17,7 +17,7 @@ import matplotlib as mpl
 # -------------------------------------------------------------------------
 # Command line arguments
 #
-infile    = '../test_basin/output_b1/daily_discharge.out'
+infile    = '/home/spieler/mHM_spieler/test_basin/output_b2/daily_discharge.out'
 gaugeid   = '00398'
 pdffile   = ''
 usetex    = False
