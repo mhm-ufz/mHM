@@ -33,7 +33,7 @@ dirConfigOut      = "output_b1/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles_In = "../../test/input/morph/"
+dirCommonFiles_In = "../../test_basin/input/morph/"
 !
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
@@ -45,43 +45,43 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dirMorpho_dummy(1)        = "../../test/input/morph/"
+dirMorpho_dummy(1)        = "../../test_basin/input/morph/"
 !> directory where land cover files are located
-dirLCover_dummy(1)        = "../../test/input/luse/"
+dirLCover_dummy(1)        = "../../test_basin/input/luse/"
 !> directory where discharge files are located
-dirGauges_dummy(1)        = "../../test/input/gauge/"
+dirGauges_dummy(1)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(1) = "../../test/input/meteo/pre/"
-dirTemperature_dummy(1)   = "../../test/input/meteo/tavg/"
-dirReferenceET_dummy(1)   = "../../test/input/meteo/pet/"
+dirPrecipitation_dummy(1) = "../../test_basin/input/meteo/pre/"
+dirTemperature_dummy(1)   = "../../test_basin/input/meteo/tavg/"
+dirReferenceET_dummy(1)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "../../test/input/latlon/"
+dirLatLon_dummy(1)        = "../../test_basin/input/latlon/"
 !> directory where output should be written to
 dirOut_dummy(1)           = "output_b1/"
 !> directory where restart output should be written
 dirRestartOut_dummy(1)    = "output_b1/"
 !> directory where restart output should be written
-dirRestartIn_dummy(1)     = "../../test/restart/"
+dirRestartIn_dummy(1)     = "restart/"
 !
 !**** for Basin 2
 !> directory where morphological files are located
-dirMorpho_dummy(2)        = "../../test/input/morph/"
+dirMorpho_dummy(2)        = "../../test_basin/input/morph/"
 !> directory where land cover files are located
-dirLCover_dummy(2)        = "../../test/input/luse/"
+dirLCover_dummy(2)        = "../../test_basin/input/luse/"
 !> directory where discharge files are located
-dirGauges_dummy(2)        = "../../test/input/gauge/"
+dirGauges_dummy(2)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(2) = "../../test/input/meteo/pre/"
-dirTemperature_dummy(2)   = "../../test/input/meteo/tavg/"
-dirReferenceET_dummy(2)   = "../../test/input/meteo/pet/"
+dirPrecipitation_dummy(2) = "../../test_basin/input/meteo/pre/"
+dirTemperature_dummy(2)   = "../../test_basin/input/meteo/tavg/"
+dirReferenceET_dummy(2)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(2)        = "../../test/input/latlon/"
+dirLatLon_dummy(2)        = "../../test_basin/input/latlon/"
 !> directory where output should be written to
 dirOut_dummy(2)           = "output_b2/"
 !> directory where restart output should be written
 dirRestartOut_dummy(2)    = "output_b2/"
 !> directory where restart input is located
-dirRestartIn_dummy(2)     = "../../test/restart/"
+dirRestartIn_dummy(2)     = "restart/"
 /
 
 !
@@ -99,13 +99,13 @@ timestep            = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m]
 !-----------------------------------------------------------------------------
-resolutionHydrology = 2000
+resolutionHydrology = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
 !-----------------------------------------------------------------------------
-resolutionRouting   = 2000
+resolutionRouting   = 24000
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
@@ -134,9 +134,9 @@ opti_function       = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .FALSE.
+restart_flag_states_read   = .TRUE.
 restart_flag_states_write  = .TRUE.
-restart_flag_config_read   = .FALSE.
+restart_flag_config_read   = .TRUE.
 restart_flag_config_write  = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
@@ -156,13 +156,13 @@ restart_flag_config_write  = .TRUE.
 !-----------------------------------------------------------------------------
 warmingDays          = 360
 !> first year of wanted simulation period
-evalPer%yStart       = 1980
+evalPer%yStart       = 1990
 !> first month of wanted simulation period
 evalPer%mStart       = 01
 !> first day   of wanted simulation period
 evalPer%dStart       = 01
 !> last year   of wanted simulation period
-evalPer%yEnd         = 1982
+evalPer%yEnd         = 1993
 !> last month  of wanted simulation period
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
@@ -202,23 +202,23 @@ nLcover_scene         = 3
 !> starting year of land cover scene 1
 LCoverYearStart(1)     = 1975
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)       = 1979
+LCoverYearEnd(1)       = 1990
 !> name of land cover file for scnene 1
-LCoverfName_dummy(1)   = 'lc_1975.asc'
+LCoverfName_dummy(1)   = 'lc_1990.asc'
 
 !> starting year of land cover scene 2
-LCoverYearStart(2)     = 1980
+LCoverYearStart(2)     = 1991
 !> ending year of land cover scnene 2
 LCoverYearEnd(2)       = 1993
 !> name of land cover file for scnene 2
-LCoverfName_dummy(2)   = 'lc_1993.asc'
+LCoverfName_dummy(2)   = 'lc_1990.asc'
 
 !> starting year of land cover scene 3
 LCoverYearStart(3)     = 1994
 !> ending year of land cover scnene 3
 LCoverYearEnd(3)       = 2004
 !> name of land cover file for scnene 3
-LCoverfName_dummy(3)   = 'lc_2004.asc'
+LCoverfName_dummy(3)   = 'lc_1990.asc'
 /
 !
 !******************************************************************************************
@@ -266,8 +266,8 @@ inputFormat_gridded_LAI = "bin"
 !
 !> For each basin (number given in bracket), provide the path to the directory 
 !> where gridded LAI files are located.
-dir_gridded_LAI_dummy(1)  = "../../test/input/lai/"
-dir_gridded_LAI_dummy(2)  = "../../test/input/lai/"
+dir_gridded_LAI_dummy(1)  = "../../test_basin/input/lai/"
+dir_gridded_LAI_dummy(2)  = "../../test_basin/input/lai/"
 /
 
 !

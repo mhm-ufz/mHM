@@ -59,9 +59,11 @@ RPATH += -Wl,-rpath,$(SUNLIB)
 IMSLDIR :=
 
 # MKL
-MKLDIR := /usr/local/intel/composerxe-2011.4.191/mkl
+INTEL  := /usr/local/intel/composerxe-2011.4.191
+MKLDIR := $(INTEL)/mkl
 MKLINC := $(MKLDIR)/include/intel64/lp64
 MKLLIB := $(MKLDIR)/lib/intel64
+INTELLIB := $(INTEL)/compiler/lib/intel64
 MKL95DIR := /usr/local/intel/interfaces/lapack95_sun12
 MKL95INC := $(MKL95DIR)/include/intel64/lp64
 MKL95LIB := $(MKL95DIR)/lib/intel64
@@ -81,9 +83,8 @@ PROJ4DIR := /usr/local/proj/4.7.0
 FPROJDIR := /usr/local/fproj/4.7.0_sun12
 
 # LAPACK
-LAPACKDIR   := /usr
-LAPACKLIB   := $(LAPACKDIR)/lib64
-#GFORTRANDIR :=
+LAPACKDIR   :=
+LAPACKLIB   :=
 GFORTRANDIR := /usr
 GFORTRANLIB := $(GFORTRANDIR)/lib64
 

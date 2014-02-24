@@ -411,25 +411,27 @@ CONTAINS
     character(256)                         :: fName, formHeader, formParams
     integer(i4)                            :: ii, err, n_params
 
+    ! number of parameters
+    n_params = size(best_paramSet)
+
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
-    open(uopti, file=fName, status='unknown', action='write', iostat=err)
+    open(uopti, file=fName, status='unknown', action='write', iostat=err, recl=(n_params+1)*40)
     if( err .ne. 0 ) then
        call message ('  IOError while openening ',trim(fName))
        call message ('  Error-Code ', num2str(err))
        stop
     end if
 
-    ! number of parameters
-    n_params = size(best_paramSet)
-
     ! header 
-    write(formHeader, *) '( a40, ' , n_params,'(a40) )' 
-    write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1,n_params)
+    write(formHeader, *) '(a40,',n_params,'a40)'
+    ! len(param_names(1))=256 but only 39 characters taken here
+    ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)
+    write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii)(1:39))), ii=1, n_params)
 
     ! output
     write(formParams, *) '( es40.15, ', n_params,'(es40.15) )' 
-    write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1,n_params)
+    write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1, n_params)
 
     ! close file
     close(uopti)

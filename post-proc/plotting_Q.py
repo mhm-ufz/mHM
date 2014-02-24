@@ -18,7 +18,7 @@ import matplotlib as mpl
 # Command line arguments
 #
 infile    = '/home/spieler/mHM_spieler/test_basin/output_b2/daily_discharge.out'
-gaugeid   = '55555'
+gaugeid   = '00398'
 pdffile   = ''
 usetex    = False
 import optparse

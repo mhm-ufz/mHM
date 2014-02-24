@@ -20,6 +20,9 @@ endif
 ifeq ($(compiler),ifort12)
     icompiler := intel12
 endif
+ifeq ($(compiler),ifort13)
+    icompiler := intel13
+endif
 ifneq (,$(findstring $(compiler),sun))
     icompiler := sun12
 endif

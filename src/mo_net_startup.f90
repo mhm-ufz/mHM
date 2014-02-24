@@ -1433,6 +1433,15 @@ CONTAINS
     allocate ( nLinkAFloodPlain  ( nNodes ) )
     allocate ( nLinkSlope        ( nNodes ) )
 
+    ! initialize
+    nLinkFromRow     = nodata_i4
+    nLinkFromCol     = nodata_i4
+    nLinkToRow       = nodata_i4
+    nLinkToCol       = nodata_i4
+    nLinkLength      = nodata_dp
+    nLinkAFloodPlain = nodata_dp
+    nLinkSlope       = nodata_dp
+
     allocate(nodata_i4_tmp(nrows0,ncols0))
     allocate(nodata_dp_tmp(nrows0,ncols0))
     nodata_i4_tmp = nodata_i4
