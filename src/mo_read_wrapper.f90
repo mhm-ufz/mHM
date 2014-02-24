@@ -107,6 +107,7 @@ CONTAINS
                                      udischarge         ,                 & ! unit of discharge time series
                                      ulcoverclass                           ! unit of land cover class map
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
+                                     L0_Basin,                            & ! L0_Basin ID
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
@@ -218,6 +219,12 @@ CONTAINS
           !
           basin%L0_iStartMask(iBasin) = 1
           basin%L0_iEndMask  (iBasin) = basin%L0_iStartMask(iBasin) + nCells - 1
+       else if(L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
+          basin%L0_iStart(iBasin) = basin%L0_iStart(iBasin - 1)
+          basin%L0_iEnd  (iBasin) = basin%L0_iEnd(iBasin - 1)
+          !
+          basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 ) 
+          basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
        else
           basin%L0_iStart(iBasin) = basin%L0_iEnd(iBasin-1) + 1
           basin%L0_iEnd  (iBasin) = basin%L0_iStart(iBasin) + count(mask_global) - 1

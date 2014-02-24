@@ -57,7 +57,7 @@ dirReferenceET_dummy(1)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
 dirLatLon_dummy(1)        = "test_basin/input/latlon1/"
 !> directory where output should be written to
-dirOut_dummy(1)           = "test_basin/output_b1/"
+dirOut_dummy(1)           = "test_basin/test_b1/"
 !> directory where restart output should be written
 dirRestartOut_dummy(1)    = "test_basin/restart/"
 !> directory where restart output should be written
@@ -77,11 +77,31 @@ dirReferenceET_dummy(2)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
 dirLatLon_dummy(2)        = "test_basin/input/latlon2/"
 !> directory where output should be written to
-dirOut_dummy(2)           = "test_basin/output_b2/"
+dirOut_dummy(2)           = "test_basin/test_b2/"
 !> directory where restart output should be written
 dirRestartOut_dummy(2)    = "test_basin/restart/"
 !> directory where restart input is located
 dirRestartIn_dummy(2)     = "test_basin/restart/"
+!
+!**** for Basin 3
+!> directory where morphological files are located
+dirMorpho_dummy(3)        = "test_basin/input/morph/"
+!> directory where land cover files are located
+dirLCover_dummy(3)        = "test_basin/input/luse/"
+!> directory where discharge files are located
+dirGauges_dummy(3)        = "test_basin/input/gauge/"
+!> directory where meteorological input is located
+dirPrecipitation_dummy(3) = "test_basin/input/meteo/pre/"
+dirTemperature_dummy(3)   = "test_basin/input/meteo/tavg/"
+dirReferenceET_dummy(3)   = "test_basin/input/meteo/pet/"
+!> directory where latitude and longitude file is located
+dirLatLon_dummy(3)        = "test_basin/input/latlon3/"
+!> directory where output should be written to
+dirOut_dummy(3)           = "test_basin/test_b3/"
+!> directory where restart output should be written
+dirRestartOut_dummy(3)    = "test_basin/restart/"
+!> directory where restart input is located
+dirRestartIn_dummy(3)     = "test_basin/restart/"
 /
 
 !
@@ -101,6 +121,13 @@ timestep            = 1
 !-----------------------------------------------------------------------------
 resolutionHydrology_dummy(1) = 24000 
 resolutionHydrology_dummy(2) = 12000 
+resolutionHydrology_dummy(3) = 12000 
+!-----------------------------------------------------------------------------
+!> temporary L0_Basin Id
+!-----------------------------------------------------------------------------
+L0_Basin_dummy(1)            = 1
+L0_Basin_dummy(2)            = 1
+L0_Basin_dummy(3)            = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -108,6 +135,7 @@ resolutionHydrology_dummy(2) = 12000
 !-----------------------------------------------------------------------------
 resolutionRouting_dummy(1)   = 48000 
 resolutionRouting_dummy(2)   = 24000 
+resolutionRouting_dummy(3)   = 48000
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
@@ -115,7 +143,7 @@ resolutionRouting_dummy(2)   = 24000
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 3
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 

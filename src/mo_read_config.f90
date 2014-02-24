@@ -115,6 +115,7 @@ CONTAINS
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
+         L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirGauges,                                         & ! and discharge files
          dirPrecipitation, dirTemperature, dirReferenceET,  & ! directory of meteo input
@@ -246,6 +247,7 @@ CONTAINS
     !
     integer(i4),    dimension(maxNoBasins)          :: resolutionHydrology_dummy
     integer(i4),    dimension(maxNoBasins)          :: resolutionRouting_dummy
+    integer(i4),    dimension(maxNoBasins)          :: L0_Basin_dummy
 
     ! define namelists
     ! namelist directories
@@ -254,7 +256,7 @@ CONTAINS
          dirTemperature_dummy, dirReferenceET_dummy, dirOut_dummy, dirRestartOut_dummy,&
          dirRestartIn_dummy, dirLatLon_dummy
     ! namelist spatial & temporal resolution, otmization information
-    namelist /mainconfig/ timestep, resolutionHydrology_dummy, resolutionRouting_dummy, optimize, opti_method,  &
+    namelist /mainconfig/ timestep, resolutionHydrology_dummy, resolutionRouting_dummy, L0_Basin_dummy, optimize, opti_method,  &
          opti_function, nBasins, restart_flag_states_read, restart_flag_states_write, &
          restart_flag_config_read, restart_flag_config_write, warmingDays, evalPer
     ! namelsit soil layering
@@ -313,6 +315,7 @@ CONTAINS
     ! allocate patharray sizes
     allocate(resolutionHydrology (nBasins))
     allocate(resolutionRouting   (nBasins))
+    allocate(L0_Basin            (nBasins))
     allocate(dirMorpho       (nBasins))
     allocate(dirLCover       (nBasins))
     allocate(dirGauges       (nBasins))
@@ -326,6 +329,7 @@ CONTAINS
     !
     resolutionHydrology    = resolutionHydrology_dummy(1:nBasins)
     resolutionRouting      = resolutionRouting_dummy(1:nBasins)
+    L0_Basin               = L0_Basin_dummy(1:nBasins)
     !
 
     !===============================================================
