@@ -29,11 +29,11 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut      = "test_basin/"
+dirConfigOut      = "/data/stohyd/mHM_project/germany/basin//sub_mulde/output_v5/pet_test//"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles_In = "test_basin/input/morph/"
+dirCommonFiles_In = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
 !
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
@@ -45,43 +45,29 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dirMorpho_dummy(1)        = "test_basin/input/morph/"
+dirMorpho_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
 !> directory where land cover files are located
-dirLCover_dummy(1)        = "test_basin/input/luse/"
+dirLCover_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/luse_v5/"
 !> directory where discharge files are located
-dirGauges_dummy(1)        = "test_basin/input/gauge/"
+dirGauges_dummy(1)        = "/data/stohyd/data/processed/Germany/gauge/for_mHMv5/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(1) = "test_basin/input/meteo/pre/"
-dirTemperature_dummy(1)   = "test_basin/input/meteo/tavg/"
-dirReferenceET_dummy(1)   = "test_basin/input/meteo/pet/"
+dirPrecipitation_dummy(1) = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+dirTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+!> paths depending on PET process (processCase(5))
+!> if processCase(5) == 0  input directory of pet has to be specified
+dirReferenceET_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
+dirMinTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+dirMaxTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "test_basin/input/latlon/"
+dirLatLon_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
 !> directory where output should be written to
-dirOut_dummy(1)           = "test_basin/output_b1/"
+dirOut_dummy(1)           = "/data/stohyd/mHM_project/germany/basin//sub_mulde/output_v5/pet_test//"
 !> directory where restart output should be written
 dirRestartOut_dummy(1)    = "test_basin/restart/"
 !> directory where restart output should be written
-dirRestartIn_dummy(1)     = "test_basin/restart/"
+dirRestartIn_dummy(1)     = "/data/stohyd/mHM_project/germany/basin//sub_mulde/restart/"
 !
-!**** for Basin 2
-!> directory where morphological files are located
-dirMorpho_dummy(2)        = "test_basin/input/morph/"
-!> directory where land cover files are located
-dirLCover_dummy(2)        = "test_basin/input/luse/"
-!> directory where discharge files are located
-dirGauges_dummy(2)        = "test_basin/input/gauge/"
-!> directory where meteorological input is located
-dirPrecipitation_dummy(2) = "test_basin/input/meteo/pre/"
-dirTemperature_dummy(2)   = "test_basin/input/meteo/tavg/"
-dirReferenceET_dummy(2)   = "test_basin/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dirLatLon_dummy(2)        = "test_basin/input/latlon/"
-!> directory where output should be written to
-dirOut_dummy(2)           = "test_basin/output_b2/"
-!> directory where restart output should be written
-dirRestartOut_dummy(2)    = "test_basin/restart/"
-!> directory where restart input is located
-dirRestartIn_dummy(2)     = "test_basin/restart/"
 /
 
 !
@@ -99,13 +85,13 @@ timestep            = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m]
 !-----------------------------------------------------------------------------
-resolutionHydrology = 24000
+resolutionHydrology = 4000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
 !-----------------------------------------------------------------------------
-resolutionRouting   = 24000
+resolutionRouting   = 4000
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
@@ -113,7 +99,7 @@ resolutionRouting   = 24000
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -135,9 +121,9 @@ opti_function       = 3
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
 restart_flag_states_read   = .FALSE.
-restart_flag_states_write  = .TRUE.
+restart_flag_states_write  = .FALSE.
 restart_flag_config_read   = .FALSE.
-restart_flag_config_write  = .TRUE.
+restart_flag_config_write  = .FALSE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
@@ -154,15 +140,15 @@ restart_flag_config_write  = .TRUE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warmingDays          = 360
+warmingDays          = 0
 !> first year of wanted simulation period
-evalPer%yStart       = 1990
+evalPer%yStart       = 1980
 !> first month of wanted simulation period
 evalPer%mStart       = 01
 !> first day   of wanted simulation period
 evalPer%dStart       = 01
 !> last year   of wanted simulation period
-evalPer%yEnd         = 1993
+evalPer%yEnd         = 1981
 !> last month  of wanted simulation period
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
@@ -200,7 +186,7 @@ nLcover_scene         = 3
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1)     = 1975
+LCoverYearStart(1)     = 1950
 !> ending year of land cover scnene 1
 LCoverYearEnd(1)       = 1990
 !> name of land cover file for scnene 1
@@ -209,16 +195,16 @@ LCoverfName_dummy(1)   = 'lc_1990.asc'
 !> starting year of land cover scene 2
 LCoverYearStart(2)     = 1991
 !> ending year of land cover scnene 2
-LCoverYearEnd(2)       = 1993
+LCoverYearEnd(2)       = 2000
 !> name of land cover file for scnene 2
-LCoverfName_dummy(2)   = 'lc_1990.asc'
+LCoverfName_dummy(2)   = 'lc_2000.asc'
 
 !> starting year of land cover scene 3
-LCoverYearStart(3)     = 1994
+LCoverYearStart(3)     = 2001
 !> ending year of land cover scnene 3
-LCoverYearEnd(3)       = 2004
+LCoverYearEnd(3)       = 2013
 !> name of land cover file for scnene 3
-LCoverfName_dummy(3)   = 'lc_1990.asc'
+LCoverfName_dummy(3)   = 'lc_2006.asc'
 /
 !
 !******************************************************************************************
@@ -262,12 +248,12 @@ iFlag_LAI_data_format = 0
 !>                  A single header file must accomony binary files  
 !-----------------------------------------------------------------------------------
 !> input file format
-inputFormat_gridded_LAI = "bin"
+inputFormat_gridded_LAI = "xxxbin"
 !
 !> For each basin (number given in bracket), provide the path to the directory 
 !> where gridded LAI files are located.
-dir_gridded_LAI_dummy(1)  = "test_basin/input/lai/"
-dir_gridded_LAI_dummy(2)  = "test_basin/input/lai/"
+dir_gridded_LAI_dummy(1)  = "xxxtest/input/lai/"
+dir_gridded_LAI_dummy(2)  = "xxxtest/input/lai/"
 /
 
 !
@@ -292,8 +278,11 @@ processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
-!> actualET
-!> 1 - root fraction approach
+!> potential evapotranspiration (PET)
+!> 0 - read in PET (aspect correction)
+!> 1 - Hargreaves-Samani
+!> 2 - Priestley-Taylor
+!> 3 - Penman-Monteith
 processCase(5) = 1
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
@@ -337,7 +326,7 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations    = 400
+nIterations    = 1000
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
 seed           = 1235876

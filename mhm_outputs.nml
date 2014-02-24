@@ -27,7 +27,7 @@ outputFlxState(1)=.FALSE.
 outputFlxState(2)=.FALSE.
 !
 ! soil water content in the single layers (L1_soilMoist) [mm]         -- case  3
-outputFlxState(3)=.TRUE.
+outputFlxState(3)=.FALSE.
 !
 ! volumetric soil moisture in the single layers [mm/mm]               -- case  4
 ! ( = L1_soilMoist / L1_soilMoistSat )
@@ -35,7 +35,7 @@ outputFlxState(4)=.FALSE.
 !
 ! mean volumetric soil moisture averaged over all soil layers [mm/mm] -- case  5
 ! ( = L1_soilMoist / L1_soilMoistSat )
-outputFlxState(5)=.FALSE.
+outputFlxState(5)=.TRUE.
 !
 ! waterdepth in reservoir of sealed areas (L1_sealSTW) [mm]           -- case  6
 outputFlxState(6)=.FALSE.

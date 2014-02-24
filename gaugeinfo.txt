@@ -1,7 +1,6 @@
-nGaugesTotal          2
+nGaugesTotal          1
 !basinId nGauges       gaugelist
-1              1       55555
-2              1       55555
+1              1       6340600
 
 ! --- Gauges -----------------------------------------------------------------------------
 !> namelist controlling the gauging station information
@@ -15,4 +14,3 @@ structure:
 !> total number of gauges (all subasins, all basins) to be used for model evaluation
 !> header
 !> data corresponding to header
-

@@ -561,8 +561,8 @@ CONTAINS
              write(uopti_nml,*) '&directRunoff1'
           end if
        case(5)
-          if (processMatrix(iProc,1) .eq. 1) then
-             write(uopti_nml,*) '&actualET1'
+          if (processMatrix(iProc,1) .eq. 0) then
+             write(uopti_nml,*) '&PET0'
           end if
        case(6)
           if (processMatrix(iProc,1) .eq. 1) then

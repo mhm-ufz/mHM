@@ -72,17 +72,23 @@ CONTAINS
   !     HISTORY
   !>        \author Rohini Kumar
   !>        \date Jan 2013
-  !           Rohini Kumar,   Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  !           Matthias Zink,   Jun  2013 - addded NetCDf reader
+  !           Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  !           Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
   !
   subroutine prepare_meteo_forcings_data(iBasin)
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
-    use mo_timer,            only:                         &
-         timer_start, timer_stop, timer_get              ! Timing of processes
+    use mo_append,           only: append
+    use mo_timer,            only:                          &
+         timer_start, timer_stop, timer_get                  ! Timing of processes
     use mo_global_variables, only: &
-         dirPrecipitation, dirTemperature, dirReferenceET, &
-         inputFormat_meteo_forcings,                       &
-         L1_pre, L1_temp, L1_pet 
+         dirPrecipitation, dirTemperature,                  & ! directory of meteo input
+         dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
+         inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
+         processMatrix,                                     & ! process configuration
+         L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax           ! meteorological data
 
     implicit none
 
@@ -95,20 +101,33 @@ CONTAINS
     call L2_variable_init(iBasin)
 
     ! precipitation
-    call message( '    read precipitation ...' )
+    call message( '    read precipitation        ...' )
     call meteo_forcings_wrapper( iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
                                  L1_pre, lower=0.0_dp, upper=1000._dp, ncvarName='pre' )
 
     ! temperature
-    call message( '    read temperature   ...' )
+    call message( '    read temperature          ...' )
     call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
                                  L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
-    
-    ! pet
-    call message( '    read pet           ...' )
-    call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
-                                 L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
- 
+
+    ! read input for PET (process 5) depending on specified option (0 - input, 1 - HarSam, 2 - PrieTay, 3 - PenMon)
+    select case (processMatrix(5,1))    
+    case(0) ! pet is input
+       call message( '    read pet                  ...' )
+       call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
+                                    L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
+       allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+    case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
+       call message( '    read max. temperature     ...' )
+       call meteo_forcings_wrapper( iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
+                                    L1_tmin, lower=-50.0_dp, upper = 50._dp, ncvarName='tmin' )
+       call message( '    read min. temperature     ...' )
+       call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
+                                    L1_tmax, lower=-50.0_dp, upper = 50._dp, ncvarName='tmax' )
+       call append( L1_pet, L1_tmax(:,:) )
+       print*, 'PETshape: ',shape(L1_pet)
+    end select
+
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
 

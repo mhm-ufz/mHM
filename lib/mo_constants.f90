@@ -87,9 +87,9 @@ MODULE mo_constants
   REAL(dp), PARAMETER :: Gravity_dp   = 9.81_dp                      ! Gravity acceleration [m^2/s]
   !> Gravity accelaration [m^2 s^-1] in single precision
   REAL(sp), PARAMETER :: Gravity_sp   = 9.81_sp
-  !>  Solar constant in [MJ m^-2 s^-1] in double precision
+  !>  Solar constant in [J m^-2 s^-1] in double precision
   REAL(dp), PARAMETER :: SolarConst_dp  = 1367._dp                   ! Solar constant in [W m-2 = kg s-3]
-  !>  Solar constant in [MJ m^-2 s^-1] in single precision
+  !>  Solar constant in [J m^-2 s^-1] in single precision
   REAL(sp), PARAMETER :: SolarConst_sp  = 1367._sp
   !> Specific heat for vaporization of water in [J m-2 mm-1] in double precision
   REAL(dp), PARAMETER :: SpecHeatET_dp   = 2.45e06_dp                ! Specific heat in [W s m-2 mm-1 = kg s-2 mm-1]

@@ -87,7 +87,7 @@ MODULE mo_global_variables
   !                                                                             !   process 2 :: snow
   !                                                                             !   process 3 :: soilmoisture
   !                                                                             !   process 4 :: sealed area direct runoff
-  !                                                                             !   process 5 :: meteo correction
+  !                                                                             !   process 5 :: potential evapotranspiration
   !                                                                             !   process 6 :: interflow
   !                                                                             !   process 7 :: percolation
   !                                                                             !   process 8 :: routing
@@ -95,7 +95,6 @@ MODULE mo_global_variables
   integer(i4),    dimension(nProcesses, 3),    public :: processMatrix          ! Info about which process runs in which option and
   !                                                                             ! number of parameters necessary for this option
   !                                                                             !   col1: process_switch 
-  !                                                                             !         (if 0: process switched off)
   !                                                                             !   col2: no. of parameters
   !                                                                             !   col3: cum. no. of parameters
   real(dp),       dimension(:,:), allocatable, public :: global_parameters      ! Matrix of global parameters (former: gamma)
@@ -113,6 +112,8 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirGauges          ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
+  character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
+  character(256), dimension(:), allocatable, public :: dirMaxTemperature  ! Directory where maximum temp. files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
@@ -375,6 +376,8 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]   Precipitation
   real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC] Air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]   Potential evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC] minimum daily air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC] maximum daily air temperature
 
   ! Land cover
   ! dim1 = number grid cells L1

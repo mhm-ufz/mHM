@@ -152,6 +152,7 @@ CONTAINS
       L0downBound_inL1    , & ! lower row of L0 block within L1 cell
       L0leftBound_inL1    , & ! left column of L0 block within L1 cell
       L0rightBound_inL1   , & ! right column of L0 block within L1 cell
+      latitude            , & ! latitude on level 1
       ! Physiographic L11
       netPerm             , & ! Routing order
       nLink_fromN         , & ! Link: from node i
@@ -167,6 +168,8 @@ CONTAINS
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
       pet_in              , & ! Daily potential evapotranspiration
+      tmin_in             , & ! Daily minimum temperature
+      tmax_in             , & ! Daily maxumum temperature
       prec_in             , & ! Daily mean precipitation
       temp_in             , & ! Daily average temperature
       ! In-Out -----------------------------------------------------------------
@@ -234,6 +237,7 @@ CONTAINS
     use mo_net_startup,             only: L11_fraction_sealed_floodplain   ! flood plain subroutine
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
+    use mo_pet,                     only: pet_hargreaves                   ! calc. of pot. evapotranspiration
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
     use mo_canopy_interc ,          only: canopy_interc
     use mo_snow_accum_melt,         only: snow_accum_melt
@@ -243,7 +247,7 @@ CONTAINS
     use mo_runoff,                  only: L1_total_runoff 
     use mo_runoff,                  only: L11_runoff_acc
     use mo_routing,                 only: L11_routing
-    use mo_julian,                  only: dec2date
+    use mo_julian,                  only: dec2date, date2dec
 
     implicit none
 
@@ -299,6 +303,7 @@ CONTAINS
     integer(i4), dimension(:),   intent(in) :: L0downBound_inL1
     integer(i4), dimension(:),   intent(in) :: L0leftBound_inL1
     integer(i4), dimension(:),   intent(in) :: L0rightBound_inL1
+    real(dp),    dimension(:),   intent(in) :: latitude
 
     ! Physiographic L11
     integer(i4), dimension(:),   intent(in) :: netPerm
@@ -308,16 +313,18 @@ CONTAINS
     real(dp),    dimension(:),   intent(in) :: slope11
 
     ! Forcings
-    real(dp),    dimension(:),   intent(in) :: evap_coeff
-    real(dp),    dimension(:),   intent(in) :: fday_prec
-    real(dp),    dimension(:),   intent(in) :: fnight_prec
-    real(dp),    dimension(:),   intent(in) :: fday_pet
-    real(dp),    dimension(:),   intent(in) :: fnight_pet
-    real(dp),    dimension(:),   intent(in) :: fday_temp
-    real(dp),    dimension(:),   intent(in) :: fnight_temp
-    real(dp),    dimension(:),   intent(in) :: pet_in
-    real(dp),    dimension(:),   intent(in) :: prec_in
-    real(dp),    dimension(:),   intent(in) :: temp_in
+    real(dp),    dimension(:),   intent(in)    :: evap_coeff
+    real(dp),    dimension(:),   intent(in)    :: fday_prec
+    real(dp),    dimension(:),   intent(in)    :: fnight_prec
+    real(dp),    dimension(:),   intent(in)    :: fday_pet
+    real(dp),    dimension(:),   intent(in)    :: fnight_pet
+    real(dp),    dimension(:),   intent(in)    :: fday_temp
+    real(dp),    dimension(:),   intent(in)    :: fnight_temp
+    real(dp),    dimension(:),   intent(inout) :: pet_in
+    real(dp),    dimension(:),   intent(in)    :: tmin_in
+    real(dp),    dimension(:),   intent(in)    :: tmax_in
+    real(dp),    dimension(:),   intent(in)    :: prec_in
+    real(dp),    dimension(:),   intent(in)    :: temp_in
 
     ! Configuration
     integer(i4),              intent(inout)   ::  yId
@@ -355,8 +362,8 @@ CONTAINS
     real(dp),  dimension(:),   intent(inout)  :: total_runoff
 
     ! Fluxes L11
-    real(dp), dimension(:),   intent(out)     :: nNode_Qmod
-    real(dp), dimension(:),   intent(inout)   :: nNode_qOUT
+    real(dp), dimension(:),    intent(out)    :: nNode_Qmod
+    real(dp), dimension(:),    intent(inout)  :: nNode_qOUT
     real(dp), dimension(:,:),  intent(inout)  :: nNode_qTIN
     real(dp), dimension(:,:),  intent(inout)  :: nNode_qTR
 
@@ -390,6 +397,7 @@ CONTAINS
     integer(i4)            :: day         ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
     integer(i4)            :: month       ! Month of current day [1-12]
     integer(i4)            :: year        ! year
+    integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
 
     real(dp)               :: pet
@@ -550,6 +558,15 @@ CONTAINS
     !$OMP private(k, prec, pet, temp, tmp_infiltration, tmp_soilMoisture, tmp_aet_soil)
     !$OMP do
     do k = 1, nCells1
+
+       ! call PET calculation
+          select case (processMatrix(5,1))
+          !case(0) ! PET is input
+          case(1) ! HarSam
+             doy       = anint(date2dec(day,month,year,12) - date2dec(day,1,1,12) )
+             pet_in(k) = pet_hargreaves(temp_in(k), tmax_in(k), tmin_in(k),                    & ! Intent IN
+                  latitude(k), 1.0_dp, doy)                                                      ! Intent IN
+          end select
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN

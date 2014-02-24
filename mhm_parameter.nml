@@ -14,7 +14,7 @@ degreeDayFactor_pervious           =  0.0000,      2.0000,     1.368,         1,
 increaseDegreeDayFactorByPrecip    =  0.1000,      0.9000,     2.869E-01,     1,       1
 maxDegreeDayFactor_forest          =  0.0000,      8.0000,     5.260,         1,       1
 maxDegreeDayFactor_impervious      =  0.0000,      8.0000,     4.342,         1,       1
-maxDegreeDayFactor_pervious        =  0.0000,      8.0000,     5.077999999999999,     1,       1
+maxDegreeDayFactor_pervious        =  0.0000,      8.0000,     5.07799,       1,       1
 /
 
 ! soilmoisture
@@ -44,7 +44,7 @@ imperviousStorageCapacity          =  0.0000,      5.0000,     9.055E-01,     1,
 /
 
 ! meteoCorrectionFactor
-&actualET1
+&PET0
 minCorrectionFactorPET             =  0.7000,      1.3000,     9.307E-01,     1,       1
 maxCorrectionFactorPET             =  0.0000,      0.2000,     7.730E-02,     1,       1
 aspectTresholdPET                  =  160.00,      200.00,     1.838E+02,     1,       1
@@ -79,14 +79,27 @@ muskingumAttenuation_riverSlope    =  0.0100,      0.5000,     9.539E-02,     1,
 ! geological parameters (ordering according to file 'geology_classdefinition.txt')
 ! this parameters are NOT REGIONALIZED yet, i.e. these are <beta> and not <gamma>
 &geoparameter
-GeoParam(1,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(2,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(3,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(4,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(5,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(6,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(7,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(8,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
-GeoParam(9,:)                      =  1.000,     1000.00,     1.000E+02,     1,       1
+GeoParam(1,:)                      =  1.000,     1000.00,     1.501E+01,     1,       1
+GeoParam(2,:)                      =  1.000,     1000.00,     2.907E+02,     1,       1
+GeoParam(3,:)                      =  1.000,     1000.00,     1.273E+02,     1,       1
+GeoParam(4,:)                      =  1.000,     1000.00,     6.309E+01,     1,       1
+GeoParam(5,:)                      =  1.000,     1000.00,     1.329E+02,     1,       1
+GeoParam(6,:)                      =  1.000,     1000.00,     1.909E+02,     1,       1
+GeoParam(7,:)                      =  1.000,     1000.00,     3.408E+02,     1,       1
+GeoParam(8,:)                      =  1.000,     1000.00,     2.735E+02,     1,       1
+GeoParam(9,:)                      =  1.000,     1000.00,     1.951E+02,     1,       1
+GeoParam(10,:)                     =  1.000,     1000.00,     3.674E+02,     1,       1
+GeoParam(11,:)                     =  1.000,     1000.00,     5.700E+01,     1,       1
+GeoParam(12,:)                     =  1.000,     1000.00,     1.585E+01,     1,       1
+GeoParam(13,:)                     =  1.000,     1000.00,     1.729E+02,     1,       1
+GeoParam(14,:)                     =  1.000,     1000.00,     1.288E+02,     1,       1
+GeoParam(15,:)                     =  1.000,     1000.00,     2.143E+02,     1,       1
+GeoParam(16,:)                     =  1.000,     1000.00,     2.838E+02,     1,       1
+GeoParam(17,:)                     =  1.000,     1000.00,     1.779E+02,     1,       1
+GeoParam(18,:)                     =  1.000,     1000.00,     2.975E+02,     1,       1
+GeoParam(19,:)                     =  1.000,     1000.00,     1.359E+02,     1,       1
+GeoParam(20,:)                     =  1.000,     1000.00,     1.568E+02,     1,       1
+GeoParam(21,:)                     =  1.000,     1000.00,     1.057E+02,     1,       1
+GeoParam(22,:)                     =  1.000,     1000.00,     1.725E+02,     1,       1
+GeoParam(23,:)                     =  1.000,     1000.00,     1.209E+02,     1,       1
 /
-

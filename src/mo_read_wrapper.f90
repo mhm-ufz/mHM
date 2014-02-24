@@ -12,7 +12,7 @@ MODULE mo_read_wrapper
 
   ! Written  Juliane Mai & Matthias Zink, Jan 2013
   ! Modified 
-  !                       Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
+  !          Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
 
   USE mo_kind, ONLY: i4, dp
 

@@ -92,6 +92,7 @@ CONTAINS
   !                  Juliane Mai,    Oct  2013 - adding global_parameters_name
   !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
+  !                  Matthias Zink,  Feb  2014 - added multiple options fpr PET process
 
   subroutine read_config()
 
@@ -117,7 +118,9 @@ CONTAINS
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirGauges,                                         & ! and discharge files
-         dirPrecipitation, dirTemperature, dirReferenceET,  & ! directory of meteo input
+         dirPrecipitation, dirTemperature,                  & ! directory of meteo input
+         dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
@@ -225,11 +228,13 @@ CONTAINS
     character(256)                                  :: dummy 
     character(256)                                  :: fname
     integer(i4),dimension(maxNoSoilHorizons)        :: soilDepth_dummy           ! depth of the single horizons
-    character(256), dimension(maxNoBasins)          :: dirMorpho_dummy
+    character(256), dimension(maxNoBasins)          :: dirMorpho_dummy           ! dummies for all input data paths
     character(256), dimension(maxNoBasins)          :: dirLCover_dummy
     character(256), dimension(maxNoBasins)          :: dirGauges_dummy
     character(256), dimension(maxNoBasins)          :: dirPrecipitation_dummy
     character(256), dimension(maxNoBasins)          :: dirTemperature_dummy
+    character(256), dimension(maxNoBasins)          :: dirMinTemperature_dummy
+    character(256), dimension(maxNoBasins)          :: dirMaxTemperature_dummy
     character(256), dimension(maxNoBasins)          :: dirReferenceET_dummy
     character(256), dimension(maxNoBasins)          :: dirOut_dummy
     character(256), dimension(maxNoBasins)          :: dirRestartOut_dummy
@@ -247,8 +252,8 @@ CONTAINS
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles_In, inputFormat_meteo_forcings,            &
          dirMorpho_dummy,dirLCover_dummy,dirGauges_dummy,dirPrecipitation_dummy, &
-         dirTemperature_dummy, dirReferenceET_dummy, dirOut_dummy, dirRestartOut_dummy,&
-         dirRestartIn_dummy, dirLatLon_dummy
+         dirTemperature_dummy, dirReferenceET_dummy, dirMinTemperature_dummy, dirMaxTemperature_dummy, &
+         dirOut_dummy, dirRestartOut_dummy, dirRestartIn_dummy, dirLatLon_dummy
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, resolutionHydrology, resolutionRouting, optimize, opti_method,  &
          opti_function, nBasins, restart_flag_states_read, restart_flag_states_write, &
@@ -277,8 +282,7 @@ CONTAINS
          rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                         &
          rootFractionCoefficient_pervious, infiltrationShapeFactor
     namelist /directRunoff1/ imperviousStorageCapacity
-    namelist /actualET1/  minCorrectionFactorPET, maxCorrectionFactorPET,                                              &
-         aspectTresholdPET 
+    namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET 
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
          slowInterflowRecession_Ks, exponentSlowInterflow    
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic     
@@ -307,16 +311,18 @@ CONTAINS
        stop
     end if
     ! allocate patharray sizes
-    allocate(dirMorpho       (nBasins))
-    allocate(dirLCover       (nBasins))
-    allocate(dirGauges       (nBasins))
-    allocate(dirPrecipitation(nBasins))
-    allocate(dirTemperature  (nBasins))
-    allocate(dirReferenceET  (nBasins))
-    allocate(dirOut          (nBasins))
-    allocate(dirRestartOut   (nBasins))
-    allocate(dirRestartIn    (nBasins))
-    allocate(dirLatLon       (nBasins))
+    allocate(dirMorpho         (nBasins))
+    allocate(dirLCover         (nBasins))
+    allocate(dirGauges         (nBasins))
+    allocate(dirPrecipitation  (nBasins))
+    allocate(dirTemperature    (nBasins))
+    allocate(dirReferenceET    (nBasins))
+    allocate(dirMinTemperature (nBasins))
+    allocate(dirMaxTemperature (nBasins))
+    allocate(dirOut            (nBasins))
+    allocate(dirRestartOut     (nBasins))
+    allocate(dirRestartIn      (nBasins))
+    allocate(dirLatLon         (nBasins))
 
     !===============================================================
     !  determine simulation time period incl. warming days
@@ -353,16 +359,18 @@ CONTAINS
     !===============================================================
     call position_nml('directories', unamelist)
     read(unamelist, nml=directories)
-    dirMorpho       = dirMorpho_dummy       (1:nBasins)
-    dirLCover       = dirLCover_dummy       (1:nBasins)
-    dirGauges       = dirGauges_dummy       (1:nBasins)      
-    dirPrecipitation= dirPrecipitation_dummy(1:nBasins)
-    dirTemperature  = dirTemperature_dummy  (1:nBasins)
-    dirReferenceET  = dirReferenceET_dummy  (1:nBasins)
-    dirOut          = dirOut_dummy          (1:nBasins)
-    dirRestartOut   = dirRestartOut_dummy   (1:nBasins)
-    dirRestartIn    = dirRestartIn_dummy    (1:nBasins)
-    dirLatLon       = dirLatLon_dummy       (1:nBasins)
+    dirMorpho         = dirMorpho_dummy          (1:nBasins)
+    dirLCover         = dirLCover_dummy          (1:nBasins)
+    dirGauges         = dirGauges_dummy          (1:nBasins)      
+    dirPrecipitation  = dirPrecipitation_dummy   (1:nBasins)
+    dirTemperature    = dirTemperature_dummy     (1:nBasins)
+    dirReferenceET    = dirReferenceET_dummy     (1:nBasins)
+    dirMinTemperature = dirMinTemperature_dummy  (1:nBasins)
+    dirMaxTemperature = dirMaxTemperature_dummy  (1:nBasins)
+    dirOut            = dirOut_dummy             (1:nBasins)
+    dirRestartOut     = dirRestartOut_dummy      (1:nBasins)
+    dirRestartIn      = dirRestartIn_dummy       (1:nBasins)
+    dirLatLon         = dirLatLon_dummy          (1:nBasins)
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
@@ -660,12 +668,12 @@ CONTAINS
        stop
     end select
 
-    ! Process 5 - actualET (meteo correction  factor)
+    ! Process 5 - potential evapotranspiration (PET)
     select case (processCase(5))
-    ! 1 - root fraction approach
-    case(1)
-       call position_nml('actualET1', unamelist_param)
-       read(unamelist_param, nml=actualET1)
+    ! 0 - PET is input, correct PET by aspect
+    case(0)
+       call position_nml('PET0', unamelist_param)
+       read(unamelist_param, nml=PET0)
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 3_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
@@ -680,7 +688,29 @@ CONTAINS
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
-          call message('***ERROR: parameter in namelist "actualET1" out of bound in ', &
+          call message('***ERROR: parameter in namelist "PET0" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
+    ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
+    case(1)
+       call position_nml('PET0', unamelist_param)
+       read(unamelist_param, nml=PET0)
+       processMatrix(5, 1) = processCase(5)
+       processMatrix(5, 2) = 3_i4
+       processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
+
+       call append(global_parameters_name, (/ &
+            'minCorrectionFactorPET', &
+            'maxCorrectionFactorPET', &
+            'aspectTresholdPET     '/))
+
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "PET0" out of bound in ', &
                trim(adjustl(file_namelist_param)))
           stop
        end if
