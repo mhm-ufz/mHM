@@ -55,7 +55,7 @@ dirPrecipitation_dummy(1) = "../../test_basin/input/meteo/pre/"
 dirTemperature_dummy(1)   = "../../test_basin/input/meteo/tavg/"
 dirReferenceET_dummy(1)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "../../test_basin/input/latlon/"
+dirLatLon_dummy(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
 dirOut_dummy(1)           = "output_b1/"
 !> directory where restart output should be written
@@ -75,7 +75,7 @@ dirPrecipitation_dummy(2) = "../../test_basin/input/meteo/pre/"
 dirTemperature_dummy(2)   = "../../test_basin/input/meteo/tavg/"
 dirReferenceET_dummy(2)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(2)        = "../../test_basin/input/latlon/"
+dirLatLon_dummy(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
 dirOut_dummy(2)           = "output_b2/"
 !> directory where restart output should be written
@@ -97,16 +97,6 @@ dirRestartIn_dummy(2)     = "restart/"
 !-----------------------------------------------------------------------------
 timestep            = 1
 !-----------------------------------------------------------------------------
-!> resolution of Level-1 hydrological simulations in mHM [m]
-!-----------------------------------------------------------------------------
-resolutionHydrology = 24000
-!-----------------------------------------------------------------------------
-!> resolution of Level-11 discharge routing [m] \n
-!> this  level-11 discharge routing resolution must be >= and multiple of the
-!> level-1 hydrological simulations resolution \n
-!-----------------------------------------------------------------------------
-resolutionRouting   = 24000
-!-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
 !> All gauging stations within those basins will be taken for the optimization.\n
@@ -114,6 +104,25 @@ resolutionRouting   = 24000
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
 nBasins             = 2
+!-----------------------------------------------------------------------------
+!> resolution of Level-1 hydrological simulations in mHM [m] per basin
+!-----------------------------------------------------------------------------
+resolutionHydrology_dummy(1) = 24000 
+resolutionHydrology_dummy(2) = 24000 
+!-----------------------------------------------------------------------------
+!> resolution of Level-11 discharge routing [m] per basin \n
+!> this  level-11 discharge routing resolution must be >= and multiple of the
+!> level-1 hydrological simulations resolution \n
+!-----------------------------------------------------------------------------
+resolutionRouting_dummy(1)   = 24000 
+resolutionRouting_dummy(2)   = 24000
+!----------------------------------------------------------------------------
+!> specify same integer for basins to share L0_data to save memory \n
+!> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
+!> intersected by other integers \n
+!-----------------------------------------------------------------------------
+L0_Basin_dummy(1)            = 1
+L0_Basin_dummy(2)            = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
