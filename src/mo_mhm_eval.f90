@@ -74,6 +74,7 @@ CONTAINS
   !                   R. Kumar, J. Mai,     Sep 2013 - Splitting allocation and initialization of arrays
   !                   R. Kumar              Nov 2013 - update intent variables in documentation
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
+  !                   M. Zink,              Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -134,26 +135,27 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
 
     ! FOR WRITING GRIDDED STATES AND FLUXES 
-    integer(i4)                                   :: hh                  ! Counter
-    integer(i4)                                   :: ncid                ! netcdf fileID
-    integer(i4)                                   :: tIndex_out          ! for writing netcdf file
+    integer(i4)                               :: hh                  ! Counter
+    integer(i4)                               :: ncid                ! netcdf fileID
+    integer(i4)                               :: tIndex_out          ! for writing netcdf file
     ! States L1
-    real(dp), dimension(:), allocatable           :: L1_inter_out        ! Interception
-    real(dp), dimension(:), allocatable           :: L1_snowPack_out     ! Snowpack
-    real(dp), dimension(:,:), allocatable         :: L1_soilMoist_out    ! Soil moisture of each horizon
-    real(dp), dimension(:), allocatable           :: L1_sealSTW_out      ! Retention storage of impervious areas
-    real(dp), dimension(:), allocatable           :: L1_unsatSTW_out     ! Upper soil storage
-    real(dp), dimension(:), allocatable           :: L1_satSTW_out       ! Groundwater storage
+    real(dp), dimension(:),   allocatable     :: L1_inter_out        ! Interception
+    real(dp), dimension(:),   allocatable     :: L1_snowPack_out     ! Snowpack
+    real(dp), dimension(:,:), allocatable     :: L1_soilMoist_out    ! Soil moisture of each horizon
+    real(dp), dimension(:),   allocatable     :: L1_sealSTW_out      ! Retention storage of impervious areas
+    real(dp), dimension(:),   allocatable     :: L1_unsatSTW_out     ! Upper soil storage
+    real(dp), dimension(:),   allocatable     :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
-    real(dp), dimension(:,:), allocatable         :: L1_aETSoil_out      ! actual ET of each horizon
-    real(dp), dimension(:), allocatable           :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
-    real(dp), dimension(:), allocatable           :: L1_aETSealed_out    ! Actual ET from free-water surfaces
-    real(dp), dimension(:), allocatable           :: L1_total_runoff_out ! Generated runoff
-    real(dp), dimension(:), allocatable           :: L1_runoffSeal_out   ! Direct runoff from impervious areas
-    real(dp), dimension(:), allocatable           :: L1_fastRunoff_out   ! Fast runoff component
-    real(dp), dimension(:), allocatable           :: L1_slowRunoff_out   ! Slow runoff component
-    real(dp), dimension(:), allocatable           :: L1_baseflow_out     ! Baseflow
-    real(dp), dimension(:), allocatable           :: L1_percol_out       ! Percolation
+    real(dp), dimension(:),   allocatable     :: L1_pet_out          ! potential evapotranpiration (PET)
+    real(dp), dimension(:,:), allocatable     :: L1_aETSoil_out      ! actual ET of each horizon
+    real(dp), dimension(:),   allocatable     :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
+    real(dp), dimension(:),   allocatable     :: L1_aETSealed_out    ! Actual ET from free-water surfaces
+    real(dp), dimension(:),   allocatable     :: L1_total_runoff_out ! Generated runoff
+    real(dp), dimension(:),   allocatable     :: L1_runoffSeal_out   ! Direct runoff from impervious areas
+    real(dp), dimension(:),   allocatable     :: L1_fastRunoff_out   ! Fast runoff component
+    real(dp), dimension(:),   allocatable     :: L1_slowRunoff_out   ! Slow runoff component
+    real(dp), dimension(:),   allocatable     :: L1_baseflow_out     ! Baseflow
+    real(dp), dimension(:),   allocatable     :: L1_percol_out       ! Percolation
 
     ! local variables
     integer(i4)                               :: nTimeSteps
@@ -362,7 +364,8 @@ CONTAINS
                L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
-               L1_pet (s_p5(1):e_p5(1),iMeteo_p5(1)), L1_tmin(s_p5(2):e_p5(2),iMeteo_p5(2)),& ! IN F
+               L1_pet (s_p5(1):e_p5(1),                                                     & ! INOUT F
+               iMeteo_p5(1)), L1_tmin(s_p5(2):e_p5(2),iMeteo_p5(2)),                        & ! IN F
                L1_tmax(s_p5(3):e_p5(3),iMeteo_p5(3)),                                       & ! IN F
                L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                             & ! IN F
                yId,                                                                         & ! INOUT C
@@ -416,6 +419,7 @@ CONTAINS
                         L1_unsatSTW_out        , & ! Upper soil storage
                         L1_satSTW_out          , & ! Groundwater storage
                                 ! Fluxes L1
+                        L1_pet_out             , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out         , & ! actual ET
                         L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                         L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -442,26 +446,28 @@ CONTAINS
                 if (outputFlxState(8) ) L1_satSTW_out   (:)   = L1_satSTW_out   (:)   + L1_satSTW   (s1:e1)
 
                 ! Fluxes L1  --> AGGREGATED
-                if (outputFlxState(9)      ) then
+                if (outputFlxState(9) ) &
+                     L1_pet_out(:)          = L1_pet(s1:e1, iMeteoTS)         !+ L1_pet_out(:)
+                if (outputFlxState(10)      ) then
                    do hh = 1, nSoilHorizons_mHM
-                      L1_aETSoil_out(:,hh) = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))
+                      L1_aETSoil_out(:,hh)  = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))
                    end do
                 end if
-                if (outputFlxState(9) ) &
+                if (outputFlxState(10) ) &
                      L1_aETCanopy_out(:)    = L1_aETCanopy_out(:)    + L1_aETCanopy(s1:e1)
-                if (outputFlxState(9) ) &
+                if (outputFlxState(10) ) &
                      L1_aETSealed_out(:)    = L1_aETSealed_out(:)    + L1_aETSealed(s1:e1)*L1_fSealed(s1:e1)
-                if (outputFlxState(10)) &
-                     L1_total_runoff_out(:) = L1_total_runoff_out(:) + L1_total_runoff(s1:e1)
                 if (outputFlxState(11)) &
-                     L1_runoffSeal_out(:)   = L1_runoffSeal_out(:)   + L1_runoffSeal(s1:e1)*L1_fSealed(s1:e1)
+                     L1_total_runoff_out(:) = L1_total_runoff_out(:) + L1_total_runoff(s1:e1)
                 if (outputFlxState(12)) &
-                     L1_fastRunoff_out(:)   = L1_fastRunoff_out(:)   + L1_fastRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_runoffSeal_out(:)   = L1_runoffSeal_out(:)   + L1_runoffSeal(s1:e1)*L1_fSealed(s1:e1)
                 if (outputFlxState(13)) &
-                     L1_slowRunoff_out(:)   = L1_slowRunoff_out(:)   + L1_slowRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_fastRunoff_out(:)   = L1_fastRunoff_out(:)   + L1_fastRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(14)) &
-                     L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_slowRunoff_out(:)   = L1_slowRunoff_out(:)   + L1_slowRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(15)) &
+                     L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                if (outputFlxState(16)) &
                      L1_percol_out(:)       = L1_percol_out(:)       + L1_percol(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
 
                 ! write data
@@ -507,6 +513,7 @@ CONTAINS
                         L1_unsatSTW_out        , & ! Upper soil storage
                         L1_satSTW_out          , & ! Groundwater storage
                         ! Fluxes L1
+                        L1_pet_out             , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out         , & ! actual ET
                         L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                         L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -520,48 +527,50 @@ CONTAINS
 
                    ! set variables to zero
                    ! States L1
-                   if (outputFlxState(1)  ) L1_inter_out    (:)   = 0.0_dp       
-                   if (outputFlxState(2)  ) L1_snowPack_out (:)   = 0.0_dp      
+                   if (outputFlxState(1)  ) L1_inter_out       (:) = 0.0_dp       
+                   if (outputFlxState(2)  ) L1_snowPack_out    (:) = 0.0_dp      
                    if( outputFlxState(3) .OR. &
                         outputFlxState(4) .OR. &
                         outputFlxState(5)  ) L1_soilMoist_out(:,:) = 0.0_dp       
-                   if (outputFlxState(6)  ) L1_sealSTW_out  (:)   = 0.0_dp      
-                   if (outputFlxState(7)  ) L1_unsatSTW_out (:)   = 0.0_dp      
-                   if (outputFlxState(8)  ) L1_satSTW_out   (:)   = 0.0_dp      
+                   if (outputFlxState(6)  ) L1_sealSTW_out     (:) = 0.0_dp      
+                   if (outputFlxState(7)  ) L1_unsatSTW_out    (:) = 0.0_dp      
+                   if (outputFlxState(8)  ) L1_satSTW_out      (:) = 0.0_dp      
                    ! Fluxes L1
-                   if (outputFlxState(9)  ) L1_aETSoil_out   (:,:) = 0.0_dp     
-                   if (outputFlxState(9)  ) L1_aETCanopy_out   (:) = 0.0_dp    
-                   if (outputFlxState(9)  ) L1_aETSealed_out   (:) = 0.0_dp    
-                   if (outputFlxState(10) ) L1_total_runoff_out(:) = 0.0_dp   
-                   if (outputFlxState(11) ) L1_runoffSeal_out  (:) = 0.0_dp   
-                   if (outputFlxState(12) ) L1_fastRunoff_out  (:) = 0.0_dp   
-                   if (outputFlxState(13) ) L1_slowRunoff_out  (:) = 0.0_dp   
-                   if (outputFlxState(14) ) L1_baseflow_out    (:) = 0.0_dp   
-                   if (outputFlxState(15) ) L1_percol_out      (:) = 0.0_dp   
+                   if (outputFlxState(9)  ) L1_pet_out         (:) = 0.0_dp     
+                   if (outputFlxState(10) ) L1_aETSoil_out   (:,:) = 0.0_dp     
+                   if (outputFlxState(10) ) L1_aETCanopy_out   (:) = 0.0_dp    
+                   if (outputFlxState(10) ) L1_aETSealed_out   (:) = 0.0_dp    
+                   if (outputFlxState(11) ) L1_total_runoff_out(:) = 0.0_dp   
+                   if (outputFlxState(12) ) L1_runoffSeal_out  (:) = 0.0_dp   
+                   if (outputFlxState(13) ) L1_fastRunoff_out  (:) = 0.0_dp   
+                   if (outputFlxState(14) ) L1_slowRunoff_out  (:) = 0.0_dp   
+                   if (outputFlxState(15) ) L1_baseflow_out    (:) = 0.0_dp   
+                   if (outputFlxState(16) ) L1_percol_out      (:) = 0.0_dp   
                 end if
                 !    
                 ! close file and deallocate variables
                 if( tt .eq. nTimeSteps ) then
                    call CloseFluxState_file(ii, ncid)
                    ! States L1
-                   if (outputFlxState(1)  ) deallocate( L1_inter_out    )         
-                   if (outputFlxState(2)  ) deallocate( L1_snowPack_out )        
+                   if (outputFlxState(1)  ) deallocate( L1_inter_out       )         
+                   if (outputFlxState(2)  ) deallocate( L1_snowPack_out    )        
                    if( outputFlxState(3) .OR. &
-                        outputFlxState(4) .OR. &
-                        outputFlxState(5)  ) deallocate( L1_soilMoist_out)  
-                   if (outputFlxState(6)  ) deallocate( L1_sealSTW_out  )        
-                   if (outputFlxState(7)  ) deallocate( L1_unsatSTW_out )        
-                   if (outputFlxState(8)  ) deallocate( L1_satSTW_out   )        
+                       outputFlxState(4) .OR. &
+                       outputFlxState(5)  ) deallocate( L1_soilMoist_out   )  
+                   if (outputFlxState(6)  ) deallocate( L1_sealSTW_out     )        
+                   if (outputFlxState(7)  ) deallocate( L1_unsatSTW_out    )        
+                   if (outputFlxState(8)  ) deallocate( L1_satSTW_out      )        
                    ! Fluxes L1
-                   if (outputFlxState(9)  ) deallocate( L1_aETSoil_out     )    
-                   if (outputFlxState(9)  ) deallocate( L1_aETCanopy_out   )   
-                   if (outputFlxState(9)  ) deallocate( L1_aETSealed_out   )   
-                   if (outputFlxState(10) ) deallocate( L1_total_runoff_out)  
-                   if (outputFlxState(11) ) deallocate( L1_runoffSeal_out  )  
-                   if (outputFlxState(12) ) deallocate( L1_fastRunoff_out  )  
-                   if (outputFlxState(13) ) deallocate( L1_slowRunoff_out  )  
-                   if (outputFlxState(14) ) deallocate( L1_baseflow_out    )  
-                   if (outputFlxState(15) ) deallocate( L1_percol_out      )  
+                   if (outputFlxState(9)   ) deallocate( L1_pet_out        )    
+                   if (outputFlxState(10)  ) deallocate( L1_aETSoil_out    )    
+                   if (outputFlxState(10)  ) deallocate( L1_aETCanopy_out  )   
+                   if (outputFlxState(10)  ) deallocate( L1_aETSealed_out  )   
+                   if (outputFlxState(11) ) deallocate( L1_total_runoff_out)  
+                   if (outputFlxState(12) ) deallocate( L1_runoffSeal_out  )  
+                   if (outputFlxState(13) ) deallocate( L1_fastRunoff_out  )  
+                   if (outputFlxState(14) ) deallocate( L1_slowRunoff_out  )  
+                   if (outputFlxState(15) ) deallocate( L1_baseflow_out    )  
+                   if (outputFlxState(16) ) deallocate( L1_percol_out      )  
                    !
                 end if
                 !

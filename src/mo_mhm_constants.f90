@@ -44,7 +44,7 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: C1_InitStateSM     =    0.25_dp
 
   ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState       = 15_i4     ! max. number of outputs to write into a netcdf file
+  integer(i4), public, parameter :: nOutFlxState       = 16_i4     ! max. number of outputs to write into a netcdf file
 
   ! constants in the Duffie formulae for computing extraterrestrial radiation
   real(dp),    public, parameter :: DuffieDr          =    0.033_dp
@@ -92,12 +92,14 @@ MODULE mo_mhm_constants
 
 
   !> Stefan-Boltzmann constant [W m^-2 K^-4] 
-  REAL(dp),   public, parameter :: StBoltzmann         = 5.67e-08_dp                
-  !> Constant for Hargreaves ref. ET formula [deg C]
-  REAL(dp),   public, parameter :: HargreavesConst     =     17.8_dp             
+  REAL(dp),   public, parameter :: StBoltzmann          = 5.67e-08_dp                
+  !> Coeffiecient for Hargreaves-Samani ref. ET formula [-]
+  REAL(dp),   public, parameter :: HarSamCoeff          = 2.30e-03_dp
+  !> Constant for Hargreaves-Samani ref. ET formula [deg C]
+  REAL(dp),   public, parameter :: HarSamConst          = 17.8_dp             
   !> First constant in the equation for slope of saturation - vapour pressure (Priestly ref ET) [deg C]
-  REAL(dp),   public, parameter :: DeltaPriestly1      =  0.04145_dp             
+  REAL(dp),   public, parameter :: DeltaPriestly1       = 0.04145_dp             
   !> Second constant in the equation for slope of saturation vapour pressure (Priestly ref ET) 
-  REAL(dp),   public, parameter :: DeltaPriestly2      =  0.06088_dp 
+  REAL(dp),   public, parameter :: DeltaPriestly2       = 0.06088_dp 
 
 END MODULE mo_mhm_constants

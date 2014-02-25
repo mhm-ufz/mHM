@@ -50,6 +50,7 @@ CONTAINS
   !>         \param[inout] "real(dp), allocatable :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
   !>         \param[inout] "real(dp), allocatable :: L1_unsatSTW_out(:)"     ! Upper soil storage
   !>         \param[inout] "real(dp), allocatable :: L1_satSTW_out(:)"       ! Groundwater storage
+  !>         \param[inout] "real(dp), allocatable :: L1_pet_out(:)"          ! potential evapotranspiration (PET) 
   !>         \param[inout] "real(dp), allocatable :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
   !>         \param[inout] "real(dp), allocatable :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
   !>         \param[inout] "real(dp), allocatable :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
@@ -86,8 +87,9 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Zink
   !>        \date Apr 2013
-  !         Modified, R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
+  !         Modified: R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
   !                                                     during writing of the netcdf file
+  !                   Matthias Zink       , Feb. 2014 - added aditional output: pet
 
   Subroutine WriteFluxStateInit(iBasin, ncid, output_timeStep, &
                                 ! States L1
@@ -98,6 +100,7 @@ CONTAINS
                                 L1_unsatSTW_out        , & ! Upper soil storage
                                 L1_satSTW_out          , & ! Groundwater storage
                                 ! Fluxes L1
+                                L1_pet_out             , & ! potential evapotranspiration (PET)
                                 L1_aETSoil_out         , & ! actual ET
                                 L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                                 L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -131,29 +134,28 @@ CONTAINS
     implicit none
     
     !
-    integer(i4), intent(in)                          :: iBasin    ! mumber of subbasin
-    integer(i4), intent(out)                         :: ncid      ! ID of NetCDF
-    
-    !
-    integer(i4), intent(in)                                      :: output_timeStep
-    !
-    ! ! States L1
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_inter_out        ! Interception
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_snowPack_out     ! Snowpack
-    real(dp), dimension(:,:), allocatable, intent(inout)         :: L1_soilMoist_out    ! Soil moisture of each horizon
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_sealSTW_out      ! Retention storage of impervious areas
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_unsatSTW_out     ! Upper soil storage
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_satSTW_out       ! Groundwater storage
+    integer(i4), intent(in)                              :: iBasin    ! mumber of subbasin
+    integer(i4), intent(out)                             :: ncid      ! ID of NetCDF
+    integer(i4), intent(in)                              :: output_timeStep    
+
+    ! States L1
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_inter_out        ! Interception
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_snowPack_out     ! Snowpack
+    real(dp), dimension(:,:), allocatable, intent(inout) :: L1_soilMoist_out    ! Soil moisture of each horizon
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_sealSTW_out      ! Retention storage of impervious areas
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_unsatSTW_out     ! Upper soil storage
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
-    real(dp), dimension(:,:), allocatable, intent(inout)         :: L1_aETSoil_out      ! actual ET of each horizon
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_aETSealed_out    ! Actual ET from free-water surfaces
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_total_runoff_out ! Generated runoff
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_runoffSeal_out   ! Direct runoff from impervious areas
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_fastRunoff_out   ! Fast runoff component
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_slowRunoff_out   ! Slow runoff component
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_baseflow_out     ! Baseflow
-    real(dp), dimension(:), allocatable, intent(inout)           :: L1_percol_out       ! Percolation
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_pet_out          ! potential evapotranspiration (PET)
+    real(dp), dimension(:,:), allocatable, intent(inout) :: L1_aETSoil_out      ! actual ET of each horizon
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_aETSealed_out    ! Actual ET from free-water surfaces
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_total_runoff_out ! Generated runoff
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_runoffSeal_out   ! Direct runoff from impervious areas
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_fastRunoff_out   ! Fast runoff component
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_slowRunoff_out   ! Slow runoff component
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_baseflow_out     ! Baseflow
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_percol_out       ! Percolation
     !
     ! local
     integer(i4)                                      :: i
@@ -335,6 +337,22 @@ CONTAINS
     !
     if (outputFlxState(9)) then
 
+       allocate( L1_pet_out(nCells))
+       L1_pet_out = 0.0_dp
+
+       ! name
+       V(VarNo+5)%name          = "PET"
+       !unit
+       V(VarNo+5)%att(1)%values = trim(unit)
+       ! long_name
+       V(VarNo+5)%att(2)%values = "potential Evapotranspiration"
+       VarNo = VarNo + 1
+       ! 
+    end if
+
+    !
+    if (outputFlxState(10)) then
+
        allocate( L1_aETSoil_out(nCells, nSoilHorizons_mHM), L1_aETCanopy_out(nCells), &
                  L1_aETSealed_out(nCells) )
        L1_aETSoil_out   = 0.0_dp
@@ -352,7 +370,7 @@ CONTAINS
     end if
 
     !
-    if (outputFlxState(10)) then
+    if (outputFlxState(11)) then
 
        allocate( L1_total_runoff_out(nCells) )
        L1_total_runoff_out = 0.0_dp
@@ -368,7 +386,7 @@ CONTAINS
     end if
 
     !
-    if (outputFlxState(11)) then
+    if (outputFlxState(12)) then
 
        allocate( L1_runoffSeal_out(nCells) )
        L1_runoffSeal_out = 0.0_dp
@@ -384,7 +402,7 @@ CONTAINS
     end if
 
     !
-    if (outputFlxState(12)) then
+    if (outputFlxState(13)) then
 
        allocate( L1_fastRunoff_out (nCells) )
        L1_fastRunoff_out  = 0.0_dp
@@ -398,8 +416,9 @@ CONTAINS
        VarNo = VarNo + 1
        ! 
     end if
+
     !
-    if (outputFlxState(13)) then
+    if (outputFlxState(14)) then
 
        allocate( L1_slowRunoff_out(nCells) )
        L1_slowRunoff_out = 0.0_dp
@@ -413,8 +432,9 @@ CONTAINS
        VarNo = VarNo + 1
        ! 
     end if
+
     !
-    if (outputFlxState(14)) then
+    if (outputFlxState(15)) then
 
        allocate( L1_baseflow_out(nCells) )
        L1_baseflow_out = 0.0_dp
@@ -427,8 +447,9 @@ CONTAINS
        V(VarNo+5)%att(2)%values = "baseflow generated by every cell"
        VarNo = VarNo + 1        
     end if
+
     !
-    if (outputFlxState(15)) then
+    if (outputFlxState(16)) then
 
        allocate( L1_percol_out(nCells) )
        L1_percol_out = 0.0_dp
@@ -533,6 +554,7 @@ CONTAINS
   !>         \param[inout] "real(dp),  allocatable :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
   !>         \param[inout] "real(dp),  allocatable :: L1_unsatSTW_out(:)"     ! Upper soil storage
   !>         \param[inout] "real(dp),  allocatable :: L1_satSTW_out(:)"       ! Groundwater storage
+  !>         \param[inout] "real(dp),  allocatable :: L1_pet_out(:)"          ! potential evapotranspiration (PET) 
   !>         \param[inout] "real(dp),  allocatable :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
   !>         \param[inout] "real(dp),  allocatable :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
   !>         \param[inout] "real(dp),  allocatable :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
@@ -569,9 +591,10 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Zink
   !>        \date Apr 2013
-  !         Modified, R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
+  !         Modified: R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
   !                                                     during writing of the netcdf file
-  !                   L. Samaniego et al.   Dec  2013 - nullify pointer
+  !                   L. Samaniego et al.,  Dec  2013 - nullify pointer
+  !                   Matthias Zink,        Feb. 2014 - added aditional output: pet
 
   Subroutine WriteFluxState(hours_eval, curr_wstep, ncid, iBasin, mask, &
                              ! States L1
@@ -582,6 +605,7 @@ CONTAINS
                              L1_unsatSTW_out        , & ! Upper soil storage
                              L1_satSTW_out          , & ! Groundwater storage
                              ! Fluxes L1
+                             L1_pet_out             , & ! potential evapotranspiration (PET)
                              L1_aETSoil_out         , & ! actual ET
                              L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                              L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -607,30 +631,32 @@ CONTAINS
     implicit none
     !
     ! local
-    integer(i4),               intent(in)           :: hours_eval ! hours since beginning of evaluation period
-    integer(i4),               intent(in)           :: curr_wstep ! current write out step
-    integer(i4),               intent(in)           :: ncid       ! ID of NetCDF
-    integer(i4),               intent(in)           :: iBasin     ! mumber of subbasin
-    logical,   dimension(:,:), intent(in)           :: mask       ! mask for unpacking
+    integer(i4),                           intent(in)    :: hours_eval ! hours since beginning of evaluation period
+    integer(i4),                           intent(in)    :: curr_wstep ! current write out step
+    integer(i4),                           intent(in)    :: ncid       ! ID of NetCDF
+    integer(i4),                           intent(in)    :: iBasin     ! mumber of subbasin
+    logical,   dimension(:,:),             intent(in)    :: mask       ! mask for unpacking
     
     ! States L1
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_inter_out        ! Interception
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_snowPack_out     ! Snowpack
-    real(dp), dimension(:,:), allocatable, intent(in)         :: L1_soilMoist_out    ! Soil moisture of each horizon
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_sealSTW_out      ! Retention storage of impervious areas
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_unsatSTW_out     ! Upper soil storage
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_satSTW_out       ! Groundwater storage
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_inter_out        ! Interception
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_snowPack_out     ! Snowpack
+    real(dp), dimension(:,:), allocatable, intent(in)    :: L1_soilMoist_out    ! Soil moisture of each horizon
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_sealSTW_out      ! Retention storage of impervious areas
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_unsatSTW_out     ! Upper soil storage
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
-    real(dp), dimension(:,:), allocatable, intent(in)         :: L1_aETSoil_out      ! actual ET of each horizon
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_aETSealed_out    ! Actual ET from free-water surfaces
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_total_runoff_out ! Generated runoff
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_runoffSeal_out   ! Direct runoff from impervious areas
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_fastRunoff_out   ! Fast runoff component
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_slowRunoff_out   ! Slow runoff component
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_baseflow_out     ! Baseflow
-    real(dp), dimension(:), allocatable, intent(in)           :: L1_percol_out       ! Percolation
-    real(dp), dimension(:,:),            intent(in)           :: L1_soilMoistSat     ! Saturation soil moisture for each horizon [mm]
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_pet_out          ! potential evapotranspiration (PET)
+    real(dp), dimension(:,:), allocatable, intent(in)    :: L1_aETSoil_out      ! actual ET of each horizon
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_aETSealed_out    ! Actual ET from free-water surfaces
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_total_runoff_out ! Generated runoff
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_runoffSeal_out   ! Direct runoff from impervious areas
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_fastRunoff_out   ! Fast runoff component
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_slowRunoff_out   ! Slow runoff component
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_baseflow_out     ! Baseflow
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_percol_out       ! Percolation
+    real(dp), dimension(:,:),              intent(in)    :: L1_soilMoistSat     ! Saturation soil moisture for each 
+    !                                                                           ! horizon [mm]
 
     !
     integer(i4)                                     :: totalVarNo ! total number of variables
@@ -734,6 +760,14 @@ CONTAINS
     ! ---------
     if (outputFlxState(9)) then
        
+       OutPut(:,:,VarNo)  = unpack(L1_pet_out(:), mask, nodata_dp)
+       !
+       V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo)
+       VarNo = VarNo + 1
+    end if
+    !
+    if (outputFlxState(10)) then
+       
        OutPut(:,:,VarNo)  = unpack(sum(L1_aETSoil_out  (:,:), dim=2) + &
                                        L1_aETCanopy_out(:)           + & 
                                        L1_aETSealed_out(:)           , & 
@@ -743,7 +777,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(10)) then
+    if (outputFlxState(11)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_total_runoff_out(:), mask, nodata_dp)
 
@@ -751,7 +785,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(11)) then
+    if (outputFlxState(12)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_runoffSeal_out(:), mask, nodata_dp)
 
@@ -759,7 +793,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(12)) then
+    if (outputFlxState(13)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_fastRunoff_out(:), mask, nodata_dp)
 
@@ -767,7 +801,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(13)) then
+    if (outputFlxState(14)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_SlowRunoff_out(:), mask, nodata_dp)
 
@@ -775,7 +809,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(14)) then
+    if (outputFlxState(15)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_baseflow_out(:), mask, nodata_dp)
 
@@ -783,7 +817,7 @@ CONTAINS
        VarNo = VarNo + 1
     end if
     !
-    if (outputFlxState(15)) then
+    if (outputFlxState(16)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_percol_out(:), mask, nodata_dp)
 

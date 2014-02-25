@@ -99,7 +99,9 @@ CONTAINS
   !                                                           - initalization of soil moist. at first timestep
   !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within 
   !                                                             the code made accordingly (e.g., canopy intecpt.)
-  !                                                           - max. canopy interception is estimated outside of MPR call
+  !                                                           - max. canopy interception is estimated outside of MPR
+  !                                                             call
+  !                  M. Zink,                        Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -167,7 +169,7 @@ CONTAINS
       fnight_pet          , & ! [-] night ratio PET  < 1
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
-      pet_in              , & ! Daily potential evapotranspiration
+      pet_in              , & ! Daily potential evapotranspiration (INOUT)
       tmin_in             , & ! Daily minimum temperature
       tmax_in             , & ! Daily maxumum temperature
       prec_in             , & ! Daily mean precipitation
@@ -249,147 +251,149 @@ CONTAINS
     use mo_routing,                 only: L11_routing
     use mo_julian,                  only: dec2date, date2dec
 
+    use mo_mhm_constants,           only: HarSamCoeff, HarSamConst       ! parameters for Hargreaves-Samani Equation
+
     implicit none
 
     ! Intent
-    logical,                     intent(in) :: restart_iFlag_read   ! flag for reading restart files for state variables
-    real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
-    integer(i4),                 intent(in) :: LAI_option_Flag      ! Flag for LAI option
-    integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
-    integer(i4),                 intent(in) :: counter_day          ! counter to tackle the change of day 
-    integer(i4),                 intent(in) :: tt
-    real(dp),                    intent(in) :: time
-    integer(i4), dimension(:,:), intent(in) :: processMatrix
-    real(dp),                    intent(in) :: c2TSTu
-    real(dp),    dimension(:),   intent(in) :: horizon_depth
-    integer(i4),                 intent(in) :: nCells1
-    integer(i4),                 intent(in) :: nNodes
-    integer(i4),                 intent(in) :: nHorizons_mHM
-    real(dp),                    intent(in) :: ntimesteps_day
-    integer(i4),                 intent(in) :: TS
-    logical,     dimension(:,:), intent(in) :: mask0
-    real(dp),    dimension(:),   intent(in) :: global_parameters
+    logical,                       intent(in)    :: restart_iFlag_read   ! flag for reading restart files for state variables
+    real(dp),                      intent(in)    :: fSealedInCity        ! fraction of perfectly sealed area within cities
+    integer(i4),                   intent(in)    :: LAI_option_Flag      ! Flag for LAI option
+    integer(i4),                   intent(in)    :: counter_month        ! counter to tackle the change of month 
+    integer(i4),                   intent(in)    :: counter_day          ! counter to tackle the change of day 
+    integer(i4),                   intent(in)    :: tt
+    real(dp),                      intent(in)    :: time
+    integer(i4), dimension(:,:),   intent(in)    :: processMatrix
+    real(dp),                      intent(in)    :: c2TSTu
+    real(dp),    dimension(:),     intent(in)    :: horizon_depth
+    integer(i4),                   intent(in)    :: nCells1
+    integer(i4),                   intent(in)    :: nNodes
+    integer(i4),                   intent(in)    :: nHorizons_mHM
+    real(dp),                      intent(in)    :: ntimesteps_day
+    integer(i4),                   intent(in)    :: TS
+    logical,     dimension(:,:),   intent(in)    :: mask0
+    real(dp),    dimension(:),     intent(in)    :: global_parameters
 
     ! LUT
-    integer(i4),                 intent(in) :: LCyearId
-    integer(i4), dimension(:),   intent(in) :: GeoUnitList
-    integer(i4), dimension(:),   intent(in) :: GeoUnitKar
+    integer(i4),                   intent(in)    :: LCyearId
+    integer(i4), dimension(:),     intent(in)    :: GeoUnitList
+    integer(i4), dimension(:),     intent(in)    :: GeoUnitKar
 
     ! Physiographic L0
-    real(dp),    dimension(:),   intent(in) :: slope_emp0
-    integer(i4), dimension(:),   intent(in) :: cellId0
-    integer(i4), dimension(:),   intent(in) :: soilId0
-    integer(i4), dimension(:),   intent(in) :: LCover0
-    real(dp),    dimension(:),   intent(in) :: Asp0
-    real(dp),    dimension(:),   intent(in) :: LAI0
-    integer(i4), dimension(:),   intent(in) :: geoUnit0
-    real(dp), dimension(:),      intent(in) :: areaCell0
-    integer(i4), dimension(:),   intent(in) :: floodPlain0
+    real(dp),    dimension(:),     intent(in)    :: slope_emp0
+    integer(i4), dimension(:),     intent(in)    :: cellId0
+    integer(i4), dimension(:),     intent(in)    :: soilId0
+    integer(i4), dimension(:),     intent(in)    :: LCover0
+    real(dp),    dimension(:),     intent(in)    :: Asp0
+    real(dp),    dimension(:),     intent(in)    :: LAI0
+    integer(i4), dimension(:),     intent(in)    :: geoUnit0
+    real(dp),    dimension(:),     intent(in)    :: areaCell0
+    integer(i4), dimension(:),     intent(in)    :: floodPlain0
 
-    integer(i4), dimension(:),   intent(in) :: SDB_is_present
-    integer(i4), dimension(:),   intent(in) :: SDB_nHorizons
-    integer(i4), dimension(:),   intent(in) :: SDB_nTillHorizons
-    real(dp),    dimension(:,:), intent(in) :: SDB_sand
-    real(dp),    dimension(:,:), intent(in) :: SDB_clay
-    real(dp),    dimension(:,:), intent(in) :: SDB_DbM
-    real(dp),    dimension(:,:,:),intent(in):: SDB_Wd
-    real(dp),    dimension(:),   intent(in) :: SDB_RZdepth
+    integer(i4), dimension(:),     intent(in)    :: SDB_is_present
+    integer(i4), dimension(:),     intent(in)    :: SDB_nHorizons
+    integer(i4), dimension(:),     intent(in)    :: SDB_nTillHorizons
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_sand
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_clay
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_DbM
+    real(dp),    dimension(:,:,:), intent(in)    :: SDB_Wd
+    real(dp),    dimension(:),     intent(in)    :: SDB_RZdepth
 
     ! Physiographic L1
-    real(dp),    dimension(:),   intent(in) :: areaCell1
-    integer(i4), dimension(:),   intent(in) :: nTCells0_inL1
-    integer(i4), dimension(:),   intent(in) :: L11Id_on_L1
-    integer(i4), dimension(:),   intent(in) :: L0upBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0downBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0leftBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0rightBound_inL1
-    real(dp),    dimension(:),   intent(in) :: latitude
+    real(dp),    dimension(:),     intent(in)    :: areaCell1
+    integer(i4), dimension(:),     intent(in)    :: nTCells0_inL1
+    integer(i4), dimension(:),     intent(in)    :: L11Id_on_L1
+    integer(i4), dimension(:),     intent(in)    :: L0upBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0downBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0leftBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in)    :: latitude
 
     ! Physiographic L11
-    integer(i4), dimension(:),   intent(in) :: netPerm
-    integer(i4), dimension(:),   intent(in) :: nLink_fromN
-    integer(i4), dimension(:),   intent(in) :: nLink_toN
-    real(dp),    dimension(:),   intent(in) :: length11
-    real(dp),    dimension(:),   intent(in) :: slope11
+    integer(i4), dimension(:),     intent(in)    :: netPerm
+    integer(i4), dimension(:),     intent(in)    :: nLink_fromN
+    integer(i4), dimension(:),     intent(in)    :: nLink_toN
+    real(dp),    dimension(:),     intent(in)    :: length11
+    real(dp),    dimension(:),     intent(in)    :: slope11
 
     ! Forcings
-    real(dp),    dimension(:),   intent(in)    :: evap_coeff
-    real(dp),    dimension(:),   intent(in)    :: fday_prec
-    real(dp),    dimension(:),   intent(in)    :: fnight_prec
-    real(dp),    dimension(:),   intent(in)    :: fday_pet
-    real(dp),    dimension(:),   intent(in)    :: fnight_pet
-    real(dp),    dimension(:),   intent(in)    :: fday_temp
-    real(dp),    dimension(:),   intent(in)    :: fnight_temp
-    real(dp),    dimension(:),   intent(inout) :: pet_in
-    real(dp),    dimension(:),   intent(in)    :: tmin_in
-    real(dp),    dimension(:),   intent(in)    :: tmax_in
-    real(dp),    dimension(:),   intent(in)    :: prec_in
-    real(dp),    dimension(:),   intent(in)    :: temp_in
+    real(dp),    dimension(:),     intent(in)    :: evap_coeff
+    real(dp),    dimension(:),     intent(in)    :: fday_prec
+    real(dp),    dimension(:),     intent(in)    :: fnight_prec
+    real(dp),    dimension(:),     intent(in)    :: fday_pet
+    real(dp),    dimension(:),     intent(in)    :: fnight_pet
+    real(dp),    dimension(:),     intent(in)    :: fday_temp
+    real(dp),    dimension(:),     intent(in)    :: fnight_temp
+    real(dp),    dimension(:),     intent(inout) :: pet_in
+    real(dp),    dimension(:),     intent(in)    :: tmin_in
+    real(dp),    dimension(:),     intent(in)    :: tmax_in
+    real(dp),    dimension(:),     intent(in)    :: prec_in
+    real(dp),    dimension(:),     intent(in)    :: temp_in
 
     ! Configuration
-    integer(i4),              intent(inout)   ::  yId
+    integer(i4),                   intent(inout) ::  yId
 
     ! Land cover L1 and
-    real(dp), dimension(:),   intent(inout)   :: fForest1
-    real(dp), dimension(:),   intent(inout)   :: fPerm1
-    real(dp), dimension(:),   intent(inout)   :: fSealed1
-    real(dp), dimension(:),   intent(inout)   :: fFPimp11
-    real(dp), dimension(:),   intent(in)      :: aFloodPlain11
+    real(dp), dimension(:),        intent(inout) :: fForest1
+    real(dp), dimension(:),        intent(inout) :: fPerm1
+    real(dp), dimension(:),        intent(inout) :: fSealed1
+    real(dp), dimension(:),        intent(inout) :: fFPimp11
+    real(dp), dimension(:),        intent(in)    :: aFloodPlain11
 
     ! States
-    real(dp),  dimension(:),    intent(inout) :: interc
-    real(dp),  dimension(:),    intent(inout) :: snowpack
-    real(dp),  dimension(:),    intent(inout) :: sealedStorage
-    real(dp),  dimension(:,:),  intent(inout) :: soilMoisture
-    real(dp),  dimension(:),    intent(inout) :: unsatStorage
-    real(dp),  dimension(:),    intent(inout) :: satStorage
+    real(dp),  dimension(:),       intent(inout) :: interc
+    real(dp),  dimension(:),       intent(inout) :: snowpack
+    real(dp),  dimension(:),       intent(inout) :: sealedStorage
+    real(dp),  dimension(:,:),     intent(inout) :: soilMoisture
+    real(dp),  dimension(:),       intent(inout) :: unsatStorage
+    real(dp),  dimension(:),       intent(inout) :: satStorage
 
     ! Fluxes L1
-    real(dp),  dimension(:,:), intent(inout)  :: aet_soil
-    real(dp),  dimension(:),   intent(inout)  :: aet_canopy
-    real(dp),  dimension(:),   intent(inout)  :: aet_sealed
-    real(dp),  dimension(:),   intent(inout)  :: baseflow
-    real(dp),  dimension(:,:), intent(inout)  :: infiltration
-    real(dp),  dimension(:),   intent(inout)  :: fast_interflow
-    real(dp),  dimension(:),   intent(inout)  :: melt
-    real(dp),  dimension(:),   intent(inout)  :: perc
-    real(dp),  dimension(:),   intent(inout)  :: prec_effect
-    real(dp),  dimension(:),   intent(inout)  :: rain
-    real(dp),  dimension(:),   intent(inout)  :: runoff_sealed
-    real(dp),  dimension(:),   intent(inout)  :: slow_interflow
-    real(dp),  dimension(:),   intent(inout)  :: snow
-    real(dp),  dimension(:),   intent(inout)  :: throughfall
-    real(dp),  dimension(:),   intent(inout)  :: total_runoff
+    real(dp),  dimension(:,:),     intent(inout) :: aet_soil
+    real(dp),  dimension(:),       intent(inout) :: aet_canopy
+    real(dp),  dimension(:),       intent(inout) :: aet_sealed
+    real(dp),  dimension(:),       intent(inout) :: baseflow
+    real(dp),  dimension(:,:),     intent(inout) :: infiltration
+    real(dp),  dimension(:),       intent(inout) :: fast_interflow
+    real(dp),  dimension(:),       intent(inout) :: melt
+    real(dp),  dimension(:),       intent(inout) :: perc
+    real(dp),  dimension(:),       intent(inout) :: prec_effect
+    real(dp),  dimension(:),       intent(inout) :: rain
+    real(dp),  dimension(:),       intent(inout) :: runoff_sealed
+    real(dp),  dimension(:),       intent(inout) :: slow_interflow
+    real(dp),  dimension(:),       intent(inout) :: snow
+    real(dp),  dimension(:),       intent(inout) :: throughfall
+    real(dp),  dimension(:),       intent(inout) :: total_runoff
 
     ! Fluxes L11
-    real(dp), dimension(:),    intent(out)    :: nNode_Qmod
-    real(dp), dimension(:),    intent(inout)  :: nNode_qOUT
-    real(dp), dimension(:,:),  intent(inout)  :: nNode_qTIN
-    real(dp), dimension(:,:),  intent(inout)  :: nNode_qTR
+    real(dp), dimension(:),        intent(out)   :: nNode_Qmod
+    real(dp), dimension(:),        intent(inout) :: nNode_qOUT
+    real(dp), dimension(:,:),      intent(inout) :: nNode_qTIN
+    real(dp), dimension(:,:),      intent(inout) :: nNode_qTR
 
     ! Effective Parameters
-    real(dp), dimension(:),    intent(inout)  ::  alpha
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_incr
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_max
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_noprec
-    real(dp), dimension(:),    intent(inout)  ::  deg_day
-    real(dp), dimension(:),    intent(inout)  ::  fAsp
-    real(dp), dimension(:,:),  intent(inout)  ::  frac_roots
-    real(dp), dimension(:),    intent(inout)  ::  interc_max
-    real(dp), dimension(:),    intent(inout)  ::  karst_loss
-    real(dp), dimension(:),    intent(inout)  ::  k0
-    real(dp), dimension(:),    intent(inout)  ::  k1
-    real(dp), dimension(:),    intent(inout)  ::  k2
-    real(dp), dimension(:),    intent(inout)  ::  kp
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_FC
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_sat
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_exponen
-    real(dp), dimension(:),    intent(inout)  ::  temp_thresh
-    real(dp), dimension(:),    intent(inout)  ::  unsat_thresh
-    real(dp), dimension(:),    intent(inout)  ::  water_thresh_sealed
-    real(dp), dimension(:,:),  intent(inout)  ::  wilting_point
-    real(dp), dimension(:),    intent(inout)  ::  nLink_C1
-    real(dp), dimension(:),    intent(inout)  ::  nLink_C2
+    real(dp), dimension(:),        intent(inout) ::  alpha
+    real(dp), dimension(:),        intent(inout) ::  deg_day_incr
+    real(dp), dimension(:),        intent(inout) ::  deg_day_max
+    real(dp), dimension(:),        intent(inout) ::  deg_day_noprec
+    real(dp), dimension(:),        intent(inout) ::  deg_day
+    real(dp), dimension(:),        intent(inout) ::  fAsp
+    real(dp), dimension(:,:),      intent(inout) ::  frac_roots
+    real(dp), dimension(:),        intent(inout) ::  interc_max
+    real(dp), dimension(:),        intent(inout) ::  karst_loss
+    real(dp), dimension(:),        intent(inout) ::  k0
+    real(dp), dimension(:),        intent(inout) ::  k1
+    real(dp), dimension(:),        intent(inout) ::  k2
+    real(dp), dimension(:),        intent(inout) ::  kp
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_FC
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_sat
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_exponen
+    real(dp), dimension(:),        intent(inout) ::  temp_thresh
+    real(dp), dimension(:),        intent(inout) ::  unsat_thresh
+    real(dp), dimension(:),        intent(inout) ::  water_thresh_sealed
+    real(dp), dimension(:,:),      intent(inout) ::  wilting_point
+    real(dp), dimension(:),        intent(inout) ::  nLink_C1
+    real(dp), dimension(:),        intent(inout) ::  nLink_C2
 
     ! local
     logical                :: isday       ! is day or night
@@ -411,7 +415,6 @@ CONTAINS
     ! date and month of this timestep
     !-------------------------------------------------------------------
     call dec2date(time, yy=year, mm=month, dd=day, hh=hour)
-  
     !-------------------------------------------------------------------
     ! MPR CALL
     !   -> call only when LC had changed 
@@ -559,14 +562,23 @@ CONTAINS
     !$OMP do
     do k = 1, nCells1
 
-       ! call PET calculation
-          select case (processMatrix(5,1))
-          !case(0) ! PET is input
-          case(1) ! HarSam
-             doy       = anint(date2dec(day,month,year,12) - date2dec(day,1,1,12) )
-             pet_in(k) = pet_hargreaves(temp_in(k), tmax_in(k), tmin_in(k),                    & ! Intent IN
-                  latitude(k), 1.0_dp, doy)                                                      ! Intent IN
-          end select
+       ! PET calculation
+       select case (processMatrix(5,1))
+       !case(0) ! PET is input
+       case(1) ! HarSam
+          ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
+          doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          !
+          pet_in(k) = pet_hargreaves(HarSamCoeff, HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
+               tmin_in(k), latitude(k), doy)                          ! Intent IN
+          
+          if (k == 20 .and. hour==1) then
+             print*, day,month,year, doy
+             print*, 'PET',  pet_in(k)
+             print*, 'TAVG: ',  temp_in(k),'TMIN: ',  tmin_in(k), 'TMAX: ',  tmax_in(k)
+             print*, 'LAT: ',latitude(k), 'DOY: ', doy
+          end if
+       end select
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
