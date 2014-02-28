@@ -624,7 +624,7 @@ CONTAINS
   !>        \brief Get basic basin information (e.g., nrows, ncols, indices, mask)
   
   !>        \details Get basic basin information (e.g., nrows, ncols, indices, mask) for
-  !>                 different levels (L0, L1, L11, and L2).
+  !>                 different levels (L0, L1, L11, L110 and L2).
   !
   !     CALLING SEQUENCE
   !         call get_basin_info(iBasin, iLevel,nrows,ncols, ncells, iStart, iEnd, &
@@ -704,7 +704,7 @@ CONTAINS
        end if
        if (present(xllcorner)) xllcorner = level0%xllcorner(iBasin)
        if (present(yllcorner)) yllcorner = level0%yllcorner(iBasin)
-       if (present(cellsize))  cellsize  = level0%cellsize
+       if (present(cellsize))  cellsize  = level0%cellsize(iBasin)
 
     case (1)
        nrows = level1%nrows(iBasin)
@@ -722,7 +722,7 @@ CONTAINS
        end if
        if (present(xllcorner)) xllcorner = level1%xllcorner(iBasin)
        if (present(yllcorner)) yllcorner = level1%yllcorner(iBasin)
-       if (present(cellsize))  cellsize = level1%cellsize
+       if (present(cellsize))  cellsize = level1%cellsize(iBasin)
 
     case (11)
        nrows = level11%nrows(iBasin)
@@ -740,8 +740,11 @@ CONTAINS
        end if
        if (present(xllcorner)) xllcorner = level11%xllcorner(iBasin)
        if (present(yllcorner)) yllcorner = level11%yllcorner(iBasin)
-       if (present(cellsize)) cellsize   = level11%cellsize
+       if (present(cellsize)) cellsize   = level11%cellsize(iBasin)
 
+    case (110)
+       if (present(iStart)) iStart = basin%L110_iStart(iBasin)
+       if (present(iEnd))   iEnd   = basin%L110_iEnd(iBasin)
 
     case (2)
        nrows = level2%nrows(iBasin)
@@ -759,7 +762,7 @@ CONTAINS
        end if
        if (present(xllcorner)) xllcorner = level2%xllcorner(iBasin)
        if (present(yllcorner)) yllcorner = level2%yllcorner(iBasin)
-       if (present(cellsize)) cellsize   = level2%cellsize
+       if (present(cellsize)) cellsize   = level2%cellsize(iBasin)
 
     end select
 
@@ -797,12 +800,12 @@ CONTAINS
   !         None
 
   !     INTENT(OUT)
-  !>        \param[in] "integer(i4)             :: nrowsOut"	      no. of rows at an output level
-  !>        \param[in] "integer(i4)             :: ncolsOut"	      no. of cols at an output level
-  !>        \param[in] "real(dp)                :: xllcornerOut"      xllcorner at an output level
-  !>        \param[in] "real(dp)                :: yllcornerOut"      yllcorner at an output level
-  !>        \param[in] "real(dp)                :: cellsizeOut"       cell size at an output level
-  !>        \param[in] "real(dp)                :: nodata_valueOut"   nodata value at an output level
+  !>        \param[out] "integer(i4)             :: nrowsOut"	      no. of rows at an output level
+  !>        \param[out] "integer(i4)             :: ncolsOut"	      no. of cols at an output level
+  !>        \param[out] "real(dp)                :: xllcornerOut"      xllcorner at an output level
+  !>        \param[out] "real(dp)                :: yllcornerOut"      yllcorner at an output level
+  !>        \param[out] "real(dp)                :: cellsizeOut"       cell size at an output level
+  !>        \param[out] "real(dp)                :: nodata_valueOut"   nodata value at an output level
 
   !     INTENT(IN), OPTIONAL
   !         None

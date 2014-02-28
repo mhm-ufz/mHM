@@ -182,49 +182,78 @@ CONTAINS
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
     !
-    ! allocate necessary variables
+    ! allocate necessary variables at Level0
     allocate(level0%nrows       (nBasins))
     allocate(level0%ncols       (nBasins)) 
     allocate(level0%xllcorner   (nBasins))
     allocate(level0%yllcorner   (nBasins))
+    allocate(level0%cellsize    (nBasins))
+    allocate(level0%nodata_value(nBasins))
     !
     allocate(basin%L0_iStart    (nBasins))
     allocate(basin%L0_iEnd      (nBasins))
     allocate(basin%L0_iStartMask(nBasins))
     allocate(basin%L0_iEndMask  (nBasins))
     !
+    ! allocate necessary variables at Level110
+    allocate(basin%L110_iStart    (nBasins))
+    allocate(basin%L110_iEnd      (nBasins))
+    !
     !call message()
     basins: do iBasin = 1, nBasins
-       call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
+       !
        ! Header (to check consistency)
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
        call read_header_ascii(trim(fName), udem,   &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-            level0%yllcorner(iBasin), level0%cellsize,      level0%nodata_value)
+            level0%yllcorner(iBasin), level0%cellsize(iBasin), level0%nodata_value(iBasin))
        !
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))       
        call read_spatial_data_ascii(trim(fName), udem, &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
-            level0%yllcorner(iBasin), level0%cellsize, data_dp_2d, mask_global)
+            level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
+       !
+       ! Saving indices at Level110 irrespective of whether L0_data is shared or not
+       if(iBasin .eq. 1) then
+          basin%L110_iStart(iBasin) = 1
+          basin%L110_iEnd  (iBasin) = basin%L110_iStart(iBasin) + count(mask_global) - 1
+        else
+          basin%L110_iStart(iBasin) = basin%L110_iEnd(iBasin-1) + 1
+          basin%L110_iEnd  (iBasin) = basin%L110_iStart(iBasin) + count(mask_global) - 1
+       end if
+       !
+       ! check whether L0 data is shared
+       if (iBasin .gt. 1) then
+          if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
+             !
+             call message('    Using data of previous basin: ', trim(adjustl(num2str(iBasin))),' ...')
+             basin%L0_iStart(iBasin) = basin%L0_iStart(iBasin - 1)
+             basin%L0_iEnd  (iBasin) = basin%L0_iEnd(iBasin - 1)
+             !
+             basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 ) 
+             basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
+             !
+             ! DONT read L0 data
+             cycle
+             !
+          end if
+       end if
+       !
+       ! Read L0 data
+       call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
        !
        ! create overall mHM mask on L0 and save indices
        nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
        call append( basin%L0_mask, reshape(mask_global, (/nCells/)))
        !
        ! Saving indices of mask and packed data
-       if(iBasin == 1) then
+       if(iBasin .eq. 1) then
           basin%L0_iStart(iBasin) = 1
           basin%L0_iEnd  (iBasin) = basin%L0_iStart(iBasin) + count(mask_global) - 1
           !
           basin%L0_iStartMask(iBasin) = 1
           basin%L0_iEndMask  (iBasin) = basin%L0_iStartMask(iBasin) + nCells - 1
-       else if(L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
-          basin%L0_iStart(iBasin) = basin%L0_iStart(iBasin - 1)
-          basin%L0_iEnd  (iBasin) = basin%L0_iEnd(iBasin - 1)
-          !
-          basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 ) 
-          basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
        else
           basin%L0_iStart(iBasin) = basin%L0_iEnd(iBasin-1) + 1
           basin%L0_iEnd  (iBasin) = basin%L0_iStart(iBasin) + count(mask_global) - 1
@@ -254,7 +283,7 @@ CONTAINS
           ! reading
           call read_spatial_data_ascii(trim(fName), nunit,                                     &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize, data_dp_2d, mask_2d)
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_2d)
           !
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
@@ -307,7 +336,7 @@ CONTAINS
           ! reading and transposing
           call read_spatial_data_ascii(trim(fName), nunit,                               &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize, data_i4_2d, mask_2d)
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
@@ -348,7 +377,7 @@ CONTAINS
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize, data_i4_2d, mask_2d)
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)

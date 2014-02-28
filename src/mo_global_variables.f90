@@ -240,13 +240,14 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable :: nrows        ! Number of rows
      real(dp), dimension(:), allocatable    :: xllcorner    ! x coordinate of the lowerleft corner
      real(dp), dimension(:), allocatable    :: yllcorner    ! y coordinate of the lowerleft corner
-     real(dp)                               :: cellsize     ! Cellsize x = cellsize y
-     real(dp)                               :: nodata_value ! Code to define the mask
+     real(dp), dimension(:), allocatable    :: cellsize     ! Cellsize x = cellsize y
+     real(dp), dimension(:), allocatable    :: nodata_value ! Code to define the mask
   end type gridGeoRef
 
   type(gridGeoRef), public                  :: level0       ! Reference of the input data files
   type(gridGeoRef), public                  :: level1       ! Reference of the hydrological variables
   type(gridGeoRef), public                  :: level11      ! Reference of the routing variables
+  type(gridGeoRef), public                  :: level110     ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
   type(gridGeoRef), public                  :: level2       ! Reference of the metereological variables
 
   real(dp), dimension(:), allocatable, public :: longitude  ! 1d longitude array
@@ -308,6 +309,9 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L11_iStartMask     ! Starting cell index of mask a given basin at L11
      integer(i4), dimension(:), allocatable     :: L11_iEndMask       ! Ending cell index of mask a given basin at L11
      logical,     dimension(:), allocatable     :: L11_mask           ! Mask of level11
+
+     integer(i4), dimension(:), allocatable     :: L110_iStart        ! Sarting cell index of L0_floodPlain at a given basin at L110 = node
+     integer(i4), dimension(:), allocatable     :: L110_iEnd          ! Ending cell index of L0_floodPlain a given basin at L110   = node
 
      Integer(i4), dimension(:), allocatable     :: L2_iStart          ! Starting cell index of a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iEnd            ! Ending cell index of a given basin at L2

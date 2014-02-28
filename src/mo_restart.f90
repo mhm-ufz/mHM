@@ -167,15 +167,17 @@ CONTAINS
 
     ! calculate l11 grid resolutionRouting
     if(iBasin .eq. 1) then
-       allocate( level11%nrows     (nBasins) )
-       allocate( level11%ncols     (nBasins) )
-       allocate( level11%xllcorner (nBasins) )
-       allocate( level11%yllcorner (nBasins) )
+       allocate( level11%nrows        (nBasins) )
+       allocate( level11%ncols        (nBasins) )
+       allocate( level11%xllcorner    (nBasins) )
+       allocate( level11%yllcorner    (nBasins) )
+       allocate( level11%cellsize     (nBasins) )
+       allocate( level11%nodata_value (nBasins) )
     end if
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,            &
          resolutionRouting(iBasin) , &
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin), &
-         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        )
+         level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin)        )
 
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11)
@@ -462,7 +464,8 @@ CONTAINS
     use mo_ncread,           only: Get_NcVar
     use mo_mhm_constants,    only: nodata_dp
     use mo_init_states,      only: calculate_grid_properties
-    use mo_global_variables, only: L0_cellCoor    , & 
+    use mo_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
+         L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          L0_areaCell   , & ! Ids of grid at level-0
          L0_slope_emp  , & ! Empirical quantiles of slope
@@ -520,16 +523,18 @@ CONTAINS
          xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0  )
     !
     if (iBasin .eq. 1) then
-       allocate( level1%nrows     (nBasins) )
-       allocate( level1%ncols     (nBasins) )
-       allocate( level1%xllcorner (nBasins) )
-       allocate( level1%yllcorner (nBasins) )
+       allocate( level1%nrows        (nBasins) )
+       allocate( level1%ncols        (nBasins) )
+       allocate( level1%xllcorner    (nBasins) )
+       allocate( level1%yllcorner    (nBasins) )
+       allocate( level1%cellsize     (nBasins) )
+       allocate( level1%nodata_value (nBasins) )
     end if
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
          resolutionHydrology(iBasin) , &
          level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
-         level1%yllcorner(iBasin), level1%cellsize, level1%nodata_value        )
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
     !
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1 )
@@ -538,28 +543,56 @@ CONTAINS
     ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    ! read L0 cellCoor
-    allocate( dummyI2( nrows0, ncols0 ) )
-    allocate( dummyI22( count(mask0), 2 ))
-    call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
-    dummyI22(:,1) = pack( dummyI2, mask0 )
-    call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
-    dummyI22(:,2) = pack( dummyI2, mask0 )
-    call append( L0_cellCoor, dummyI22)
-    deallocate( dummyI22 )
-    !
-    call Get_NcVar( Fname, 'L0_Id', dummyI2)
-    call append( L0_Id, pack(dummyI2, mask0) )
-    deallocate( dummyI2 )
-    !
-    allocate( dummyD2( nrows0, ncols0 ) )
-    call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
-    call append( L0_areaCell, pack(dummyD2, mask0) )
-    !
-    call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
-    call append( L0_slope_emp, pack(dummyD2, mask0) )
-    deallocate( dummyD2 )
+    ! check whether L0 data should be read
+    if ( iBasin .eq. 1 ) then
+       ! read L0 cellCoor
+       allocate( dummyI2( nrows0, ncols0 ) )
+       allocate( dummyI22( count(mask0), 2 ))
+       call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+       dummyI22(:,1) = pack( dummyI2, mask0 )
+       call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+       dummyI22(:,2) = pack( dummyI2, mask0 )
+       call append( L0_cellCoor, dummyI22)
+       deallocate( dummyI22 )
+       !
+       call Get_NcVar( Fname, 'L0_Id', dummyI2)
+       call append( L0_Id, pack(dummyI2, mask0) )
+       deallocate( dummyI2 )
+       !
+       allocate( dummyD2( nrows0, ncols0 ) )
+       call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+       call append( L0_areaCell, pack(dummyD2, mask0) )
+       !
+       call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
+       call append( L0_slope_emp, pack(dummyD2, mask0) )
+       deallocate( dummyD2 )
+    else
+       if ( L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+          ! read L0 cellCoor
+          allocate( dummyI2( nrows0, ncols0 ) )
+          allocate( dummyI22( count(mask0), 2 ))
+          call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+          dummyI22(:,1) = pack( dummyI2, mask0 )
+          call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+          dummyI22(:,2) = pack( dummyI2, mask0 )
+          call append( L0_cellCoor, dummyI22)
+          deallocate( dummyI22 )
+          !
+          call Get_NcVar( Fname, 'L0_Id', dummyI2)
+          call append( L0_Id, pack(dummyI2, mask0) )
+          deallocate( dummyI2 )
+          !
+          allocate( dummyD2( nrows0, ncols0 ) )
+          call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+          call append( L0_areaCell, pack(dummyD2, mask0) )
+          !
+          call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
+          call append( L0_slope_emp, pack(dummyD2, mask0) )
+          deallocate( dummyD2 )
+       end if
+    end if
 
+    ! update L0_nCells
     L0_nCells = size(L0_Id,1)
 
     !------------------------------------------------------
@@ -1576,6 +1609,10 @@ CONTAINS
     integer(i4)                                :: iStart0   ! Start of Basin at Level 0
     integer(i4)                                :: iEnd0     ! End of Basin at Level 0
     logical, dimension(:,:), allocatable       :: mask0     ! Mask at Level 0
+    integer(i4)                                :: nrows110  ! Number of rows at Level 110
+    integer(i4)                                :: ncols110  ! Number of cols at Level 110
+    integer(i4)                                :: iStart110 ! Start of Basin at Level 110
+    integer(i4)                                :: iEnd110   ! End of Basin at Level 110
     integer(i4)                                :: nrows1    ! Number of rows at Level 1
     integer(i4)                                :: ncols1    ! Number of cols at Level 1
     integer(i4)                                :: iStart1   ! Start of Basin at Level 1
@@ -1597,6 +1634,10 @@ CONTAINS
     ! get level-0 information
     call get_basin_info(iBasin, 0, nrows0, ncols0, iStart=iStart0, &
          iEnd = iEnd0, mask = mask0 )
+
+    ! get level-110 information
+    call get_basin_info(iBasin, 110, nrows110, ncols110, iStart=iStart110, &
+         iEnd = iEnd110 )
 
     ! get level-11 information
     call get_basin_info(iBasin, 1, nrows1, ncols1, iStart=iStart1, &
@@ -1639,11 +1680,11 @@ CONTAINS
 
     ! L0 draining cell index
     allocate( L0_draSC_out( nrows0,ncols0 ) )
-    L0_draSC_out = unpack( L0_draSC(iStart0:iEnd0), mask0, nodata_i4 )
+    L0_draSC_out = unpack( L0_draSC(iStart110:iEnd110), mask0, nodata_i4 )
 
     ! Mapping of L11 Id on L0  
     allocate( L0_L11_Id_out( nrows0,ncols0 ) )
-    L0_L11_Id_out = unpack( L0_L11_Id(iStart0:iEnd0), mask0, nodata_i4)
+    L0_L11_Id_out = unpack( L0_L11_Id(iStart110:iEnd110), mask0, nodata_i4)
 
     ! L1 data sets <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Mapping of L11 Id on L1
@@ -1754,7 +1795,7 @@ CONTAINS
 
     ! Draining cell id at L11 of ith cell of L0
     allocate( L0_draCell_out( nrows0, ncols0 ) )
-    L0_draCell_out = unpack( L0_draCell( iStart0 : iEnd0), mask0, nodata_i4 )
+    L0_draCell_out = unpack( L0_draCell( iStart110 : iEnd110), mask0, nodata_i4 )
 
     allocate( gaugeNodeList_out( size( basin%gaugeNodeList(iBasin,:), dim=1)))
     gaugeNodeList_out = basin%gaugeNodeList(iBasin,:)
@@ -1767,11 +1808,11 @@ CONTAINS
     ! L0 data sets
     ! Stream network
     allocate( L0_streamNet_out( nrows0, ncols0 ) )
-    L0_streamNet_out = unpack( L0_streamNet( iStart0 : iEnd0 ), mask0, nodata_i4 )
+    L0_streamNet_out = unpack( L0_streamNet( iStart110 : iEnd110 ), mask0, nodata_i4 )
 
     ! Floodplains of stream i
     allocate( L0_floodPlain_out( nrows0, ncols0 ) )
-    L0_floodPlain_out = unpack( L0_floodPlain( iStart0 : iEnd0 ), mask0, nodata_i4 )
+    L0_floodPlain_out = unpack( L0_floodPlain( iStart110 : iEnd110 ), mask0, nodata_i4 )
 
     ! L11 network data sets
     ! [m]     Total length of river link

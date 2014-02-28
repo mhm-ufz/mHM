@@ -247,14 +247,14 @@ end subroutine prepare_meteo_forcings_data
     end select
 
     ! cellfactor to decide on the upscaling or downscaling of meteo. fields
-    cellFactorHbyM = level1%cellsize / level2%cellsize 
+    cellFactorHbyM = level1%cellsize(iBasin) / level2%cellsize(iBasin) 
 
     ! upscaling & packing
     if(cellFactorHbyM .gt. 1.0_dp) then 
-        call spatial_aggregation(L2_data, level2%cellsize, level1%cellsize, mask1, L1_data)
+        call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
     ! downscaling   
     elseif(cellFactorHbyM .lt. 1.0_dp) then
-        call spatial_disaggregation(L2_data, level2%cellsize, level1%cellsize, mask1, L1_data)
+        call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
     ! nothing
     else
       allocate( L1_data( size(L2_data,1), size(L2_data,2), size(L2_data,3) ) )
@@ -366,10 +366,12 @@ end subroutine prepare_meteo_forcings_data
     
     ! assign space
     if(iBasin .eq. 1) then
-       allocate( level2%nrows     (nBasins) )
-       allocate( level2%ncols     (nBasins) )
-       allocate( level2%xllcorner (nBasins) )
-       allocate( level2%yllcorner (nBasins) )
+       allocate( level2%nrows        (nBasins) )
+       allocate( level2%ncols        (nBasins) )
+       allocate( level2%xllcorner    (nBasins) )
+       allocate( level2%yllcorner    (nBasins) )
+       allocate( level2%cellsize     (nBasins) )
+       allocate( level2%nodata_value (nBasins) )
      end if
 
     ! read header file 
@@ -379,21 +381,22 @@ end subroutine prepare_meteo_forcings_data
     fName =  trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
     call read_header_ascii( trim(fName), umeteo_header,   &
                             level2%nrows(iBasin), level2%ncols(iBasin), level2%xllcorner(iBasin), &
-                            level2%yllcorner(iBasin), level2%cellsize,  level2%nodata_value       )
+                            level2%yllcorner(iBasin), level2%cellsize(iBasin),  level2%nodata_value(iBasin) )
   
    ! level-0 information
    call get_basin_info( iBasin, 0, nrows0, ncols0, mask=mask0,                         &
                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0 ) 
    ! grid information
    call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,          &
-                                   level2%cellsize, &
-                                   nrows2, ncols2, xllcorner2, yllcorner2, cellsize2,level2%nodata_value )
+                                   level2%cellsize(iBasin), &
+                                   nrows2, ncols2, xllcorner2, yllcorner2, cellsize2,level2%nodata_value(iBasin) )
+
    ! check
    if (  (ncols2     .ne.  level2%ncols(iBasin))         .or. &
          (nrows2     .ne.  level2%nrows(iBasin))         .or. &
          ( abs(xllcorner2 - level2%xllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
          ( abs(yllcorner2 - level2%yllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
-         ( abs(cellsize2  - level2%cellsize)         .gt. tiny(1.0_dp) )             ) then
+         ( abs(cellsize2  - level2%cellsize(iBasin))  .gt. tiny(1.0_dp) )             ) then
       call message()
       call message('***ERROR: L2_variable_init: Resolution of meteorology differs in basin: ', &
            trim(adjustl(num2str(iBasin))))
@@ -402,7 +405,7 @@ end subroutine prepare_meteo_forcings_data
 
   
     ! cellfactor = leve1-2 / level-0
-    cellFactor = level2%cellsize / level0%cellsize
+    cellFactor = level2%cellsize(iBasin) / level0%cellsize(iBasin)
 
     ! allocation and initalization of mask at level-2
     allocate( mask2(nrows2, ncols2) )

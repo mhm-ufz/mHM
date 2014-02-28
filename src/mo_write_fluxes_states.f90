@@ -500,7 +500,7 @@ CONTAINS
     ! put coordinates sytem to the NetCDF
     !*******************************************************
     call CoordSytem(iBasin)
-    !(level1%xllcorner(iBasin), level1%yllcorner(iBasin), level1%cellsize, &
+    !(level1%xllcorner(iBasin), level1%yllcorner(iBasin), level1%cellsize(iBasin), &
     !     level1%nrows(iBasin), level1%ncols(iBasin))
     !
     V(1)%G1_d        => xCoor
@@ -943,7 +943,7 @@ CONTAINS
     !
     xll   = level1%xllcorner(iBasin)
     yll   = level1%yllcorner(iBasin)
-    cz    = level1%cellsize
+    cz    = level1%cellsize(iBasin)
     nrows = level1%nrows(iBasin)
     ncols = level1%ncols(iBasin)
     !

@@ -129,17 +129,19 @@ CONTAINS
     call get_basin_info( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
 
     if(iBasin == 1) then
-       allocate( level11%nrows     (nBasins) )
-       allocate( level11%ncols     (nBasins) )
-       allocate( level11%xllcorner (nBasins) )
-       allocate( level11%yllcorner (nBasins) )
+       allocate( level11%nrows        (nBasins) )
+       allocate( level11%ncols        (nBasins) )
+       allocate( level11%xllcorner    (nBasins) )
+       allocate( level11%yllcorner    (nBasins) )
+       allocate( level11%cellsize     (nBasins) )
+       allocate( level11%nodata_value (nBasins) )
     end if
 
     ! grid information
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp, &
          resolutionRouting(iBasin) ,                                                              &
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin),                 &
-         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        )
+         level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin) )
     ! level-1 information
     call get_basin_info (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
          iStartMask=iStartMask1, iEndMask=iEndMask1, mask=mask1 ) 
@@ -150,7 +152,7 @@ CONTAINS
     allocate( mask11(nrows11, ncols11) )
     mask11(:,:) = .FALSE.
 
-    cellFactorRbyH = level11%cellsize / level1%cellsize
+    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
 
     ! create a mask: Id
     do jc = 1, ncols1
@@ -393,8 +395,8 @@ CONTAINS
     allocate ( L11Id_on_L1  (nrows1, ncols1 ) )
     allocate ( Id11     (nrows11, ncols11 ) )
 
-    cellFactorR    = level11%cellsize / level0%cellsize
-    cellFactorRbyH = level11%cellsize / level1%cellsize
+    cellFactorR    = level11%cellsize(iBasin) / level0%cellsize(iBasin)
+    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
 
     ! get Ids of L11 
     Id11(:,:) =  UNPACK( L11_Id(iStart11:iEnd11),  mask11, nodata_i4 )
@@ -1043,7 +1045,9 @@ CONTAINS
     integer(i4)                               :: nNodes
     integer(i4)                               :: nLinks
     integer(i4)                               :: nrows0, ncols0
+    integer(i4)                               :: nrows110, ncols110
     integer(i4)                               :: iStart0, iEnd0
+    integer(i4)                               :: iStart110, iEnd110
     integer(i4)                               :: nrows11, ncols11
     integer(i4)                               :: iStart11, iEnd11
     integer(i4), dimension(:), allocatable    :: rowOut         ! northing cell loc. of the Outlet
@@ -1063,6 +1067,9 @@ CONTAINS
 
     ! level-0 information
     call get_basin_info (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
+
+    ! level-110 information
+    call get_basin_info (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
 
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
@@ -1098,7 +1105,7 @@ CONTAINS
 
     ! get fDir at L0
     fDir0(:,:) =   UNPACK( L0_fDir  (iStart0:iEnd0),  mask0, nodata_i4 )
-    draSC0(:,:) =  UNPACK( L0_draSC (iStart0:iEnd0),  mask0, nodata_i4 )
+    draSC0(:,:) =  UNPACK( L0_draSC (iStart110:iEnd110),  mask0, nodata_i4 )
 
     ! get network vectors of L11 
     nLinkFromN(:) = L11_fromN   ( iStart11 : iEnd11 )
@@ -1228,7 +1235,9 @@ CONTAINS
     ! local
     integer(i4)                               :: nCells0
     integer(i4)                               :: nrows0, ncols0
+    integer(i4)                               :: nrows110, ncols110
     integer(i4)                               :: iStart0, iEnd0
+    integer(i4)                               :: iStart110, iEnd110
     logical,     dimension(:,:), allocatable  :: mask0
     integer(i4), dimension(:,:), allocatable  :: cellCoor0
     integer(i4), dimension(:,:), allocatable  :: draSC0         
@@ -1245,6 +1254,10 @@ CONTAINS
     call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
+    ! level-110 information (nrows110,ncols110) always equal to (nrows0,ncols0)
+    call get_basin_info ( iBasin, 110, nrows110, ncols110, &
+         iStart=iStart110, iEnd=iEnd110 ) 
+
     allocate ( cellCoor0   ( nCells0, 2 ) )  
     allocate ( draSC0      ( nrows0, ncols0 ) )
     allocate ( fDir0       ( nrows0, ncols0 ) )
@@ -1255,10 +1268,10 @@ CONTAINS
     ! get L0 fields
     cellCoor0(:,:)  = L0_cellCoor(iStart0 : iEnd0, :)
 
-    draSC0(:,:) =      UNPACK( L0_draSC    (iStart0:iEnd0),  mask0, nodata_i4 )
+    draSC0(:,:) =      UNPACK( L0_draSC    (iStart110:iEnd110),  mask0, nodata_i4 )
     fDir0(:,:) =       UNPACK( L0_fDir     (iStart0:iEnd0),  mask0, nodata_i4 )
     gaugeLoc0(:,:) =   UNPACK( L0_gaugeLoc (iStart0:iEnd0),  mask0, nodata_i4 )
-    L11Id_on_L0(:,:) = UNPACK( L0_L11_Id   (iStart0:iEnd0),  mask0, nodata_i4 ) 
+    L11Id_on_L0(:,:) = UNPACK( L0_L11_Id   (iStart110:iEnd110),  mask0, nodata_i4 ) 
 
     draCell0(:,:) = nodata_i4
 
@@ -1479,7 +1492,7 @@ CONTAINS
        stack(ns,1) = frow
        stack(ns,2) = fcol
 
-       call cellLength(fDir0(frow,fcol),  nLinkLength(ii) )
+       call cellLength(iBasin, fDir0(frow,fcol),  nLinkLength(ii) )
        nLinkSlope(ii) = elev0(frow, fcol)
 
        fId = iD0( frow, fcol )
@@ -1509,7 +1522,7 @@ CONTAINS
           ns = 1
           stack(ns,1) = frow
           stack(ns,2) = fcol
-          call cellLength( fDir0(fRow,fCol), length )
+          call cellLength(iBasin, fDir0(fRow,fCol), length )
           nLinkLength(ii) = nLinkLength(ii) + length
 
        end do
@@ -1987,13 +2000,14 @@ CONTAINS
   ! ------------------------------------------------------------------
   !  CELL LENGTH
   ! ------------------------------------------------------------------
-  subroutine cellLength(fDir, length)
+  subroutine cellLength(iBasin, fDir, length)
 
     use mo_constants,        only: SQRT2_dp
     use mo_global_variables, only: level0
 
     implicit none
 
+    integer(i4), intent(IN)  :: iBasin
     integer(i4), intent(IN)  :: fDir
     real(dp),    intent(OUT) :: length
 
@@ -2004,7 +2018,7 @@ CONTAINS
        length = SQRT2_dp
     end select
 
-    length = length * level0%cellsize
+    length = length * level0%cellsize(iBasin)
 
   end subroutine cellLength
 

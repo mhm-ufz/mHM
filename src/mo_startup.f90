@@ -482,7 +482,7 @@ CONTAINS
           cellCoor(k,1) = i
           cellCoor(k,2) = j
           ! estimate area of cell at level-0
-          areaCell(k) = level0%cellsize * level0%cellsize
+          areaCell(k) = level0%cellsize(iBasin) * level0%cellsize(iBasin)
        end do
     end do
 
@@ -636,23 +636,25 @@ CONTAINS
                          xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     ) 
 
     if(iBasin == 1) then
-       allocate( level1%nrows     (nBasins) )
-       allocate( level1%ncols     (nBasins) )
-       allocate( level1%xllcorner (nBasins) )
-       allocate( level1%yllcorner (nBasins) )
+       allocate( level1%nrows        (nBasins) )
+       allocate( level1%ncols        (nBasins) )
+       allocate( level1%xllcorner    (nBasins) )
+       allocate( level1%yllcorner    (nBasins) )
+       allocate( level1%cellsize     (nBasins) )
+       allocate( level1%nodata_value (nBasins) )
     end if
 
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
                                     resolutionHydrology(iBasin) , &
                                     level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
-                                    level1%yllcorner(iBasin), level1%cellsize, level1%nodata_value        )
+                                    level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1 ) 
 
     ! cellfactor = leve1-1 / level-0
-    cellFactorHydro = level1%cellsize / level0%cellsize
+    cellFactorHydro = level1%cellsize(iBasin) / level0%cellsize(iBasin)
 
     ! allocation and initalization of mask at level-1
     allocate( mask1(nrows1, ncols1) )

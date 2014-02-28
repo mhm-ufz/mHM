@@ -161,6 +161,7 @@ CONTAINS
     integer(i4)                               :: s0, e0
     integer(i4)                               :: s1, e1
     integer(i4)                               :: s11, e11
+    integer(i4)                               :: s110, e110
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
     integer(i4)                               :: day, month, year, hour
@@ -240,6 +241,7 @@ CONTAINS
 
        ! get basin information
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
+       call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
        ! routing process is on or off
@@ -320,7 +322,7 @@ CONTAINS
                LCyearId(year), GeoUnitList, GeoUnitKar,                                     & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0),                         & ! IN L0
                L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s0:e0),                  & ! IN L0
+               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),            & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
                L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
