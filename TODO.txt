@@ -66,6 +66,9 @@ mo_multi_param_reg
                       SOLVED
 =================================================================================================
 
+multi-scale implementation
+(Resp.: Diana, Stephan)
+
 bug in latlon.py: lat and lon were swapped
 
 automatic make test 
