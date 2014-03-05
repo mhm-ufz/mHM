@@ -122,11 +122,11 @@ CONTAINS
                                      dirCommonFiles_In,                   & ! directory of common files  
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
-                                     nGaugesTotal, gauge, nMeasPerDay,    & ! gauging station information    
+                                     optimize,                            & ! optimizeation flag for some error checks
+                                     nGaugesTotal, gauge, nMeasPerDay,    & ! gauging station information
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
-                                     evalPer,                             & ! model evaluation period (for discharge
-    !                                                                       !  read in)
+                                     evalPer,                             & ! model evaluation period (for discharge read in)
                                      processMatrix,                       & ! identify activated processes
                                      iFlag_LAI_data_format                  ! flag on how LAI data has to be read
                                      
@@ -412,8 +412,8 @@ CONTAINS
           start_tmp = (/evalPer%yStart, evalPer%mStart, evalPer%dStart/)
           end_tmp   = (/evalPer%yEnd,   evalPer%mEnd,   evalPer%dEnd  /)
           call read_timeseries(trim(fName), udischarge, &
-               start_tmp, &
-               end_tmp, &
+               start_tmp, end_tmp, &
+               optimize, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
          call paste(gauge%Q, data_dp_1d)
