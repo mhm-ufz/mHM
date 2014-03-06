@@ -5,11 +5,6 @@
 #
 # Matthias Zink, Nov 2012
 #
-import numpy       as np    # module for number crunching
-import scipy.stats.mstats as scim
-import ufz
-import matplotlib as mpl
-#
 ######################
 # input dirs and files
 ######################
@@ -43,6 +38,13 @@ gaugeid  = opts.gaugeid
 pdffile  = opts.pdffile
 usetex   = opts.usetex
 del parser, opts, args
+#
+import numpy       as np    # module for number crunching
+import scipy.stats.mstats as scim
+from fread import fread
+from date2dec import date2dec
+import matplotlib as mpl
+#
 # -------------------------------------------------------------------------
 # Customize plots
 #
@@ -126,8 +128,8 @@ ifig = 0
 # read discharge file
 ######################
 #
-QHead       = np.array(ufz.fread(infile, header=True, skip=1, squeeze=False))
-Qdata       = np.array(ufz.fread(infile, skip=1, squeeze=False))
+QHead       = np.array(fread(infile, header=True, skip=1, squeeze=False))
+Qdata       = np.array(fread(infile, skip=1, squeeze=False))
 #
 ######################
 # prepare data for plot
@@ -137,7 +139,7 @@ gauge = gaugeid.zfill(10)
 day   = Qdata[:,np.where(QHead == 'Day')[0]]
 month = Qdata[:,np.where(QHead == 'Mon')[0]]
 year  = Qdata[:,np.where(QHead == 'Year')[0]]
-time  = ufz.date2dec(dy=day,mo=month,yr=year) - ufz.date2dec(dy=1,mo=1,yr=year[0])
+time  = date2dec(dy=day,mo=month,yr=year) - date2dec(dy=1,mo=1,yr=year[0])
 Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]]
 Qcal  = Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0]]
 #
