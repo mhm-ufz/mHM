@@ -150,19 +150,23 @@ L0_Basin_dummy(3)            = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize            = .FALSE.
-!> 0 :: MCMC                \n
-!> 1 :: DDS                 \n
-!> 2 :: Simulated Annealing \n
-!> 3 :: SCE                 \n
+optimize            = .true.
+!> (0) MCMC                \n
+!> (1) DDS                 \n
+!> (2) Simulated Annealing \n
+!> (3) SCE                 \n
 !> additional settings for the different methods can be provided below in namelist Optimization
-opti_method         = 3
-!> 1 :: -NSE                                                          \n
-!> 2 :: -lnNSE                                                        \n
-!> 3 :: -0.5*(NSE+lnNSE)                                              \n
-!> 4 :: -loglikelihood with removed trend and lag(1)-autocorrelation  \n 
+opti_method         = 1
+!> (1) 1.0 - NSE  \n
+!> (2) 1.0 - lnNSE  \n
+!> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
+!> (4) -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
+!> (5) ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
+!> (6) SSE  \n
+!> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
+!> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> further functions can be implemented in mo_objective_function
-opti_function       = 3
+opti_function       = 4
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
@@ -369,7 +373,7 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations    = 400
+nIterations    = 6
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
 seed           = 1235876
