@@ -12,6 +12,7 @@
 # -------------------------------------------------------------------------
 # Command line arguments
 #
+catchm    = ''
 infile    = '../test_basin/output_b1/daily_discharge.out'
 gaugeid   = '55555'
 pdffile   = ''
@@ -19,7 +20,9 @@ usetex    = False
 import optparse
 parser = optparse.OptionParser(usage='%prog [options]',
                                description="Plotting discharge of gauge ID")
-
+parser.add_option('-c', '--catchment', action='store', dest='catchm', type='string',
+                  default=catchm, metavar='String',
+                  help='Name of catchment and gauging station name.')
 parser.add_option('-i', '--infile', action='store', dest='infile', type='string',
                   default=infile, metavar='File',
                   help='Name input file containing discharge time series (default: "../test_basin/output_b1/daily_discharge.out").')
@@ -33,6 +36,7 @@ parser.add_option('-t', '--usetex', action='store_true', default=usetex, dest="u
                   help="Use LaTeX to render text in pdf.")
 (opts, args) = parser.parse_args()
 
+catchm   = opts.catchm
 infile   = opts.infile
 gaugeid  = opts.gaugeid
 pdffile  = opts.pdffile
@@ -72,7 +76,7 @@ mwidth     = 1.5         # marker edge width
 #        'blue'|'green'|'red'|'cyan'|'magenta'|'yellow'|'black'|'white'
 #        hex string '#eeefff' | RGB tuple (1,0.5,1) | html names 'burlywod', 'chartreuse', ...
 #        grayscale intensity, e.g. '0.7', 'k'='0.0'
-mcol1      = '#66c2a5'   # primary marker colour
+mcol1      = (0.0,0.34,0.61)   # primary marker colour
 mcol2      = '#fc8d62'       # color of second markers
 mcol3      = '#7580b3'       # color of third markers
 lcol1      = '0.0'       # primary line colour
@@ -157,10 +161,14 @@ ax        = fig.add_subplot(111)
 ax.set_xlim(1, Qcal.shape[0])
 ax.set_xlabel('Time')
 ax.set_ylabel('Discharge Q [m$^3~$s$^{-1}$]')
+if (catchm != ''):
+    catchm=catchm.replace("_","\_")
+    catchm=catchm.upper()
+    ax.set_title(catchm)
 # simulation
 l1 = ax.plot(time, Qcal, 'k-', label=ur'Q$_{sim}$')
 # observed series
-l2 = ax.plot(time, Qobs, marker='o', linestyle='', markerfacecolor='None', markeredgecolor='r' , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
+l2 = ax.plot(time, Qobs, marker='o', linestyle='', markerfacecolor='None', markeredgecolor=mcol1 , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
 #
 #catch=[s for s in infile.split('/') if 'sub' in s][0].split('_')[1].upper()
 #plt.title(catch)
