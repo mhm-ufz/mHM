@@ -240,6 +240,8 @@ fi
 set -e
 if [[ "${icdo}z" == "z" ]] ; then printf "Error ${pprog}: cdo not found.\n\n" ; exit 1 ; fi
 
+if [[ -n $CLICOLOR_FORCE ]] ; then unset CLICOLOR_FORCE ; fi
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Do Tests
 #
@@ -251,8 +253,8 @@ for compiler in ${compilers} ; do
     make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe}
 
     cd check
-    case_dirs=$(ls -d case_*)
-    #case_dirs=$(ls -d case_00)
+    case_dirs=$(\ls -d case_*)
+    #case_dirs=$(\ls -d case_00)
 
     nRecordsDiffer_allCases=0
     for case_dir in ${case_dirs} ; do
