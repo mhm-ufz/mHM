@@ -147,6 +147,9 @@ contains
        L1_fRoots )       ! fraction of roots in soil horizons
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
+#ifdef OPENMP
+    use omp_lib
+#endif
 
     implicit none
 
@@ -244,6 +247,8 @@ contains
           dpth_t = HorizonDepth(H)
        end if
 
+       !$OMP PARALLEL
+       !$OMP DO PRIVATE( l, s )
        cellloop: do k = 1, size(LCOVER0,1)
 
           l = LCOVER0(k)
@@ -313,6 +318,8 @@ contains
           end select
 
        end do cellloop
+       !$OMP END DO
+       !$OMP END PARALLEL
 
        beta0 = Bd0*param(4)
 
@@ -382,7 +389,7 @@ contains
     ! than correct it --> threshold limit = 1% of the upper ones
     !------------------------------------------------------------------------
     L1_FC = merge( L1_SMs - 0.01_dp * L1_SMs, L1_FC, L1_FC .gt. L1_SMs)
-    L1_PW = merge( L1_FC  - 0.01_dp * L1_FC,  L1_PW,  L1_PW .gt. L1_FC)
+    L1_PW = merge( L1_FC  - 0.01_dp * L1_FC,  L1_PW, L1_PW .gt. L1_FC)
 
     ! check the physical limit
     L1_SMs = merge( 0.0001_dp, L1_SMs, L1_SMs .lt. 0.0_dp )
@@ -390,6 +397,8 @@ contains
     L1_PW  = merge( 0.0001_dp, L1_PW,  L1_PW  .lt. 0.0_dp )
 
     ! Normalise the vertical root distribution profile such that [sum(fRoots) = 1.0]
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE( fTotRoots )
     do k = 1, size(L1_fRoots,1)
        fTotRoots       = sum(L1_fRoots(k, :), L1_fRoots(k, :) .gt. 0.0_dp)
 
@@ -400,6 +409,8 @@ contains
           L1_fRoots(k, :) = 0._dp
        end If
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
 
   end subroutine mpr_SMhorizons
 

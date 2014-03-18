@@ -95,6 +95,8 @@ contains
   !                                                --> param(4:13) = ...
   !         Modified, Matthias Zink,  Nov 2013 - documentation, inouts --> out 
   !                                              moved constants to mhm_constants
+  !         Modified, Stephan Thober, Mar 2014 - separated cell loop from soil loop for better
+  !                                              scaling in parallelization
 
   subroutine mpr_sm( &
        ! Input -----------------------------------------------------------------
@@ -127,6 +129,9 @@ contains
                         ! w.r.t to saturation
 
     use mo_mhm_constants, only: BulkDens_OrgMatter
+#ifdef OPENMP
+    use omp_lib
+#endif
 
     implicit none
 
@@ -140,8 +145,8 @@ contains
     real(dp),    dimension(:,:),   intent(in)  :: sand         ! sand content
     real(dp),    dimension(:,:),   intent(in)  :: clay         ! clay content
     real(dp),    dimension(:,:),   intent(in)  :: DbM          ! mineral Bulk density
-    integer(i4), dimension(:),     intent(in)  :: ID0        ! cell ids at level 0
-    integer(i4), dimension(:),     intent(in)  :: soilId0    ! soil ids at level 0
+    integer(i4), dimension(:),     intent(in)  :: ID0          ! cell ids at level 0
+    integer(i4), dimension(:),     intent(in)  :: soilId0      ! soil ids at level 0
     integer(i4), dimension(:),     intent(in)  :: LCOVER0       ! land cover ids at level 0
 
 
@@ -155,8 +160,9 @@ contains
     real(dp),    dimension(:,:,:), intent(out) :: Ks            ! saturated hydraulic conductivity
     real(dp),    dimension(:,:,:), intent(out) :: Db            ! Bulk density
     real(dp),    dimension(:),     intent(out) :: KsVar_H0      ! relative variability of
-                                                                  ! saturated hydraulic
-                                                                  ! cound. for Horizantal flow
+                                                                ! saturated hydraulic
+                                                                ! cound. for Horizantal flow
+                                                                ! dimension is number of cells at level 0
     real(dp),    dimension(:),     intent(out) :: KsVar_V0      ! relative variability of
                                                                   ! saturated hydraulic
                                                                   ! cound. for vertical flow
@@ -169,6 +175,7 @@ contains
     integer(i4)                               :: i               ! loop index
     integer(i4)                               :: j               ! loop index
     integer(i4)                               :: l               ! loop index
+    integer(i4)                               :: s               ! dummy variable for storing soil class
     real(dp)                                  :: pM
     real(dp)                                  :: pOM
     real(dp)                                  :: Ks_tmp          ! temporal saturated hydr. cond
@@ -246,17 +253,6 @@ contains
                 ! estimating permanent wilting point
                 call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS_till(i,j,L), thetaPW_till(i,j,L) )
 
-
-                ! Soil properties over the whole soil coloum depth
-                KsVar_H0 = merge( KsVar_H0 + thetaS_till (i,j,L) * Ks_tmp, &
-                           KsVar_H0, ( soilId0 == i .and. LCOVER0 == L ) )
-                KsVar_V0 = merge( KsVar_V0 + thetaS_till (i,j,L) / Ks_tmp, &
-                           KsVar_V0, ( soilId0 == i .and. LCOVER0 == L ) )
-                SMs_FC0  = merge( SMs_FC0  + thetaFC_till(i,j,L),          &
-                           SMs_FC0,  ( soilId0 == i .and. LCOVER0 == L ) )
-                SMs_tot0 = merge( SMs_tot0 + thetaS_till (i,j,L),          &
-                           SMs_tot0, ( soilId0 == i .and. LCOVER0 == L ) )
- 
              end do
              
              ! deeper layers
@@ -274,19 +270,32 @@ contains
              call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j-minval(nTillHorizons(:))), &
                   thetaPW(i, j-minval(nTillHorizons(:))) )
              
-             ! soil_properties over the whole soil column
-             KsVar_H0 = merge( KsVar_H0 + thetaS (i, j-minval(nTillHorizons(:))) * Ks_tmp, &
-                        KsVar_H0, ( soilId0 == i ) )
-             KsVar_V0 = merge( KsVar_V0 + thetaS (i, j-minval(nTillHorizons(:))) / Ks_tmp, &
-                        KsVar_V0, ( soilId0 == i ) )
-             SMs_FC0  = merge( SMs_FC0  + thetaFC(i, j-minval(nTillHorizons(:))),          &
-                        SMs_FC0, ( soilId0 == i ) )
-             SMs_tot0 = merge( SMs_tot0 + thetaS (i, j-minval(nTillHorizons(:))),          &
-                        SMs_tot0, ( soilId0 == i ) )
-             
           end if
          
        end do horizon
+
+    end do
+
+    ! calculate soil properties at each location
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE( s, j )
+    cellloop: do i = 1, size( soilId0, 1 )
+       s = soilId0(i)
+       do j = 1, nHorizons( s )
+          if ( j .le. nTillHorizons( s ) ) then
+             ! Soil properties over the whole soil coloum depth
+             KsVar_H0(i) = KsVar_H0(i) + thetaS_till( s, j, LCover0(i) ) * Ks( s, j, LCover0(i) )
+             KsVar_V0(i) = KsVar_V0(i) + thetaS_till( s, j, LCover0(i) ) / Ks( s, j, LCover0(i) )
+             SMs_FC0(i)  = SMs_FC0(i)  + thetaFC_till(s, j, LCover0(i) )
+             SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s, j, LCover0(i) )
+          else
+             ! soil_properties over the whole soil column
+             KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-minval(nTillHorizons(:)))*Ks(s,j,nTillHorizons(s+1))
+             KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-minval(nTillHorizons(:)))/Ks(s,j,nTillHorizons(s+1))
+             SMs_FC0(i)  = SMs_FC0(i) +thetaFC(s,j-minval(nTillHorizons(:)))
+             SMs_tot0(i) = SMs_tot0(i)+thetaS (s,j-minval(nTillHorizons(:)))
+          end if
+       end do
 
        ! ------------------------------------------------------------------
        ! DETERMINE RELATIVE VARIABILITIES OF 
@@ -296,18 +305,14 @@ contains
        ! ------------------------------------------------------------------
 
        ! soil moisture saturation deficit relative to the field capacity soil moisture
-       SMs_FC0  = merge( (SMs_tot0 - SMs_FC0) / SMs_tot0, SMs_FC0,  (soilId0 == i) )
-
+       SMs_FC0(i)  = (SMs_tot0(i) - SMs_FC0(i)) / SMs_tot0(i)
        ! Ks variability over the whole soil coloum depth for
-       ! both horizontal and vertical flows 
-       KsVar_H0 = merge(  KsVar_H0 / SMs_tot0, KsVar_H0, (soilId0 == i) )
-       KsVar_V0 = merge(  SMs_tot0 / KsVar_V0, KsVar_V0, (soilId0 == i) )
-
-       ! relative variabilities
-       KsVar_H0 = merge(  KsVar_H0 / param(13), KsVar_H0, (soilId0 == i) )
-       KsVar_V0 = merge(  KsVar_V0 / param(13), KsVar_V0, (soilId0 == i) )
-
-    end do
+       ! both horizontal and vertical flows including relative variabilities
+       KsVar_H0(i) = KsVar_H0(i) / SMs_tot0(i) / param(13)
+       KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / param(13)
+    end do cellloop
+    !$OMP END DO
+    !$OMP END PARALLEL
     
   end subroutine mpr_sm
 
