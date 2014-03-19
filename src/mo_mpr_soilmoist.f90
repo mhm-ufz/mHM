@@ -129,9 +129,7 @@ contains
                         ! w.r.t to saturation
 
     use mo_mhm_constants, only: BulkDens_OrgMatter
-#ifdef OPENMP
-    use omp_lib
-#endif
+!$  use omp_lib
 
     implicit none
 

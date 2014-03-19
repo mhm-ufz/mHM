@@ -111,6 +111,7 @@ contains
   !                                                --> param(2) = rootFractionCoefficient_impervious 
   !                                                --> param(3) = delta_1 
   !                                                --> param(4) = infiltrationShapeFactor
+  !                  Stephan Thober, Mar 2014 - added omp parallelization
 
   subroutine mpr_SMhorizons( &
        ! Input -----------------------------------------------------------------
@@ -147,9 +148,7 @@ contains
        L1_fRoots )       ! fraction of roots in soil horizons
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
-#ifdef OPENMP
-    use omp_lib
-#endif
+!$  use omp_lib
 
     implicit none
 
