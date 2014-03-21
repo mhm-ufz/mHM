@@ -878,11 +878,13 @@ CONTAINS
     end if
     ! number of points in each complex: default = 2n+1
     if (sce_npg .lt. 0_i4) then
-       sce_npg = 2 * size(global_parameters,1) + 1_i4
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
+       sce_npg = 2 * n_true_pars + 1_i4
     end if
     ! number of points in each sub-complex: default = n+1
     if (sce_nps .lt. 0_i4) then
-       sce_nps = size(global_parameters,1) + 1_i4
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
+       sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
        call message ('number of points per complex (sce_npg) must be greater or')
