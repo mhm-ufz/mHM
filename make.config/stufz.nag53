@@ -41,9 +41,13 @@ F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
 ifeq ($(release),debug)
-    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
-    F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
+    ifeq ($(openmp),true)
+        F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90
+    else
+        F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
+    endif
     FCFLAGS  += $(F90FLAGS)
+    #FCFLAGS  += -C -C=dangling -g -nan -O0 -fixed
     CFLAGS   += -pedantic-errors -Wall -W -O -g
     LDFLAGS  += -g90
 else
@@ -67,20 +71,20 @@ RPATH += -Wl,-rpath,$(NAGLIB)
 IMSLDIR :=
 
 # MKL
-MKLDIR := /usr/local/intel/composer_xe_2011_sp1.9.293/mkl
-MKLINC := $(MKLDIR)/include/intel64/lp64
-MKLLIB := $(MKLDIR)/lib/intel64
-MKL95DIR := $(MKLDIR)
-MKL95INC := $(MKL95DIR)/include/intel64/lp64
-MKL95LIB := $(MKL95DIR)/lib/intel64
+# MKLDIR := /usr/local/intel/composer_xe_2011_sp1.9.293/mkl
+# MKLINC := $(MKLDIR)/include/intel64/lp64
+# MKLLIB := $(MKLDIR)/lib/intel64
+# MKL95DIR := $(MKLDIR)
+# MKL95INC := $(MKL95DIR)/include/intel64/lp64
+# MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
-NCDIR   := /usr/local/netcdf-4.1.2-nag53
+NCDIR   := /usr/local/netcdf-fortran-4.2-nagfor
 SZLIB   := /usr/local
-HDF5LIB := /usr
+HDF5LIB := 
 
 # PROJ
-PROJ4DIR := /usr/local
+PROJ4DIR :=
 FPROJDIR := 
 
 # LAPACK

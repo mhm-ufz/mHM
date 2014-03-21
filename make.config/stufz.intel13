@@ -28,7 +28,7 @@
 # Define subirectories if another structure
 
 # Paths
-INTEL    := /usr/local/intel/composer_xe_2011_sp1.9.293
+INTEL    := /opt/intel/composer_xe_2013_sp1.2.144
 INTELDIR := $(INTEL)/compiler
 INTELLIB := $(INTELDIR)/lib
 INTELBIN := $(INTEL)/bin/intel64
@@ -36,7 +36,7 @@ INTELBIN := $(INTEL)/bin/intel64
 # Compiling
 F90 := $(INTELBIN)/ifort
 FC  := $(F90)
-CC  := $(INTELBIN)/icc
+CC  := 
 ifeq ($(release),debug)
     F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
     FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
@@ -47,9 +47,9 @@ else
     FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -assume byterecl -cpp -fp-model precise -m64
+F90FLAGS += -assume byterecl -cpp -fp-model source -m64 # -fp-model source is the same as -fp-model precise
 MODFLAG  := -module # space significant
-FCFLAGS  += -assume byterecl -cpp -fp-model precise -m64 -fixed
+FCFLAGS  += -assume byterecl -cpp -fp-model source -m64 -fixed
 CFLAGS   += -m64 -std=c99
 DEFINES  += -DINTEL -DINTEL_COMPILER
 
@@ -61,7 +61,7 @@ LIBS += -L$(INTELLIB) -limf -lm -lsvml
 ifneq ($(istatic),static)
      LIBS += -lintlc
 endif
-RPATH += -Wl,-rpath,$(INTELLIB)
+# RPATH += -Wl,-rpath,$(INTELLIB)
 
 # IMSL
 IMSLDIR :=
@@ -75,12 +75,12 @@ MKL95INC := $(MKL95DIR)/include/intel64/lp64
 MKL95LIB := $(MKL95DIR)/lib/lp64
 
 # NETCDF
-NCDIR := /usr/local/netcdf-4.1.2-ifort12
-SZLIB   := /usr/local
-HDF5LIB :=
+NCDIR := /opt/netcdf-fortran-4.2-ifort
+SZLIB   := 
+HDF5LIB := 
 
 # PROJ
-PROJ4DIR := /usr/local
+PROJ4DIR := 
 FPROJDIR := 
 
 # LAPACK
