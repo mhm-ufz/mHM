@@ -219,7 +219,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious    
     real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope    
     !
-    integer(i4)                                     :: ii
+    integer(i4)                                     :: ii, n_true_pars
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
     !
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
