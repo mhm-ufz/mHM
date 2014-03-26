@@ -163,10 +163,12 @@ CONTAINS
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
     write(uconfig, 103)    'Time Step [h]               ', timeStep
-    write(uconfig, 125)    'Hydrology Resolution [m]      ', resolutionHydrology
-    if ( processMatrix(8,1) .ne. 0 ) then
-       write(uconfig, 125) 'Routing Resolution [m]        ', resolutionRouting
-    end if
+    do i=1, nBasins
+       write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
+       if ( processMatrix(8,1) .ne. 0 ) then
+          write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
+       end if
+    end do
     write(uconfig, 126)    'Flag READ  restart states     ', restart_flag_states_read
     write(uconfig, 126)    'Flag WRITE restart states     ', restart_flag_states_write
     write(uconfig, 126)    'Flag READ  restart config.    ', restart_flag_config_read
@@ -339,6 +341,8 @@ CONTAINS
 218 format (/ 80('-')/ 26x, a24,26x,  /80('-'))
 222 format (/80('-')/ 26x,a21 /80('-'))
 224 format (a40, 5x, a40)
+
+301 format (a7, i2, a33,f10.0)
   end Subroutine write_configfile
 
 
