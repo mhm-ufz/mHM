@@ -14,7 +14,7 @@
 #
 catchm    = ''
 infile    = '../test_basin/output_b1/daily_discharge.out'
-gaugeid   = '55555'
+gaugeid   = '398'
 pdffile   = ''
 usetex    = False
 import optparse
@@ -139,14 +139,14 @@ Qdata       = np.array(fread(infile, skip=1, squeeze=False))
 # prepare data for plot
 ######################
 gauge = gaugeid.zfill(10)
-Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0][0]]
+Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]]
 Qobs  = Qobs[Qobs >= 0.0]
 #
-day   = Qdata[:,np.where(QHead == 'Day')[0]][Qobs >= 0.0]
-month = Qdata[:,np.where(QHead == 'Mon')[0]][Qobs >= 0.0]
-year  = Qdata[:,np.where(QHead == 'Year')[0]][Qobs >= 0.0]
+day   = Qdata[:,np.where(QHead == 'Day')[0][0]][Qobs >= 0.0]
+month = Qdata[:,np.where(QHead == 'Mon')[0][0]][Qobs >= 0.0]
+year  = Qdata[:,np.where(QHead == 'Year')[0][0]][Qobs >= 0.0]
 time  = date2dec(dy=day,mo=month,yr=year) - date2dec(dy=1,mo=1,yr=year[0])
-Qcal  = Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0][0]][Qobs >= 0.0]
+Qcal  = np.squeeze(Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0]][Qobs >= 0.0])
 #
 ###################################################################
 # plot

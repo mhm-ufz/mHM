@@ -465,20 +465,31 @@ ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
     endif
 
     # other libraries for netcdf4, ignored for netcdf3
-    ifeq ($(netcdf),netcdf4)
-        iLIBS += -L$(HDF5LIB) -lhdf5_hl -lhdf5 -L$(SZLIB) -lsz
-        ifneq ($(ZLIB),)
-            iLIBS += -L$(ZLIB) -lz
-            RPATH += -Wl,-rpath,$(ZLIB)
-        else
-            iLIBS += -lz
+    ifeq ($(system),cygwin)
+        ifeq ($(netcdf),netcdf4)
+            iLIBS += -L$(HDF5LIB) -lhdf5_hl -lhdf5
+            RPATH += -Wl,-rpath,$(HDF5LIB)
+            ifneq ($(CURLLIB),)
+                iLIBS += -L$(CURLLIB) -lcurl
+                RPATH += -Wl,-rpath,$(CURLLIB)
+            endif
         endif
-        RPATH += -Wl,-rpath,$(SZLIB) -Wl,-rpath,$(HDF5LIB)
-        ifneq ($(CURLLIB),)
-            iLIBS += -L$(CURLLIB) -lcurl
-            RPATH += -Wl,-rpath,$(CURLLIB)
+    else
+        ifeq ($(netcdf),netcdf4)
+            iLIBS += -L$(HDF5LIB) -lhdf5_hl -lhdf5 -L$(SZLIB) -lsz
+            ifneq ($(ZLIB),)
+                iLIBS += -L$(ZLIB) -lz
+                RPATH += -Wl,-rpath,$(ZLIB)
+            else
+                iLIBS += -lz
+            endif
+            RPATH += -Wl,-rpath,$(HDF5LIB) -Wl,-rpath,$(SZLIB)
+            ifneq ($(CURLLIB),)
+                iLIBS += -L$(CURLLIB) -lcurl
+                RPATH += -Wl,-rpath,$(CURLLIB)
+            endif
         endif
-   endif
+    endif
 endif
 
 # --- PROJ --------------------------------------------------
