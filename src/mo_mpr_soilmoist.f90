@@ -288,8 +288,8 @@ contains
              SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s, j, LCover0(i) )
           else
              ! soil_properties over the whole soil column
-             KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-minval(nTillHorizons(:)))*Ks(s,j,nTillHorizons(s+1))
-             KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-minval(nTillHorizons(:)))/Ks(s,j,nTillHorizons(s+1))
+             KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-minval(nTillHorizons(:)))*Ks(s,j,1)
+             KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-minval(nTillHorizons(:)))/Ks(s,j,1)
              SMs_FC0(i)  = SMs_FC0(i) +thetaFC(s,j-minval(nTillHorizons(:)))
              SMs_tot0(i) = SMs_tot0(i)+thetaS (s,j-minval(nTillHorizons(:)))
           end if

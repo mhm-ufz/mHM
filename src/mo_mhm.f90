@@ -556,8 +556,9 @@ CONTAINS
     ! HYDROLOGICAL PROCESSES at L1-LEVEL 
     !-------------------------------------------------------------------
 
-    !$OMP parallel
-    !$OMP do private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
+    !$OMP parallel default(shared) &
+    !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
+    !$OMP do
     do k = 1, nCells1
        
        ! temporal disaggreagtion of forcing variables
