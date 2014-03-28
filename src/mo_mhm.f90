@@ -397,7 +397,9 @@ CONTAINS
     real(dp)               :: temp
 
     ! temporary arrays so that inout of routines is contiguous array
-    real(dp), dimension(:), allocatable :: tmp_infiltration, tmp_soilMoisture, tmp_aet_soil
+    real(dp), dimension(size(infiltration,2)) :: tmp_infiltration
+    real(dp), dimension(size(soilMoisture,2)) :: tmp_soilMoisture
+    real(dp), dimension(size(aet_soil,2))     :: tmp_aet_soil
 
     !-------------------------------------------------------------------
     ! date and month of this timestep
@@ -541,14 +543,8 @@ CONTAINS
     ! HYDROLOGICAL PROCESSES at L1-LEVEL 
     !-------------------------------------------------------------------
 
-    ! allocate temp inout arrays for soil_moisture
-    if (.not. allocated(tmp_infiltration)) allocate(tmp_infiltration(size(infiltration,2)))
-    if (.not. allocated(tmp_soilMoisture)) allocate(tmp_soilMoisture(size(soilMoisture,2)))
-    if (.not. allocated(tmp_aet_soil))     allocate(tmp_aet_soil(size(aet_soil,2)))
-
-    !$OMP parallel default(shared) &
-    !$OMP private(k, prec, pet, temp, tmp_infiltration, tmp_soilMoisture, tmp_aet_soil)
-    !$OMP do
+    !$OMP parallel
+    !$OMP do private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     do k = 1, nCells1
        
        ! temporal disaggreagtion of forcing variables
@@ -566,9 +562,9 @@ CONTAINS
             snowpack(k),                                                                       & ! Intent INOUT
             deg_day(k),                                                                        & ! Intent OUT
             melt(k), prec_effect(k), rain(k), snow(k) )                                          ! Intent OUT
-       tmp_infiltration(:) = infiltration(k,:)
-       tmp_soilMoisture(:) = soilMoisture(k,:)
 
+       tmp_soilMoisture(:) = soilMoisture(k,:)
+       tmp_infiltration(:) = infiltration(k,:)
        call soil_moisture( fSealed1(k), water_thresh_sealed(k),                                & ! Intent IN
             pet,  evap_coeff(month), soil_moist_sat(k,:), frac_roots(k,:), soil_moist_FC(k,:), & ! Intent IN
             wilting_point(k,:),  soil_moist_exponen(k,:), aet_canopy(k),                       & ! Intent IN
@@ -595,10 +591,6 @@ CONTAINS
     end do
     !$OMP end do
     !$OMP end parallel
-
-    deallocate(tmp_infiltration)
-    deallocate(tmp_soilMoisture)
-    deallocate(tmp_aet_soil)
 
     !-------------------------------------------------------------------
     ! routing at L11 level

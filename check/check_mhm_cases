@@ -71,7 +71,8 @@ set -e
 # different compilers and in release/debug. These settings can be made
 # by using the optional arguments of check.sh, i.e. "-c", "-r", "-s".
 
-# The test cases specified so far are:
+# All tests will be performed first in sequential mode and repeated with
+# openmp parallelization. The test cases specified so far are:
 
 #    case 0 :: DEFAULT
 
@@ -88,9 +89,6 @@ set -e
 #       optimize       = .TRUE.                  (default: .FALSE.)
 #       opti_method    = 1                       (default: 3      )
 #       nIterations    = 6                       (default: 400    )
-
-#    case 4 :: DEFAULT (case 0) IN PARALLEL
-#       
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
@@ -223,7 +221,7 @@ shift $((${OPTIND} - 1))
 
 # check for compilers on system
 if [[ ${compilers} == '' ]] ; then
-    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
 fi
 
 # argument
