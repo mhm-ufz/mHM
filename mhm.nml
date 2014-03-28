@@ -13,6 +13,7 @@
 !                          - added new directory paths for soil and geology LUTs
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
+! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -341,6 +342,73 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 processCase(8) = 1
+/
+
+
+!******************************************************************************************
+! Specifcation of evaluation and inflow gauges
+!******************************************************************************************
+!> namelist controlling the gauging station information
+!> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
+!> to the filename containing the time series 
+
+&evaluation_gauges
+!> Gauges for model evaluation
+!
+!> Total number of gauges (sum of all gauges in all subbains)
+nGaugesTotal           = 2
+!> structure of gauge_id(i,j) & gauge_filename(i,j):
+!> 1st dimension is the number of the subbasin i
+!> 2nd dimension is the number of the gauge j within the subbasin i
+!> numbering has to be consecutive
+!
+!> basin 1
+!> number of gauges for subbasin (1)
+NoGauges_basin(1)       = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(1,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(1,1)     = "00398.txt"
+!
+!> basin 2
+!> number of gauges for subbasin (2)
+NoGauges_basin(2)       = 1
+!> id of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_id(2,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_filename(2,1)     = "00398.txt"
+!
+!> basin 3
+!> number of gauges for subbasin (2)
+NoGauges_basin(3)       = 1
+!> id of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_id(3,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_filename(3,1)     = "00398.txt"
+/
+
+&inflow_gauges
+!> Gauges / gridpeoints used for inflow to the model domain
+!> e.g. in the case of upstream/headwater areas which are  
+!>      not included in the model domain
+!
+!> Total number of inflow gauges (sum of all gauges in all subbains) 
+nInflowGaugesTotal            = 0
+!> structure of gauge_id(i,j) & gauge_filename(i,j):
+!> 1st dimension is the number of the subbasin i
+!> 2nd dimension is the number of the gauge j within the subbasin i
+!> numbering has to be consecutive
+!
+!> basin 1
+!> number of gauges for subbasin (1)
+NoInflowGauges_basin(1)       = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_id(1,1)           = 398
+!> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_filename(1,1)     = "00398.txt"
+! !
+! !> basin 2
+NoInflowGauges_basin(2)       = 0
 /
 
 !******************************************************************************************

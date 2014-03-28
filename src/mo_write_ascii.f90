@@ -20,6 +20,7 @@ MODULE mo_write_ascii
   ! Written  Christoph Schneider, May 2013
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
   ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
+  ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -91,6 +92,7 @@ CONTAINS
          nBasins,                   &
          basin,                     &
          gauge,                     &
+         InflowGauge,               &
          L0_nCells,                 &
          L1_nCells,                 &
          L11_nCells,                &
@@ -105,6 +107,7 @@ CONTAINS
          L1_L11_ID,                 &
          L1_areaCell,               &
          nGaugesTotal,              &
+         nInflowGaugesTotal,        &
          timeStep,                  &
          resolutionHydrology,       &
          resolutionRouting,         &  
@@ -221,6 +224,15 @@ CONTAINS
        do i=1, nGaugesTotal
           write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
                minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+       end do
+    end if
+    ! inflow gauge data
+    if ( nInflowGaugesTotal .GT. 0 ) then
+       write(uconfig, 202) '                Basin Inflow Data                 '
+       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
+       do i=1, nInflowGaugesTotal
+          write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
+               minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
        end do
     end if
     ! basin config

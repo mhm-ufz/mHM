@@ -124,6 +124,8 @@
 !                       Sa Cu 12.12.2012    v5.0 automatic documentation
 !                          Ku 02.05.2013    v5.0 error/compatability checks
 !                Stephan Thober Nov 2013         added read in of latitude longitude fields
+!                Matthias Zink  Mar 2013         edited screen output for gauges
+!                                                added inflow gauges
 ! --------------------------------------------------------------------------
 
 PROGRAM mhm_driver 
@@ -149,7 +151,7 @@ PROGRAM mhm_driver
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        iFlag_LAI_data_format,                                &      ! LAI option for reading gridded LAI field 
-       processMatrix                                                ! processMatrix
+       basin, processMatrix                                         ! basin information,  processMatrix
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc                           ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
@@ -179,7 +181,7 @@ PROGRAM mhm_driver
   ! local
   integer, dimension(8)                 :: datetime        ! Date and time
   !$ integer(i4)                        :: n_threads       ! OpenMP number of parallel threads
-  integer(i4)                           :: ii              ! Counters
+  integer(i4)                           :: ii, i           ! Counters
   integer(i4)                           :: iTimer          ! Current timer number
   integer(i4)                           :: nTimeSteps
   real(dp)                              :: funcbest        ! best objective function achivied during optimization 
@@ -240,6 +242,20 @@ PROGRAM mhm_driver
      call message('    Temperature directory:    ', trim(dirTemperature(ii)  ))   
      call message('    PET directory:            ', trim(dirReferenceET(ii)  )) 
      call message('    Output directory:         ', trim(dirOut(ii) ))        
+     if (processMatrix(8,1) .GT. 0) then
+        call message('    Evaluation gauge          ', 'ID')
+        do i = 1 , basin%nGauges(ii)
+           call message('    ',trim(adjustl(num2str(i))),'                         ', &
+                trim(adjustl(num2str(basin%gaugeIdList(ii,i)))))
+        end do
+     end if
+     if (basin%nInflowGauges(ii) .GT. 0) then
+        call message('    Inflow gauge              ', 'ID')
+        do i = 1 , basin%nInflowGauges(ii)
+           call message('    ',trim(adjustl(num2str(i))),'                         ', &
+                trim(adjustl(num2str(basin%InflowGaugeIdList(ii,i)))))
+        end do
+     end if
      call message('')
   end do
 

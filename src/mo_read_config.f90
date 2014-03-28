@@ -92,6 +92,7 @@ CONTAINS
   !                  Juliane Mai,    Oct  2013 - adding global_parameters_name
   !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
+  !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
 
   subroutine read_config()
 
@@ -106,7 +107,8 @@ CONTAINS
          maxNoSoilHorizons,                                 & ! maximum number of allowed soil layers
          maxNoBasins,                                       & ! maximum number of allowed basins
          maxNLcovers,                                       & ! maximum number of allowed LCover scenes                 
-         maxGeoUnit                                           ! maximum number of allowed geological classes
+         maxGeoUnit,                                        & ! maximum number of allowed geological classes
+         maxNoGauges                                          ! maximum number of allowed gauges
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
@@ -123,6 +125,7 @@ CONTAINS
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles_In,                                 & ! directory where common files are located
+         dirGauges,                                         & ! directory of gauge files
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
@@ -146,6 +149,9 @@ CONTAINS
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods  
          !                                                    ! (sim. = wrm. + eval.)
+         nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
+         nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
+         basin,                                             & ! evaluation and inflow gauge information
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
@@ -248,6 +254,14 @@ CONTAINS
     integer(i4),    dimension(maxNoBasins)          :: resolutionHydrology_dummy
     integer(i4),    dimension(maxNoBasins)          :: resolutionRouting_dummy
     integer(i4),    dimension(maxNoBasins)          :: L0_Basin_dummy
+    ! for gauge read in
+    integer(i4)                                        :: i, j, idx
+    integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
+    integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
+    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
+    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
+    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
 
     ! define namelists
     ! namelist directories
@@ -271,6 +285,10 @@ CONTAINS
     namelist/nightDayRatio/fnight_prec,fnight_pet,fnight_temp
     ! namelsit process selection
     namelist /processSelection/ processCase
+    ! namelist for evaluation gauges
+    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
+    ! namelist for inflow gauges
+    namelist /inflow_gauges/     nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
     namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,                      &
@@ -415,6 +433,162 @@ CONTAINS
     if(iFlag_LAI_data_format .EQ. 1) then
        allocate( dir_gridded_LAI(nBasins) )
        dir_gridded_LAI(:) = dir_gridded_LAI_dummy(1:nBasins)
+    end if
+
+    !===============================================================
+    ! Read evaluation gauge information
+    !===============================================================
+    routing_activated: if( processCase(8) .GT. 0 ) then
+       nGaugesTotal   = nodata_i4
+       NoGauges_basin = nodata_i4
+       Gauge_id       = nodata_i4
+       gauge_filename = num2str(nodata_i4)
+
+       call position_nml('evaluation_gauges', unamelist)
+       read(unamelist, nml=evaluation_gauges)
+
+       if (nGaugesTotal .GT. maxNoGauges) then
+          call message()
+          call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))         
+          call message('          Error occured in namlist: evaluation_gauges')
+          stop
+       end if
+
+       allocate(gauge%gaugeId        (nGaugesTotal))                       ; gauge%gaugeId        = nodata_i4
+       allocate(gauge%basinId        (nGaugesTotal))                       ; gauge%basinId        = nodata_i4
+       allocate(gauge%fName          (nGaugesTotal))                       ; gauge%fName(1)       = num2str(nodata_i4)
+       allocate(basin%nGauges        (nBasins                           )) ; basin%nGauges        = nodata_i4
+       allocate(basin%gaugeIdList    (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIdList    = nodata_i4
+       allocate(basin%gaugeIndexList (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIndexList = nodata_i4
+       allocate(basin%gaugeNodeList  (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeNodeList  = nodata_i4
+
+       idx = 0
+       do i = 1, nBasins
+          ! check if NoGauges_basin has a valid value
+          if ( NoGauges_basin(i) .EQ. nodata_i4 ) then
+             call message()
+             call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
+                                     trim(adjustl(num2str(i))),' is not defined!')
+             call message('          Error occured in namlist: evaluation_gauges')
+             stop
+          end if
+
+          basin%nGauges(i)          = NoGauges_basin(i)
+
+          do j = 1, NoGauges_basin(i)
+             ! check if NoGauges_basin has a valid value
+             if (Gauge_id(i,j) .EQ. nodata_i4) then 
+                call message()
+                call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
+                                        trim(adjustl(num2str(j))),' for subbasin ', &
+                     trim(adjustl(num2str(i))),' is not defined!')
+                call message('          Error occured in namlist: evaluation_gauges')
+                stop
+             else if (trim(gauge_filename(i,j)) .EQ. trim(num2str(nodata_i4))) then 
+                call message()
+                call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
+                                 trim(adjustl(num2str(j))),' for subbasin ',  &
+                                 trim(adjustl(num2str(i))),' is not defined!')
+                call message('          Error occured in namlist: evaluation_gauges')
+                stop
+             end if
+             !
+             idx = idx + 1
+             gauge%basinId(idx)        = i
+             gauge%gaugeId(idx)        = Gauge_id(i,j)
+             gauge%fname(idx)          = trim(dirGauges(i)) // trim(gauge_filename(i,j)) 
+             basin%gaugeIdList(i,j)    = Gauge_id(i,j)
+             basin%gaugeIndexList(i,j) = idx
+          end do
+       end do
+
+       if ( nGaugesTotal .NE. idx) then 
+          call message()
+          call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
+               ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+          call message('          Error occured in namlist: evaluation_gauges')
+          stop
+       end if
+
+    end if routing_activated
+
+    !===============================================================
+    ! Read evaluation inflow information
+    !===============================================================
+
+    nInflowGaugesTotal   = 0
+    NoInflowGauges_basin = nodata_i4
+    InflowGauge_id       = nodata_i4
+    InflowGauge_filename = num2str(nodata_i4)
+
+    call position_nml('inflow_gauges', unamelist)
+    read(unamelist, nml=inflow_gauges)
+
+    if (nInflowGaugesTotal .GT. maxNoGauges) then
+       call message()
+       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))         
+       call message('          Error occured in namlist: inflow_gauges')
+       stop
+    end if
+
+    ! allocation - max() to avoid allocation with zero, needed for mhm call
+    allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))                       
+    allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))                       
+    allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))                       
+    allocate(basin%nInflowGauges        (nBasins                                 )) 
+    allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    allocate(basin%InflowGaugeNodeList  (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    ! initialization
+    InflowGauge%gaugeId        = nodata_i4
+    InflowGauge%basinId        = nodata_i4
+    InflowGauge%fName          = num2str(nodata_i4)
+    basin%nInflowGauges        = nodata_i4
+    basin%InflowGaugeIdList    = nodata_i4
+    basin%InflowGaugeIndexList = nodata_i4
+    basin%InflowGaugeNodeList  = nodata_i4
+
+    idx = 0
+    do i = 1, nBasins
+
+       ! no inflow gauge for subbasin i
+       if (NoInflowGauges_basin(i) .EQ. nodata_i4) then
+          NoInflowGauges_basin(i)       = 0  
+       end if
+
+       basin%nInflowGauges(i)          = NoInflowGauges_basin(i)
+
+       do j = 1, NoInflowGauges_basin(i)
+          ! check if NoInflowGauges_basin has a valid value
+          if (InflowGauge_id(i,j) .EQ. nodata_i4) then 
+             call message()
+             call message('***ERROR: mhm.nml:ID of inflow gauge ',        trim(adjustl(num2str(j))),' for subbasin ', &
+                                     trim(adjustl(num2str(i))),' is not defined!')
+             call message('          Error occured in namlist: inflow_gauges')
+             stop
+          else if (trim(gauge_filename(i,j)) .EQ. trim(num2str(nodata_i4))) then 
+             call message()
+             call message('***ERROR: mhm.nml:Filename of inflow gauge ', trim(adjustl(num2str(j))),' for subbasin ',  &
+                                     trim(adjustl(num2str(i))),' is not defined!')
+             call message('          Error occured in namlist: inflow_gauges')
+             stop
+          end if
+          !
+          idx = idx + 1
+          InflowGauge%basinId(idx)        = i
+          InflowGauge%gaugeId(idx)        = InflowGauge_id(i,j)
+          InflowGauge%fname(idx)          = trim(dirGauges(i)) // trim(gauge_filename(i,j)) 
+          basin%InflowGaugeIdList(i,j)    = InflowGauge_id(i,j)
+          basin%InflowGaugeIndexList(i,j) = idx
+       end do
+    end do
+
+    if ( nInflowGaugesTotal .NE. idx) then 
+       call message()
+       call message('***ERROR: mhm.nml: Total number of inflow gauges (', trim(adjustl(num2str(nInflowGaugesTotal))), &
+            ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+       call message('          Error occured in namlist: inflow_gauges')
+       stop
     end if
 
     !===============================================================

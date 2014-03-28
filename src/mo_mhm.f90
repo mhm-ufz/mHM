@@ -99,7 +99,9 @@ CONTAINS
   !                                                           - initalization of soil moist. at first timestep
   !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within 
   !                                                             the code made accordingly (e.g., canopy intecpt.)
-  !                                                           - max. canopy interception is estimated outside of MPR call
+  !                                                           - max. canopy interception is estimated outside of MPR
+  !                                                             call
+  !                 Matthias Zink,                   Mar 2014 - added inflow from upstream areas
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -121,6 +123,9 @@ CONTAINS
       ntimesteps_day      , & ! number of time intervals per day, transformed in dp
       TS                  , & ! time step in [h]
       mask0               , & ! mask 0 for MPR
+      nInflowGauges       , & ! number of inflow gauges
+      InflowIndexList     , & ! list of indices for inflow gauges
+      InflowNodeList      , & ! list of L11 ID for inflow gauges
       global_parameters   , & ! global mHM parameters
       ! LUT
       LCyearId            , & ! mapping of landcover scenes
@@ -169,6 +174,8 @@ CONTAINS
       pet_in              , & ! Daily potential evapotranspiration
       prec_in             , & ! Daily mean precipitation
       temp_in             , & ! Daily average temperature
+      ! discharge inflow
+      QInflow             , & ! discharge time series of inflow
       ! In-Out -----------------------------------------------------------------
       ! Configuration
       yId                 , & ! Current Id of the LCover year scene
@@ -264,6 +271,9 @@ CONTAINS
     real(dp),                    intent(in) :: ntimesteps_day
     integer(i4),                 intent(in) :: TS
     logical,     dimension(:,:), intent(in) :: mask0
+    integer(i4),                 intent(in) :: nInflowGauges 
+    integer(i4), dimension(:)  , intent(in) :: InflowIndexList
+    integer(i4), dimension(:)  , intent(in) :: InflowNodeList
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
@@ -318,6 +328,9 @@ CONTAINS
     real(dp),    dimension(:),   intent(in) :: pet_in
     real(dp),    dimension(:),   intent(in) :: prec_in
     real(dp),    dimension(:),   intent(in) :: temp_in
+
+    ! discharge inflow
+    real(dp),    dimension(:),   intent(in) :: QInflow
 
     ! Configuration
     integer(i4),              intent(inout)   ::  yId
@@ -583,7 +596,7 @@ CONTAINS
        call runoff_sat_zone( k2(k),                                                            & ! Intent IN
             satStorage(k),                                                                     & ! Intent INOUT
             baseflow(k) )                                                                        ! Intent OUT
-            
+
        call L1_total_runoff( fSealed1(k), fast_interflow(k), slow_interflow(k), baseflow(k),   & ! Intent IN
             runoff_sealed(k),                                                                  & ! Intent IN
             total_runoff(k) )                                                                    ! Intent OUT
@@ -599,6 +612,7 @@ CONTAINS
 
        ! runoff accumulation at L11 from L1 level
        call L11_runoff_acc( total_runoff, areaCell1, L11Id_on_L1, TS,                          & ! Intent IN
+            nInflowGauges, InflowIndexList, InflowNodeList, QInflow,                           & ! Intent IN
             nNode_qOUT )                                                                         ! Intent OUT
 
        ! routing of water within river reaches

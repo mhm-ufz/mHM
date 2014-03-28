@@ -74,6 +74,7 @@ CONTAINS
   !                   R. Kumar, J. Mai,     Sep 2013 - Splitting allocation and initialization of arrays
   !                   R. Kumar              Nov 2013 - update intent variables in documentation
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
+  !                   Matthias Zink,        Mar 2014 - added inflow from upstream areas
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -121,7 +122,7 @@ CONTAINS
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
          L1_wiltingPoint, L11_C1, L11_C2,                    &
-         warmingDays, evalPer, gauge,                        &  
+         warmingDays, evalPer, gauge, InflowGauge,           &  
          optimize,  nMeasPerDay,                             &
          iFlag_LAI_data_format, L0_daily_LAI,                &   ! flag on how LAI data has to be read
          dirRestartIn                                            ! restart directory location
@@ -306,6 +307,7 @@ CONTAINS
           ! -------------------------------------------------------------------------
           !  C    CONFIGURATION
           !  F    FORCING DATA L2
+          !  Q    INFLOW FROM UPSTREAM AREAS
           !  L0   MORPHOLOGIC DATA L0
           !  L1   MORPHOLOGIC DATA L1
           !  L11  MORPHOLOGIC DATA L11
@@ -317,12 +319,14 @@ CONTAINS
           call mhm(restart_flag_states_read, fracSealed_cityArea,                           & ! IN C
                iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C      
+               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
+               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
+               basin%InflowGaugeNodeList(ii,:),                                             & ! IN C
                parameterset,                                                                & ! IN P
                LCyearId(year), GeoUnitList, GeoUnitKar,                                     & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0),                         & ! IN L0
                L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),            & ! IN L0
+               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
                L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
@@ -333,6 +337,7 @@ CONTAINS
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
                L1_pet(s1:e1,iMeteoTS), L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),     & ! IN F
+               InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
                L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
@@ -540,8 +545,9 @@ CONTAINS
           ! FOR STORING the optional arguments
           ! 
           ! FOR RUNOFF
-          ! NOTE:: Node id for a given gauging station is
-          !        stored w.r.t to its corresponding basin starting index
+          ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
+          !        index in runoff. In consequence the gauges in runoff are 
+          !        ordered corresponing to gauge%Q(:,:)
           !----------------------------------------------------------------------
           if( present(runoff) ) then
              do gg = 1, basin%nGauges(ii)

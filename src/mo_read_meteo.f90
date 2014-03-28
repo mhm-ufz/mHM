@@ -368,7 +368,7 @@ CONTAINS
        
     else
        call message('***ERROR: read_meteo_nc: time period of input data: ', trim(varName), &
-                    ' is not matching modelling period.')
+                    '          is not matching modelling period.')
        stop
     end if
 

@@ -1214,19 +1214,25 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
   ! ------------------------------------------------------------------
 
   subroutine L11_set_drain_outlet_gauges(iBasin)
 
+    use mo_string_utils    , only: num2str
+
     use mo_global_variables, only: &
          basin,       & 
-         L0_fDir,     & ! IN: flow direction (standard notation) L0
-         L0_draSC,    & ! IN: Index of draining cell of each sub catchment (== cell L11)
-         L0_cellCoor, & ! IN: cell coordinates (row,col) -> <only domain> input data
-         L0_gaugeLoc, & ! IN: location of gauges (read with gauge Id then 
-         !              !     transformed into gauge running ID => [1,nGaugesTotal]
-         L0_L11_Id,   & ! IN: mapping of L11 Id on L0
-         L0_draCell     ! INOUT: draining cell id at L11 of ith cell of L0
+         L0_fDir,     &       ! IN: flow direction (standard notation) L0
+         L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
+         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
+         L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
+         !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
+         !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_Basin,    &       ! if the same data as basin before are used index of basin before has to be used
+         L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
+         L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
 
     implicit none
 
@@ -1242,13 +1248,13 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable  :: cellCoor0
     integer(i4), dimension(:,:), allocatable  :: draSC0         
     integer(i4), dimension(:,:), allocatable  :: fDir0
-    integer(i4), dimension(:,:), allocatable  :: gaugeLoc0      
+    integer(i4), dimension(:,:), allocatable  :: gaugeLoc0   
+    integer(i4), dimension(:,:), allocatable  :: InflowGaugeLoc0   
     integer(i4), dimension(:,:), allocatable  :: draCell0
     integer(i4), dimension(:,:), allocatable  :: L11Id_on_L0
-    integer(i4)                               :: ii, jj, kk
+    integer(i4)                               :: ii, jj, kk, i, index
     integer(i4)                               :: iSc
     integer(i4)                               :: iRow, jCol
-    integer(i4)                               :: gaugeCounter
 
     ! level-0 information
     call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
@@ -1258,24 +1264,25 @@ CONTAINS
     call get_basin_info ( iBasin, 110, nrows110, ncols110, &
          iStart=iStart110, iEnd=iEnd110 ) 
 
-    allocate ( cellCoor0   ( nCells0, 2 ) )  
-    allocate ( draSC0      ( nrows0, ncols0 ) )
-    allocate ( fDir0       ( nrows0, ncols0 ) )
-    allocate ( gaugeLoc0   ( nrows0, ncols0 ) )
-    allocate ( draCell0    ( nrows0, ncols0 ) )
-    allocate ( L11Id_on_L0 ( nrows0, ncols0 ) )
+    allocate ( cellCoor0       ( nCells0, 2 ) )  
+    allocate ( draSC0          ( nrows0, ncols0 ) )
+    allocate ( fDir0           ( nrows0, ncols0 ) )
+    allocate ( gaugeLoc0       ( nrows0, ncols0 ) )
+    allocate ( InflowGaugeLoc0 ( nrows0, ncols0 ) )
+    allocate ( draCell0        ( nrows0, ncols0 ) )
+    allocate ( L11Id_on_L0     ( nrows0, ncols0 ) )
 
     ! get L0 fields
-    cellCoor0(:,:)  = L0_cellCoor(iStart0 : iEnd0, :)
+    cellCoor0(:,:)       = L0_cellCoor(iStart0 : iEnd0, :)
 
-    draSC0(:,:) =      UNPACK( L0_draSC    (iStart110:iEnd110),  mask0, nodata_i4 )
-    fDir0(:,:) =       UNPACK( L0_fDir     (iStart0:iEnd0),  mask0, nodata_i4 )
-    gaugeLoc0(:,:) =   UNPACK( L0_gaugeLoc (iStart0:iEnd0),  mask0, nodata_i4 )
-    L11Id_on_L0(:,:) = UNPACK( L0_L11_Id   (iStart110:iEnd110),  mask0, nodata_i4 ) 
+    draSC0(:,:)          = UNPACK( L0_draSC          (iStart110:iEnd110), mask0, nodata_i4 )
+    fDir0(:,:)           = UNPACK( L0_fDir           (iStart0:iEnd0),     mask0, nodata_i4 )
+    gaugeLoc0(:,:)       = UNPACK( L0_gaugeLoc       (iStart0:iEnd0),     mask0, nodata_i4 )
+    InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
+    L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
+    index         = nodata_i4
     draCell0(:,:) = nodata_i4
-
-    gaugeCounter = 0
 
     do kk = 1, nCells0
 
@@ -1292,11 +1299,38 @@ CONTAINS
        end do
        draCell0(ii,jj) = iSC
 
-       ! set gauging nodes !>> G0%ScId is Id of the routing cell at level-11
-       if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
-          gaugeCounter = gaugeCounter + 1
-          basin%gaugeNodeList( iBasin, gaugeCounter ) = L11Id_on_L0(ii,jj)
+       ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of the routing cell at level-11
+        if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
+          ! evaluation gauges
+          do i = 1, basin%nGauges(iBasin)
+             ! since indices are given  consecutive for gauge%Ids they have to be set to the
+             ! index of the gauge before since L0 data are the same
+             index = basin%gaugeIndexList(iBasin, i) 
+             if (iBasin .GT. 1) then
+                if (L0_Basin(iBasin) == L0_Basin(iBasin-1)) &
+                  index = basin%gaugeIndexList(iBasin-1, i)
+             end if
+             ! save ID on L11
+             if ( index == gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, i ) = L11Id_on_L0(ii,jj)
+          end do
        end if
+
+
+       if ( InflowGaugeLoc0(ii,jj) /= nodata_i4 ) then 
+          ! inflow gauges
+          do i = 1, basin%nInflowGauges(iBasin)
+             ! since indices are given  consecutive for InflowGauge%Ids they have to be set to the
+             ! index of the gauge before since L0 data are the same
+             index = basin%InflowGaugeIndexList(iBasin, i)
+             ! save ID on L11
+             if (iBasin .GT. 1) then
+                if (L0_Basin(iBasin) == L0_Basin(iBasin-1)) &
+                     index = basin%InflowGaugeIndexList(iBasin-1, i)
+             end if
+             if (index == InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, i ) = L11Id_on_L0(ii,jj)
+          end do
+       end if
+  
     end do
 
     !--------------------------------------------------------

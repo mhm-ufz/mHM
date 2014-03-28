@@ -76,12 +76,6 @@ MODULE mo_file
   !> Unit for  gauge location input data file
   INTEGER,          PARAMETER :: ugaugeloc              = 62                            ! 
 
-
-  !> Gauging information file (which gauge is in which catchment)
-  CHARACTER(len=*), PARAMETER :: file_gaugeinfo         = 'gaugeinfo.txt'               ! gauge informations
-  !> Unit for Gauging information file
-  INTEGER,          PARAMETER :: ugaugeinfo             = 63                            ! 
-
   !> geological formation lookup table file
   CHARACTER(len=*), PARAMETER :: file_geolut            = 'geology_classdefinition.txt' ! geolog. formation lookup table
   !> Unit for geological formation lookup table file

@@ -316,6 +316,105 @@ processCase(7) = 1
 processCase(8) = 1
 /
 
+!
+!******************************************************************************************
+! PROCESSES
+!******************************************************************************************
+!> This matrix manages which processes and process descriptions are used for simulation.
+!> The number of processes and its corresponding numbering are fixed. The process description can be 
+!> chosen from the options listed undeneath the name of the particular process case. This number has to be
+!> given for processCase(*).
+!
+&processSelection
+!> interception
+!> 1 - maximum Interception 
+processCase(1) = 1
+!> snow
+!> 1 - degree-day approach
+processCase(2) = 1
+!> soilmoisture
+!> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
+processCase(3) = 1
+!> directRunoff
+!> 1 - linear reservoir exceedance approach
+processCase(4) = 1
+!> actualET
+!> 1 - root fraction approach
+processCase(5) = 1
+!> interflow
+!> 1 - storage reservoir with one outflow threshold and nonlinear response 
+processCase(6) = 1
+!> percolation
+!> 1 - GW  assumed as linear reservoir
+processCase(7) = 1
+!> routing
+!> 0 - deactivated
+!> 1 - Muskingum approach
+processCase(8) = 1
+/
+
+!******************************************************************************************
+! Specifcation of evaluation and inflow gauges
+!******************************************************************************************
+!> namelist controlling the gauging station information
+!> The ID has to correspond to the ID's given in the 'gaugeid.asc
+
+&evaluation_gauges
+!> Gauges for model evaluation
+!
+!> Total number of gauges (sum of all gauges in all subbains)
+nGaugesTotal           = 2
+!> structure of gauge_id(i,j) & gauge_filename(i,j):
+!> 1st dimension is the number of the subbasin i
+!> 2nd dimension is the number of the gauge j within the subbasin i
+!> numbering has to be consecutive
+!
+!> basin 1
+!> number of gauges for subbasin (1)
+NoGauges_basin(1)       = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(1,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(1,1)     = "00398.txt"
+!
+!> basin 2
+!> number of gauges for subbasin (2)
+NoGauges_basin(2)       = 1
+!> id of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_id(2,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_filename(2,1)     = "00398.txt"
+!
+!> basin 3
+!> number of gauges for subbasin (2)
+NoGauges_basin(3)       = 1
+!> id of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_id(3,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_filename(3,1)     = "00398.txt"
+/
+
+&inflow_gauges
+!> Gauges / gridpeoints used for inflow to the model domain
+!> e.g. in the case of upstream/headwater areas which are  
+!>      not included in the model domain
+!
+!> Total number of inflow gauges (sum of all gauges in all subbains) 
+nInflowGaugesTotal            = 0
+!> structure of gauge_id(i,j) & gauge_filename(i,j):
+!> 1st dimension is the number of the subbasin i
+!> 2nd dimension is the number of the gauge j within the subbasin i
+!> numbering has to be consecutive
+!
+!> basin 1
+!> number of gauges for subbasin (1)
+NoInflowGauges_basin(1)       = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_id(1,1)           = 398
+!> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_filename(1,1)     = "00398.txt"
+/
+
 !******************************************************************************************
 ! ANNUAL CYCLE PAN EVAPORATION
 !******************************************************************************************

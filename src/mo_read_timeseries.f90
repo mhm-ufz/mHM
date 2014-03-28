@@ -52,6 +52,7 @@ CONTAINS
   !>        \param[in] "integer(i4)                                   :: fileunit"     Unit to open file
   !>        \param[in] "integer(i4), dimension(3)                     :: periodStart"  Start day of reading (YYYY,MM,DD)
   !>        \param[in] "integer(i4), dimension(3)                     :: periodEnd"    End   day of reading (YYYY,MM,DD) 
+  !>        \param[in] "logical                                       :: optimize"     optimization flag
 
   !     INTENT(INOUT)
   !         None
@@ -91,10 +92,12 @@ CONTAINS
   !>        \date Jan 2013
   !          Modified, 
   !                    Stephan Thober, Mar 2014 read data even if shorter than model period
+  !                    MatthiasZink,   Mar 2014 enable read in of nodata periods, e.g. forecast mode
+
   subroutine read_timeseries(filename, fileunit, periodStart, periodEnd, optimize, data, mask, nMeasPerDay)
 
-    use mo_julian,  only: julday, date2dec, dec2date
-    use mo_message, only: message
+    use mo_julian,        only: julday
+    use mo_message,       only: message
 
     implicit none
 
@@ -125,13 +128,9 @@ CONTAINS
     integer(i4)                                                   :: endJul_file      ! end   julian day of available data
     integer(i4)                                                   :: startJul_period  ! start julian day of needed data
     integer(i4)                                                   :: endJul_period    ! end   julian day of needed data
-    integer(i4), dimension(5)                                     :: time_exp         ! expected format: (/YYYY, MM, DD, HH, MM/)
-    real(dp)                                                      :: decjul_expect    ! expected time: decimal julian day
-    real(dp)                                                      :: dayfraction      ! time step in fraction of days, e.g. 4 data
     real(dp),    dimension(:), allocatable                        :: data_file        ! time series output (fileStart:fileEnd)
     !                                                                                 ! points --> 0.25 [d-1]
     character(256)                                                :: dummy            ! dummy for char read in
-
 
     open(unit=fileunit, file=filename, action='read', status='old')
       ! read header
@@ -169,13 +168,12 @@ CONTAINS
          mask = .true.
       end if
 
-      dayfraction = 1.0_dp/real(timestep_file,dp)
-      
       ! read data from file to temporal array
       do i=1, (endJul_file - startJul_file + 1_i4) * timestep_file
          ! read date and data
          read(fileunit, *) (time_file(j),j=1,5), data_file(i)
       end do
+      time_file(1) = time_file(2) + 1   ! only to avoid warning
 
       ! put data in final array
       ! period in file smaller than modelling period

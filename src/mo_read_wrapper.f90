@@ -75,24 +75,24 @@ CONTAINS
   !                    Rohini Kumar,   Aug 2013  - added iFlag_LAI_data_format to handle LAI options,
   !                                                and changed within the code made accordingly
   !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
-  !                    Stephan Thober,             to process_matrix flag
+  !                    Stephan Thober             to process_matrix flag
+  !                    Matthias Zink   Mar 2014   added inflow gauge
   ! ------------------------------------------------------------------
 
   subroutine read_data
     !
-    USE mo_read_lut,           ONLY: read_gauge_lut,                      &
-                                     read_lai_lut,                        &
+    USE mo_read_lut,           ONLY: read_lai_lut,                        &
                                      read_geoformation_lut
     USE mo_soil_database,      ONLY: read_soil_LUT
     USE mo_read_spatial_data,  ONLY: read_header_ascii,                   &
                                      read_spatial_data_ascii
     USE mo_read_timeseries ,   ONLY: read_timeseries 
+    USE mo_julian,             ONLY: julday
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
     USE mo_message,            ONLY: message
     !
-    USE mo_file,               ONLY: file_gaugeinfo     , ugaugeinfo,     & ! file name and unit gauging info file 
-                                     file_geolut        , ugeolut,        & ! file name and unit of hydrogeology LuT
+    USE mo_file,               ONLY: file_geolut        , ugeolut,        & ! file name and unit of hydrogeology LuT
                                      file_lailut        , ulailut,        & ! file name and unit of LAI LuT
                                      file_dem           , udem,           & ! file name and unit of elevation map
                                      file_slope         , uslope,         & ! file name and unit of slope map
@@ -115,18 +115,21 @@ CONTAINS
                                      L0_fDir,                             & ! flow direction on input resolution (L0)
                                      L0_soilId,                           & ! soil class ID on input resolution (L0)
                                      L0_geoUnit,                          & ! hydro class ID on input resolution (L0)
-                                     L0_gaugeLoc,                         & ! location of gauges on input resolution (L0)
+                                     L0_gaugeLoc,                         & ! location of evaluation gauges on input resolution (L0)
+                                     L0_InflowGaugeLoc,                   & ! location of inflow gauges on input resolution (L0)
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
-                                     dirMorpho, dirGauges, dirLCover,     & ! directories
+                                     dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles_In,                   & ! directory of common files  
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      optimize,                            & ! optimizeation flag for some error checks
-                                     nGaugesTotal, gauge, nMeasPerDay,    & ! gauging station information
+                                     nGaugesTotal, gauge, nMeasPerDay,    & ! evaluaton gauging station information
+                                     nInflowGaugesTotal, InflowGauge,     & ! inflow stations information
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
                                      evalPer,                             & ! model evaluation period (for discharge read in)
+                                     simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
                                      iFlag_LAI_data_format                  ! flag on how LAI data has to be read
                                      
@@ -136,13 +139,15 @@ CONTAINS
     implicit none
 
     ! local variables
-    integer(i4)                               :: i, iBasin, iVar  ! loop variables
+    integer(i4)                               :: i
+    integer(i4)                               :: iBasin, iVar     ! loop variables
     integer(i4)                               :: nunit            ! file unit of file to read
     integer(i4)                               :: nCells           ! number of cells in global_mask
     character(256)                            :: fName            ! file name of file to read
     real(dp), dimension(:),   allocatable     :: data_dp_1d
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
+    integer(i4), dimension(:,:), allocatable  :: tmp_data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
     logical, dimension(:),   allocatable      :: mask_1d
     logical, dimension(:,:), allocatable      :: mask_2d
@@ -156,14 +161,6 @@ CONTAINS
     ! ************************************************
     ! READ LOOKUP TABLES
     ! ************************************************
-    ! Gauge LUT
-    if( processMatrix(8, 1) .GT. 0 ) then
-      fName = trim(adjustl(file_gaugeinfo))
-      call read_gauge_lut(trim(fName), ugaugeinfo, dirGauges, nBasins,                &  ! Intent IN
-                            nGaugesTotal, gauge%basinId, gauge%gaugeId, gauge%fname,  &  ! Intent OUT
-                            basin%nGauges, basin%gaugeIdList, basin%gaugeIndexList,   &  ! Intent OUT
-                            basin%gaugeNodeList)                                         ! Intent OUT
-    end if
     !
     ! Soil LUT
     fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_soil_database))
@@ -199,7 +196,6 @@ CONTAINS
     allocate(basin%L110_iStart    (nBasins))
     allocate(basin%L110_iEnd      (nBasins))
     !
-    !call message()
     basins: do iBasin = 1, nBasins
        !
        ! Header (to check consistency)
@@ -355,14 +351,31 @@ CONTAINS
              call append( L0_soilId,  pack(data_i4_2d, mask_global) )
           case(4) ! hydrogeological class ID
              call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-          case(5) ! location of gauging stations 
-             ! map gauge ID's to gauge indices 
+          case(5) ! location of evaluation and inflow gauging stations 
+             ! allocation and intialization
+             allocate(tmp_data_i4_2d(size(data_i4_2d, dim=1),size(data_i4_2d, dim=2))); tmp_data_i4_2d = nodata_i4
+
+             ! evaluation gauges
+             ! map gauge ID's to gauge indices & exclude for evaluation uninteresting gauging stations (inflow gauges)
              do i = 1, basin%nGauges(iBasin)
-                data_i4_2d = merge(basin%gaugeIndexList(iBasin, i), &
-                data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))
+                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, i), &
+                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))
              end do
-             ! how to exclude further gauging stations from data
-             call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
+             call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+ 
+             ! inflow gauges
+             tmp_data_i4_2d = nodata_i4
+             ! if no inflow gauge for this subbasin exists still nodata values with dim of subbasin have to be paded
+             if (basin%nInflowGauges(iBasin) .NE. nodata_i4) then
+                ! map gauge ID's to gauge indices & exclude for infow uninteresting gauging stations (evaluation gauges)
+                do i = 1, basin%nInflowGauges(iBasin)
+                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, i), &
+                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, i))
+                end do
+             end if
+             call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+
+             deallocate(tmp_data_i4_2d)
           case(6) ! Land cover related to LAI classes
              call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )             
           end select
@@ -383,7 +396,7 @@ CONTAINS
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global))
           !         
-          deallocate(data_i4_2d, mask_2d)
+          deallocate(data_i4_2d)
        end do
        !
        call append( L0_LCover, dataMatrix_i4 )
@@ -404,21 +417,52 @@ CONTAINS
     ! READ DISCHARGE TIME SERIES
     ! ************************************************
     ! 
+    ! evaluation gauge
+    start_tmp = (/evalPer%yStart, evalPer%mStart, evalPer%dStart/)
+    end_tmp   = (/evalPer%yEnd,   evalPer%mEnd,   evalPer%dEnd  /)
     ! processMatrix(8,1) - process(8)=discharge
     if( processMatrix(8,1) .GE. 1 ) then
        !
        do i = 1, nGaugesTotal
           fName = trim(adjustl(gauge%fname(i)))
-          start_tmp = (/evalPer%yStart, evalPer%mStart, evalPer%dStart/)
-          end_tmp   = (/evalPer%yEnd,   evalPer%mEnd,   evalPer%dEnd  /)
           call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, &
-               optimize, &
+               start_tmp, end_tmp, optimize, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
-         data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-         call paste(gauge%Q, data_dp_1d)
+          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+          call paste(gauge%Q, data_dp_1d)
+          deallocate (data_dp_1d)
        end do
        !
+    end if
+
+
+    ! inflow gauge
+    !   
+    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation and initialization
+    if (nInflowGaugesTotal .EQ. 0) then
+       allocate(data_dp_1d( julday(simPer%dEnd,   simPer%mEnd,   simPer%yEnd)   -    &
+                            julday(simPer%dStart, simPer%mStart, simPer%yStart) + 1) )
+       data_dp_1d = nodata_dp
+       call paste(InflowGauge%Q, data_dp_1d)
+    else
+       start_tmp = (/simPer%yStart, simPer%mStart, simPer%dStart/)
+       end_tmp   = (/simPer%yEnd,   simPer%mEnd,   simPer%dEnd  /)
+
+       do i = 1, nInflowGaugesTotal
+          fName = trim(adjustl(InflowGauge%fname(i)))
+          call read_timeseries(trim(fName), udischarge, &
+               start_tmp, end_tmp, optimize, &
+               data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
+          if ( .NOT. (all(mask_1d)) ) then
+             call message()
+             call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName)) 
+             call message('          During simulation period from ', num2str(simPer%yStart) ,' to ', num2str(simPer%yEnd))        
+             stop
+          end if
+          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+          call paste(InflowGauge%Q, data_dp_1d)
+          deallocate (data_dp_1d)
+       end do
     end if
 
   end subroutine read_data
