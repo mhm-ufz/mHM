@@ -472,7 +472,8 @@ contains
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012
   !         Written, Stephan Thober, Dec 2012
-
+  !         Modified, Rohini Kumar , Mar 2014   - ThetaS limit changed from 0 to 0.001
+  
   subroutine Genuchten(thetaS, Genu_Mual_n, Genu_Mual_alpha, & ! Output variables
        param, sand, clay, Db )                                 ! Input variables
 
@@ -530,15 +531,10 @@ contains
     ! Maulaum alpha
     Genu_Mual_alpha = exp(x)
 
-    if (thetaS < 0.0_dp) then
+    ! hard coded limits 
+    if (thetaS < 0.001_dp) then
        write(*,*) 'JMJMJM-thetaS-BAD'
     end if
-
-    ! Put constrains on theta_S
-    if (thetaS < 0.0_dp) then
-       thetaS = 0.0_dp
-    end if
-
     if (Genu_Mual_n < 1.01000_dp) then
        write(*,*) 'JMJMJM-Genu_Mual_n-BAD'
     end if
@@ -546,6 +542,8 @@ contains
        write(*,*) 'JMJMJM-Genu_Mual_alpha-BAD'
     end if
 
+    ! Put constrains on theta_S
+    if (thetaS < 0.0_dp) thetaS = 0.001_dp
 
     ! Put constrains on  Genu_Mual_n
     ! according to (Zacharias et al, 2007, soil Phy.)
