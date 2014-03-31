@@ -348,6 +348,7 @@ CONTAINS
 
     write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
 
+    stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
        stddev_tmp = stddev(errors(:))
     end if
@@ -504,6 +505,7 @@ CONTAINS
 
     write(*,*) '-loglikelihood_trend_no_autocorr = ', -loglikelihood_trend_no_autocorr
 
+    stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
        stddev_tmp = stddev(errors(:))
     end if

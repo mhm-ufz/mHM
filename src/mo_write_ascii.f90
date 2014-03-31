@@ -342,8 +342,6 @@ CONTAINS
 122 format (a10, 3a15,   a35)
 123 format (i10, 3f15.3, a35)
     !
-
-125 format (a30,1x,f10.0)
 126 format (a30,9x,L1)
     !
 200 format (80('-'))

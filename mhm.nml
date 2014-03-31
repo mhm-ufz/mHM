@@ -403,23 +403,23 @@ nInflowGaugesTotal            = 0
 !> number of gauges for subbasin (1)
 NoInflowGauges_basin(1)       = 0
 !> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(1,1)           = 398
+InflowGauge_id(1,1)           = -9
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_filename(1,1)     = "00398.txt"
+InflowGauge_filename(1,1)     = ""
 !
 !> basin 2
 NoInflowGauges_basin(2)       = 0
 !> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(2,1)           = 398
+InflowGauge_id(2,1)           = -9
 !> name of file with timeseries of inflow gauge(1) for subbasin(2) --> (2,1) 
-InflowGauge_filename(2,1)     = "00398.txt"
+InflowGauge_filename(2,1)     = ""
 !
 !> basin 3
 NoInflowGauges_basin(3)       = 0
 !> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(3,1)           = 398
+InflowGauge_id(3,1)           = -9
 !> name of file with timeseries of inflow gauge(1) for subbasin(3) --> (3,1) 
-InflowGauge_filename(3,1)     = "00398.txt"
+InflowGauge_filename(3,1)     = ""
 /
 
 !******************************************************************************************

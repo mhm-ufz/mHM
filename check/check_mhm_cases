@@ -97,7 +97,7 @@ set -e
 
 # -------------------------------------------------------------------------------------------
 #
-# Copyright 2014 Juliane Mai
+# Copyright 2014 Juliane Mai, Matthias Cuntz, Stephan Thober
 #
 # License
 # This file is part of the UFZ CHS mesoscale hydrologic model mHM.
@@ -111,21 +111,6 @@ set -e
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
-#
-# -------------------------------------------------------------------------------------------
-#
-# eve
-#     :: gnu45   :: release  --> ok
-#     :: gnu46   :: release  --> ok
-#     :: intel11 :: release  --> ok
-#     :: intel12 :: release  --> ok
-#     :: nag53   :: release  -->
-
-#     :: gnu45   :: debug    --> ok
-#     :: gnu46   :: debug    --> ok
-#     :: intel11 :: debug    --> ok
-#     :: intel12 :: debug    --> ok
-#     :: nag53   :: debug    --> ok
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Start

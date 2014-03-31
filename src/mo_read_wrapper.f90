@@ -358,6 +358,18 @@ CONTAINS
              ! evaluation gauges
              ! map gauge ID's to gauge indices & exclude for evaluation uninteresting gauging stations (inflow gauges)
              do i = 1, basin%nGauges(iBasin)
+
+                ! Input data check
+                ! Is gaugeId is found in gauging location file?
+                if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))) then
+                   call message()
+                   call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, i)))), &
+                        '" not found in ' )
+                   call message('          Gauge location input file: ', &
+                        trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
+                   stop
+                end if
+
                 tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, i), &
                      tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))
              end do
@@ -366,7 +378,19 @@ CONTAINS
              ! inflow gauges
              tmp_data_i4_2d = nodata_i4
              ! if no inflow gauge for this subbasin exists still nodata values with dim of subbasin have to be paded
-             if (basin%nInflowGauges(iBasin) .NE. nodata_i4) then
+             if (basin%nInflowGauges(iBasin) .gt. 0_i4) then !.NE. nodata_i4) then
+
+                ! Input data check
+                ! Is InflowGaugeId is found in gauging location file?
+                if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, i))) then
+                   call message()
+                   call message('***ERROR: Inflow Gauge ID "', trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, i)))), &
+                        '" not found in ' )
+                   call message('          Gauge location input file: ', &
+                        trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
+                   stop
+                end if
+
                 ! map gauge ID's to gauge indices & exclude for infow uninteresting gauging stations (evaluation gauges)
                 do i = 1, basin%nInflowGauges(iBasin)
                    tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, i), &
