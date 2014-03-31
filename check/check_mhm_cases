@@ -7,7 +7,7 @@ set -e
 #
 # Runs mHM with different settings specified in namelists.
 #
-#     $ ./check.sh
+#     $ ./check_mhm_cases
 #
 # This script has to be run successfully without failure statements before
 # a new feature is merged back to the trunk of mHM.
@@ -20,7 +20,7 @@ set -e
 # type
 
 #      $ cd check/
-#      $ ./check.sh -s eve -c nag53 -r debug
+#      $ ./check_mhm_cases -s eve -c nag53 -r debug
 
 # on your command line. If test case was running properly, i.e. is
 # consistent with the pre-defined output, command line output will be
@@ -67,9 +67,9 @@ set -e
 #                       <this-is-the-feature>"
 
 # Please be aware that the test cases only include switches specified
-# within a namelist. This means that you should run "./check.sh" with
+# within a namelist. This means that you should run "./check_mhm_cases" with
 # different compilers and in release/debug. These settings can be made
-# by using the optional arguments of check.sh, i.e. "-c", "-r", "-s".
+# by using the optional arguments of check_mhm_cases, i.e. "-c", "-r", "-s".
 
 # All tests will be performed first in sequential mode and repeated with
 # openmp parallelization. The test cases specified so far are:
@@ -252,6 +252,7 @@ if [[ -n $CLICOLOR_FORCE ]] ; then unset CLICOLOR_FORCE ; fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Do Tests
 #
+# for thread in 0 ${threads} ; do
 for thread in 0 ${threads} ; do
     for compiler in ${compilers} ; do
 
@@ -358,7 +359,7 @@ for thread in 0 ${threads} ; do
             echo ''
             echo '##############################################################################################'
             echo '#     At least one case failed in this comiler setup                                         #'
-            echo '#     check.sh is aborted without cleaning up the output in the case directories,            #'
+            echo '#     check_mhm_cases is aborted without cleaning up the output in the case directories,     #'
             echo '#     such that it can be used to identify the bug                                           #'
             echo '##############################################################################################'
             exit 1
