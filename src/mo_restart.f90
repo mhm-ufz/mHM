@@ -885,7 +885,6 @@ CONTAINS
        L1_aETSoil(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2 )
     allocate( dummyD2( nrows1, ncols1 ) )
 
@@ -1049,7 +1048,6 @@ CONTAINS
        L1_soilMoistExp(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2 )
     allocate( dummyD2( nrows1, ncols1 ) )
 
@@ -1075,7 +1073,6 @@ CONTAINS
        L1_wiltingPoint(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2, dummyD3 )
 
     !-------------------------------------------
@@ -1099,18 +1096,16 @@ CONTAINS
 
        ! Total discharge inputs at t-1 and t
        deallocate( dummyD2 )
-       allocate( dummyD3( nrows1, ncols1, nRoutingStates ) )
-       allocate( dummyD2( ncells11, nRoutingStates ) )
-
+       allocate( dummyD3( nrows11, ncols11, nRoutingStates ) )
        call Get_NcVar( Fname, 'L11_qTIN', dummyD3 )
        do ii = 1, nRoutingStates
           L11_qTIN(s11:e11,ii) = pack( dummyD3(:,:,ii), mask11 )
        end do
 
-
        !  Routed outflow leaving a node
-       deallocate( dummyD2, dummyD3 )
-       allocate( dummyD3( nrows1, ncols1, nRoutingStates ) )
+       deallocate( dummyD3 )
+       allocate( dummyD3( nrows11, ncols11, nRoutingStates ) )
+
        allocate( dummyD2( ncells11,  nRoutingStates ) )
 
        call Get_NcVar( Fname, 'L11_qTR', dummyD3 )
