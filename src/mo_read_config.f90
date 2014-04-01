@@ -255,7 +255,7 @@ CONTAINS
     integer(i4),    dimension(maxNoBasins)          :: resolutionRouting_dummy
     integer(i4),    dimension(maxNoBasins)          :: L0_Basin_dummy
     ! for gauge read in
-    integer(i4)                                        :: i, j, idx
+    integer(i4)                                        :: i_basin, i_gauge, idx
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
     integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
@@ -463,42 +463,42 @@ CONTAINS
        allocate(basin%gaugeNodeList  (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeNodeList  = nodata_i4
 
        idx = 0
-       do i = 1, nBasins
+       do i_basin = 1, nBasins
           ! check if NoGauges_basin has a valid value
-          if ( NoGauges_basin(i) .EQ. nodata_i4 ) then
+          if ( NoGauges_basin(i_basin) .EQ. nodata_i4 ) then
              call message()
              call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
-                                     trim(adjustl(num2str(i))),' is not defined!')
+                                     trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: evaluation_gauges')
              stop
           end if
 
-          basin%nGauges(i)          = NoGauges_basin(i)
+          basin%nGauges(i_basin)          = NoGauges_basin(i_basin)
 
-          do j = 1, NoGauges_basin(i)
+          do i_gauge = 1, NoGauges_basin(i_basin)
              ! check if NoGauges_basin has a valid value
-             if (Gauge_id(i,j) .EQ. nodata_i4) then 
+             if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
                 call message()
                 call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
-                                        trim(adjustl(num2str(j))),' for subbasin ', &
-                     trim(adjustl(num2str(i))),' is not defined!')
+                     trim(adjustl(num2str(i_gauge))),' for subbasin ', &
+                     trim(adjustl(num2str(i_basin))),' is not defined!')
                 call message('          Error occured in namlist: evaluation_gauges')
                 stop
-             else if (trim(gauge_filename(i,j)) .EQ. trim(num2str(nodata_i4))) then 
+             else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
                 call message()
                 call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
-                                 trim(adjustl(num2str(j))),' for subbasin ',  &
-                                 trim(adjustl(num2str(i))),' is not defined!')
+                                 trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
+                                 trim(adjustl(num2str(i_basin))),' is not defined!')
                 call message('          Error occured in namlist: evaluation_gauges')
                 stop
              end if
              !
              idx = idx + 1
-             gauge%basinId(idx)        = i
-             gauge%gaugeId(idx)        = Gauge_id(i,j)
-             gauge%fname(idx)          = trim(dirGauges(i)) // trim(gauge_filename(i,j)) 
-             basin%gaugeIdList(i,j)    = Gauge_id(i,j)
-             basin%gaugeIndexList(i,j) = idx
+             gauge%basinId(idx)                    = i_basin
+             gauge%gaugeId(idx)                    = Gauge_id(i_basin,i_gauge)
+             gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge)) 
+             basin%gaugeIdList(i_basin,i_gauge)    = Gauge_id(i_basin,i_gauge)
+             basin%gaugeIndexList(i_basin,i_gauge) = idx
           end do
        end do
 
@@ -549,37 +549,39 @@ CONTAINS
     basin%InflowGaugeNodeList  = nodata_i4
 
     idx = 0
-    do i = 1, nBasins
+    do i_basin = 1, nBasins
 
        ! no inflow gauge for subbasin i
-       if (NoInflowGauges_basin(i) .EQ. nodata_i4) then
-          NoInflowGauges_basin(i)       = 0  
+       if (NoInflowGauges_basin(i_basin) .EQ. nodata_i4) then
+          NoInflowGauges_basin(i_basin)       = 0  
        end if
 
-       basin%nInflowGauges(i)          = NoInflowGauges_basin(i)
+       basin%nInflowGauges(i_basin) = NoInflowGauges_basin(i_basin)
 
-       do j = 1, NoInflowGauges_basin(i)
+       do i_gauge = 1, NoInflowGauges_basin(i_basin)
           ! check if NoInflowGauges_basin has a valid value
-          if (InflowGauge_id(i,j) .EQ. nodata_i4) then 
+          if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
              call message()
-             call message('***ERROR: mhm.nml:ID of inflow gauge ',        trim(adjustl(num2str(j))),' for subbasin ', &
-                                     trim(adjustl(num2str(i))),' is not defined!')
+             call message('***ERROR: mhm.nml:ID of inflow gauge ',        &
+                  trim(adjustl(num2str(i_gauge))),' for subbasin ', &
+                  trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: inflow_gauges')
              stop
-          else if (trim(gauge_filename(i,j)) .EQ. trim(num2str(nodata_i4))) then 
+          else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
              call message()
-             call message('***ERROR: mhm.nml:Filename of inflow gauge ', trim(adjustl(num2str(j))),' for subbasin ',  &
-                                     trim(adjustl(num2str(i))),' is not defined!')
+             call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
+                  trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
+                  trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: inflow_gauges')
              stop
           end if
           !
           idx = idx + 1
-          InflowGauge%basinId(idx)        = i
-          InflowGauge%gaugeId(idx)        = InflowGauge_id(i,j)
-          InflowGauge%fname(idx)          = trim(dirGauges(i)) // trim(gauge_filename(i,j)) 
-          basin%InflowGaugeIdList(i,j)    = InflowGauge_id(i,j)
-          basin%InflowGaugeIndexList(i,j) = idx
+          InflowGauge%basinId(idx)                    = i_basin
+          InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
+          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge)) 
+          basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
+          basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
        end do
     end do
 

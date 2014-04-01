@@ -416,7 +416,7 @@ CONTAINS
   !>        \date Mar 2014
 
   FUNCTION loglikelihood_trend_no_autocorr(parameterset, stddev_old, stddev_new, likeli_new)
-    use mo_moment,           only: mean, correlation, stddev
+    use mo_moment,           only: stddev
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
     use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays

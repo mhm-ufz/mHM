@@ -139,7 +139,7 @@ CONTAINS
     implicit none
 
     ! local variables
-    integer(i4)                               :: i
+    integer(i4)                               :: iGauge
     integer(i4)                               :: iBasin, iVar     ! loop variables
     integer(i4)                               :: nunit            ! file unit of file to read
     integer(i4)                               :: nCells           ! number of cells in global_mask
@@ -357,21 +357,21 @@ CONTAINS
 
              ! evaluation gauges
              ! map gauge ID's to gauge indices & exclude for evaluation uninteresting gauging stations (inflow gauges)
-             do i = 1, basin%nGauges(iBasin)
+             do iGauge = 1, basin%nGauges(iBasin)
 
                 ! Input data check
                 ! Is gaugeId is found in gauging location file?
-                if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))) then
+                if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
                    call message()
-                   call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, i)))), &
+                   call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
                         '" not found in ' )
                    call message('          Gauge location input file: ', &
                         trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
                    stop
                 end if
 
-                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, i), &
-                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, i))
+                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
+                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
              end do
              call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
  
@@ -380,21 +380,22 @@ CONTAINS
              ! if no inflow gauge for this subbasin exists still nodata values with dim of subbasin have to be paded
              if (basin%nInflowGauges(iBasin) .gt. 0_i4) then !.NE. nodata_i4) then
 
-                ! Input data check
-                ! Is InflowGaugeId is found in gauging location file?
-                if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, i))) then
-                   call message()
-                   call message('***ERROR: Inflow Gauge ID "', trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, i)))), &
-                        '" not found in ' )
-                   call message('          Gauge location input file: ', &
-                        trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
-                   stop
-                end if
-
                 ! map gauge ID's to gauge indices & exclude for infow uninteresting gauging stations (evaluation gauges)
-                do i = 1, basin%nInflowGauges(iBasin)
-                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, i), &
-                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, i))
+                do iGauge = 1, basin%nInflowGauges(iBasin)
+
+                   ! Input data check
+                   ! Is InflowGaugeId is found in gauging location file?
+                   if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
+                      call message()
+                      call message('***ERROR: Inflow Gauge ID "', trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
+                           '" not found in ' )
+                      call message('          Gauge location input file: ', &
+                           trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
+                      stop
+                   end if
+                   
+                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
+                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
                 end do
              end if
              call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
@@ -447,8 +448,8 @@ CONTAINS
     ! processMatrix(8,1) - process(8)=discharge
     if( processMatrix(8,1) .GE. 1 ) then
        !
-       do i = 1, nGaugesTotal
-          fName = trim(adjustl(gauge%fname(i)))
+       do iGauge = 1, nGaugesTotal
+          fName = trim(adjustl(gauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
                start_tmp, end_tmp, optimize, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
@@ -472,8 +473,8 @@ CONTAINS
        start_tmp = (/simPer%yStart, simPer%mStart, simPer%dStart/)
        end_tmp   = (/simPer%yEnd,   simPer%mEnd,   simPer%dEnd  /)
 
-       do i = 1, nInflowGaugesTotal
-          fName = trim(adjustl(InflowGauge%fname(i)))
+       do iGauge = 1, nInflowGaugesTotal
+          fName = trim(adjustl(InflowGauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
                start_tmp, end_tmp, optimize, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
