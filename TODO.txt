@@ -52,8 +52,6 @@ Remove Numerical Recipes code
 -- mo_linfit:  linfit
 -- mo_moments: absdev, average, correlation, covariance, kurtosis, mean, moment, skewness, stddev, variance
 
-Add Inflow gauges to restart file
-
 =================================================================================================
                       UNDER CONSTRUCTION
 =================================================================================================
@@ -67,10 +65,17 @@ mo_multi_param_reg
                       SOLVED
 =================================================================================================
 
+Add Inflow gauges to restart file
+(Resp.: Matthias Zink)
+
+Add Inflow gauges
+(Resp.: Matthias Zink)
+
 multi-scale implementation
 (Resp.: Diana, Stephan)
 
 bug in latlon.py: lat and lon were swapped
+(Resp.: Matthias Zink)
 
 automatic make test 
 (Resp.: Jule, Matthias C)

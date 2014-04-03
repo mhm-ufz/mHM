@@ -74,8 +74,10 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Apr 2013
+  !>        \author   Stephan Thober
+  !>        \date     Apr 2013
+
+  !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
 
   subroutine read_restart_L11_config( iBasin, InPath )
 
@@ -376,6 +378,14 @@ CONTAINS
     call Get_NcVar( Fname, 'gaugeNodeList', dummyI1)
     basin%gaugeNodeList( iBasin, : ) = dummyI1
     deallocate(dummyI1)
+
+    ! read InflowGaugeNodelist
+    if (basin%nInflowGauges(iBasin) > 0) then 
+       allocate(dummyI1( size(basin%InflowGaugeNodeList(iBasin,:))))
+       call Get_NcVar( Fname, 'InflowGaugeNodeList', dummyI1)
+       basin%InflowgaugeNodeList( iBasin, : ) = dummyI1
+       deallocate(dummyI1)
+    end if
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! L0 data sets 
@@ -1512,8 +1522,11 @@ CONTAINS
   !     LITERATURE
 
   !     HISTORY
-  !         author Stephan Thober
-  !         date Jul 2013
+  !         author    Stephan Thober
+  !         date      Jul 2013
+
+  !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
+
   subroutine L11_config_set( iBasin )
 
     use mo_kind,               only: i4
@@ -1587,6 +1600,7 @@ CONTAINS
          L11_tCol_out, &
          L0_draCell_out, &
          gaugeNodeList_out, &
+         InflowGaugeNodeList_out, &
          L0_streamNet_out, &
          L0_floodPlain_out, &
          L11_length_out, &
@@ -1794,6 +1808,9 @@ CONTAINS
 
     allocate( gaugeNodeList_out( size( basin%gaugeNodeList(iBasin,:), dim=1)))
     gaugeNodeList_out = basin%gaugeNodeList(iBasin,:)
+
+    allocate( InflowGaugeNodeList_out( size( basin%InflowGaugeNodeList(iBasin,:), dim=1)))
+    InflowGaugeNodeList_out = basin%InflowGaugeNodeList(iBasin,:)
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! stream characteristics
@@ -2373,7 +2390,8 @@ CONTAINS
          L11_tRow_out      ,                 & ! To row in L0 grid
          L11_tCol_out      ,                 & ! To col in L0 grid 
          L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out, &
+         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
+         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
          L0_streamNet_out  ,                 & ! Stream network
          L0_floodPlain_out ,                 & ! Floodplains of stream i
          L11_length_out    ,                 & ! [m]     Total length of river link
@@ -2420,7 +2438,8 @@ CONTAINS
          L11_tRow_out      ,                 & ! To row in L0 grid
          L11_tCol_out      ,                 & ! To col in L0 grid 
          L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out, &
+         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
+         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
          L0_streamNet_out  ,                 & ! Stream network
          L0_floodPlain_out ,                 & ! Floodplains of stream i
          L11_length_out    ,                 & ! [m]     Total length of river link

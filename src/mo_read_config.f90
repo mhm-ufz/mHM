@@ -517,7 +517,7 @@ CONTAINS
     !===============================================================
 
     nInflowGaugesTotal   = 0
-    NoInflowGauges_basin = nodata_i4
+    NoInflowGauges_basin = 0
     InflowGauge_id       = nodata_i4
     InflowGauge_filename = num2str(nodata_i4)
 
@@ -543,7 +543,7 @@ CONTAINS
     InflowGauge%gaugeId        = nodata_i4
     InflowGauge%basinId        = nodata_i4
     InflowGauge%fName          = num2str(nodata_i4)
-    basin%nInflowGauges        = nodata_i4
+    basin%nInflowGauges        = 0
     basin%InflowGaugeIdList    = nodata_i4
     basin%InflowGaugeIndexList = nodata_i4
     basin%InflowGaugeNodeList  = nodata_i4

@@ -52,7 +52,8 @@ Module mo_set_netcdf_restart
   integer(i4), dimension(:),   allocatable, target :: nrows11            ! Number of rows at Level 11
   integer(i4), dimension(:),   allocatable, target :: ncols11            ! Number of cols at Level 11
   integer(i4), dimension(:),   allocatable, target :: NoutletCoord       ! Dimension of outlet coordiantes at Level 0
-  integer(i4), dimension(:),   allocatable, target :: Ngauges
+  integer(i4), dimension(:),   allocatable, target :: Ngauges            ! Number of evaluation gauges
+  integer(i4), dimension(:),   allocatable, target :: nInflowGauges      ! Number of inflow gauges
 
   ! actual L11 Variables
   integer(i4), dimension(:,:), allocatable, target :: L11_basin_Mask_out ! Mask at Level 11
@@ -85,7 +86,8 @@ Module mo_set_netcdf_restart
   integer(i4), dimension(:,:), allocatable, target :: L11_tRow_out       ! To row in L0 grid
   integer(i4), dimension(:,:), allocatable, target :: L11_tCol_out       ! To col in L0 grid 
   integer(i4), dimension(:,:), allocatable, target :: L0_draCell_out     ! Draining cell id at L11 of ith cell of L0
-  integer(i4), dimension(:),   allocatable, target :: gaugeNodeList_out
+  integer(i4), dimension(:),   allocatable, target :: gaugeNodeList_out  ! Id of evaluation gauges on L11
+  integer(i4), dimension(:),   allocatable, target :: InflowGaugeNodeList_out ! Id of inflow gauges on L11
   integer(i4), dimension(:,:), allocatable, target :: L0_streamNet_out   ! Stream network
   integer(i4), dimension(:,:), allocatable, target :: L0_floodPlain_out  ! Floodplains of stream i
   real(dp),    dimension(:,:), allocatable, target :: L11_length_out     ! [m]     Total length of river link
@@ -454,8 +456,11 @@ contains
   !        target variables are set in L11_config_set in mo_restart
 
   !     HISTORY
-  !        author Stephan Thober
-  !        date Jul 2013
+  !        author    Stephan Thober
+  !        date      Jul 2013
+
+  !        Modified  Matthias Zink , Apr 2014 - added inflow gauge
+
   subroutine set_L11_config
     !
     use mo_string_utils, only: num2str
@@ -465,8 +470,8 @@ contains
     integer(i4) :: ii
     !
     ! define parameters
-    nDims = 8            ! Number of dimensions
-    nVars = 36 + nDims   ! total number of Variables
+    nDims = 9            ! Number of dimensions
+    nVars = 37 + nDims   ! total number of Variables
     !
     ! allocate arrays
     if (allocated(Dnc)   ) deallocate ( Dnc)
@@ -514,6 +519,11 @@ contains
        Ngauges(ii) = ii
     end do
     !
+    allocate(nInflowGauges( size(InflowGaugeNodeList_out)))
+    do ii = 1, size(nInflowGauges)
+       nInflowGauges(ii) = ii
+    end do
+    !
     ! define dimensions --------------------------------------------------------
     Dnc(1)%name      = "nrows11"
     Dnc(1)%len       = size(nrows11,1)
@@ -531,6 +541,8 @@ contains
     Dnc(7)%len       = size(NoutletCoord,1)
     Dnc(8)%name      = "Ngauges"
     Dnc(8)%len       = size(Ngauges)
+    Dnc(9)%name      = "nInflowGauges"
+    Dnc(9)%len       = size(nInflowGauges)
     !
     ! DIMENSION VARIABLES ------------------------------------------------------
     !
@@ -580,7 +592,10 @@ contains
     V(7)%att(2)%values = "Number of Outlet Coordinates"
     ! Number of gauges
     V(8)%G1_i        => Ngauges
-    V(8)%att(2)%values = "Number of gauges"
+    V(8)%att(2)%values = "Number of evaluation gauges"
+    ! Number of inflow gauges
+    V(9)%G1_i        => nInflowGauges
+    V(9)%att(2)%values = "Number of inflow gauges"
      
     !
     ! loop over Level 11 variables
@@ -900,6 +915,33 @@ contains
     V(ii)%att(2)%xType  = NF90_CHAR
     V(ii)%att(2)%nValues= 1
     V(ii)%att(2)%values = "cell ID of gauges"
+    !
+    V(ii)%att(1)%name   = "_FillValue"
+    V(ii)%att(1)%xType  = NF90_INT
+    V(ii)%att(1)%nValues= 1
+    V(ii)%att(1)%values = trim(num2str(nodata_i4))
+    !
+    ! inflow gauge node list
+    ii = size(DNC) + 37
+    V(ii)%name        =  "InflowGaugeNodeList"
+    V(ii)%xType       =  NF90_INT
+    V(ii)%nLvls       =  1
+    V(ii)%nSubs       =  1
+    V(ii)%nDims       =  1
+    V(ii)%dimTypes    =  (/9,0,0,0,0/)
+    ! printing
+    V(ii)%wFlag       =  .true.
+    !
+    ! pointer
+    V(ii)%G1_i        => InflowGaugeNodeList_out
+    !
+    ! attributes 
+    V(ii)%nAtt          = 2
+    !
+    V(ii)%att(2)%name   = "long_name"
+    V(ii)%att(2)%xType  = NF90_CHAR
+    V(ii)%att(2)%nValues= 1
+    V(ii)%att(2)%values = "cell ID of inflow gauges"
     !
     V(ii)%att(1)%name   = "_FillValue"
     V(ii)%att(1)%xType  = NF90_INT

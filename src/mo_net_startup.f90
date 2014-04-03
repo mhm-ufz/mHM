@@ -1305,11 +1305,11 @@ CONTAINS
              ! index of the gauge before since L0 data are the same
              index = basin%gaugeIndexList(iBasin, ll) 
              if (iBasin .GT. 1) then
-                if (L0_Basin(iBasin) == L0_Basin(iBasin-1)) &
+                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
                   index = basin%gaugeIndexList(iBasin-1, ll)
              end if
              ! save ID on L11
-             if ( index == gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if ( index .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
 
@@ -1322,10 +1322,10 @@ CONTAINS
              index = basin%InflowGaugeIndexList(iBasin, ll)
              ! save ID on L11
              if (iBasin .GT. 1) then
-                if (L0_Basin(iBasin) == L0_Basin(iBasin-1)) &
+                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
                      index = basin%InflowGaugeIndexList(iBasin-1, ll)
              end if
-             if (index == InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if (index .EQ. InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
   
