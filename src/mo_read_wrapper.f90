@@ -378,7 +378,7 @@ CONTAINS
              ! inflow gauges
              tmp_data_i4_2d = nodata_i4
              ! if no inflow gauge for this subbasin exists still nodata values with dim of subbasin have to be paded
-             if (basin%nInflowGauges(iBasin) .gt. 0_i4) then !.NE. nodata_i4) then
+             if (basin%nInflowGauges(iBasin) .GT. 0_i4) then 
 
                 ! map gauge ID's to gauge indices & exclude for infow uninteresting gauging stations (evaluation gauges)
                 do iGauge = 1, basin%nInflowGauges(iBasin)

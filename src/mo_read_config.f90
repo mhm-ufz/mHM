@@ -513,7 +513,7 @@ CONTAINS
     end if routing_activated
 
     !===============================================================
-    ! Read evaluation inflow information
+    ! Read inflow gauge information
     !===============================================================
 
     nInflowGaugesTotal   = 0
@@ -567,7 +567,7 @@ CONTAINS
                   trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: inflow_gauges')
              stop
-          else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
+          else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
              call message()
              call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
                   trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
@@ -579,7 +579,7 @@ CONTAINS
           idx = idx + 1
           InflowGauge%basinId(idx)                    = i_basin
           InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
-          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge)) 
+          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge)) 
           basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
           basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
        end do
