@@ -2360,7 +2360,8 @@ CONTAINS
          nrows11           ,                 & ! Number of rows at Level 11
          ncols11           ,                 & ! Number of cols at Level 11
          NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges, &
+         Ngauges           ,                 & ! Number of evaluation gauges
+         nInflowGauges     ,                 & ! Number of inflow gauges
          L11_basin_Mask_out,                 & ! Mask at Level 11
          L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
          L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
@@ -2408,7 +2409,8 @@ CONTAINS
          nrows11           ,                 & ! Number of rows at Level 11
          ncols11           ,                 & ! Number of cols at Level 11
          NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges, &
+         Ngauges           ,                 & ! Number of evaluation gauges
+         nInflowGauges     ,                 & ! Number of inflow gauges
          L11_basin_Mask_out,                 & ! Mask at Level 11
          L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
          L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
