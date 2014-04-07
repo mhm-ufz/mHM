@@ -1,71 +1,72 @@
 /**
-\page check_protocols This are protocols for setting up a new mHM basin
+\page check_protocols Protocols for setting up a new mHM basin
 
---------------------------------------------------------------------
-CHECK FOR POSSIBLE INPUT DATA ERRORS USING mHM OUTPUTS
---> By Rohini Kumar (March, 2014)
---------------------------------------------------------------------
+This chapter is divided into the following sections:\n
+- \ref check for input data errors
+- \ref check #2
+- \ref check #3
+
+\section check1 Check for possible input data errors using mHM outputs
+
 Besides mHM check for the possible input data errors (in the mo_startup routine), there 
 could still be room for the data errors. Before you make the exhaustive model runs for 
 calibration, make sure that you have processed your input data correctly. Below are some 
 tips for detecting data problems using the mHM outputs. 
 
-1) Make a default mHM simulation for a relatively longer time-period,
+-# Make a default mHM simulation for a relatively longer time-period,
    as supported by the input data sets (say 20-30 years).
-
-2) Print out distributed fluxes/states, for example, at a monthly time scale. 
+-# Print out distributed fluxes/states, for example, at a monthly time scale. 
    This feature is supported in the current mHM version using the name list 
    file "mhm_outputs.nml". You just need to tick ".TRUE." to the fluxes/ states
    you want to save as a netcdf file. 
    
    Check at-least the following model outputs:
   
-  (a) ! height of snow pack (L1_snowpack) [mm]                              -- case  2
+  -#  height of snow pack (L1_snowpack) [mm]                              -- case  2
       outputFlxState(2)=.TRUE.
       
-      ** This variable should be check in those basins which have snow covers/glaciers.
-      ** Snowpacks in the mountainous/glacier regions should be higher than those of other areas.
-      ** Snowpack during winter should be higher than that during summer.
+      \li This variable should be check in those basins which have snow covers/glaciers.
+      \li Snowpacks in the mountainous/glacier regions should be higher than those of other areas.
+      \li Snowpack during winter should be higher than that during summer.
       
-  (b) ! mean volumetric soil moisture averaged over all soil layers [mm/mm] -- case  5
-      ! ( = L1_soilMoist / L1_soilMoistSat )
+  -#  mean volumetric soil moisture averaged over all soil layers [mm/mm] -- case  5
+      ( = L1_soilMoist / L1_soilMoistSat )
       outputFlxState(5)=.TRUE.
 
-      ** Soil moist. during winter  should be higher than that of during summer.
-      ** In general, soil moist. in hilly areas is higher compared to that in flatter areas
+      \li Soil moist. during winter  should be higher than that of during summer.
+      \li In general, soil moist. in hilly areas is higher compared to that in flatter areas
 
-  (c) ! actual evapotranspiration aET [mm/T]                                -- case  9
+  -#  actual evapotranspiration aET [mm/T]                                -- case  9
       outputFlxState(9)=.TRUE. 
 
-      ** Evapotrans. during winter should be lower than that of during summer.
-      ** In general, evapotrans. in hilly areas is lower compared to that in flatter areas
+      \li Evapotrans. during winter should be lower than that of during summer.
+      \li In general, evapotrans. in hilly areas is lower compared to that in flatter areas
 
-  (d) ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 10
+  -#  total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 10
       outputFlxState(10)=.TRUE.
 
-      ** In general, runoff in hilly areas is higher compared to that in flatter areas
+      \li In general, runoff in hilly areas is higher compared to that in flatter areas
 
-3) Check the temporal dynamics of modeled fluxes/states across several locations (i.e., at several grid cells).
-    ** They should, in general, exbhit distinct behavior in the temporal dynamics.
+-# Check the temporal dynamics of modeled fluxes/states across several locations (i.e., at several grid cells).
+    \li They should, in general, exbhit distinct behavior in the temporal dynamics.
    
-4) You could calculate a long-term mean annual dynamics of variables like
-   a) actual evapotranspiration
-   b) total runoff
-   c) precipitation (use values provided in the meteo-input file)
+-# You could calculate a long-term mean annual dynamics of variables like
+   -# actual evapotranspiration
+   -# total runoff
+   -# precipitation (use values provided in the meteo-input file)
    
-   ** This could fairly give you an idea about the respective water balance regime of the modeled basin. 
-      For example, hilly areas should exhibit a higher runoff, as a result of a relatively
-      higher precipitation and lower ET values, compared to those of the flat areas. 
-   ** Compute the values of runoff cofficent (long-term mean annual runoff / long-term mean annual precipitation)
-      These values should be lesser than 1.0 everywhere. 
+   \li This could fairly give you an idea about the respective water balance regime of the modeled basin. 
+       For example, hilly areas should exhibit a higher runoff, as a result of a relatively
+       higher precipitation and lower ET values, compared to those of the flat areas. 
+   \li  Compute the values of runoff cofficent (long-term mean annual runoff / long-term mean annual precipitation)
+       These values should be lesser than 1.0 everywhere. 
 
-   ** Compute the values of long-term mean annual evapotranspiration / long-term mean annual pot. evapotranspiration
-      These values should be also lesser than 1.0 everywhere. 
+   \li  Compute the values of long-term mean annual evapotranspiration / long-term mean annual pot. evapotranspiration
+       These values should be also lesser than 1.0 everywhere. 
    
-5) Compare the respective spatial patterns of each variable with some known literature results
+-# Compare the respective spatial patterns of each variable with some known literature results
    (google them for your respective basins)
 
---------------
 Above check list are just few (based on the personal experience of the authors) among many possible ones,
 and the list will be updated as soon as we find new ways to deal with data problems.  \n
 
