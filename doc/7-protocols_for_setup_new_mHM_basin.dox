@@ -1,10 +1,12 @@
 /**
 \page check_protocols Protocols for setting up a new mHM basin
 
+The following checks and protocols describe some standard procedures for the setup of a new basin in mHM. They are based on the personal experience of the authors and do not cover all possible subjects. They are to be seen as a first guideline when working with a new basin in mHM but do not represent a complete instruction.\n
+
 This chapter is divided into the following sections:\n
 - \ref check for input data errors
-- \ref check #2
-- \ref check #3
+- \ref protocol for generating a restart file
+- \ref protocol for determining the warm-up period for a new basin
 
 \section check1 Check for possible input data errors using mHM outputs
 
@@ -48,7 +50,7 @@ tips for detecting data problems using the mHM outputs.
       \li In general, runoff in hilly areas is higher compared to that in flatter areas
 
 -# Check the temporal dynamics of modeled fluxes/states across several locations (i.e., at several grid cells).
-    \li They should, in general, exbhit distinct behavior in the temporal dynamics.
+    \li They should, in general, exhibit distinct behavior in the temporal dynamics.
    
 -# You could calculate a long-term mean annual dynamics of variables like
    -# actual evapotranspiration
@@ -58,10 +60,10 @@ tips for detecting data problems using the mHM outputs.
    \li This could fairly give you an idea about the respective water balance regime of the modeled basin. 
        For example, hilly areas should exhibit a higher runoff, as a result of a relatively
        higher precipitation and lower ET values, compared to those of the flat areas. 
-   \li  Compute the values of runoff cofficent (long-term mean annual runoff / long-term mean annual precipitation)
+   \li Compute the values of runoff coefficient (long-term mean annual runoff / long-term mean annual precipitation)
        These values should be lesser than 1.0 everywhere. 
 
-   \li  Compute the values of long-term mean annual evapotranspiration / long-term mean annual pot. evapotranspiration
+   \li Compute the values of long-term mean annual evapotranspiration / long-term mean annual pot. evapotranspiration
        These values should be also lesser than 1.0 everywhere. 
    
 -# Compare the respective spatial patterns of each variable with some known literature results
@@ -69,5 +71,13 @@ tips for detecting data problems using the mHM outputs.
 
 Above check list are just few (based on the personal experience of the authors) among many possible ones,
 and the list will be updated as soon as we find new ways to deal with data problems.  \n
+
+\section protocol1 Protocol for generating a restart file
+
+
+
+\section protocol2 Protocol for determining the warm-up period for a new basin
+
+
 
 */
