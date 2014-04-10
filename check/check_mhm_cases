@@ -207,8 +207,8 @@ shift $((${OPTIND} - 1))
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
 if [[ "${compilers}" == "all" ]] ; then
-    # compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
-    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    # compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
 fi
 
 # argument
