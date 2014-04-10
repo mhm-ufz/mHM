@@ -15,9 +15,6 @@ transfer mo_file to a namelist to allow for more flexible filenames
 chunk read-in of data 
 (Resp.: Stephan)
 
-OpneMP and further speed-up (use analysis tool of Matthias C) 
-(Resp.: Olda, Stephan)
-
 lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
 (Resp.: Rohini)
 
@@ -65,6 +62,9 @@ mo_multi_param_reg
                       SOLVED
 =================================================================================================
 
+OpenMP and further speed-up (did not use analysis tool of Matthias C though) 
+(Resp.: Olda, Stephan)
+
 Add Inflow gauges to restart file
 (Resp.: Matthias Zink)
 
@@ -83,3 +83,6 @@ automatic make test
 -- test case 2 :: w/o restart write
 -- test case 3 :: w/o routing
 -- test case 4 :: w/o optimization
+
+Initialization in mo_net_startup.f90
+(Resp.: Luis)

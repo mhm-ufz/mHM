@@ -77,6 +77,7 @@ CONTAINS
   !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
   !                    Stephan Thober             to process_matrix flag
   !                    Matthias Zink   Mar 2014   added inflow gauge
+  !                    Kumar & Schrön  Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -131,8 +132,8 @@ CONTAINS
                                      evalPer,                             & ! model evaluation period (for discharge read in)
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
-                                     iFlag_LAI_data_format                  ! flag on how LAI data has to be read
-                                     
+                                     iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
+                                     resolutionHydrology                    ! hydrology resolution (L1 scale)                                  
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
 
@@ -203,6 +204,15 @@ CONTAINS
        call read_header_ascii(trim(fName), udem,   &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
             level0%yllcorner(iBasin), level0%cellsize(iBasin), level0%nodata_value(iBasin))
+
+       ! check for L0 and L1 scale consistency
+       if( resolutionHydrology(iBasin) .LT. level0%cellsize(iBasin)) then
+          call message()
+          call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')  
+          call message('          check set-up (in mhm.nml) for basin: ', trim(adjustl(num2str(iBasin))),' ...')
+          stop
+       end if
+
        !
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))       
