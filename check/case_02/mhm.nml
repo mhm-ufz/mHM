@@ -13,6 +13,7 @@
 !                          - added new directory paths for soil and geology LUTs
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
+! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -29,11 +30,11 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut      = "output_b1/"
+dirConfigOut = "output_b1/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles_In = "../../test_basin/input/morph/"
+dirCommonFiles = "../../test_basin/input/morph/"
 !
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
@@ -45,43 +46,43 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dirMorpho_dummy(1)        = "../../test_basin/input/morph/"
+dir_Morpho(1)        = "../../test_basin/input/morph/"
 !> directory where land cover files are located
-dirLCover_dummy(1)        = "../../test_basin/input/luse/"
+dir_LCover(1)        = "../../test_basin/input/luse/"
 !> directory where discharge files are located
-dirGauges_dummy(1)        = "../../test_basin/input/gauge/"
+dir_Gauges(1)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(1) = "../../test_basin/input/meteo/pre/"
-dirTemperature_dummy(1)   = "../../test_basin/input/meteo/tavg/"
-dirReferenceET_dummy(1)   = "../../test_basin/input/meteo/pet/"
+dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
+dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
+dir_ReferenceET(1)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "../../test_basin/input/latlon/latlon_1.nc"
+dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
-dirOut_dummy(1)           = "output_b1/"
+dir_Out(1)           = "output_b1/"
 !> directory where restart output should be written
-dirRestartOut_dummy(1)    = "output_b1/"
+dir_RestartOut(1)    = "output_b1/"
 !> directory where restart output should be written
-dirRestartIn_dummy(1)     = "../../test_basin/restart/"
+dir_RestartIn(1)     = "../../test_basin/restart/"
 !
 !**** for Basin 2
 !> directory where morphological files are located
-dirMorpho_dummy(2)        = "../../test_basin/input/morph/"
+dir_Morpho(2)        = "../../test_basin/input/morph/"
 !> directory where land cover files are located
-dirLCover_dummy(2)        = "../../test_basin/input/luse/"
+dir_LCover(2)        = "../../test_basin/input/luse/"
 !> directory where discharge files are located
-dirGauges_dummy(2)        = "../../test_basin/input/gauge/"
+dir_Gauges(2)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(2) = "../../test_basin/input/meteo/pre/"
-dirTemperature_dummy(2)   = "../../test_basin/input/meteo/tavg/"
-dirReferenceET_dummy(2)   = "../../test_basin/input/meteo/pet/"
+dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
+dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
+dir_ReferenceET(2)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(2)        = "../../test_basin/input/latlon/latlon_1.nc"
+dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
-dirOut_dummy(2)           = "output_b2/"
+dir_Out(2)           = "output_b2/"
 !> directory where restart output should be written
-dirRestartOut_dummy(2)    = "output_b2/"
+dir_RestartOut(2)    = "output_b2/"
 !> directory where restart input is located
-dirRestartIn_dummy(2)     = "../../test_basin/restart/"
+dir_RestartIn(2)     = "../../test_basin/restart/"
 /
 
 !
@@ -95,7 +96,7 @@ dirRestartIn_dummy(2)     = "../../test_basin/restart/"
 !-----------------------------------------------------------------------------
 !> model run timestep [h] either 1 or 24
 !-----------------------------------------------------------------------------
-timestep            = 1
+timestep = 1
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
@@ -107,39 +108,43 @@ nBasins             = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m] per basin
 !-----------------------------------------------------------------------------
-resolutionHydrology_dummy(1) = 24000 
-resolutionHydrology_dummy(2) = 24000 
+resolution_Hydrology(1) = 24000 
+resolution_Hydrology(2) = 24000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
 !-----------------------------------------------------------------------------
-resolutionRouting_dummy(1)   = 24000 
-resolutionRouting_dummy(2)   = 24000
+resolution_Routing(1)   = 24000 
+resolution_Routing(2)   = 24000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
-L0_Basin_dummy(1)            = 1
-L0_Basin_dummy(2)            = 1
+L0Basin(1)            = 1
+L0Basin(2)            = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize            = .FALSE.
-!> 0 :: MCMC                \n
-!> 1 :: DDS                 \n
-!> 2 :: Simulated Annealing \n
-!> 3 :: SCE                 \n
+optimize = .false.
+!> (0) MCMC                \n
+!> (1) DDS                 \n
+!> (2) Simulated Annealing \n
+!> (3) SCE                 \n
 !> additional settings for the different methods can be provided below in namelist Optimization
-opti_method         = 3
-!> 1 :: -NSE                                                          \n
-!> 2 :: -lnNSE                                                        \n
-!> 3 :: -0.5*(NSE+lnNSE)                                              \n
-!> 4 :: -loglikelihood with removed trend and lag(1)-autocorrelation  \n 
+opti_method = 1
+!> (1) 1.0 - NSE  \n
+!> (2) 1.0 - lnNSE  \n
+!> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
+!> (4) -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
+!> (5) ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
+!> (6) SSE  \n
+!> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
+!> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> further functions can be implemented in mo_objective_function
-opti_function       = 3
+opti_function = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
@@ -190,7 +195,7 @@ tillageDepth         = 200
 nSoilHorizons_mHM    = 2
 ! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soilDepth_dummy(1)   = 200
+soil_Depth(1)   = 200
 /
 
 !******************************************************************************************
@@ -213,21 +218,21 @@ LCoverYearStart(1)     = 1975
 !> ending year of land cover scnene 1
 LCoverYearEnd(1)       = 1990
 !> name of land cover file for scnene 1
-LCoverfName_dummy(1)   = 'lc_1990.asc'
+LCoverfName(1)   = 'lc_1990.asc'
 
 !> starting year of land cover scene 2
 LCoverYearStart(2)     = 1991
 !> ending year of land cover scnene 2
 LCoverYearEnd(2)       = 1993
 !> name of land cover file for scnene 2
-LCoverfName_dummy(2)   = 'lc_1990.asc'
+LCoverfName(2)   = 'lc_1990.asc'
 
 !> starting year of land cover scene 3
 LCoverYearStart(3)     = 1994
 !> ending year of land cover scnene 3
 LCoverYearEnd(3)       = 2004
 !> name of land cover file for scnene 3
-LCoverfName_dummy(3)   = 'lc_1990.asc'
+LCoverfName(3)   = 'lc_1990.asc'
 /
 !
 !******************************************************************************************
@@ -275,8 +280,8 @@ inputFormat_gridded_LAI = "bin"
 !
 !> For each basin (number given in bracket), provide the path to the directory 
 !> where gridded LAI files are located.
-dir_gridded_LAI_dummy(1)  = "../../test_basin/input/lai/"
-dir_gridded_LAI_dummy(2)  = "../../test_basin/input/lai/"
+dir_gridded_LAI(1)  = "../../test_basin/input/lai/"
+dir_gridded_LAI(2)  = "../../test_basin/input/lai/"
 /
 
 !
@@ -316,48 +321,12 @@ processCase(7) = 1
 processCase(8) = 0
 /
 
-!
-!******************************************************************************************
-! PROCESSES
-!******************************************************************************************
-!> This matrix manages which processes and process descriptions are used for simulation.
-!> The number of processes and its corresponding numbering are fixed. The process description can be 
-!> chosen from the options listed undeneath the name of the particular process case. This number has to be
-!> given for processCase(*).
-!
-&processSelection
-!> interception
-!> 1 - maximum Interception 
-processCase(1) = 1
-!> snow
-!> 1 - degree-day approach
-processCase(2) = 1
-!> soilmoisture
-!> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
-processCase(3) = 1
-!> directRunoff
-!> 1 - linear reservoir exceedance approach
-processCase(4) = 1
-!> actualET
-!> 1 - root fraction approach
-processCase(5) = 1
-!> interflow
-!> 1 - storage reservoir with one outflow threshold and nonlinear response 
-processCase(6) = 1
-!> percolation
-!> 1 - GW  assumed as linear reservoir
-processCase(7) = 1
-!> routing
-!> 0 - deactivated
-!> 1 - Muskingum approach
-processCase(8) = 1
-/
-
 !******************************************************************************************
 ! Specifcation of evaluation and inflow gauges
 !******************************************************************************************
 !> namelist controlling the gauging station information
-!> The ID has to correspond to the ID's given in the 'gaugeid.asc
+!> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
+!> to the filename containing the time series 
 
 &evaluation_gauges
 !> Gauges for model evaluation
@@ -395,7 +364,7 @@ Gauge_filename(3,1)     = "00398.txt"
 /
 
 &inflow_gauges
-!> Gauges / gridpeoints used for inflow to the model domain
+!> Gauges / gridpoints used for inflow to the model domain
 !> e.g. in the case of upstream/headwater areas which are  
 !>      not included in the model domain
 !

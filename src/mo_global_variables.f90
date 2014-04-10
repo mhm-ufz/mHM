@@ -121,13 +121,13 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
   character(256), dimension(:), allocatable, public :: dirRestartIn       ! Directory where input of restart is read from
-  character(256), dimension(:), allocatable, public :: dir_gridded_LAI    ! directory where gridded LAI is located
+  character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! directory where gridded LAI is located
                                                                           ! used when iFlag_LAI_data_format = 1
   character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
 
   ! directory common to all basins 
   character(256),                            public :: dirConfigOut       ! Directory where config run output is written to
-  character(256),                            public :: dirCommonFiles_In  ! directory where common input files should be located
+  character(256),                            public :: dirCommonFiles     ! directory where common input files should be located
   !                                                                       ! for all modeled basins
   ! ------------------------------------------------------------------
   ! NETCDF OUTPUT

@@ -73,7 +73,7 @@ CONTAINS
   !
   subroutine prepare_gridded_daily_LAI_data(iBasin)
     
-    use mo_global_variables,           only: dir_gridded_LAI, inputFormat_gridded_LAI, &      
+    use mo_global_variables,           only: dirgridded_LAI, inputFormat_gridded_LAI, &      
                                              simPer, L0_daily_LAI
     use mo_init_states,                only: get_basin_info            ! get basin information
     use mo_append,                     only: append                    ! append vector
@@ -103,11 +103,11 @@ CONTAINS
 
        ! netcdf file input option
        CASE('nc')
-          CALL read_lai_nc( dir_gridded_LAI(iBasin), nRows0, nCols0, simPer, &
+          CALL read_lai_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer, &
                           'lai', LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp)
        ! bin file input option
        CASE('bin')
-          CALL read_lai_bin( dir_gridded_LAI(iBasin), nRows0, nCols0, simPer, &
+          CALL read_lai_bin( dirgridded_LAI(iBasin), nRows0, nCols0, simPer, &
                              LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp)
        CASE DEFAULT
            stop '***ERROR: Not recognized input format'
