@@ -129,12 +129,21 @@ CONTAINS
     call get_basin_info( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
 
     if(iBasin == 1) then
+       ! allocate
        allocate( level11%nrows        (nBasins) )
        allocate( level11%ncols        (nBasins) )
        allocate( level11%xllcorner    (nBasins) )
        allocate( level11%yllcorner    (nBasins) )
        allocate( level11%cellsize     (nBasins) )
        allocate( level11%nodata_value (nBasins) )
+
+       ! initialize
+       level11%nrows(:)        = nodata_i4   
+       level11%ncols(:)        = nodata_i4
+       level11%xllcorner(:)    = nodata_dp
+       level11%yllcorner(:)    = nodata_dp
+       level11%cellsize(:)     = nodata_dp
+       level11%nodata_value(:) = nodata_dp
     end if
 
     ! grid information
@@ -149,6 +158,7 @@ CONTAINS
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11) 
 
+    ! allocate and initialize
     allocate( mask11(nrows11, ncols11) )
     mask11(:,:) = .FALSE.
 
@@ -166,8 +176,14 @@ CONTAINS
     end do
 
     ncells = count( mask11 )
+
+    ! allocate
     allocate ( cellCoor(nCells,2) )
     allocate ( Id( ncells) )
+
+    ! initialize
+    cellCoor(:,:) = nodata_i4
+    Id(:)         = nodata_i4
 
     ! counting valid cells at level 11
     kk = 0
@@ -186,11 +202,17 @@ CONTAINS
     !--------------------------------------------------------
     if(iBasin == 1) then
 
-       !
+       ! allocate
        allocate(basin%L11_iStart     (nBasins))
        allocate(basin%L11_iEnd       (nBasins))
        allocate(basin%L11_iStartMask (nBasins))
-       allocate(basin%L11_iEndMask   (nBasins))    
+       allocate(basin%L11_iEndMask   (nBasins))
+
+       ! initialize   
+       basin%L11_iStart(:)     = nodata_i4  
+       basin%L11_iEnd(:)       = nodata_i4 
+       basin%L11_iStartMask(:) = nodata_i4
+       basin%L11_iEndMask(:)   = nodata_i4
 
        ! basin information
        basin%L11_iStart(iBasin) = 1
@@ -381,19 +403,35 @@ CONTAINS
     call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
-    allocate ( upBound1    (nCells1) )
-    allocate ( downBound1  (nCells1) )
-    allocate ( leftBound1  (nCells1) )
-    allocate ( rightBound1 (nCells1) )
-
+    ! allocate
     allocate ( upBound0    (nNodes) )
     allocate ( downBound0  (nNodes) )
     allocate ( leftBound0  (nNodes) )
     allocate ( rightBound0 (nNodes) )
 
+    allocate ( upBound1    (nCells1) )
+    allocate ( downBound1  (nCells1) )
+    allocate ( leftBound1  (nCells1) )
+    allocate ( rightBound1 (nCells1) )
+
     allocate ( L11Id_on_L0  (nrows0, ncols0 ) )
     allocate ( L11Id_on_L1  (nrows1, ncols1 ) )
-    allocate ( Id11     (nrows11, ncols11 ) )
+    allocate ( Id11         (nrows11, ncols11 ) )
+
+    ! initialize
+    upBound0(:)    = nodata_i4
+    downBound0(:)  = nodata_i4
+    leftBound0(:)  = nodata_i4
+    rightBound0(:) = nodata_i4
+
+    upBound1(:)    = nodata_i4   
+    downBound1(:)  = nodata_i4 
+    leftBound1(:)  = nodata_i4 
+    rightBound1(:) = nodata_i4 
+
+    L11Id_on_L0(:,:) = nodata_i4
+    L11Id_on_L1(:,:) = nodata_i4
+    Id11(:,:)        = nodata_i4
 
     cellFactorR    = level11%cellsize(iBasin) / level0%cellsize(iBasin)
     cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
@@ -462,6 +500,7 @@ CONTAINS
 
     ! flow direction at level-11
 
+    ! allocate
     allocate ( iD0         ( nrows0, ncols0 ) )
     allocate ( fAcc0       ( nrows0, ncols0 ) )
     allocate ( fDir0       ( nrows0, ncols0 ) )
@@ -472,10 +511,16 @@ CONTAINS
     allocate ( rowOut      ( nNodes ) )
     allocate ( colOut      ( nNodes ) )
 
-    fDir11 = nodata_i4
-    draSC0 = nodata_i4
-    rowOut = 0
-    colOut = 0
+    ! initialize
+    iD0(:,:)        = nodata_i4   
+    fAcc0(:,:)      = nodata_i4
+    fDir0(:,:)      = nodata_i4
+    draSC0(:,:)     = nodata_i4    
+    cellCoor0(:,:)  = nodata_i4
+    cellCoor11(:,:) = nodata_i4
+    fDir11(:,:)     = nodata_i4 
+    rowOut(:)       = nodata_i4 
+    colOut(:)       = nodata_i4
 
     ! get iD, fAcc, fDir at L0
     iD0(:,:)   =  UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
@@ -635,7 +680,6 @@ CONTAINS
        allocate( basin%L0_colOutlet(nBasins) )
     end if
 
-
     ! L0 data sets
 
     basin%L0_rowOutlet(iBasin) = oLoc(1)
@@ -754,20 +798,24 @@ CONTAINS
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
 
+    ! allocate
     allocate ( nLinkFromN ( nNodes    ) )  ! valid from (1 : nLinks)
     allocate ( nLinkToN   ( nNodes    ) )  ! "
     allocate ( cellCoor11 ( nNodes, 2 ) )  
     allocate ( Id11       ( nrows11, ncols11 ) )
     allocate ( fDir11     ( nrows11, ncols11 ) )
 
+    ! initialize
+    nLinkFromN(:)   = nodata_i4
+    nLinkToN(:)     = nodata_i4
+    cellCoor11(:,:) = nodata_i4
+    Id11(:,:)       = nodata_i4
+    fDir11(:,:)     = nodata_i4
+
     ! get grids of L11 
     Id11(:,:) =    UNPACK( L11_Id   ( iStart11 : iEnd11),  mask11, nodata_i4 )
     fDir11(:,:) =  UNPACK( L11_fDir ( iStart11 : iEnd11),  mask11, nodata_i4 )
     cellCoor11(:,:) = L11_cellCoor ( iStart11 : iEnd11, : )
-
-    ! initialize
-    nLinkFromN(:) = nodata_i4
-    nLinkToN(:)   = nodata_i4
 
     ! ------------------------------------------------------------------
     !  network topology
@@ -885,6 +933,7 @@ CONTAINS
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
 
+    ! allocate
     allocate ( nLinkFromN  ( nNodes ) )  ! all vectors valid from (1 : nLinks)
     allocate ( nLinkToN    ( nNodes ) )
     allocate ( nLinkROrder ( nNodes ) )
@@ -892,15 +941,18 @@ CONTAINS
     allocate ( nLinkSink   ( nNodes ) )
     allocate ( netPerm     ( nNodes ) )
 
+    ! initialize
+    nLinkFromN(:)         = nodata_i4
+    nLinkToN(:)           = nodata_i4
+    nLinkROrder(1:nLinks) = 1_i4
+    nLinkROrder(nNodes)   = nodata_i4
+    nLinkLabel            = nodata_i4
+    nLinkSink(:)          = .FALSE.
+    netPerm(:)            = nodata_i4
+
     ! get network vectors of L11 
     nLinkFromN(:) = L11_fromN ( iStart11 : iEnd11 )
     nLinkToN(:)   = L11_toN   ( iStart11 : iEnd11 )
-
-    ! initialize
-    nLinkROrder(1:nLinks) = 1
-    nLinkROrder(nNodes)   = nodata_i4
-    netPerm(:)            = nodata_i4
-    nLinkSink(:)          = .FALSE.
 
     loop1: do ii = 1, nLinks
        loop2: do jj = 1, nLinks
@@ -1262,6 +1314,7 @@ CONTAINS
     call get_basin_info ( iBasin, 110, nrows110, ncols110, &
          iStart=iStart110, iEnd=iEnd110 ) 
 
+    ! allocate
     allocate ( cellCoor0       ( nCells0, 2 ) )  
     allocate ( draSC0          ( nrows0, ncols0 ) )
     allocate ( fDir0           ( nrows0, ncols0 ) )
@@ -1269,6 +1322,15 @@ CONTAINS
     allocate ( InflowGaugeLoc0 ( nrows0, ncols0 ) )
     allocate ( draCell0        ( nrows0, ncols0 ) )
     allocate ( L11Id_on_L0     ( nrows0, ncols0 ) )
+
+    ! initialize
+    cellCoor0(:,:)         = nodata_i4  
+    draSC0(:,:)            = nodata_i4
+    fDir0(:,:)             = nodata_i4
+    gaugeLoc0(:,:)         = nodata_i4
+    InflowGaugeLoc0(:,:)   = nodata_i4
+    draCell0(:,:)          = nodata_i4
+    L11Id_on_L0(:,:)       = nodata_i4
 
     ! get L0 fields
     cellCoor0(:,:)       = L0_cellCoor(iStart0 : iEnd0, :)
@@ -1279,14 +1341,13 @@ CONTAINS
     InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
     L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
-    index         = nodata_i4
-    draCell0(:,:) = nodata_i4
+    index = nodata_i4
 
     do kk = 1, nCells0
 
        ii   = cellCoor0(kk,1)
        jj   = cellCoor0(kk,2)
-       iSc = draSC0(ii,jj)
+       iSc  = draSC0(ii,jj)
        ! find drainage path
        iRow = ii
        jCol = jj
@@ -1297,7 +1358,8 @@ CONTAINS
        end do
        draCell0(ii,jj) = iSC
 
-       ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of the routing cell at level-11
+       ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of
+       ! the routing cell at level-11
         if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
           ! evaluation gauges
           do ll = 1, basin%nGauges(iBasin)
@@ -1458,6 +1520,7 @@ CONTAINS
 
     nLinks  = nNodes - 1
 
+    ! allocate
     allocate ( iD0           ( nrows0, ncols0 ) )
     allocate ( elev0         ( nrows0, ncols0 ) )
     allocate ( fDir0         ( nrows0, ncols0 ) )
@@ -1478,19 +1541,30 @@ CONTAINS
     allocate ( nLinkAFloodPlain  ( nNodes ) )
     allocate ( nLinkSlope        ( nNodes ) )
 
-    ! initialize
-    nLinkFromRow     = nodata_i4
-    nLinkFromCol     = nodata_i4
-    nLinkToRow       = nodata_i4
-    nLinkToCol       = nodata_i4
-    nLinkLength      = nodata_dp
-    nLinkAFloodPlain = nodata_dp
-    nLinkSlope       = nodata_dp
+    allocate (nodata_i4_tmp      ( nrows0, ncols0 ) )
+    allocate (nodata_dp_tmp      ( nrows0, ncols0 ) )
 
-    allocate(nodata_i4_tmp(nrows0,ncols0))
-    allocate(nodata_dp_tmp(nrows0,ncols0))
-    nodata_i4_tmp = nodata_i4
-    nodata_dp_tmp = nodata_dp
+    ! initialize
+    iD0(:,:)             = nodata_i4
+    elev0(:,:)           = nodata_dp
+    fDir0(:,:)           = nodata_i4
+    areaCell0(:,:)       = nodata_dp
+    streamNet0(:,:)      = nodata_i4
+    floodPlain0(:,:)     = nodata_i4
+
+    stack(:,:)           = nodata_i4
+    append_chunk(:,:)    = nodata_i4
+    netPerm(:)           = nodata_i4
+    nLinkFromRow(:)      = nodata_i4
+    nLinkFromCol(:)      = nodata_i4
+    nLinkToRow(:)        = nodata_i4
+    nLinkToCol(:)        = nodata_i4
+    nLinkLength(:)       = nodata_dp
+    nLinkAFloodPlain(:)  = nodata_dp
+    nLinkSlope(:)        = nodata_dp
+
+    nodata_i4_tmp(:,:)   = nodata_i4
+    nodata_dp_tmp(:,:)   = nodata_dp
 
     ! get L0 fields
     iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
