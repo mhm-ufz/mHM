@@ -120,7 +120,7 @@ CONTAINS
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
-                                     dirCommonFiles_In,                   & ! directory of common files  
+                                     dirCommonFiles,                      & ! directory of common files  
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      optimize,                            & ! optimizeation flag for some error checks
@@ -163,16 +163,16 @@ CONTAINS
     ! ************************************************
     !
     ! Soil LUT
-    fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_soil_database))
+    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
     call read_soil_LUT( trim(fName), soilDB )
 
     ! Geological formation LUT
-    fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_geolut))
+    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))
     call read_geoformation_lut(trim(fName), ugeolut, nGeoUnits, GeoUnitList, GeoUnitKar)
 
     ! LAI LUT
     if(iFlag_LAI_data_format .EQ. 0) then
-      fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_lailut))
+      fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     end if
     ! ************************************************
