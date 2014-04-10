@@ -83,3 +83,6 @@ automatic make test
 -- test case 2 :: w/o restart write
 -- test case 3 :: w/o routing
 -- test case 4 :: w/o optimization
+
+Initialization in mo_net_startup.f90
+(Resp.: Luis)
