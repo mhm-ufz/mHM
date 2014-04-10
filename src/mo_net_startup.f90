@@ -323,6 +323,7 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
 
@@ -523,153 +524,171 @@ CONTAINS
     colOut(:)       = nodata_i4
 
     ! get iD, fAcc, fDir at L0
-    iD0(:,:)   =  UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
-    fAcc0(:,:) =  UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4 )
-    fDir0(:,:) =  UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4 )
+    iD0(:,:)   = UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
+    fAcc0(:,:) = UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4 )
+    fDir0(:,:) = UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4 )
 
     cellCoor0(:,:)  = L0_cellCoor  (iStart0 : iEnd0,  :)
     cellCoor11(:,:) = L11_cellCoor (iStart11: iEnd11, :)
 
-    ! finding main outlet (row, col) in L11
-    oLoc = maxloc ( fAcc0, mask0 )
-    kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
-    fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
+    ! CASE WHERE ROUTING AND INPUT DATA SCALE IS SIMILAR
+    IF(nCells0 .EQ. nNodes) THEN
+      oLoc = maxloc ( fAcc0, mask0 )
+      kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
+      fDir11(:,:) = fDir0(:,:)
+      fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
+      ! set location of main outlet in L11
+      do kk = 1, nNodes
+         ii = cellCoor11( kk, 1 )
+         jj = cellCoor11( kk, 2 )
+         rowOut(kk) = ii
+         colOut(kk) = jj
+         draSC0(ii,jj) = kk
+      end do
+      
+      ! CASE WHERE ROUTING AND INPUT DATA SCALE DIFFERS 
+    ELSE
+      ! finding main outlet (row, col) in L11
+      oLoc = maxloc ( fAcc0, mask0 )
+      kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
+      fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
 
-    ! set location of main outlet in L11
-    rowOut(kk) = oLoc(1)
-    colOut(kk) = oLoc(2)
-    draSC0 ( oLoc(1), oLoc(2) ) = kk
+      ! set location of main outlet in L11
+      rowOut(kk) = oLoc(1)
+      colOut(kk) = oLoc(2)
+      draSC0 ( oLoc(1), oLoc(2) ) = kk
 
-    ! finding cell L11 outlets -  using L0_fAcc
+      ! finding cell L11 outlets -  using L0_fAcc
 
-    do kk = 1, nNodes
+      do kk = 1, nNodes
 
-       ! exclude outlet L11
-       if ( rowOut(kk) > 0 ) cycle
+         ! exclude outlet L11
+         if ( rowOut(kk) > 0 ) cycle
 
-       ic = cellCoor11(kk,1)
-       jc = cellCoor11(kk,2)
+         ic = cellCoor11(kk,1)
+         jc = cellCoor11(kk,2)
 
-       ! coord. of all corners
-       iu = upBound0   (kk)
-       id = downBound0 (kk)
-       jl = leftBound0 (kk)
-       jr = rightBound0(kk)
+         ! coord. of all corners
+         iu = upBound0   (kk)
+         id = downBound0 (kk)
+         jl = leftBound0 (kk)
+         jr = rightBound0(kk)
 
-       fAccMax = -9
-       idMax   =  0
-       side    = -1
+         fAccMax = -9
+         idMax   =  0
+         side    = -1
 
-       ! searching on side 4
-       do jj = jl,jr
-          if ( ( fAcc0(iu,jj) > fAccMax       )  .and. &
-               ( fDir0(iu,jj) ==  32 .or.  &
-               fDir0(iu,jj) ==  64 .or.  &
-               fDir0(iu,jj) == 128       )        ) then
-             fAccMax = fAcc0(iu,jj)
-             idMax   =   id0(iu,jj)
-             side    = 4
-          end if
-       end do
+         ! searching on side 4
+         do jj = jl,jr
+            if ( ( fAcc0(iu,jj) > fAccMax       )  .and. &
+                 ( fDir0(iu,jj) ==  32 .or.  &
+                 fDir0(iu,jj) ==  64 .or.  &
+                 fDir0(iu,jj) == 128       )        ) then
+               fAccMax = fAcc0(iu,jj)
+               idMax   =   id0(iu,jj)
+               side    = 4
+            end if
+         end do
 
-       ! searching on side 1
-       do ii = iu,id
-          if ( ( fAcc0(ii,jr) > fAccMax       )  .and. &
-               ( fDir0(ii,jr) ==   1 .or.  &
-               fDir0(ii,jr) ==   2 .or.  &
-               fDir0(ii,jr) == 128       )        ) then
-             fAccMax = fAcc0(ii,jr)
-             idMax   =   id0(ii,jr)
-             side    = 1
-          end if
-       end do
+         ! searching on side 1
+         do ii = iu,id
+            if ( ( fAcc0(ii,jr) > fAccMax       )  .and. &
+                 ( fDir0(ii,jr) ==   1 .or.  &
+                 fDir0(ii,jr) ==   2 .or.  &
+                 fDir0(ii,jr) == 128       )        ) then
+               fAccMax = fAcc0(ii,jr)
+               idMax   =   id0(ii,jr)
+               side    = 1
+            end if
+         end do
 
-       ! searching on side 2
-       do jj = jl,jr
-          if ( ( fAcc0(id,jj) > fAccMax       )  .and. &
-               ( fDir0(id,jj) ==   2 .or.  &
-               fDir0(id,jj) ==   4 .or.  &
-               fDir0(id,jj) ==   8       )        ) then
-             fAccMax = fAcc0(id,jj)
-             idMax   =   id0(id,jj)
-             side    = 2
-          end if
-       end do
+         ! searching on side 2
+         do jj = jl,jr
+            if ( ( fAcc0(id,jj) > fAccMax       )  .and. &
+                 ( fDir0(id,jj) ==   2 .or.  &
+                 fDir0(id,jj) ==   4 .or.  &
+                 fDir0(id,jj) ==   8       )        ) then
+               fAccMax = fAcc0(id,jj)
+               idMax   =   id0(id,jj)
+               side    = 2
+            end if
+         end do
 
-       ! searching on side 3
-       do ii = iu,id  
-          if ( ( fAcc0(ii,jl) > fAccMax       )  .and. &
-               ( fDir0(ii,jl) ==   8 .or.  &
-               fDir0(ii,jl) ==  16 .or.  &
-               fDir0(ii,jl) ==  32       )        ) then
-             fAccMax = fAcc0(ii,jl)
-             idMax   =   id0(ii,jl)
-             side    = 3
-          end if
-       end do
+         ! searching on side 3
+         do ii = iu,id  
+            if ( ( fAcc0(ii,jl) > fAccMax       )  .and. &
+                 ( fDir0(ii,jl) ==   8 .or.  &
+                 fDir0(ii,jl) ==  16 .or.  &
+                 fDir0(ii,jl) ==  32       )        ) then
+               fAccMax = fAcc0(ii,jl)
+               idMax   =   id0(ii,jl)
+               side    = 3
+            end if
+         end do
 
-       ! set location of the cell-outlet (row, col) in L0
-       ii = cellCoor0( idMax, 1 )
-       jj = cellCoor0( idMax, 2 )
-       rowOut(kk) = ii
-       colOut(kk) = jj
-       draSC0(ii,jj) = kk
+         ! set location of the cell-outlet (row, col) in L0
+         ii = cellCoor0( idMax, 1 )
+         jj = cellCoor0( idMax, 2 )
+         rowOut(kk) = ii
+         colOut(kk) = jj
+         draSC0(ii,jj) = kk
 
-       ! set fDir at L11
-       if     ( ii == iu .and.  jj == jl ) then
-          select case ( fDir0(ii,jj) )
-          case (8,16)
-             fDir11(ic,jc) = 16
-          case (32)
-             fDir11(ic,jc) = 32
-          case (64,128)
-             fDir11(ic,jc) = 64
-          end select
-       elseif ( ii == iu .and.  jj == jr ) then
-          select case ( fDir0(ii,jj) )
-          case (32,64)
-             fDir11(ic,jc) = 64
-          case (128)
-             fDir11(ic,jc) = 128
-          case (1,2)
-             fDir11(ic,jc) = 1
-          end select
-       elseif ( ii == id .and.  jj == jl ) then
-          select case ( fDir0(ii,jj) )
-          case (2,4)
-             fDir11(ic,jc) = 4
-          case (8)
-             fDir11(ic,jc) = 8
-          case (16,32)
-             fDir11(ic,jc) = 16
-          end select
-       elseif ( ii == id .and.  jj == jr ) then
-          select case ( fDir0(ii,jj) )
-          case (128,1)
-             fDir11(ic,jc) = 1
-          case (2)
-             fDir11(ic,jc) = 2
-          case (4,8)
-             fDir11(ic,jc) = 4
-          end select
-       else
-          ! cell on one side
-          select case (side)
-          case (1)
-             fDir11(ic,jc) = 1
-          case (2)
-             fDir11(ic,jc) = 4
-          case (3)
-             fDir11(ic,jc) = 16
-          case (4)
-             fDir11(ic,jc) = 64
-          case default
-             stop 'Error L11_flow_direction: side = -1'
-          end select
-       endif
+         ! set fDir at L11
+         if     ( ii == iu .and.  jj == jl ) then
+            select case ( fDir0(ii,jj) )
+            case (8,16)
+               fDir11(ic,jc) = 16
+            case (32)
+               fDir11(ic,jc) = 32
+            case (64,128)
+               fDir11(ic,jc) = 64
+            end select
+         elseif ( ii == iu .and.  jj == jr ) then
+            select case ( fDir0(ii,jj) )
+            case (32,64)
+               fDir11(ic,jc) = 64
+            case (128)
+               fDir11(ic,jc) = 128
+            case (1,2)
+               fDir11(ic,jc) = 1
+            end select
+         elseif ( ii == id .and.  jj == jl ) then
+            select case ( fDir0(ii,jj) )
+            case (2,4)
+               fDir11(ic,jc) = 4
+            case (8)
+               fDir11(ic,jc) = 8
+            case (16,32)
+               fDir11(ic,jc) = 16
+            end select
+         elseif ( ii == id .and.  jj == jr ) then
+            select case ( fDir0(ii,jj) )
+            case (128,1)
+               fDir11(ic,jc) = 1
+            case (2)
+               fDir11(ic,jc) = 2
+            case (4,8)
+               fDir11(ic,jc) = 4
+            end select
+         else
+            ! cell on one side
+            select case (side)
+            case (1)
+               fDir11(ic,jc) = 1
+            case (2)
+               fDir11(ic,jc) = 4
+            case (3)
+               fDir11(ic,jc) = 16
+            case (4)
+               fDir11(ic,jc) = 64
+            case default
+               stop 'Error L11_flow_direction: side = -1'
+            end select
+         endif
 
-    end do
-
+      end do
+      
+ END IF
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
