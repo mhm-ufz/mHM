@@ -136,19 +136,21 @@ function usage () {
     printf "The settings (s)ystem, (c)ompiler and (r)elease, which are used by the Makefile, can be specified optionally.\n"
     printf "\n"
     printf "Input\n"
-    printf "    clean | clenup | cleanclean    Runs only the cleanup function.\n"
+    printf "    clean | cleanup | cleanclean    Runs only the cleanup function.\n"
     printf "\n"
     printf "Options\n"
     printf "    -h     Prints this help screen.\n"
     printf "    -c     Compilers used to generate a mHM executable, e.g. 'gnu'\n"
-    printf "           (DEFAULT: all found on specified system)\n"
+    printf "           'all' loops over all compilers found on the system\n"
+    printf "           (Default: all)\n"
     printf "    -r     Release or debug mode, e.g. 'release'\n"
-    printf "           (DEFAULT: debug)\n"
+    printf "           'all' or 'both' loop over debug and release\n"
+    printf "           (Default: all)\n"
     printf "    -s     System on which mHM will be compiled, e.g. 'eve'\n"
-    printf "           (DEFAULT: eve).\n"
+    printf "           (Default: eve).\n"
     printf "    -t     Number of threads for OpenMP, e.g. 6\n"
     printf "           Set to '' for deactivation of parallel test\n"
-    printf "           (DEFAULT: 2).\n"
+    printf "           (Default: 2).\n"
     printf "\n"
     printf "Example\n"
     printf "    ${pprog} -c gnu45 -s eve -r debug -t 1\n"
@@ -170,14 +172,12 @@ function cleanup ()
 
     # old ${pid} not known when called "./check_mhm_cases clean" --> include in ${rmfiles}
     # eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/*.${pid}.*
-
-    for i in $(echo ${rmfiles}) ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i} ; done
+    for i in $(echo ${rmfiles}) ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i}   ; done
     for i in $(echo ${rmdirs})  ; do eval rm -f {$(echo ${case_dirs} | tr ' ' ',')}/${i}/* ; done
 
-    # make clean
+    # make cleanclean
     cd ..
-    compiler=$(echo ${compilers} | cut -f 1 -d ' ')
-    make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe} cleanclean > /dev/null
+    make system=${system} PROGNAME=${mhm_exe} cleanclean > /dev/null
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -188,9 +188,9 @@ function cleanup ()
 mhm_exe='mhm_for_check'
 
 # switches
-compilers=''
+compilers='all'
 system='eve'
-release='debug'
+release='all'
 threads=2
 while getopts "c:hr:s:t:" Option ; do
     case ${Option} in
@@ -198,20 +198,22 @@ while getopts "c:hr:s:t:" Option ; do
         c) compilers="${OPTARG}";;
         r) release="${OPTARG}";;
         s) system="${OPTARG}";;
-	t) threads="${OPTARG}";;
+        t) threads="${OPTARG}";;
         *) printf "Error ${pprog}: unimplemented option.\n\n";  usage 1>&2; exit 1;;
     esac
 done
 shift $((${OPTIND} - 1))
 
 # check for compilers on system
-if [[ ${compilers} == '' ]] ; then
-    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
+compilers=$(echo ${compilers} | tr [A-Z] [a-z])
+if [[ "${compilers}" == "all" ]] ; then
+    # compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
 fi
 
 # argument
 if [ $# -gt 0 ] ; then
-    # currently then only argument possible is "clean"
+    # currently the only argument possible is "clean"
     case ${1} in
         clean*) cleanup; exit 0;;
         *) printf "Error ${pprog}: unknown argument.\n\n";  usage 1>&2; exit 1;;
@@ -232,126 +234,137 @@ fi
 set -e
 if [[ "${icdo}z" == "z" ]] ; then printf "Error ${pprog}: cdo not found.\n\n" ; exit 1 ; fi
 
-if [[ -n $CLICOLOR_FORCE ]] ; then unset CLICOLOR_FORCE ; fi
+# rm coloured ls
+if [[ -n ${CLICOLOR_FORCE} ]] ; then unset CLICOLOR_FORCE ; fi
+
+# releases
+release=$(echo ${release} | tr [A-Z] [a-z])
+if [[ "${release}" == "both" || "${release}" == "all" ]] ; then
+    release=$(echo debug release)
+fi
+
+# system
+system=$(echo ${system} | tr [A-Z] [a-z])
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Do Tests
 #
-# for thread in 0 ${threads} ; do
-for thread in 0 ${threads} ; do
-    for compiler in ${compilers} ; do
+for irelease in ${release} ; do
+    for thread in 0 ${threads} ; do
+        for compiler in ${compilers} ; do
+            # Compile mHM
+            cd ..
+            echo '   ### COMPILING ###'
+            echo '   using System:   '${system}
+            echo '         Compiler: '${compiler}
+            echo '         Release:  '${irelease}
+            make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= clean > /dev/null
+            if [[ ${thread} -eq 0 ]] ; then
+		echo '         OpenMP:   False'
+		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
+            else
+		echo '         OpenMP:   True'
+		echo '         Threads:  '${thread}
+		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+		export OMP_NUM_THREADS=${thread}
+            fi
 
-        # Compile mHM
-        cd ..
-	echo '   ### COMPILING ###'
-	echo '   using System:   '${system}
-        echo '         Compiler: '${compiler}
-        echo '         Release:  '${release}
-	make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe} openmp= clean > /dev/null
-        if [[ ${thread} -eq 0 ]] ; then
-	    echo '         OpenMP:   False'
-	    make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe} openmp= > /dev/null
-        else
-	    echo '         OpenMP:   True'
-	    echo '         Threads:  '${thread}
-	    make system=${system} compiler=${compiler} release=${release} PROGNAME=${mhm_exe} openmp=true > /dev/null
-	    export OMP_NUM_THREADS=${thread}
-        fi
+	    # run checks
+            cd check
+            case_dirs=$(\ls -d case_*)
+            #case_dirs=$(\ls -d case_00)
 
-        cd check
-        case_dirs=$(\ls -d case_*)
-        #case_dirs=$(\ls -d case_00)
+            nRecordsDiffer_allCases=0
+            for case_dir in ${case_dirs} ; do
+                echo ''
+                echo '##############################################################################################'
+                echo '#                                 '${case_dir}' will be checked ...                                #'
+                echo '##############################################################################################'
+                echo ''
+                cd ${case_dir}
 
-        nRecordsDiffer_allCases=0
-        for case_dir in ${case_dirs} ; do
-            echo ''
-            echo '##############################################################################################'
-            echo '#                                 '${case_dir}' will be checked ...                                #'
-            echo '##############################################################################################'
-            echo ''
-            cd ${case_dir}
+                # remove old exe and link recently compiled
+                if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
+                ln -s ../../${mhm_exe}
 
-            # remove old exe and link recently compiled
-            if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
-            ln -s ../../${mhm_exe}
+                # run mhm
+                echo '   mhm is running ...'
+                ./${mhm_exe} > mhm_terminal.${pid}.out
 
-            # run mhm
-            echo '   mhm is running ...'
-            ./${mhm_exe} > mhm_terminal.${pid}.out
+                # mhm was running till the end?
+                found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
+                if [[ ${found} == 'mHM: Finished!' ]] ; then
+                    # compare outputs in output_b1/ with reference in output_save/
+                    nRecordsDiffer=0
+                    cd output_save
+                    nc_files=$(ls *.nc)
+                    cd ..
+                    for nc_file in ${nc_files} ; do
+                        # cdo -b 16 :: precision=double=16bit
+                        echo '   *  cdo diff output_save/'${nc_file}' output_b1/'${nc_file}
+                        ${icdo} -s diffn output_save/${nc_file} output_b1/${nc_file} > cdo.${pid}.terminal
+                        iRecordsDiffer=$(grep -i 'differ' cdo.${pid}.terminal | tail -1 | cut -f 1 -d 'o')
+                        nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
+                        nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
+                        echo '      Number of records that differ more than 0.001: '${iRecordsDiffer}
+                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            echo '            -------------------'
+                            echo '                  Details '
+                            echo '            -------------------'
+                            ${icdo} diffn output_save/${nc_file} output_b1/${nc_file}
+                            echo '            -------------------'
+                        fi
+                        echo ''
+                    done
+                    echo '   Total Number of records that differ more than 0.001: '${nRecordsDiffer}
 
-            # mhm was running till the end?
-            found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
-            if [[ ${found} == 'mHM: Finished!' ]] ; then
-                # compare outputs in output_b1/ with reference in output_save/
-                nRecordsDiffer=0
-                cd output_save
-                nc_files=$(ls *.nc)
-                cd ..
-                for nc_file in ${nc_files} ; do
-                    # cdo -b 16 :: precision=double=16bit
-                    echo '   *  cdo diff output_save/'${nc_file}' output_b1/'${nc_file}
-                    ${icdo} -s diffn output_save/${nc_file} output_b1/${nc_file} > cdo.${pid}.terminal
-                    iRecordsDiffer=$(grep -i 'differ' cdo.${pid}.terminal | tail -1 | cut -f 1 -d 'o')
-                    nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
-                    nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
-                    echo '      Number of records that differ more than 0.001: '${iRecordsDiffer}
-                    if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                        echo '            -------------------'
-                        echo '                  Details '
-                        echo '            -------------------'
-                        ${icdo} diffn output_save/${nc_file} output_b1/${nc_file}
-                        echo '            -------------------'
+                    if [[ ${nRecordsDiffer} -eq 0 ]] ; then
+                        echo ''
+                        echo '   ###########################'
+                        echo '   #     '${case_dir}'     o.k.    #'
+                        echo '   ###########################'
+                        # echo '   using System:   '${system}
+                        # echo '         Compiler: '${compiler}
+                        # echo '         Release:  '${irelease}
+                        echo ''
+                    else
+                        echo ''
+                        echo '   ###########################'
+                        echo '   #     '${case_dir}'    failed   #'
+                        echo '   ###########################'
+                        # echo '   using System:   '${system}
+                        # echo '         Compiler: '${compiler}
+                        # echo '         Release:  '${irelease}
+                        echo ''
                     fi
-                    echo ''
-                done
-                echo '   Total Number of records that differ more than 0.001: '${nRecordsDiffer}
-
-                if [[ ${nRecordsDiffer} -eq 0 ]] ; then
-                    echo ''
-                    echo '   ###########################'
-                    echo '   #     '${case_dir}'     o.k.    #'
-                    echo '   ###########################'
-                    # echo '   using System:   '${system}
-                    # echo '         Compiler: '${compiler}
-                    # echo '         Release:  '${release}
-                    echo ''
+                    cd ..
                 else
+                    echo '   mhm was aborted'
                     echo ''
                     echo '   ###########################'
                     echo '   #     '${case_dir}'    failed   #'
                     echo '   ###########################'
                     # echo '   using System:   '${system}
                     # echo '         Compiler: '${compiler}
-                    # echo '         Release:  '${release}
+                    # echo '         Release:  '${irelease}
                     echo ''
                 fi
-                cd ..
-            else
-                echo '   mhm was aborted'
+
+            done # case loop
+
+            if [[ ${nRecordsDiffer_allCases} -gt 0 ]] ; then
                 echo ''
-                echo '   ###########################'
-                echo '   #     '${case_dir}'    failed   #'
-                echo '   ###########################'
-                # echo '   using System:   '${system}
-                # echo '         Compiler: '${compiler}
-                # echo '         Release:  '${release}
-                echo ''
+                echo '##############################################################################################'
+                echo '#     At least one case failed in this comiler setup                                         #'
+                echo '#     check_mhm_cases is aborted without cleaning up the output in the case directories,     #'
+                echo '#     such that it can be used to identify the bug                                           #'
+                echo '##############################################################################################'
+                exit 1
             fi
 
-        done # case loop
-
-        if [[ ${nRecordsDiffer_allCases} -gt 0 ]] ; then
-            echo ''
-            echo '##############################################################################################'
-            echo '#     At least one case failed in this comiler setup                                         #'
-            echo '#     check_mhm_cases is aborted without cleaning up the output in the case directories,     #'
-            echo '#     such that it can be used to identify the bug                                           #'
-            echo '##############################################################################################'
-            exit 1
-        fi
-
-    done # compiler loop
-done # thread loop
+        done # compiler loop
+    done # thread loop
+done # release loop
 
 # Clean up mhm directory
 cleanup
