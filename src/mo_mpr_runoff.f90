@@ -163,7 +163,7 @@ contains
     ! NOTE: This value for the sandy soils will have higher value of HL1, as compared to 
     !       to clayey soil and so these soils can hold larger amount of amount.
 
-    tmp    = merge( param(1) * SMs_FC0, nodata, cell_id0 /= int(nodata, i4))
+    tmp    = merge( param(1) * SMs_FC0, nodata, cell_id0 .ne. int(nodata, i4))
     L1_HL1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
              Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, tmp )
 
