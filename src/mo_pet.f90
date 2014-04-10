@@ -77,7 +77,7 @@ CONTAINS
   !             Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
 
   !     HISTORY
-  !>        \author Christoph Schneider
+  !>        \author Matthias Zink
   !>        \date Dec 2012
 
   elemental pure FUNCTION pet_hargreaves(coefficient, constant, tavg, tmax, tmin, latitude, doy)
@@ -121,9 +121,9 @@ CONTAINS
   !>        \f$ [ ^0C]\f$ and \f$\alpha\f$ is a land cover dependent coefficient.
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp) :: Rn"          net solar radiation \f$ [W m^{-2}]\f$
-  !>        \param[in] "real(dp) :: Tavg"        daily mean air temperature \f$ [ ^0C]\f$  
-  !>        \param[in] "real(dp) :: gamma"       parameter
+  !>        \param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}]\f$
+  !>        \param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^0C]\f$  
+  !>        \param[in] "real(dp) :: PrieTaycoeff" Priestley-Taylor coefficient
 
   !     INTENT(INOUT) 
   !         None
@@ -150,16 +150,18 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !         None
+  !>         Priestley, C.H.B., and R.J. Taylor. 1972. On the assessment of surface heat flux and evaporation using
+  !>                   large-scale parameters. Mon. Weather Rev., 100:81-82.
+  !>         ASAE Standards. 1998. EP406.2: heating, cooling, and ventilating greenhouses. St. Joseph, MI, USA.
 
   !     HISTORY
-  !>        \authors Christoph Schneider
-  !>        \date Dec 2012, Sep 2013
-  !>    Worked on the documentation
+  !>        \author  Matthias Zink
+  !>        \date    Apr 2014
+
   elemental pure FUNCTION pet_priestly(Rn, Tavg, gamma)
 
-    use mo_mhm_constants, only: DeltaPriestly1, DeltaPriestly2
-    use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp !, PI_D 
+    use mo_mhm_constants, only: DeltaPriestly1, DeltaPriestly2, DaySecs
+    use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp 
 
     implicit none
 
@@ -170,14 +172,22 @@ CONTAINS
 
     real(dp)             :: delta              ! slope of saturation-to-vapor-pressure
 
-    delta = DeltaPriestly1 * exp(DeltaPriestly2 * (Tavg - T0_dp)) ! slope of saturation-to-vapor pressure curve
-
-    pet_priestly = gamma * delta / (Psychro_dp + delta) * (1.0_dp/SpecHeatET_dp * Rn) ! in [mm s-1]
-
+    delta        = DeltaPriestly1 * exp(DeltaPriestly2 * Tavg) ! slope of saturation-to-vapor pressure curve
+    ! gamma        = 1.26_dp
+    pet_priestly = gamma * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) ! in [mm s-1]
+    
   END FUNCTION pet_priestly
+
+
+
 
   ! Ra as calculated by Duffie and Beckman (1980)
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude) 
+
+
+  !     LITERATURE
+  !         Duffie, J.A. and W.A. Beckman. 1980. Solar engineering of thermal processes.
+  !             John Wiley and Sons, New York. pp. 1-109.
 
     use mo_constants,     only: SolarConst_dp, SpecHeatET_dp, PI_D, TWOPI_D
     use mo_mhm_constants, only: DaySecs

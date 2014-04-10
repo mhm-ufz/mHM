@@ -465,7 +465,7 @@ CONTAINS
 
     !
     !*******************************************************
-    ! here comes the attributes which are equal for all vars
+    ! here come the attributes which are equal for all vars
     ! up to Var 5 are static Vars
     !*******************************************************
     write(dummy,*) nodata_dp
@@ -520,9 +520,7 @@ CONTAINS
     ! write static variables  
     ! put coordinates sytem to the NetCDF
     !*******************************************************
-    call CoordSytem(iBasin)
-    !(level1%xllcorner(iBasin), level1%yllcorner(iBasin), level1%cellsize, &
-    !     level1%nrows(iBasin), level1%ncols(iBasin))
+    call CoordSystem(iBasin)
     !
     V(1)%G1_d        => xCoor
     V(2)%G1_d        => yCoor
@@ -953,7 +951,7 @@ CONTAINS
   !         \date Apr 2013
   !         Modified, Stephan Thober, Nov 2013 - removed fproj dependency
 
-  subroutine CoordSytem(iBasin) !(xll, yll, cz, nrows, ncols)
+  subroutine CoordSystem(iBasin) !(xll, yll, cz, nrows, ncols)
     !
     use mo_global_variables, only : & 
          yCoor, xCoor       , & ! kartesian coordinates
@@ -1011,7 +1009,7 @@ CONTAINS
     lats = reshape( latitude(sPos:sPos+nrows*ncols-1), shape(lats))
     lons = reshape( longitude(sPos:sPos+nrows*ncols-1), shape(lons))
     !
-  end subroutine CoordSytem
+  end subroutine CoordSystem
 
 END MODULE mo_write_fluxes_states
 

@@ -146,6 +146,7 @@ PROGRAM mhm_driver
        dirTemperature, dirOut,                               &      ! directories
        dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
        dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam (case 1)
+       dirNetRadiation,                                      &      ! PET input paths if process 5 is PrieTay (case 2)
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        nIterations, seed,                                    &      ! settings for optimization algorithms
@@ -242,10 +243,12 @@ PROGRAM mhm_driver
      call message('    Temperature directory:      ', trim(dirTemperature(ii)  ))   
      select case (processMatrix(5,1))
      case(0)
-     call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
+       call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
      case(1)
-     call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
-     call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
+       call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
+       call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
+    case(2)
+       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
      end select
      call message('    Output directory:           ', trim(dirOut(ii) ))        
      call message('')

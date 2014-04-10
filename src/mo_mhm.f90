@@ -172,6 +172,7 @@ CONTAINS
       pet_in              , & ! Daily potential evapotranspiration (INOUT)
       tmin_in             , & ! Daily minimum temperature
       tmax_in             , & ! Daily maxumum temperature
+      netrad_in           , & ! Daily net radiation
       prec_in             , & ! Daily mean precipitation
       temp_in             , & ! Daily average temperature
       ! In-Out -----------------------------------------------------------------
@@ -239,7 +240,7 @@ CONTAINS
     use mo_net_startup,             only: L11_fraction_sealed_floodplain   ! flood plain subroutine
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
-    use mo_pet,                     only: pet_hargreaves                   ! calc. of pot. evapotranspiration
+    use mo_pet,                     only: pet_hargreaves, pet_priestly     ! calc. of pot. evapotranspiration
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
     use mo_canopy_interc ,          only: canopy_interc
     use mo_snow_accum_melt,         only: snow_accum_melt
@@ -327,6 +328,7 @@ CONTAINS
     real(dp),    dimension(:),     intent(inout) :: pet_in
     real(dp),    dimension(:),     intent(in)    :: tmin_in
     real(dp),    dimension(:),     intent(in)    :: tmax_in
+    real(dp),    dimension(:),     intent(in)    :: netrad_in
     real(dp),    dimension(:),     intent(in)    :: prec_in
     real(dp),    dimension(:),     intent(in)    :: temp_in
 
@@ -537,12 +539,6 @@ CONTAINS
        stop
     END SELECT
 
-
-    ! if ( process ...  ) then
-    !  call PET_upscaling (processMatrix, Temp_in, Tmax_in, Tmin_in, pet_in)
-    !      optional depending of the PET eq.
-    ! end if
-
     !-------------------------------------------------------------------
     ! flag for day or night depending on hours of the day
     !-------------------------------------------------------------------
@@ -570,14 +566,12 @@ CONTAINS
           doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           !
           pet_in(k) = pet_hargreaves(HarSamCoeff, HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
-               tmin_in(k), latitude(k), doy)                          ! Intent IN
-          
-          if (k == 20 .and. hour==1) then
-             print*, day,month,year, doy
-             print*, 'PET',  pet_in(k)
-             print*, 'TAVG: ',  temp_in(k),'TMIN: ',  tmin_in(k), 'TMAX: ',  tmax_in(k)
-             print*, 'LAT: ',latitude(k), 'DOY: ', doy
-          end if
+               tmin_in(k), latitude(k), doy)                                                ! Intent IN
+
+       case(2) ! Priestley-Taylor
+          ! Priestley Taylor is not defined for values netrad < 0.0_dp
+          pet_in(k) = pet_priestly(max(netrad_in(k), 0.0_dp), temp_in(k), 1.26_dp)  ! Intent IN      change number MZMZMZ 
+
        end select
        
        ! temporal disaggreagtion of forcing variables

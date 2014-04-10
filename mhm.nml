@@ -29,7 +29,7 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut      = "/data/stohyd/mHM_project/germany/basin//sub_mulde/output_v5/pet_test//"
+dirConfigOut      = "/data/stohyd/mHM_project/germany/basin//sub_mulde/output_v5/pet_test/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
@@ -45,28 +45,30 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dirMorpho_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
+dirMorpho_dummy(1)         = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
 !> directory where land cover files are located
-dirLCover_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/luse_v5/"
+dirLCover_dummy(1)         = "/data/stohyd/mHM_project/germany/basin//sub_mulde/luse_v5/"
 !> directory where discharge files are located
-dirGauges_dummy(1)        = "/data/stohyd/data/processed/Germany/gauge/for_mHMv5/"
+dirGauges_dummy(1)         = "/data/stohyd/data/processed/Germany/gauge/for_mHMv5/"
 !> directory where meteorological input is located
-dirPrecipitation_dummy(1) = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
-dirTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+dirPrecipitation_dummy(1)  = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dirTemperature_dummy(1)    = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
 !> paths depending on PET process (processCase(5))
 !> if processCase(5) == 0  input directory of pet has to be specified
-dirReferenceET_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+dirReferenceET_dummy(1)    = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dirMinTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
-dirMaxTemperature_dummy(1)   = "/data/stohyd/mHM_project/germany/basin//sub_mulde/meteo_v5/"
+dirMinTemperature_dummy(1) = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dirMaxTemperature_dummy(1) = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+dirNetRadiation_dummy(1)   = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
 !> directory where latitude and longitude file is located
-dirLatLon_dummy(1)        = "/data/stohyd/mHM_project/germany/basin//sub_mulde/morph_v5/"
+dirLatLon_dummy(1)         = "/data/stohyd/mHM_project/germany/basin/sub_mulde/morph_v5/"
 !> directory where output should be written to
-dirOut_dummy(1)           = "/data/stohyd/mHM_project/germany/basin//sub_mulde/output_v5/pet_test//"
+dirOut_dummy(1)            = "/data/stohyd/mHM_project/germany/basin/sub_mulde/output_v5/pet_test//"
 !> directory where restart output should be written
-dirRestartOut_dummy(1)    = "test_basin/restart/"
+dirRestartOut_dummy(1)     = "test_basin/restart/"
 !> directory where restart output should be written
-dirRestartIn_dummy(1)     = "/data/stohyd/mHM_project/germany/basin//sub_mulde/restart/"
+dirRestartIn_dummy(1)      = "/data/stohyd/mHM_project/germany/basin/sub_mulde/restart/"
 !
 /
 
@@ -142,13 +144,13 @@ restart_flag_config_write  = .FALSE.
 !-----------------------------------------------------------------------------
 warmingDays          = 0
 !> first year of wanted simulation period
-evalPer%yStart       = 1980
+evalPer%yStart       = 2005
 !> first month of wanted simulation period
 evalPer%mStart       = 01
 !> first day   of wanted simulation period
 evalPer%dStart       = 01
 !> last year   of wanted simulation period
-evalPer%yEnd         = 1981
+evalPer%yEnd         = 2006
 !> last month  of wanted simulation period
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
@@ -283,7 +285,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 1
+processCase(5) = 2
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1

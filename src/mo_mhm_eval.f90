@@ -104,10 +104,10 @@ CONTAINS
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
          L1_rightBound_L0, latitude,                         &
-        L11_netPerm, L11_fromN, L11_toN,                     & 
+         L11_netPerm, L11_fromN, L11_toN,                    & 
          L11_length, L11_slope, evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
-         fnight_temp, L1_pet, L1_tmin, L1_tmax,              &
+         fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
          L1_pre, L1_temp , L1_fForest,                       & 
          L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
          L11_aFloodPlain, L1_inter,                          & 
@@ -165,11 +165,12 @@ CONTAINS
     integer(i4)                               :: s0, e0
     integer(i4)                               :: s1, e1
     ! process case dependent length specefiers of vectors to pass to mHM
-    integer(i4), dimension(3)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
-    integer(i4), dimension(3)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
+    integer(i4), dimension(4)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
+    integer(i4), dimension(4)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
     !                                                             ! index 1: pet
     !                                                             ! index 2: tmin
     !                                                             ! index 3: tmax
+    !                                                             ! index 4: netrad
     integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
@@ -257,13 +258,18 @@ CONTAINS
        ! process 5 - PET
        select case (processMatrix(5,1))
        case(0) ! PET is input
-          print*, 'PET: Input'
-          s_p5 = (/s1,  1,  1/)
-          e_p5 = (/e1,  1,  1/)
+          print*, 'PET: Input' ! MZMZMZ
+          !      (/pet, tmax, tmin, netrad/)
+          s_p5 = (/s1,  1,  1, 1/)
+          e_p5 = (/e1,  1,  1, 1/)
        case(1) ! HarSam
-          print*, 'PET: HarSam'
-          s_p5 = (/s1, s1, s1/)
-          e_p5 = (/e1, e1, e1/)
+          print*, 'PET: HarSam' ! MZMZMZ
+          s_p5 = (/s1, s1, s1, 1/)
+          e_p5 = (/e1, e1, e1, 1/)
+       case(2) ! PrieTay
+          print*, 'PET: PrieTay' ! MZMZMZ
+          s_p5 = (/s1,  1,  1, s1/)
+          e_p5 = (/e1,  1,  1, e1/)
        end select
 
        ! process 8 - routing process (on or off)
@@ -297,9 +303,11 @@ CONTAINS
           ! customize iMeteoTS for process 5 - PET
           select case (processMatrix(5,1))
           case(0) ! PET is input
-             iMeteo_p5 = (/iMeteoTS,  1,  1/)
+             iMeteo_p5 = (/iMeteoTS,        1,        1,        1/)
           case(1) ! HarSam
-             iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS/)
+             iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1/)
+          case(2) ! PrieTay
+             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS/)
           end select
           !print*, 'iMeteoTS', iMeteoTS
              
@@ -367,6 +375,7 @@ CONTAINS
                L1_pet (s_p5(1):e_p5(1),                                                     & ! INOUT F
                iMeteo_p5(1)), L1_tmin(s_p5(2):e_p5(2),iMeteo_p5(2)),                        & ! IN F
                L1_tmax(s_p5(3):e_p5(3),iMeteo_p5(3)),                                       & ! IN F
+               L1_netrad(s_p5(4):e_p5(4),iMeteo_p5(4)),                                     & ! IN F
                L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                             & ! IN F
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 

@@ -452,7 +452,7 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
        ! aspect correction of input PET
-       case(0,1) 
+       case(0,1,2) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
           call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )

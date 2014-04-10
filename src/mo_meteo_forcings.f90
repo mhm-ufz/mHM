@@ -85,10 +85,13 @@ CONTAINS
     use mo_global_variables, only: &
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
-         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam  (case 1)
+         dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
+         nBasins,                                           & ! Number of basins for multi-basin optimization 
          processMatrix,                                     & ! process configuration
-         L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax           ! meteorological data
+         L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
+         L1_netrad                                            ! meteorological data
 
     implicit none
 
@@ -112,11 +115,15 @@ CONTAINS
 
     ! read input for PET (process 5) depending on specified option (0 - input, 1 - HarSam, 2 - PrieTay, 3 - PenMon)
     select case (processMatrix(5,1))    
+
     case(0) ! pet is input
        call message( '    read pet                  ...' )
        call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
                                     L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
-       allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+       if (iBasin==nBasins) then
+          allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
+       end if
+
     case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
        call message( '    read max. temperature     ...' )
        call meteo_forcings_wrapper( iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
@@ -124,9 +131,23 @@ CONTAINS
        call message( '    read min. temperature     ...' )
        call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
                                     L1_tmax, lower=-50.0_dp, upper = 50._dp, ncvarName='tmax' )
-       call append( L1_pet, L1_tmax(:,:) )
-       print*, 'PETshape: ',shape(L1_pet)
+       if (iBasin==nBasins) then
+          call append( L1_pet, L1_tmax(:,:) ) ! print*, to be changed MZMZMZMZ
+          !allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
+          allocate( L1_netrad(1,1) )
+       end if
+
+    case(2) ! Priestley-Taylor formulation (input: net radiation)
+       call message( '    read net radiation        ...' )
+       call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+                                    L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
+       if (iBasin==nBasins) then
+          allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
+          allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+       end if
     end select
+
+    print*, 'PETshape: ',shape(L1_pet)
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
