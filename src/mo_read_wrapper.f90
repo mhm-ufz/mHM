@@ -77,7 +77,7 @@ CONTAINS
   !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
   !                    Stephan Thober             to process_matrix flag
   !                    Matthias Zink   Mar 2014   added inflow gauge
-  !                    Kumar & Schrön  Apr 2014  - added check for consistency of L0 and L1 spatial resolution
+  !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   ! ------------------------------------------------------------------
 
   subroutine read_data
