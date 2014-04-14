@@ -1301,10 +1301,8 @@ CONTAINS
        call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
        call config_variables_set( i )
        call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
-       print *, '2'
        call write_static_netcdf( hnc)
-       print *, '3'
-       call close_netcdf(hnc)
+        call close_netcdf(hnc)
 
        ! free memory
        call free_memory_config
@@ -1317,9 +1315,7 @@ CONTAINS
           call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
           call L11_config_set( i )
           call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
-          print *, 'L11 1'
           call write_static_netcdf( hnc)
-          print *, 'L11 2'
           call close_netcdf(hnc)
 
           ! free memory
