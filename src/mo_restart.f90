@@ -1302,7 +1302,7 @@ CONTAINS
        call config_variables_set( i )
        call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
        call write_static_netcdf( hnc)
-        call close_netcdf(hnc)
+       call close_netcdf(hnc)
 
        ! free memory
        call free_memory_config

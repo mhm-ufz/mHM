@@ -77,7 +77,6 @@ CONTAINS
   !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
   !                    Stephan Thober             to process_matrix flag
   !                    Matthias Zink   Mar 2014   added inflow gauge
-  !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -121,7 +120,7 @@ CONTAINS
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
-                                     dirCommonFiles,                      & ! directory of common files  
+                                     dirCommonFiles_In,                   & ! directory of common files  
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      optimize,                            & ! optimizeation flag for some error checks
@@ -132,8 +131,8 @@ CONTAINS
                                      evalPer,                             & ! model evaluation period (for discharge read in)
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
-                                     iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
-                                     resolutionHydrology                    ! hydrology resolution (L1 scale)                                  
+                                     iFlag_LAI_data_format                  ! flag on how LAI data has to be read
+                                     
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
 
@@ -164,16 +163,16 @@ CONTAINS
     ! ************************************************
     !
     ! Soil LUT
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
+    fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_soil_database))
     call read_soil_LUT( trim(fName), soilDB )
 
     ! Geological formation LUT
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))
+    fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_geolut))
     call read_geoformation_lut(trim(fName), ugeolut, nGeoUnits, GeoUnitList, GeoUnitKar)
 
     ! LAI LUT
     if(iFlag_LAI_data_format .EQ. 0) then
-      fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
+      fName = trim(adjustl(dirCommonFiles_In)) // trim(adjustl(file_lailut))
       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     end if
     ! ************************************************
@@ -204,15 +203,6 @@ CONTAINS
        call read_header_ascii(trim(fName), udem,   &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
             level0%yllcorner(iBasin), level0%cellsize(iBasin), level0%nodata_value(iBasin))
-
-       ! check for L0 and L1 scale consistency
-       if( resolutionHydrology(iBasin) .LT. level0%cellsize(iBasin)) then
-          call message()
-          call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')  
-          call message('          check set-up (in mhm.nml) for basin: ', trim(adjustl(num2str(iBasin))),' ...')
-          stop
-       end if
-
        !
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))       
@@ -380,10 +370,11 @@ CONTAINS
                    stop
                 end if
 
-                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
-                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
+                !tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
+                !     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
              end do
-             call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             !call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
  
              ! inflow gauges
              tmp_data_i4_2d = nodata_i4
@@ -404,11 +395,12 @@ CONTAINS
                       stop
                    end if
                    
-                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
-                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
+                   !tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
+                   !     tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
                 end do
              end if
-             call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             !call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
 
              deallocate(tmp_data_i4_2d)
           case(6) ! Land cover related to LAI classes

@@ -594,8 +594,6 @@ contains
        geoUnitList, &
        nodata &
        )
-    
-!$  use omp_lib
 
     implicit none
 
@@ -609,22 +607,16 @@ contains
     real(dp),    dimension(:), intent(out):: k2_0          ! baseflow recession coefficient
 
     ! local variables
-    integer(i4)                           :: ii            ! loop variable
-    integer(i4)                           :: gg            ! geo unit
+    integer(i4)                           :: i             ! loop variable
 
-    if ( size(param) .ne. size( geoUnitList ) ) &
+    if ( size(param) /= size( geoUnitList ) ) &
          stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
 
     k2_0 = nodata
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
-    do ii = 1, size(k2_0)
-       gg = geoUnit0(ii)
-       k2_0(ii) = param( gg )
+    do i = 1, size(param)
+       k2_0 = merge( param(i), k2_0, geoUnit0 == geoUnitList(i) )
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
 
   end subroutine baseflow_param
 
@@ -799,12 +791,10 @@ contains
 
     tmp_maxCorrectionFactorPET = param(1) + param(2)
 
-    !$OMP PARALLEL
     fAsp0 = merge( param(1) + ( tmp_maxCorrectionFactorPET - param(1)) / param(3) * asp0, &
          param(1) + ( tmp_maxCorrectionFactorPET - param(1) ) / (360._dp - param(3)) * (360._dp - Asp0), &
          asp0 < param(3) )
     fAsp0 = merge( fAsp0, nodata, Id0 /= int(nodata, i4) )
-    !$OMP END PARALLEL
 
   end subroutine pet_correct
 
@@ -929,7 +919,6 @@ contains
     
     use mo_kind,                only: i4, dp
     use mo_upscaling_operators, only: L0_fractionalCover_in_Lx, upscale_arithmetic_mean
-!$  use omp_lib
     
     implicit none
     
@@ -967,16 +956,14 @@ contains
     ! PERCOLATION; 1/Kp = f(Ks)
     ! ------------------------------------------------------------------
     ! Regionalise Kp with variability of last soil layer property
-    !$OMP PARALLEL
     tmp = merge( param(1) * ( 1.0_dp + SMs_FC0 ) / ( 1.0_dp + KsVar_V0 ), &
-          nodata, cell_id0 .ne. int(nodata, i4) )
-    !$OMP END PARALLEL
-
+          nodata, cell_id0 /= int(nodata, i4) )
+         
     L1_Kp = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
              Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, tmp )
 
     ! minimum constrains
-    L1_Kp = merge( 2.0_dp, L1_Kp, L1_Kp .lt. 2.0_dp )
+    L1_Kp = merge( 2.0_dp, L1_Kp, L1_Kp < 2.0_dp )
     !
     ! Unit conversion
     L1_Kp = c2TSTu / L1_Kp
@@ -988,7 +975,7 @@ contains
     fKarArea = 0.0_dp
     
     do i = 1, nGeoUnits
-       if(GeoUnitKar(i) .eq. 0) cycle
+       if(GeoUnitKar(i) == 0) cycle
        fKarArea(:) = L0_fractionalCover_in_Lx( geoUnit0, geoUnitlist(i), mask0, &
                      Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1 )
     end do
@@ -1052,6 +1039,7 @@ contains
     real(dp)                            :: ssMax     ! stream slope max
     real(dp), dimension(size(fFPimp,1)) :: K  ! [d] Muskingum travel time parameter
     real(dp), dimension(size(fFPimp,1)) :: xi ! [1] Muskingum diffusion parameter (attenuation)
+
 
     ! normalize stream bed slope
     ssMax = maxval( slope(:) )
@@ -1127,9 +1115,6 @@ contains
                                     nodata, max_intercept1 ) 
 
     use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_string_utils,        only: num2str
-    use mo_message,             only: message
-
     implicit none
 
     ! input
@@ -1165,9 +1150,7 @@ contains
        
        ! estimate max. intercept at Level-0
        gamma_intercept(:) = param(iStart:iEnd)
-       !$OMP PARALLEL
        max_intercept0(:)  = LAI0(:) * gamma_intercept(1)
-       !$OMP END PARALLEL
        
        ! Upscale by arithmetic mean
        max_intercept1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1,      &
@@ -1175,9 +1158,7 @@ contains
        
       deallocate( gamma_intercept)
       deallocate( max_intercept0 )        
-   CASE DEFAULT
-      call message('mo_multi_param_reg: This proc_Mat=',num2str(proc_Mat(1,1)),' is not implemented!')
-      stop
+        
     end select
 
   end subroutine canopy_intercept_param

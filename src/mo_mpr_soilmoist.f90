@@ -203,12 +203,9 @@ contains
     Ks           = 0.0_dp  
     Db           = 0.0_dp
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE( i, j, L, pOM, pM, Ks_tmp, Genu_Mual_alpha, Genu_Mual_n ) \
-    !$ SCHEDULE( STATIC )
     do i = 1, size(is_present)
 
-       if ( is_present(i) .lt. 1 ) cycle
+       if ( is_present(i) < 1 ) cycle
        
        horizon: do j = 1, nHorizons(i)
 
@@ -219,7 +216,7 @@ contains
           ! calculating other soil hydraulic
           ! tillage horizons
           
-          if ( j .le. nTillHorizons(i) ) then
+          if ( j <= nTillHorizons(i) ) then
              
              ! LC class
              do L = 1, maxval( LCOVER0 )
@@ -276,10 +273,10 @@ contains
        end do horizon
 
     end do
-    !$OMP END DO
 
     ! calculate soil properties at each location
-    !$OMP DO PRIVATE( s, j ) SCHEDULE( STATIC )
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE( s, j )
     cellloop: do i = 1, size( soilId0, 1 )
        s = soilId0(i)
        do j = 1, nHorizons( s )
@@ -344,7 +341,7 @@ contains
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec, 2012
   !         Written, Stephan Thober, Dec 2012
-  !         Modified, Matthias Zink, Nov 2013 - documentation, moved constants to mhm_constants
+  !         Modified, Matthias Zink,  Nov 2013 - documentation, moved constants to mhm_constants
   ! ------------------------------------------------------------------
 
   elemental pure subroutine PWP( &

@@ -396,8 +396,6 @@ CONTAINS
 
     TST = HourSecs * real( TS, dp)   ! in [s]
 
-    !$OMP PARALLEL
-    !$OMP DO SCHEDULE( STATIC )
     do k = 1, size(qOUT)
       !  Estimate specific runoff at  L11
       !  NOTE:
@@ -409,13 +407,11 @@ CONTAINS
       !  total_area [km2]*10^3 and divided by TST.
       !  Therefore, in this operation total_area cancels out. 
       !  The simplified equation is then:         
-      qOUT(k) = sum( qAll(:) * efecArea(:),  L11id(:) .eq. k ) * 1000.0_dp / TST
+      qOUT(k) = sum( qAll(:) * efecArea(:),  L11id(:) == k ) * 1000.0_dp / TST
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
 
     ! discharge for inflow gauges (e.g. for missing upstream catchemtns) id added here
-    if (nInflowGauges .gt. 0) then
+    if (nInflowGauges > 0) then
        do k = 1, nInflowGauges
           qOUT(InflowNodeList(k)) = qOUT(InflowNodeList(k)) + QInflow(InflowIndexList(k))
        end do

@@ -124,7 +124,7 @@ CONTAINS
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
-         dirCommonFiles,                                    & ! directory where common files are located
+         dirCommonFiles_In,                                 & ! directory where common files are located
          dirGauges,                                         & ! directory of gauge files
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
@@ -165,7 +165,7 @@ CONTAINS
          iFlag_LAI_data_format,                             & ! flag on how LAI data has to be read
          !                                                    ! used when iFlag_LAI_data_format = 1
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
-         dirgridded_LAI                                       ! Directory where gridded LAI is located
+         dir_gridded_LAI                                      ! Directory where gridded LAI is located
 
     implicit none
 
@@ -231,29 +231,29 @@ CONTAINS
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
     character(256)                                  :: dummy 
     character(256)                                  :: fname
-    integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
-    character(256), dimension(maxNoBasins)          :: dir_Morpho
-    character(256), dimension(maxNoBasins)          :: dir_LCover
-    character(256), dimension(maxNoBasins)          :: dir_Gauges
-    character(256), dimension(maxNoBasins)          :: dir_Precipitation
-    character(256), dimension(maxNoBasins)          :: dir_Temperature
-    character(256), dimension(maxNoBasins)          :: dir_ReferenceET
-    character(256), dimension(maxNoBasins)          :: dir_Out
-    character(256), dimension(maxNoBasins)          :: dir_RestartOut
-    character(256), dimension(maxNoBasins)          :: dir_RestartIn
-    character(256), dimension(maxNoBasins)          :: dir_LatLon
+    integer(i4),dimension(maxNoSoilHorizons)        :: soilDepth_dummy           ! depth of the single horizons
+    character(256), dimension(maxNoBasins)          :: dirMorpho_dummy
+    character(256), dimension(maxNoBasins)          :: dirLCover_dummy
+    character(256), dimension(maxNoBasins)          :: dirGauges_dummy
+    character(256), dimension(maxNoBasins)          :: dirPrecipitation_dummy
+    character(256), dimension(maxNoBasins)          :: dirTemperature_dummy
+    character(256), dimension(maxNoBasins)          :: dirReferenceET_dummy
+    character(256), dimension(maxNoBasins)          :: dirOut_dummy
+    character(256), dimension(maxNoBasins)          :: dirRestartOut_dummy
+    character(256), dimension(maxNoBasins)          :: dirRestartIn_dummy
+    character(256), dimension(maxNoBasins)          :: dirLatLon_dummy
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
-    character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
+    character(256), dimension(maxNLCovers)          :: LCoverfName_dummy         ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data 
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI_dummy     ! directory of gridded LAI data 
     !                                                                            ! used when iFlag_LAI_data_format = 1
     real(dp)                                        :: jday_frac
     !
-    integer(i4),    dimension(maxNoBasins)          :: resolution_Hydrology
-    integer(i4),    dimension(maxNoBasins)          :: resolution_Routing
-    integer(i4),    dimension(maxNoBasins)          :: L0Basin
+    integer(i4),    dimension(maxNoBasins)          :: resolutionHydrology_dummy
+    integer(i4),    dimension(maxNoBasins)          :: resolutionRouting_dummy
+    integer(i4),    dimension(maxNoBasins)          :: L0_Basin_dummy
     ! for gauge read in
     integer(i4)                                        :: i_basin, i_gauge, idx
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
@@ -265,20 +265,20 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,            &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation, &
-         dir_Temperature, dir_ReferenceET, dir_Out, dir_RestartOut,&
-         dir_RestartIn, dir_LatLon
+    namelist /directories/ dirConfigOut, dirCommonFiles_In, inputFormat_meteo_forcings,            &
+         dirMorpho_dummy,dirLCover_dummy,dirGauges_dummy,dirPrecipitation_dummy, &
+         dirTemperature_dummy, dirReferenceET_dummy, dirOut_dummy, dirRestartOut_dummy,&
+         dirRestartIn_dummy, dirLatLon_dummy
     ! namelist spatial & temporal resolution, otmization information
-    namelist /mainconfig/ timestep, resolution_Hydrology, resolution_Routing, L0Basin, optimize, opti_method,  &
+    namelist /mainconfig/ timestep, resolutionHydrology_dummy, resolutionRouting_dummy, L0_Basin_dummy, optimize, opti_method,  &
          opti_function, nBasins, restart_flag_states_read, restart_flag_states_write, &
          restart_flag_config_read, restart_flag_config_write, warmingDays, evalPer
     ! namelsit soil layering
-    namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
+    namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soilDepth_dummy
     ! namelist for land cover scenes
-    namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
+    namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName_dummy
     ! namelist for LAI related data
-    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI
+    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI_dummy
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
@@ -331,23 +331,23 @@ CONTAINS
        stop
     end if
     ! allocate patharray sizes
-    allocate(resolutionHydrology(nBasins))
-    allocate(resolutionRouting(nBasins))
-    allocate(L0_Basin(nBasins))
-    allocate(dirMorpho(nBasins))
-    allocate(dirLCover(nBasins))
-    allocate(dirGauges(nBasins))
+    allocate(resolutionHydrology (nBasins))
+    allocate(resolutionRouting   (nBasins))
+    allocate(L0_Basin            (nBasins))
+    allocate(dirMorpho       (nBasins))
+    allocate(dirLCover       (nBasins))
+    allocate(dirGauges       (nBasins))
     allocate(dirPrecipitation(nBasins))
-    allocate(dirTemperature(nBasins))
-    allocate(dirReferenceET(nBasins))
-    allocate(dirOut(nBasins))
-    allocate(dirRestartOut(nBasins))
-    allocate(dirRestartIn(nBasins))
-    allocate(dirLatLon(nBasins))
+    allocate(dirTemperature  (nBasins))
+    allocate(dirReferenceET  (nBasins))
+    allocate(dirOut          (nBasins))
+    allocate(dirRestartOut   (nBasins))
+    allocate(dirRestartIn    (nBasins))
+    allocate(dirLatLon       (nBasins))
     !
-    resolutionHydrology    = resolution_Hydrology(1:nBasins)
-    resolutionRouting      = resolution_Routing(1:nBasins)
-    L0_Basin               = L0Basin(1:nBasins)
+    resolutionHydrology    = resolutionHydrology_dummy(1:nBasins)
+    resolutionRouting      = resolutionRouting_dummy(1:nBasins)
+    L0_Basin               = L0_Basin_dummy(1:nBasins)
     !
 
     !===============================================================
@@ -385,16 +385,16 @@ CONTAINS
     !===============================================================
     call position_nml('directories', unamelist)
     read(unamelist, nml=directories)
-    dirMorpho       = dir_Morpho(1:nBasins)
-    dirLCover       = dir_LCover(1:nBasins)
-    dirGauges       = dir_Gauges(1:nBasins)      
-    dirPrecipitation= dir_Precipitation(1:nBasins)
-    dirTemperature  = dir_Temperature(1:nBasins)
-    dirReferenceET  = dir_ReferenceET(1:nBasins)
-    dirOut          = dir_Out(1:nBasins)
-    dirRestartOut   = dir_RestartOut(1:nBasins)
-    dirRestartIn    = dir_RestartIn(1:nBasins)
-    dirLatLon       = dir_LatLon(1:nBasins)
+    dirMorpho       = dirMorpho_dummy       (1:nBasins)
+    dirLCover       = dirLCover_dummy       (1:nBasins)
+    dirGauges       = dirGauges_dummy       (1:nBasins)      
+    dirPrecipitation= dirPrecipitation_dummy(1:nBasins)
+    dirTemperature  = dirTemperature_dummy  (1:nBasins)
+    dirReferenceET  = dirReferenceET_dummy  (1:nBasins)
+    dirOut          = dirOut_dummy          (1:nBasins)
+    dirRestartOut   = dirRestartOut_dummy   (1:nBasins)
+    dirRestartIn    = dirRestartIn_dummy    (1:nBasins)
+    dirLatLon       = dirLatLon_dummy       (1:nBasins)
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
@@ -410,7 +410,7 @@ CONTAINS
 
     allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
     HorizonDepth_mHM = 0.0_dp
-    HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soil_Depth(1:nSoilHorizons_mHM-1)
+    HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soilDepth_dummy(1:nSoilHorizons_mHM-1)
 
     !===============================================================
     ! Read process selection list
@@ -431,8 +431,8 @@ CONTAINS
     read(unamelist, nml=LAI_data_information)
 
     if(iFlag_LAI_data_format .EQ. 1) then
-       allocate( dirgridded_LAI(nBasins) )
-       dirgridded_LAI(:) = dir_gridded_LAI(1:nBasins)
+       allocate( dir_gridded_LAI(nBasins) )
+       dir_gridded_LAI(:) = dir_gridded_LAI_dummy(1:nBasins)
     end if
 
     !===============================================================
@@ -649,7 +649,7 @@ CONTAINS
     nLcover_scene = maxval(LCyearId) - minval(LCyearId) + 1
     ! put land cover scenes to corresponding file name and LuT
     allocate(LCfilename(nLcover_scene))
-    LCfilename(:) = LCoverfName(minval(LCyearId):maxval(LCyearId))
+    LCfilename(:) = LCoverfName_dummy(minval(LCyearId):maxval(LCyearId))
     ! update the ID's
     LCyearId = LCyearId - minval(LCyearId) + 1
     !
