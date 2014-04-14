@@ -207,14 +207,7 @@ CONTAINS
           stop
        end if
     end if
-    ! add other optionals...   
-
-  !      do ii = 1, nBasins
-  !           do gg = 1, basin%nGauges(ii)
-  !              !print*, ii, gg, s11,basin%gaugeNodeList(ii,gg) 
-  !             runoff(tt,basin%gaugeIndexList(ii,gg)) = L11_Qmod( basin%gaugeNodeList(ii,gg) + s11 - 1 )
-  !           end do
-  !        end do
+    ! add other optionals...
 
 
     !-------------------------------------------------------------------
@@ -559,9 +552,6 @@ CONTAINS
           if( present(runoff) ) then
              do gg = 1, basin%nGauges(ii)
                 runoff(tt,basin%gaugeIndexList(ii,gg)) = L11_Qmod( basin%gaugeNodeList(ii,gg) + s11 - 1 )
-                   if(tt .eq. 1)then ! ++++++++++
-                   print*,basin%gaugeNodeList(ii,gg),s11,basin%gaugeIndexList(ii,gg) ! ++++++++++
-                   end if ! ++++++++++
              end do
           end if
 
@@ -597,10 +587,8 @@ CONTAINS
              iDay = iDay + 1
              ! over gauges
              do gg = 1, basin%nGauges(ii)
-                
                 d_Qmod(iDay, basin%gaugeIndexList(ii,gg) ) = &
                      sum( runoff(iS:iE, basin%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
-                if (iDay .eq. 1) print*,iS,iE,basin%gaugeIndexList(ii,gg),NTSTEPDAY
              end do
              !
           end do

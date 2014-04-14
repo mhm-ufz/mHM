@@ -315,7 +315,6 @@ CONTAINS
     allocate( dummy_Vector11   (nCells11     ) )
     allocate( dummy_Matrix11_IT(nCells11, nRoutingStates) )
 
-    print*, '***************** iBasin',iBasin
     ! simulated discharge at each node
     dummy_Vector11(:) = 0.0_dp
     call append( L11_Qmod,  dummy_Vector11 )

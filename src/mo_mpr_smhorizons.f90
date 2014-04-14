@@ -241,13 +241,13 @@ contains
        dpth_t = HorizonDepth(H)
 
        ! check for the layer (2, ... n-1 layers) update depth
-       if(H > 1 .and. H < nHorizons_mHM) then
+       if(H .gt. 1 .and. H .lt. nHorizons_mHM) then
           dpth_f = HorizonDepth(H - 1)
           dpth_t = HorizonDepth(H)
        end if
 
        !$OMP PARALLEL
-       !$OMP DO PRIVATE( l, s )
+       !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
        cellloop: do k = 1, size(LCOVER0,1)
 
           l = LCOVER0(k)
@@ -318,7 +318,6 @@ contains
 
        end do cellloop
        !$OMP END DO
-       !$OMP END PARALLEL
 
        beta0 = Bd0*param(4)
 
@@ -374,10 +373,12 @@ contains
 
        L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+       !$OMP END PARALLEL
 
     end do
   
-
+    !$OMP PARALLEL
+    
     !------------------------------------------------------------------------
     ! CHECK LIMITS OF PARAMETERS
 
@@ -396,8 +397,7 @@ contains
     L1_PW  = merge( 0.0001_dp, L1_PW,  L1_PW  .lt. 0.0_dp )
 
     ! Normalise the vertical root distribution profile such that [sum(fRoots) = 1.0]
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE( fTotRoots )
+    !$OMP DO PRIVATE( fTotRoots ) SCHEDULE( STATIC )
     do k = 1, size(L1_fRoots,1)
        fTotRoots       = sum(L1_fRoots(k, :), L1_fRoots(k, :) .gt. 0.0_dp)
 
