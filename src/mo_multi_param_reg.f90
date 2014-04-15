@@ -293,13 +293,13 @@ contains
     real(dp), dimension(:,:),   intent(inout) :: PW1     ! [10^-3 m] permanent wilting point
     real(dp), dimension(:,:),   intent(inout) :: fRoots1 ! fraction of roots in soil horizon
     real(dp), dimension(:),     intent(inout) :: TT1     ! [degreeC] threshold temperature 
-                                                       ! for snow rain 
+                                                         ! for snow rain 
     real(dp), dimension(:),     intent(inout) :: DD1     ! [mm-1 degreeC-1] Degree-day factor with
-                                                       ! no precipitation
+                                                         ! no precipitation
     real(dp), dimension(:),     intent(inout) :: DDmax1  ! [mm-1 degreeC-1] Maximum Degree-day factor
     real(dp), dimension(:),     intent(inout) :: IDDP1   ! [d-1 degreeC-1]  Increase of the 
-                                                       ! Degree-day factor per mm of
-                                                       ! increase in precipitation
+                                                         ! Degree-day factor per mm of
+                                                         ! increase in precipitation
 
     ! Output for pet correction
     real(dp), dimension(:),     intent(inout) :: fAsp1   ! pet correction for Level 1
@@ -309,12 +309,12 @@ contains
 
     ! Output of mpr runoff
     real(dp),    dimension(:),   intent(inout):: HL1_1   ! [10^-3 m] Threshhold water depth
-                                                       ! in upper reservoir (for Runoff
-                                                       ! contribution)
+                                                         ! in upper reservoir (for Runoff
+                                                         ! contribution)
     real(dp),    dimension(:),   intent(inout):: K0_1    ! [10^-3 m] Recession coefficient
-                                                       ! of the upper reservoir, upper outlet
+                                                         ! of the upper reservoir, upper outlet
     real(dp),    dimension(:),   intent(inout):: K1_1    ! [10^-3 m] Recession coefficient
-                                                       ! of the upper reservoir, lower outlet
+                                                         ! of the upper reservoir, lower outlet
     real(dp),    dimension(:),   intent(inout):: alpha1  ! [1] Exponent for the upper reservoir
     real(dp),    dimension(:),   intent(inout):: Kp1     ! [d-1] percolation coefficient
 
@@ -452,7 +452,7 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
        ! aspect correction of input PET
-       case(0,1,2) 
+       case(0,1,2,3) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
           call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
@@ -1182,6 +1182,128 @@ contains
     end select
 
   end subroutine canopy_intercept_param
+
+ ! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        aerodynamical_resistance
+
+  !>       \brief 
+
+  !>       \details 
+
+  !      INTENT(IN)
+ 
+  !
+  !      INTENT(OUT)
+
+  !      EXAMPLE
+  !
+
+  !      HISTORY
+  !>         \author Matthias Zink
+  !>         \date   Apr 2013
+
+  ! ------------------------------------------------------------------
+  subroutine aerodynamical_resistance(aerodyn_resistance1, & ! aerodynmaical resistance
+                                      param,              & ! parameter valeus (size=6)
+                                      LCover0,      & ! land cover at level 0
+                                      LAILUT,       & ! look up table for LAI
+                                      mask0,        & ! mask at level 0
+                                      nodata,       & ! given nodata value
+                                      cell_id0,     & ! cell id at Level 0
+                                      nL0_in_L1,    & ! number of l0 cells within a l1 cell
+                                      Upp_row_L1,   & ! upper row of a l1 cell in l0 grid
+                                      Low_row_L1,   & ! lower row of a l1 cell in l0 grid
+                                      Lef_col_L1,   & ! left col of a l1 cell in l0 grid
+                                      Rig_col_L1)     ! right col of a l1 cell in l0 gridnodata)
+    !
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    !
+    implicit none
+    !
+    real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
+    integer(i4), dimension(:),   intent(in)  :: LCover0    ! land cover field
+    real(dp),    dimension(:,:), intent(in)  :: LAILUT     ! look up table for LAI
+    !                                                      ! dim1=land cover class, dim2=month of year
+    logical,     dimension(:,:), intent(in)  :: mask0      ! mask at level 0
+    real(dp),                    intent(in)  :: nodata     ! given nodata value
+    integer(i4), dimension(:),   intent(in)  :: cell_id0   ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1  ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1 ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Low_row_L1 ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1 ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
+    ! Output
+    real(dp),    dimension(:,:), intent(out) :: aerodyn_resistance1
+
+    ! local
+    integer(i4)                            :: iMon
+    real(dp)                               :: maxLAI
+    real(dp), dimension(:),   allocatable  :: zm
+    real(dp), dimension(:),   allocatable  :: canopy_height0
+    real(dp), dimension(:),   allocatable  :: zm_zero, zh_zero, displace
+    real(dp), dimension(:,:), allocatable  :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
+    !                                                                    ! dim 2 = number of months in year (12)
+
+    real(dp), parameter                    :: WindMeasHeight = 10.0_dp
+    real(dp), PARAMETER                    :: k     =    0.41_dp
+
+
+    !
+    ! initialize some things
+    ! ID   LAI classes                 
+    ! 1    Coniferous-forest        
+    ! 2    Deciduous-forest         
+    ! 3    Mixed-forest             
+    ! 4    Sparsely-populated-forest
+    ! 5    Sealed-Water-bodies      
+    ! 6    Viniculture              
+    ! 7    Intensive-orchards       
+    ! 8    Pasture                  
+    ! 9    Fields                   
+    ! 10    Wetlands                 
+
+    allocate(zm                  (size(LCover0, dim=1)    )) ; zm                  = nodata
+    allocate(zm_zero             (size(LCover0, dim=1)    )) ; zm_zero             = nodata
+    allocate(zh_zero             (size(LCover0, dim=1)    )) ; zh_zero             = nodata
+    allocate(displace            (size(LCover0, dim=1)    )) ; displace            = nodata
+    allocate(canopy_height0      (size(LCover0, dim=1)    )) ; canopy_height0      = nodata
+    allocate(aerodyn_resistance0 (size(LCover0, dim=1), 12)) ; aerodyn_resistance0 = nodata
+    aerodyn_resistance0 = nodata
+    !
+    ! regionalization of canopy height
+    ! substitute with canopy height
+    canopy_height0 = merge(param(1), canopy_height0, LCover0 == 1)  ! forest
+    canopy_height0 = merge(param(2), canopy_height0, LCover0 == 2)  ! impervious
+    !
+    maxLAI = MAXVAL(LAILUT(7,:))
+    !
+    do iMon = 1, 12 
+       !
+       ! pervious canopy height is scaled with LAI
+        canopy_height0 = merge( (param(3) * LAILUT(7,iMon) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
+ 
+       ! estimation of the aerodynamic resistance on the lower level
+       ! see FAO Irrigation and Draingae Paper No. 56 (p. 19 ff) for more information
+       zm     = WindMeasHeight
+       ! correction if measurement height is below canopy height loagarithm becomes negative
+       ! to avoid that
+       zm = merge(zm, canopy_height0+zm, zm .GT. canopy_height0)
+       !
+       ! zh       = zm
+       displace = param(4) * canopy_height0 
+       zm_zero  = param(5) * canopy_height0 
+       zh_zero  = param(6) * canopy_height0
+       !
+       ! calculate aerodynamic resistance (changes monthly)
+       aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (k**2.0_dp)
+       aerodyn_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, aerodyn_resistance0(:,iMon))
+       !
+    end do
+    !
+  end subroutine aerodynamical_resistance
 
 
 END MODULE mo_multi_param_reg

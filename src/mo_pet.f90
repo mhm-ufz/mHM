@@ -19,8 +19,9 @@ MODULE mo_pet
 
   PRIVATE
 
-  PUBLIC :: pet_hargreaves ! Hargreaves
+  PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor
+  PUBLIC :: pet_penman     ! Penman Monteith
 
   ! ------------------------------------------------------------------
 
@@ -222,9 +223,7 @@ CONTAINS
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
 
-  elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, windspeed, aerodyn_resistance, bulksurface_resistance)
-
-    use mo_mhm_constants, only: 
+  elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
 
     use mo_mhm_constants, only: DaySecs
     use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
@@ -234,7 +233,7 @@ CONTAINS
     real(dp), intent(in) :: net_rad                ! net radiation
     real(dp), intent(in) :: tavg                   ! average daily temperature
     real(dp), intent(in) :: act_vap_pressure       ! actual vapur pressure
-    real(dp), intent(in) :: windspeed              ! windspeed
+    !real(dp), intent(in) :: windspeed              ! windspeed
     real(dp), intent(in) :: aerodyn_resistance     ! aerodynmaical resistance
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
@@ -382,6 +381,8 @@ CONTAINS
 
   !     LITERATURE
   !>         Tetens, O., 1930. Uber einige meteorologische Begriffe. z. Geophys. 6:297-309.
+  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
 
   !     HISTORY
   !>        \author  Matthias Zink
@@ -394,7 +395,7 @@ CONTAINS
     implicit none
 
     real(dp), intent(in) :: tavg
-    real(dp)             :: sat_vap_pressure          ! ssaturation vapour pressure
+    real(dp)             :: sat_vap_pressure          ! saturation vapour pressure
 
     sat_vap_pressure = tetens_c1 * exp(tetens_c2 * tavg / (tavg + tetens_c3))
 

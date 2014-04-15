@@ -581,6 +581,10 @@ CONTAINS
           ! Priestley Taylor is not defined for values netrad < 0.0_dp
           pet_in(k) = pet_priestly(max(netrad_in(k), 0.0_dp), temp_in(k), 1.26_dp)  ! Intent IN      change number MZMZMZ 
 
+       case(3) ! Penman-Monteith
+          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), act_vap_pressure_in(k), &
+                                   aerodyn_resistance(k,month), bulksurface_resistance(k)) ! Intent IN 
+
        end select
        
        ! temporal disaggreagtion of forcing variables
