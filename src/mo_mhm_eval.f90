@@ -75,6 +75,7 @@ CONTAINS
   !                   R. Kumar              Nov 2013 - update intent variables in documentation
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
   !                   M. Zink,              Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                   M. Zink,              Mar 2014 - added inflow from upstream areas
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -124,7 +125,7 @@ CONTAINS
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
          L1_wiltingPoint, L11_C1, L11_C2,                    &
-         warmingDays, evalPer, gauge,                        &  
+         warmingDays, evalPer, gauge, InflowGauge,           &  
          optimize,  nMeasPerDay,                             &
          iFlag_LAI_data_format, L0_daily_LAI,                &   ! flag on how LAI data has to be read
          dirRestartIn                                            ! restart directory location
@@ -172,6 +173,7 @@ CONTAINS
     !                                                             ! index 3: tmax
     !                                                             ! index 4: netrad
     integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
+    integer(i4)                               :: s110, e110
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
     integer(i4)                               :: day, month, year, hour
@@ -251,6 +253,7 @@ CONTAINS
 
        ! get basin information
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
+       call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
        ! preapare vector length specifications depending on the process case
@@ -346,6 +349,7 @@ CONTAINS
           ! -------------------------------------------------------------------------
           !  C    CONFIGURATION
           !  F    FORCING DATA L2
+          !  Q    INFLOW FROM UPSTREAM AREAS
           !  L0   MORPHOLOGIC DATA L0
           !  L1   MORPHOLOGIC DATA L1
           !  L11  MORPHOLOGIC DATA L11
@@ -357,12 +361,14 @@ CONTAINS
           call mhm(restart_flag_states_read, fracSealed_cityArea,                           & ! IN C
                iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C      
+               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
+               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
+               basin%InflowGaugeNodeList(ii,:),                                             & ! IN C
                parameterset,                                                                & ! IN P
                LCyearId(year), GeoUnitList, GeoUnitKar,                                     & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0),                         & ! IN L0
                L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s0:e0),                  & ! IN L0
+               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
                L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
@@ -377,6 +383,7 @@ CONTAINS
                L1_tmax(s_p5(3):e_p5(3),iMeteo_p5(3)),                                       & ! IN F
                L1_netrad(s_p5(4):e_p5(4),iMeteo_p5(4)),                                     & ! IN F
                L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                             & ! IN F
+               InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
                L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
@@ -590,8 +597,9 @@ CONTAINS
           ! FOR STORING the optional arguments
           ! 
           ! FOR RUNOFF
-          ! NOTE:: Node id for a given gauging station is
-          !        stored w.r.t to its corresponding basin starting index
+          ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
+          !        index in runoff. In consequence the gauges in runoff are 
+          !        ordered corresponing to gauge%Q(:,:)
           !----------------------------------------------------------------------
           if( present(runoff) ) then
              do gg = 1, basin%nGauges(ii)

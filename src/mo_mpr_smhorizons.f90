@@ -111,6 +111,7 @@ contains
   !                                                --> param(2) = rootFractionCoefficient_impervious 
   !                                                --> param(3) = delta_1 
   !                                                --> param(4) = infiltrationShapeFactor
+  !                  Stephan Thober, Mar 2014 - added omp parallelization
 
   subroutine mpr_SMhorizons( &
        ! Input -----------------------------------------------------------------
@@ -147,6 +148,7 @@ contains
        L1_fRoots )       ! fraction of roots in soil horizons
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
+!$  use omp_lib
 
     implicit none
 
@@ -239,11 +241,13 @@ contains
        dpth_t = HorizonDepth(H)
 
        ! check for the layer (2, ... n-1 layers) update depth
-       if(H > 1 .and. H < nHorizons_mHM) then
+       if(H .gt. 1 .and. H .lt. nHorizons_mHM) then
           dpth_f = HorizonDepth(H - 1)
           dpth_t = HorizonDepth(H)
        end if
 
+       !$OMP PARALLEL
+       !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
        cellloop: do k = 1, size(LCOVER0,1)
 
           l = LCOVER0(k)
@@ -313,6 +317,7 @@ contains
           end select
 
        end do cellloop
+       !$OMP END DO
 
        beta0 = Bd0*param(4)
 
@@ -368,10 +373,12 @@ contains
 
        L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+       !$OMP END PARALLEL
 
     end do
   
-
+    !$OMP PARALLEL
+    
     !------------------------------------------------------------------------
     ! CHECK LIMITS OF PARAMETERS
 
@@ -382,7 +389,7 @@ contains
     ! than correct it --> threshold limit = 1% of the upper ones
     !------------------------------------------------------------------------
     L1_FC = merge( L1_SMs - 0.01_dp * L1_SMs, L1_FC, L1_FC .gt. L1_SMs)
-    L1_PW = merge( L1_FC  - 0.01_dp * L1_FC,  L1_PW,  L1_PW .gt. L1_FC)
+    L1_PW = merge( L1_FC  - 0.01_dp * L1_FC,  L1_PW, L1_PW .gt. L1_FC)
 
     ! check the physical limit
     L1_SMs = merge( 0.0001_dp, L1_SMs, L1_SMs .lt. 0.0_dp )
@@ -390,6 +397,7 @@ contains
     L1_PW  = merge( 0.0001_dp, L1_PW,  L1_PW  .lt. 0.0_dp )
 
     ! Normalise the vertical root distribution profile such that [sum(fRoots) = 1.0]
+    !$OMP DO PRIVATE( fTotRoots ) SCHEDULE( STATIC )
     do k = 1, size(L1_fRoots,1)
        fTotRoots       = sum(L1_fRoots(k, :), L1_fRoots(k, :) .gt. 0.0_dp)
 
@@ -400,6 +408,8 @@ contains
           L1_fRoots(k, :) = 0._dp
        end If
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
 
   end subroutine mpr_SMhorizons
 

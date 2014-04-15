@@ -1,3 +1,4 @@
+! Emacs: -*- mode: f90 -*-
 !global_parameters
 !PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING
 !interception

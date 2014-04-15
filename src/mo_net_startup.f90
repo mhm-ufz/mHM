@@ -129,17 +129,28 @@ CONTAINS
     call get_basin_info( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
 
     if(iBasin == 1) then
-       allocate( level11%nrows     (nBasins) )
-       allocate( level11%ncols     (nBasins) )
-       allocate( level11%xllcorner (nBasins) )
-       allocate( level11%yllcorner (nBasins) )
+       ! allocate
+       allocate( level11%nrows        (nBasins) )
+       allocate( level11%ncols        (nBasins) )
+       allocate( level11%xllcorner    (nBasins) )
+       allocate( level11%yllcorner    (nBasins) )
+       allocate( level11%cellsize     (nBasins) )
+       allocate( level11%nodata_value (nBasins) )
+
+       ! initialize
+       level11%nrows(:)        = nodata_i4   
+       level11%ncols(:)        = nodata_i4
+       level11%xllcorner(:)    = nodata_dp
+       level11%yllcorner(:)    = nodata_dp
+       level11%cellsize(:)     = nodata_dp
+       level11%nodata_value(:) = nodata_dp
     end if
 
     ! grid information
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp, &
-         resolutionRouting ,                                                                      &
+         resolutionRouting(iBasin) ,                                                              &
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin),                 &
-         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        ) 
+         level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin) )
     ! level-1 information
     call get_basin_info (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
          iStartMask=iStartMask1, iEndMask=iEndMask1, mask=mask1 ) 
@@ -147,10 +158,11 @@ CONTAINS
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11) 
 
+    ! allocate and initialize
     allocate( mask11(nrows11, ncols11) )
     mask11(:,:) = .FALSE.
 
-    cellFactorRbyH = level11%cellsize / level1%cellsize
+    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
 
     ! create a mask: Id
     do jc = 1, ncols1
@@ -164,8 +176,14 @@ CONTAINS
     end do
 
     ncells = count( mask11 )
+
+    ! allocate
     allocate ( cellCoor(nCells,2) )
     allocate ( Id( ncells) )
+
+    ! initialize
+    cellCoor(:,:) = nodata_i4
+    Id(:)         = nodata_i4
 
     ! counting valid cells at level 11
     kk = 0
@@ -184,11 +202,17 @@ CONTAINS
     !--------------------------------------------------------
     if(iBasin == 1) then
 
-       !
+       ! allocate
        allocate(basin%L11_iStart     (nBasins))
        allocate(basin%L11_iEnd       (nBasins))
        allocate(basin%L11_iStartMask (nBasins))
-       allocate(basin%L11_iEndMask   (nBasins))    
+       allocate(basin%L11_iEndMask   (nBasins))
+
+       ! initialize   
+       basin%L11_iStart(:)     = nodata_i4  
+       basin%L11_iEnd(:)       = nodata_i4 
+       basin%L11_iStartMask(:) = nodata_i4
+       basin%L11_iEndMask(:)   = nodata_i4
 
        ! basin information
        basin%L11_iStart(iBasin) = 1
@@ -299,6 +323,7 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
 
@@ -379,22 +404,38 @@ CONTAINS
     call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
-    allocate ( upBound1    (nCells1) )
-    allocate ( downBound1  (nCells1) )
-    allocate ( leftBound1  (nCells1) )
-    allocate ( rightBound1 (nCells1) )
-
+    ! allocate
     allocate ( upBound0    (nNodes) )
     allocate ( downBound0  (nNodes) )
     allocate ( leftBound0  (nNodes) )
     allocate ( rightBound0 (nNodes) )
 
+    allocate ( upBound1    (nCells1) )
+    allocate ( downBound1  (nCells1) )
+    allocate ( leftBound1  (nCells1) )
+    allocate ( rightBound1 (nCells1) )
+
     allocate ( L11Id_on_L0  (nrows0, ncols0 ) )
     allocate ( L11Id_on_L1  (nrows1, ncols1 ) )
-    allocate ( Id11     (nrows11, ncols11 ) )
+    allocate ( Id11         (nrows11, ncols11 ) )
 
-    cellFactorR    = level11%cellsize / level0%cellsize
-    cellFactorRbyH = level11%cellsize / level1%cellsize
+    ! initialize
+    upBound0(:)    = nodata_i4
+    downBound0(:)  = nodata_i4
+    leftBound0(:)  = nodata_i4
+    rightBound0(:) = nodata_i4
+
+    upBound1(:)    = nodata_i4   
+    downBound1(:)  = nodata_i4 
+    leftBound1(:)  = nodata_i4 
+    rightBound1(:) = nodata_i4 
+
+    L11Id_on_L0(:,:) = nodata_i4
+    L11Id_on_L1(:,:) = nodata_i4
+    Id11(:,:)        = nodata_i4
+
+    cellFactorR    = level11%cellsize(iBasin) / level0%cellsize(iBasin)
+    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
 
     ! get Ids of L11 
     Id11(:,:) =  UNPACK( L11_Id(iStart11:iEnd11),  mask11, nodata_i4 )
@@ -460,6 +501,7 @@ CONTAINS
 
     ! flow direction at level-11
 
+    ! allocate
     allocate ( iD0         ( nrows0, ncols0 ) )
     allocate ( fAcc0       ( nrows0, ncols0 ) )
     allocate ( fDir0       ( nrows0, ncols0 ) )
@@ -470,159 +512,183 @@ CONTAINS
     allocate ( rowOut      ( nNodes ) )
     allocate ( colOut      ( nNodes ) )
 
-    fDir11 = nodata_i4
-    draSC0 = nodata_i4
-    rowOut = 0
-    colOut = 0
+    ! initialize
+    iD0(:,:)        = nodata_i4   
+    fAcc0(:,:)      = nodata_i4
+    fDir0(:,:)      = nodata_i4
+    draSC0(:,:)     = nodata_i4    
+    cellCoor0(:,:)  = nodata_i4
+    cellCoor11(:,:) = nodata_i4
+    fDir11(:,:)     = nodata_i4 
+    rowOut(:)       = nodata_i4 
+    colOut(:)       = nodata_i4
 
     ! get iD, fAcc, fDir at L0
-    iD0(:,:)   =  UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
-    fAcc0(:,:) =  UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4 )
-    fDir0(:,:) =  UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4 )
+    iD0(:,:)   = UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
+    fAcc0(:,:) = UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4 )
+    fDir0(:,:) = UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4 )
 
     cellCoor0(:,:)  = L0_cellCoor  (iStart0 : iEnd0,  :)
     cellCoor11(:,:) = L11_cellCoor (iStart11: iEnd11, :)
 
-    ! finding main outlet (row, col) in L11
-    oLoc = maxloc ( fAcc0, mask0 )
-    kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
-    fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
+    ! CASE WHERE ROUTING AND INPUT DATA SCALE IS SIMILAR
+    IF(nCells0 .EQ. nNodes) THEN
+      oLoc = maxloc ( fAcc0, mask0 )
+      kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
+      fDir11(:,:) = fDir0(:,:)
+      fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
+      ! set location of main outlet in L11
+      do kk = 1, nNodes
+         ii = cellCoor11( kk, 1 )
+         jj = cellCoor11( kk, 2 )
+         rowOut(kk) = ii
+         colOut(kk) = jj
+         draSC0(ii,jj) = kk
+      end do
+      
+      ! CASE WHERE ROUTING AND INPUT DATA SCALE DIFFERS 
+    ELSE
+      ! finding main outlet (row, col) in L11
+      oLoc = maxloc ( fAcc0, mask0 )
+      kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
+      fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
 
-    ! set location of main outlet in L11
-    rowOut(kk) = oLoc(1)
-    colOut(kk) = oLoc(2)
-    draSC0 ( oLoc(1), oLoc(2) ) = kk
+      ! set location of main outlet in L11
+      rowOut(kk) = oLoc(1)
+      colOut(kk) = oLoc(2)
+      draSC0 ( oLoc(1), oLoc(2) ) = kk
 
-    ! finding cell L11 outlets -  using L0_fAcc
+      ! finding cell L11 outlets -  using L0_fAcc
 
-    do kk = 1, nNodes
+      do kk = 1, nNodes
 
-       ! exclude outlet L11
-       if ( rowOut(kk) > 0 ) cycle
+         ! exclude outlet L11
+         if ( rowOut(kk) > 0 ) cycle
 
-       ic = cellCoor11(kk,1)
-       jc = cellCoor11(kk,2)
+         ic = cellCoor11(kk,1)
+         jc = cellCoor11(kk,2)
 
-       ! coord. of all corners
-       iu = upBound0   (kk)
-       id = downBound0 (kk)
-       jl = leftBound0 (kk)
-       jr = rightBound0(kk)
+         ! coord. of all corners
+         iu = upBound0   (kk)
+         id = downBound0 (kk)
+         jl = leftBound0 (kk)
+         jr = rightBound0(kk)
 
-       fAccMax = -9
-       idMax   =  0
-       side    = -1
+         fAccMax = -9
+         idMax   =  0
+         side    = -1
 
-       ! searching on side 4
-       do jj = jl,jr
-          if ( ( fAcc0(iu,jj) > fAccMax       )  .and. &
-               ( fDir0(iu,jj) ==  32 .or.  &
-               fDir0(iu,jj) ==  64 .or.  &
-               fDir0(iu,jj) == 128       )        ) then
-             fAccMax = fAcc0(iu,jj)
-             idMax   =   id0(iu,jj)
-             side    = 4
-          end if
-       end do
+         ! searching on side 4
+         do jj = jl,jr
+            if ( ( fAcc0(iu,jj) > fAccMax       )  .and. &
+                 ( fDir0(iu,jj) ==  32 .or.  &
+                 fDir0(iu,jj) ==  64 .or.  &
+                 fDir0(iu,jj) == 128       )        ) then
+               fAccMax = fAcc0(iu,jj)
+               idMax   =   id0(iu,jj)
+               side    = 4
+            end if
+         end do
 
-       ! searching on side 1
-       do ii = iu,id
-          if ( ( fAcc0(ii,jr) > fAccMax       )  .and. &
-               ( fDir0(ii,jr) ==   1 .or.  &
-               fDir0(ii,jr) ==   2 .or.  &
-               fDir0(ii,jr) == 128       )        ) then
-             fAccMax = fAcc0(ii,jr)
-             idMax   =   id0(ii,jr)
-             side    = 1
-          end if
-       end do
+         ! searching on side 1
+         do ii = iu,id
+            if ( ( fAcc0(ii,jr) > fAccMax       )  .and. &
+                 ( fDir0(ii,jr) ==   1 .or.  &
+                 fDir0(ii,jr) ==   2 .or.  &
+                 fDir0(ii,jr) == 128       )        ) then
+               fAccMax = fAcc0(ii,jr)
+               idMax   =   id0(ii,jr)
+               side    = 1
+            end if
+         end do
 
-       ! searching on side 2
-       do jj = jl,jr
-          if ( ( fAcc0(id,jj) > fAccMax       )  .and. &
-               ( fDir0(id,jj) ==   2 .or.  &
-               fDir0(id,jj) ==   4 .or.  &
-               fDir0(id,jj) ==   8       )        ) then
-             fAccMax = fAcc0(id,jj)
-             idMax   =   id0(id,jj)
-             side    = 2
-          end if
-       end do
+         ! searching on side 2
+         do jj = jl,jr
+            if ( ( fAcc0(id,jj) > fAccMax       )  .and. &
+                 ( fDir0(id,jj) ==   2 .or.  &
+                 fDir0(id,jj) ==   4 .or.  &
+                 fDir0(id,jj) ==   8       )        ) then
+               fAccMax = fAcc0(id,jj)
+               idMax   =   id0(id,jj)
+               side    = 2
+            end if
+         end do
 
-       ! searching on side 3
-       do ii = iu,id  
-          if ( ( fAcc0(ii,jl) > fAccMax       )  .and. &
-               ( fDir0(ii,jl) ==   8 .or.  &
-               fDir0(ii,jl) ==  16 .or.  &
-               fDir0(ii,jl) ==  32       )        ) then
-             fAccMax = fAcc0(ii,jl)
-             idMax   =   id0(ii,jl)
-             side    = 3
-          end if
-       end do
+         ! searching on side 3
+         do ii = iu,id  
+            if ( ( fAcc0(ii,jl) > fAccMax       )  .and. &
+                 ( fDir0(ii,jl) ==   8 .or.  &
+                 fDir0(ii,jl) ==  16 .or.  &
+                 fDir0(ii,jl) ==  32       )        ) then
+               fAccMax = fAcc0(ii,jl)
+               idMax   =   id0(ii,jl)
+               side    = 3
+            end if
+         end do
 
-       ! set location of the cell-outlet (row, col) in L0
-       ii = cellCoor0( idMax, 1 )
-       jj = cellCoor0( idMax, 2 )
-       rowOut(kk) = ii
-       colOut(kk) = jj
-       draSC0(ii,jj) = kk
+         ! set location of the cell-outlet (row, col) in L0
+         ii = cellCoor0( idMax, 1 )
+         jj = cellCoor0( idMax, 2 )
+         rowOut(kk) = ii
+         colOut(kk) = jj
+         draSC0(ii,jj) = kk
 
-       ! set fDir at L11
-       if     ( ii == iu .and.  jj == jl ) then
-          select case ( fDir0(ii,jj) )
-          case (8,16)
-             fDir11(ic,jc) = 16
-          case (32)
-             fDir11(ic,jc) = 32
-          case (64,128)
-             fDir11(ic,jc) = 64
-          end select
-       elseif ( ii == iu .and.  jj == jr ) then
-          select case ( fDir0(ii,jj) )
-          case (32,64)
-             fDir11(ic,jc) = 64
-          case (128)
-             fDir11(ic,jc) = 128
-          case (1,2)
-             fDir11(ic,jc) = 1
-          end select
-       elseif ( ii == id .and.  jj == jl ) then
-          select case ( fDir0(ii,jj) )
-          case (2,4)
-             fDir11(ic,jc) = 4
-          case (8)
-             fDir11(ic,jc) = 8
-          case (16,32)
-             fDir11(ic,jc) = 16
-          end select
-       elseif ( ii == id .and.  jj == jr ) then
-          select case ( fDir0(ii,jj) )
-          case (128,1)
-             fDir11(ic,jc) = 1
-          case (2)
-             fDir11(ic,jc) = 2
-          case (4,8)
-             fDir11(ic,jc) = 4
-          end select
-       else
-          ! cell on one side
-          select case (side)
-          case (1)
-             fDir11(ic,jc) = 1
-          case (2)
-             fDir11(ic,jc) = 4
-          case (3)
-             fDir11(ic,jc) = 16
-          case (4)
-             fDir11(ic,jc) = 64
-          case default
-             stop 'Error L11_flow_direction: side = -1'
-          end select
-       endif
+         ! set fDir at L11
+         if     ( ii == iu .and.  jj == jl ) then
+            select case ( fDir0(ii,jj) )
+            case (8,16)
+               fDir11(ic,jc) = 16
+            case (32)
+               fDir11(ic,jc) = 32
+            case (64,128)
+               fDir11(ic,jc) = 64
+            end select
+         elseif ( ii == iu .and.  jj == jr ) then
+            select case ( fDir0(ii,jj) )
+            case (32,64)
+               fDir11(ic,jc) = 64
+            case (128)
+               fDir11(ic,jc) = 128
+            case (1,2)
+               fDir11(ic,jc) = 1
+            end select
+         elseif ( ii == id .and.  jj == jl ) then
+            select case ( fDir0(ii,jj) )
+            case (2,4)
+               fDir11(ic,jc) = 4
+            case (8)
+               fDir11(ic,jc) = 8
+            case (16,32)
+               fDir11(ic,jc) = 16
+            end select
+         elseif ( ii == id .and.  jj == jr ) then
+            select case ( fDir0(ii,jj) )
+            case (128,1)
+               fDir11(ic,jc) = 1
+            case (2)
+               fDir11(ic,jc) = 2
+            case (4,8)
+               fDir11(ic,jc) = 4
+            end select
+         else
+            ! cell on one side
+            select case (side)
+            case (1)
+               fDir11(ic,jc) = 1
+            case (2)
+               fDir11(ic,jc) = 4
+            case (3)
+               fDir11(ic,jc) = 16
+            case (4)
+               fDir11(ic,jc) = 64
+            case default
+               stop 'Error L11_flow_direction: side = -1'
+            end select
+         endif
 
-    end do
-
+      end do
+      
+ END IF
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
@@ -632,7 +698,6 @@ CONTAINS
        allocate( basin%L0_rowOutlet(nBasins) ) 
        allocate( basin%L0_colOutlet(nBasins) )
     end if
-
 
     ! L0 data sets
 
@@ -752,20 +817,24 @@ CONTAINS
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
 
+    ! allocate
     allocate ( nLinkFromN ( nNodes    ) )  ! valid from (1 : nLinks)
     allocate ( nLinkToN   ( nNodes    ) )  ! "
     allocate ( cellCoor11 ( nNodes, 2 ) )  
     allocate ( Id11       ( nrows11, ncols11 ) )
     allocate ( fDir11     ( nrows11, ncols11 ) )
 
+    ! initialize
+    nLinkFromN(:)   = nodata_i4
+    nLinkToN(:)     = nodata_i4
+    cellCoor11(:,:) = nodata_i4
+    Id11(:,:)       = nodata_i4
+    fDir11(:,:)     = nodata_i4
+
     ! get grids of L11 
     Id11(:,:) =    UNPACK( L11_Id   ( iStart11 : iEnd11),  mask11, nodata_i4 )
     fDir11(:,:) =  UNPACK( L11_fDir ( iStart11 : iEnd11),  mask11, nodata_i4 )
     cellCoor11(:,:) = L11_cellCoor ( iStart11 : iEnd11, : )
-
-    ! initialize
-    nLinkFromN(:) = nodata_i4
-    nLinkToN(:)   = nodata_i4
 
     ! ------------------------------------------------------------------
     !  network topology
@@ -883,6 +952,7 @@ CONTAINS
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
 
+    ! allocate
     allocate ( nLinkFromN  ( nNodes ) )  ! all vectors valid from (1 : nLinks)
     allocate ( nLinkToN    ( nNodes ) )
     allocate ( nLinkROrder ( nNodes ) )
@@ -890,15 +960,18 @@ CONTAINS
     allocate ( nLinkSink   ( nNodes ) )
     allocate ( netPerm     ( nNodes ) )
 
+    ! initialize
+    nLinkFromN(:)         = nodata_i4
+    nLinkToN(:)           = nodata_i4
+    nLinkROrder(1:nLinks) = 1_i4
+    nLinkROrder(nNodes)   = nodata_i4
+    nLinkLabel            = nodata_i4
+    nLinkSink(:)          = .FALSE.
+    netPerm(:)            = nodata_i4
+
     ! get network vectors of L11 
     nLinkFromN(:) = L11_fromN ( iStart11 : iEnd11 )
     nLinkToN(:)   = L11_toN   ( iStart11 : iEnd11 )
-
-    ! initialize
-    nLinkROrder(1:nLinks) = 1
-    nLinkROrder(nNodes)   = nodata_i4
-    netPerm(:)            = nodata_i4
-    nLinkSink(:)          = .FALSE.
 
     loop1: do ii = 1, nLinks
        loop2: do jj = 1, nLinks
@@ -1043,7 +1116,9 @@ CONTAINS
     integer(i4)                               :: nNodes
     integer(i4)                               :: nLinks
     integer(i4)                               :: nrows0, ncols0
+    integer(i4)                               :: nrows110, ncols110
     integer(i4)                               :: iStart0, iEnd0
+    integer(i4)                               :: iStart110, iEnd110
     integer(i4)                               :: nrows11, ncols11
     integer(i4)                               :: iStart11, iEnd11
     integer(i4), dimension(:), allocatable    :: rowOut         ! northing cell loc. of the Outlet
@@ -1063,6 +1138,9 @@ CONTAINS
 
     ! level-0 information
     call get_basin_info (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
+
+    ! level-110 information
+    call get_basin_info (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
 
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
@@ -1098,7 +1176,7 @@ CONTAINS
 
     ! get fDir at L0
     fDir0(:,:) =   UNPACK( L0_fDir  (iStart0:iEnd0),  mask0, nodata_i4 )
-    draSC0(:,:) =  UNPACK( L0_draSC (iStart0:iEnd0),  mask0, nodata_i4 )
+    draSC0(:,:) =  UNPACK( L0_draSC (iStart110:iEnd110),  mask0, nodata_i4 )
 
     ! get network vectors of L11 
     nLinkFromN(:) = L11_fromN   ( iStart11 : iEnd11 )
@@ -1207,19 +1285,23 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
   ! ------------------------------------------------------------------
 
   subroutine L11_set_drain_outlet_gauges(iBasin)
 
     use mo_global_variables, only: &
          basin,       & 
-         L0_fDir,     & ! IN: flow direction (standard notation) L0
-         L0_draSC,    & ! IN: Index of draining cell of each sub catchment (== cell L11)
-         L0_cellCoor, & ! IN: cell coordinates (row,col) -> <only domain> input data
-         L0_gaugeLoc, & ! IN: location of gauges (read with gauge Id then 
-         !              !     transformed into gauge running ID => [1,nGaugesTotal]
-         L0_L11_Id,   & ! IN: mapping of L11 Id on L0
-         L0_draCell     ! INOUT: draining cell id at L11 of ith cell of L0
+         L0_fDir,     &       ! IN: flow direction (standard notation) L0
+         L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
+         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
+         L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
+         !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
+         !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_Basin,    &       ! if the same data as basin before are used index of basin before has to be used
+         L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
+         L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
 
     implicit none
 
@@ -1228,47 +1310,63 @@ CONTAINS
     ! local
     integer(i4)                               :: nCells0
     integer(i4)                               :: nrows0, ncols0
+    integer(i4)                               :: nrows110, ncols110
     integer(i4)                               :: iStart0, iEnd0
+    integer(i4)                               :: iStart110, iEnd110
     logical,     dimension(:,:), allocatable  :: mask0
     integer(i4), dimension(:,:), allocatable  :: cellCoor0
     integer(i4), dimension(:,:), allocatable  :: draSC0         
     integer(i4), dimension(:,:), allocatable  :: fDir0
-    integer(i4), dimension(:,:), allocatable  :: gaugeLoc0      
+    integer(i4), dimension(:,:), allocatable  :: gaugeLoc0   
+    integer(i4), dimension(:,:), allocatable  :: InflowGaugeLoc0   
     integer(i4), dimension(:,:), allocatable  :: draCell0
     integer(i4), dimension(:,:), allocatable  :: L11Id_on_L0
-    integer(i4)                               :: ii, jj, kk
+    integer(i4)                               :: ii, jj, kk, ll, index
     integer(i4)                               :: iSc
     integer(i4)                               :: iRow, jCol
-    integer(i4)                               :: gaugeCounter
 
     ! level-0 information
     call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
-    allocate ( cellCoor0   ( nCells0, 2 ) )  
-    allocate ( draSC0      ( nrows0, ncols0 ) )
-    allocate ( fDir0       ( nrows0, ncols0 ) )
-    allocate ( gaugeLoc0   ( nrows0, ncols0 ) )
-    allocate ( draCell0    ( nrows0, ncols0 ) )
-    allocate ( L11Id_on_L0 ( nrows0, ncols0 ) )
+    ! level-110 information (nrows110,ncols110) always equal to (nrows0,ncols0)
+    call get_basin_info ( iBasin, 110, nrows110, ncols110, &
+         iStart=iStart110, iEnd=iEnd110 ) 
+
+    ! allocate
+    allocate ( cellCoor0       ( nCells0, 2 ) )  
+    allocate ( draSC0          ( nrows0, ncols0 ) )
+    allocate ( fDir0           ( nrows0, ncols0 ) )
+    allocate ( gaugeLoc0       ( nrows0, ncols0 ) )
+    allocate ( InflowGaugeLoc0 ( nrows0, ncols0 ) )
+    allocate ( draCell0        ( nrows0, ncols0 ) )
+    allocate ( L11Id_on_L0     ( nrows0, ncols0 ) )
+
+    ! initialize
+    cellCoor0(:,:)         = nodata_i4  
+    draSC0(:,:)            = nodata_i4
+    fDir0(:,:)             = nodata_i4
+    gaugeLoc0(:,:)         = nodata_i4
+    InflowGaugeLoc0(:,:)   = nodata_i4
+    draCell0(:,:)          = nodata_i4
+    L11Id_on_L0(:,:)       = nodata_i4
 
     ! get L0 fields
-    cellCoor0(:,:)  = L0_cellCoor(iStart0 : iEnd0, :)
+    cellCoor0(:,:)       = L0_cellCoor(iStart0 : iEnd0, :)
 
-    draSC0(:,:) =      UNPACK( L0_draSC    (iStart0:iEnd0),  mask0, nodata_i4 )
-    fDir0(:,:) =       UNPACK( L0_fDir     (iStart0:iEnd0),  mask0, nodata_i4 )
-    gaugeLoc0(:,:) =   UNPACK( L0_gaugeLoc (iStart0:iEnd0),  mask0, nodata_i4 )
-    L11Id_on_L0(:,:) = UNPACK( L0_L11_Id   (iStart0:iEnd0),  mask0, nodata_i4 ) 
+    draSC0(:,:)          = UNPACK( L0_draSC          (iStart110:iEnd110), mask0, nodata_i4 )
+    fDir0(:,:)           = UNPACK( L0_fDir           (iStart0:iEnd0),     mask0, nodata_i4 )
+    gaugeLoc0(:,:)       = UNPACK( L0_gaugeLoc       (iStart0:iEnd0),     mask0, nodata_i4 )
+    InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
+    L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
-    draCell0(:,:) = nodata_i4
-
-    gaugeCounter = 0
+    index = nodata_i4
 
     do kk = 1, nCells0
 
        ii   = cellCoor0(kk,1)
        jj   = cellCoor0(kk,2)
-       iSc = draSC0(ii,jj)
+       iSc  = draSC0(ii,jj)
        ! find drainage path
        iRow = ii
        jCol = jj
@@ -1279,11 +1377,39 @@ CONTAINS
        end do
        draCell0(ii,jj) = iSC
 
-       ! set gauging nodes !>> G0%ScId is Id of the routing cell at level-11
-       if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
-          gaugeCounter = gaugeCounter + 1
-          basin%gaugeNodeList( iBasin, gaugeCounter ) = L11Id_on_L0(ii,jj)
+       ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of
+       ! the routing cell at level-11
+        if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
+          ! evaluation gauges
+          do ll = 1, basin%nGauges(iBasin)
+             ! since indices are given  consecutive for gauge%Ids they have to be set to the
+             ! index of the gauge before since L0 data are the same
+             index = basin%gaugeIndexList(iBasin, ll) 
+             if (iBasin .GT. 1) then
+                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
+                  index = basin%gaugeIndexList(iBasin-1, ll)
+             end if
+             ! save ID on L11
+             if ( index .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+          end do
        end if
+
+
+       if ( InflowGaugeLoc0(ii,jj) /= nodata_i4 ) then 
+          ! inflow gauges
+          do ll = 1, basin%nInflowGauges(iBasin)
+             ! since indices are given  consecutive for InflowGauge%Ids they have to be set to the
+             ! index of the gauge before since L0 data are the same
+             index = basin%InflowGaugeIndexList(iBasin, ll)
+             ! save ID on L11
+             if (iBasin .GT. 1) then
+                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
+                     index = basin%InflowGaugeIndexList(iBasin-1, ll)
+             end if
+             if (index .EQ. InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+          end do
+       end if
+  
     end do
 
     !--------------------------------------------------------
@@ -1413,6 +1539,7 @@ CONTAINS
 
     nLinks  = nNodes - 1
 
+    ! allocate
     allocate ( iD0           ( nrows0, ncols0 ) )
     allocate ( elev0         ( nrows0, ncols0 ) )
     allocate ( fDir0         ( nrows0, ncols0 ) )
@@ -1433,10 +1560,30 @@ CONTAINS
     allocate ( nLinkAFloodPlain  ( nNodes ) )
     allocate ( nLinkSlope        ( nNodes ) )
 
-    allocate(nodata_i4_tmp(nrows0,ncols0))
-    allocate(nodata_dp_tmp(nrows0,ncols0))
-    nodata_i4_tmp = nodata_i4
-    nodata_dp_tmp = nodata_dp
+    allocate (nodata_i4_tmp      ( nrows0, ncols0 ) )
+    allocate (nodata_dp_tmp      ( nrows0, ncols0 ) )
+
+    ! initialize
+    iD0(:,:)             = nodata_i4
+    elev0(:,:)           = nodata_dp
+    fDir0(:,:)           = nodata_i4
+    areaCell0(:,:)       = nodata_dp
+    streamNet0(:,:)      = nodata_i4
+    floodPlain0(:,:)     = nodata_i4
+
+    stack(:,:)           = nodata_i4
+    append_chunk(:,:)    = nodata_i4
+    netPerm(:)           = nodata_i4
+    nLinkFromRow(:)      = nodata_i4
+    nLinkFromCol(:)      = nodata_i4
+    nLinkToRow(:)        = nodata_i4
+    nLinkToCol(:)        = nodata_i4
+    nLinkLength(:)       = nodata_dp
+    nLinkAFloodPlain(:)  = nodata_dp
+    nLinkSlope(:)        = nodata_dp
+
+    nodata_i4_tmp(:,:)   = nodata_i4
+    nodata_dp_tmp(:,:)   = nodata_dp
 
     ! get L0 fields
     iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
@@ -1470,7 +1617,7 @@ CONTAINS
        stack(ns,1) = frow
        stack(ns,2) = fcol
 
-       call cellLength(fDir0(frow,fcol),  nLinkLength(ii) )
+       call cellLength(iBasin, fDir0(frow,fcol),  nLinkLength(ii) )
        nLinkSlope(ii) = elev0(frow, fcol)
 
        fId = iD0( frow, fcol )
@@ -1500,7 +1647,7 @@ CONTAINS
           ns = 1
           stack(ns,1) = frow
           stack(ns,2) = fcol
-          call cellLength( fDir0(fRow,fCol), length )
+          call cellLength(iBasin, fDir0(fRow,fCol), length )
           nLinkLength(ii) = nLinkLength(ii) + length
 
        end do
@@ -1978,13 +2125,14 @@ CONTAINS
   ! ------------------------------------------------------------------
   !  CELL LENGTH
   ! ------------------------------------------------------------------
-  subroutine cellLength(fDir, length)
+  subroutine cellLength(iBasin, fDir, length)
 
     use mo_constants,        only: SQRT2_dp
     use mo_global_variables, only: level0
 
     implicit none
 
+    integer(i4), intent(IN)  :: iBasin
     integer(i4), intent(IN)  :: fDir
     real(dp),    intent(OUT) :: length
 
@@ -1995,7 +2143,7 @@ CONTAINS
        length = SQRT2_dp
     end select
 
-    length = length * level0%cellsize
+    length = length * level0%cellsize(iBasin)
 
   end subroutine cellLength
 

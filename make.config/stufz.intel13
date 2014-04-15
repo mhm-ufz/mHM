@@ -1,0 +1,95 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Intel compiler 12.0.0 at Stephan's UFZ Ubuntu
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Stephan Thober
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+INTEL    := /opt/intel/composer_xe_2013_sp1.2.144
+INTELDIR := $(INTEL)/compiler
+INTELLIB := $(INTELDIR)/lib
+INTELBIN := $(INTEL)/bin/intel64
+
+# Compiling
+F90 := $(INTELBIN)/ifort
+FC  := $(F90)
+CC  := 
+ifeq ($(release),debug)
+    F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
+    FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
+    CFLAGS   += -g -debug -traceback -fp-stack-check -O0 -debug -Wall -Wcheck
+else
+    # -vec-report1 to see vectorized loops; -vec-report2 to see also non-vectorized loops
+    F90FLAGS += -O3 -vec-report0 -override-limits
+    FCFLAGS  += -O3 -vec-report0 -override-limits
+    CFLAGS   += -O3
+endif
+F90FLAGS += -assume byterecl -cpp -fp-model source -m64 # -fp-model source is the same as -fp-model precise
+MODFLAG  := -module # space significant
+FCFLAGS  += -assume byterecl -cpp -fp-model source -m64 -fixed
+CFLAGS   += -m64 -std=c99
+DEFINES  += -DINTEL -DINTEL_COMPILER
+
+# Linking
+ifeq ($(istatic),static)
+    LIBS += -static-intel
+endif
+LIBS += -L$(INTELLIB) -limf -lm -lsvml
+ifneq ($(istatic),static)
+     LIBS += -lintlc
+endif
+# RPATH += -Wl,-rpath,$(INTELLIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+MKLDIR := $(INTEL)/mkl
+MKLINC := $(MKLDIR)/include/intel64/lp64
+MKLLIB := $(MKLDIR)/lib/intel64
+MKL95DIR := $(MKLDIR)
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/lp64
+
+# NETCDF
+NCDIR := /opt/netcdf-fortran-4.2-ifort
+SZLIB   := 
+HDF5LIB := 
+
+# PROJ
+PROJ4DIR := 
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   := 
+LAPACKLIB   := 
+GFORTRANDIR := 
+
+# Documentation
+DOXYGENDIR :=
+DOTDIR     :=
+TEXDIR     :=
+PERLDIR    :=

@@ -20,6 +20,7 @@ MODULE mo_write_ascii
   ! Written  Christoph Schneider, May 2013
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
   ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
+  ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -91,6 +92,7 @@ CONTAINS
          nBasins,                   &
          basin,                     &
          gauge,                     &
+         InflowGauge,               &
          L0_nCells,                 &
          L1_nCells,                 &
          L11_nCells,                &
@@ -105,6 +107,7 @@ CONTAINS
          L1_L11_ID,                 &
          L1_areaCell,               &
          nGaugesTotal,              &
+         nInflowGaugesTotal,        &
          timeStep,                  &
          resolutionHydrology,       &
          resolutionRouting,         &  
@@ -163,10 +166,12 @@ CONTAINS
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
     write(uconfig, 103)    'Time Step [h]               ', timeStep
-    write(uconfig, 125)    'Hydrology Resolution [m]      ', resolutionHydrology
-    if ( processMatrix(8,1) .ne. 0 ) then
-       write(uconfig, 125) 'Routing Resolution [m]        ', resolutionRouting
-    end if
+    do i=1, nBasins
+       write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
+       if ( processMatrix(8,1) .ne. 0 ) then
+          write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
+       end if
+    end do
     write(uconfig, 126)    'Flag READ  restart states     ', restart_flag_states_read
     write(uconfig, 126)    'Flag WRITE restart states     ', restart_flag_states_write
     write(uconfig, 126)    'Flag READ  restart config.    ', restart_flag_config_read
@@ -219,6 +224,15 @@ CONTAINS
        do i=1, nGaugesTotal
           write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
                minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+       end do
+    end if
+    ! inflow gauge data
+    if ( nInflowGaugesTotal .GT. 0 ) then
+       write(uconfig, 202) '                Basin Inflow Data                 '
+       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
+       do i=1, nInflowGaugesTotal
+          write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
+               minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
        end do
     end if
     ! basin config
@@ -328,8 +342,6 @@ CONTAINS
 122 format (a10, 3a15,   a35)
 123 format (i10, 3f15.3, a35)
     !
-
-125 format (a30,1x,f10.0)
 126 format (a30,9x,L1)
     !
 200 format (80('-'))
@@ -339,6 +351,8 @@ CONTAINS
 218 format (/ 80('-')/ 26x, a24,26x,  /80('-'))
 222 format (/80('-')/ 26x,a21 /80('-'))
 224 format (a40, 5x, a40)
+
+301 format (a7, i2, a33,f10.0)
   end Subroutine write_configfile
 
 
@@ -411,25 +425,27 @@ CONTAINS
     character(256)                         :: fName, formHeader, formParams
     integer(i4)                            :: ii, err, n_params
 
+    ! number of parameters
+    n_params = size(best_paramSet)
+
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
-    open(uopti, file=fName, status='unknown', action='write', iostat=err)
+    open(uopti, file=fName, status='unknown', action='write', iostat=err, recl=(n_params+1)*40)
     if( err .ne. 0 ) then
        call message ('  IOError while openening ',trim(fName))
        call message ('  Error-Code ', num2str(err))
        stop
     end if
 
-    ! number of parameters
-    n_params = size(best_paramSet)
-
     ! header 
-    write(formHeader, *) '( a40, ' , n_params,'(a40) )' 
-    write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1,n_params)
+    write(formHeader, *) '(a40,',n_params,'a40)'
+    ! len(param_names(1))=256 but only 39 characters taken here
+    ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)
+    write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii)(1:39))), ii=1, n_params)
 
     ! output
     write(formParams, *) '( es40.15, ', n_params,'(es40.15) )' 
-    write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1,n_params)
+    write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1, n_params)
 
     ! close file
     close(uopti)

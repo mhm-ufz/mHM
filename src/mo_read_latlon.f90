@@ -91,7 +91,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: dummy ! dummy variable
 
     ! construct filename
-    fname = trim( dirLatLon(ii) ) // 'latlon.nc'
+    fname = trim( dirLatLon(ii) ) 
 
     ! read dimension length of variable in netcdf File
     dl = get_NcDim( trim(fname), 'lat' )

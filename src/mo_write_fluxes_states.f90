@@ -909,7 +909,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          CoordSytem
+  !          CoordSystem
 
   !         \brief Setting Gauss Krueger 3 and WGS84 coordinates for output
 
@@ -975,7 +975,7 @@ CONTAINS
     !
     xll   = level1%xllcorner(iBasin)
     yll   = level1%yllcorner(iBasin)
-    cz    = level1%cellsize
+    cz    = level1%cellsize(iBasin)
     nrows = level1%nrows(iBasin)
     ncols = level1%ncols(iBasin)
     !

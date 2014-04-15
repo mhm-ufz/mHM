@@ -74,8 +74,10 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Apr 2013
+  !>        \author   Stephan Thober
+  !>        \date     Apr 2013
+
+  !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
 
   subroutine read_restart_L11_config( iBasin, InPath )
 
@@ -167,15 +169,17 @@ CONTAINS
 
     ! calculate l11 grid resolutionRouting
     if(iBasin .eq. 1) then
-       allocate( level11%nrows     (nBasins) )
-       allocate( level11%ncols     (nBasins) )
-       allocate( level11%xllcorner (nBasins) )
-       allocate( level11%yllcorner (nBasins) )
+       allocate( level11%nrows        (nBasins) )
+       allocate( level11%ncols        (nBasins) )
+       allocate( level11%xllcorner    (nBasins) )
+       allocate( level11%yllcorner    (nBasins) )
+       allocate( level11%cellsize     (nBasins) )
+       allocate( level11%nodata_value (nBasins) )
     end if
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,            &
-         resolutionRouting , &
+         resolutionRouting(iBasin) , &
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin), &
-         level11%yllcorner(iBasin), level11%cellsize, level11%nodata_value        )
+         level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin)        )
 
     ! level-11 information
     call get_basin_info (iBasin, 11, nrows11, ncols11)
@@ -375,6 +379,14 @@ CONTAINS
     basin%gaugeNodeList( iBasin, : ) = dummyI1
     deallocate(dummyI1)
 
+    ! read InflowGaugeNodelist
+    if (basin%nInflowGauges(iBasin) > 0) then 
+       allocate(dummyI1( size(basin%InflowGaugeNodeList(iBasin,:))))
+       call Get_NcVar( Fname, 'InflowGaugeNodeList', dummyI1)
+       basin%InflowgaugeNodeList( iBasin, : ) = dummyI1
+       deallocate(dummyI1)
+    end if
+
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! L0 data sets 
     ! Stream network
@@ -462,7 +474,8 @@ CONTAINS
     use mo_ncread,           only: Get_NcVar
     use mo_mhm_constants,    only: nodata_dp
     use mo_init_states,      only: calculate_grid_properties
-    use mo_global_variables, only: L0_cellCoor    , & 
+    use mo_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
+         L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          L0_areaCell   , & ! Ids of grid at level-0
          L0_slope_emp  , & ! Empirical quantiles of slope
@@ -520,16 +533,18 @@ CONTAINS
          xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0  )
     !
     if (iBasin .eq. 1) then
-       allocate( level1%nrows     (nBasins) )
-       allocate( level1%ncols     (nBasins) )
-       allocate( level1%xllcorner (nBasins) )
-       allocate( level1%yllcorner (nBasins) )
+       allocate( level1%nrows        (nBasins) )
+       allocate( level1%ncols        (nBasins) )
+       allocate( level1%xllcorner    (nBasins) )
+       allocate( level1%yllcorner    (nBasins) )
+       allocate( level1%cellsize     (nBasins) )
+       allocate( level1%nodata_value (nBasins) )
     end if
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
-         resolutionHydrology , &
+         resolutionHydrology(iBasin) , &
          level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
-         level1%yllcorner(iBasin), level1%cellsize, level1%nodata_value        )
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
     !
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1 )
@@ -538,28 +553,56 @@ CONTAINS
     ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    ! read L0 cellCoor
-    allocate( dummyI2( nrows0, ncols0 ) )
-    allocate( dummyI22( count(mask0), 2 ))
-    call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
-    dummyI22(:,1) = pack( dummyI2, mask0 )
-    call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
-    dummyI22(:,2) = pack( dummyI2, mask0 )
-    call append( L0_cellCoor, dummyI22)
-    deallocate( dummyI22 )
-    !
-    call Get_NcVar( Fname, 'L0_Id', dummyI2)
-    call append( L0_Id, pack(dummyI2, mask0) )
-    deallocate( dummyI2 )
-    !
-    allocate( dummyD2( nrows0, ncols0 ) )
-    call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
-    call append( L0_areaCell, pack(dummyD2, mask0) )
-    !
-    call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
-    call append( L0_slope_emp, pack(dummyD2, mask0) )
-    deallocate( dummyD2 )
+    ! check whether L0 data should be read
+    if ( iBasin .eq. 1 ) then
+       ! read L0 cellCoor
+       allocate( dummyI2( nrows0, ncols0 ) )
+       allocate( dummyI22( count(mask0), 2 ))
+       call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+       dummyI22(:,1) = pack( dummyI2, mask0 )
+       call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+       dummyI22(:,2) = pack( dummyI2, mask0 )
+       call append( L0_cellCoor, dummyI22)
+       deallocate( dummyI22 )
+       !
+       call Get_NcVar( Fname, 'L0_Id', dummyI2)
+       call append( L0_Id, pack(dummyI2, mask0) )
+       deallocate( dummyI2 )
+       !
+       allocate( dummyD2( nrows0, ncols0 ) )
+       call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+       call append( L0_areaCell, pack(dummyD2, mask0) )
+       !
+       call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
+       call append( L0_slope_emp, pack(dummyD2, mask0) )
+       deallocate( dummyD2 )
+    else
+       if ( L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+          ! read L0 cellCoor
+          allocate( dummyI2( nrows0, ncols0 ) )
+          allocate( dummyI22( count(mask0), 2 ))
+          call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+          dummyI22(:,1) = pack( dummyI2, mask0 )
+          call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+          dummyI22(:,2) = pack( dummyI2, mask0 )
+          call append( L0_cellCoor, dummyI22)
+          deallocate( dummyI22 )
+          !
+          call Get_NcVar( Fname, 'L0_Id', dummyI2)
+          call append( L0_Id, pack(dummyI2, mask0) )
+          deallocate( dummyI2 )
+          !
+          allocate( dummyD2( nrows0, ncols0 ) )
+          call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+          call append( L0_areaCell, pack(dummyD2, mask0) )
+          !
+          call Get_NcVar( Fname, 'L0_slope_emp', dummyD2 )
+          call append( L0_slope_emp, pack(dummyD2, mask0) )
+          deallocate( dummyD2 )
+       end if
+    end if
 
+    ! update L0_nCells
     L0_nCells = size(L0_Id,1)
 
     !------------------------------------------------------
@@ -852,7 +895,6 @@ CONTAINS
        L1_aETSoil(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2 )
     allocate( dummyD2( nrows1, ncols1 ) )
 
@@ -1016,7 +1058,6 @@ CONTAINS
        L1_soilMoistExp(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2 )
     allocate( dummyD2( nrows1, ncols1 ) )
 
@@ -1042,7 +1083,6 @@ CONTAINS
        L1_wiltingPoint(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
-
     deallocate( dummyD2, dummyD3 )
 
     !-------------------------------------------
@@ -1066,18 +1106,16 @@ CONTAINS
 
        ! Total discharge inputs at t-1 and t
        deallocate( dummyD2 )
-       allocate( dummyD3( nrows1, ncols1, nRoutingStates ) )
-       allocate( dummyD2( ncells11, nRoutingStates ) )
-
+       allocate( dummyD3( nrows11, ncols11, nRoutingStates ) )
        call Get_NcVar( Fname, 'L11_qTIN', dummyD3 )
        do ii = 1, nRoutingStates
           L11_qTIN(s11:e11,ii) = pack( dummyD3(:,:,ii), mask11 )
        end do
 
-
        !  Routed outflow leaving a node
-       deallocate( dummyD2, dummyD3 )
-       allocate( dummyD3( nrows1, ncols1, nRoutingStates ) )
+       deallocate( dummyD3 )
+       allocate( dummyD3( nrows11, ncols11, nRoutingStates ) )
+
        allocate( dummyD2( ncells11,  nRoutingStates ) )
 
        call Get_NcVar( Fname, 'L11_qTR', dummyD3 )
@@ -1264,7 +1302,7 @@ CONTAINS
        call config_variables_set( i )
        call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
        call write_static_netcdf( hnc)
-       call close_netcdf(hnc)
+        call close_netcdf(hnc)
 
        ! free memory
        call free_memory_config
@@ -1484,8 +1522,11 @@ CONTAINS
   !     LITERATURE
 
   !     HISTORY
-  !         author Stephan Thober
-  !         date Jul 2013
+  !         author    Stephan Thober
+  !         date      Jul 2013
+
+  !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
+
   subroutine L11_config_set( iBasin )
 
     use mo_kind,               only: i4
@@ -1559,6 +1600,7 @@ CONTAINS
          L11_tCol_out, &
          L0_draCell_out, &
          gaugeNodeList_out, &
+         InflowGaugeNodeList_out, &
          L0_streamNet_out, &
          L0_floodPlain_out, &
          L11_length_out, &
@@ -1576,6 +1618,10 @@ CONTAINS
     integer(i4)                                :: iStart0   ! Start of Basin at Level 0
     integer(i4)                                :: iEnd0     ! End of Basin at Level 0
     logical, dimension(:,:), allocatable       :: mask0     ! Mask at Level 0
+    integer(i4)                                :: nrows110  ! Number of rows at Level 110
+    integer(i4)                                :: ncols110  ! Number of cols at Level 110
+    integer(i4)                                :: iStart110 ! Start of Basin at Level 110
+    integer(i4)                                :: iEnd110   ! End of Basin at Level 110
     integer(i4)                                :: nrows1    ! Number of rows at Level 1
     integer(i4)                                :: ncols1    ! Number of cols at Level 1
     integer(i4)                                :: iStart1   ! Start of Basin at Level 1
@@ -1597,6 +1643,10 @@ CONTAINS
     ! get level-0 information
     call get_basin_info(iBasin, 0, nrows0, ncols0, iStart=iStart0, &
          iEnd = iEnd0, mask = mask0 )
+
+    ! get level-110 information
+    call get_basin_info(iBasin, 110, nrows110, ncols110, iStart=iStart110, &
+         iEnd = iEnd110 )
 
     ! get level-11 information
     call get_basin_info(iBasin, 1, nrows1, ncols1, iStart=iStart1, &
@@ -1639,11 +1689,11 @@ CONTAINS
 
     ! L0 draining cell index
     allocate( L0_draSC_out( nrows0,ncols0 ) )
-    L0_draSC_out = unpack( L0_draSC(iStart0:iEnd0), mask0, nodata_i4 )
+    L0_draSC_out = unpack( L0_draSC(iStart110:iEnd110), mask0, nodata_i4 )
 
     ! Mapping of L11 Id on L0  
     allocate( L0_L11_Id_out( nrows0,ncols0 ) )
-    L0_L11_Id_out = unpack( L0_L11_Id(iStart0:iEnd0), mask0, nodata_i4)
+    L0_L11_Id_out = unpack( L0_L11_Id(iStart110:iEnd110), mask0, nodata_i4)
 
     ! L1 data sets <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Mapping of L11 Id on L1
@@ -1754,10 +1804,13 @@ CONTAINS
 
     ! Draining cell id at L11 of ith cell of L0
     allocate( L0_draCell_out( nrows0, ncols0 ) )
-    L0_draCell_out = unpack( L0_draCell( iStart0 : iEnd0), mask0, nodata_i4 )
+    L0_draCell_out = unpack( L0_draCell( iStart110 : iEnd110), mask0, nodata_i4 )
 
     allocate( gaugeNodeList_out( size( basin%gaugeNodeList(iBasin,:), dim=1)))
     gaugeNodeList_out = basin%gaugeNodeList(iBasin,:)
+
+    allocate( InflowGaugeNodeList_out( size( basin%InflowGaugeNodeList(iBasin,:), dim=1)))
+    InflowGaugeNodeList_out = basin%InflowGaugeNodeList(iBasin,:)
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! stream characteristics
@@ -1767,11 +1820,11 @@ CONTAINS
     ! L0 data sets
     ! Stream network
     allocate( L0_streamNet_out( nrows0, ncols0 ) )
-    L0_streamNet_out = unpack( L0_streamNet( iStart0 : iEnd0 ), mask0, nodata_i4 )
+    L0_streamNet_out = unpack( L0_streamNet( iStart110 : iEnd110 ), mask0, nodata_i4 )
 
     ! Floodplains of stream i
     allocate( L0_floodPlain_out( nrows0, ncols0 ) )
-    L0_floodPlain_out = unpack( L0_floodPlain( iStart0 : iEnd0 ), mask0, nodata_i4 )
+    L0_floodPlain_out = unpack( L0_floodPlain( iStart110 : iEnd110 ), mask0, nodata_i4 )
 
     ! L11 network data sets
     ! [m]     Total length of river link
@@ -2307,7 +2360,8 @@ CONTAINS
          nrows11           ,                 & ! Number of rows at Level 11
          ncols11           ,                 & ! Number of cols at Level 11
          NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges, &
+         Ngauges           ,                 & ! Number of evaluation gauges
+         nInflowGauges     ,                 & ! Number of inflow gauges
          L11_basin_Mask_out,                 & ! Mask at Level 11
          L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
          L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
@@ -2337,7 +2391,8 @@ CONTAINS
          L11_tRow_out      ,                 & ! To row in L0 grid
          L11_tCol_out      ,                 & ! To col in L0 grid 
          L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out, &
+         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
+         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
          L0_streamNet_out  ,                 & ! Stream network
          L0_floodPlain_out ,                 & ! Floodplains of stream i
          L11_length_out    ,                 & ! [m]     Total length of river link
@@ -2354,7 +2409,8 @@ CONTAINS
          nrows11           ,                 & ! Number of rows at Level 11
          ncols11           ,                 & ! Number of cols at Level 11
          NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges, &
+         Ngauges           ,                 & ! Number of evaluation gauges
+         nInflowGauges     ,                 & ! Number of inflow gauges
          L11_basin_Mask_out,                 & ! Mask at Level 11
          L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
          L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
@@ -2384,7 +2440,8 @@ CONTAINS
          L11_tRow_out      ,                 & ! To row in L0 grid
          L11_tCol_out      ,                 & ! To col in L0 grid 
          L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out, &
+         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
+         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
          L0_streamNet_out  ,                 & ! Stream network
          L0_floodPlain_out ,                 & ! Floodplains of stream i
          L11_length_out    ,                 & ! [m]     Total length of river link

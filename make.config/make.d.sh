@@ -91,8 +91,8 @@ srcfiles=$@
 dict="$(dirname ${thisfile})/${src2obj}/${pprog}.dict"
 if [ ! -f ${dict} ] ; then # new dict only if it does not exist in directory yet
     for i in ${srcfiles} ; do
-	ismod=$(echo "${i}:$(sed -e 's/\!.*//' -e '/^[Cc]/d' ${i} | tr [A-Z] [a-z] | tr -s ' ' | grep -E '^[[:blank:]]*module[[:blank:]]+' | sed -e 's/module //' | sed -e 's/ .*//')")
-	if [[ "${ismod}" != "${i}:" ]] ; then echo ${ismod} >> ${dict} ; fi
+	ismod=$(echo "${i}:$(sed -e 's/[[:blank:]]*\!.*//' -e '/^[Cc]/d' -e 's/^[[:blank:]]\{1,\}//' -e 's/[[:blank:]]\{1,\}\$//' -e 's/^[[:blank:]]\{1,\}$//' ${i} | tr [A-Z] [a-z] | tr -s ' ' | sed -n -e '/^module[[:blank:]]\{1,\}/p' | sed -n -e '/^module[[:blank:]]\{1,\}[[:alnum:]_]\{1,\}$/p' | sed -e 's/^module[[:blank:]]\{1,\}//')")
+	if [[ "${ismod}z" != "${i}:z" ]] ; then echo ${ismod} >> ${dict} ; fi
     done
 fi
 

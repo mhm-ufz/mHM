@@ -7,7 +7,9 @@ This chapter is divided in the following sections:\n
 - \ref model       
 - \ref mpr         
 - \ref param_est   
-- \ref cal         
+- \ref cal 
+- \ref basininfo
+- \ref protocols        
 
 \section description Short Description
 
@@ -294,5 +296,13 @@ simulated streamflows at a given time scale.
 Coding and Documentation Style (see \ref style) \n
 Setup netCDF on your MacOS system (see \ref NETCDF) \n
 Data Preparation for mHM (see \ref data) \n
+
+\section basininfo Test basin
+
+mHM comes with a test basin. For details see \ref testbasin. \n
+
+\section protocols Protocols
+
+To set up a new input data for mHM see \ref check_protocols. \n
 
 */

@@ -4,10 +4,14 @@
 
 !> \details This module provides a wrapper for several objective functions used to optimize mHM.\n
 !>          All the objective functions are supposed to be minimized! \n
-!>          (1) 1.0 - NSE
-!>          (2) 1.0 - lnNSE
-!>          (3) 1.0 - 0.5*(NSE+lnNSE)
-!>          (4) -1.0 * loglikelihood with removed trend and lag(1)-autocorrelation
+!>          (1) 1.0 - NSE  \n
+!>          (2) 1.0 - lnNSE  \n
+!>          (3) 1.0 - 0.5*(NSE+lnNSE)  \n
+!>          (4) -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
+!>          (5) ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
+!>          (6) SSE  \n
+!>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
+!>          (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -91,6 +95,7 @@ CONTAINS
     use mo_global_variables, only: gauge
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -118,7 +123,6 @@ CONTAINS
     real(dp)                              :: a, b, c
     real(dp)                              :: stddev_tmp
 
-    print*,'eval likelihood'
     call mhm_eval(parameterset, runoff=runoff)
 
     ! simulated timesteps per day 
@@ -150,7 +154,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -162,7 +166,7 @@ CONTAINS
     calc      = reshape(runoff_model_agg, (/nmeas/))
     errors(:) = abs( calc(:) - obs(:) )
 
-    ! remove linear trend of errors
+    ! remove linear trend of errors - must be model NOT obs
     ! out = linfit(obs, errors, a=a, b=b, model2=.False.)
     ! errors(:) = errors(:) - (a + obs(:)*b)
     out = linfit(calc, errors, a=a, b=b, model2=.False.)
@@ -173,8 +177,12 @@ CONTAINS
     errors(1:nmeas-1) = errors(2:nmeas) - c*errors(1:nmeas-1)
     errors(nmeas)     = 0.0_dp
 
+    ! you have to take stddev=const because otherwise loglikelihood is always N
+    ! in MCMC stddev gets updated only when a better likelihood is found.
     loglikelihood = sum( errors(:) * errors(:) / stddev**2 )
     loglikelihood = -0.5_dp * loglikelihood
+
+    write(*,*) '-loglikelihood = ', -loglikelihood
 
     stddev_tmp = sqrt(sum( (errors(:) - mean(errors)) * (errors(:) - mean(errors))) / real(nmeas-1,dp))
     if (present(stddev_new)) then
@@ -189,6 +197,330 @@ CONTAINS
     deallocate(obs, calc, out, errors)
     
   END FUNCTION loglikelihood
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          loglikelihood_kavetski
+
+  !>        \brief Logarithmic likelihood function with linear trend removed in relative errors
+  !>               and then Lag(1)-autocorrelation removed.
+
+  !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
+  !>        It can also be used for optimization when selecting the likelihood in the namelist as \e opti\_function.\n\n
+  !>               This is approach 2 of the paper Evin et al. (WRR 2013).
+
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>        \param[in] "real(dp) :: stddev_old"                 standard deviation of data
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation 
+  !>                                                         between model run using parameter set and observation
+  !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
+
+  !     RETURN
+  !>       \return     real(dp) :: loglikelihood_kavetski &mdash; logarithmic likelihood using given stddev 
+  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors 
+  !>                                                     (absolute between running model with parameterset and observation) 
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points.
+
+  !     EXAMPLE
+  !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
+  !         stddev = 0.5_dp
+  !         log_likeli = loglikelihood_kavetski(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
+
+  !     LITERATURE
+  !         Evin et al., WRR 49, 4518-4524, 2013
+
+  !     HISTORY
+  !>        \author Juliane Mai and Matthias Cuntz
+  !>        \date Mar 2014
+  !         Modified, 
+
+  FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
+    use mo_moment,           only: stddev, correlation
+    use mo_linfit,           only: linfit
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)            :: parameterset
+    real(dp),               intent(in)            :: stddev_old           ! standard deviation of data
+    real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
+    real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+    real(dp)                                      :: loglikelihood_kavetski
+
+    ! local
+    real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    integer(i4)                           :: nmeas
+    real(dp), dimension(:),   allocatable :: errors
+    real(dp), dimension(:),   allocatable :: obs, calc, out
+    real(dp)                              :: a, b, c
+    real(dp)                              :: stddev_tmp
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+
+    ! ----------------------------------------
+
+    nmeas     = size(runoff_model_agg,1) * nGaugesTotal
+    
+    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
+
+    obs       = reshape(gauge%Q, (/nmeas/))
+    calc      = reshape(runoff_model_agg, (/nmeas/))
+    errors(:) = abs( calc(:) - obs(:) )
+
+    ! remove linear trend of errors - must be model NOT obs
+    out = linfit(calc, errors, a=a, b=b, model2=.False.)
+    errors(:) = errors(:) / (a + calc(:)*b)
+
+    ! remove lag(1)-autocorrelation of errors
+    c = correlation(errors(2:nmeas),errors(1:nmeas-1))
+    errors(1:nmeas-1) = errors(2:nmeas) - c*errors(1:nmeas-1)
+    errors(nmeas)     = 0.0_dp
+
+    ! you have to take stddev_old=const because otherwise loglikelihood_kavetski is always N
+    ! in MCMC stddev gets updated only when a better likelihood is found.
+    loglikelihood_kavetski = sum( errors(:) * errors(:) / stddev_old**2 )
+    loglikelihood_kavetski = -0.5_dp * loglikelihood_kavetski
+
+    write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
+
+    stddev_tmp = 1.0_dp  ! initialization
+    if (present(stddev_new) .or. present(likeli_new)) then
+       stddev_tmp = stddev(errors(:))
+    end if
+    if (present(stddev_new)) then
+       stddev_new = stddev_tmp
+    end if
+    if (present(likeli_new)) then
+       likeli_new = sum( errors(:) * errors(:) / stddev_tmp**2 )
+       likeli_new = -0.5_dp * likeli_new
+    end if
+
+    deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
+    deallocate(obs, calc, out, errors)
+    
+  END FUNCTION loglikelihood_kavetski
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          loglikelihood_trend_no_autocorr
+
+  !>        \brief Logarithmic likelihood function with linear trend removed.
+
+  !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
+  !>        It can also be used for optimization when selecting the likelihood in the namelist as \e opti\_function.\n
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>        \param[in] "real(dp) :: stddev"                 standard deviation of data
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend 
+  !>                                                         between model run using parameter set and observation
+  !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
+
+  !     RETURN
+  !>       \return     real(dp) :: loglikelihood_trend_no_autocorr &mdash; logarithmic likelihood using given stddev 
+  !>                                                     but remove optimal trend in errors 
+  !>                                                     (absolute between running model with parameterset and observation) 
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points.
+
+  !     EXAMPLE
+  !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
+  !         stddev = 0.5_dp
+  !         log_likeli = loglikelihood_trend_no_autocorr(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
+
+  !     LITERATURE
+
+  !     HISTORY
+  !>        \author Juliane Mai and Matthias Cuntz
+  !>        \date Mar 2014
+
+  FUNCTION loglikelihood_trend_no_autocorr(parameterset, stddev_old, stddev_new, likeli_new)
+    use mo_moment,           only: stddev
+    use mo_linfit,           only: linfit
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)            :: parameterset
+    real(dp),               intent(in)            :: stddev_old       ! standard deviation of data
+    real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
+    real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+    real(dp)                                      :: loglikelihood_trend_no_autocorr
+
+    ! local
+    real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    integer(i4)                           :: nmeas
+    real(dp), dimension(:),   allocatable :: errors
+    real(dp), dimension(:),   allocatable :: obs, calc, out
+    real(dp)                              :: a, b
+    real(dp)                              :: stddev_tmp
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+
+    ! ----------------------------------------
+
+    nmeas     = size(runoff_model_agg,1) * nGaugesTotal
+    
+    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
+
+    obs       = reshape(gauge%Q, (/nmeas/))
+    calc      = reshape(runoff_model_agg, (/nmeas/))
+    errors(:) = abs( calc(:) - obs(:) )
+
+    ! remove linear trend of errors - must be model NOT obs
+    out = linfit(calc, errors, a=a, b=b, model2=.False.)
+    errors(:) = errors(:) - (a + calc(:)*b)
+
+    ! you have to take stddev_old=const because otherwise loglikelihood_trend_no_autocorr is always N
+    ! in MCMC stddev_old gets updated only when a better likelihood is found.
+    loglikelihood_trend_no_autocorr = sum( errors(:) * errors(:) / stddev_old**2 )
+    loglikelihood_trend_no_autocorr = -0.5_dp * loglikelihood_trend_no_autocorr
+
+    write(*,*) '-loglikelihood_trend_no_autocorr = ', -loglikelihood_trend_no_autocorr
+
+    stddev_tmp = 1.0_dp  ! initialization
+    if (present(stddev_new) .or. present(likeli_new)) then
+       stddev_tmp = stddev(errors(:))
+    end if
+    if (present(stddev_new)) then
+       stddev_new = stddev_tmp
+    end if
+    if (present(likeli_new)) then
+       likeli_new = sum( errors(:) * errors(:) / stddev_tmp**2 )
+       likeli_new = -0.5_dp * likeli_new
+    end if
+
+    deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
+    deallocate(obs, calc, out, errors)
+    
+  END FUNCTION loglikelihood_trend_no_autocorr
 
   ! ------------------------------------------------------------------
 
@@ -258,8 +590,20 @@ CONTAINS
        ! 1.0-0.5*(nse+lnnse)
        objective = objective_equal_nse_lnnse(parameterset)
     case (4)
-       ! -loglikelihood with removed trend and lag(1)-autocorrelation
+       ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
        objective = - loglikelihood( parameterset, 1.0_dp )
+    case (5)
+       ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+       objective = objective_power6_nse_lnnse(parameterset)
+    case (6)
+       ! SSE
+       objective = objective_sse(parameterset)
+    case (7)
+       ! -loglikelihood with trend removed from absolute errors
+       objective = - loglikelihood_trend_no_autocorr( parameterset, 1.0_dp )
+    case (8)
+       ! -loglikelihood with trend removed from relative errors and then lag(1)-autocorrelation removed
+       objective = - loglikelihood_kavetski( parameterset, 1.0_dp )
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -328,6 +672,7 @@ CONTAINS
     use mo_errormeasures,    only: lnnse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -378,7 +723,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
@@ -400,6 +745,134 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !      NAME
+  !          objective_sse
+
+  !>        \brief Objective function of SSE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>        The model will be called with that parameter vector and 
+  !>        the model output is subsequently compared to observed data.
+  !>        Therefore, the sum squared errors
+  !>        \f[ SSE = \sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2 \f]
+  !>        is calculated and the objective function is
+  !>        \f[ obj\_value = SSE \f]
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_sse &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_sse(para)
+
+  !     LITERATURE
+
+  !     HISTORY
+  !>        \author Juliane Mai and Matthias Cuntz
+  !>        \date March 2014
+
+  FUNCTION objective_sse(parameterset)
+    
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_errormeasures,    only: sse
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_sse
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
+
+    objective_sse = 0.0_dp
+    do gg=1,nGaugesTotal
+       objective_sse = objective_sse + &
+            sse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+    end do
+    ! objective_sse = objective_sse + sse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
+    objective_sse = objective_sse / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_sse = ', objective_sse
+    ! pause
+
+    deallocate( runoff_model_agg )
+    deallocate( runoff_model_agg_mask )
+    
+  END FUNCTION objective_sse
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
   !          objective_nse
 
   !>        \brief Objective function of NSE.
@@ -410,8 +883,8 @@ CONTAINS
   !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
   !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
   !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
-  !>        is calculated and added up equally weighted:
-  !>        \f[ obj\_value = NSE \f]
+  !>        is calculated and the objective function is
+  !>        \f[ obj\_value = 1-NSE \f]
   !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
 
   !     INTENT(IN)
@@ -438,7 +911,7 @@ CONTAINS
 
   !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ 1-nse \f$ will be returned such that it can be minimized.
+  !>             Actually, \f$ 1-NSE \f$ will be returned such that it can be minimized.
 
   !     EXAMPLE
   !         para = (/ 1., 2, 3., -999., 5., 6. /)
@@ -459,6 +932,7 @@ CONTAINS
     use mo_errormeasures,    only: nse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -509,7 +983,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_nse = 0.0_dp
     do gg=1,nGaugesTotal
@@ -592,6 +1066,7 @@ CONTAINS
     use mo_errormeasures,    only: nse, lnnse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
+    use mo_utils,            only: ge
 
     implicit none
 
@@ -642,7 +1117,7 @@ CONTAINS
          tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
     ! set mask
     forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (gauge%Q(tt,gg) .gt. 0.0_dp)    
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_equal_nse_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
@@ -664,5 +1139,143 @@ CONTAINS
     
   END FUNCTION objective_equal_nse_lnnse
 
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_power6_nse_lnnse
+
+  !>        \brief Objective function of combined NSE and lnNSE with power of 5
+  !>               i.e. the p-norm with p=5.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>        The model will be called with that parameter vector and 
+  !>        the model output is subsequently compared to observed data.
+  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
+  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>        and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
+  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
+  !>        are calculated and added up equally weighted:
+  !>        \f[ obj\_value = \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f]
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_power6_nse_lnnse &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f$ will be returned such that
+  !>             it can be minimized and converges to 0.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_power6_nse_lnnse(para)
+
+  !     LITERATURE
+
+  !     HISTORY
+  !>        \author Juliane Mai and Matthias Cuntz
+  !>        \date March 2014
+
+  FUNCTION objective_power6_nse_lnnse(parameterset)
+    
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_errormeasures,    only: nse, lnnse
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_power6_nse_lnnse
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), parameter :: onesixth = 1.0_dp/6.0_dp
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
+
+    objective_power6_nse_lnnse = 0.0_dp
+    do gg=1, nGaugesTotal
+       ! NSE + lnNSE
+       objective_power6_nse_lnnse = objective_power6_nse_lnnse + &
+            ((1.0_dp-nse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg)))**6 + &
+            (1.0_dp-lnnse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg)))**6)**onesixth
+    end do
+    ! objective function value which will be minimized
+    objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
+    ! pause
+
+    deallocate( runoff_model_agg )
+    deallocate( runoff_model_agg_mask )
+    
+  END FUNCTION objective_power6_nse_lnnse
 
 END MODULE mo_objective_function

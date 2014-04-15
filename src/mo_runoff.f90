@@ -327,6 +327,10 @@ CONTAINS
   !>        \param[in] "real(dp)    ::  efecArea"          effective area in [km2] 
   !>        \param[in] "integer(i4) ::  L11id"             L11 mapped on L1   
   !>        \param[in] "integer(i4) ::  TS"                time step in [s]
+  !>        \param[in] "integer(i4) ::  nInflowGauges"     number of inflow points
+  !>        \param[in] "integer(i4  ::  InflowIndexList"   index of inflow points
+  !>        \param[in] "integer(i4) ::  InflowNodeList"    L11 ID of inflow points
+  !>        \param[in] "real(dp)    ::  QInflow"           inflowing water 
 
   !     INTENT(INOUT)
   !         None
@@ -358,23 +362,30 @@ CONTAINS
   !     HISTORY
   !>        \author Luis Samaniego
   !>        \date Jan 2013
+  !         Modified  Matthias Zink , Mar 2014 - added inflow from upstream areas
 
 
   ! ------------------------------------------------------------------
-  SUBROUTINE L11_runoff_acc(qAll,efecArea, L11id, TS, qOUT)
+  SUBROUTINE L11_runoff_acc(qAll,efecArea, L11id, TS, nInflowGauges, InflowIndexList, &
+                            InflowNodeList, QInflow, qOUT)
+
     use mo_mhm_constants, only:   HourSecs
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:), intent(in)  :: qall       ! [mm tst-1] total runoff l1 
-    real(dp),    dimension(:), intent(in)  :: efecarea   ! [km2]      efective area at l1 
-    integer(i4), dimension(:), intent(in)  :: l11id      ! l11        mapped on l1   
-    integer(i4),               intent(in)  :: ts         ! [h]        time step 
-    real(dp),    dimension(:), intent(out) :: qout       ! [m3 s-1]   aggregated runoff at l11 
+    real(dp),    dimension(:), intent(in)  :: qall            ! [mm tst-1] total runoff l1 
+    real(dp),    dimension(:), intent(in)  :: efecarea        ! [km2]      efective area at l1 
+    integer(i4), dimension(:), intent(in)  :: l11id           ! l11        mapped on l1   
+    integer(i4),               intent(in)  :: ts              ! [h]        time step 
+    integer(i4),               intent(in)  :: nInflowGauges   ! [-]        number of inflow points
+    integer(i4), dimension(:), intent(in)  :: InflowIndexList ! [-]        index of inflow points
+    integer(i4), dimension(:), intent(in)  :: InflowNodeList  ! [-]        L11 ID of inflow points
+    real(dp),    dimension(:), intent(in)  :: QInflow         ! [m3 s-1]   inflowing water 
+    real(dp),    dimension(:), intent(out) :: qout            ! [m3 s-1]   aggregated runoff at l11 
 
-    ! local variables
+                                                              ! local variables
     integer(i4)                            :: k
-    REAL(dp)                               :: TST        ! [s]        time step  
+    REAL(dp)                               :: TST             ! [s]        time step  
 
     ! ------------------------------------------------------------------
     ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
@@ -385,6 +396,8 @@ CONTAINS
 
     TST = HourSecs * real( TS, dp)   ! in [s]
 
+    !$OMP PARALLEL
+    !$OMP DO SCHEDULE( STATIC )
     do k = 1, size(qOUT)
       !  Estimate specific runoff at  L11
       !  NOTE:
@@ -396,8 +409,17 @@ CONTAINS
       !  total_area [km2]*10^3 and divided by TST.
       !  Therefore, in this operation total_area cancels out. 
       !  The simplified equation is then:         
-      qOUT(k) = sum( qAll(:) * efecArea(:),  L11id(:) == k ) * 1000.0_dp / TST
+      qOUT(k) = sum( qAll(:) * efecArea(:),  L11id(:) .eq. k ) * 1000.0_dp / TST
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
+
+    ! discharge for inflow gauges (e.g. for missing upstream catchemtns) id added here
+    if (nInflowGauges .gt. 0) then
+       do k = 1, nInflowGauges
+          qOUT(InflowNodeList(k)) = qOUT(InflowNodeList(k)) + QInflow(InflowIndexList(k))
+       end do
+    end if
 
   END SUBROUTINE L11_runoff_acc
   

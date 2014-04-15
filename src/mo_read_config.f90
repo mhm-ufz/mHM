@@ -92,7 +92,8 @@ CONTAINS
   !                  Juliane Mai,    Oct  2013 - adding global_parameters_name
   !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
-  !                  Matthias Zink,  Feb  2014 - added multiple options fpr PET process
+  !                  Matthias Zink,  Feb  2014 - added multiple options for PET process
+  !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
 
   subroutine read_config()
 
@@ -107,7 +108,8 @@ CONTAINS
          maxNoSoilHorizons,                                 & ! maximum number of allowed soil layers
          maxNoBasins,                                       & ! maximum number of allowed basins
          maxNLcovers,                                       & ! maximum number of allowed LCover scenes                 
-         maxGeoUnit                                           ! maximum number of allowed geological classes
+         maxGeoUnit,                                        & ! maximum number of allowed geological classes
+         maxNoGauges                                          ! maximum number of allowed gauges
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
@@ -116,6 +118,7 @@ CONTAINS
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
+         L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirGauges,                                         & ! and discharge files
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
@@ -125,7 +128,8 @@ CONTAINS
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
-         dirCommonFiles_In,                                 & ! directory where common files are located
+         dirCommonFiles,                                    & ! directory where common files are located
+         dirGauges,                                         & ! directory of gauge files
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
@@ -149,6 +153,9 @@ CONTAINS
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods  
          !                                                    ! (sim. = wrm. + eval.)
+         nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
+         nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
+         basin,                                             & ! evaluation and inflow gauge information
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
@@ -162,7 +169,7 @@ CONTAINS
          iFlag_LAI_data_format,                             & ! flag on how LAI data has to be read
          !                                                    ! used when iFlag_LAI_data_format = 1
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
-         dir_gridded_LAI                                      ! Directory where gridded LAI is located
+         dirgridded_LAI                                       ! Directory where gridded LAI is located
 
     implicit none
 
@@ -222,56 +229,77 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious    
     real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope    
     !
-    integer(i4)                                     :: ii
+    integer(i4)                                     :: ii, n_true_pars
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
     !
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
     character(256)                                  :: dummy 
     character(256)                                  :: fname
-    integer(i4),dimension(maxNoSoilHorizons)        :: soilDepth_dummy           ! depth of the single horizons
-    character(256), dimension(maxNoBasins)          :: dirMorpho_dummy           ! dummies for all input data paths
-    character(256), dimension(maxNoBasins)          :: dirLCover_dummy
-    character(256), dimension(maxNoBasins)          :: dirGauges_dummy
-    character(256), dimension(maxNoBasins)          :: dirPrecipitation_dummy
-    character(256), dimension(maxNoBasins)          :: dirTemperature_dummy
+
+    integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
+    character(256), dimension(maxNoBasins)          :: dir_Morpho
+    character(256), dimension(maxNoBasins)          :: dir_LCover
+    character(256), dimension(maxNoBasins)          :: dir_Gauges
+    character(256), dimension(maxNoBasins)          :: dir_Precipitation
+    character(256), dimension(maxNoBasins)          :: dir_Temperature
     character(256), dimension(maxNoBasins)          :: dirMinTemperature_dummy
     character(256), dimension(maxNoBasins)          :: dirMaxTemperature_dummy
     character(256), dimension(maxNoBasins)          :: dirNetRadiation_dummy
-    character(256), dimension(maxNoBasins)          :: dirReferenceET_dummy
-    character(256), dimension(maxNoBasins)          :: dirOut_dummy
-    character(256), dimension(maxNoBasins)          :: dirRestartOut_dummy
-    character(256), dimension(maxNoBasins)          :: dirRestartIn_dummy
-    character(256), dimension(maxNoBasins)          :: dirLatLon_dummy
+    character(256), dimension(maxNoBasins)          :: dir_ReferenceET
+    character(256), dimension(maxNoBasins)          :: dir_Out
+    character(256), dimension(maxNoBasins)          :: dir_RestartOut
+    character(256), dimension(maxNoBasins)          :: dir_RestartIn
+    character(256), dimension(maxNoBasins)          :: dir_LatLon
+
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
-    character(256), dimension(maxNLCovers)          :: LCoverfName_dummy         ! filename of Lcover file
+    character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI_dummy     ! directory of gridded LAI data 
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data 
     !                                                                            ! used when iFlag_LAI_data_format = 1
     real(dp)                                        :: jday_frac
+    !
+    integer(i4),    dimension(maxNoBasins)          :: resolution_Hydrology
+    integer(i4),    dimension(maxNoBasins)          :: resolution_Routing
+    integer(i4),    dimension(maxNoBasins)          :: L0Basin
+    ! for gauge read in
+    integer(i4)                                        :: i_basin, i_gauge, idx
+    integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
+    integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
+    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
+    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
+    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
+
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles_In, inputFormat_meteo_forcings,            &
-         dirMorpho_dummy,dirLCover_dummy,dirGauges_dummy,dirPrecipitation_dummy, &
-         dirTemperature_dummy, dirReferenceET_dummy, dirMinTemperature_dummy, dirMaxTemperature_dummy, &
-         dirNetRadiation_dummy, dirOut_dummy, dirRestartOut_dummy, dirRestartIn_dummy, dirLatLon_dummy
+
+    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,            &
+         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation, &
+         dir_Temperature, dir_ReferenceET, dirMinTemperature_dummy, dirMaxTemperature_dummy, &
+         dirNetRadiation_dummy, dir_Out, dir_RestartOut,&
+         dir_RestartIn, dir_LatLon
     ! namelist spatial & temporal resolution, otmization information
-    namelist /mainconfig/ timestep, resolutionHydrology, resolutionRouting, optimize, opti_method,  &
+    namelist /mainconfig/ timestep, resolution_Hydrology, resolution_Routing, L0Basin, optimize, opti_method,  &
          opti_function, nBasins, restart_flag_states_read, restart_flag_states_write, &
          restart_flag_config_read, restart_flag_config_write, warmingDays, evalPer
     ! namelsit soil layering
-    namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soilDepth_dummy
+    namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
-    namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName_dummy
+    namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
     ! namelist for LAI related data
-    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI_dummy
+    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
     namelist/nightDayRatio/fnight_prec,fnight_pet,fnight_temp
     ! namelsit process selection
     namelist /processSelection/ processCase
+    ! namelist for evaluation gauges
+    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
+    ! namelist for inflow gauges
+    namelist /inflow_gauges/     nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
     namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,                      &
@@ -313,20 +341,27 @@ CONTAINS
        stop
     end if
     ! allocate patharray sizes
-    allocate(dirMorpho         (nBasins))
-    allocate(dirLCover         (nBasins))
-    allocate(dirGauges         (nBasins))
-    allocate(dirPrecipitation  (nBasins))
-    allocate(dirTemperature    (nBasins))
-    allocate(dirReferenceET    (nBasins))
-    allocate(dirMinTemperature (nBasins))
-    allocate(dirMaxTemperature (nBasins))
-    allocate(dirNetRadiation   (nBasins))
-    allocate(dirOut            (nBasins))
-    allocate(dirRestartOut     (nBasins))
-    allocate(dirRestartIn      (nBasins))
-    allocate(dirLatLon         (nBasins))
-
+    allocate(resolutionHydrology (nBasins))
+    allocate(resolutionRouting   (nBasins))
+    allocate(L0_Basin            (nBasins))
+    allocate(dirMorpho           (nBasins))
+    allocate(dirLCover           (nBasins))
+    allocate(dirGauges           (nBasins))
+    allocate(dirPrecipitation    (nBasins))
+    allocate(dirTemperature      (nBasins))
+    allocate(dirReferenceET      (nBasins))
+    allocate(dirMinTemperature   (nBasins))
+    allocate(dirMaxTemperature   (nBasins))
+    allocate(dirNetRadiation     (nBasins))
+    allocate(dirOut              (nBasins))
+    allocate(dirRestartOut       (nBasins))
+    allocate(dirRestartIn        (nBasins))
+    allocate(dirLatLon           (nBasins))
+    !
+    resolutionHydrology    = resolution_Hydrology(1:nBasins)
+    resolutionRouting      = resolution_Routing(1:nBasins)
+    L0_Basin               = L0Basin(1:nBasins)
+    !
     !===============================================================
     !  determine simulation time period incl. warming days
     !===============================================================
@@ -362,19 +397,21 @@ CONTAINS
     !===============================================================
     call position_nml('directories', unamelist)
     read(unamelist, nml=directories)
-    dirMorpho         = dirMorpho_dummy          (1:nBasins)
-    dirLCover         = dirLCover_dummy          (1:nBasins)
-    dirGauges         = dirGauges_dummy          (1:nBasins)      
-    dirPrecipitation  = dirPrecipitation_dummy   (1:nBasins)
-    dirTemperature    = dirTemperature_dummy     (1:nBasins)
-    dirReferenceET    = dirReferenceET_dummy     (1:nBasins)
+
+    dirMorpho         = dir_Morpho        (1:nBasins)
+    dirLCover         = dir_LCover        (1:nBasins)
+    dirGauges         = dir_Gauges        (1:nBasins)      
+    dirPrecipitation  = dir_Precipitation (1:nBasins)
+    dirTemperature    = dir_Temperature   (1:nBasins)
+    dirReferenceET    = dir_ReferenceET   (1:nBasins)
     dirMinTemperature = dirMinTemperature_dummy  (1:nBasins)
     dirMaxTemperature = dirMaxTemperature_dummy  (1:nBasins)
     dirNetRadiation   = dirNetRadiation_dummy    (1:nBasins)
-    dirOut            = dirOut_dummy             (1:nBasins)
-    dirRestartOut     = dirRestartOut_dummy      (1:nBasins)
-    dirRestartIn      = dirRestartIn_dummy       (1:nBasins)
-    dirLatLon         = dirLatLon_dummy          (1:nBasins)
+    dirOut            = dir_Out           (1:nBasins)
+    dirRestartOut     = dir_RestartOut    (1:nBasins)
+    dirRestartIn      = dir_RestartIn     (1:nBasins)
+    dirLatLon         = dir_LatLon        (1:nBasins)
+
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
@@ -390,7 +427,7 @@ CONTAINS
 
     allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
     HorizonDepth_mHM = 0.0_dp
-    HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soilDepth_dummy(1:nSoilHorizons_mHM-1)
+    HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soil_Depth(1:nSoilHorizons_mHM-1)
 
     !===============================================================
     ! Read process selection list
@@ -411,8 +448,166 @@ CONTAINS
     read(unamelist, nml=LAI_data_information)
 
     if(iFlag_LAI_data_format .EQ. 1) then
-       allocate( dir_gridded_LAI(nBasins) )
-       dir_gridded_LAI(:) = dir_gridded_LAI_dummy(1:nBasins)
+       allocate( dirgridded_LAI(nBasins) )
+       dirgridded_LAI(:) = dir_gridded_LAI(1:nBasins)
+    end if
+
+    !===============================================================
+    ! Read evaluation gauge information
+    !===============================================================
+    routing_activated: if( processCase(8) .GT. 0 ) then
+       nGaugesTotal   = nodata_i4
+       NoGauges_basin = nodata_i4
+       Gauge_id       = nodata_i4
+       gauge_filename = num2str(nodata_i4)
+
+       call position_nml('evaluation_gauges', unamelist)
+       read(unamelist, nml=evaluation_gauges)
+
+       if (nGaugesTotal .GT. maxNoGauges) then
+          call message()
+          call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))         
+          call message('          Error occured in namlist: evaluation_gauges')
+          stop
+       end if
+
+       allocate(gauge%gaugeId        (nGaugesTotal))                       ; gauge%gaugeId        = nodata_i4
+       allocate(gauge%basinId        (nGaugesTotal))                       ; gauge%basinId        = nodata_i4
+       allocate(gauge%fName          (nGaugesTotal))                       ; gauge%fName(1)       = num2str(nodata_i4)
+       allocate(basin%nGauges        (nBasins                           )) ; basin%nGauges        = nodata_i4
+       allocate(basin%gaugeIdList    (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIdList    = nodata_i4
+       allocate(basin%gaugeIndexList (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIndexList = nodata_i4
+       allocate(basin%gaugeNodeList  (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeNodeList  = nodata_i4
+
+       idx = 0
+       do i_basin = 1, nBasins
+          ! check if NoGauges_basin has a valid value
+          if ( NoGauges_basin(i_basin) .EQ. nodata_i4 ) then
+             call message()
+             call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
+                                     trim(adjustl(num2str(i_basin))),' is not defined!')
+             call message('          Error occured in namlist: evaluation_gauges')
+             stop
+          end if
+
+          basin%nGauges(i_basin)          = NoGauges_basin(i_basin)
+
+          do i_gauge = 1, NoGauges_basin(i_basin)
+             ! check if NoGauges_basin has a valid value
+             if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
+                call message()
+                call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
+                     trim(adjustl(num2str(i_gauge))),' for subbasin ', &
+                     trim(adjustl(num2str(i_basin))),' is not defined!')
+                call message('          Error occured in namlist: evaluation_gauges')
+                stop
+             else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
+                call message()
+                call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
+                                 trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
+                                 trim(adjustl(num2str(i_basin))),' is not defined!')
+                call message('          Error occured in namlist: evaluation_gauges')
+                stop
+             end if
+             !
+             idx = idx + 1
+             gauge%basinId(idx)                    = i_basin
+             gauge%gaugeId(idx)                    = Gauge_id(i_basin,i_gauge)
+             gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge)) 
+             basin%gaugeIdList(i_basin,i_gauge)    = Gauge_id(i_basin,i_gauge)
+             basin%gaugeIndexList(i_basin,i_gauge) = idx
+          end do
+       end do
+
+       if ( nGaugesTotal .NE. idx) then 
+          call message()
+          call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
+               ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+          call message('          Error occured in namlist: evaluation_gauges')
+          stop
+       end if
+
+    end if routing_activated
+
+    !===============================================================
+    ! Read inflow gauge information
+    !===============================================================
+
+    nInflowGaugesTotal   = 0
+    NoInflowGauges_basin = 0
+    InflowGauge_id       = nodata_i4
+    InflowGauge_filename = num2str(nodata_i4)
+
+    call position_nml('inflow_gauges', unamelist)
+    read(unamelist, nml=inflow_gauges)
+
+    if (nInflowGaugesTotal .GT. maxNoGauges) then
+       call message()
+       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))         
+       call message('          Error occured in namlist: inflow_gauges')
+       stop
+    end if
+
+    ! allocation - max() to avoid allocation with zero, needed for mhm call
+    allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))                       
+    allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))                       
+    allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))                       
+    allocate(basin%nInflowGauges        (nBasins                                 )) 
+    allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    allocate(basin%InflowGaugeNodeList  (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    ! initialization
+    InflowGauge%gaugeId        = nodata_i4
+    InflowGauge%basinId        = nodata_i4
+    InflowGauge%fName          = num2str(nodata_i4)
+    basin%nInflowGauges        = 0
+    basin%InflowGaugeIdList    = nodata_i4
+    basin%InflowGaugeIndexList = nodata_i4
+    basin%InflowGaugeNodeList  = nodata_i4
+
+    idx = 0
+    do i_basin = 1, nBasins
+
+       ! no inflow gauge for subbasin i
+       if (NoInflowGauges_basin(i_basin) .EQ. nodata_i4) then
+          NoInflowGauges_basin(i_basin)       = 0  
+       end if
+
+       basin%nInflowGauges(i_basin) = NoInflowGauges_basin(i_basin)
+
+       do i_gauge = 1, NoInflowGauges_basin(i_basin)
+          ! check if NoInflowGauges_basin has a valid value
+          if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
+             call message()
+             call message('***ERROR: mhm.nml:ID of inflow gauge ',        &
+                  trim(adjustl(num2str(i_gauge))),' for subbasin ', &
+                  trim(adjustl(num2str(i_basin))),' is not defined!')
+             call message('          Error occured in namlist: inflow_gauges')
+             stop
+          else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
+             call message()
+             call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
+                  trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
+                  trim(adjustl(num2str(i_basin))),' is not defined!')
+             call message('          Error occured in namlist: inflow_gauges')
+             stop
+          end if
+          !
+          idx = idx + 1
+          InflowGauge%basinId(idx)                    = i_basin
+          InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
+          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge)) 
+          basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
+          basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
+       end do
+    end do
+
+    if ( nInflowGaugesTotal .NE. idx) then 
+       call message()
+       call message('***ERROR: mhm.nml: Total number of inflow gauges (', trim(adjustl(num2str(nInflowGaugesTotal))), &
+            ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
+       call message('          Error occured in namlist: inflow_gauges')
+       stop
     end if
 
     !===============================================================
@@ -471,7 +666,7 @@ CONTAINS
     nLcover_scene = maxval(LCyearId) - minval(LCyearId) + 1
     ! put land cover scenes to corresponding file name and LuT
     allocate(LCfilename(nLcover_scene))
-    LCfilename(:) = LCoverfName_dummy(minval(LCyearId):maxval(LCyearId))
+    LCfilename(:) = LCoverfName(minval(LCyearId):maxval(LCyearId))
     ! update the ID's
     LCyearId = LCyearId - minval(LCyearId) + 1
     !
@@ -485,31 +680,39 @@ CONTAINS
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing
     !===============================================================
-    cellFactorRbyH = resolutionRouting / resolutionHydrology
     !
-    if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
+    do ii = 1, nBasins
+       cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii) 
        call message()
-       call message('Resolution of routing and hydrological modeling are equal!')
-
-    else if ( nint(cellFactorRbyH * 100.0_dp) .lt. 100) then
-       call message()
-       call message('***ERROR: Resolution of routing is smaller than hydrological model resolution!')
-       call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
-       STOP
-
-    else if ( nint(cellFactorRbyH * 100.0_dp) .gt. 100) then
-       if( nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
+       call message('Basin ', trim(adjustl(num2str(ii))), ': ')
+       call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
+            trim(adjustl(num2str(nint(resolutionHydrology(ii)))))) 
+       call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
+            trim(adjustl(num2str(nint(resolutionRouting(ii)))))) 
+       !
+       if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
           call message()
-          call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!')
+          call message('Resolution of routing and hydrological modeling are equal!')
+    
+       else if ( nint(cellFactorRbyH * 100.0_dp) .lt. 100) then
+          call message()
+          call message('***ERROR: Resolution of routing is smaller than hydrological model resolution!')
           call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
           STOP
+    
+       else if ( nint(cellFactorRbyH * 100.0_dp) .gt. 100) then
+          if( nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
+             call message()
+             call message('***ERROR: Resolution of routing is not a multiple of hydrological model resolution!')
+             call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
+             STOP
+          end if
+          !
+          call message()
+          call message('Resolution of routing is bigger than hydrological model resolution by ', &
+               trim(adjustl(num2str(nint(cellFactorRbyH)))), ' times !')
        end if
-       !
-       call message()
-       call message('Resolution of routing is bigger than hydrological model resolution by ', &
-            trim(adjustl(num2str(nint(cellFactorRbyH)))), ' times !')
-    end if
-
+    end do
     !===============================================================
     ! Read namelist global parameters
     !===============================================================
@@ -913,11 +1116,13 @@ CONTAINS
     end if
     ! number of points in each complex: default = 2n+1
     if (sce_npg .lt. 0_i4) then
-       sce_npg = 2 * size(global_parameters,1) + 1_i4
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
+       sce_npg = 2 * n_true_pars + 1_i4
     end if
     ! number of points in each sub-complex: default = n+1
     if (sce_nps .lt. 0_i4) then
-       sce_nps = size(global_parameters,1) + 1_i4
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
+       sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
        call message ('number of points per complex (sce_npg) must be greater or')

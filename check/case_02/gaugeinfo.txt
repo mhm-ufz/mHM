@@ -1,0 +1,18 @@
+nGaugesTotal          2
+!basinId nGauges       gaugelist
+1              1       00398 
+2              1       00398
+
+! --- Gauges -----------------------------------------------------------------------------
+!> namelist controlling the gauging station information
+!> Please specify the ID of  the gauging stations above
+!> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
+!> to the filename containing the time series (the filename of the time series is
+!> created intrinsicly like "gaugeId.dat", e.g. gaugeID=000111 --> filename='000111')
+!> please be aware that zeros are considered
+
+structure:
+!> total number of gauges (all subasins, all basins) to be used for model evaluation
+!> header
+!> data corresponding to header
+

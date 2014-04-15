@@ -102,7 +102,41 @@ if [[ ${quiet} -eq 0 ]] ; then
     echo ' '
 fi
 
-#
+# ----------------------------------------------------------------------------------------------------
+# Here comes the CORE:
+# ----------------------------------------------------------------------------------------------------
+#   1. replace space by semicolon
+#   2. fill in semicolons after parameters given by ${list}
+printf "%${anz}s" | tr ' ' '\n' >> semifile.${pid}
+delim=' '
+if [[ ${skip} -gt 0 ]] ; then
+    # deletes trailing and leading spaces and skips some lines
+    sed -e 's/^ *//g' -e 's/ *$//g' -e "1,${skip}d" ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
+else
+    sed -e 's/^ *//g' -e 's/ *$//g' ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
+fi
+
+# number of parameters and betas
+npara=$(tail -1 sinfile.${pid} | tr ';' '\n' | wc -l)
+nbeta=$((npara-43))
+
+# Not all lines in the final namelist contain parameter values, 
+# e.g. between parameter 38 and 39 there are 4 lines which do not contain a parameter information.
+# <list> contains the information how many lines have to be skipped after which parameter,
+# e.g. 4 lines between 38 and 39 --> '38 38 38 38'
+# Must be sorted reversely.
+list='43 43 43 43 43 38 38 38 38 35 35 35 35 35 30 30 30 30 27 27 27 27 26 26 26 26 9 9 9 9 1 1 1 1'
+list="${npara} ${npara} ${list}"
+
+for k in ${list} ; do
+    cut -f 1-${k} -d ';' sinfile.${pid} > links.${pid}
+    cut -f $((k+1))- -d ';' sinfile.${pid} > rechts.${pid}
+    paste -d ';' links.${pid} semifile.${pid} rechts.${pid} > tmptmp.${pid}
+    mv tmptmp.${pid} sinfile.${pid}
+done
+# ----------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------
 # Write the namelist in three files that will be put together later.
 #   1. The first few lines of the namelist containing comments, etc.
 #   2. The left half of the namelist and
@@ -110,7 +144,7 @@ fi
 # The final namelist is then:
 #  2 and 3 will be pasted together with the parameter values in between.
 #  The whole is appended to 1.
-#
+# ----------------------------------------------------------------------------------------------------
 
 #
 # The first lines of the namelist --> header.${pid}
@@ -247,56 +281,14 @@ str=${str}'/''\n'                                                               
 str=${str}'''\n'                                                                ; str1=${str1}'\n'
 str=${str}'! geological parameters (ordering according to file "geology_classdefinition.txt")''\n' ; str1=${str1}'\n'                      
 str=${str}'! this parameters are NOT REGIONALIZED yet, i.e. these are <beta> and not <gamma>''\n'  ; str1=${str1}'\n'                      
-str=${str}'&geoparameter''\n'                                                                      ; str1=${str1}'\n'    
-# Parameter 44                  
-str=${str}'GeoParam(1,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 45
-str=${str}'GeoParam(2,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 46
-str=${str}'GeoParam(3,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 47
-str=${str}'GeoParam(4,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 48
-str=${str}'GeoParam(5,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 49
-str=${str}'GeoParam(6,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 50
-str=${str}'GeoParam(7,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 51
-str=${str}'GeoParam(8,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
-# Parameter 52
-str=${str}'GeoParam(9,:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n'
+str=${str}'&geoparameter''\n'                                                                      ; str1=${str1}'\n'  
+# Parameter 44 ... npara = 43+nbeta
+for ((i=1 ; i<=${nbeta} ; i++)) ; do      
+    str=${str}'GeoParam('${i}',:)                      =  1.0000,      1000.00,     ''\n' ; str1=${str1}',     1,       1''\n';
+done
 str=${str}'/''\n'                                                                ; str1=${str1}'\n'
 str=${str}'''\n'                                                                 ; str1=${str1}'\n'
 printf "${str}" > front.${pid}                                                   ; printf "${str1}" > back.${pid}
-
-# ----------------------------------------------------------------------------------------------------
-# Here comes the CORE:
-# ----------------------------------------------------------------------------------------------------
-# Not all lines in the final namelist contain parameter values, 
-# e.g. between parameter 38 and 39 there are 4 lines which do not contain a parameter information.
-# <list> contains the information how many lines have to be skipped after which parameter,
-# e.g. 4 lines between 38 and 39 --> '38 38 38 38'
-# Must be sorted reversely.
-list='52 52 43 43 43 43 43 38 38 38 38 35 35 35 35 35 30 30 30 30 27 27 27 27 26 26 26 26 9 9 9 9 1 1 1 1'
-
-#   1. replace space by semicolon
-#   2. fill in semicolons after parameters given by ${list}
-printf "%${anz}s" | tr ' ' '\n' >> semifile.${pid}
-delim=' '
-if [[ ${skip} -gt 0 ]] ; then
-    # deletes trailing and leading spaces and skips some lines
-    sed -e 's/^ *//g' -e 's/ *$//g' -e "1,${skip}d" ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
-else
-    sed -e 's/^ *//g' -e 's/ *$//g' ${infile} | tr -s "${delim}" | tr "${delim}" ';' > sinfile.${pid}
-fi
-
-for k in ${list} ; do
-    cut -f 1-${k} -d ';' sinfile.${pid} > links.${pid}
-    cut -f $((k+1))- -d ';' sinfile.${pid} > rechts.${pid}
-    paste -d ';' links.${pid} semifile.${pid} rechts.${pid} > tmptmp.${pid}
-    mv tmptmp.${pid} sinfile.${pid}
-done
 
 # ----------------------------------------------------------------------------------------------------
 # The result parameter file of the CORE is tinfile...

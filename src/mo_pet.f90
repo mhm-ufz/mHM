@@ -6,8 +6,8 @@
 !>  - Hargreaves-Samani (1982)
 !>  - Priestly-Taylor   (1972)
 
-!> \authors Christoph Schneider, Matthias Cuntz
-!> \date Dec 2012
+!> \author Matthias Zink, Christoph Schneider, Matthias Cuntz
+!> \date   Apr 2014
 
 MODULE mo_pet
 

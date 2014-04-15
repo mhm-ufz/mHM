@@ -19,9 +19,10 @@ MODULE mo_global_variables
   !           Rohini Kumar,   Aug 2013  - name changed from "L0_LAI" to "L0_LCover_LAI"
   !           Rohini Kumar,   Aug 2013  - added dirSoil_LUT and dirGeology_LUT
   !           Luis Samaniego, Nov 2013  - documentation of dimensions
+  !           Matthias Zink,  Nov 2013  - added "InflowGauge" and inflow gauge variabels in basin 
 
   USE mo_kind,          ONLY: i4, i8, dp
-  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths
+  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
 
   IMPLICIT NONE
 
@@ -35,9 +36,12 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
-  integer(i4),   public                              :: timeStep            ! [h] simulation time step (= TS) in [h]
-  real(dp),      public                              :: resolutionHydrology ! [m] resolution of hydrologic modelling - Level 1
-  real(dp),      public                              :: resolutionRouting   ! [m] resolution of routing              - Level 11
+  integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m] resolution of hydrologic modelling
+                                                                                         ! Level 1
+  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m] resolution of routing
+                                                                                         ! Level 11
+  integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: restart_flag_states_read   ! flag for reading restart files 
   !                                                                                ! for state variables
   logical,       public                              :: restart_flag_states_write  ! flag for writing restrat files 
@@ -119,13 +123,13 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
   character(256), dimension(:), allocatable, public :: dirRestartIn       ! Directory where input of restart is read from
-  character(256), dimension(:), allocatable, public :: dir_gridded_LAI    ! directory where gridded LAI is located
+  character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! directory where gridded LAI is located
                                                                           ! used when iFlag_LAI_data_format = 1
   character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
 
   ! directory common to all basins 
   character(256),                            public :: dirConfigOut       ! Directory where config run output is written to
-  character(256),                            public :: dirCommonFiles_In  ! directory where common input files should be located
+  character(256),                            public :: dirCommonFiles     ! directory where common input files should be located
   !                                                                       ! for all modeled basins
   ! ------------------------------------------------------------------
   ! NETCDF OUTPUT
@@ -193,19 +197,21 @@ MODULE mo_global_variables
   ! -----------------------------------------------------------------
   ! GAUGED station data
   ! -----------------------------------------------------------------
-  integer(i4), public                            :: nGaugesTotal ! Number of evaluation/gauging stations 
-  !                                                              ! for all basins 
-  integer(i4), public                            :: nMeasPerDay  ! Number of observations per day,
-  !                                                              ! e.g. 24 -> hourly discharge, 1 -> daily discharge
-  type gaugingStation
-     integer(i4),    dimension(:),   allocatable :: basinId      ! Basin Id
-     integer(i4),    dimension(:),   allocatable :: gaugeId      ! Gauge Id (e.g. 0000444)
-     character(256), dimension(:),   allocatable :: fname        ! Name runoff file
-     real(dp),       dimension(:,:), allocatable :: Q            ! [m3 s-1] observed daily mean discharge (simPer)
-     !                                                           ! dim1=number observations, dim2=number of gauges
-  end type gaugingStation
-  type(gaugingStation), public                   :: gauge        ! Gauging station basic information
+  integer(i4), public                            :: nGaugesTotal       ! Number of evaluation gauges for all basins 
+  integer(i4), public                            :: nInflowGaugesTotal ! Number of evaluation gauges for all basins 
 
+  integer(i4), public                            :: nMeasPerDay        ! Number of observations per day,
+  !                                                                    ! e.g. 24 -> hourly discharge, 1 -> daily discharge
+  type gaugingStation
+     integer(i4),    dimension(:),   allocatable :: basinId            ! Basin Id
+     integer(i4),    dimension(:),   allocatable :: gaugeId            ! Gauge Id (e.g. 0000444)
+     character(256), dimension(:),   allocatable :: fname              ! Name runoff file
+     real(dp),       dimension(:,:), allocatable :: Q                  ! [m3 s-1] observed daily mean discharge (simPer)
+     !                                                                 ! dim1=number observations, dim2=number of gauges
+  end type gaugingStation
+  type(gaugingStation), public                   :: gauge              ! Gauging station information
+  type(gaugingStation), public                   :: InflowGauge        ! inflow gauge information
+  
   ! -----------------------------------------------------------------
   ! GEOLOGICAL FORMATION data
   ! -----------------------------------------------------------------
@@ -239,13 +245,14 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable :: nrows        ! Number of rows
      real(dp), dimension(:), allocatable    :: xllcorner    ! x coordinate of the lowerleft corner
      real(dp), dimension(:), allocatable    :: yllcorner    ! y coordinate of the lowerleft corner
-     real(dp)                               :: cellsize     ! Cellsize x = cellsize y
-     real(dp)                               :: nodata_value ! Code to define the mask
+     real(dp), dimension(:), allocatable    :: cellsize     ! Cellsize x = cellsize y
+     real(dp), dimension(:), allocatable    :: nodata_value ! Code to define the mask
   end type gridGeoRef
 
   type(gridGeoRef), public                  :: level0       ! Reference of the input data files
   type(gridGeoRef), public                  :: level1       ! Reference of the hydrological variables
   type(gridGeoRef), public                  :: level11      ! Reference of the routing variables
+  type(gridGeoRef), public                  :: level110     ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
   type(gridGeoRef), public                  :: level2       ! Reference of the metereological variables
 
   real(dp), dimension(:), allocatable, public :: longitude  ! 1d longitude array
@@ -268,7 +275,7 @@ MODULE mo_global_variables
 
   type(period), public :: warmPer     ! time period for warming
   type(period), public :: evalPer     ! time period for model evaluation
-  type(period), public :: simPer      ! wrmPer + evalPer
+  type(period), public :: simPer      ! warmPer + evalPer
 
   integer(i4), public  :: warmingDays ! number of days for warm up period
 
@@ -277,13 +284,19 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   integer(i4), public                           :: nBasins            ! Number of basins for multi-basin optimization
   type basinInfo
-  ! dim1 = basin id
-  ! dim2 = maximum number of gauges in a given basin
-     ! for LUT
+     ! dim1 = basin id
+     ! dim2 = maximum number of gauges in a given basin
+     ! discharge measurement gauges
      integer(i4), dimension(:),   allocatable   :: nGauges            ! Number of gauges within a basin
      integer(i4), dimension(:,:), allocatable   :: gaugeIdList        ! Gauge Id list (e.g. 0000444 0000445)
      integer(i4), dimension(:,:), allocatable   :: gaugeIndexList     ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
      integer(i4), dimension(:,:), allocatable   :: gaugeNodeList      ! Gauge node list at L11
+
+     ! discharge inflow gauges (e.g if headwater bsins are missing)
+     integer(i4), dimension(:),   allocatable   :: nInflowGauges      ! Number of gauges within a basin
+     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIdList  ! Gauge Id list (e.g. 0000444 0000445)
+     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
+     integer(i4), dimension(:,:), allocatable   :: InflowGaugeNodeList ! Gauge node list at L11
 
      ! basin outlet
      integer(i4), dimension(:), allocatable     :: L0_rowOutlet       ! Outlet location in L0 
@@ -308,11 +321,16 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L11_iEndMask       ! Ending cell index of mask a given basin at L11
      logical,     dimension(:), allocatable     :: L11_mask           ! Mask of level11
 
+     integer(i4), dimension(:), allocatable     :: L110_iStart        ! Sarting cell index of L0_floodPlain 
+     !                                                                ! at a given basin at L110 = node
+     integer(i4), dimension(:), allocatable     :: L110_iEnd          ! Ending cell index of L0_floodPlain 
+     !                                                                ! at a given basin at L110   = node
+
      Integer(i4), dimension(:), allocatable     :: L2_iStart          ! Starting cell index of a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iEnd            ! Ending cell index of a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iStartMask      ! Starting cell index of mask a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iEndMask        ! Ending cell index of mask a given basin at L2
-     logical,     dimension(:), allocatable     :: L2_mask            ! Mask of level2    
+     logical,     dimension(:), allocatable     :: L2_mask            ! Mask of level2
 
   end type basinInfo
   type(basinInfo), public                       :: basin              ! Basin structure
@@ -330,6 +348,7 @@ MODULE mo_global_variables
   integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           Soil id
   integer(i4), public, dimension(:), allocatable   :: L0_geoUnit    !           Geologic formation (unit)
   integer(i4), public, dimension(:), allocatable   :: L0_gaugeLoc   !           Location of gauges within the catchment
+  integer(i4), public, dimension(:), allocatable   :: L0_InflowGaugeLoc         ! Location of inflow gauges within the catchment
  
   ! input data - land cover
   integer(i4), public, dimension(:), allocatable   :: L0_LCover_LAI ! Special landcover id (upto 10 classes) only for the LAI index
