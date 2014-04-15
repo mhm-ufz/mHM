@@ -96,12 +96,8 @@ CONTAINS
 
     real(dp)                :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
 
-    ! local
-    real(dp)                :: Ra                    ! extraterrestrial radiation in [mm s-1]
-
-
-    Ra             = extraterr_rad_approx(doy, deg2rad_dp * latitude)
-    pet_hargreaves = coefficient * Ra * (Tavg + constant) * sqrt(Tmax - Tmin) ! in [mm s-1]
+    ! in [mm s-1]
+    pet_hargreaves = coefficient * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (Tavg + constant) * sqrt(Tmax - Tmin) 
 
   END FUNCTION pet_hargreaves
 
@@ -180,17 +176,86 @@ CONTAINS
 
 
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         pet_penman
+
+  !>        \brief XXX
+
+  !>        \details XXX
+
+  !     INTENT(IN)
+  !>        XXX\param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}]\f$
+  !>        XXX\param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^0C]\f$  
+  !>        XXX\param[in] "real(dp) :: PrieTaycoeff" Priestley-Taylor coefficient
+
+  !     INTENT(INOUT) 
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>         \return real(dp) :: ReferET &mdash; Reference Evapotranspiration [mm s-1]
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
+
+  !     HISTORY
+  !>        \author  Matthias Zink
+  !>        \date    Apr 2014
+
+  elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, windspeed, aerodyn_resistance, bulksurface_resistance)
+
+    use mo_mhm_constants, only: 
+
+    use mo_mhm_constants, only: DaySecs
+    use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
+
+    implicit none
+
+    real(dp), intent(in) :: net_rad                ! net radiation
+    real(dp), intent(in) :: tavg                   ! average daily temperature
+    real(dp), intent(in) :: act_vap_pressure       ! actual vapur pressure
+    real(dp), intent(in) :: windspeed              ! windspeed
+    real(dp), intent(in) :: aerodyn_resistance     ! aerodynmaical resistance
+    real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
+    real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
+
+    pet_penman = (slope_satpressure(tavg) * net_rad + rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure) / &
+                  aerodyn_resistance) / (slope_satpressure(tavg) + Psychro_dp * (1 + bulksurface_resistance/aerodyn_resistance))
+    
+  END FUNCTION pet_penman
+
+
 
   ! Ra as calculated by Duffie and Beckman (1980)
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude) 
 
 
   !     LITERATURE
-  !         Duffie, J.A. and W.A. Beckman. 1980. Solar engineering of thermal processes.
-  !             John Wiley and Sons, New York. pp. 1-109.
+  !>        Duffie, J.A. and W.A. Beckman. 1980. Solar engineering of thermal processes.
+  !>            John Wiley and Sons, New York. pp. 1-109.
 
     use mo_constants,     only: SolarConst_dp, SpecHeatET_dp, PI_D, TWOPI_D
-    use mo_mhm_constants, only: DaySecs
+    use mo_mhm_constants, only: DuffieDr, DuffieDelta1, DuffieDelta2, YearDays, DaySecs
 
     implicit none    
 
@@ -200,16 +265,139 @@ CONTAINS
     real(dp)                            :: dr, delta
     real(dp)                            :: omega
     
-    ! correction for eccentricity of Earths orbit around the sun
-    dr     =  1.0_dp + 0.0330_dp * cos( TWOPI_D * doy / 365.0_dp )            
+    ! inverse relative distance Earth-Sun - correction for eccentricity of Earths orbit around the sun
+    dr     =  1.0_dp + DuffieDr * cos( TWOPI_D * doy / YearDays )            
     ! declination of the sun above the celestial equator in radians
-    delta  =           0.4093_dp * sin( TWOPI_D * doy / 365.0_dp - 1.39_dp ) 
+    delta  =       DuffieDelta1 * sin( TWOPI_D * doy / YearDays - DuffieDelta2 ) 
     ! sunrise hour angle in radians
     omega  = acos( - tan(latitude) * tan(delta) )                  
     
     ! Ra - converted from [J m-2 d-1] in [mm d-1]
     extraterr_rad_approx   = DaySecs / PI_D / SpecHeatET_dp * SolarConst_dp *  &
          dr * (omega * sin(latitude) * sin(delta) + cos(latitude) * cos(delta) * sin(omega))
+
   end FUNCTION extraterr_rad_approx
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         slope_satpressure
+
+  !>        \brief slope of saturation vapour pressure curve
+
+  !>        \details XXX
+
+  !     INTENT(IN)
+  !>        XXX\param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}]\f$
+  !>        XXX\param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^0C]\f$  
+  !>        XXX\param[in] "real(dp) :: PrieTaycoeff" Priestley-Taylor coefficient
+
+  !     INTENT(INOUT) 
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>         XXX\return real(dp) :: ReferET &mdash; Reference Evapotranspiration [mm s-1]
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !>         Tetens, O., 1930. Uber einige meteorologische Begriffe. z. Geophys. 6:297-309.
+  !>         Murray, F.W. 1967. On the computation of saturation vapor pressure. J. Appl. Meteor. 6: 203-204.
+  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
+
+  !     HISTORY
+  !>        \author  Matthias Zink
+  !>        \date    Apr 2014
+
+  ! 
+  elemental pure FUNCTION slope_satpressure(Tavg)
+
+    use mo_mhm_constants, only: satpressureslope1, tetens_c3
+
+    implicit none
+
+    real(dp), intent(in) :: tavg
+    real(dp)             :: slope_satpressure       ! slope of saturation vapour pressure curve
+
+
+    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / (Tavg + tetens_c3)
+    
+  END FUNCTION slope_satpressure
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         sat_vap_pressure
+
+  !>        \brief XXX
+
+  !>        \details XXX
+
+  !     INTENT(IN)
+  !>        XXX\param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}]\f$
+  !>        XXX\param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^0C]\f$  
+  !>        XXX\param[in] "real(dp) :: PrieTaycoeff" Priestley-Taylor coefficient
+
+  !     INTENT(INOUT) 
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>         XXX\return real(dp) :: ReferET &mdash; Reference Evapotranspiration [mm s-1]
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !>         Tetens, O., 1930. Uber einige meteorologische Begriffe. z. Geophys. 6:297-309.
+
+  !     HISTORY
+  !>        \author  Matthias Zink
+  !>        \date    Apr 2014
+
+  elemental pure FUNCTION sat_vap_pressure(tavg)
+
+    use mo_mhm_constants, only:tetens_c1, tetens_c2, tetens_c3 
+
+    implicit none
+
+    real(dp), intent(in) :: tavg
+    real(dp)             :: sat_vap_pressure          ! ssaturation vapour pressure
+
+    sat_vap_pressure = tetens_c1 * exp(tetens_c2 * tavg / (tavg + tetens_c3))
+
+  END FUNCTION sat_vap_pressure
   !
 END MODULE mo_pet

@@ -99,14 +99,24 @@ MODULE mo_constants
   REAL(dp), PARAMETER :: T0_dp        = 273.15_dp                    ! Celcius <-> Kelvin [K]
   !> Standard temperature [K] in single precision
   REAL(sp), PARAMETER :: T0_sp        = 273.15_sp
-  !> Standard pressure [Pa] in double precision
-  REAL(dp), PARAMETER :: P0_dp        = 101325._dp                   ! Standard pressure [Pa]
-  !> Standard pressure [Pa] in single precision
-  REAL(sp), PARAMETER :: P0_sp        = 101325._sp
   !> Stefan-Boltzmann constant [W m^-2 K^-4] in double precision
   REAL(dp), PARAMETER :: sigma_dp     = 5.67e-08_dp                  ! Stefan-Boltzmann constant [W/m^2/K^4]
   !> Stefan-Boltzmann constant [W m^-2 K^-4] in single precision
   REAL(sp), PARAMETER :: sigma_sp     = 5.67e-08_sp
+
+  !> standard atmospehere
+  !> Standard pressure [Pa] in double precision
+  REAL(dp), PARAMETER :: P0_dp        = 101325._dp                   ! Standard pressure [Pa]
+  !> Standard pressure [Pa] in single precision
+  REAL(sp), PARAMETER :: P0_sp        = 101325._sp
+  !> standard density  [kg m^-3] in double precision
+  REAL(dp), PARAMETER :: rho0_dp       = 1.225_dp                    ! Standard air density
+  !> standard density  [kg m^-3] in single precision
+  REAL(sp), PARAMETER :: rho0_sp       = 1.225_sp
+  !> specific heat capacity of air [J kg^-1 K^-1] in double precision
+  REAL(dp), PARAMETER :: cp0_dp        = 1005.0_dp                   ! Standard specific heat of air
+  !> specific heat capacity of air [J kg^-1 K^-1] in single precision
+  REAL(sp), PARAMETER :: cp0_sp        = 1005.0_sp
 
   ! Numerical Recipes
   !> Pi in double precision

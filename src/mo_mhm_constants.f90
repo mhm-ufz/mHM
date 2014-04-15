@@ -46,11 +46,6 @@ MODULE mo_mhm_constants
   ! maximum number of outputs (fluxes states) for mHM
   integer(i4), public, parameter :: nOutFlxState       = 16_i4     ! max. number of outputs to write into a netcdf file
 
-  ! constants in the Duffie formulae for computing extraterrestrial radiation
-  real(dp),    public, parameter :: DuffieDr          =    0.033_dp
-  real(dp),    public, parameter :: DuffieDelta1      =    0.409_dp
-  real(dp),    public, parameter :: DuffieDelta2      =    1.390_dp
-
    ! Time constants
   real(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day
   real(dp),    public, parameter :: HourSecs           =   3600.0_dp  ! seconds per hour
@@ -92,14 +87,26 @@ MODULE mo_mhm_constants
 
 
   !> Stefan-Boltzmann constant [W m^-2 K^-4] 
-  REAL(dp),   public, parameter :: StBoltzmann          = 5.67e-08_dp                
+  real(dp),   public, parameter :: StBoltzmann          = 5.67e-08_dp                
   !> Coeffiecient for Hargreaves-Samani ref. ET formula [-]
-  REAL(dp),   public, parameter :: HarSamCoeff          = 2.30e-03_dp
+  real(dp),   public, parameter :: HarSamCoeff          = 2.30e-03_dp
   !> Constant for Hargreaves-Samani ref. ET formula [deg C]
-  REAL(dp),   public, parameter :: HarSamConst          = 17.8_dp             
+  real(dp),   public, parameter :: HarSamConst          = 17.8_dp             
+
+  ! constants in the Duffie formula for computing extraterrestrial radiation
+  real(dp),    public, parameter :: DuffieDr          =    0.033_dp
+  real(dp),    public, parameter :: DuffieDelta1      =    0.409_dp
+  real(dp),    public, parameter :: DuffieDelta2      =    1.390_dp
+
   !> First constant in the equation for slope of saturation - vapour pressure (Priestly ref ET) [deg C]
-  REAL(dp),   public, parameter :: DeltaPriestly1       = 0.04145_dp             
-  !> Second constant in the equation for slope of saturation vapour pressure (Priestly ref ET) 
-  REAL(dp),   public, parameter :: DeltaPriestly2       = 0.06088_dp 
+  real(dp),   public, parameter :: DeltaPriestly1       = 0.04145_dp             
+  !> constant in the equation for slope of saturation vapour pressure curve 
+  real(dp),   public, parameter :: DeltaPriestly2       = 0.06088_dp 
+  !> constants for Tetens's formula to calculate saturated vapour pressure
+  real(dp),   public, parameter :: tetens_c1            = 0.6108_dp
+  real(dp),   public, parameter :: tetens_c2            = 17.27_dp
+  real(dp),   public, parameter :: tetens_c3            = 237.3_dp
+  !>
+  real(dp),   public, parameter :: satpressureslope1    = 4098.0_dp
 
 END MODULE mo_mhm_constants
