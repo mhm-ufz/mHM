@@ -1379,18 +1379,19 @@ CONTAINS
 
        ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of
        ! the routing cell at level-11
-        if ( gaugeLoc0(ii,jj) /= nodata_i4 ) then 
+        if ( gaugeLoc0(ii,jj) .ne. nodata_i4 ) then 
           ! evaluation gauges
           do ll = 1, basin%nGauges(iBasin)
              ! since indices are given  consecutive for gauge%Ids they have to be set to the
              ! index of the gauge before since L0 data are the same
              index = basin%gaugeIndexList(iBasin, ll) 
-             if (iBasin .GT. 1) then
-                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
-                  index = basin%gaugeIndexList(iBasin-1, ll)
-             end if
+!!$             if (iBasin .GT. 1) then
+!!$                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
+!!$                  index = basin%gaugeIndexList(iBasin-1, ll)
+!!$             end if
              ! save ID on L11
-             if ( index .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj) 
+!!$             if ( index .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
 
@@ -1398,14 +1399,14 @@ CONTAINS
        if ( InflowGaugeLoc0(ii,jj) /= nodata_i4 ) then 
           ! inflow gauges
           do ll = 1, basin%nInflowGauges(iBasin)
-             ! since indices are given  consecutive for InflowGauge%Ids they have to be set to the
-             ! index of the gauge before since L0 data are the same
-             index = basin%InflowGaugeIndexList(iBasin, ll)
-             ! save ID on L11
-             if (iBasin .GT. 1) then
-                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
-                     index = basin%InflowGaugeIndexList(iBasin-1, ll)
-             end if
+!!$             ! since indices are given  consecutive for InflowGauge%Ids they have to be set to the
+!!$             ! index of the gauge before since L0 data are the same
+!!$             index = basin%InflowGaugeIndexList(iBasin, ll)
+!!$             ! save ID on L11
+!!$             if (iBasin .GT. 1) then
+!!$                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
+!!$                     index = basin%InflowGaugeIndexList(iBasin-1, ll)
+!!$             end if
              if (index .EQ. InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
