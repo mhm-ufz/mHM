@@ -87,11 +87,12 @@ CONTAINS
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam  (case 1)
          dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
+         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon  (case 3)
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
          nBasins,                                           & ! Number of basins for multi-basin optimization 
          processMatrix,                                     & ! process configuration
          L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
-         L1_netrad                                            ! meteorological data
+         L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
 
     implicit none
 
@@ -122,6 +123,7 @@ CONTAINS
                                     L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
        if (iBasin==nBasins) then
           allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
+          allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
        end if
 
     case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
@@ -132,9 +134,8 @@ CONTAINS
        call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
                                     L1_tmax, lower=-50.0_dp, upper = 50._dp, ncvarName='tmax' )
        if (iBasin==nBasins) then
-          call append( L1_pet, L1_tmax(:,:) ) ! print*, to be changed MZMZMZMZ
-          !allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
-          allocate( L1_netrad(1,1) )
+          allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
+          allocate( L1_netrad(1,1) ); allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
        end if
 
     case(2) ! Priestley-Taylor formulation (input: net radiation)
@@ -144,6 +145,19 @@ CONTAINS
        if (iBasin==nBasins) then
           allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
           allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+          allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
+       end if
+    case(3) ! Penman-Monteith formulation (input: absulute vapour pressure, windspeed)
+       call message( '    read abs. vapour pressue  ...' )
+       call meteo_forcings_wrapper( iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
+                                    L1_absvappress, lower=0.0_dp, upper = 2500.0_dp, ncvarName='eabs' )
+       call message( '    read windspeed            ...' )
+       call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
+                                    L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
+       if (iBasin==nBasins) then
+          allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
+          allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
+
        end if
     end select
 

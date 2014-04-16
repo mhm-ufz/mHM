@@ -147,8 +147,9 @@ PROGRAM mhm_driver
        dirMorpho, dirLCover, dirGauges, dirPrecipitation,    &      ! directories
        dirTemperature, dirOut,                               &      ! directories
        dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
-       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam (case 1)
+       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam  (case 1)
        dirNetRadiation,                                      &      ! PET input paths if process 5 is PrieTay (case 2)
+       dirabsVapPressure, dirwindspeed,                      &      ! PET input paths if process 5 is PenMon  (case 3)
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        nIterations, seed,                                    &      ! settings for optimization algorithms
@@ -249,9 +250,12 @@ PROGRAM mhm_driver
      case(1)
        call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
        call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
-    case(2)
+     case(2)
        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-     end select
+     case(3)
+       call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
+       call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
+    end select
      call message('    Output directory:           ', trim(dirOut(ii) ))        
      if (processMatrix(8,1) .GT. 0) then
         call message('    Evaluation gauge          ', 'ID')

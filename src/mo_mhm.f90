@@ -173,12 +173,14 @@ CONTAINS
       fnight_pet          , & ! [-] night ratio PET  < 1
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
-      pet_in              , & ! Daily potential evapotranspiration (INOUT)
-      tmin_in             , & ! Daily minimum temperature
-      tmax_in             , & ! Daily maxumum temperature
-      netrad_in           , & ! Daily net radiation
-      prec_in             , & ! Daily mean precipitation
-      temp_in             , & ! Daily average temperature
+      pet_in              , & ! [mm d-1] Daily potential evapotranspiration (INOUT)
+      tmin_in             , & ! [degc]   Daily minimum temperature
+      tmax_in             , & ! [degc]   Daily maxumum temperature
+      netrad_in           , & ! [w m2]   Daily average net radiation
+      absvappres_in       , & ! [hPa]    Daily average absolute vapour pressure
+      windspeed_in        , & ! [m s-1]  Daily average wind speed
+      prec_in             , & ! [mm d-1] Daily mean precipitation
+      temp_in             , & ! [degc]   Daily average temperature
       ! discharge inflow
       QInflow             , & ! discharge time series of inflow
       ! In-Out -----------------------------------------------------------------
@@ -246,7 +248,8 @@ CONTAINS
     use mo_net_startup,             only: L11_fraction_sealed_floodplain   ! flood plain subroutine
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
-    use mo_pet,                     only: pet_hargreaves, pet_priestly     ! calc. of pot. evapotranspiration
+    use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
+                                          pet_penman
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
     use mo_canopy_interc ,          only: canopy_interc
     use mo_snow_accum_melt,         only: snow_accum_melt
@@ -258,8 +261,8 @@ CONTAINS
     use mo_routing,                 only: L11_routing
     use mo_julian,                  only: dec2date, date2dec
 
-    use mo_mhm_constants,           only: HarSamCoeff, HarSamConst       ! parameters for Hargreaves-Samani Equation
-
+    use mo_mhm_constants,           only: HarSamCoeff, HarSamConst,    & ! parameters for Hargreaves-Samani Equation
+                                          PrieTayCoeff
     implicit none
 
     ! Intent
@@ -338,6 +341,8 @@ CONTAINS
     real(dp),    dimension(:),     intent(in)    :: tmin_in
     real(dp),    dimension(:),     intent(in)    :: tmax_in
     real(dp),    dimension(:),     intent(in)    :: netrad_in
+    real(dp),    dimension(:),     intent(in)    :: absvappres_in
+    real(dp),    dimension(:),     intent(in)    :: windspeed_in
     real(dp),    dimension(:),     intent(in)    :: prec_in
     real(dp),    dimension(:),     intent(in)    :: temp_in
 
@@ -574,16 +579,19 @@ CONTAINS
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
           doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           !
+          if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
+               num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
           pet_in(k) = pet_hargreaves(HarSamCoeff, HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
                tmin_in(k), latitude(k), doy)                                                ! Intent IN
 
        case(2) ! Priestley-Taylor
           ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = pet_priestly(max(netrad_in(k), 0.0_dp), temp_in(k), 1.26_dp)  ! Intent IN      change number MZMZMZ 
+          pet_in(k) = pet_priestly(PrieTayCoeff, max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN  change number MZMZMZ 
 
        case(3) ! Penman-Monteith
-          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), act_vap_pressure_in(k), &
-                                   aerodyn_resistance(k,month), bulksurface_resistance(k)) ! Intent IN 
+          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/10.0_dp, &
+                                   100.0_dp, 100.0_dp) ! Intent IN 
+!                                   aerodyn_resistance(k,month), bulksurface_resistance(k)) ! Intent IN 
 
        end select
        

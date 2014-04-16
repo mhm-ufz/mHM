@@ -109,6 +109,7 @@ CONTAINS
          L11_length, L11_slope, evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
+         L1_absvappress, L1_windspeed,                       &
          L1_pre, L1_temp , L1_fForest,                       & 
          L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
          L11_aFloodPlain, L1_inter,                          & 
@@ -166,12 +167,14 @@ CONTAINS
     integer(i4)                               :: s0, e0
     integer(i4)                               :: s1, e1
     ! process case dependent length specefiers of vectors to pass to mHM
-    integer(i4), dimension(4)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
-    integer(i4), dimension(4)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
+    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
+    integer(i4), dimension(6)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
     !                                                             ! index 1: pet
     !                                                             ! index 2: tmin
     !                                                             ! index 3: tmax
     !                                                             ! index 4: netrad
+    !                                                             ! index 5: absolute vapour pressure
+    !                                                             ! index 6: windspeed
     integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
     integer(i4)                               :: s110, e110
     logical, dimension(:,:), allocatable      :: mask0, mask1
@@ -263,16 +266,20 @@ CONTAINS
        case(0) ! PET is input
           print*, 'PET: Input' ! MZMZMZ
           !      (/pet, tmax, tmin, netrad/)
-          s_p5 = (/s1,  1,  1, 1/)
-          e_p5 = (/e1,  1,  1, 1/)
+          s_p5 = (/s1,  1,  1, 1, 1, 1/)
+          e_p5 = (/e1,  1,  1, 1, 1, 1/)
        case(1) ! HarSam
           print*, 'PET: HarSam' ! MZMZMZ
-          s_p5 = (/s1, s1, s1, 1/)
-          e_p5 = (/e1, e1, e1, 1/)
+          s_p5 = (/s1, s1, s1, 1, 1, 1/)
+          e_p5 = (/e1, e1, e1, 1, 1, 1/)
        case(2) ! PrieTay
           print*, 'PET: PrieTay' ! MZMZMZ
-          s_p5 = (/s1,  1,  1, s1/)
-          e_p5 = (/e1,  1,  1, e1/)
+          s_p5 = (/s1,  1,  1, s1, 1, 1/)
+          e_p5 = (/e1,  1,  1, e1, 1, 1/)
+       case(3) ! PenMon
+          print*, 'PET: PenMon' ! MZMZMZ
+          s_p5 = (/s1,  1,  1, 1, s1, s1/)
+          e_p5 = (/e1,  1,  1, 1, e1, e1/)
        end select
 
        ! process 8 - routing process (on or off)
@@ -305,12 +312,15 @@ CONTAINS
           ! 
           ! customize iMeteoTS for process 5 - PET
           select case (processMatrix(5,1))
+                  !      (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)  
           case(0) ! PET is input
-             iMeteo_p5 = (/iMeteoTS,        1,        1,        1/)
+             iMeteo_p5 = (/iMeteoTS,        1,        1,        1,        1,        1 /)
           case(1) ! HarSam
-             iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1/)
+             iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1,        1,        1 /)
           case(2) ! PrieTay
-             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS/)
+             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS,        1,        1 /)
+          case(3) ! PenMon
+             iMeteo_p5 = (/iMeteoTS,        1,        1,        1, iMeteoTS, iMeteoTS /)
           end select
           !print*, 'iMeteoTS', iMeteoTS
              
@@ -378,10 +388,12 @@ CONTAINS
                L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
-               L1_pet (s_p5(1):e_p5(1),                                                     & ! INOUT F
-               iMeteo_p5(1)), L1_tmin(s_p5(2):e_p5(2),iMeteo_p5(2)),                        & ! IN F
-               L1_tmax(s_p5(3):e_p5(3),iMeteo_p5(3)),                                       & ! IN F
-               L1_netrad(s_p5(4):e_p5(4),iMeteo_p5(4)),                                     & ! IN F
+               L1_pet         (s_p5(1):e_p5(1), iMeteo_p5(1)),                              & ! INOUT F
+               L1_tmin        (s_p5(2):e_p5(2), iMeteo_p5(2)),                              & ! IN F
+               L1_tmax        (s_p5(3):e_p5(3), iMeteo_p5(3)),                              & ! IN F
+               L1_netrad      (s_p5(4):e_p5(4), iMeteo_p5(4)),                              & ! IN F
+               L1_absvappress (s_p5(5):e_p5(5), iMeteo_p5(5)),                              & ! IN F
+               L1_windspeed   (s_p5(6):e_p5(6), iMeteo_p5(6)),                              & ! IN F
                L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                             & ! IN F
                InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C

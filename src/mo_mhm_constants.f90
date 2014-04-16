@@ -92,6 +92,8 @@ MODULE mo_mhm_constants
   real(dp),   public, parameter :: HarSamCoeff          = 2.30e-03_dp
   !> Constant for Hargreaves-Samani ref. ET formula [deg C]
   real(dp),   public, parameter :: HarSamConst          = 17.8_dp             
+  !> Coeffiecient for Priestley-Taylor ref. ET formula [-]
+  real(dp),   public, parameter :: PrieTayCoeff         = 1.26_dp           
 
   ! constants in the Duffie formula for computing extraterrestrial radiation
   real(dp),    public, parameter :: DuffieDr          =    0.033_dp

@@ -43,11 +43,11 @@ CONTAINS
   !>         and minimum daily temperatures \f$ [ ^0C]\f$ at a given day and \f$\beta\f$ a conversion factor including site specifics.
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp) :: Ra"          top-of-the-atmosphere-radiation \f$ [W m^{-2}]\f$
-  !>        \param[in] "real(dp) :: Tavg"        daily mean air temperature \f$ [ ^0C]\f$
-  !>        \param[in] "real(dp) :: Tmax"        maximum daily temperature \f$ [ ^0C]\f$
-  !>        \param[in] "real(dp) :: Tmin"        minimum daily temperature \f$ [ ^0C]\f$
-  !>        \param[in] "real(dp) :: gamma"       parameter
+  !>        XXX\param[in] "real(dp) :: Ra"          top-of-the-atmosphere-radiation \f$ [W m^{-2}]\f$
+  !>        XXX\param[in] "real(dp) :: Tavg"        daily mean air temperature \f$ [ ^0C]\f$
+  !>        XXX\param[in] "real(dp) :: Tmax"        maximum daily temperature \f$ [ ^0C]\f$
+  !>        XXX\param[in] "real(dp) :: Tmin"        minimum daily temperature \f$ [ ^0C]\f$
+  !>        XXXX\param[in] "real(dp) :: gamma"       parameter
 
   !     INTENT(INOUT)
   !         None
@@ -81,14 +81,14 @@ CONTAINS
   !>        \author Matthias Zink
   !>        \date Dec 2012
 
-  elemental pure FUNCTION pet_hargreaves(coefficient, constant, tavg, tmax, tmin, latitude, doy)
+  elemental pure FUNCTION pet_hargreaves(HarSamCoeff, HarSamConst, tavg, tmax, tmin, latitude, doy)
 
     use mo_constants,     only: deg2rad_dp
 
     implicit none
 
-    real(dp),    intent(in) :: coefficient           !  coefficient of Hargreaves-Samani equation
-    real(dp),    intent(in) :: constant              !  constatnt   of Hargreaves-Samani equation
+    real(dp),    intent(in) :: HarSamCoeff           !  coefficient of Hargreaves-Samani equation
+    real(dp),    intent(in) :: HarSamConst           !  constatnt   of Hargreaves-Samani equation
     real(dp),    intent(in) :: tavg                  !  daily men temperature
     real(dp),    intent(in) :: tmax                  !  daily maximum of temp.
     real(dp),    intent(in) :: tmin                  !  daily minimum of temp.
@@ -97,8 +97,22 @@ CONTAINS
 
     real(dp)                :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
 
-    ! in [mm s-1]
-    pet_hargreaves = coefficient * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (Tavg + constant) * sqrt(Tmax - Tmin) 
+    real(dp)                :: delta_temp        ! tmax-Tmin
+
+    ! correction for shity input data ! MZMZMZMZ
+    if (tmax - tmin .GT. 0.0_dp) then 
+      delta_temp     = tmax - tmin ! MZMZMZMZ
+    else
+      delta_temp     =  1.0e-05_dp  ! MZMZMZMZ
+    end if
+    ! in [mm s-1]   
+  ! to avoid numerical errors
+  if (tavg .lt. -17.8_dp) then
+     pet_hargreaves = 1.0E-5_dp
+  else
+    pet_hargreaves = HarSamCoeff * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (tavg + HarSamConst) * sqrt(delta_temp) 
+  end if
+
 
   END FUNCTION pet_hargreaves
 
@@ -155,23 +169,24 @@ CONTAINS
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
 
-  elemental pure FUNCTION pet_priestly(Rn, Tavg, gamma)
+  elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, Tavg)
 
     use mo_mhm_constants, only: DeltaPriestly1, DeltaPriestly2, DaySecs
     use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp 
 
     implicit none
 
+    real(dp), intent(in) :: PrieTayParam       ! Priestley-Taylor coefficient
     real(dp), intent(in) :: Rn
     real(dp), intent(in) :: Tavg
-    real(dp), intent(in) :: gamma              ! parameter
     real(dp)             :: pet_priestly       ! reference evapotranspiration in [mm s-1]
 
     real(dp)             :: delta              ! slope of saturation-to-vapor-pressure
 
     delta        = DeltaPriestly1 * exp(DeltaPriestly2 * Tavg) ! slope of saturation-to-vapor pressure curve
+    ! delta        = slope_satpressure(Tavg) MZMZMZMZ
     ! gamma        = 1.26_dp
-    pet_priestly = gamma * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) ! in [mm s-1]
+    pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) ! in [mm s-1]
     
   END FUNCTION pet_priestly
 
@@ -233,15 +248,18 @@ CONTAINS
     real(dp), intent(in) :: net_rad                ! net radiation
     real(dp), intent(in) :: tavg                   ! average daily temperature
     real(dp), intent(in) :: act_vap_pressure       ! actual vapur pressure
-    !real(dp), intent(in) :: windspeed              ! windspeed
+    !real(dp), intent(in) :: windspeed              ! windspeed ! MZMZMZ
     real(dp), intent(in) :: aerodyn_resistance     ! aerodynmaical resistance
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
 
-    pet_penman = (slope_satpressure(tavg) * net_rad + rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure) / &
+    pet_penman =  DaySecs / SpecHeatET_dp * (slope_satpressure(tavg) * net_rad + rho0_dp * cp0_dp * &
+                  (sat_vap_pressure(tavg) - act_vap_pressure) / &
                   aerodyn_resistance) / (slope_satpressure(tavg) + Psychro_dp * (1 + bulksurface_resistance/aerodyn_resistance))
     
   END FUNCTION pet_penman
+
+
 
 
 
@@ -288,9 +306,9 @@ CONTAINS
   !>        \details XXX
 
   !     INTENT(IN)
-  !>        XXX\param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}]\f$
-  !>        XXX\param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^0C]\f$  
-  !>        XXX\param[in] "real(dp) :: PrieTaycoeff" Priestley-Taylor coefficient
+  !>        XXX
+  !>        XXX
+  !>        XXX
 
   !     INTENT(INOUT) 
   !         None
@@ -308,7 +326,7 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>         XXX\return real(dp) :: ReferET &mdash; Reference Evapotranspiration [mm s-1]
+  !>         XXX
 
   !     RESTRICTIONS
   !         None

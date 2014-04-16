@@ -125,6 +125,7 @@ CONTAINS
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
          dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
+         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon (case 3)
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
@@ -245,6 +246,8 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dirMinTemperature_dummy
     character(256), dimension(maxNoBasins)          :: dirMaxTemperature_dummy
     character(256), dimension(maxNoBasins)          :: dirNetRadiation_dummy
+    character(256), dimension(maxNoBasins)          :: dir_windspeed
+    character(256), dimension(maxNoBasins)          :: dir_absVapPressure
     character(256), dimension(maxNoBasins)          :: dir_ReferenceET
     character(256), dimension(maxNoBasins)          :: dir_Out
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
@@ -275,10 +278,10 @@ CONTAINS
     ! define namelists
     ! namelist directories
 
-    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,            &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation, &
-         dir_Temperature, dir_ReferenceET, dirMinTemperature_dummy, dirMaxTemperature_dummy, &
-         dirNetRadiation_dummy, dir_Out, dir_RestartOut,&
+    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,          &
+         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                                  &
+         dir_Temperature, dir_ReferenceET, dirMinTemperature_dummy, dirMaxTemperature_dummy,  &
+         dir_absVapPressure, dir_windspeed, dirNetRadiation_dummy, dir_Out, dir_RestartOut,   &
          dir_RestartIn, dir_LatLon
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, resolution_Hydrology, resolution_Routing, L0Basin, optimize, opti_method,  &
@@ -349,6 +352,8 @@ CONTAINS
     allocate(dirGauges           (nBasins))
     allocate(dirPrecipitation    (nBasins))
     allocate(dirTemperature      (nBasins))
+    allocate(dirwindspeed        (nBasins))
+    allocate(dirabsVapPressure   (nBasins))
     allocate(dirReferenceET      (nBasins))
     allocate(dirMinTemperature   (nBasins))
     allocate(dirMaxTemperature   (nBasins))
@@ -398,19 +403,21 @@ CONTAINS
     call position_nml('directories', unamelist)
     read(unamelist, nml=directories)
 
-    dirMorpho         = dir_Morpho        (1:nBasins)
-    dirLCover         = dir_LCover        (1:nBasins)
-    dirGauges         = dir_Gauges        (1:nBasins)      
-    dirPrecipitation  = dir_Precipitation (1:nBasins)
-    dirTemperature    = dir_Temperature   (1:nBasins)
-    dirReferenceET    = dir_ReferenceET   (1:nBasins)
-    dirMinTemperature = dirMinTemperature_dummy  (1:nBasins)
-    dirMaxTemperature = dirMaxTemperature_dummy  (1:nBasins)
-    dirNetRadiation   = dirNetRadiation_dummy    (1:nBasins)
-    dirOut            = dir_Out           (1:nBasins)
-    dirRestartOut     = dir_RestartOut    (1:nBasins)
-    dirRestartIn      = dir_RestartIn     (1:nBasins)
-    dirLatLon         = dir_LatLon        (1:nBasins)
+    dirMorpho                 = dir_Morpho              (1:nBasins)
+    dirLCover                 = dir_LCover              (1:nBasins)
+    dirGauges                 = dir_Gauges              (1:nBasins)      
+    dirPrecipitation          = dir_Precipitation       (1:nBasins)
+    dirTemperature            = dir_Temperature         (1:nBasins)
+    dirReferenceET            = dir_ReferenceET         (1:nBasins)
+    dirMinTemperature         = dirMinTemperature_dummy (1:nBasins)
+    dirMaxTemperature         = dirMaxTemperature_dummy (1:nBasins)
+    dirNetRadiation           = dirNetRadiation_dummy   (1:nBasins)
+    dirwindspeed              = dir_windspeed           (1:nBasins)
+    dirabsVapPressure         = dir_absVapPressure      (1:nBasins)
+    dirOut                    = dir_Out                 (1:nBasins)
+    dirRestartOut             = dir_RestartOut          (1:nBasins)
+    dirRestartIn              = dir_RestartIn           (1:nBasins)
+    dirLatLon                 = dir_LatLon              (1:nBasins)
 
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
@@ -900,7 +907,7 @@ CONTAINS
           stop
        end if
     ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
-    case(1)
+    case(1,2,3)
        call position_nml('PET0', unamelist_param)
        read(unamelist_param, nml=PET0)
        processMatrix(5, 1) = processCase(5)
@@ -922,28 +929,8 @@ CONTAINS
           stop
        end if
     ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
-    case(2)
-       call position_nml('PET0', unamelist_param)
-       read(unamelist_param, nml=PET0)
-       processMatrix(5, 1) = processCase(5)
-       processMatrix(5, 2) = 3_i4
-       processMatrix(5, 3) = sum(processMatrix(1:5, 2))
-       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
-
-       call append(global_parameters_name, (/ &
-            'minCorrectionFactorPET', &
-            'maxCorrectionFactorPET', &
-            'aspectTresholdPET     '/))
-
-       ! check if parameter are in range
-       if ( .not. in_bound(global_parameters) ) then
-          call message('***ERROR: parameter in namelist "PET0" out of bound in ', &
-               trim(adjustl(file_namelist_param)))
-          stop
-       end if
-
+    ! case(2)
+    !    call position_nml('PETXX', unamelist_param)
 
     case DEFAULT
        call message()

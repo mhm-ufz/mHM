@@ -53,7 +53,7 @@ outputFlxState(8)=.TRUE.
 !----------------
 !
 ! potential evapotranspiration PET [mm/T]                             -- case  9
-outputFlxState(9)=.FALSE. 
+outputFlxState(9)=.TRUE. 
 !
 ! actual evapotranspiration aET [mm/T]                                -- case 10
 outputFlxState(10)=.TRUE. 

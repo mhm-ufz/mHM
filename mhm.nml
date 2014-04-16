@@ -46,30 +46,37 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "/home/matze/ufz/data/sub_mulde/morph_v5/"
+dir_Morpho(1)               = "/home/matze/ufz/data/sub_mulde/morph_v5/"
 !> directory where land cover files are located
-dir_LCover(1)        = "/home/matze/ufz/data/sub_mulde/luse_v5/"
+dir_LCover(1)               = "/home/matze/ufz/data/sub_mulde/luse_v5/"
 !> directory where discharge files are located
-dir_Gauges(1)        = "/home/matze/ufz/data/sub_mulde/gauge_v5/"
+dir_Gauges(1)               = "/home/matze/ufz/data/sub_mulde/gauge_v5/"
 !> directory where meteorological input is located
-dir_Precipitation(1) = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
-dir_Temperature(1)   = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dir_Precipitation(1)        = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dir_Temperature(1)          = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
 !> paths depending on PET process (processCase(5))
+!> 0 - PET is input
+!> 1 - Hargreaves-Sammani method
+!> 2 - Priestley-Taylor mehtod
+!> 3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)   = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dir_ReferenceET(1)          = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dirMinTemperature_dummy(1) = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
-dirMaxTemperature_dummy(1) = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dirMinTemperature_dummy(1)  = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dirMaxTemperature_dummy(1)  = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dirNetRadiation_dummy(1)   = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dirNetRadiation_dummy(1)    = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
+dir_absVapPressure(1)       = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
+dir_windspeed(1)            = "/home/matze/ufz/data/sub_mulde/meteo_v5/"
 !> directory where latitude and longitude file is located
-dir_LatLon(1)        = "/home/matze/ufz/data/sub_mulde/morph_v5/latlon.nc"
+dir_LatLon(1)               = "/home/matze/ufz/data/sub_mulde/morph_v5/latlon.nc"
 !> directory where output should be written to
-dir_Out(1)           = "/home/matze/ufz/data/sub_mulde/output_v5/pet_test_new/"
+dir_Out(1)                  = "/home/matze/ufz/data/sub_mulde/output_v5/pet_test_new/"
 !> directory where restart output should be written
-dir_RestartOut(1)    =   "test_basin/restart/"
+dir_RestartOut(1)           =   "test_basin/restart/"
 !> directory where restart output should be written
-dir_RestartIn(1)     = "/home/matze/ufz/data/sub_mulde/restart/"
+dir_RestartIn(1)            = "/home/matze/ufz/data/sub_mulde/restart/"
 /
 
 !
@@ -295,7 +302,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 0
+processCase(5) = 3
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1

@@ -118,7 +118,9 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
   character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
   character(256), dimension(:), allocatable, public :: dirMaxTemperature  ! Directory where maximum temp. files are located
-  character(256), dimension(:), allocatable, public :: dirNetRadiation    ! Directory where net radiation files are located
+  character(256), dimension(:), allocatable, public :: dirNetRadiation    ! Directory where abs. vap. pressure files are located
+  character(256), dimension(:), allocatable, public :: dirabsVapPressure  ! Directory where abs. vap. pressure files are located
+  character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
@@ -393,12 +395,14 @@ MODULE mo_global_variables
   ! Forcings
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]   Precipitation
-  real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC] Air temperature
-  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]   Potential evapotranspiration
-  real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC] minimum daily air temperature
-  real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC] maximum daily air temperature
-  real(dp), public, dimension(:,:), allocatable    :: L1_netrad        ! [W m2] net radiation
+  real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]    Precipitation
+  real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC]  Air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]    Potential evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC]  minimum daily air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC]  maximum daily air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_netrad        ! [W m2]  net radiation
+  real(dp), public, dimension(:,:), allocatable    :: L1_absvappress   ! [hPa]   absolute vapour pressure
+  real(dp), public, dimension(:,:), allocatable    :: L1_windspeed     ! [m s-1] windspeed
 
   ! Land cover
   ! dim1 = number grid cells L1
