@@ -163,8 +163,9 @@ CONTAINS
     !--------------------------------------------------------------------------
     ! Links in sequential mode .... with single node
     !--------------------------------------------------------------------------
-    !$OMP parallel
-    !$OMP do private( i, inode, tnode)
+    ! ST - decent parallelization has to be done!!!
+    !!$OMP parallel
+    !!$OMP do private( i, inode, tnode)
     do k = 1 , nLinks
        ! get LINK routing order -> i
        i = netPerm(k)
@@ -182,8 +183,8 @@ CONTAINS
        ! add routing to tNode
        netNode_qTIN(tNode,IT) = netNode_qTIN(tNode,IT) + netNode_qTR(iNode,IT)
     end do
-    !$OMP end do
-    !$OMP end parallel
+    !!$OMP end do
+    !!$OMP end parallel
 
     !--------------------------------------------------------------------------
     ! Accumulate all inputs in tNode (netNode_qOUT) ONLY for last link
@@ -195,8 +196,9 @@ CONTAINS
     ! save modeled discharge at time step tt then shift flow storages
     ! (NOTE aggregation to daily values to be done outside)
     !--------------------------------------------------------------------------
-    !$OMP parallel
-    !$OMP do schedule( static )
+    ! ST - decent parallelization has to be done!!!
+    !!$OMP parallel
+    !!$OMP do schedule( static )
     do i = 1, nNodes
        ! store generated discharge
        netNode_Qmod(i) = netNode_qTIN(i,IT)
@@ -204,8 +206,8 @@ CONTAINS
        netNode_qTR(i,IT1) = netNode_qTR(i,IT)
        netNode_qTIN(i,IT1)= netNode_qTIN(i,IT)
     end do
-    !$OMP end do
-    !$OMP end parallel
+    !!$OMP end do
+    !!$OMP end parallel
 
   end subroutine L11_routing
 
