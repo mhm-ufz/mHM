@@ -129,7 +129,7 @@ contains
                         ! w.r.t to saturation
 
     use mo_mhm_constants, only: BulkDens_OrgMatter
-!$  use omp_lib
+    !$  use omp_lib
 
     implicit none
 
@@ -203,9 +203,10 @@ contains
     Ks           = 0.0_dp  
     Db           = 0.0_dp
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE( i, j, L, pOM, pM, Ks_tmp, Genu_Mual_alpha, Genu_Mual_n ) \
-    !$ SCHEDULE( STATIC )
+    !$OMP PARALLEL default(shared)
+    !$OMP DO &
+    !$OMP PRIVATE( i, j, L, pOM, pM, Ks_tmp, Genu_Mual_alpha, Genu_Mual_n ) &
+    !$OMP SCHEDULE( STATIC )
     do i = 1, size(is_present)
 
        if ( is_present(i) .lt. 1 ) cycle
