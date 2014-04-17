@@ -59,8 +59,8 @@ date         = opts.date
 #############################################
 
 import numpy as np                     # array manipulation
-import time, os, sys                   # call current time for timestamp
-from date2dec import date2dec
+import os                              # call current time for timestamp
+from date2dec import date2dec          # from ufz
 from readnetcdf import readnetcdf      # from ufz
 
 #############################################
