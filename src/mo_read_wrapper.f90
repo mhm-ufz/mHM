@@ -380,10 +380,11 @@ CONTAINS
                    stop
                 end if
 
-                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
-                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
+!!$                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
+!!$                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
              end do
-             call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+!!$             call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
  
              ! inflow gauges
              tmp_data_i4_2d = nodata_i4
@@ -404,11 +405,12 @@ CONTAINS
                       stop
                    end if
                    
-                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
-                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
+!!$                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
+!!$                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
                 end do
              end if
-             call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+!!$             call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+             call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
 
              deallocate(tmp_data_i4_2d)
           case(6) ! Land cover related to LAI classes

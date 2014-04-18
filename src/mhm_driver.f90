@@ -253,6 +253,7 @@ PROGRAM mhm_driver
      case(2)
        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
      case(3)
+       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
        call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
        call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
     end select

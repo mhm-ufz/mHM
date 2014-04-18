@@ -146,7 +146,11 @@ CONTAINS
           allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
           allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
        end if
+
     case(3) ! Penman-Monteith formulation (input: absulute vapour pressure, windspeed)
+       call message( '    read net radiation        ...' )
+       call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+                                    L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
        call message( '    read abs. vapour pressue  ...' )
        call meteo_forcings_wrapper( iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
                                     L1_absvappress, lower=0.0_dp, upper = 2500.0_dp, ncvarName='eabs' )
@@ -155,12 +159,9 @@ CONTAINS
                                     L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
        if (iBasin==nBasins) then
           allocate( L1_pet    (size(L1_absvappress, dim=1), size(L1_absvappress, dim=2)))
-          allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
-
+          allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
        end if
     end select
-
-    print*, 'PETshape: ',shape(L1_pet)
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')

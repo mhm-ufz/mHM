@@ -266,20 +266,20 @@ CONTAINS
        case(0) ! PET is input
           print*, 'PET: Input' ! MZMZMZ
           !      (/pet, tmax, tmin, netrad/)
-          s_p5 = (/s1,  1,  1, 1, 1, 1/)
-          e_p5 = (/e1,  1,  1, 1, 1, 1/)
+          s_p5 = (/s1,  1,  1,  1,  1,  1/)
+          e_p5 = (/e1,  1,  1,  1,  1,  1/)
        case(1) ! HarSam
           print*, 'PET: HarSam' ! MZMZMZ
-          s_p5 = (/s1, s1, s1, 1, 1, 1/)
-          e_p5 = (/e1, e1, e1, 1, 1, 1/)
+          s_p5 = (/s1, s1, s1,  1,  1,  1/)
+          e_p5 = (/e1, e1, e1,  1,  1,  1/)
        case(2) ! PrieTay
           print*, 'PET: PrieTay' ! MZMZMZ
-          s_p5 = (/s1,  1,  1, s1, 1, 1/)
-          e_p5 = (/e1,  1,  1, e1, 1, 1/)
+          s_p5 = (/s1,  1,  1, s1,  1,  1/)
+          e_p5 = (/e1,  1,  1, e1,  1,  1/)
        case(3) ! PenMon
           print*, 'PET: PenMon' ! MZMZMZ
-          s_p5 = (/s1,  1,  1, 1, s1, s1/)
-          e_p5 = (/e1,  1,  1, 1, e1, e1/)
+          s_p5 = (/s1,  1,  1, s1, s1, s1/)
+          e_p5 = (/e1,  1,  1, e1, e1, e1/)
        end select
 
        ! process 8 - routing process (on or off)
@@ -320,9 +320,9 @@ CONTAINS
           case(2) ! PrieTay
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS,        1,        1 /)
           case(3) ! PenMon
-             iMeteo_p5 = (/iMeteoTS,        1,        1,        1, iMeteoTS, iMeteoTS /)
+             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
           end select
-          !print*, 'iMeteoTS', iMeteoTS
+          !print*, 'iMeteoTS', iMeteoTS MZMZ
              
           ! time step for gridded LAI data (daily values)
           iGridLAI_TS = iMeteoTS ! ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )

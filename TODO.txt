@@ -40,6 +40,9 @@ L11 - outlet plot
 -- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
    The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
 
+Inflow gauge:
+-- revise check cases
+
 Remove Numerical Recipes code 
 -- mo_sce:     sort_matrix
 -- mo_sort:    sort, sort_index, arth, icomp_xchg, swap
