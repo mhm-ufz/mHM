@@ -617,14 +617,19 @@ contains
 
     k2_0 = nodata
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
-    do ii = 1, size(k2_0)
-       gg = geoUnit0(ii)
-       k2_0(ii) = param( gg )
-    end do
-    !$OMP END DO
-    !$OMP END PARALLEL
+    ! MZMZ: remapping of geounits is wrong, rollback to revision 1428
+    ! !$OMP PARALLEL                         ! >>>> revision 1581
+    ! !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
+    ! do ii = 1, size(k2_0)
+    !    gg = geoUnit0(ii)
+    !    k2_0(ii) = param( gg )
+    ! end do
+    ! !$OMP END DO
+    ! !$OMP END PARALLEL                     ! >>>> revision 1581
+    do ii = 1, size(param)                    ! <<<< revision 1428
+       k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
+    end do                                   ! <<<< revision 1428
+
 
   end subroutine baseflow_param
 
