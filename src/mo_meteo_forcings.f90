@@ -79,7 +79,6 @@ CONTAINS
   subroutine prepare_meteo_forcings_data(iBasin)
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
-    use mo_append,           only: append
     use mo_timer,            only:                          &
          timer_start, timer_stop, timer_get                  ! Timing of processes
     use mo_global_variables, only: &
@@ -155,7 +154,7 @@ CONTAINS
        call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
                                     L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
        if (iBasin==nBasins) then
-          allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
+          allocate( L1_pet    (size(L1_absvappress, dim=1), size(L1_absvappress, dim=2)))
           allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
 
        end if
