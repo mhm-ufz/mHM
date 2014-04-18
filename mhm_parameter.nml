@@ -44,12 +44,41 @@ infiltrationShapeFactor            =  1.0000,      4.0000,     2.895E+00,     1,
 imperviousStorageCapacity          =  0.0000,      5.0000,     9.055E-01,     1,       1
 /
 
-! meteoCorrectionFactor
-&PET0
+! potential evapotranspiration estimation
+&PET0 ! PET is input
 minCorrectionFactorPET             =  0.7000,      1.3000,     9.307E-01,     1,       1
 maxCorrectionFactorPET             =  0.0000,      0.2000,     7.730E-02,     1,       1
 aspectTresholdPET                  =  160.00,      200.00,     1.838E+02,     1,       1
 /
+&PET1 ! PET - Hargreaves Samani
+minCorrectionFactorPET             =  0.7000,      1.3000,     1.000E+00,     0,       1
+maxCorrectionFactorPET             =  0.0000,      0.2000,     0.000E+00,     0,       1
+aspectTresholdPET                  =  160.00,      200.00,     1.800E+02,     0,       1
+HargreavesSamaniCoeff              =  0.0016,      0.0030,     2.300E-03,     0,       1
+/
+&PET2 ! PET - Priestley Taylor 
+minCorrectionFactorPET             =  0.7000,      1.3000,     1.000E+00,     0,       1
+maxCorrectionFactorPET             =  0.0000,      0.2000,     0.000E+00,     0,       1
+aspectTresholdPET                  =  160.00,      200.00,     1.800E+02,     0,       1
+PriestleyTaylorCoeff               =    1.00,        2.00,     1.260E+00,     0,       1
+/
+&PET3 ! PET - Penman Monteith
+canopyheigth_forest                =   15.00,       40.00,     2.816E+01,     1,       1 
+canopyheigth_impervious            =    0.01,        0.50,     9.000E-02,     1,       1 
+canopyheigth_pervious              =    0.10,        5.00,     1.410E+00,     1,       1 
+displacementheight_coeff           =    0.50,        0.85,     0.660E+00,     1,       1   ! default
+roughnesslength_momentum_coeff     =    0.09,        0.16,     0.123E+00,     1,       1   ! default
+roughnesslength_heat_coeff         =    0.07,        0.13,     0.100E+00,     1,       1   ! default
+stomatal_resistance                =   10.00,      200.00,     1.000E+02,     1,       1   ! default
+/
+
+ammaBounds(46,:) =  25      ,   45      , 1                                       ! canpoy height - forest
+gammaBounds(47,:) =   0.01   ,    0.1    , 1                                       ! canpoy height - impervios
+gammaBounds(48,:) =   0.05   ,    1.5    , 1                                       ! canpoy height - pervious
+gammaBounds(49,:) =   0.60   ,    0.74   , 1                                       ! factor displacemnt heigth
+gammaBounds(50,:) =   0.11   ,    0.14   , 1                                       ! factor roughness length (momentum flux)
+gammaBounds(51,:) =   0.09   ,    0.11   , 1                                       ! factor roughness length (heat flux)
+
 
 ! interflow
 &interflow1

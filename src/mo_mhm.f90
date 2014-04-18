@@ -227,6 +227,8 @@ CONTAINS
       deg_day_noprec      , & ! Degree-day factor with no precipitation
       deg_day             , & ! Degree-day factor
       fAsp                , & ! PET correction for Aspect at level 1
+      HarSamCeoff         , & ! PET Hargreaves Samani coefficient at level 1
+      PrieTayCeoff        , & ! PET Priestley Taylor coefficient at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
       interc_max          , & ! Maximum interception
       karst_loss          , & ! Karstic percolation loss
@@ -261,8 +263,8 @@ CONTAINS
     use mo_routing,                 only: L11_routing
     use mo_julian,                  only: dec2date, date2dec
 
-    use mo_mhm_constants,           only: HarSamCoeff, HarSamConst,    & ! parameters for Hargreaves-Samani Equation
-                                          PrieTayCoeff
+    use mo_mhm_constants,           only: HarSamConst                      ! parameters for Hargreaves-Samani Equation
+                                          
     implicit none
 
     ! Intent
@@ -397,6 +399,8 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  deg_day_noprec
     real(dp), dimension(:),        intent(inout) ::  deg_day
     real(dp), dimension(:),        intent(inout) ::  fAsp
+    real(dp), dimension(:),        intent(inout) ::  HarSamCeoff
+    real(dp), dimension(:),        intent(inout) ::  PrieTayCeoff
     real(dp), dimension(:,:),      intent(inout) ::  frac_roots
     real(dp), dimension(:),        intent(inout) ::  interc_max
     real(dp), dimension(:),        intent(inout) ::  karst_loss
@@ -512,7 +516,8 @@ CONTAINS
                   L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                  &
                   L0rightBound_inL1, nTCells0_inL1,                                    &
                   alpha, deg_day_incr, deg_day_max, deg_day_noprec,                    &
-                  fAsp, frac_roots, k0, k1, k2, kp, karst_loss,                        &
+                  fAsp, HarSamCeoff, PrieTayCeoff,                                     &
+                  frac_roots, k0, k1, k2, kp, karst_loss,                              &
                   nLink_C1,  nLink_C2,                                                 &
                   soil_moist_FC, soil_moist_sat, soil_moist_exponen,                   &
                   temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point        )
@@ -574,19 +579,21 @@ CONTAINS
 
        ! PET calculation
        select case (processMatrix(5,1))
-       !case(0) ! PET is input
+       case(0) ! PET is input ! correct pet for every day only once at the first time step
+          if (hour .EQ. 0) pet_in(k) =  fAsp(k) * pet_in(k)
+
        case(1) ! HarSam
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
           doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-          pet_in(k) = pet_hargreaves(HarSamCoeff, HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
+         pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
                tmin_in(k), latitude(k), doy)                                                ! Intent IN
-
-       case(2) ! Priestley-Taylor
+ 
+      case(2) ! Priestley-Taylor
           ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = pet_priestly(PrieTayCoeff, max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN  change number MZMZMZ 
+          pet_in(k) = fAsp(k) * pet_priestly( 1.26_dp, max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN  change number MZMZMZ 
 
        case(3) ! Penman-Monteith
           pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/10.0_dp, &
@@ -597,7 +604,7 @@ CONTAINS
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
-            fAsp(k)*pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                  & ! Intent IN
+            pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                  & ! Intent IN
             fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month),       & ! Intent IN
             prec, pet, temp )                                                                    ! Intent OUT
 

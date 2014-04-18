@@ -85,7 +85,8 @@ CONTAINS
          L1_aETSealed, L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,       &        
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
-         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
+         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
+         L1_HarSamCeoff, L1_PrieTayCeoff,                                       &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
@@ -245,6 +246,14 @@ CONTAINS
     ! PET correction factor due to terrain aspect
     dummy_Vector(:) = 0.0_dp
     call append( L1_fAsp,  dummy_Vector )
+
+    ! PET Hargreaves Samani coefficient
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_HarSamCeoff,  dummy_Vector )
+
+    ! PET Prietley Taylor coefficient
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_PrieTayCeoff,  dummy_Vector )
 
     ! Fraction of roots in soil horizons  
     dummy_Matrix(:,:) = 0.0_dp
@@ -418,6 +427,7 @@ CONTAINS
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
+         L1_HarSamCeoff, L1_PrieTayCeoff,                                       &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
@@ -543,6 +553,12 @@ CONTAINS
 
     ! PET correction factor due to terrain aspect
     L1_fAsp = P1_InitStateFluxes
+
+    ! PET Hargreaves Samani Coefficient
+    L1_HarSamCeoff = P1_InitStateFluxes
+
+    ! PET Priestley Taylor coefficient
+    L1_PrieTayCeoff = P1_InitStateFluxes
 
     ! Fraction of roots in soil horizons  
     L1_fRoots = P1_InitStateFluxes

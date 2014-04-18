@@ -141,6 +141,8 @@ contains
   !>       \param[out] "real(dp) :: IDDP1(:)"      - increase of the degree-day factor per mm
   !>                                                 of increase in precipitation
   !>       \param[out] "real(dp) :: fAsp1(:)"      - PET correction for aspect
+  !>       \param[out] "real(dp) :: HarSamCeoff1(:)  - PET Hargreaves Samani coefficient
+  !>       \param[out] "real(dp) :: PrieTayCeoff1(:) - PET Priestley Taylor coefficient
   !>       \param[out] "real(dp) :: HL3(:)"          - threshold parameter for runoff generation
   !>                                                 - on impervious layer
   !>       \param[out] "real(dp) :: K(:)"     - [d] Muskingum travel time parameters
@@ -207,6 +209,8 @@ contains
        DDmax1,         & ! Maximum Degree-day factor
        DD1,            & ! Degree-day factor with no precipitation
        fAsp1,          & ! PET correction for Aspect at level 1
+       HarSamCeoff1,   & ! PET Hargreaves Samani coefficient at level 1
+       PrieTayCeoff1,  & ! PET Priestley Taylor coefficient at level 1
        fRoots1,        & ! fraction of roots in soil horizons
        K0_1,           & ! [10^-3 m] Recession coefficient of the upper reservoir, upper outlet
        K1_1,           & ! [10^-3 m] Recession coefficient of the upper reservoir, lower outlet
@@ -301,8 +305,10 @@ contains
                                                          ! Degree-day factor per mm of
                                                          ! increase in precipitation
 
-    ! Output for pet correction
+    ! Output for PET parameterization
     real(dp), dimension(:),     intent(inout) :: fAsp1   ! pet correction for Level 1
+    real(dp), dimension(:),     intent(inout) :: HarSamCeoff1  ! PET Hargreaves Samani coefficient at level 1
+    real(dp), dimension(:),     intent(inout) :: PrieTayCeoff1 ! PET Priestley Taylor coefficient at level 1
 
     ! Output for impervious layer threshold generation
     real(dp), dimension(:),     intent(inout) :: HL3     ! threshold parameter
@@ -452,12 +458,37 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
        ! aspect correction of input PET
-       case(0,1,2,3) 
+       case(0) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
           call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
           fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+       ! Hargreaves-Samani method   
+       case(1)
+          iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
+          iEnd   = proc_Mat(5,3)    
+          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
+          fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+          HarSamCeoff1 = param(iEnd)
+       ! Priestley-Taylor Method 
+       case(2)
+          iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
+          iEnd   = proc_Mat(5,3)    
+          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
+          fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+          PrieTayCeoff1 = param(iEnd)
+          !print*,  param( iStart : iEnd - 1),'PT: ',param(iEnd), fAsp1
+       ! Penman-Monteith method
+       case(3) 
+          iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
+          iEnd   = proc_Mat(5,3)    
+          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
+          fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+       ! DEFAULT 
        case DEFAULT
           call message()
           call message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
@@ -1226,7 +1257,6 @@ contains
     use mo_upscaling_operators, only: upscale_arithmetic_mean
     !
     implicit none
-    !
     real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
     integer(i4), dimension(:),   intent(in)  :: LCover0    ! land cover field
     real(dp),    dimension(:,:), intent(in)  :: LAILUT     ! look up table for LAI
@@ -1253,8 +1283,6 @@ contains
 
     real(dp), parameter                    :: WindMeasHeight = 10.0_dp
     real(dp), PARAMETER                    :: k     =    0.41_dp
-
-
     !
     ! initialize some things
     ! ID   LAI classes                 
@@ -1299,7 +1327,7 @@ contains
        ! zh       = zm
        displace = param(4) * canopy_height0 
        zm_zero  = param(5) * canopy_height0 
-       zh_zero  = param(6) * canopy_height0
+       zh_zero  = param(6) * zm_zero
        !
        ! calculate aerodynamic resistance (changes monthly)
        aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (k**2.0_dp)

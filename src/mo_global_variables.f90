@@ -450,6 +450,8 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable   :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
   real(dp), public, dimension(:), allocatable   :: L1_karstLoss    ! [1]    Karstic percolation loss
   real(dp), public, dimension(:), allocatable   :: L1_fAsp         ! [1]    PET correction for aspect
+  real(dp), public, dimension(:), allocatable   :: L1_HarSamCeoff  ! [1]    Hargreaves Samani coeffiecient
+  real(dp), public, dimension(:), allocatable   :: L1_PrieTayCeoff ! [1]    Priestley Taylor coeffiecient
   real(dp), public, dimension(:,:), allocatable :: L1_fRoots       ! [1]    Fraction of roots in soil horizons   
   real(dp), public, dimension(:), allocatable   :: L1_maxInter     ! [mm]   Maximum interception 
   real(dp), public, dimension(:), allocatable   :: L1_kfastFlow    ! [d-1]  Fast interflow recession coefficient 

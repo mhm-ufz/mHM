@@ -204,16 +204,25 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: PTF_Ks_sand                       
     real(dp), dimension(nColPars)                   :: PTF_Ks_clay                       
     real(dp), dimension(nColPars)                   :: PTF_Ks_curveSlope                 
-    ! directRunoff
-    real(dp), dimension(nColPars)                   :: imperviousStorageCapacity         
-    ! actualET
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_forest    
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_impervious
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious  
+    ! directRunoff
+    real(dp), dimension(nColPars)                   :: imperviousStorageCapacity         
+    ! PET0
     real(dp), dimension(nColPars)                   :: minCorrectionFactorPET            
     real(dp), dimension(nColPars)                   :: maxCorrectionFactorPET            
     real(dp), dimension(nColPars)                   :: aspectTresholdPET                 
-    ! interflow
+    real(dp), dimension(nColPars)                   :: HargreavesSamaniCoeff
+    real(dp), dimension(nColPars)                   :: PriestleyTaylorCoeff
+    real(dp), dimension(nColPars)                   :: canopyheigth_forest               
+    real(dp), dimension(nColPars)                   :: canopyheigth_impervious           
+    real(dp), dimension(nColPars)                   :: canopyheigth_pervious             
+    real(dp), dimension(nColPars)                   :: displacementheight_coeff          
+    real(dp), dimension(nColPars)                   :: roughnesslength_momentum_coeff    
+    real(dp), dimension(nColPars)                   :: roughnesslength_heat_coeff        
+    real(dp), dimension(nColPars)                   :: stomatal_resistance
+    ! interflow                                        
     real(dp), dimension(nColPars)                   :: interflowStorageCapacityFactor    
     real(dp), dimension(nColPars)                   :: interflowRecession_slope          
     real(dp), dimension(nColPars)                   :: fastInterflowRecession_forest     
@@ -305,8 +314,8 @@ CONTAINS
     namelist /inflow_gauges/     nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
-    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,                      &
-         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,               &
+    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,         &
+         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,            &
          maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious       
     namelist/soilmoisture1/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious,           &         
          PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,      &           
@@ -316,6 +325,11 @@ CONTAINS
          rootFractionCoefficient_pervious, infiltrationShapeFactor
     namelist /directRunoff1/ imperviousStorageCapacity
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET 
+    namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
+    namelist /PET2/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, PriestleyTaylorCoeff
+    namelist /PET3/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET,                       &
+         canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff,       & 
+         roughnesslength_momentum_coeff, roughnesslength_heat_coeff, stomatal_resistance
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
          slowInterflowRecession_Ks, exponentSlowInterflow    
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic     
@@ -883,6 +897,7 @@ CONTAINS
     end select
 
     ! Process 5 - potential evapotranspiration (PET)
+    print*, processCase(5)
     select case (processCase(5))
     ! 0 - PET is input, correct PET by aspect
     case(0)
@@ -896,9 +911,9 @@ CONTAINS
        call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
 
        call append(global_parameters_name, (/ &
-            'minCorrectionFactorPET', &
-            'maxCorrectionFactorPET', &
-            'aspectTresholdPET     '/))
+            'minCorrectionFactorPET ', &
+            'maxCorrectionFactorPET ', &
+            'aspectTresholdPET      '/))
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
@@ -906,8 +921,59 @@ CONTAINS
                trim(adjustl(file_namelist_param)))
           stop
        end if
+
     ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
-    case(1,2,3)
+    case(1)
+       call position_nml('PET1', unamelist_param)
+       read(unamelist_param, nml=PET1)
+       processMatrix(5, 1) = processCase(5)
+       processMatrix(5, 2) = 4_i4
+       processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
+       call append(global_parameters, reshape(HargreavesSamaniCoeff,              (/1, nColPars/)))
+       call append(global_parameters_name, (/ &
+            'minCorrectionFactorPET', &
+            'maxCorrectionFactorPET', &
+            'aspectTresholdPET     ', &
+            'HargreavesSamaniCoeff '/))
+
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "PET1" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
+
+    ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
+    case(2)
+       call position_nml('PET2', unamelist_param)
+       read(unamelist_param, nml=PET2)
+       processMatrix(5, 1) = processCase(5)
+       processMatrix(5, 2) = 4_i4
+       processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
+       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
+       call append(global_parameters, reshape(PriestleyTaylorCoeff,               (/1, nColPars/)))
+
+       call append(global_parameters_name, (/ &
+            'minCorrectionFactorPET', &
+            'maxCorrectionFactorPET', &
+            'aspectTresholdPET     ', &
+            'PriestleyTaylorCoeff  '/))
+
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "PET2" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
+
+    ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
+    case(3)
+    !    call position_nml('PET2', unamelist_param)
        call position_nml('PET0', unamelist_param)
        read(unamelist_param, nml=PET0)
        processMatrix(5, 1) = processCase(5)
@@ -924,19 +990,17 @@ CONTAINS
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
-          call message('***ERROR: parameter in namelist "PET0" out of bound in ', &
+          call message('***ERROR: parameter in namelist "PET3" out of bound in ', &
                trim(adjustl(file_namelist_param)))
           stop
        end if
-    ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
-    ! case(2)
-    !    call position_nml('PETXX', unamelist_param)
 
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "actualET" does not exist!')          
        stop
     end select
+
 
     ! Process 6 - interflow
     select case (processCase(6))
