@@ -169,10 +169,11 @@ CONTAINS
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
 
-  elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, Tavg)
+!  elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, Tavg)
+  FUNCTION pet_priestly(PrieTayParam, Rn, Tavg)
 
-    use mo_mhm_constants, only: DeltaPriestly1, DeltaPriestly2, DaySecs
-    use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp 
+    use mo_mhm_constants, only: DaySecs
+    use mo_constants,     only: Psychro_dp, SpecHeatET_dp 
 
     implicit none
 
@@ -181,13 +182,12 @@ CONTAINS
     real(dp), intent(in) :: Tavg
     real(dp)             :: pet_priestly       ! reference evapotranspiration in [mm s-1]
 
-    real(dp)             :: delta              ! slope of saturation-to-vapor-pressure
+    real(dp)             :: delta              ! save slope of saturation vapor pressure curve
 
-    delta        = DeltaPriestly1 * exp(DeltaPriestly2 * Tavg) ! slope of saturation-to-vapor pressure curve
-    ! delta        = slope_satpressure(Tavg) MZMZMZMZ
-    ! gamma        = 1.26_dp
-    pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) ! in [mm s-1]
-    
+    delta        = slope_satpressure(Tavg) ! slope of saturation vapor pressure curve
+    ! in [mm d-1] 
+    pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) 
+   
   END FUNCTION pet_priestly
 
 
@@ -241,7 +241,7 @@ CONTAINS
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
 
     use mo_mhm_constants, only: DaySecs
-    use mo_constants,     only: Psychro_dp, T0_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
+    use mo_constants,     only: Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
 
     implicit none
 
@@ -355,7 +355,7 @@ CONTAINS
     real(dp)             :: slope_satpressure       ! slope of saturation vapour pressure curve
 
 
-    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / (Tavg + tetens_c3)
+    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2*log(Tavg + tetens_c3))
     
   END FUNCTION slope_satpressure
 

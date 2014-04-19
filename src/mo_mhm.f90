@@ -588,12 +588,12 @@ CONTAINS
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-         pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
+          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
                tmin_in(k), latitude(k), doy)                                                ! Intent IN
  
-      case(2) ! Priestley-Taylor
-          ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = fAsp(k) * pet_priestly( 1.26_dp, max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN  change number MZMZMZ 
+       case(2) ! Priestley-Taylor
+           ! Priestley Taylor is not defined for values netrad < 0.0_dp
+          pet_in(k) = fAsp(k) * pet_priestly( PrieTayCeoff(k), max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN
 
        case(3) ! Penman-Monteith
           pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/10.0_dp, &
