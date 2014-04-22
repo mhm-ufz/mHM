@@ -610,7 +610,7 @@ contains
 
     ! local variables
     integer(i4)                           :: ii            ! loop variable
-    integer(i4)                           :: gg            ! geo unit
+    integer(i4), dimension(1)             :: gg            ! geo unit
 
     if ( size(param) .ne. size( geoUnitList ) ) &
          stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
@@ -618,17 +618,18 @@ contains
     k2_0 = nodata
 
     ! MZMZ: remapping of geounits is wrong, rollback to revision 1428
-    ! !$OMP PARALLEL                         ! >>>> revision 1581
-    ! !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
-    ! do ii = 1, size(k2_0)
-    !    gg = geoUnit0(ii)
-    !    k2_0(ii) = param( gg )
-    ! end do
-    ! !$OMP END DO
-    ! !$OMP END PARALLEL                     ! >>>> revision 1581
-    do ii = 1, size(param)                    ! <<<< revision 1428
-       k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
-    end do                                   ! <<<< revision 1428
+    !$OMP PARALLEL                         ! >>>> revision 1581
+    !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
+    do ii = 1, size(k2_0)
+       ! get parameter index in geoUnitList
+       gg = minloc( abs( geoUnitList - geoUnit0(ii) ) )
+       k2_0(ii) = param( gg(1) )
+    end do
+    !$OMP END DO
+    !$OMP END PARALLEL                     ! >>>> revision 1581
+    ! do ii = 1, size(param)                    ! <<<< revision 1428
+    !    k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
+    ! end do                                   ! <<<< revision 1428
 
 
   end subroutine baseflow_param
