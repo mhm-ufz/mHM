@@ -557,7 +557,6 @@ CONTAINS
 
        end do !<< TIME STEPS LOOP
 
-       !
        ! deallocate space for temprory LAI fields
        deallocate(LAI)
 

@@ -512,10 +512,13 @@ contains
     case(0)  ! routing is off
     case(1)
        iStart = proc_Mat(8,3) - proc_Mat(8,2) + 1
-       iEnd   = proc_Mat(8,3)       
-       call reg_rout( param( iStart : iEnd ), &
-            length(: size(length,1)-1), slope(: size(slope,1)-1), fFPimp(: size(fFPimp,1)-1), &
-            real(TS,dp), C1(: size(C1,1)-1), C2(: size(C2,1)-1) )
+       iEnd   = proc_Mat(8,3) 
+       ! for a single node model run
+       if( size(length,1) .GT. 1) then
+          call reg_rout( param( iStart : iEnd ), &
+              length(: size(length,1)-1), slope(: size(slope,1)-1), fFPimp(: size(fFPimp,1)-1), &
+              real(TS,dp), C1(: size(C1,1)-1), C2(: size(C2,1)-1) )
+       end if
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist! mo_multi_param_reg')

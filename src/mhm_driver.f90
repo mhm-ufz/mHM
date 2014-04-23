@@ -126,6 +126,9 @@
 !                Stephan Thober Nov 2013         added read in of latitude longitude fields
 !                Matthias Zink  Mar 2013         edited screen output for gauges
 !                                                added inflow gauges
+!               Rohini Kumar, Apr 2014           implementation of the mHM run on a single cell
+!                                                configuration that too in the routing mode. 
+!                                                Also run mHM with L0 grid
 ! --------------------------------------------------------------------------
 
 PROGRAM mhm_driver 
