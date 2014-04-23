@@ -1489,10 +1489,9 @@ contains
 
        ! determine LAIs 
        do ll = 1, size(LAILUT, dim=2)
-          print*, ll
           leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAILUT(ll, iMon))
        end do
-
+       ! check ll, negative values why ???
        bulksurface_resistance0(:,iMon) = param / sunlit_lai_factor / leafarea0(:,iMon)
        bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
