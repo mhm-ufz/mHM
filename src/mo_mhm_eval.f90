@@ -121,7 +121,7 @@ CONTAINS
          L1_total_runoff, L11_Qmod, L11_qOUT, L11_qTIN,      & 
          L11_qTR, L1_alpha, L1_degDayInc, L1_degDayMax,      & 
          L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCeoff, & 
-         L1_PrieTayCeoff,                                    &
+         L1_PrieTayCeoff, L1_aeroResist, L1_surfResist,      &
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
@@ -369,54 +369,55 @@ CONTAINS
           !  S    STATE VARIABLES L1
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
-          call mhm(restart_flag_states_read, fracSealed_cityArea,                           & ! IN C
-               iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
-               tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
-               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
-               basin%InflowGaugeNodeList(ii,:),                                             & ! IN C
-               parameterset,                                                                & ! IN P
-               LCyearId(year), GeoUnitList, GeoUnitKar,                                     & ! IN L0
-               L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0),                         & ! IN L0
-               L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
-               soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
-               soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
-               L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
-               L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
-               L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1), latitude(s_p5(1):e_p5(1)),  & ! IN L1
-               L11_netPerm(s11:e11), L11_fromN(s11:e11), L11_toN(s11:e11),                  & ! IN L11
-               L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
-               evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
-               fday_temp, fnight_temp,                                                      & ! IN F
-               L1_pet         (s_p5(1):e_p5(1), iMeteo_p5(1)),                              & ! INOUT F
-               L1_tmin        (s_p5(2):e_p5(2), iMeteo_p5(2)),                              & ! IN F
-               L1_tmax        (s_p5(3):e_p5(3), iMeteo_p5(3)),                              & ! IN F
-               L1_netrad      (s_p5(4):e_p5(4), iMeteo_p5(4)),                              & ! IN F
-               L1_absvappress (s_p5(5):e_p5(5), iMeteo_p5(5)),                              & ! IN F
-               L1_windspeed   (s_p5(6):e_p5(6), iMeteo_p5(6)),                              & ! IN F
-               L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                             & ! IN F
-               InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
-               yId,                                                                         & ! INOUT C
-               L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
-               L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
-               L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S 
-               L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1),                 & ! INOUT S 
-               L1_aETSoil(s1:e1,:), L1_aETCanopy(s1:e1), L1_aETSealed(s1:e1),               & ! INOUT X
-               L1_baseflow(s1:e1), L1_infilSoil(s1:e1,:), L1_fastRunoff(s1:e1),             & ! INOUT X
-               L1_melt(s1:e1), L1_percol(s1:e1), L1_preEffect(s1:e1), L1_rain(s1:e1),       & ! INOUT X
-               L1_runoffSeal(s1:e1), L1_slowRunoff(s1:e1), L1_snow(s1:e1),                  & ! INOUT X
-               L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                               & ! INOUT X
-               L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:), & ! INOUT X11
-               L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                   & ! INOUT E1
-               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1), L1_HarSamCeoff,     & ! INOUT E1
-               L1_PrieTayCeoff, L1_fRoots(s1:e1,:),                                         & ! INOUT E1
-               L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),               & ! INOUT E1
-               L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
-               L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
-               L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
-               L1_wiltingPoint(s1:e1,:),                                                    & ! INOUT E1
-               L11_C1(s11:e11), L11_C2(s11:e11)                                             ) ! INOUT E11
+          call mhm(restart_flag_states_read, fracSealed_cityArea,                              & ! IN C
+               iFlag_LAI_data_format, month_counter, day_counter,                              & ! IN C          
+               tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                    & ! IN C
+               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,         & ! IN C 
+               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                      & ! IN C
+               basin%InflowGaugeNodeList(ii,:),                                                & ! IN C
+               parameterset,                                                                   & ! IN P
+               LCyearId(year), GeoUnitList, GeoUnitKar, LAILUT,                                & ! IN L0
+               L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),      & ! IN L0
+               L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                    & ! IN L0
+               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),                 & ! IN L0
+               soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                      & ! IN L0
+               soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,                & ! IN L0
+               L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                    & ! IN L1
+               L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                   & ! IN L1
+               L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1), latitude(s_p5(1):e_p5(1)),     & ! IN L1
+               L11_netPerm(s11:e11), L11_fromN(s11:e11), L11_toN(s11:e11),                     & ! IN L11
+               L11_length(s11:e11), L11_slope(s11:e11),                                        & ! IN L11
+               evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                       & ! IN F
+               fday_temp, fnight_temp,                                                         & ! IN F
+               L1_pet         (s_p5(1):e_p5(1), iMeteo_p5(1)),                                 & ! INOUT F
+               L1_tmin        (s_p5(2):e_p5(2), iMeteo_p5(2)),                                 & ! IN F
+               L1_tmax        (s_p5(3):e_p5(3), iMeteo_p5(3)),                                 & ! IN F
+               L1_netrad      (s_p5(4):e_p5(4), iMeteo_p5(4)),                                 & ! IN F
+               L1_absvappress (s_p5(5):e_p5(5), iMeteo_p5(5)),                                 & ! IN F
+               L1_windspeed   (s_p5(6):e_p5(6), iMeteo_p5(6)),                                 & ! IN F
+               L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),                                & ! IN F
+               InflowGauge%Q(iMeteoTS,:),                                                      & ! IN Q
+               yId,                                                                            & ! INOUT C
+               L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                         & ! INOUT L1 
+               L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                               & ! INOUT L11
+               L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                         & ! INOUT S 
+               L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1),                    & ! INOUT S 
+               L1_aETSoil(s1:e1,:), L1_aETCanopy(s1:e1), L1_aETSealed(s1:e1),                  & ! INOUT X
+               L1_baseflow(s1:e1), L1_infilSoil(s1:e1,:), L1_fastRunoff(s1:e1),                & ! INOUT X
+               L1_melt(s1:e1), L1_percol(s1:e1), L1_preEffect(s1:e1), L1_rain(s1:e1),          & ! INOUT X
+               L1_runoffSeal(s1:e1), L1_slowRunoff(s1:e1), L1_snow(s1:e1),                     & ! INOUT X
+               L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                                  & ! INOUT X
+               L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:),    & ! INOUT X11
+               L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                      & ! INOUT E1
+               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1), L1_HarSamCeoff(s1:e1), & ! INOUT E1
+               L1_PrieTayCeoff(s1:e1), L1_aeroResist(s1:e1,:), L1_surfResist(s1:e1,:),         & ! INOUT E1
+               L1_fRoots(s1:e1,:),                                                             & ! INOUT E1
+               L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),                  & ! INOUT E1
+               L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                     & ! INOUT E1
+               L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:),    & ! INOUT E1
+               L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),            & ! INOUT E1
+               L1_wiltingPoint(s1:e1,:),                                                       & ! INOUT E1
+               L11_C1(s11:e11), L11_C2(s11:e11)                                                ) ! INOUT E11
 
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day

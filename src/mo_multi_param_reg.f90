@@ -70,45 +70,48 @@ contains
   !>                                            required for this process and the third column
   !>                                            indicates the position of the first parameter
   !>                                            for this process in the array param
-  !>       \param[in] "real(dp)    :: param(:)" - given global parameter array
-  !>       \param[in] "real(dp)    :: nodata"   - given nodata value
+  !>       \param[in] "real(dp)    :: param(:)"      - given global parameter array
+  !>       \param[in] "real(dp)    :: nodata"        - given nodata value
   !>       \param[in] "integer(i4) :: geoUnit0(:,:)" - geological units at Level 0
   !>       \param[in] "integer(i4) :: geo_unit_list(:)" - index list of geological units
+  !>       \param[in] "real(dp)    :: LAILUT(:,:)"   - List of Ids for leaf area index
   !>       \param[in] "integer(i4) :: is_present(:)" - indicates whether soiltype exists
-  !>       \param[in] "integer(i4) :: nHorizons(:)" - Number of Horizons per soiltype
+  !>       \param[in] "integer(i4) :: nHorizons(:)"  - Number of Horizons per soiltype
   !>       \param[in] "integer(i4) :: nTillHorizons(:)" - Number of Tillage Horizons
-  !>       \param[in] "real(dp)    :: sand(:,:)" - sand content
-  !>       \param[in] "real(dp)    :: clay(:,:)" - clay content
-  !>       \param[in] "real(dp)    :: DbM(:,:)" - mineral Bulk density
-  !>       \param[in] "real(dp)    :: Wd(:,:,:)" - weights of mHM horizons
-  !>       \param[in] "real(dp)    :: RZdepth(:)" - [mm] Total soil depth
+  !>       \param[in] "real(dp)    :: sand(:,:)"     - sand content
+  !>       \param[in] "real(dp)    :: clay(:,:)"     - clay content
+  !>       \param[in] "real(dp)    :: DbM(:,:)"      - mineral Bulk density
+  !>       \param[in] "real(dp)    :: Wd(:,:,:)"     - weights of mHM horizons
+  !>       \param[in] "real(dp)    :: RZdepth(:)"    - [mm] Total soil depth
   !>       \param[in] "integer(i4) :: nHorizons_mHM" - Number of horizons in mHM
   !>       \param[in] "integer(i4) :: horizon_depth(:)"- depth of each horizon
-  !>       \param[in] "real(dp)    :: c2TSTu"   - unit transformation coefficient
-  !>       \param[in] "real(dp)    :: fForest1(:)" - fraction of forest cover at scale L1
-  !>       \param[in] "real(dp)    :: fIperm1(:)" - fraction of sealed area at scale L1
-  !>       \param[in] "real(dp)    :: fPerm1(:)" - fraction of permeable area at scale L1
-  !>       \param[in] "integer(i4) :: soilID0(:)"   - soil IDs at level 0
-  !>       \param[in] "integer(i4) :: LUC0(:,:)"      - land use cover at level 0
-  !>       \param[in] "real(dp)    :: Asp0(:,:)"      - [degree] Aspect at Level 0
-  !>       \param[in] "real(dp)    :: length(:)" - [m] total length
-  !>       \param[in] "real(dp)    :: slope(:)"  - average slope
-  !>       \param[in] "real(dp)    :: fFPimp(:)" - fraction of the flood plain with
-  !>                                              impervious layer
-  !>       \param[in] "real(dp)    :: TS"        - [h] time step in
+  !>       \param[in] "real(dp)    :: c2TSTu"        - unit transformation coefficient
+  !>       \param[in] "real(dp)    :: fForest1(:)"   - fraction of forest cover at scale L1
+  !>       \param[in] "real(dp)    :: fIperm1(:)"    - fraction of sealed area at scale L1
+  !>       \param[in] "real(dp)    :: fPerm1(:)"     - fraction of permeable area at scale L1
+  !>       \param[in] "integer(i4) :: soilID0(:)"    - soil IDs at level 0
+  !>       \param[in] "real(dp)    :: Asp0(:,:)"     - [degree] Aspect at Level 0
+  !>       \param[in] "real(dp)    :: LCover_LAI0(:) - [1] land cover ID for LAI estimation
+  !>       \param[in] "integer(i4) :: LCover0(:)"    - land use cover at level 0 
+  !>       \param[in] "real(dp)    :: LAI0(:)"       - leaf area index at level 0 
+  !>       \param[in] "real(dp)    :: length(:)"     - [m] total length
+  !>       \param[in] "real(dp)    :: slope(:)"      - average slope
+  !>       \param[in] "real(dp)    :: fFPimp(:)"     - fraction of the flood plain with
+  !>                                                   impervious layer
+  !>       \param[in] "real(dp)    :: TS"            - [h] time step in
   !>       \param[in] "integer(i4) :: cell_id0(:,:)" - cell ids of high resolution field, 
-  !>                                           Number of rows times Number of columns of
-  !>                                           high resolution field
+  !>                                                   Number of rows times Number of columns of
+  !>                                                   high resolution field
   !>       \param[in] "integer(i4) :: upp_row_L1(:)" - Upper row id in high resolution field 
-  !>                                           (L0) of low resolution cell (L1 cell)
+  !>                                                   (L0) of low resolution cell (L1 cell)
   !>       \param[in] "integer(i4) :: low_row_L1(:)" - Lower row id in high resolution field 
-  !>                                           (L0) of low resolution cell (L1 cell)
+  !>                                                   (L0) of low resolution cell (L1 cell)
   !>       \param[in] "integer(i4) :: lef_col_L1(:)" - Left column id in high resolution field 
-  !>                                           (L0) of low resolution cell (L1 cell)
+  !>                                                   (L0) of low resolution cell (L1 cell)
   !>       \param[in] "integer(i4) :: rig_col_L1(:)" - Right column id in high resolution field 
-  !>                                           (L0) of low resolution cell (L1 cell)
+  !>                                                   (L0) of low resolution cell (L1 cell)
   !>       \param[in] "integer(i4) :: nL0_in_L1(:)"  - Number of high resolution cells (L0) in 
-  !>                                           low resolution cell (L1 cell)
+  !>                                                   low resolution cell (L1 cell)
 
   !      INTENT(OUT)
   !>       \param[out] "real(dp) :: k2_1(:,:)"      - baseflow recession parameter at L1
@@ -140,15 +143,17 @@ contains
   !>       \param[out] "real(dp) :: DDmax1(:)"     - Maximum Degree-day factor
   !>       \param[out] "real(dp) :: IDDP1(:)"      - increase of the degree-day factor per mm
   !>                                                 of increase in precipitation
-  !>       \param[out] "real(dp) :: fAsp1(:)"      - PET correction for aspect
-  !>       \param[out] "real(dp) :: HarSamCeoff1(:)  - PET Hargreaves Samani coefficient
-  !>       \param[out] "real(dp) :: PrieTayCeoff1(:) - PET Priestley Taylor coefficient
-  !>       \param[out] "real(dp) :: HL3(:)"          - threshold parameter for runoff generation
-  !>                                                 - on impervious layer
-  !>       \param[out] "real(dp) :: K(:)"     - [d] Muskingum travel time parameters
-  !>       \param[out] "real(dp) :: xi(:)"    - [1] Muskingum diffusion parameter (attenuation)
-  !>       \param[out] "real(dp) :: C1(:)"    - routing parameter C1 (Chow, 25-41)
-  !>       \param[out] "real(dp) :: C2(:)"    - routing parameter C2 (")
+  !>       \param[out] "real(dp) :: fAsp1(:)"         - [1]     PET correction for Aspect at level 1
+  !>       \param[out] "real(dp) :: HarSamCeoff1(:)"  - [1]     PET Hargreaves Samani coefficient at level 1
+  !>       \param[out] "real(dp) :: PrieTayCeoff1(:)" - [1]     PET Priestley Taylor coefficient at level 1
+  !>       \param[out] "real(dp) :: aeroResist1(:,:)" - [s m-1] PET aerodynamical resitance at level 1
+  !>       \param[out] "real(dp) :: surfResist1(:,:)" - [s m-1] PET bulk surface resitance at level 1
+  !>       \param[out] "real(dp) :: HL3(:)"        - threshold parameter for runoff generation
+  !>                                               - on impervious layer
+  !>       \param[out] "real(dp) :: K(:)"          - [d] Muskingum travel time parameters
+  !>       \param[out] "real(dp) :: xi(:)"         - [1] Muskingum diffusion parameter (attenuation)
+  !>       \param[out] "real(dp) :: C1(:)"         - routing parameter C1 (Chow, 25-41)
+  !>       \param[out] "real(dp) :: C2(:)"         - routing parameter C2 (")
 
   !     INTENT(INOUT)
   !>        \param[in,out] "integer(i4) :: yId" - Current Id of the LCover year scene 
@@ -175,7 +180,8 @@ contains
        mask0,          & ! mask at Level 0
        geoUnit0,       & ! geological units at level 0
        geoUnitList,    & ! List of Ids for geological units
-       GeoUnitKar,     &
+       GeoUnitKar,     & ! location karstic cells on level 0
+       LAILUT,         & ! List of Ids for leaf area index
        SDB_is_present, & ! indicates whether soiltype exists
        SDB_nHorizons,  & ! Number of Horizons per soiltype
        SDB_nTillHorizons,  & ! Number of Tillage Horizons
@@ -191,8 +197,10 @@ contains
        fIperm1,        & ! fraction of sealed area at scale L1
        fPerm1,         & ! fraction of permeable area at scale L1
        soilId0,        & ! soil Ids at level 0
-       LCover0,        & ! land use cover at level 0
        Asp0,           & ! [degree] Aspect at Level 0
+       LCover_LAI0,    & ! [1] land cover ID for LAI estimation
+       LCover0,        & ! land use cover at level 0
+       LAI0,           & ! leaf area index at level 0   
        length,         & ! [m] total length
        slope,          & ! average slope
        fFPimp,         & ! fraction of the flood plain with impervious layer
@@ -208,9 +216,11 @@ contains
        IDDP1,          & ! increase of the degree-day factor per mm of increase in precipitation
        DDmax1,         & ! Maximum Degree-day factor
        DD1,            & ! Degree-day factor with no precipitation
-       fAsp1,          & ! PET correction for Aspect at level 1
-       HarSamCeoff1,   & ! PET Hargreaves Samani coefficient at level 1
-       PrieTayCeoff1,  & ! PET Priestley Taylor coefficient at level 1
+       fAsp1,          & ! [1]     PET correction for Aspect at level 1
+       HarSamCeoff1,   & ! [1]     PET Hargreaves Samani coefficient at level 1
+       PrieTayCeoff1,  & ! [1]     PET Priestley Taylor coefficient at level 1
+       aeroResist1,    & ! [s m-1] PET aerodynamical resitance at level 1
+       surfResist1,    & ! [s m-1] PET bulk surface resitance at level 1
        fRoots1,        & ! fraction of roots in soil horizons
        K0_1,           & ! [10^-3 m] Recession coefficient of the upper reservoir, upper outlet
        K1_1,           & ! [10^-3 m] Recession coefficient of the upper reservoir, lower outlet
@@ -237,99 +247,104 @@ contains
 
     implicit none
 
-    ! Input ----------------------------------------------------------
-    integer(i4), dimension(:,:), intent(in) :: proc_Mat    ! indicate processes
-    real(dp), dimension(:),      intent(in) :: param  ! array of global parameters
-    real(dp),                    intent(in) :: nodata ! nodata value
+                                                                                ! Input ----------------------------------------------------------
+    integer(i4), dimension(:,:),             intent(in)    :: proc_Mat          ! indicate processes
+    real(dp), dimension(:),                  intent(in)    :: param             ! array of global parameters
+    real(dp),                                intent(in)    :: nodata            ! nodata value
 
-    logical, dimension(:,:),     intent(in) :: mask0    ! mask at level 0 field
+    logical, dimension(:,:),                 intent(in)    :: mask0             ! mask at level 0 field
 
-    ! baseflow recession
-    integer(i4), dimension(:),   intent(in) :: geoUnit0   ! L0 geological units
-    integer(i4), dimension(:),   intent(in) :: geoUnitList ! List of geological units
-    integer(i4), dimension(:),   intent(in) :: GeoUnitKar    ! Id of Karstic formations
+                                                                                ! baseflow recession
+    integer(i4), dimension(:),               intent(in)    :: geoUnit0          ! L0 geological units
+    integer(i4), dimension(:),               intent(in)    :: geoUnitList       ! List of geological units
+    integer(i4), dimension(:),               intent(in)    :: GeoUnitKar        ! Id of Karstic formations
 
-    ! moisture parametrization
-    integer(i4), dimension(:),   intent(in) :: SDB_is_present    ! indicates whether soiltype exists
-    integer(i4), dimension(:),   intent(in) :: SDB_nHorizons     ! Number of Horizons per soiltype
-    integer(i4), dimension(:),   intent(in) :: SDB_nTillHorizons ! Number of Tillage Horizons
-    real(dp),    dimension(:,:), intent(in) :: SDB_sand          ! sand content
-    real(dp),    dimension(:,:), intent(in) :: SDB_clay          ! clay content
-    real(dp),    dimension(:,:), intent(in) :: SDB_DbM           ! mineral Bulk density
-    real(dp),    dimension(:,:,:), intent(in) :: SDB_Wd          ! weights of mHM horizons
-    real(dp),    dimension(:),   intent(in) :: SDB_RZdepth       ! [mm] Total soil depth
-    integer(i4),                 intent(in) :: nHorizons_mHM ! Number of Horizons in mHM
-    real(dp),    dimension(nHorizons_mHM), intent(in) &
-                                            :: horizon_depth ! [10^-3 m] Depth of each horizon
-    real(dp),                    intent(in) :: c2TSTu     ! unit transformations
-    real(dp),    dimension(:),   intent(in) :: fForest1 ! [1] fraction of forest cover
-    real(dp),    dimension(:),   intent(in) :: fIperm1  ! [1] fraction of sealed area
-    real(dp),    dimension(:),   intent(in) :: fPerm1   ! [1] fraction of permeable area
-    integer(i4), dimension(:),   intent(in) :: soilId0     ! soil Ids at level 0
-    integer(i4), dimension(:),   intent(in) :: LCOVER0        ! land cover at level 0
-    real(dp),    dimension(:),   intent(in) :: Asp0        ! [degree] Aspect at Level 0
+    real(dp),    dimension(:,:),             intent(in)    :: LAILUT            ! List of Ids for leaf area index
 
-    ! Input for regionalized routing
-    real(dp),    dimension(:),   intent(in) :: length    ! [m] total length
-    real(dp),    dimension(:),   intent(in) :: slope     ! average slope
-    real(dp),    dimension(:),   intent(in) :: fFPimp    ! fraction of the flood plain with
-                                                         ! impervious layer
-    integer(i4),                 intent(in) :: TS        ! [h] time step in
+                                                                                ! moisture parametrization
+    integer(i4), dimension(:),               intent(in)    :: SDB_is_present    ! indicates whether soiltype exists
+    integer(i4), dimension(:),               intent(in)    :: SDB_nHorizons     ! Number of Horizons per soiltype
+    integer(i4), dimension(:),               intent(in)    :: SDB_nTillHorizons ! Number of Tillage Horizons
+    real(dp),    dimension(:,:),             intent(in)    :: SDB_sand          ! sand content
+    real(dp),    dimension(:,:),             intent(in)    :: SDB_clay          ! clay content
+    real(dp),    dimension(:,:),             intent(in)    :: SDB_DbM           ! mineral Bulk density
+    real(dp),    dimension(:,:,:),           intent(in)    :: SDB_Wd            ! weights of mHM horizons
+    real(dp),    dimension(:),               intent(in)    :: SDB_RZdepth       ! [mm] Total soil depth
+    integer(i4),                             intent(in)    :: nHorizons_mHM     ! Number of Horizons in mHM
+    real(dp),    dimension(nHorizons_mHM),   intent(in) &
+                                                           :: horizon_depth     ! [10^-3 m] Depth of each horizon
+    real(dp),                                intent(in)    :: c2TSTu            ! unit transformations
+    real(dp),    dimension(:),               intent(in)    :: fForest1          ! [1] fraction of forest cover
+    real(dp),    dimension(:),               intent(in)    :: fIperm1           ! [1] fraction of sealed area
+    real(dp),    dimension(:),               intent(in)    :: fPerm1            ! [1] fraction of permeable area
+    integer(i4), dimension(:),               intent(in)    :: soilId0           ! soil Ids at level 0
+    real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
+    integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
+    integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
+    real(dp),    dimension(:),               intent(in)    :: LAI0              ! land cover at level 0
+                                                                                ! Input for regionalized routing
+    real(dp),    dimension(:),               intent(in)    :: length            ! [m] total length
+    real(dp),    dimension(:),               intent(in)    :: slope             ! average slope
+    real(dp),    dimension(:),               intent(in)    :: fFPimp            ! fraction of the flood plain with
+                                                                                ! impervious layer
+    integer(i4),                             intent(in)    :: TS                ! [h] time step in
 
-    ! Ids of L0 cells beneath L1 cell
-    real(dp),    dimension(:),   intent(in) :: slope_emp0 ! Empirical quantiles of slope
-    integer(i4), dimension(:),   intent(in) :: cell_id0   ! Cell ids at level 0
-    integer(i4), dimension(:),   intent(in) :: upp_row_L1 ! Upper row of hi res block
-    integer(i4), dimension(:),   intent(in) :: low_row_L1 ! Lower row of hi res block
-    integer(i4), dimension(:),   intent(in) :: lef_col_L1 ! Left column of hi res block
-    integer(i4), dimension(:),   intent(in) :: rig_col_L1 ! Right column of hi res block
-    integer(i4), dimension(:),   intent(in) :: nL0_in_L1  ! Number of L0 cells within a L1 cell
+                                                                                ! Ids of L0 cells beneath L1 cell
+    real(dp),    dimension(:),               intent(in)    :: slope_emp0        ! Empirical quantiles of slope
+    integer(i4), dimension(:),               intent(in)    :: cell_id0          ! Cell ids at level 0
+    integer(i4), dimension(:),               intent(in)    :: upp_row_L1        ! Upper row of hi res block
+    integer(i4), dimension(:),               intent(in)    :: low_row_L1        ! Lower row of hi res block
+    integer(i4), dimension(:),               intent(in)    :: lef_col_L1        ! Left column of hi res block
+    integer(i4), dimension(:),               intent(in)    :: rig_col_L1        ! Right column of hi res block
+    integer(i4), dimension(:),               intent(in)    :: nL0_in_L1         ! Number of L0 cells within a L1 cell
 
-    ! Output of baseflow recession coefficient
+                                                                                ! Output of baseflow recession coefficient
     real(dp), dimension(size(upp_row_L1,1)), intent(inout) &
-                                            :: k2_1    ! Level 1 baseflow recession
+                                                           :: k2_1              ! Level 1 baseflow recession
 
-    ! Output of soilmoisture parametrization
-    real(dp), dimension(:,:),   intent(inout) :: beta1   ! Parameter that determines the rel.
-                                                       ! contribution to SM, upscal. Bulk den.
-    real(dp), dimension(:,:),   intent(inout) :: SMs1    ! [10^-3 m] depth of saturated SM
-    real(dp), dimension(:,:),   intent(inout) :: FC1     ! [10^-3 m] field capacity
-    real(dp), dimension(:,:),   intent(inout) :: PW1     ! [10^-3 m] permanent wilting point
-    real(dp), dimension(:,:),   intent(inout) :: fRoots1 ! fraction of roots in soil horizon
-    real(dp), dimension(:),     intent(inout) :: TT1     ! [degreeC] threshold temperature 
-                                                         ! for snow rain 
-    real(dp), dimension(:),     intent(inout) :: DD1     ! [mm-1 degreeC-1] Degree-day factor with
-                                                         ! no precipitation
-    real(dp), dimension(:),     intent(inout) :: DDmax1  ! [mm-1 degreeC-1] Maximum Degree-day factor
-    real(dp), dimension(:),     intent(inout) :: IDDP1   ! [d-1 degreeC-1]  Increase of the 
-                                                         ! Degree-day factor per mm of
-                                                         ! increase in precipitation
+                                                                                ! Output of soilmoisture parametrization
+    real(dp), dimension(:,:),                intent(inout) :: beta1             ! Parameter that determines the rel.
+                                                                                ! contribution to SM, upscal. Bulk den.
+    real(dp), dimension(:,:),                intent(inout) :: SMs1              ! [10^-3 m] depth of saturated SM
+    real(dp), dimension(:,:),                intent(inout) :: FC1               ! [10^-3 m] field capacity
+    real(dp), dimension(:,:),                intent(inout) :: PW1               ! [10^-3 m] permanent wilting point
+    real(dp), dimension(:,:),                intent(inout) :: fRoots1           ! fraction of roots in soil horizon
+    real(dp), dimension(:),                  intent(inout) :: TT1               ! [degreeC] threshold temperature 
+                                                                                ! for snow rain 
+    real(dp), dimension(:),                  intent(inout) :: DD1               ! [mm-1 degreeC-1] Degree-day factor with
+                                                                                ! no precipitation
+    real(dp), dimension(:),                  intent(inout) :: DDmax1            ! [mm-1 degreeC-1] Maximum Degree-day factor
+    real(dp), dimension(:),                  intent(inout) :: IDDP1             ! [d-1 degreeC-1]  Increase of the 
+                                                                                ! Degree-day factor per mm of
+                                                                                ! increase in precipitation
 
-    ! Output for PET parameterization
-    real(dp), dimension(:),     intent(inout) :: fAsp1   ! pet correction for Level 1
-    real(dp), dimension(:),     intent(inout) :: HarSamCeoff1  ! PET Hargreaves Samani coefficient at level 1
-    real(dp), dimension(:),     intent(inout) :: PrieTayCeoff1 ! PET Priestley Taylor coefficient at level 1
+                                                                                ! Output for PET parameterization
+    real(dp), dimension(:),                  intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
+    real(dp), dimension(:),                  intent(inout) :: HarSamCeoff1      ! [1]     PET Hargreaves Samani coefficient at level 1
+    real(dp), dimension(:),                  intent(inout) :: PrieTayCeoff1     ! [1]     PET Priestley Taylor coefficient at level 1
+    real(dp), dimension(:,:),                intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
+    real(dp), dimension(:,:),                intent(inout) :: surfResist1       ! [s m-1] PET bulk surface resitance at level 1
 
-    ! Output for impervious layer threshold generation
-    real(dp), dimension(:),     intent(inout) :: HL3     ! threshold parameter
+                                                                                ! Output for impervious layer threshold generation
+    real(dp), dimension(:),                  intent(inout) :: HL3               ! threshold parameter
 
-    ! Output of mpr runoff
-    real(dp),    dimension(:),   intent(inout):: HL1_1   ! [10^-3 m] Threshhold water depth
-                                                         ! in upper reservoir (for Runoff
-                                                         ! contribution)
-    real(dp),    dimension(:),   intent(inout):: K0_1    ! [10^-3 m] Recession coefficient
-                                                         ! of the upper reservoir, upper outlet
-    real(dp),    dimension(:),   intent(inout):: K1_1    ! [10^-3 m] Recession coefficient
-                                                         ! of the upper reservoir, lower outlet
-    real(dp),    dimension(:),   intent(inout):: alpha1  ! [1] Exponent for the upper reservoir
-    real(dp),    dimension(:),   intent(inout):: Kp1     ! [d-1] percolation coefficient
+                                                                                ! Output of mpr runoff
+    real(dp),    dimension(:),               intent(inout) :: HL1_1             ! [10^-3 m] Threshhold water depth
+                                                                                ! in upper reservoir (for Runoff
+                                                                                ! contribution)
+    real(dp),    dimension(:),               intent(inout) :: K0_1              ! [10^-3 m] Recession coefficient
+                                                                                ! of the upper reservoir, upper outlet
+    real(dp),    dimension(:),               intent(inout) :: K1_1              ! [10^-3 m] Recession coefficient
+                                                                                ! of the upper reservoir, lower outlet
+    real(dp),    dimension(:),               intent(inout) :: alpha1            ! [1] Exponent for the upper reservoir
+    real(dp),    dimension(:),               intent(inout) :: Kp1               ! [d-1] percolation coefficient
 
-    ! Output of karstic percolation loss
-    real(dp),    dimension(:),   intent(inout) :: karstic_loss
+                                                                                ! Output of karstic percolation loss
+    real(dp),    dimension(:),               intent(inout) :: karstic_loss
 
-    ! Output for regionalized routing
-    real(dp), dimension(:), intent(inout)     :: C1 ! routing parameter C1 (Chow, 25-41)
-    real(dp), dimension(:), intent(inout)     :: C2 ! routing parameter C2 (")
+                                                                                ! Output for regionalized routing
+    real(dp), dimension(:),                  intent(inout) :: C1                ! routing parameter C1 (Chow, 25-41)
+    real(dp), dimension(:),                  intent(inout) :: C2                ! routing parameter C2 (")
  
     ! Local Variables
     real(dp), dimension(:,:,:), allocatable :: thetaS_till
@@ -461,7 +476,7 @@ contains
        case(0) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
-          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
+          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
           fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
        ! Hargreaves-Samani method   
@@ -484,10 +499,13 @@ contains
        ! Penman-Monteith method
        case(3) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
-          iEnd   = proc_Mat(5,3)    
-          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
-          fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+          iEnd   = proc_Mat(5,3) 
+          call aerodynamical_resistance(LCover0, LAILUT, param(iStart : iEnd - 1), mask0,   & 
+               nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
+               aeroResist1)
+          call bulksurface_resistance(LCover_LAI0, LAILUT, param(iEnd), mask0,                             & 
+               nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
+               surfResist1)
        ! DEFAULT 
        case DEFAULT
           call message()
@@ -1219,47 +1237,82 @@ contains
 
   end subroutine canopy_intercept_param
 
- ! ----------------------------------------------------------------------------
+ 
+  ! ----------------------------------------------------------------------------
 
   !      NAME
   !        aerodynamical_resistance
 
-  !>       \brief 
+  !>       \brief Regionalization of aerodynamic resistance
 
-  !>       \details 
+  !>       \details estimation of aerodynamical resistance
+  !>        Global parameters needed (see mhm_parameter.nml):\n
+  !>           - param(1) = canopyheigth_forest             \n
+  !>           - param(2) = canopyheigth_impervious         \n
+  !>           - param(3) = canopyheigth_pervious           \n
+  !>           - param(4) = displacementheight_coeff        \n
+  !>           - param(5) = roughnesslength_momentum_coeff  \n
+  !>           - param(6) = roughnesslength_heat_coeff      \n
 
   !      INTENT(IN)
- 
-  !
-  !      INTENT(OUT)
+  !>       \param[in] "integer(i4)  :: LCover0(:)     - land cover at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)      - LUT of LAi values
+  !>       \param[in] "real(dp)     :: param(:)       - vector with global parameters
+  !>       \param[in] "logical      :: mask0(:,:)     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0  (:)  - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)  - Right column of high resolution block
 
-  !      EXAMPLE
-  !
+  !     INTENT(INOUT)
+  !        None
 
-  !      HISTORY
-  !>         \author Matthias Zink
-  !>         \date   Apr 2013
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp)    :: aerodyn_resistance1(:)" - [s m-1] aerodynamical resistance
 
-  ! ------------------------------------------------------------------
-  subroutine aerodynamical_resistance(aerodyn_resistance1, & ! aerodynmaical resistance
-                                      param,              & ! parameter valeus (size=6)
-                                      LCover0,      & ! land cover at level 0
-                                      LAILUT,       & ! look up table for LAI
-                                      mask0,        & ! mask at level 0
-                                      nodata,       & ! given nodata value
-                                      cell_id0,     & ! cell id at Level 0
-                                      nL0_in_L1,    & ! number of l0 cells within a l1 cell
-                                      Upp_row_L1,   & ! upper row of a l1 cell in l0 grid
-                                      Low_row_L1,   & ! lower row of a l1 cell in l0 grid
-                                      Lef_col_L1,   & ! left col of a l1 cell in l0 grid
-                                      Rig_col_L1)     ! right col of a l1 cell in l0 gridnodata)
-    !
+  !     INTENT(IN), OPTIONAL
+  !        None
+
+  !     INTENT(INOUT), OPTIONAL
+  !        None
+
+  !     INTENT(OUT), OPTIONAL
+  !        None
+
+  !     RETURN
+  !        None
+
+  !     LITERATURE
+  !        None
+
+  !     HISTORY
+  !>       \author Matthias Zink
+  !>       \date   Apr 2013
+
+  subroutine aerodynamical_resistance(LCover0,             & ! land cover at level 0
+                                      LAILUT,              & ! look up table for LAI
+                                      param,               & ! parameter valeus (size=6)
+                                      mask0,               & ! mask at level 0
+                                      nodata,              & ! given nodata value
+                                      cell_id0,            & ! cell id at Level 0
+                                      nL0_in_L1,           & ! number of l0 cells within a l1 cell
+                                      Upp_row_L1,          & ! upper row of a l1 cell in l0 grid
+                                      Low_row_L1,          & ! lower row of a l1 cell in l0 grid
+                                      Lef_col_L1,          & ! left col of a l1 cell in l0 grid
+                                      Rig_col_L1,          & ! right col of a l1 cell in l0 gridnodata)
+                                      aerodyn_resistance1  ) ! aerodynmaical resistance
+
     use mo_upscaling_operators, only: upscale_arithmetic_mean
-    !
+    use mo_mhm_constants,       only: YearMonths_i4
+    use mo_constants,           only: eps_dp
     implicit none
-    real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
+
     integer(i4), dimension(:),   intent(in)  :: LCover0    ! land cover field
     real(dp),    dimension(:,:), intent(in)  :: LAILUT     ! look up table for LAI
+    real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
     !                                                      ! dim1=land cover class, dim2=month of year
     logical,     dimension(:,:), intent(in)  :: mask0      ! mask at level 0
     real(dp),                    intent(in)  :: nodata     ! given nodata value
@@ -1281,10 +1334,9 @@ contains
     real(dp), dimension(:,:), allocatable  :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
     !                                                                    ! dim 2 = number of months in year (12)
 
-    real(dp), parameter                    :: WindMeasHeight = 10.0_dp
-    real(dp), PARAMETER                    :: k     =    0.41_dp
+    real(dp), parameter                    :: WindMeasHeight = 10.0_dp ! MZMZ
+    real(dp), PARAMETER                    :: k              = 0.41_dp ! MZMZ
     !
-    ! initialize some things
     ! ID   LAI classes                 
     ! 1    Coniferous-forest        
     ! 2    Deciduous-forest         
@@ -1295,15 +1347,16 @@ contains
     ! 7    Intensive-orchards       
     ! 8    Pasture                  
     ! 9    Fields                   
-    ! 10    Wetlands                 
+    ! 10   Wetlands                 
 
+    ! initialize some things
     allocate(zm                  (size(LCover0, dim=1)    )) ; zm                  = nodata
     allocate(zm_zero             (size(LCover0, dim=1)    )) ; zm_zero             = nodata
     allocate(zh_zero             (size(LCover0, dim=1)    )) ; zh_zero             = nodata
     allocate(displace            (size(LCover0, dim=1)    )) ; displace            = nodata
     allocate(canopy_height0      (size(LCover0, dim=1)    )) ; canopy_height0      = nodata
     allocate(aerodyn_resistance0 (size(LCover0, dim=1), 12)) ; aerodyn_resistance0 = nodata
-    aerodyn_resistance0 = nodata
+    aerodyn_resistance1 = nodata
     !
     ! regionalization of canopy height
     ! substitute with canopy height
@@ -1312,7 +1365,7 @@ contains
     !
     maxLAI = MAXVAL(LAILUT(7,:))
     !
-    do iMon = 1, 12 
+    do iMon = 1, YearMonths_i4
        !
        ! pervious canopy height is scaled with LAI
         canopy_height0 = merge( (param(3) * LAILUT(7,iMon) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
@@ -1320,9 +1373,8 @@ contains
        ! estimation of the aerodynamic resistance on the lower level
        ! see FAO Irrigation and Draingae Paper No. 56 (p. 19 ff) for more information
        zm     = WindMeasHeight
-       ! correction if measurement height is below canopy height loagarithm becomes negative
-       ! to avoid that
-       zm = merge(zm, canopy_height0+zm, zm .GT. canopy_height0)
+       ! correction: if wind measurement height is below canopy height loagarithm becomes negative
+       zm = merge(canopy_height0 + zm, zm, ((abs(zm - nodata) .GT. eps_dp) .AND. (zm .LT. canopy_height0)))
        !
        ! zh       = zm
        displace = param(4) * canopy_height0 
@@ -1338,5 +1390,116 @@ contains
     !
   end subroutine aerodynamical_resistance
 
+
+  ! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        bulksurface_resistance
+
+  !>       \brief Regionalization of bulk surface resistance
+
+  !>       \details estimation of bulk surface resistance
+  !>        Global parameters needed (see mhm_parameter.nml):\n
+  !>           - param(1) = stomatal_resistance  \n
+
+  !      INTENT(IN)
+  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)  - land cover id for LAI at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)       - LUT of LAi values
+  !>       \param[in] "real(dp)     :: param"          - global parameter
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+
+  !     INTENT(INOUT)
+  !        None
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp)    :: bulksurface_resistance1(:)" - [s m-1] bulk surface resistance
+
+  !     INTENT(IN), OPTIONAL
+  !        None
+
+  !     INTENT(INOUT), OPTIONAL
+  !        None
+
+  !     INTENT(OUT), OPTIONAL
+  !        None
+
+  !     RETURN
+  !        None
+
+  !     LITERATURE
+  !        None
+
+  !     HISTORY
+  !>       \author Matthias Zink
+  !>       \date   Apr 2013
+
+  subroutine bulksurface_resistance(LCover_LAI0,         & ! land cover id for LAI at level 0
+                                    LAILUT,              & ! look up table for LAI
+                                    param,               & ! parameter valeus (size=6)
+                                    mask0,               & ! mask at level 0
+                                    nodata,              & ! given nodata value
+                                    cell_id0,            & ! cell id at Level 0
+                                    nL0_in_L1,           & ! number of l0 cells within a l1 cell
+                                    Upp_row_L1,          & ! upper row of a l1 cell in l0 grid
+                                    Low_row_L1,          & ! lower row of a l1 cell in l0 grid
+                                    Lef_col_L1,          & ! left col of a l1 cell in l0 grid
+                                    Rig_col_L1,          & ! right col of a l1 cell in l0 gridnodata)
+                                    bulksurface_resistance1  ) ! bulk surface resistance
+
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_mhm_constants,       only: YearMonths_i4
+    use mo_constants,           only: eps_dp
+    implicit none
+
+    integer(i4), dimension(:),   intent(in)  :: LCover_LAI0 ! land cover id for LAI
+    real(dp),    dimension(:,:), intent(in)  :: LAILUT      ! look up table for LAI
+    real(dp),                    intent(in)  :: param       ! input parameter
+                                                            !                                                      ! dim1=land cover class, dim2=month of year
+    logical,     dimension(:,:), intent(in)  :: mask0       ! mask at level 0
+    real(dp),                    intent(in)  :: nodata      ! given nodata value
+    integer(i4), dimension(:),   intent(in)  :: cell_id0    ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1   ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Low_row_L1  ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1  ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
+    ! Output
+    real(dp),    dimension(:,:), intent(out) :: bulksurface_resistance1
+
+    ! local
+    integer(i4)                            :: iMon, ll
+    real(dp), dimension(:,:), allocatable  :: leafarea0
+    real(dp), dimension(:,:), allocatable  :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
+    !                                                                    ! dim 2 = number of months in year (12)
+    real(dp),                 parameter    :: sunlit_lai_factor = 0.5_dp ! MZMZ
+
+    ! initialize some things
+    allocate(bulksurface_resistance0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; bulksurface_resistance0 = nodata
+    allocate(leafarea0               (size(LCover_LAI0, dim=1), YearMonths_i4)) ; leafarea0               = nodata
+    bulksurface_resistance1 = nodata
+    !
+    do iMon = 1, YearMonths_i4
+
+       ! determine LAIs 
+       do ll = 1, size(LAILUT, dim=2)
+          print*, ll
+          leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAILUT(ll, iMon))
+       end do
+
+       bulksurface_resistance0(:,iMon) = param / sunlit_lai_factor / leafarea0(:,iMon)
+       bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
+       print*, bulksurface_resistance1(:,iMon)
+       pause
+    end do
+    !
+  end subroutine bulksurface_resistance
 
 END MODULE mo_multi_param_reg

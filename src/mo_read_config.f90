@@ -327,8 +327,7 @@ CONTAINS
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET 
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
     namelist /PET2/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, PriestleyTaylorCoeff
-    namelist /PET3/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET,                       &
-         canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff,       & 
+    namelist /PET3/  canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff,    & 
          roughnesslength_momentum_coeff, roughnesslength_heat_coeff, stomatal_resistance
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
          slowInterflowRecession_Ks, exponentSlowInterflow    
@@ -973,20 +972,28 @@ CONTAINS
 
     ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
     case(3)
-    !    call position_nml('PET2', unamelist_param)
-       call position_nml('PET0', unamelist_param)
-       read(unamelist_param, nml=PET0)
+       call position_nml('PET3', unamelist_param)
+       read(unamelist_param, nml=PET3)
        processMatrix(5, 1) = processCase(5)
-       processMatrix(5, 2) = 3_i4
+       processMatrix(5, 2) = 7_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
-       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
+
+       call append(global_parameters, reshape(canopyheigth_forest,                (/1, nColPars/)))
+       call append(global_parameters, reshape(canopyheigth_impervious,            (/1, nColPars/)))
+       call append(global_parameters, reshape(canopyheigth_pervious,              (/1, nColPars/)))
+       call append(global_parameters, reshape(displacementheight_coeff,           (/1, nColPars/)))
+       call append(global_parameters, reshape(roughnesslength_momentum_coeff,     (/1, nColPars/)))
+       call append(global_parameters, reshape(roughnesslength_heat_coeff,         (/1, nColPars/)))
+       call append(global_parameters, reshape(stomatal_resistance,                (/1, nColPars/)))
 
        call append(global_parameters_name, (/ &
-            'minCorrectionFactorPET', &
-            'maxCorrectionFactorPET', &
-            'aspectTresholdPET     '/))
+            'canopyheigth_forest           ', &
+            'canopyheigth_impervious       ', &
+            'canopyheigth_pervious         ', &
+            'displacementheight_coeff      ', &
+            'roughnesslength_momentum_coeff', &
+            'roughnesslength_heat_coeff    ', &
+            'stomatal_resistance           '/))   
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then

@@ -14,12 +14,15 @@
 !>          2         | snow and melting          | 1     | Degree-day
 !>          3         | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
 !>          4         | direct runoff             | 1     | Linear reservoir exceedance 
-!>          5         | actual ET                 | 1     | Root fraction approach, Fedes, PET Hargreaves-Samani
+!>          5         | PET                       | 0     | PET is read as input 
+!>                                                | 1     | Hargreaves-Samani
+!>                                                | 2     | Priestley-Taylor
+!>                                                | 3     | Penman-Monteith
 !>          6         | interflow                 | 1     | Nonlinear reservoir with saturation excess
 !>          7         | percolation and base flow | 1     | GW linear reservoir     
 !>          8         | routing                   | 1     | Muskingum
 
-!>          These processes are executed in ascending order. At the moment only process 8 is optional.\n
+!>          These processes are executed in ascending order. At the moment only process 5 and 8 have options.\n
 !>          The MPR technique is only called either if the land cover has been changed or for very first time step.\n 
   
 !> \author Luis Samaniego
@@ -103,6 +106,8 @@ CONTAINS
   !                                                             call
   !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
   !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
+  !                                                             and its parameterization (Process 5)
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -132,10 +137,12 @@ CONTAINS
       LCyearId            , & ! mapping of landcover scenes
       GeoUnitList         , & ! List of Ids for geological units
       GeoUnitKar          , & ! List of Ids for geological units with Karstic formation
+      LAILUT              , & ! List of Ids for LAI
       ! Physiographic L0
       slope_emp0          , &
       cellId0             , & ! cell Ids at level 0
       soilId0             , & ! soil Ids at level 0
+      L0_LCover_LAI       , & ! land cover ID for LAI estimation
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
       LAI0                , & ! LAI at level 0
@@ -226,9 +233,11 @@ CONTAINS
       deg_day_max         , & ! Maximum Degree-day factor
       deg_day_noprec      , & ! Degree-day factor with no precipitation
       deg_day             , & ! Degree-day factor
-      fAsp                , & ! PET correction for Aspect at level 1
-      HarSamCeoff         , & ! PET Hargreaves Samani coefficient at level 1
-      PrieTayCeoff        , & ! PET Priestley Taylor coefficient at level 1
+      fAsp                , & ! [1]     PET correction for Aspect at level 1
+      HarSamCeoff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
+      PrieTayCeoff        , & ! [1]     PET Priestley Taylor coefficient at level 1
+      aeroResist          , & ! [s m-1] PET aerodynamical resitance at level 1
+      surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
       interc_max          , & ! Maximum interception
       karst_loss          , & ! Karstic percolation loss
@@ -293,11 +302,13 @@ CONTAINS
     integer(i4),                   intent(in)    :: LCyearId
     integer(i4), dimension(:),     intent(in)    :: GeoUnitList
     integer(i4), dimension(:),     intent(in)    :: GeoUnitKar
+    real(dp),    dimension(:,:),   intent(in)    :: LAILUT
 
     ! Physiographic L0
     real(dp),    dimension(:),     intent(in)    :: slope_emp0
     integer(i4), dimension(:),     intent(in)    :: cellId0
     integer(i4), dimension(:),     intent(in)    :: soilId0
+    integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
     integer(i4), dimension(:),     intent(in)    :: LCover0
     real(dp),    dimension(:),     intent(in)    :: Asp0
     real(dp),    dimension(:),     intent(in)    :: LAI0
@@ -401,6 +412,9 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  fAsp
     real(dp), dimension(:),        intent(inout) ::  HarSamCeoff
     real(dp), dimension(:),        intent(inout) ::  PrieTayCeoff
+    real(dp), dimension(:,:),      intent(inout) ::  aeroResist
+    real(dp), dimension(:,:),      intent(inout) ::  surfResist
+
     real(dp), dimension(:,:),      intent(inout) ::  frac_roots
     real(dp), dimension(:),        intent(inout) ::  interc_max
     real(dp), dimension(:),        intent(inout) ::  karst_loss
@@ -440,7 +454,38 @@ CONTAINS
     ! date and month of this timestep
     !-------------------------------------------------------------------
     call dec2date(time, yy=year, mm=month, dd=day, hh=hour)
+
     !-------------------------------------------------------------------
+    ! CALL regionalization of parameters related to LAI
+    ! IT is now outside of mHM since LAI is now dynamic variable
+    !-------------------------------------------------------------------
+    SELECT CASE(LAI_option_Flag)
+    CASE(0)
+       ! Estimate max. intecept. capacity based on long term monthly mean LAI values
+       ! Max. interception is updated every month rather than every day
+       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               ) 
+       end if
+    CASE(1)
+       ! Estimate max. inteception based on daily LAI values
+       ! Max. interception is updated every month
+       if( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then 
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               ) 
+       end if
+    CASE DEFAULT
+       call message('mo_mhm: This LAI_option_Flag=',num2str(LAI_option_Flag),' is not implemented!')
+       stop
+    END SELECT
+ 
+   !-------------------------------------------------------------------
     ! MPR CALL
     !   -> call only when LC had changed 
     !   -> or for very first time step  
@@ -506,21 +551,21 @@ CONTAINS
         !-------------------------------------------------------------------
         ! NOW call MPR
         !-------------------------------------------------------------------
-        call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
-                  geoUnit0, GeoUnitList, GeoUnitKar,                                   &
-                  SDB_is_present, SDB_nHorizons,                                       &
-                  SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth, &
-                  nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,   &
-                  soilId0, LCover0, Asp0, length11, slope11, fFPimp11,                 &
-                  slope_emp0, cellId0,                                                 &
-                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                  &
-                  L0rightBound_inL1, nTCells0_inL1,                                    &
-                  alpha, deg_day_incr, deg_day_max, deg_day_noprec,                    &
-                  fAsp, HarSamCeoff, PrieTayCeoff,                                     &
-                  frac_roots, k0, k1, k2, kp, karst_loss,                              &
-                  nLink_C1,  nLink_C2,                                                 &
-                  soil_moist_FC, soil_moist_sat, soil_moist_exponen,                   &
-                  temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point        )
+        call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,                &
+                  geoUnit0, GeoUnitList, GeoUnitKar, LAILUT,                                &
+                  SDB_is_present, SDB_nHorizons,                                            &
+                  SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
+                  nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
+                  soilId0, Asp0, L0_LCover_LAI, LCover0, LAI0, length11, slope11, fFPimp11, &
+                  slope_emp0, cellId0,                                                      &
+                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
+                  L0rightBound_inL1, nTCells0_inL1,                                         &
+                  alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
+                  fAsp, HarSamCeoff(:), PrieTayCeoff(:), aeroResist(:,:), surfResist(:,:),  &
+                  frac_roots, k0, k1, k2, kp, karst_loss,                                   &
+                  nLink_C1,  nLink_C2,                                                      &
+                  soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
+                  temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
         ! step and when restart_iFlag_read = FALSE 
@@ -532,36 +577,6 @@ CONTAINS
         end if
 
     end if
-    
-    !-------------------------------------------------------------------
-    ! CALL regionalization of parameters related to LAI
-    ! IT is now outside of mHM since LAI is now dynamic variable
-    !-------------------------------------------------------------------
-    SELECT CASE(LAI_option_Flag)
-    CASE(0)
-       ! Estimate max. intecept. capacity based on long term monthly mean LAI values
-       ! Max. interception is updated every month rather than every day
-       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
-          call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
-               L0downBound_inL1, L0leftBound_inL1,  &
-               L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
-       end if
-    CASE(1)
-       ! Estimate max. inteception based on daily LAI values
-       ! Max. interception is updated every month
-       if( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then 
-          call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
-               L0downBound_inL1, L0leftBound_inL1,  &
-               L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
-       end if
-    CASE DEFAULT
-       call message('mo_mhm: This LAI_option_Flag=',num2str(LAI_option_Flag),' is not implemented!')
-       stop
-    END SELECT
 
     !-------------------------------------------------------------------
     ! flag for day or night depending on hours of the day
@@ -588,17 +603,23 @@ CONTAINS
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & ! Intent IN
-               tmin_in(k), latitude(k), doy)                                                ! Intent IN
- 
+          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & 
+               tmin_in(k), latitude(k), doy)                                                
+
        case(2) ! Priestley-Taylor
            ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = fAsp(k) * pet_priestly( PrieTayCeoff(k), max(netrad_in(k), 0.0_dp), temp_in(k))  ! Intent IN
+          pet_in(k) = fAsp(k) * pet_priestly( PrieTayCeoff(k), max(netrad_in(k), 0.0_dp), temp_in(k))  
 
        case(3) ! Penman-Monteith
-          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/10.0_dp, &
-                                   100.0_dp, 100.0_dp) ! Intent IN 
-!                                   aerodyn_resistance(k,month), bulksurface_resistance(k)) ! Intent IN 
+          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
+                                   ! 100.0_dp, 100.0_dp) 
+                                   aeroResist(k,month) / windspeed_in(k), 100.0_dp)
+                                   ! aeroResist(k,month) / windspeed_in(k), bulksurface_resistance(k))
+          doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          ! if (doy == 250) then
+          !    print*, aeroResist(k,month) / windspeed_in(k), aeroResist(k,month) , windspeed_in(k)
+          !    pause
+          ! end if
 
        end select
        

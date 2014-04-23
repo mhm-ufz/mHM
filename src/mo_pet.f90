@@ -239,6 +239,7 @@ CONTAINS
   !>        \date    Apr 2014
 
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
+!MZMZ  FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
 
     use mo_mhm_constants, only: DaySecs
     use mo_constants,     only: Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
@@ -253,9 +254,10 @@ CONTAINS
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
 
-    pet_penman =  DaySecs / SpecHeatET_dp * (slope_satpressure(tavg) * net_rad + rho0_dp * cp0_dp * &
-                  (sat_vap_pressure(tavg) - act_vap_pressure) / &
-                  aerodyn_resistance) / (slope_satpressure(tavg) + Psychro_dp * (1 + bulksurface_resistance/aerodyn_resistance))
+    pet_penman =  DaySecs / SpecHeatET_dp  *           &                          ! conversion factor [W m-2] to [mm d-1]
+                  (slope_satpressure(tavg) * net_rad + &
+                  rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure ) / aerodyn_resistance) / &
+                  (slope_satpressure(tavg) + Psychro_dp * (1 + bulksurface_resistance/aerodyn_resistance))
     
   END FUNCTION pet_penman
 
@@ -406,16 +408,16 @@ CONTAINS
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
 
-  elemental pure FUNCTION sat_vap_pressure(tavg)
+  elemental pure FUNCTION sat_vap_pressure(temp)
 
     use mo_mhm_constants, only:tetens_c1, tetens_c2, tetens_c3 
 
     implicit none
 
-    real(dp), intent(in) :: tavg
-    real(dp)             :: sat_vap_pressure          ! saturation vapour pressure
+    real(dp), intent(in) :: temp                      ! temperature [degC]
+    real(dp)             :: sat_vap_pressure          ! saturation vapour pressure [kPa]
 
-    sat_vap_pressure = tetens_c1 * exp(tetens_c2 * tavg / (tavg + tetens_c3))
+    sat_vap_pressure = tetens_c1 * exp(tetens_c2 * temp / (temp + tetens_c3))
 
   END FUNCTION sat_vap_pressure
   !

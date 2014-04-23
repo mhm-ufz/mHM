@@ -452,6 +452,9 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable   :: L1_fAsp         ! [1]    PET correction for aspect
   real(dp), public, dimension(:), allocatable   :: L1_HarSamCeoff  ! [1]    Hargreaves Samani coeffiecient
   real(dp), public, dimension(:), allocatable   :: L1_PrieTayCeoff ! [1]    Priestley Taylor coeffiecient
+  real(dp), public, dimension(:,:), allocatable :: L1_aeroResist   ! [s m-1] aerodynamical resitance
+  real(dp), public, dimension(:,:), allocatable :: L1_surfResist   ! [s m-1] bulk surface resitance
+  !                                                                ! dim1 = No cells for basin, dim2 = No of Months in year
   real(dp), public, dimension(:,:), allocatable :: L1_fRoots       ! [1]    Fraction of roots in soil horizons   
   real(dp), public, dimension(:), allocatable   :: L1_maxInter     ! [mm]   Maximum interception 
   real(dp), public, dimension(:), allocatable   :: L1_kfastFlow    ! [d-1]  Fast interflow recession coefficient 

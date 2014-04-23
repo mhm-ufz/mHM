@@ -29,6 +29,9 @@ PET module
 -- case 1 :: Hargreaves-Samani
 -- case 2 :: Priestley-Taylor
 -- case 3 :: Penman-Monteith
+add parameters to restart:
+-- HarSamCoeff
+-- PrieTay Coeff
 
 L0=L1 bug
 (Resp.: Martin, Rohini)
