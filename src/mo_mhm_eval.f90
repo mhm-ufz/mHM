@@ -376,7 +376,7 @@ CONTAINS
                basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                      & ! IN C
                basin%InflowGaugeNodeList(ii,:),                                                & ! IN C
                parameterset,                                                                   & ! IN P
-               LCyearId(year), GeoUnitList, GeoUnitKar, LAILUT,                                & ! IN L0
+               LCyearId(year), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                   & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),      & ! IN L0
                L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                    & ! IN L0
                L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),                 & ! IN L0

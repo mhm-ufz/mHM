@@ -234,8 +234,8 @@ MODULE mo_global_variables
   ! LAI data
   ! variables used when iFlag_LAI_data_format = 0
   integer(i4),    public                              :: nLAIclass         ! Number of LAI classes
-  integer(i4),    public, dimension(:),   allocatable :: LAIUnitList       ! List of ids of each LAI class --> New
-  real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index
+  integer(i4),    public, dimension(:),   allocatable :: LAIUnitList       ! List of ids of each LAI class in LAILUT
+  real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index for LAIUnit
   !                                                                        ! dim1=land cover class, dim2=month of year 
 
   ! -------------------------------------------------------------------

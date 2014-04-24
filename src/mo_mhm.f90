@@ -137,6 +137,7 @@ CONTAINS
       LCyearId            , & ! mapping of landcover scenes
       GeoUnitList         , & ! List of Ids for geological units
       GeoUnitKar          , & ! List of Ids for geological units with Karstic formation
+      LAIUnitList         , & ! List of ids of each LAI class in LAILUT
       LAILUT              , & ! List of Ids for LAI
       ! Physiographic L0
       slope_emp0          , &
@@ -302,6 +303,7 @@ CONTAINS
     integer(i4),                   intent(in)    :: LCyearId
     integer(i4), dimension(:),     intent(in)    :: GeoUnitList
     integer(i4), dimension(:),     intent(in)    :: GeoUnitKar
+    integer(i4), dimension(:),     intent(in)    :: LAIUnitList 
     real(dp),    dimension(:,:),   intent(in)    :: LAILUT
 
     ! Physiographic L0
@@ -552,7 +554,7 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,                &
-                  geoUnit0, GeoUnitList, GeoUnitKar, LAILUT,                                &
+                  geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
                   SDB_is_present, SDB_nHorizons,                                            &
                   SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
                   nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
@@ -613,8 +615,8 @@ CONTAINS
        case(3) ! Penman-Monteith
           pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
                                    ! 100.0_dp, 100.0_dp) 
-                                   aeroResist(k,month) / windspeed_in(k), 100.0_dp)
-                                   ! aeroResist(k,month) / windspeed_in(k), bulksurface_resistance(k))
+                                   ! aeroResist(k,month) / windspeed_in(k), 100.0_dp)
+                                   aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
           doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           ! if (doy == 250) then
           !    print*, aeroResist(k,month) / windspeed_in(k), aeroResist(k,month) , windspeed_in(k)
