@@ -30,11 +30,11 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut      = "/data/stohyd/mHM_project/germany/basin/sub_mulde/output_v5/zink/pet_test/"
+dirConfigOut      = "/data/stohyd/mHM_project/germany/basin//sub_9305116/output/zink/pet/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles    = "/data/stohyd/mHM_project/germany/basin/sub_mulde/morph_v5/"
+dirCommonFiles    = "/data/stohyd/mHM_project/germany/basin//sub_9305116/morph/"
 !
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
@@ -46,37 +46,39 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)               = "/data/stohyd/mHM_project/germany/basin/sub_mulde/morph_v5/"
+dir_Morpho(1)         = "/data/stohyd/mHM_project/germany/basin//sub_9305116/morph/"
 !> directory where land cover files are located
-dir_LCover(1)               = "/data/stohyd/mHM_project/germany/basin/sub_mulde/luse_v5/"
+dir_LCover(1)          = "/data/stohyd/mHM_project/germany/basin//sub_9305116/luse/"
 !> directory where discharge files are located
-dir_Gauges(1)               = "/data/stohyd/mHM_project/germany/basin/sub_mulde/gauge_v5/"
+dir_Gauges(1)          = "/data/stohyd/mHM_project/germany/basin//sub_9305116/gauge/"
 !> directory where meteorological input is located
-dir_Precipitation(1)        = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
-dir_Temperature(1)          = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dir_Precipitation(1)   = "/data/stohyd/mHM_project/germany/basin//sub_9305116/meteo/"
+dir_Temperature(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/meteo/"
 !> paths depending on PET process (processCase(5))
 !> 0 - PET is input
 !> 1 - Hargreaves-Sammani method
 !> 2 - Priestley-Taylor mehtod
 !> 3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)          = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dir_ReferenceET(1)          = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dirMinTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
-dirMaxTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dirMinTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+dirMaxTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dirNetRadiation_dummy(1)    = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dirNetRadiation_dummy(1)    = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)       = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
-dir_windspeed(1)            = "/data/stohyd/mHM_project/germany/basin/sub_mulde/meteo_v5/"
+dir_absVapPressure(1)       = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+dir_windspeed(1)            = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+
 !> directory where latitude and longitude file is located
-dir_LatLon(1)               = "/data/stohyd/mHM_project/germany/basin/sub_mulde/morph_v5/latlon.nc"
+dir_LatLon(1)        = "/data/stohyd/mHM_project/germany/basin//sub_9305116/morph/latlon.nc"
 !> directory where output should be written to
-dir_Out(1)                  = "/data/stohyd/mHM_project/germany/basin/sub_mulde/output_v5/zink/pet_test/"
+dir_Out(1)           = "/data/stohyd/mHM_project/germany/basin//sub_9305116/output/zink/pet/"
 !> directory where restart output should be written
-dir_RestartOut(1)           =   "test_basin/restart/"
+dir_RestartOut(1)    = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart/"
 !> directory where restart output should be written
-dir_RestartIn(1)            = "/data/stohyd/mHM_project/germany/basin/sub_mulde/restart_31-12-1997_4000/"
+dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart/"
+!
 /
 
 !
@@ -90,7 +92,7 @@ dir_RestartIn(1)            = "/data/stohyd/mHM_project/germany/basin/sub_mulde/
 !-----------------------------------------------------------------------------
 !> model run timestep [h] either 1 or 24
 !-----------------------------------------------------------------------------
-timestep = 1
+timestep            = 1
 !-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
@@ -98,7 +100,7 @@ timestep = 1
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins = 1
+nBasins                       = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m] per basin
 !-----------------------------------------------------------------------------
@@ -114,18 +116,18 @@ resolution_Routing(1)   = 4000
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
-L0Basin(1) = 1
+L0Basin(1)            = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize = .false.
+optimize            = .FALSE.
 !> (0) MCMC                \n
 !> (1) DDS                 \n
 !> (2) Simulated Annealing \n
 !> (3) SCE                 \n
 !> additional settings for the different methods can be provided below in namelist Optimization
-opti_method = 1
+opti_method         = -9
 !> (1) 1.0 - NSE  \n
 !> (2) 1.0 - lnNSE  \n
 !> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
@@ -135,7 +137,7 @@ opti_method = 1
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 3
+opti_function       = -9
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
@@ -159,19 +161,19 @@ restart_flag_config_write  = .FALSE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warmingDays    = 0
+warmingDays          = 0
 !> first year of wanted simulation period
-evalPer%yStart = 2005
+evalPer%yStart       = 2005
 !> first month of wanted simulation period
-evalPer%mStart = 01
+evalPer%mStart       = 01
 !> first day   of wanted simulation period
-evalPer%dStart = 01
+evalPer%dStart       = 01
 !> last year   of wanted simulation period
-evalPer%yEnd   = 2006
+evalPer%yEnd         = 2006
 !> last month  of wanted simulation period
-evalPer%mEnd   = 12
+evalPer%mEnd         = 12
 !> last day    of wanted simulation period
-evalPer%dEnd   = 31
+evalPer%dEnd         = 31
 /
 
 !******************************************************************************************
@@ -197,34 +199,34 @@ soil_Depth(2)     = 250
 !> Variables given in this namelist are common to all basins to be modeled.
 !> Please make sure that the land cover periods are covering the simulation period. 
 !>fraction of area within city assumed to be fully sealed [0.0-1.0]
-fracSealed_cityArea = 0.6
+fracSealed_cityArea  = 0.6
 !> number of land cover scenes to be used\n
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered 
 !> chronologically.
-nLcover_scene = 3
+nLcover_scene         = 3
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1) = 1950
+LCoverYearStart(1)     = 1950
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1990
+LCoverYearEnd(1)       = 1990
 !> name of land cover file for scnene 1
-LCoverfName(1)     = 'lc_1990.asc'
+LCoverfName(1)   = 'lc_1990.asc'
 
 !> starting year of land cover scene 2
-LCoverYearStart(2) = 1991
+LCoverYearStart(2)     = 1991
 !> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 2000
+LCoverYearEnd(2)       = 2000
 !> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_2000.asc'
+LCoverfName(2)   = 'lc_2000.asc'
 
 !> starting year of land cover scene 3
-LCoverYearStart(3) = 2001
+LCoverYearStart(3)     = 2001
 !> ending year of land cover scnene 3
-LCoverYearEnd(3)   = 2013
+LCoverYearEnd(3)       = 2013
 !> name of land cover file for scnene 3
-LCoverfName(3)     = 'lc_2006.asc'
+LCoverfName(3)   = 'lc_2006.asc'
 /
 !
 !******************************************************************************************
@@ -272,7 +274,7 @@ inputFormat_gridded_LAI = "xxxbin"
 !
 !> For each basin (number given in bracket), provide the path to the directory 
 !> where gridded LAI files are located.
-dir_gridded_LAI(1) = "xxxtest/input/lai/"
+dir_gridded_LAI(1)  = "xxxtest/input/lai/"
 /
 
 !
@@ -326,7 +328,7 @@ processCase(8) = 1
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal           = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -334,11 +336,11 @@ nGaugesTotal = 1
 !
 !> basin 1
 !> number of gauges for subbasin (1)
-NoGauges_basin(1)   = 1
+NoGauges_basin(1)       = 1
 !> id of gauge(1) for subbasin(1) --> (1,1) 
-Gauge_id(1,1)       = 6340600
+Gauge_id(1,1)           = 9305116
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
-gauge_filename(1,1) = "6340600.txt"
+gauge_filename(1,1)     = "9305116.txt"
 /
 
 &inflow_gauges
@@ -347,7 +349,7 @@ gauge_filename(1,1) = "6340600.txt"
 !>      not included in the model domain
 !
 !> Total number of inflow gauges (sum of all gauges in all subbains) 
-nInflowGaugesTotal = 0
+nInflowGaugesTotal            = 0
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -387,18 +389,18 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 nIterations    = 1000
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
-seed = 1235876
+seed           = 346906658
 !  -------------------------------------
 !> DDS specific: \n
 !  -------------------------------------
 !> perturbation rate r (default: 0.2)
-dds_r = 0.2
+dds_r          = 0.2
 !  -------------------------------------
 !> SA specific: \n
 !  -------------------------------------
 !> Initial Temperature (default: -9.0)
 !> if default: temperature is determined by algorithm of Ben-Ameur (2004)
-sa_temp = -9.0
+sa_temp        = -9.0
 !  -------------------------------------
 !> SCE specific: \n
 !  -------------------------------------
