@@ -479,7 +479,7 @@ contains
        case(0) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
-          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
+          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd), nodata )
           fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
        ! Hargreaves-Samani method   
@@ -498,7 +498,7 @@ contains
                mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1,  &
                PrieTayAlpha1)
           !PrieTayAlpha1 = param(iStart)
-          print*,  param( iStart : iEnd),'PT: ',PrieTayAlpha1, 'cut', param(iEnd)
+          !print*,  param( iStart : iEnd),'PT: ',PrieTayAlpha1, 'cut', param(iEnd)
        ! Penman-Monteith method
        case(3) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
