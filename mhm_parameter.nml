@@ -57,10 +57,8 @@ aspectTresholdPET                  =  160.00,      200.00,     1.800E+02,     1,
 HargreavesSamaniCoeff              =  0.0016,      0.0030,     2.300E-03,     1,       1
 /
 &PET2 ! PET - Priestley Taylor 
-minCorrectionFactorPET             =  0.7000,      1.3000,     1.000E+00,     1,       1
-maxCorrectionFactorPET             =  0.0000,      0.2000,     0.000E+00,     1,       1
-aspectTresholdPET                  =  160.00,      200.00,     1.800E+02,     1,       1
-PriestleyTaylorCoeff               =    1.00,        2.00,     1.260E+00,     1,       1
+PriestleyTaylorCoeff               =    0.75,        1.75,     1.260E+00,     1,       1
+PriestleyTaylorLAIcorr             =   -0.50,        0.20,    -6.400E-03,     1,       1
 /
 &PET3 ! PET - Penman Monteith
 canopyheigth_forest                =   15.00,       40.00,     2.816E+01,     1,       1 

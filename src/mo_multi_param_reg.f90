@@ -146,7 +146,7 @@ contains
   !>                                                      of increase in precipitation
   !>       \param[out] "real(dp) :: fAsp1(:)"           - [1]     PET correction for Aspect at level 1
   !>       \param[out] "real(dp) :: HarSamCeoff1(:)"    - [1]     PET Hargreaves Samani coefficient at level 1
-  !>       \param[out] "real(dp) :: PrieTayCeoff1(:)"   - [1]     PET Priestley Taylor coefficient at level 1
+  !>       \param[out] "real(dp) :: PrieTayAlpha1(:,:)" - [1]     PET Priestley Taylor coefficient at level 1
   !>       \param[out] "real(dp) :: aeroResist1(:,:)"   - [s m-1] PET aerodynamical resitance at level 1
   !>       \param[out] "real(dp) :: surfResist1(:,:)"   - [s m-1] PET bulk surface resitance at level 1
   !>       \param[out] "real(dp) :: HL3(:)"             - threshold parameter for runoff generation
@@ -220,7 +220,7 @@ contains
        DD1,            & ! Degree-day factor with no precipitation
        fAsp1,          & ! [1]     PET correction for Aspect at level 1
        HarSamCeoff1,   & ! [1]     PET Hargreaves Samani coefficient at level 1
-       PrieTayCeoff1,  & ! [1]     PET Priestley Taylor coefficient at level 1
+       PrieTayAlpha1,  & ! [1]     PET Priestley Taylor coefficient at level 1
        aeroResist1,    & ! [s m-1] PET aerodynamical resitance at level 1
        surfResist1,    & ! [s m-1] PET bulk surface resitance at level 1
        fRoots1,        & ! fraction of roots in soil horizons
@@ -324,7 +324,7 @@ contains
                                                                                 ! Output for PET parameterization
     real(dp), dimension(:),                  intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
     real(dp), dimension(:),                  intent(inout) :: HarSamCeoff1      ! [1]     PET Hargreaves Samani coeff. at level 1
-    real(dp), dimension(:),                  intent(inout) :: PrieTayCeoff1     ! [1]     PET Priestley Taylor coeff. at level 1
+    real(dp), dimension(:,:),                intent(inout) :: PrieTayAlpha1     ! [1]     PET Priestley Taylor coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
     real(dp), dimension(:,:),                intent(inout) :: surfResist1       ! [s m-1] PET bulk surface resitance at level 1
 
@@ -494,11 +494,11 @@ contains
        case(2)
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
           iEnd   = proc_Mat(5,3)    
-          call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
-          fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
-          PrieTayCeoff1 = param(iEnd)
-          !print*,  param( iStart : iEnd - 1),'PT: ',param(iEnd), fAsp1
+          call priestley_taylor_alpha(LCover_LAI0, LAILUT, LAIUnitList, param(iStart : iEnd),       & 
+               mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1,  &
+               PrieTayAlpha1)
+          !PrieTayAlpha1 = param(iStart)
+          print*,  param( iStart : iEnd),'PT: ',PrieTayAlpha1, 'cut', param(iEnd)
        ! Penman-Monteith method
        case(3) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
@@ -1447,7 +1447,7 @@ contains
   subroutine bulksurface_resistance(LCover_LAI0,         & ! land cover id for LAI at level 0
                                     LAILUT,              & ! look up table for LAI
                                     LAIUnitList,         & ! List of ids of each LAI class in LAILUT
-                                    param,               & ! parameter valeus (size=6)
+                                    param,               & ! parameter values (size=1)
                                     mask0,               & ! mask at level 0
                                     nodata,              & ! given nodata value
                                     cell_id0,            & ! cell id at Level 0
@@ -1485,19 +1485,18 @@ contains
 
     ! local
     integer(i4)                            :: iMon, ll
-    integer(i4)                            :: a,b
+    !integer(i4)                            :: a,b
     real(dp), dimension(:,:), allocatable  :: leafarea0
     real(dp), dimension(:,:), allocatable  :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
     !                                                                    ! dim 2 = number of months in year (12)
-    real(dp),                 parameter    :: sunlit_lai_factor = 0.5_dp ! MZMZ
 
-    real(dp), dimension(:,:,:), allocatable  :: tmp ! MZMZ
-    logical, dimension(:,:), allocatable  :: mask1 ! MZMZ
+    ! real(dp), dimension(:,:,:), allocatable  :: tmp ! MZMZ
+    ! logical, dimension(:,:), allocatable  :: mask1 ! MZMZ
 
 
-    call get_basin_info ( 1,  1, a, b, mask=mask1 )  !MZMZ
-    allocate(tmp(size(mask1, dim=1), size(mask1, dim=2),YearMonths_i4)) ! MZMZ
-    tmp = nodata ! MZMZ
+    !call get_basin_info ( 1,  1, a, b, mask=mask1 )  !MZMZ
+    !allocate(tmp(size(mask1, dim=1), size(mask1, dim=2),YearMonths_i4)) ! MZMZ
+    !tmp = nodata ! MZMZ
     
     ! initialize some things
     allocate(bulksurface_resistance0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; bulksurface_resistance0 = nodata
@@ -1511,23 +1510,141 @@ contains
           leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAIUnitList(ll))
        end do
        ! correction for 0 LAI values
-       leafarea0 = merge( 1.00E-10_dp,  leafarea0, leafarea0 .LT. eps_dp)
-       ! check ll, negative values why ???
-       bulksurface_resistance0(:,iMon) = param / (sunlit_lai_factor * leafarea0(:,iMon))
+       leafarea0(:,iMon) = merge( 1.00E-10_dp,  leafarea0(:,iMon), leafarea0(:,iMon) .LT. eps_dp)
 
-       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / (0.3 * leafarea0(:,iMon)+1.2))
+       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / (0.3_dp * leafarea0(:,iMon) + 1.2_dp)) ! MZMZ
+       ! efeective LAI from McMahon et al ,2013 , HESS supplements
+
+       ! since LAI may be very low, rs becomes very high 
+       ! thus the values are restricted to maximum literaure values (i.e. McMahon et al ,2013 , HESS)
+       bulksurface_resistance0(:,iMon) = merge(250.0_dp, bulksurface_resistance0(:,iMon), &
+            bulksurface_resistance0(:,iMon) .GT. 250.0_dp)
 
        bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
-       ! print*, bulksurface_resistance1(:,iMon) ! MZMZ
-       ! pause ! MZMZ
+
        ! tmp(:,:,iMon) = unpack(bulksurface_resistance0(:,iMon), mask0, nodata) ! MZMZ
-       tmp(:,:,iMon) = unpack(bulksurface_resistance1(:,imon), mask1, nodata) ! MZMZ
+       !tmp(:,:,iMon) = unpack(bulksurface_resistance1(:,imon), mask1, nodata) ! MZMZ
     end do
 
     ! call dump_netcdf( trim('surfres_L0.nc'), tmp)  ! MZMZ
-    call dump_netcdf( trim('surfres_L1.nc'), tmp)  ! MZMZ
+    ! call dump_netcdf( trim('surfres_L1.nc'), tmp)  ! MZMZ
    !
   end subroutine bulksurface_resistance
+
+
+  ! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        priestley_taylor_alpha
+
+  !>       \brief Regionalization of priestley taylor alpha
+
+  !>       \details estimation of priestley taylor alpha
+  !>        Global parameters needed (see mhm_parameter.nml):\n
+  !>           - param(1) = PriestleyTaylorCoeff    \n
+  !>           - param(2) = PriestleyTaylorLAIcorr  \n
+
+  !      INTENT(IN)
+  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)  - land cover id for LAI at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)       - LUT of LAi values
+  !>       \param[in] "real(dp)     :: param(:)"       - global parameter
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+
+  !     INTENT(INOUT)
+  !        None
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp)    :: priestley_taylor_alpha1(:)" - [s m-1] bulk surface resistance
+
+  !     INTENT(IN), OPTIONAL
+  !        None
+
+  !     INTENT(INOUT), OPTIONAL
+  !        None
+
+  !     INTENT(OUT), OPTIONAL
+  !        None
+
+  !     RETURN
+  !        None
+
+  !     LITERATURE
+  !        None
+
+  !     HISTORY
+  !>       \author Matthias Zink
+  !>       \date   Apr 2013
+
+  subroutine priestley_taylor_alpha(LCover_LAI0,         & ! land cover id for LAI at level 0
+                                    LAILUT,              & ! look up table for LAI
+                                    LAIUnitList,         & ! List of ids of each LAI class in LAILUT
+                                    param,               & ! parameter values (size=2)
+                                    mask0,               & ! mask at level 0
+                                    nodata,              & ! given nodata value
+                                    cell_id0,            & ! cell id at Level 0
+                                    nL0_in_L1,           & ! number of l0 cells within a l1 cell
+                                    Upp_row_L1,          & ! upper row of a l1 cell in l0 grid
+                                    Low_row_L1,          & ! lower row of a l1 cell in l0 grid
+                                    Lef_col_L1,          & ! left col of a l1 cell in l0 grid
+                                    Rig_col_L1,          & ! right col of a l1 cell in l0 gridnodata)
+                                    priestley_taylor_alpha1  ) ! bulk surface resistance
+
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_mhm_constants,       only: YearMonths_i4
+    use mo_constants,           only: eps_dp
+
+    implicit none
+
+    integer(i4), dimension(:),   intent(in)  :: LCover_LAI0 ! land cover id for LAI
+    real(dp),    dimension(:,:), intent(in)  :: LAILUT      ! look up table for LAI
+    !                                                       ! dim1=land cover class, dim2=month of year
+    integer(i4), dimension(:),   intent(in)  :: LAIUnitList ! List of ids of each LAI class in LAILUT
+    real(dp),    dimension(:),   intent(in)  :: param       ! input parameter
+    logical,     dimension(:,:), intent(in)  :: mask0       ! mask at level 0
+    real(dp),                    intent(in)  :: nodata      ! given nodata value
+    integer(i4), dimension(:),   intent(in)  :: cell_id0    ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1   ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Low_row_L1  ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1  ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
+    ! Output
+    real(dp),    dimension(:,:), intent(out) :: priestley_taylor_alpha1
+
+    ! local
+    integer(i4)                            :: iMon, ll
+    real(dp), dimension(:,:), allocatable  :: leafarea0
+    real(dp), dimension(:,:), allocatable  :: priestley_taylor_alpha0    ! dim 1 = number of cells on level 0,
+    !                                                                    ! dim 2 = number of months in year (12)
+
+    ! initialize some things
+    allocate(priestley_taylor_alpha0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; priestley_taylor_alpha0 = nodata
+    allocate(leafarea0               (size(LCover_LAI0, dim=1), YearMonths_i4)) ; leafarea0               = nodata
+    priestley_taylor_alpha1 = nodata
+    !
+    do iMon = 1, YearMonths_i4
+       ! determine LAIs per month
+       do ll = 1, size(LAILUT, dim=1)
+          leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAIUnitList(ll))
+       end do
+       ! correction for 0 LAI values to avoid numerical instabilities
+       leafarea0(:,iMon) = merge( 1.00E-10_dp,  leafarea0(:,iMon), leafarea0(:,iMon) .LT. eps_dp)
+
+       priestley_taylor_alpha0(:,iMon) = param(1) + param(2) * leafarea0(:,iMon)
+
+       priestley_taylor_alpha1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, priestley_taylor_alpha0(:,iMon))
+    end do
+
+  end subroutine priestley_taylor_alpha
+
 
 END MODULE mo_multi_param_reg

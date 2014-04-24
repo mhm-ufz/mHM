@@ -215,6 +215,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: aspectTresholdPET                 
     real(dp), dimension(nColPars)                   :: HargreavesSamaniCoeff
     real(dp), dimension(nColPars)                   :: PriestleyTaylorCoeff
+    real(dp), dimension(nColPars)                   :: PriestleyTaylorLAIcorr
     real(dp), dimension(nColPars)                   :: canopyheigth_forest               
     real(dp), dimension(nColPars)                   :: canopyheigth_impervious           
     real(dp), dimension(nColPars)                   :: canopyheigth_pervious             
@@ -326,7 +327,7 @@ CONTAINS
     namelist /directRunoff1/ imperviousStorageCapacity
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET 
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
-    namelist /PET2/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, PriestleyTaylorCoeff
+    namelist /PET2/  PriestleyTaylorCoeff, PriestleyTaylorLAIcorr
     namelist /PET3/  canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff,    & 
          roughnesslength_momentum_coeff, roughnesslength_heat_coeff, stomatal_resistance
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
@@ -950,18 +951,13 @@ CONTAINS
        call position_nml('PET2', unamelist_param)
        read(unamelist_param, nml=PET2)
        processMatrix(5, 1) = processCase(5)
-       processMatrix(5, 2) = 4_i4
+       processMatrix(5, 2) = 2_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
-       call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
-       call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
        call append(global_parameters, reshape(PriestleyTaylorCoeff,               (/1, nColPars/)))
-
+       call append(global_parameters, reshape(PriestleyTaylorLAIcorr,             (/1, nColPars/)))
        call append(global_parameters_name, (/ &
-            'minCorrectionFactorPET', &
-            'maxCorrectionFactorPET', &
-            'aspectTresholdPET     ', &
-            'PriestleyTaylorCoeff  '/))
+            'PriestleyTaylorCoeff  ', &
+            'PriestleyTaylorLAIcorr'/))
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then

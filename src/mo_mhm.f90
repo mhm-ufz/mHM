@@ -236,7 +236,7 @@ CONTAINS
       deg_day             , & ! Degree-day factor
       fAsp                , & ! [1]     PET correction for Aspect at level 1
       HarSamCeoff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
-      PrieTayCeoff        , & ! [1]     PET Priestley Taylor coefficient at level 1
+      PrieTayAlpha        , & ! [1]     PET Priestley Taylor coefficient at level 1
       aeroResist          , & ! [s m-1] PET aerodynamical resitance at level 1
       surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
@@ -413,7 +413,7 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  deg_day
     real(dp), dimension(:),        intent(inout) ::  fAsp
     real(dp), dimension(:),        intent(inout) ::  HarSamCeoff
-    real(dp), dimension(:),        intent(inout) ::  PrieTayCeoff
+    real(dp), dimension(:,:),      intent(inout) ::  PrieTayAlpha
     real(dp), dimension(:,:),      intent(inout) ::  aeroResist
     real(dp), dimension(:,:),      intent(inout) ::  surfResist
 
@@ -563,8 +563,8 @@ CONTAINS
                   L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                   L0rightBound_inL1, nTCells0_inL1,                                         &
                   alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
-                  fAsp, HarSamCeoff(:), PrieTayCeoff(:), aeroResist(:,:), surfResist(:,:),  &
-                  frac_roots, k0, k1, k2, kp, karst_loss,                                   &
+                  fAsp, HarSamCeoff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
+                  surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
                   nLink_C1,  nLink_C2,                                                      &
                   soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
                   temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
@@ -610,19 +610,13 @@ CONTAINS
 
        case(2) ! Priestley-Taylor
            ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = fAsp(k) * pet_priestly( PrieTayCeoff(k), max(netrad_in(k), 0.0_dp), temp_in(k))  
+          pet_in(k) = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))  
 
        case(3) ! Penman-Monteith
           pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
                                    ! 100.0_dp, 100.0_dp) 
                                    ! aeroResist(k,month) / windspeed_in(k), 100.0_dp)
                                    aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
-          doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
-          ! if (doy == 250) then
-          !    print*, aeroResist(k,month) / windspeed_in(k), aeroResist(k,month) , windspeed_in(k)
-          !    pause
-          ! end if
-
        end select
        
        ! temporal disaggreagtion of forcing variables
