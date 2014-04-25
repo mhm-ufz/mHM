@@ -1391,21 +1391,20 @@ CONTAINS
 
        ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of
        ! the routing cell at level-11
-        if ( gaugeLoc0(ii,jj) .ne. nodata_i4 ) then 
+        if ( gaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! evaluation gauges
           do ll = 1, basin%nGauges(iBasin)
-             ! since indices are given  consecutive for gauge%Ids they have to be set to the
-             ! index_gauge of the gauge before since L0 data are the same
-             index_gauge = basin%gaugeIndexList(iBasin, ll) 
-             ! save ID on L11
-             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj) 
+             ! search for gaugeID in L0 grid and save ID on L11
+             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
 
-       if ( InflowGaugeLoc0(ii,jj) /= nodata_i4 ) then 
+       if ( InflowGaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! inflow gauges
           do ll = 1, basin%nInflowGauges(iBasin)
-             if (index_gauge .EQ. InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             ! search for gaugeID in L0 grid and save ID on L11
+             if ( basin%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
+                  basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
   

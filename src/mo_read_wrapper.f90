@@ -362,15 +362,10 @@ CONTAINS
           case(4) ! hydrogeological class ID
              call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
           case(5) ! location of evaluation and inflow gauging stations 
-             ! allocation and intialization
-             allocate(tmp_data_i4_2d(size(data_i4_2d, dim=1),size(data_i4_2d, dim=2))); tmp_data_i4_2d = nodata_i4
-
              ! evaluation gauges
-             ! map gauge ID's to gauge indices & exclude for evaluation uninteresting gauging stations (inflow gauges)
+             ! Input data check
              do iGauge = 1, basin%nGauges(iBasin)
-
-                ! Input data check
-                ! Is gaugeId is found in gauging location file?
+                ! If gaugeId is found in gauging location file?
                 if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
                    call message()
                    call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
@@ -379,23 +374,16 @@ CONTAINS
                         trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
                    stop
                 end if
-
-!!$                tmp_data_i4_2d = merge(basin%gaugeIndexList(iBasin, iGauge), &
-!!$                     tmp_data_i4_2d, data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))
              end do
-!!$             call append( L0_gaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+
              call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
  
              ! inflow gauges
-             tmp_data_i4_2d = nodata_i4
-             ! if no inflow gauge for this subbasin exists still nodata values with dim of subbasin have to be paded
+             ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
              if (basin%nInflowGauges(iBasin) .GT. 0_i4) then 
-
-                ! map gauge ID's to gauge indices & exclude for infow uninteresting gauging stations (evaluation gauges)
+                ! Input data check
                 do iGauge = 1, basin%nInflowGauges(iBasin)
-
-                   ! Input data check
-                   ! Is InflowGaugeId is found in gauging location file?
+                   ! If InflowGaugeId is found in gauging location file?
                    if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
                       call message()
                       call message('***ERROR: Inflow Gauge ID "', trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
@@ -404,12 +392,9 @@ CONTAINS
                            trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
                       stop
                    end if
-                   
-!!$                   tmp_data_i4_2d = merge(basin%InflowGaugeIndexList(iBasin, iGauge), &
-!!$                        tmp_data_i4_2d, data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))
                 end do
              end if
-!!$             call append( L0_InflowGaugeLoc, pack(tmp_data_i4_2d, mask_global) )
+
              call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
 
              deallocate(tmp_data_i4_2d)
