@@ -148,7 +148,6 @@ CONTAINS
     real(dp), dimension(:),   allocatable     :: data_dp_1d
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
-    integer(i4), dimension(:,:), allocatable  :: tmp_data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
     logical, dimension(:),   allocatable      :: mask_1d
     logical, dimension(:,:), allocatable      :: mask_2d
@@ -397,7 +396,6 @@ CONTAINS
 
              call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
 
-             deallocate(tmp_data_i4_2d)
           case(6) ! Land cover related to LAI classes
              call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )             
           end select
