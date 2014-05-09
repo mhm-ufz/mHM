@@ -12,6 +12,9 @@
 
 !> \authors Luis Samaniego
 !> \date Dec 2012
+!         Modified
+!         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
+!                                     on a regular X-Y coordinate system
 
 MODULE mo_net_startup
 
@@ -37,6 +40,7 @@ MODULE mo_net_startup
   PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: routing_dummy_alloc
+  PUBLIC :: get_distance_two_lat_lon_points
 
 CONTAINS
 
@@ -1488,7 +1492,8 @@ CONTAINS
          L0_streamNet,    & ! IN:    stream network
          L0_floodPlain,   & ! IN:    floodplains of stream i
          L11_length,      & ! IN:    total length [m] 
-         L11_aFloodPlain, & ! IN:    area of the flood plain [m2] 
+         L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
+     iFlag_cordinate_sys, & ! IN:    coordinate system
          L11_slope          ! INOUT: normalized average slope
     use mo_mhm_constants, only: nodata_i4, nodata_dp
 
@@ -1616,7 +1621,7 @@ CONTAINS
          stack(ns,1) = frow
          stack(ns,2) = fcol
 
-         call cellLength(iBasin, fDir0(frow,fcol),  nLinkLength(ii) )
+         call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, iFlag_cordinate_sys, nLinkLength(ii) )
          nLinkSlope(ii) = elev0(frow, fcol)
 
          fId = iD0( frow, fcol )
@@ -1646,7 +1651,7 @@ CONTAINS
             ns = 1
             stack(ns,1) = frow
             stack(ns,2) = fcol
-            call cellLength(iBasin, fDir0(fRow,fCol), length )
+            call cellLength(iBasin, fDir0(fRow,fCol), fRow, fCol, iFlag_cordinate_sys, length )
             nLinkLength(ii) = nLinkLength(ii) + length
 
          end do
@@ -2134,7 +2139,7 @@ CONTAINS
   ! ------------------------------------------------------------------
   !  CELL LENGTH
   ! ------------------------------------------------------------------
-  subroutine cellLength(iBasin, fDir, length)
+  subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
     use mo_constants,        only: SQRT2_dp
     use mo_global_variables, only: level0
@@ -2143,17 +2148,134 @@ CONTAINS
 
     integer(i4), intent(IN)  :: iBasin
     integer(i4), intent(IN)  :: fDir
+    integer(i4), intent(IN)  :: iRow
+    integer(i4), intent(IN)  :: jCol
+    integer(i4), intent(IN)  :: iCoorSystem
     real(dp),    intent(OUT) :: length
+    
+    ! local variables
+    integer(i4)              :: iRow_to, jCol_to
+    real(dp)                 :: lat_1, long_1, lat_2, long_2
+    
 
-    select case (fDir)
-    case(1, 4, 16, 64)       ! E, S, W, N
-       length = 1.0_dp
-    case(2, 8, 32, 128)      ! SE, SW, NW, NE
-       length = SQRT2_dp
-    end select
-
-    length = length * level0%cellsize(iBasin)
-
+    ! regular X-Y cordinate system
+    IF(iCoorSystem .EQ. 0) THEN
+    
+       select case (fDir)
+           case(1, 4, 16, 64)       ! E, S, W, N
+              length = 1.0_dp
+           case(2, 8, 32, 128)      ! SE, SW, NW, NE
+              length = SQRT2_dp
+        end select
+        length = length * level0%cellsize(iBasin)
+        
+    ! regular lat-lon cordinate system
+    ELSE IF(iCoorSystem .EQ. 1) THEN
+        iRow_to = iRow
+        jCol_to = jCol
+        
+        ! move in the direction of flow
+        call moveDownOneCell(fDir, iRow_to, jCol_to)
+        
+        ! estimate lat-lon points
+        lat_1  = level0%yllcorner(iBasin) + real( (level0%ncols(iBasin)-jCol),dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        long_1 = level0%xllcorner(iBasin) + real( (iRow-1)                   ,dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        
+        lat_2  = level0%yllcorner(iBasin) + real( (level0%ncols(iBasin)-jCol_to),dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        long_2 = level0%xllcorner(iBasin) + real( (iRow_to-1)                   ,dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        ! get distance between two points
+        call get_distance_two_lat_lon_points(lat_1, long_1, lat_2, long_2, length)
+        
+    END IF
+    !
   end subroutine cellLength
+
+
+  ! --------------------------------------------------------------------------
+
+  !     NAME
+  !         get_distance_two_lat_lon_points
+  !     PURPOSE
+  !>        \brief estimate distance in [m] between two points in a lat-lon
+  
+  !>        \details estimate distance in [m] between two points in a lat-lon
+  
+  !     INTENT(IN)
+  !>        \param[in] "real(dp)    :: lat1"    latitude  of point-1
+  !>        \param[in] "real(dp)    :: long1"   longitude of point-1
+  !>        \param[in] "real(dp)    :: lat2"    latitude  of point-2
+  !>        \param[in] "real(dp)    :: long2"   longitude of point-2
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp)    :: distance_out"    distance between two points [m]
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         call L11_variable_init(1)
+
+  !     LITERATURE
+  !      Code is based on one that is implemented in the VIC-3L model 
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date   May 2014
+
+  ! --------------------------------------------------------------------------
+  subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
+
+    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
+    implicit none
+
+    real(dp), intent(in)             :: lat1, long1, lat2, long2
+    real(dp), intent(out)            :: distance_out
+   
+    ! local variables
+    real(dp)                         :: theta1
+    real(dp)                         :: phi1
+    real(dp)                         :: theta2
+    real(dp)                         :: phi2
+    real(dp)                         :: dtor
+    real(dp)                         :: term1
+    real(dp)                         :: term2
+    real(dp)                         :: term3
+    real(dp)                         :: temp
+
+    dtor   = TWOPI_dp/360.0_dp
+    theta1 = dtor*long1
+    phi1   = dtor*lat1
+    theta2 = dtor*long2
+    phi2   = dtor*lat2
+      
+    term1  = cos(phi1)*cos(theta1)*cos(phi2)*cos(theta2)
+    term2  = cos(phi1)*sin(theta1)*cos(phi2)*sin(theta2)
+    term3  = sin(phi1)*sin(phi2)
+    temp   = term1+term2+term3
+    if(temp .GT. 1.0_dp) temp = 1.0_dp
+
+    distance_out = RADUIS_EARTH_dp*acos(temp);
+
+  end subroutine get_distance_two_lat_lon_points
+
 
 END MODULE mo_net_startup

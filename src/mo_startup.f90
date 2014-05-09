@@ -274,7 +274,7 @@ CONTAINS
                                    L0_LCover_LAI            , &
                                    nLCover_scene            , &  
                                    L0_LCover, iFlag_LAI_data_format, & 
-                                   processMatrix                                   
+                                   processMatrix                                  
     use mo_constants,    only: eps_dp             
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str
@@ -424,15 +424,21 @@ CONTAINS
   !     HISTORY
   !         \author  Rohini Kumar
   !         \date    Jan 2013
+  !         Modified
+  !         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
+  !                                     on a regular X-Y coordinate system
+  !
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
     use mo_global_variables, only: level0, L0_areaCell,    &
                                    L0_nCells, L0_cellCoor, &
                                    L0_Id, L0_slope,        & 
                                    L0_slope_emp,           &
-                                   L0_soilId, nSoilTypes
-    use mo_append,    only: append                    
-    use mo_sort,      only: sort_index                
+                                   L0_soilId, nSoilTypes,  &
+                                   iFlag_cordinate_sys 
+    use mo_append,        only: append                    
+    use mo_sort,          only: sort_index     
+    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
 
     implicit none
 
@@ -444,6 +450,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable  :: cellCoor
     integer(i4), dimension(:), allocatable    :: Id
     real(dp), dimension(:), allocatable       :: areaCell
+    real(dp), dimension(:,:), allocatable     :: areaCell_2D
 
     integer(i4)                               :: nrows, ncols
     integer(i4)                               :: iStart, iEnd
@@ -453,6 +460,8 @@ CONTAINS
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
 
     integer(i4)                               :: i, j, k
+    real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
+    
     !--------------------------------------------------------
     ! STEPS::
     ! 1) Estimate each variable locally for a given basin
@@ -465,11 +474,13 @@ CONTAINS
     allocate( cellCoor(nCells,2) )
     allocate(       Id(nCells  ) )
     allocate( areaCell(nCells  ) )
+    allocate( areaCell_2D(nrows,ncols) )
 
     cellCoor(:,:) =  nodata_i4
     Id(:)         =  nodata_i4
     areaCell(:)   =  nodata_dp
-
+    areaCell_2D(:,:) =  nodata_dp
+    
     !------------------------------------------------
     ! start looping for cell cordinates and ids
     !------------------------------------------------
@@ -481,10 +492,32 @@ CONTAINS
           Id(k)         = k
           cellCoor(k,1) = i
           cellCoor(k,2) = j
-          ! estimate area of cell at level-0
-          areaCell(k) = level0%cellsize(iBasin) * level0%cellsize(iBasin)
        end do
     end do
+
+    ! ESTIMATE AREA [m2]
+
+    ! regular X-Y coordinate system
+    if(iFlag_cordinate_sys .eq. 0) then
+       areaCell(:) = level0%cellsize(iBasin) * level0%cellsize(iBasin)
+
+    ! regular lat-lon coordinate system
+    else if(iFlag_cordinate_sys .eq. 1) then
+    
+       degree_to_radian = TWOPI_dp / 360.0_dp
+       degree_to_metre  = RADUIS_EARTH_dp*TWOPI_dp/360.0_dp
+       do i = ncols, 1, -1
+         j =  ncols - i + 1
+         ! get latitude in degrees    
+         rdum = level0%yllcorner(iBasin) + (real(j,dp)-0.5_dp) * level0%cellsize(iBasin)
+         ! convert to radians
+         rdum = rdum*degree_to_radian
+         !    AREA[m²] 
+         areaCell_2D(:,i) = (level0%cellsize(iBasin) * cos(rdum) * degree_to_metre) * (level0%cellsize(iBasin)*degree_to_metre)  
+       end do 
+       areaCell(:) = pack( areaCell_2D(:,:), mask)   
+
+    end if    
 
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
@@ -526,7 +559,7 @@ CONTAINS
     end do
 
     ! free space
-    deallocate(cellCoor, Id, areaCell, mask, slope_val, slope_emp, slope_sorted_index)
+    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index)
 
   end subroutine L0_variable_init
 

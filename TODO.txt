@@ -15,9 +15,6 @@ transfer mo_file to a namelist to allow for more flexible filenames
 chunk read-in of data 
 (Resp.: Stephan)
 
-lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
-(Resp.: Rohini)
-
 proper implementation of John's LAI model as a new process, i.e. Process #9 
 (Resp.: Jule, Matthias C.)
 -- case 1 :: lai read from file as monthly values
@@ -29,9 +26,6 @@ PET module
 -- case 1 :: Hargreaves-Samani
 -- case 2 :: Priestley-Taylor
 -- case 3 :: Penman-Monteith
-
-L0=L1 bug
-(Resp.: Martin, Rohini)
 
 Licence
 (Resp.: Diana, Luis)
@@ -89,3 +83,9 @@ automatic make test
 
 Initialization in mo_net_startup.f90
 (Resp.: Luis)
+
+L0=L1 bug
+(Resp.: Rohini)
+
+lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
+(Resp.: Rohini)

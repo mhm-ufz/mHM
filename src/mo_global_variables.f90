@@ -20,6 +20,7 @@ MODULE mo_global_variables
   !           Rohini Kumar,   Aug 2013  - added dirSoil_LUT and dirGeology_LUT
   !           Luis Samaniego, Nov 2013  - documentation of dimensions
   !           Matthias Zink,  Nov 2013  - added "InflowGauge" and inflow gauge variabels in basin 
+  !           Rohini Kumar,   May 2014  - added options for the model run cordinate system
 
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
@@ -37,10 +38,8 @@ MODULE mo_global_variables
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
-  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m] resolution of hydrologic modelling
-                                                                                         ! Level 1
-  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m] resolution of routing
-                                                                                         ! Level 11
+  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
+  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: restart_flag_states_read   ! flag for reading restart files 
   !                                                                                ! for state variables
@@ -55,6 +54,7 @@ MODULE mo_global_variables
   integer(i4),    public                             :: iFlag_LAI_data_format      ! flag on how LAI data has to be read
   character(256), public                             :: inputFormat_gridded_LAI    ! format of gridded LAI data(bin or nc)
                                                                                    ! used when iFlag_LAI_data_format = 1
+  integer(i4),   public                              :: iFlag_cordinate_sys        ! options model for the run cordinate system 
   ! -------------------------------------------------------------------
   ! OPTIMIZATION
   ! -------------------------------------------------------------------

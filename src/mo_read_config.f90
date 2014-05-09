@@ -93,6 +93,7 @@ CONTAINS
   !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
   !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
+  !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
 
   subroutine read_config()
 
@@ -165,7 +166,8 @@ CONTAINS
          iFlag_LAI_data_format,                             & ! flag on how LAI data has to be read
          !                                                    ! used when iFlag_LAI_data_format = 1
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
-         dirgridded_LAI                                       ! Directory where gridded LAI is located
+         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
+         iFlag_cordinate_sys                                  ! model run cordinate system
 
     implicit none
 
@@ -251,8 +253,8 @@ CONTAINS
     !                                                                            ! used when iFlag_LAI_data_format = 1
     real(dp)                                        :: jday_frac
     !
-    integer(i4),    dimension(maxNoBasins)          :: resolution_Hydrology
-    integer(i4),    dimension(maxNoBasins)          :: resolution_Routing
+    real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
+    real(dp),    dimension(maxNoBasins)             :: resolution_Routing
     integer(i4),    dimension(maxNoBasins)          :: L0Basin
     ! for gauge read in
     integer(i4)                                        :: i_basin, i_gauge, idx
@@ -265,14 +267,15 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,            &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation, &
-         dir_Temperature, dir_ReferenceET, dir_Out, dir_RestartOut,&
-         dir_RestartIn, dir_LatLon
+    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,  &
+                           dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,        &
+                           dir_Temperature, dir_ReferenceET, dir_Out, dir_RestartOut, &
+                           dir_RestartIn, dir_LatLon
     ! namelist spatial & temporal resolution, otmization information
-    namelist /mainconfig/ timestep, resolution_Hydrology, resolution_Routing, L0Basin, optimize, opti_method,  &
-         opti_function, nBasins, restart_flag_states_read, restart_flag_states_write, &
-         restart_flag_config_read, restart_flag_config_write, warmingDays, evalPer
+    namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
+                 L0Basin, optimize, opti_method, opti_function, nBasins, restart_flag_states_read, &
+                 restart_flag_states_write, restart_flag_config_read, restart_flag_config_write,   &
+                 warmingDays, evalPer
     ! namelsit soil layering
     namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
@@ -288,22 +291,21 @@ CONTAINS
     ! namelist for evaluation gauges
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/     nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
-    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,                      &
-         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,               &
+    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,  &
+         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,     &
          maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious       
-    namelist/soilmoisture1/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious,           &         
+    namelist/soilmoisture1/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &         
          PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,      &           
          PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant,                                    &
          PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                &
          rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                         &
          rootFractionCoefficient_pervious, infiltrationShapeFactor
     namelist /directRunoff1/ imperviousStorageCapacity
-    namelist /actualET1/  minCorrectionFactorPET, maxCorrectionFactorPET,                                              &
-         aspectTresholdPET 
-    namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
+    namelist /actualET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
+    namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &     
          slowInterflowRecession_Ks, exponentSlowInterflow    
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic     
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, muskingumTravelTime_riverSlope, &
@@ -345,11 +347,16 @@ CONTAINS
     allocate(dirRestartIn(nBasins))
     allocate(dirLatLon(nBasins))
     !
-    resolutionHydrology    = resolution_Hydrology(1:nBasins)
-    resolutionRouting      = resolution_Routing(1:nBasins)
-    L0_Basin               = L0Basin(1:nBasins)
+    resolutionHydrology = resolution_Hydrology(1:nBasins)
+    resolutionRouting   = resolution_Routing(1:nBasins)
+    L0_Basin            = L0Basin(1:nBasins)
     !
-
+    ! check for possible options
+    if( .NOT. (iFlag_cordinate_sys == 0 .OR. iFlag_cordinate_sys == 1) ) then
+       call message()
+       call message('***ERROR: coordinate system for the model run should be 0 or 1')
+       stop
+    end if
     !===============================================================
     !  determine simulation time period incl. warming days
     !===============================================================
@@ -669,9 +676,9 @@ CONTAINS
        call message()
        call message('Basin ', trim(adjustl(num2str(ii))), ': ')
        call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
-            trim(adjustl(num2str(nint(resolutionHydrology(ii)))))) 
+            trim(adjustl(num2str(resolutionHydrology(ii))))) 
        call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
-            trim(adjustl(num2str(nint(resolutionRouting(ii)))))) 
+            trim(adjustl(num2str(resolutionRouting(ii))))) 
        !
        if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
           call message()
@@ -695,6 +702,7 @@ CONTAINS
           call message('Resolution of routing is bigger than hydrological model resolution by ', &
                trim(adjustl(num2str(nint(cellFactorRbyH)))), ' times !')
        end if
+       !
     end do
     !===============================================================
     ! Read namelist global parameters
