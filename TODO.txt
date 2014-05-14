@@ -46,6 +46,13 @@ Remove Numerical Recipes code
 -- mo_linfit:  linfit
 -- mo_moments: absdev, average, correlation, covariance, kurtosis, mean, moment, skewness, stddev, variance
 
+Remove "dummy" variables in namelists
+(Resp. Matthias C.)
+
+Initialization of variables in mo_netstartup
+(Resp. Luis)
+
+
 =================================================================================================
                       UNDER CONSTRUCTION
 =================================================================================================
