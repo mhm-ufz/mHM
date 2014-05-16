@@ -536,7 +536,7 @@ CONTAINS
     Process_descr(2) = 'snow'
     Process_descr(3) = 'soilmoisture'
     Process_descr(4) = 'directSealedAreaRunoff'
-    Process_descr(5) = 'meteoCorrectionFactor'
+    Process_descr(5) = 'Potential Evapotranspiration'
     Process_descr(6) = 'interflow'
     Process_descr(7) = 'percolation'
     Process_descr(8) = 'routing'
@@ -577,9 +577,16 @@ CONTAINS
              write(uopti_nml,*) '&directRunoff1'
           end if
        case(5)
-          if (processMatrix(iProc,1) .eq. 0) then
-             write(uopti_nml,*) '&PET0'
-          end if
+          select case (processMatrix(iProc,1))
+             case(0)
+                write(uopti_nml,*) '&PET0'
+             case(1)
+                write(uopti_nml,*) '&PET1'
+             case(2)
+                write(uopti_nml,*) '&PET2'
+             case(3)
+                write(uopti_nml,*) '&PET3'
+          end select
        case(6)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&interflow1'

@@ -14,6 +14,7 @@
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
+! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -94,6 +95,12 @@ dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/rest
 !-----------------------------------------------------------------------------
 timestep            = 1
 !-----------------------------------------------------------------------------
+!> input data & model run cordinate system 
+!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
+!> 1 -> regular lat & lon coordinate system
+!-----------------------------------------------------------------------------
+iFlag_cordinate_sys = 0
+!-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
 !> All gauging stations within those basins will be taken for the optimization.\n
@@ -102,13 +109,17 @@ timestep            = 1
 !-----------------------------------------------------------------------------
 nBasins                       = 1
 !-----------------------------------------------------------------------------
-!> resolution of Level-1 hydrological simulations in mHM [m] per basin
+!> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
+!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 4000 
 !-----------------------------------------------------------------------------
-!> resolution of Level-11 discharge routing [m] per basin \n
+!> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
+!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 4000 
 !----------------------------------------------------------------------------

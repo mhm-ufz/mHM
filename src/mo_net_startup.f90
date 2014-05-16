@@ -12,6 +12,9 @@
 
 !> \authors Luis Samaniego
 !> \date Dec 2012
+!         Modified
+!         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
+!                                     on a regular X-Y coordinate system
 
 MODULE mo_net_startup
 
@@ -37,6 +40,7 @@ MODULE mo_net_startup
   PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: routing_dummy_alloc
+  PUBLIC :: get_distance_two_lat_lon_points
 
 CONTAINS
 
@@ -533,9 +537,14 @@ CONTAINS
 
     ! CASE WHERE ROUTING AND INPUT DATA SCALE IS SIMILAR
     IF(nCells0 .EQ. nNodes) THEN
-      oLoc = maxloc ( fAcc0, mask0 )
+      oLoc = maxloc( fAcc0, mask0 )
       kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
-      fDir11(:,:) = fDir0(:,:)
+      ! for a single node model run
+      if(nCells0 .EQ. 1) then
+       fDir11(1,1) = fDir0(oLoc(1), oLoc(2)) 
+      else
+        fDir11(:,:) = fDir0(:,:)
+      end if
       fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
       ! set location of main outlet in L11
       do kk = 1, nNodes
@@ -543,13 +552,17 @@ CONTAINS
          jj = cellCoor11( kk, 2 )
          rowOut(kk) = ii
          colOut(kk) = jj
+      end do
+      do kk = 1, ncells0 
+         ii = cellCoor0( kk, 1 )
+         jj = cellCoor0( kk, 2 )
          draSC0(ii,jj) = kk
       end do
-      
+      !
       ! CASE WHERE ROUTING AND INPUT DATA SCALE DIFFERS 
     ELSE
       ! finding main outlet (row, col) in L11
-      oLoc = maxloc ( fAcc0, mask0 )
+      oLoc = maxloc( fAcc0, mask0 )
       kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
       fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
 
@@ -700,10 +713,8 @@ CONTAINS
     end if
 
     ! L0 data sets
-
     basin%L0_rowOutlet(iBasin) = oLoc(1)
     basin%L0_colOutlet(iBasin) = oLoc(2)
-
     call append( L0_draSC,     PACK ( draSC0(:,:),  mask0)  ) 
     call append( L0_L11_Id,    PACK ( L11Id_on_L0(:,:), mask0)  )
 
@@ -948,9 +959,8 @@ CONTAINS
     call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
-
-    !     Routing network vectors have nNodes size instead of nLinks to
-    !     avoid the need of having two extra indices to identify a basin. 
+    !  Routing network vectors have nNodes size instead of nLinks to
+    !  avoid the need of having two extra indices to identify a basin. 
 
     ! allocate
     allocate ( nLinkFromN  ( nNodes ) )  ! all vectors valid from (1 : nLinks)
@@ -959,7 +969,6 @@ CONTAINS
     allocate ( nLinkLabel  ( nNodes ) )
     allocate ( nLinkSink   ( nNodes ) )
     allocate ( netPerm     ( nNodes ) )
-
     ! initialize
     nLinkFromN(:)         = nodata_i4
     nLinkToN(:)           = nodata_i4
@@ -969,68 +978,72 @@ CONTAINS
     nLinkSink(:)          = .FALSE.
     netPerm(:)            = nodata_i4
 
-    ! get network vectors of L11 
-    nLinkFromN(:) = L11_fromN ( iStart11 : iEnd11 )
-    nLinkToN(:)   = L11_toN   ( iStart11 : iEnd11 )
+    ! for a single node model run
+    if(nNodes .GT. 1) then
+      ! get network vectors of L11 
+      nLinkFromN(:) = L11_fromN ( iStart11 : iEnd11 )
+      nLinkToN(:)   = L11_toN   ( iStart11 : iEnd11 )
 
-    loop1: do ii = 1, nLinks
-       loop2: do jj = 1, nLinks
-          if ( jj == ii ) cycle loop2
-          if ( nLinkFromN(ii) == nLinkToN(jj) ) then
-             nLinkROrder(ii) = -9
-          end if
-          if ( nLinkROrder(ii) == -9 ) cycle loop1
-       end do loop2
-    end do loop1
+      loop1: do ii = 1, nLinks
+         loop2: do jj = 1, nLinks
+            if ( jj == ii ) cycle loop2
+            if ( nLinkFromN(ii) == nLinkToN(jj) ) then
+               nLinkROrder(ii) = -9
+            end if
+            if ( nLinkROrder(ii) == -9 ) cycle loop1
+         end do loop2
+      end do loop1
 
-    nLinkLabel(:) = 0  ! ''
+      nLinkLabel(:) = 0  ! ''
 
-    ! counting headwaters
-    kk = 0
-    do ii = 1, nLinks
-       if ( nLinkROrder(ii) == 1) then
-          kk = kk + 1
-          nLinkROrder(ii) = kk
-          nLinkLabel(ii)  = 1  ! 'Head Water'
-       end if
-    end do
+      ! counting headwaters
+      kk = 0
+      do ii = 1, nLinks
+         if ( nLinkROrder(ii) == 1) then
+            kk = kk + 1
+            nLinkROrder(ii) = kk
+            nLinkLabel(ii)  = 1  ! 'Head Water'
+         end if
+      end do
 
-    ! counting downstream
-    do while ( minval( nLinkROrder( 1 : nLinks ) ) < 0 )
-       loop3: do ii = 1, nLinks
-          if ( .NOT. nLinkROrder(ii) == -9 ) cycle loop3
-          flag = .TRUE.
-          loop4: do jj = 1, nLinks
-             if ( jj == ii .OR. nLinkFromN(ii)  /=  nLinkToN(jj) ) then
-                cycle loop4
-             else if (.NOT. (  nLinkFromN(ii)  == nLinkToN(jj)  .AND. nLinkROrder(jj) > 0 )) then
-                flag = .FALSE.
-                exit loop4
-             else
-             end if
-          end do loop4
+      ! counting downstream
+      do while ( minval( nLinkROrder( 1 : nLinks ) ) < 0 )
+         loop3: do ii = 1, nLinks
+            if ( .NOT. nLinkROrder(ii) == -9 ) cycle loop3
+            flag = .TRUE.
+            loop4: do jj = 1, nLinks
+               if ( jj == ii .OR. nLinkFromN(ii)  /=  nLinkToN(jj) ) then
+                  cycle loop4
+               else if (.NOT. (  nLinkFromN(ii)  == nLinkToN(jj)  .AND. nLinkROrder(jj) > 0 )) then
+                  flag = .FALSE.
+                  exit loop4
+               else
+               end if
+            end do loop4
 
-          if (flag) then
-             kk = kk + 1
-             nLinkROrder(ii) = kk
-          end if
-       end do loop3
-    end do
+            if (flag) then
+               kk = kk + 1
+               nLinkROrder(ii) = kk
+            end if
+         end do loop3
+      end do
 
-    ! identify sink cell
-    iSink = maxloc ( nLinkROrder( 1 : nLinks ) )
-    nLinkLabel( iSink ) = 2    !  'Sink'
-    nLinkSink(  iSink ) = .TRUE.
+      ! identify sink cell
+      iSink = maxloc ( nLinkROrder( 1 : nLinks ) )
+      nLinkLabel( iSink ) = 2    !  'Sink'
+      nLinkSink(  iSink ) = .TRUE.
 
-    ! keep routing order
-    do ii = 1, nLinks
-       netPerm( nLinkROrder(ii) ) = ii
-    end do
-
+      ! keep routing order
+      do ii = 1, nLinks
+         netPerm( nLinkROrder(ii) ) = ii
+      end do
+     
+      ! end of multi-node network design loop
+    end if
+   
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
-
     ! L11 network data sets 
     call append( L11_rOrder,  nLinkROrder(:) )
     call append( L11_label,   nLinkLabel(:)  )
@@ -1147,9 +1160,8 @@ CONTAINS
 
     nLinks  = nNodes - 1
 
-    !     Routing network vectors have nNodes size instead of nLinks to
-    !     avoid the need of having two extra indices to identify a basin. 
-
+    !  Routing network vectors have nNodes size instead of nLinks to
+    !  avoid the need of having two extra indices to identify a basin. 
     ! allocate
     allocate ( rowOut        ( nNodes ) )
     allocate ( colOut        ( nNodes ) )
@@ -1174,54 +1186,58 @@ CONTAINS
     fDir0        = nodata_i4    
     draSC0       = nodata_i4    
 
-    ! get fDir at L0
-    fDir0(:,:) =   UNPACK( L0_fDir  (iStart0:iEnd0),  mask0, nodata_i4 )
-    draSC0(:,:) =  UNPACK( L0_draSC (iStart110:iEnd110),  mask0, nodata_i4 )
+    ! for a single node model run
+    if(nNodes .GT. 1) then
+      ! get fDir at L0
+      fDir0(:,:) =   UNPACK( L0_fDir  (iStart0:iEnd0),  mask0, nodata_i4 )
+      draSC0(:,:) =  UNPACK( L0_draSC (iStart110:iEnd110),  mask0, nodata_i4 )
 
-    ! get network vectors of L11 
-    nLinkFromN(:) = L11_fromN   ( iStart11 : iEnd11 )
-    netPerm(:)    = L11_netPerm ( iStart11 : iEnd11 )
-    rowOut(:)     = L11_rowOut  ( iStart11 : iEnd11 )
-    colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
+      ! get network vectors of L11 
+      nLinkFromN(:) = L11_fromN   ( iStart11 : iEnd11 )
+      netPerm(:)    = L11_netPerm ( iStart11 : iEnd11 )
+      rowOut(:)     = L11_rowOut  ( iStart11 : iEnd11 )
+      colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
-    ! finding main outlet (row, col) in L0
-    oLoc(1) = basin%L0_rowOutlet(iBasin)
-    oLoc(2) = basin%L0_colOutlet(iBasin) 
+      ! finding main outlet (row, col) in L0
+      oLoc(1) = basin%L0_rowOutlet(iBasin)
+      oLoc(2) = basin%L0_colOutlet(iBasin) 
 
-    ! Location of the stream-joint cells  (row, col)
-    do rr = 1, nLinks
+      ! Location of the stream-joint cells  (row, col)
+      do rr = 1, nLinks
 
-       ii = netPerm(rr)
-       iNode = nLinkFromN(ii)
-       iRow = rowOut(iNode)
-       jCol = colOut(iNode) 
-       call moveDownOneCell( fDir0(iRow,jcol), iRow, jcol ) 
-       ! set "from" cell
-       nLinkFromRow(ii) = iRow
-       nLinkFromCol(ii) = jCol
+         ii = netPerm(rr)
+         iNode = nLinkFromN(ii)
+         iRow = rowOut(iNode)
+         jCol = colOut(iNode) 
+         call moveDownOneCell( fDir0(iRow,jcol), iRow, jcol ) 
+         ! set "from" cell
+         nLinkFromRow(ii) = iRow
+         nLinkFromCol(ii) = jCol
 
-       if(iRow == oLoc(1) .and. jCol == oLoc(2)) then
+         if(iRow == oLoc(1) .and. jCol == oLoc(2)) then
 
-          nLinkToRow(ii) = iRow
-          nLinkToCol(ii) = jCol
+            nLinkToRow(ii) = iRow
+            nLinkToCol(ii) = jCol
 
-       else
+         else
 
-          do while ( .not. ( draSC0(iRow,jCol) > 0 ) )
-             call moveDownOneCell( fDir0(iRow,jcol), iRow, jCol )
-             if ( iRow == oLoc(1) .and. jCol == oLoc(2)) exit
-          end do
-          ! set "to" cell (when an outlet is reached)
-          nLinkToRow(ii) = iRow
-          nLinkToCol(ii) = jCol
+            do while ( .not. ( draSC0(iRow,jCol) > 0 ) )
+               call moveDownOneCell( fDir0(iRow,jcol), iRow, jCol )
+               if ( iRow == oLoc(1) .and. jCol == oLoc(2)) exit
+            end do
+            ! set "to" cell (when an outlet is reached)
+            nLinkToRow(ii) = iRow
+            nLinkToCol(ii) = jCol
 
-       end if
-    end do
+         end if
+      end do
 
+      ! end of multi-node network design loop
+    end if
+    
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
-
     ! L11 network data sets 
     call append( L11_fRow,   nLinkFromRow(:) )
     call append( L11_fCol,   nLinkFromCol(:) )
@@ -1286,6 +1302,7 @@ CONTAINS
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
+  !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
   ! ------------------------------------------------------------------
 
   subroutine L11_set_drain_outlet_gauges(iBasin)
@@ -1299,7 +1316,6 @@ CONTAINS
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
          L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
-         L0_Basin,    &       ! if the same data as basin before are used index of basin before has to be used
          L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
          L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
 
@@ -1321,7 +1337,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable  :: InflowGaugeLoc0   
     integer(i4), dimension(:,:), allocatable  :: draCell0
     integer(i4), dimension(:,:), allocatable  :: L11Id_on_L0
-    integer(i4)                               :: ii, jj, kk, ll, index
+    integer(i4)                               :: ii, jj, kk, ll, index_gauge
     integer(i4)                               :: iSc
     integer(i4)                               :: iRow, jCol
 
@@ -1360,7 +1376,7 @@ CONTAINS
     InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
     L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
-    index = nodata_i4
+    index_gauge = nodata_i4
 
     do kk = 1, nCells0
 
@@ -1379,35 +1395,20 @@ CONTAINS
 
        ! find cell at L11 corresponding to gauges in basin at L0 !>> L11Id_on_L0 is Id of
        ! the routing cell at level-11
-        if ( gaugeLoc0(ii,jj) .ne. nodata_i4 ) then 
+        if ( gaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! evaluation gauges
           do ll = 1, basin%nGauges(iBasin)
-             ! since indices are given  consecutive for gauge%Ids they have to be set to the
-             ! index of the gauge before since L0 data are the same
-             index = basin%gaugeIndexList(iBasin, ll) 
-!!$             if (iBasin .GT. 1) then
-!!$                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
-!!$                  index = basin%gaugeIndexList(iBasin-1, ll)
-!!$             end if
-             ! save ID on L11
-             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj) 
-!!$             if ( index .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             ! search for gaugeID in L0 grid and save ID on L11
+             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
 
-
-       if ( InflowGaugeLoc0(ii,jj) /= nodata_i4 ) then 
+       if ( InflowGaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! inflow gauges
           do ll = 1, basin%nInflowGauges(iBasin)
-!!$             ! since indices are given  consecutive for InflowGauge%Ids they have to be set to the
-!!$             ! index of the gauge before since L0 data are the same
-!!$             index = basin%InflowGaugeIndexList(iBasin, ll)
-!!$             ! save ID on L11
-!!$             if (iBasin .GT. 1) then
-!!$                if (L0_Basin(iBasin) .EQ. L0_Basin(iBasin-1)) &
-!!$                     index = basin%InflowGaugeIndexList(iBasin-1, ll)
-!!$             end if
-             if (index .EQ. InflowGaugeLoc0(ii,jj)) basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             ! search for gaugeID in L0 grid and save ID on L11
+             if ( basin%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
+                  basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
   
@@ -1416,7 +1417,6 @@ CONTAINS
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
-
     ! L0 data sets 
     call append( L0_draCell,     PACK ( draCell0(:,:),  mask0)  ) 
 
@@ -1492,7 +1492,8 @@ CONTAINS
          L0_streamNet,    & ! IN:    stream network
          L0_floodPlain,   & ! IN:    floodplains of stream i
          L11_length,      & ! IN:    total length [m] 
-         L11_aFloodPlain, & ! IN:    area of the flood plain [m2] 
+         L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
+     iFlag_cordinate_sys, & ! IN:    coordinate system
          L11_slope          ! INOUT: normalized average slope
     use mo_mhm_constants, only: nodata_i4, nodata_dp
 
@@ -1586,83 +1587,88 @@ CONTAINS
     nodata_i4_tmp(:,:)   = nodata_i4
     nodata_dp_tmp(:,:)   = nodata_dp
 
-    ! get L0 fields
-    iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
-    elev0(:,:) =       UNPACK( L0_elev (iStart0:iEnd0),  mask0, nodata_dp_tmp )
-    fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
-    areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+    ! for a single node model run
+    if(nNodes .GT. 1) then
+      ! get L0 fields
+      iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+      elev0(:,:) =       UNPACK( L0_elev (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+      fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+      areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
 
-    ! get network vectors of L11 
-    netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
-    nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
-    nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
-    nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
-    nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
+      ! get network vectors of L11 
+      netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
+      nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
+      nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
+      nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
+      nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
 
-    ! Flood plains:  stream network delineation
-    streamNet0(:,:)  = nodata_i4
-    floodPlain0(:,:) = nodata_i4
+      ! Flood plains:  stream network delineation
+      streamNet0(:,:)  = nodata_i4
+      floodPlain0(:,:) = nodata_i4
 
-    do rr = 1, nLinks
+      do rr = 1, nLinks
 
-       ii    = netPerm(rr)
-       frow = nLinkFromRow(ii)
-       fcol = nLinkFromCol(ii)
+         ii    = netPerm(rr)
+         frow = nLinkFromRow(ii)
+         fcol = nLinkFromCol(ii)
 
-       ! Init
-       streamNet0( frow, fcol) = ii
-       floodPlain0(frow, fcol) = ii
-       stack = 0
-       append_chunk = 0
-       ns    = 1
-       stack(ns,1) = frow
-       stack(ns,2) = fcol
+         ! Init
+         streamNet0( frow, fcol) = ii
+         floodPlain0(frow, fcol) = ii
+         stack = 0
+         append_chunk = 0
+         ns    = 1
+         stack(ns,1) = frow
+         stack(ns,2) = fcol
 
-       call cellLength(iBasin, fDir0(frow,fcol),  nLinkLength(ii) )
-       nLinkSlope(ii) = elev0(frow, fcol)
+         call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, iFlag_cordinate_sys, nLinkLength(ii) )
+         nLinkSlope(ii) = elev0(frow, fcol)
 
-       fId = iD0( frow, fcol )
-       tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
+         fId = iD0( frow, fcol )
+         tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
 
-       do while ( .NOT. (fId == tId))
+         do while ( .NOT. (fId == tId))
 
-          ! Search flood plain from point(frow,fcol) upwards, keep co-ordinates in STACK
-          do while (ns > 0)
-             if (ns + 8 .gt. size(stack,1)) then 
-                call append(stack,append_chunk)
-             end if
-             call moveUp( elev0, fDir0, frow, fcol, stack, ns )
-             stack(1,1) = 0
-             stack(1,2) = 0
-             stack = cshift(stack, SHIFT = 1, DIM = 1)
-             if (stack(1,1) > 0 .and. stack(1,2) > 0 ) floodPlain0( stack(1,1), stack(1,2) ) = ii
-             ns = count( stack > 0 ) / 2
-          end do
+            ! Search flood plain from point(frow,fcol) upwards, keep co-ordinates in STACK
+            do while (ns > 0)
+               if (ns + 8 .gt. size(stack,1)) then 
+                  call append(stack,append_chunk)
+               end if
+               call moveUp( elev0, fDir0, frow, fcol, stack, ns )
+               stack(1,1) = 0
+               stack(1,2) = 0
+               stack = cshift(stack, SHIFT = 1, DIM = 1)
+               if (stack(1,1) > 0 .and. stack(1,2) > 0 ) floodPlain0( stack(1,1), stack(1,2) ) = ii
+               ns = count( stack > 0 ) / 2
+            end do
 
-          ! move downstream
-          call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
-          streamNet0(frow, fcol)  = ii
-          floodPlain0(frow, fcol) = ii
-          fId = iD0(frow, fcol)
-          stack = 0
-          ns = 1
-          stack(ns,1) = frow
-          stack(ns,2) = fcol
-          call cellLength(iBasin, fDir0(fRow,fCol), length )
-          nLinkLength(ii) = nLinkLength(ii) + length
+            ! move downstream
+            call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
+            streamNet0(frow, fcol)  = ii
+            floodPlain0(frow, fcol) = ii
+            fId = iD0(frow, fcol)
+            stack = 0
+            ns = 1
+            stack(ns,1) = frow
+            stack(ns,2) = fcol
+            call cellLength(iBasin, fDir0(fRow,fCol), fRow, fCol, iFlag_cordinate_sys, length )
+            nLinkLength(ii) = nLinkLength(ii) + length
 
-       end do
+         end do
 
-       ! stream bed slope
-       nLinkSlope(ii) = ( nLinkSlope(ii) - elev0(frow, fcol) ) / nLinkLength(ii)
+         ! stream bed slope
+         nLinkSlope(ii) = ( nLinkSlope(ii) - elev0(frow, fcol) ) / nLinkLength(ii)
 
-       if ( nLinkSlope(ii) < 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
+         if ( nLinkSlope(ii) < 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
 
-       ! calculate area of floodplains (avoid overwriting)
-       nLinkAFloodPlain(ii) = sum ( areaCell0(:,:),  mask = ( floodPlain0(:,:) == ii ) )
-       !  old > real( count( floodPlain0(:,:,) == i), dp ) * areaCell0
+         ! calculate area of floodplains (avoid overwriting)
+         nLinkAFloodPlain(ii) = sum ( areaCell0(:,:),  mask = ( floodPlain0(:,:) == ii ) )
+         !  old > real( count( floodPlain0(:,:,) == i), dp ) * areaCell0
 
-    end do
+      end do
+
+      ! end of multi-node network design loop
+    end if
 
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
@@ -1751,6 +1757,7 @@ CONTAINS
        areaCell0, nLinkAFloodPlain,  & ! INTENT IN
        LCClassImp,                   & ! INTENT IN
        nLinkFracFPimp    )             ! INTENT OUT
+    use mo_mhm_constants, only: nodata_dp
     implicit none
 
     integer(i4),                intent(in)  :: nLinks
@@ -1759,17 +1766,23 @@ CONTAINS
     real(dp),    dimension(:),  intent(in)  :: areaCell0
     real(dp),    dimension(:),  intent(in)  :: nLinkAFloodPlain
     integer(i4),                intent(in)  :: LCClassImp         ! e.g. = 2 (old code)
-    real(dp),    dimension(:),  intent(out) :: nLinkFracFPimp  
+    real(dp), dimension(nLinks),intent(out) :: nLinkFracFPimp  
 
     ! local
     integer(i4) :: ii
 
-    do ii = 1, nLinks
-       nLinkFracFPimp(ii) =  sum ( areaCell0(:),  & 
-            mask = ( floodPlain0(:) == ii .and. LCover0(:) == LCClassImp ) ) &
-            /  nLinkAFloodPlain(ii)
-    end do
+    ! initalization
+    nLinkFracFPimp(1:nLinks) = nodata_dp
 
+    ! for a single node model run
+    if(nLinks .GT. 0) then
+      do ii = 1, nLinks
+         nLinkFracFPimp(ii) =  sum ( areaCell0(:),  & 
+                              mask = ( floodPlain0(:) == ii .and. LCover0(:) == LCClassImp ) ) &
+                              /  nLinkAFloodPlain(ii)
+       end do
+    end if
+     
   end subroutine L11_fraction_sealed_floodplain
 
   ! ------------------------------------------------------------------
@@ -2126,7 +2139,7 @@ CONTAINS
   ! ------------------------------------------------------------------
   !  CELL LENGTH
   ! ------------------------------------------------------------------
-  subroutine cellLength(iBasin, fDir, length)
+  subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
     use mo_constants,        only: SQRT2_dp
     use mo_global_variables, only: level0
@@ -2135,17 +2148,134 @@ CONTAINS
 
     integer(i4), intent(IN)  :: iBasin
     integer(i4), intent(IN)  :: fDir
+    integer(i4), intent(IN)  :: iRow
+    integer(i4), intent(IN)  :: jCol
+    integer(i4), intent(IN)  :: iCoorSystem
     real(dp),    intent(OUT) :: length
+    
+    ! local variables
+    integer(i4)              :: iRow_to, jCol_to
+    real(dp)                 :: lat_1, long_1, lat_2, long_2
+    
 
-    select case (fDir)
-    case(1, 4, 16, 64)       ! E, S, W, N
-       length = 1.0_dp
-    case(2, 8, 32, 128)      ! SE, SW, NW, NE
-       length = SQRT2_dp
-    end select
-
-    length = length * level0%cellsize(iBasin)
-
+    ! regular X-Y cordinate system
+    IF(iCoorSystem .EQ. 0) THEN
+    
+       select case (fDir)
+           case(1, 4, 16, 64)       ! E, S, W, N
+              length = 1.0_dp
+           case(2, 8, 32, 128)      ! SE, SW, NW, NE
+              length = SQRT2_dp
+        end select
+        length = length * level0%cellsize(iBasin)
+        
+    ! regular lat-lon cordinate system
+    ELSE IF(iCoorSystem .EQ. 1) THEN
+        iRow_to = iRow
+        jCol_to = jCol
+        
+        ! move in the direction of flow
+        call moveDownOneCell(fDir, iRow_to, jCol_to)
+        
+        ! estimate lat-lon points
+        lat_1  = level0%yllcorner(iBasin) + real( (level0%ncols(iBasin)-jCol),dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        long_1 = level0%xllcorner(iBasin) + real( (iRow-1)                   ,dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        
+        lat_2  = level0%yllcorner(iBasin) + real( (level0%ncols(iBasin)-jCol_to),dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        long_2 = level0%xllcorner(iBasin) + real( (iRow_to-1)                   ,dp)*level0%cellsize(iBasin) + &
+                                            0.5_dp*level0%cellsize(iBasin)
+        ! get distance between two points
+        call get_distance_two_lat_lon_points(lat_1, long_1, lat_2, long_2, length)
+        
+    END IF
+    !
   end subroutine cellLength
+
+
+  ! --------------------------------------------------------------------------
+
+  !     NAME
+  !         get_distance_two_lat_lon_points
+  !     PURPOSE
+  !>        \brief estimate distance in [m] between two points in a lat-lon
+  
+  !>        \details estimate distance in [m] between two points in a lat-lon
+  
+  !     INTENT(IN)
+  !>        \param[in] "real(dp)    :: lat1"    latitude  of point-1
+  !>        \param[in] "real(dp)    :: long1"   longitude of point-1
+  !>        \param[in] "real(dp)    :: lat2"    latitude  of point-2
+  !>        \param[in] "real(dp)    :: long2"   longitude of point-2
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp)    :: distance_out"    distance between two points [m]
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         call L11_variable_init(1)
+
+  !     LITERATURE
+  !      Code is based on one that is implemented in the VIC-3L model 
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date   May 2014
+
+  ! --------------------------------------------------------------------------
+  subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
+
+    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
+    implicit none
+
+    real(dp), intent(in)             :: lat1, long1, lat2, long2
+    real(dp), intent(out)            :: distance_out
+   
+    ! local variables
+    real(dp)                         :: theta1
+    real(dp)                         :: phi1
+    real(dp)                         :: theta2
+    real(dp)                         :: phi2
+    real(dp)                         :: dtor
+    real(dp)                         :: term1
+    real(dp)                         :: term2
+    real(dp)                         :: term3
+    real(dp)                         :: temp
+
+    dtor   = TWOPI_dp/360.0_dp
+    theta1 = dtor*long1
+    phi1   = dtor*lat1
+    theta2 = dtor*long2
+    phi2   = dtor*lat2
+      
+    term1  = cos(phi1)*cos(theta1)*cos(phi2)*cos(theta2)
+    term2  = cos(phi1)*sin(theta1)*cos(phi2)*sin(theta2)
+    term3  = sin(phi1)*sin(phi2)
+    temp   = term1+term2+term3
+    if(temp .GT. 1.0_dp) temp = 1.0_dp
+
+    distance_out = RADUIS_EARTH_dp*acos(temp);
+
+  end subroutine get_distance_two_lat_lon_points
+
 
 END MODULE mo_net_startup

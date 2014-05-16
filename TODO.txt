@@ -8,15 +8,12 @@
                      TASKS FOR NEXT RELEASE
 =================================================================================================
 
-substitute numerical recipes code
+substitute numerical recipes code  
 
 transfer mo_file to a namelist to allow for more flexible filenames
 
 chunk read-in of data 
 (Resp.: Stephan)
-
-lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
-(Resp.: Rohini)
 
 proper implementation of John's LAI model as a new process, i.e. Process #9 
 (Resp.: Jule, Matthias C.)
@@ -32,9 +29,6 @@ PET module
 add parameters to restart:
 -- HarSamCoeff
 -- PrieTay Coeff
-
-L0=L1 bug
-(Resp.: Martin, Rohini)
 
 Licence
 (Resp.: Diana, Luis)
@@ -54,6 +48,13 @@ Remove Numerical Recipes code
 -- mo_kind:    sparese array definitions
 -- mo_linfit:  linfit
 -- mo_moments: absdev, average, correlation, covariance, kurtosis, mean, moment, skewness, stddev, variance
+
+Remove "dummy" variables in namelists
+(Resp. Matthias C.)
+
+Initialization of variables in mo_netstartup
+(Resp. Luis)
+
 
 =================================================================================================
                       UNDER CONSTRUCTION
@@ -92,3 +93,9 @@ automatic make test
 
 Initialization in mo_net_startup.f90
 (Resp.: Luis)
+
+L0=L1 bug
+(Resp.: Rohini)
+
+lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
+(Resp.: Rohini)

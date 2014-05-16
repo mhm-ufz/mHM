@@ -14,7 +14,7 @@
 !>              \image html  mhm5-logo.png "Typical mHM cell"
 !>              \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
-!>  \copyright (c) 2012, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!>  \copyright (c)2005-2014, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
 !>             All rights reserved.
 !>
 !>             This code is a property of:
@@ -126,6 +126,12 @@
 !                Stephan Thober Nov 2013         added read in of latitude longitude fields
 !                Matthias Zink  Mar 2013         edited screen output for gauges
 !                                                added inflow gauges
+!               Rohini Kumar, Apr 2014         - implementation of the mHM run on a single cell
+!                                                configuration that too in the routing mode. 
+!                                              - run mHM at the input data level i.e. L0 grid
+!               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or 
+!                                                on a regular X-Y coordinate system
+!
 ! --------------------------------------------------------------------------
 
 PROGRAM mhm_driver 

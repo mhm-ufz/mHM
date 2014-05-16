@@ -103,6 +103,10 @@ MODULE mo_constants
   REAL(dp), PARAMETER :: sigma_dp     = 5.67e-08_dp                  ! Stefan-Boltzmann constant [W/m^2/K^4]
   !> Stefan-Boltzmann constant [W m^-2 K^-4] in single precision
   REAL(sp), PARAMETER :: sigma_sp     = 5.67e-08_sp
+  ! Earth radius [m] in single precision
+  REAL(sp), PARAMETER   :: RADUIS_EARTH_sp  = 6371228_sp           
+  ! Earth radius [m] in double precision 
+  REAL(dp), PARAMETER   :: RADUIS_EARTH_dp  = 6371228_dp           
 
   !> standard atmospehere
   !> Standard pressure [Pa] in double precision

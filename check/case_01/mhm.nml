@@ -98,6 +98,12 @@ dir_RestartIn(2)     = "restart/"
 !-----------------------------------------------------------------------------
 timestep = 1
 !-----------------------------------------------------------------------------
+!> input data & model run cordinate system 
+!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
+!> 1 -> regular lat & lon coordinate system
+!-----------------------------------------------------------------------------
+iFlag_cordinate_sys = 0
+!-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
 !> All gauging stations within those basins will be taken for the optimization.\n

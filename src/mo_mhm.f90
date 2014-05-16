@@ -108,6 +108,7 @@ CONTAINS
   !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
   !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
   !                                                             and its parameterization (Process 5)
+  !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -546,8 +547,8 @@ CONTAINS
         !           only in case when routing process is ON
         !-------------------------------------------------------------------
         if( processMatrix(8, 1) .NE. 0 ) then
-           CALL L11_fraction_sealed_floodplain( nNodes-1, LCover0, floodPlain0,       &
-                                                areaCell0, aFloodPlain11, 2, fFPimp11 )
+             CALL L11_fraction_sealed_floodplain( nNodes-1, LCover0, floodPlain0,       &
+                                                  areaCell0, aFloodPlain11, 2, fFPimp11 )
         end if
 
         !-------------------------------------------------------------------
@@ -673,13 +674,17 @@ CONTAINS
        call L11_runoff_acc( total_runoff, areaCell1, L11Id_on_L1, TS,                          & ! Intent IN
             nInflowGauges, InflowIndexList, InflowNodeList, QInflow,                           & ! Intent IN
             nNode_qOUT )                                                                         ! Intent OUT
-
-       ! routing of water within river reaches
-       call L11_routing( nNodes, nNodes-1, netPerm, nLink_fromN,                               & ! Intent IN
-            nLink_toN, nLink_C1, nLink_C2, nNode_qOUT,                                         & ! Intent IN
-            nNode_qTIN, nNode_qTR,                                                             & ! Intent INOUT
-            nNode_Qmod )                                                                         ! Intent OUT
-
+       ! for a single node model run
+       if( nNodes .GT. 1) then
+         ! routing of water within river reaches
+         call L11_routing( nNodes, nNodes-1, netPerm, nLink_fromN,                               & ! Intent IN
+              nLink_toN, nLink_C1, nLink_C2, nNode_qOUT,                                         & ! Intent IN
+              nNode_qTIN, nNode_qTR,                                                             & ! Intent INOUT
+              nNode_Qmod )                                                                         ! Intent OUT
+       else
+         nNode_Qmod(:) = nNode_qOUT(:) 
+       end if
+       !
     end if
     
   end subroutine mHM

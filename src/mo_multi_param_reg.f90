@@ -565,10 +565,13 @@ contains
     case(0)  ! routing is off
     case(1)
        iStart = proc_Mat(8,3) - proc_Mat(8,2) + 1
-       iEnd   = proc_Mat(8,3)       
-       call reg_rout( param( iStart : iEnd ), &
-            length(: size(length,1)-1), slope(: size(slope,1)-1), fFPimp(: size(fFPimp,1)-1), &
-            real(TS,dp), C1(: size(C1,1)-1), C2(: size(C2,1)-1) )
+       iEnd   = proc_Mat(8,3) 
+       ! for a single node model run
+       if( size(length,1) .GT. 1) then
+          call reg_rout( param( iStart : iEnd ), &
+              length(: size(length,1)-1), slope(: size(slope,1)-1), fFPimp(: size(fFPimp,1)-1), &
+              real(TS,dp), C1(: size(C1,1)-1), C2(: size(C2,1)-1) )
+       end if
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist! mo_multi_param_reg')
@@ -663,7 +666,7 @@ contains
 
     ! local variables
     integer(i4)                           :: ii            ! loop variable
-    integer(i4)                           :: gg            ! geo unit
+    integer(i4), dimension(1)             :: gg            ! geo unit
 
     if ( size(param) .ne. size( geoUnitList ) ) &
          stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
@@ -671,17 +674,18 @@ contains
     k2_0 = nodata
 
     ! MZMZ: remapping of geounits is wrong, rollback to revision 1428
-    ! !$OMP PARALLEL                         ! >>>> revision 1581
-    ! !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
-    ! do ii = 1, size(k2_0)
-    !    gg = geoUnit0(ii)
-    !    k2_0(ii) = param( gg )
-    ! end do
-    ! !$OMP END DO
-    ! !$OMP END PARALLEL                     ! >>>> revision 1581
-    do ii = 1, size(param)                    ! <<<< revision 1428
-       k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
-    end do                                   ! <<<< revision 1428
+    !$OMP PARALLEL                         ! >>>> revision 1581
+    !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
+    do ii = 1, size(k2_0)
+       ! get parameter index in geoUnitList
+       gg = minloc( abs( geoUnitList - geoUnit0(ii) ) )
+       k2_0(ii) = param( gg(1) )
+    end do
+    !$OMP END DO
+    !$OMP END PARALLEL                     ! >>>> revision 1581
+    ! do ii = 1, size(param)                    ! <<<< revision 1428
+    !    k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
+    ! end do                                   ! <<<< revision 1428
 
 
   end subroutine baseflow_param

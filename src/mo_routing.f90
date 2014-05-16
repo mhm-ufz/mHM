@@ -176,7 +176,7 @@ CONTAINS
        netNode_qTIN(iNode,IT) = netNode_qTIN(iNode,IT) + netNode_qOUT(iNode)
 
        ! routing iNode
-       netNode_qTR(iNode,IT) = netNode_qTR(iNode,IT1)                                &
+       netNode_qTR(iNode,IT) = netNode_qTR(iNode,IT1)                               &
             + netLink_C1(i) * ( netNode_qTIN(iNode,IT1) - netNode_qTR (iNode,IT1) ) &
             + netLink_C2(i) * ( netNode_qTIN(iNode,IT)  - netNode_qTIN(iNode,IT1) )
 
