@@ -251,10 +251,10 @@ end subroutine prepare_meteo_forcings_data
 
     ! upscaling & packing
     if(cellFactorHbyM .gt. 1.0_dp) then 
-        call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
+        call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
     ! downscaling   
     elseif(cellFactorHbyM .lt. 1.0_dp) then
-        call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
+        call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
     ! nothing
     else
       allocate( L1_data( size(L2_data,1), size(L2_data,2), size(L2_data,3) ) )
@@ -270,7 +270,7 @@ end subroutine prepare_meteo_forcings_data
     
     ! append
     call append( dataOut1, L1_data_packed(:,:) )
-    
+
     !free space
     deallocate(L1_data, L2_data, L1_data_packed) 
     
