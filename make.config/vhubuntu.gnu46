@@ -41,7 +41,7 @@ ifeq ($(release),debug)
 
     F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
     FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
 else
     F90FLAGS += -O3
     FCFLAGS  += -ffixed-form -O3

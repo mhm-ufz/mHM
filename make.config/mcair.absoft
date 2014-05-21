@@ -47,7 +47,7 @@ ifeq ($(release),debug)
     # Vectorisation: -YLOOP_ANALYZER -LNO:simd_verbose=on -LNO:simd=2 (1: default; 2: aggressive)
     F90FLAGS += -g -en -Ra -Rb -Rc -Rn -Rp -Rs -YNDFP=1 -O0 -z0
     #F90FLAGS += -g -en     -Rb -Rc     -Rp -Rs -YNDFP=1 -O0 -z0
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
     #CFLAGS   += -Wall -W -O -g
 else
     F90FLAGS += -O3
