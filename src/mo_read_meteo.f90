@@ -363,9 +363,9 @@ CONTAINS
     if ((ncJulSta .LE. periode%julStart) .AND. (ncJulEnd .GE. periode%julEnd)) then
 
        call Get_NcVar(trim(fName), trim(varName), data, &
-            start = (/ 1_i4,1_i4, periode%julStart-ncJulSta+1 /), &
-            count = (/ dimen(1),dimen(2), size(data,3) /) )
-       
+            start = (/ 1_i4, 1_i4, periode%julStart-ncJulSta+1 /), &
+            a_count = (/ dimen(1), dimen(2), size(data,3) /) )
+
     else
        call message('***ERROR: read_meteo_nc: time period of input data: ', trim(varName), &
                     '          is not matching modelling period.')
