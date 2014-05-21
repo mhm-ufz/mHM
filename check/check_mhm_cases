@@ -92,8 +92,9 @@ set -e
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
-# Modified Feb 2014 Matthias Cuntz - lots of small changes
+# Modified Feb 2014 Matthias Cuntz                 - lots of small changes
 #          Mar 2014 Stephan Thober, Matthias Cuntz - added OpenMP test
+#          May 2014 Matthias Cuntz                 - specify compiler during clean
 
 # -------------------------------------------------------------------------------------------
 #
@@ -177,7 +178,8 @@ function cleanup ()
 
     # make cleanclean
     cd ..
-    make system=${system} PROGNAME=${mhm_exe} cleanclean > /dev/null
+    if [[ "z${compiler}" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
+    make system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean > /dev/null
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
