@@ -2,21 +2,40 @@
 
 !> \brief  Fitting a straight line.
 
-!> \details This module contains the numerical recipes routine linfit to fit a straight line.
+!> \details This module provides a to fit straight line with model I or model II regression.
 
 !> \authors Matthias Cuntz
-!> \date Aug 2013
+!> \date Mar 2011
 
 MODULE mo_linfit
 
-  ! This module provides the numerical recipes routine to fit a straight line and 
-  !  is part of the UFZ CHS mesoscale hydrologic model mHM.
+  ! This module provides a to fit straight line with model I or model II regression.
+  ! Written  Matthias Cuntz, Mar 2011
+
+  ! License
+  ! -------
+  ! This file is part of the UFZ Fortran library.
+
+  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU Lesser General Public License as published by
+  ! the Free Software Foundation, either version 3 of the License, or
+  ! (at your option) any later version.
+
+  ! The UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  ! GNU Lesser General Public License for more details.
+
+  ! You should have received a copy of the GNU Lesser General Public License
+  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+
+  ! Copyright 2011 Matthias Cuntz
 
   USE mo_kind, ONLY: sp, dp
 
   Implicit NONE
 
-  PUBLIC :: linfit                        ! Fitting straight line (without error bars on input), Model I or Model II
+  PUBLIC :: linfit ! Fitting straight line (without error bars on input), Model I or Model II
 
   ! ------------------------------------------------------------------
 
@@ -70,6 +89,7 @@ MODULE mo_linfit
   !         ytmp = linfit(x,y, a=inter, b=slope, model2=.true.)
 
   !     LITERATURE
+  !     Model I follows closely
   !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
   !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
   !             Cambridge University Press, UK, 1996
@@ -78,7 +98,7 @@ MODULE mo_linfit
   !             in biological research, Freeman & Co., ISBN 0-7167-2411-1
 
   !     HISTORY
-  !         Written March 2011, Matthias Cuntz - copied and adapted numerical recipes subroutines
+  !         Written Matthias Cuntz, March 2011 - following closely the routine fit of Numerical Recipes
   !                                            - linfit Model II: geometric mean regression
   !         Modified Matthias Cuntz, Nov 2011  - sp, dp
   !                                            - documentation

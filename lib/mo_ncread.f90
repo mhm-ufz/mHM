@@ -19,7 +19,7 @@ module mo_NcRead
   ! You should have received a copy of the GNU Lesser General Public License
   ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
 
-  ! Copyright 2011-2012 Stephan Thober, Matthias Cuntz
+  ! Copyright 2011-2014 Stephan Thober, Matthias Cuntz
 
   use mo_kind, only: i4, i8, sp, dp
 
@@ -45,13 +45,13 @@ module mo_NcRead
   !    NAME
   !        Get_NcVar
 
-  !    PURPOSE
+  !    PURPOSE 
   !        Reads a 2 - 5 dimensional array from a nc file given
-  !        the variable name EXACTLY as specified in the file.
-  !        When calling, the array has to be allocated correctly!
-  !        If the dimension of the actual data is less than the ones
-  !        of the array, then the dimension lengths of the array will
-  !        be filled with ones.
+  !        the variable name EXACTLY as specified in the file.  If the
+  !        array is not allocated when calling, Get_NcVar will
+  !        allocate it internally. If the dimension of the actual data
+  !        is less than the ones of the array, then the dimension
+  !        lengths of the array will be filled with ones.
 
   !    CALLING SEQUENCE
   !        call Get_NcVar(Filename, VarName, Dat, start=jdate, count=Nvalues, fid=fid)
@@ -63,7 +63,7 @@ module mo_NcRead
   !        character(len=*) :: VarName - Name of the Variable in the nc file
 
   !    INTENT(INOUT)
-  !        real(sp/dp), dimension(:,:[,:[,:[,:]]]) :: array - array where data will be read
+  !        real(sp/dp), dimension(:,:[,:[,:[,:]]]), allocatable :: array - array where data will be read
 
   !    INTENT(IN), OPTIONAL
   !        integer(i4), dimension(:) :: jdate ! starting indeces of first value to read
@@ -94,6 +94,7 @@ module mo_NcRead
   !        Modified, Stephan Thober, May 2012 - fid
   !        Modified, Stephan Thober, Nov 2012 - write out Varname, when vartype is incorrect
   !        Modified, Stephan Thober, Feb 2013 - added 1 byte integer version
+  !        Modified, Stephan Thober, Mar 2014 - added subroutines for allocatable arrays
 
   interface Get_NcVar
      module procedure Get_NcVar_0d_sp, Get_NcVar_0d_dp, Get_NcVar_1d_sp, &
@@ -470,7 +471,7 @@ contains
     !
   end subroutine Get_NcVar_0d_dp
 
-  subroutine Get_NcVar_1d_sp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_1d_sp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
@@ -479,9 +480,9 @@ contains
     !
     character(len=*),                        intent(in)    :: Filename
     character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(sp),    dimension(:),               intent(inout) :: Dat    ! array where values should be stored
+    real(sp),    dimension(:), allocatable,  intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -494,7 +495,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -503,10 +515,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -537,7 +549,7 @@ contains
   end subroutine Get_NcVar_1d_sp
 
 
-  subroutine Get_NcVar_1d_dp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_1d_dp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
@@ -546,22 +558,33 @@ contains
     !
     character(len=*),                        intent(in)    :: Filename
     character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(dp),    dimension(:),               intent(inout) :: Dat    ! array where values should be stored
+    real(dp),    dimension(:), allocatable,  intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -570,10 +593,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -604,18 +627,19 @@ contains
   end subroutine Get_NcVar_1d_dp
 
 
-  subroutine Get_NcVar_2d_sp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_2d_sp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 2
     integer, parameter :: itype = 5 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(sp),    dimension(:,:),             intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                         intent(in)    :: Filename
+    character(len=*),                         intent(in)    :: VarName ! Variable name
+    !real(sp),    dimension(:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
+    real(sp),    dimension(:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5)     :: Rstart
@@ -628,7 +652,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -637,10 +672,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -671,31 +706,42 @@ contains
   end subroutine Get_NcVar_2d_sp
 
 
-  subroutine Get_NcVar_2d_dp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_2d_dp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 2
     integer, parameter :: itype = 6 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(dp),    dimension(:,:),             intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                         intent(in)    :: Filename
+    character(len=*),                         intent(in)    :: VarName ! Variable name
+    real(dp),    dimension(:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -704,10 +750,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -738,18 +784,18 @@ contains
   end subroutine Get_NcVar_2d_dp
 
 
-  subroutine Get_NcVar_3d_sp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_3d_sp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 3
     integer, parameter :: itype = 5 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(sp),    dimension(:,:,:),           intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                           intent(in)    :: Filename
+    character(len=*),                           intent(in)    :: VarName ! Variable name
+    real(sp),    dimension(:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -758,11 +804,23 @@ contains
     integer(i4)                   :: varid   ! id of variable to be read
     integer(i4)                   :: vartype ! type of variable
     integer(i4)                   :: i
+
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -771,14 +829,15 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
     end if
+    
     !
     ! Open NetCDF filename
     if (present(fid)) then
@@ -805,18 +864,18 @@ contains
   end subroutine Get_NcVar_3d_sp
 
 
-  subroutine Get_NcVar_3d_dp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_3d_dp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 3
     integer, parameter :: itype = 6 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(dp),    dimension(:,:,:),           intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                           intent(in)    :: Filename
+    character(len=*),                           intent(in)    :: VarName ! Variable name
+    real(dp),    dimension(:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -829,7 +888,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -838,10 +908,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -872,31 +942,42 @@ contains
   end subroutine Get_NcVar_3d_dp
 
 
-  subroutine Get_NcVar_4d_sp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_4d_sp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 4
     integer, parameter :: itype = 5 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(sp),    dimension(:,:,:,:),         intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                             intent(in)    :: Filename
+    character(len=*),                             intent(in)    :: VarName ! Variable name
+    real(sp),    dimension(:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -905,10 +986,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -939,18 +1020,18 @@ contains
   end subroutine Get_NcVar_4d_sp
 
 
-  subroutine Get_NcVar_4d_dp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_4d_dp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 4
     integer, parameter :: itype = 6 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(dp),    dimension(:,:,:,:),         intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                             intent(in)    :: Filename
+    character(len=*),                             intent(in)    :: VarName ! Variable name
+    real(dp),    dimension(:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -963,7 +1044,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -972,10 +1064,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -1006,18 +1098,18 @@ contains
   end subroutine Get_NcVar_4d_dp
 
 
-  subroutine Get_NcVar_5d_sp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_5d_sp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 5
     integer, parameter :: itype = 5 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(sp),    dimension(:,:,:,:,:),       intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                               intent(in)    :: Filename
+    character(len=*),                               intent(in)    :: VarName ! Variable name
+    real(sp),    dimension(:,:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1030,7 +1122,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4), Rcount(5) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1039,10 +1142,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -1073,18 +1176,18 @@ contains
   end subroutine Get_NcVar_5d_sp
 
 
-  subroutine Get_NcVar_5d_dp(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_5d_dp(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 5
     integer, parameter :: itype = 6 ! 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    real(dp),    dimension(:,:,:,:,:),       intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                               intent(in)    :: Filename
+    character(len=*),                               intent(in)    :: VarName ! Variable name
+    real(dp),    dimension(:,:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1097,7 +1200,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4), Rcount(5) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1106,10 +1220,10 @@ contains
        Rstart(1:size(start)) = start
     end if
     !
-    if (present(count)) then
-       if (size(count) < size(shape(dat))) stop 'ERROR*** count has less values than data has dimensions. GetNcVar'
-       if (size(count) > 5) stop 'ERROR*** count has dimension greater than 5. GetNcVar'
-       Rcount(1:size(count)) = count
+    if (present(a_count)) then
+       if (size(a_count) < size(shape(dat))) stop 'ERROR*** a_count has less values than data has dimensions. GetNcVar'
+       if (size(a_count) > 5) stop 'ERROR*** a_count has dimension greater than 5. GetNcVar'
+       Rcount(1:size(a_count)) = a_count
        do i=1, idims
           if (size(Dat,i) < Rcount(i)) stop 'ERROR*** try to read more data in dimension than there is. Get_NcVar'
        end do
@@ -1180,7 +1294,7 @@ contains
   end subroutine Get_NcVar_0d_i4
 
 
-  subroutine Get_NcVar_1d_i4(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_1d_i4(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
@@ -1189,9 +1303,9 @@ contains
     !
     character(len=*),                        intent(in)    :: Filename
     character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(i4), dimension(:),               intent(inout) :: Dat    ! array where values should be stored
+    integer(i4), dimension(:), allocatable,  intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1204,7 +1318,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1212,9 +1337,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1245,18 +1370,18 @@ contains
   end subroutine Get_NcVar_1d_i4
 
 
-  subroutine Get_NcVar_2d_i4(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_2d_i4(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 2
     integer, parameter :: itype = 4 ! 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(i4), dimension(:,:),             intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                         intent(in)    :: Filename
+    character(len=*),                         intent(in)    :: VarName ! Variable name
+    integer(i4), dimension(:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1269,7 +1394,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1277,9 +1413,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1310,18 +1446,18 @@ contains
   end subroutine Get_NcVar_2d_i4
 
 
-  subroutine Get_NcVar_3d_i4(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_3d_i4(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 3
     integer, parameter :: itype = 4 ! 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(i4), dimension(:,:,:),           intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                           intent(in)    :: Filename
+    character(len=*),                           intent(in)    :: VarName ! Variable name
+    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1334,7 +1470,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1342,9 +1489,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1375,18 +1522,18 @@ contains
   end subroutine Get_NcVar_3d_i4
 
 
-  subroutine Get_NcVar_4d_i4(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_4d_i4(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 4
     integer, parameter :: itype = 4 ! 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(i4), dimension(:,:,:,:),         intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                             intent(in)    :: Filename
+    character(len=*),                             intent(in)    :: VarName ! Variable name
+    integer(i4), dimension(:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1399,7 +1546,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1407,9 +1565,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1440,31 +1598,42 @@ contains
   end subroutine Get_NcVar_4d_i4
 
 
-  subroutine Get_NcVar_5d_i4(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_5d_i4(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 5
     integer, parameter :: itype = 4 ! 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(i4), dimension(:,:,:,:,:),       intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                               intent(in)    :: Filename
+    character(len=*),                               intent(in)    :: VarName ! Variable name
+    integer(i4), dimension(:,:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4), Rcount(5) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1472,9 +1641,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1544,7 +1713,7 @@ contains
   end subroutine Get_NcVar_0d_i1
 
 
-  subroutine Get_NcVar_1d_i1(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_1d_i1(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
@@ -1553,9 +1722,9 @@ contains
     !
     character(len=*),                        intent(in)    :: Filename
     character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(1),  dimension(:),               intent(inout) :: Dat    ! array where values should be stored
+    integer(1),  dimension(:), allocatable,  intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
@@ -1568,7 +1737,18 @@ contains
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1576,9 +1756,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1609,31 +1789,42 @@ contains
   end subroutine Get_NcVar_1d_i1
 
 
-  subroutine Get_NcVar_2d_i1(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_2d_i1(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 2
     integer, parameter :: itype = 1 ! 1 = 1 byte, 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(1),  dimension(:,:),             intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                         intent(in)    :: Filename
+    character(len=*),                         intent(in)    :: VarName ! Variable name
+    integer(1),  dimension(:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1641,9 +1832,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1674,31 +1865,42 @@ contains
   end subroutine Get_NcVar_2d_i1
 
 
-  subroutine Get_NcVar_3d_i1(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_3d_i1(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 3
     integer, parameter :: itype = 1 ! 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(1),  dimension(:,:,:),           intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                           intent(in)    :: Filename
+    character(len=*),                           intent(in)    :: VarName ! Variable name
+    integer(1),  dimension(:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1706,9 +1908,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1739,31 +1941,42 @@ contains
   end subroutine Get_NcVar_3d_i1
 
 
-  subroutine Get_NcVar_4d_i1(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_4d_i1(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 4
     integer, parameter :: itype = 1 ! 1 = 1 byte, 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(1),  dimension(:,:,:,:),         intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                             intent(in)    :: Filename
+    character(len=*),                             intent(in)    :: VarName ! Variable name
+    integer(1),  dimension(:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1771,9 +1984,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do
@@ -1804,31 +2017,42 @@ contains
   end subroutine Get_NcVar_4d_i1
 
 
-  subroutine Get_NcVar_5d_i1(Filename, VarName, Dat, start, count, fid)
+  subroutine Get_NcVar_5d_i1(Filename, VarName, Dat, start, a_count, fid)
     !
     implicit none
     !
     integer, parameter :: idims = 5
     integer, parameter :: itype = 1 ! 1 = 1 byte, 3 = single, 5 = float, 6 = double
     !
-    character(len=*),                        intent(in)    :: Filename
-    character(len=*),                        intent(in)    :: VarName ! Variable name
-    integer(1),  dimension(:,:,:,:,:),       intent(inout) :: Dat    ! array where values should be stored
+    character(len=*),                               intent(in)    :: Filename
+    character(len=*),                               intent(in)    :: VarName ! Variable name
+    integer(1),  dimension(:,:,:,:,:), allocatable, intent(inout) :: Dat    ! array where values should be stored
     integer(i4), dimension(:), optional, intent(in)    :: start
-    integer(i4), dimension(:), optional, intent(in)    :: count
+    integer(i4), dimension(:), optional, intent(in)    :: a_count
     integer(i4),               optional, intent(in)    :: fid
     !
     integer(i4), dimension(5) :: Rstart
     integer(i4), dimension(5) :: Rcount
-    integer(i4)                   :: ncid    ! id of input stream
-    integer(i4)                   :: varid   ! id of variable to be read
-    integer(i4)                   :: vartype ! type of variable
-    integer(i4)                   :: i
+    integer(i4)               :: ncid    ! id of input stream
+    integer(i4)               :: varid   ! id of variable to be read
+    integer(i4)               :: vartype ! type of variable
+    integer(i4)               :: i
     !
     ! Defaults for Options Start and Count
     Rstart = 1
     Rcount = 1
-    Rcount(1:idims) = shape(Dat)
+    !
+    ! allocate Dat
+    if ( .not. allocated( Dat ) ) then
+       if ( .not. present( a_count ) ) then
+          Rcount = Get_NcDim( Filename, Varname )
+       else
+          Rcount(1:idims) = a_count(1:idims)
+       end if
+       allocate( Dat( Rcount(1), Rcount(2), Rcount(3), Rcount(4), Rcount(5) ) )
+    else
+       Rcount(1:idims) = shape(Dat)
+    end if
     !
     ! Assign options Start and Count if present
     if (present(start)) then
@@ -1836,9 +2060,9 @@ contains
        Rstart = start
     end if
     !
-    if (present(count)) then
-       if (size(count) /= idims) stop 'ERROR*** size of count does not equal dimensions of data. GetNcVar'
-       Rcount = count
+    if (present(a_count)) then
+       if (size(a_count) /= idims) stop 'ERROR*** size of a_count does not equal dimensions of data. GetNcVar'
+       Rcount = a_count
        do i=1, idims
           if (size(Dat,i) /= Rcount(i)) stop 'ERROR*** size mismatch. Get_NcVar'
        end do

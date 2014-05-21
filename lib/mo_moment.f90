@@ -37,37 +37,6 @@ MODULE mo_moment
 
   ! Copyright 2011-2012 Matthias Cuntz
 
-
-  ! Note on Numerical Recipes License
-  ! ---------------------------------
-  ! Be aware that some code is under the Numerical Recipes License 3rd
-  ! edition <http://www.nr.com/aboutNR3license.html>
-
-  ! The Numerical Recipes Personal Single-User License lets you personally
-  ! use Numerical Recipes code ("the code") on any number of computers,
-  ! but only one computer at a time. You are not permitted to allow anyone
-  ! else to access or use the code. You may, under this license, transfer
-  ! precompiled, executable applications incorporating the code to other,
-  ! unlicensed, persons, providing that (i) the application is
-  ! noncommercial (i.e., does not involve the selling or licensing of the
-  ! application for a fee), and (ii) the application was first developed,
-  ! compiled, and successfully run by you, and (iii) the code is bound
-  ! into the application in such a manner that it cannot be accessed as
-  ! individual routines and cannot practicably be unbound and used in
-  ! other programs. That is, under this license, your application user
-  ! must not be able to use Numerical Recipes code as part of a program
-  ! library or "mix and match" workbench.
-
-  ! Businesses and organizations that purchase the disk or code download,
-  ! and that thus acquire one or more Numerical Recipes Personal
-  ! Single-User Licenses, may permanently assign those licenses, in the
-  ! number acquired, to individual employees. Such an assignment must be
-  ! made before the code is first used and, once made, it is irrevocable
-  ! and can not be transferred.
-
-  ! If you do not hold a Numerical Recipes License, this code is only for
-  ! informational and educational purposes but cannot be used.
-
   USE mo_kind, ONLY: i4, sp, dp
 
   IMPLICIT NONE
