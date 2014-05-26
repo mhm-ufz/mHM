@@ -77,18 +77,49 @@ set -e
 #    case 0 :: DEFAULT
 
 #    case 1 :: RESTART READING AND WRITING
-#       restart_flag_states_read   = .TRUE.      (default: .FALSE.)
-#       restart_flag_states_write  = .TRUE.      (default: .TRUE. )
-#       restart_flag_config_read   = .TRUE.      (default: .FALSE.)
-#       restart_flag_config_write  = .TRUE.      (default: .TRUE. )
+#       restart_flag_states_read   = .TRUE.          (default: .FALSE.)
+#       restart_flag_states_write  = .TRUE.          (default: .TRUE. )
+#       restart_flag_config_read   = .TRUE.          (default: .FALSE.)
+#       restart_flag_config_write  = .TRUE.          (default: .TRUE. )
 
 #    case 2 :: ROUTING DEACTIVATED
-#       processCase(8) = 0                       (default: 1)
+#       processCase(8) = 0                           (default: 1)
 
 #    case 3 :: OPTIMIZATION ACTIVATED
-#       optimize       = .TRUE.                  (default: .FALSE.)
-#       opti_method    = 1                       (default: 3      )
-#       nIterations    = 6                       (default: 400    )
+#       optimize       = .TRUE.                      (default: .FALSE.)
+#       opti_method    = 1                           (default: 3      )
+#       nIterations    = 6                           (default: 400    )
+
+#    case 4 :: MULTISCALE  
+#       nBasins                    = 4		     (default: nBasins                 = 2)
+#       resolution_Hydrology(3)    = 12000 	     (default: )
+#       resolution_Hydrology(4)    = 12000	     (default: )
+#       resolution_Routing(1)      = 48000 	     (default: resolution_Routing(1)   = 24000)
+#       resolution_Routing(2)      = 24000	     (default: resolution_Routing(2)   = 24000)
+#       resolution_Routing(3)      = 48000	     (default: )
+#       resolution_Routing(4)      = 24000	     (default: )
+#       L0Basin(3)                 = 1		     (default: )
+#       L0Basin(4)                 = 1		     (default: )
+#       nGaugesTotal               = 4		     (default: nGaugesTotal            = 2)
+#       NoGauges_basin(3)          = 1 		     (default: )
+#       Gauge_id(3,1)              = 398 	     (default: )
+#       Gauge_filename(3,1)        = "00398.txt"     (default: )
+#       NoGauges_basin(4)          = 1		     (default: )
+#       Gauge_id(4,1)              = 398 	     (default: )
+#       Gauge_filename(4,1)        = "00398.txt"     (default: )
+#       + adjust basin wise directory paths according to the multiscale setup:
+#       dir_Out(1)          	   = "output_b1/b1_" (default: "output_b1/")
+#       dir_RestartOut(1)          = "output_b1/b1_" (default: "output_b1/")
+#       dir_Out(2)                 = "output_b1/b2_" (default: "output_b1/")
+#       dir_RestartOut(2)          = "output_b1/b2_" (default: "output_b1/")
+#       dir_LatLon(3)              = "../../test_basin/input/latlon/latlon_2.nc" (default: )
+#       dir_Out(3)                 = "output_b1/b3_" (default: )
+#       dir_RestartOut(3)          = "output_b1/b3_" (default: )
+#       dir_LatLon(4)              = "../../test_basin/input/latlon/latlon_2.nc" (default: )
+#       dir_Out(4)                 = "output_b1/b4_" (default: )
+#       dir_RestartOut(4)          = "output_b1/b4_" (default: )
+
+#    case 5 :: INFLOW GAUGE
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
