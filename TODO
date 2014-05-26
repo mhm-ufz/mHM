@@ -8,36 +8,8 @@
                      TASKS FOR NEXT RELEASE
 =================================================================================================
 
-substitute numerical recipes code  
-
-transfer mo_file to a namelist to allow for more flexible filenames
-
-chunk read-in of data 
-(Resp.: Stephan)
-
-proper implementation of John's LAI model as a new process, i.e. Process #9 
-(Resp.: Jule, Matthias C.)
--- case 1 :: lai read from file as monthly values
--- case 2 :: lai calculated on weekly basis 
-
-PET module
-(Resp.: Matthias Z.)
--- case 0 :: PET input file
--- case 1 :: Hargreaves-Samani
--- case 2 :: Priestley-Taylor
--- case 3 :: Penman-Monteith
-
-Licence
-(Resp.: Diana, Luis)
-
-L11 - outlet plot 
--- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
-   The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
-
-Inflow gauge:
--- revise check cases
-
-Remove Numerical Recipes code 
+Substitute numerical recipes code
+(Resp.: Matthias Cuntz)
 -- mo_sce:     sort_matrix
 -- mo_sort:    sort, sort_index, arth, icomp_xchg, swap
 -- mo_constants
@@ -46,11 +18,20 @@ Remove Numerical Recipes code
 -- mo_linfit:  linfit
 -- mo_moments: absdev, average, correlation, covariance, kurtosis, mean, moment, skewness, stddev, variance
 
-Remove "dummy" variables in namelists
-(Resp. Matthias C.)
+Chunk read-in of data 
+(Resp.: Stephan)
 
-Initialization of variables in mo_netstartup
-(Resp. Luis)
+LICENSE + README + RELEASES file
+(Resp.: Diana, Luis, Jule)
+
+L11 - outlet plot 
+(Resp.: Luis, Rohini)
+-- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
+   The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
+
+Inflow gauge
+(Resp.: Diana)
+-- add check cases
 
 
 =================================================================================================
@@ -65,6 +46,10 @@ mo_multi_param_reg
 =================================================================================================
                       SOLVED
 =================================================================================================
+
+Multi-scale case
+(Resp.: Diana)
+-- add check cases
 
 OpenMP and further speed-up (did not use analysis tool of Matthias C though) 
 (Resp.: Olda, Stephan)
@@ -96,3 +81,30 @@ L0=L1 bug
 
 lat-lon version of mHM, i.e. enable mhm to handle grid cells with variable area 
 (Resp.: Rohini)
+
+Remove "dummy" variables in namelists
+(Resp. Matthias C.)
+
+Initialization of variables in mo_netstartup
+(Resp. Luis)
+
+=================================================================================================
+                      NEXT RELEASE
+=================================================================================================
+
+Proper implementation of John's LAI model as a new process, i.e. Process #9 
+(Resp.: Jule, Matthias C.)
+(Postponed to next release)
+-- case 1 :: lai read from file as monthly values
+-- case 2 :: lai calculated on weekly basis 
+
+PET module
+(Resp.: Matthias Z.)
+(Postponed to next release)
+-- case 0 :: PET input file
+-- case 1 :: Hargreaves-Samani
+-- case 2 :: Priestley-Taylor
+-- case 3 :: Penman-Monteith
+
+Transfer mo_file to a namelist to allow for more flexible filenames
+(Postponed to next release)
