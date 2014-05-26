@@ -21,8 +21,8 @@ Substitute numerical recipes code
 Chunk read-in of data 
 (Resp.: Stephan)
 
-LICENSE + README + RELEASES file
-(Resp.: Diana, Luis, Jule)
+LICENSE file
+(Resp.: Diana, Luis)
 
 L11 - outlet plot 
 (Resp.: Luis, Rohini)
@@ -87,6 +87,9 @@ Remove "dummy" variables in namelists
 
 Initialization of variables in mo_netstartup
 (Resp. Luis)
+
+README + RELEASES file
+(Resp.: Jule)
 
 =================================================================================================
                       NEXT RELEASE
