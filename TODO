@@ -21,9 +21,6 @@ Substitute numerical recipes code
 Chunk read-in of data 
 (Resp.: Stephan)
 
-LICENSE file
-(Resp.: Diana, Luis)
-
 L11 - outlet plot 
 (Resp.: Luis, Rohini)
 -- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
@@ -90,6 +87,9 @@ Initialization of variables in mo_netstartup
 
 README + RELEASES file
 (Resp.: Jule)
+
+LICENSE file
+(Resp.: Diana, Luis)
 
 =================================================================================================
                       NEXT RELEASE
