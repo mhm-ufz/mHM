@@ -396,7 +396,9 @@ CONTAINS
     logical                                          :: ipopul_file_append
     integer(i4)                                      :: nonan         ! # of non-NaN in history_tmp
     real(dp), dimension(:), allocatable              :: htmp          ! tmp storage for history_tmp
+#ifdef GFORTRAN
     real(dp)                                         :: NaN           ! NaN value
+#endif
 
     if (present(parallel)) then
        parall = parallel

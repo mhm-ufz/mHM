@@ -154,6 +154,7 @@ CONTAINS
     call variables_alloc(iBasin)
 
   end subroutine initialise
+
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -264,7 +265,6 @@ CONTAINS
   !                                             and changed within the code made accordingly
   !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
   !                & Stephan Thober,           to process_matrix flag
-  ! ------------------------------------------------------------------
 
   subroutine L0_check_input(iBasin)
 
@@ -426,9 +426,11 @@ CONTAINS
   !         \author  Rohini Kumar
   !         \date    Jan 2013
   !         Modified
-  !         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or
-  !                                     on a regular X-Y coordinate system
-  !
+  !         Rohini Kumar & Matthias Cuntz, May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                                   on a regular X-Y coordinate system
+  !         Matthias Cuntz,                May 2014 - changed empirical distribution function
+  !                                                   so that doubles get the same value
+
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
     use mo_global_variables, only: level0, L0_areaCell,    &
@@ -438,10 +440,8 @@ CONTAINS
                                    L0_soilId, nSoilTypes,  &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
-    ! use mo_orderpack,     only: sort_index
     use mo_orderpack,     only: unirnk
-    use mo_utils,         only: locate
-    use mo_sort,          only: sort_index
+    use mo_utils,         only: le, eq
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
 
     implicit none
@@ -466,6 +466,8 @@ CONTAINS
 
     integer(i4)                               :: i, j, k
     real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
+    logical, dimension(:), allocatable        :: smask
+    real(dp)                                  :: emp
 
     !--------------------------------------------------------
     ! STEPS::
@@ -527,31 +529,15 @@ CONTAINS
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
-    allocate( slope_val(nCells), slope_sorted_index(nCells), slope_emp(nCells) )
-    slope_val(:)          = L0_slope(iStart:iEnd)
+    allocate( slope_val(nCells), slope_sorted_index(nCells), slope_emp(nCells), smask(nCells) )
+    slope_val(:) = L0_slope(iStart:iEnd)
 
-    ! call unirnk(slope_val, slope_sorted_index, nuni)
-    ! slope_sorted_index(:) = locate(slope_val(slope_sorted_index(1:nuni)), slope_val)
-    ! slope_emp(:) = slope_sorted_index(:) / real(nuni,dp)
-
-    ! open(unit=336, file="unirnk.txt", status="replace")
-    ! write(336,*) slope_emp
-    ! close(336)
-
-    slope_sorted_index(:) = sort_index( slope_val(:) )
-
-    do i = nCells, 1, -1
-      slope_val(i) = real(i, dp)
+    ! empirical distribution of slopes = cumulated number points with slopes that are <= the slope at this point
+    call unirnk(slope_val, slope_sorted_index, nuni) ! unique values = slope_val(slope_sorted_index(1:nuni))
+    do i=1, nuni
+       emp = count(le(slope_val(:), slope_val(slope_sorted_index(i)))) / real(nCells+1,dp) ! # <= unique value
+       where (eq(slope_val(:), slope_val(slope_sorted_index(i)))) slope_emp(:) = emp       ! assign to == unique value
     end do
-
-    do i = 1, nCells
-      j            = slope_sorted_index(i)
-      slope_emp(j) = slope_val(i) / real((nCells+1), dp)
-    end do
-
-    ! open(unit=337, file="slope_emp.txt", status="replace")
-    ! write(337,*) slope_emp
-    ! close(337)
 
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
