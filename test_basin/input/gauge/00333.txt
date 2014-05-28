@@ -1,5 +1,5 @@
-     6335100 KAUB-RHINE RIVER(daily discharge)
-nodata   -999.
+00333 Gauge 2 (daily discharge)
+nodata   -9999
 n       1       measurements per day [1, 1440]
 start  1930 11 01 00 00   (YYYY MM DD HH MM)
 end    2009 12 31 00 00   (YYYY MM DD HH MM)

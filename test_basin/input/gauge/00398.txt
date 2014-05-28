@@ -1,4 +1,4 @@
-00398:PERL/MOSELLE RIVER (Abfluss)     DAILY
+00398:GAUGE 1 (Abfluss)     DAILY
 nodata  -9999
 n       1       measurements per day [1, 1440]
 start  1990  01  01  00  00   (YYYY MM DD HH MM)
