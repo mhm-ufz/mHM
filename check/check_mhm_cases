@@ -125,6 +125,14 @@ set -e
 #        dir_RestartOut(4)       = "output_b1/b4_"   (default: )
 
 #    case 5 :: INFLOW GAUGE
+#        nInflowGaugesTotal	    = 1              (default: nInflowGaugesTotal            = 0)
+#        NoInflowGauges_basin(1)    = 1              (default: NoInflowGauges_basin(1)       = 0)
+#        InflowGauge_id(1,1)        = 333            (default: InflowGauge_id(1,1)           = 398)
+#        InflowGauge_filename(1,1)  = "00333.txt"    (default: InflowGauge_filename(1,1)     = "00398.txt")
+#        dir_Out(1)          	    = "output_b1/b1_"(default: "output_b1/")
+#        dir_RestartOut(1)          = "output_b1/b1_"(default: "output_b1/")
+#        dir_Out(2)                 = "output_b1/b2_"(default: "output_b1/")
+#        dir_RestartOut(2)          = "output_b1/b2_"(default: "output_b1/")
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
