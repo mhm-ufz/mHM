@@ -133,7 +133,7 @@ CONTAINS
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
                                      iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
-                                     resolutionHydrology                    ! hydrology resolution (L1 scale)                                  
+                                     resolutionHydrology                    ! hydrology resolution (L1 scale)
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
 

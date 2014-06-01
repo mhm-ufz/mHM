@@ -12,7 +12,6 @@ New Features:
 - Multi-scale implementation, i.e. running mHM simultaneously in several basins with different resolutions
 - Automatic check case framework, i.e. testing new implementations on their validity and back-compatibility
 - Implementation of inflow gauges, i.e. feeding discharge time series from upstream areas at catchment boundaries
-- Chunk-wise reading of data, i.e. in case of large input data only temporal chunks of data are read at once to avoid memory overflow
 - File gaugeinfo.txt specifying gauging stations is now part of namelist mhm.nml
 - Code is now free of Numerical Recipes proprietary code
 - Can now run on a single cell (no routing performed)
