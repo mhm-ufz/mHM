@@ -168,7 +168,8 @@ if (catchm != ''):
 # simulation
 l1 = ax.plot(time, Qcal, 'k-', label=ur'Q$_{sim}$')
 # observed series
-l2 = ax.plot(time, Qobs, marker='o', linestyle='', markerfacecolor='None', markeredgecolor=mcol1 , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
+l2 = ax.plot(time, Qobs, marker='None', linestyle='-', markerfacecolor='None', markeredgecolor=mcol1 , markeredgewidth=0.8, markersize=5, label=ur'Q$_{obs}$')
+ax.set_ylim([0,700])
 #
 #catch=[s for s in infile.split('/') if 'sub' in s][0].split('_')[1].upper()
 #plt.title(catch)
