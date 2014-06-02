@@ -57,7 +57,7 @@ dir_Precipitation(1) = "test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 dir_ReferenceET(1)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dir_LatLon(1)        = "test_basin/input/latlon/latlon_2.nc"
+dir_LatLon(1)        = "test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
 dir_Out(1)           = "test_basin/output_b1/"
 !> directory where restart output should be written
@@ -137,7 +137,7 @@ nBasins = 3
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 12000 
+resolution_Hydrology(1) = 24000 
 resolution_Hydrology(2) = 12000 
 resolution_Hydrology(3) = 12000 
 !-----------------------------------------------------------------------------
@@ -149,15 +149,15 @@ resolution_Hydrology(3) = 12000
 !-----------------------------------------------------------------------------
 resolution_Routing(1) = 48000 
 resolution_Routing(2) = 24000 
-resolution_Routing(3) = 12000
+resolution_Routing(3) = 48000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
 L0Basin(1) = 1
-L0Basin(2) = 2
-L0Basin(3) = 3
+L0Basin(2) = 1
+L0Basin(3) = 2
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 

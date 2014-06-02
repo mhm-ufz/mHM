@@ -27,7 +27,7 @@ outputFlxState(1)=.FALSE.
 outputFlxState(2)=.FALSE.
 !
 ! soil water content in the single layers (L1_soilMoist) [mm]         -- case  3
-outputFlxState(3)=.FALSE.
+outputFlxState(3)=.TRUE.
 !
 ! volumetric soil moisture in the single layers [mm/mm]               -- case  4
 ! ( = L1_soilMoist / L1_soilMoistSat )
@@ -52,10 +52,10 @@ outputFlxState(8)=.FALSE.
 !----------------
 !
 ! actual evapotranspiration aET [mm/T]                                -- case  9
-outputFlxState(9)=.FALSE. 
+outputFlxState(9)=.TRUE. 
 !
 ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 10
-outputFlxState(10)=.FALSE.
+outputFlxState(10)=.TRUE.
 !
 ! direct runoff generated per cell   (L1_runoffSeal) [mm/T]           -- case 11
 outputFlxState(11)=.FALSE.
