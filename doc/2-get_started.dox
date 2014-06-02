@@ -106,9 +106,9 @@ In between two compilations, it might be useful to apply the command <code>make 
 
 The mHM distribution usually comes with an example test basin located in 
 \code
-test_basin/ \ \ .
+test_basin/  .
 \endcode
-The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
+The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
 ./mhm
 \endcode
