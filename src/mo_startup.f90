@@ -114,7 +114,7 @@ CONTAINS
     ! L0 and L1 initialization
     if (iBasin .eq. 1) then
        call L0_check_input(iBasin)
-    else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
+    else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
        call L0_check_input(iBasin)
     end if
 
