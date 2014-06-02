@@ -78,18 +78,21 @@ CONTAINS
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
-    use mo_julian,              only : caldat, julday
     use mo_init_states,         only : get_basin_info
-    use mo_message,             only : message
-    use mo_write_fluxes_states, only : WriteFluxStateInit, &
-         WriteFluxState, CloseFluxState_file
-    use mo_global_variables,    only : timeStep_model_outputs, outputFlxState  ! definition which output to write
-    use mo_write_ascii,         only : write_daily_obs_sim_discharge
-    use mo_mhm_constants,       only : nodata_dp
-    use mo_mhm,                 only : mhm
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
+    use mo_julian,              only : caldat, julday
+    use mo_message,             only : message
+    use mo_mhm,                 only : mhm
+    use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
+    use mo_utils,               only : ne 
+    use mo_meteo_forcings,      only : prepare_meteo_forcings_data
+    use mo_write_ascii,         only : write_daily_obs_sim_discharge
+    use mo_write_fluxes_states, only : CloseFluxState_file
+    use mo_write_fluxes_states, only : WriteFluxState
+    use mo_write_fluxes_states, only : WriteFluxStateInit
     use mo_global_variables,    only : &
+         timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          restart_flag_states_read, fracSealed_CityArea,      &
          timeStep, nBasins, basin, simPer,                   & 
          nGaugesTotal,                                       &
@@ -263,6 +266,9 @@ CONTAINS
        writeout_counter = 0
        hour = -timestep
        do tt = 1, nTimeSteps
+
+          ! meteorological forcings (reading, upscaling or downscaling)read meteo
+          call prepare_meteo_forcings_data(ii, tt)
 
           hour = mod(hour+timestep, 24)
 

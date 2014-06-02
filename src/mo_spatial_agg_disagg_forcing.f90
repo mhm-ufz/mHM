@@ -48,6 +48,7 @@ CONTAINS
   !>        \param[in] "real(dp)                     :: cellsize2"     Level-2 resolution 
   !>        \param[in] "real(dp)                     :: cellsize1"     Level-1 resolution 
   !>        \param[in] "logical, dimension(:,:)      :: mask1"         Level-1 basin mask \n
+  !>        \param[in] "logical, dimension(:,:)      :: mask2"         Level-2 basin mask \n
   !>                                                                   dim1=nRows, dim2=nCols
 
   !     INTENT(INOUT)
@@ -80,8 +81,11 @@ CONTAINS
   !>        \author Rohini Kumar
   !>        \date Jan 2013
   !          Modified Rohini Kumar,   Nov 2013 - data1 changed from intent(inout) to intent(out)
+  !          Modified RK, MZ, DS,     May 2014 - added mask2
 
-  subroutine spatial_aggregation(data2, cellsize2, cellsize1, mask1, data1)
+  subroutine spatial_aggregation(data2, cellsize2, cellsize1, mask1, mask2, data1)
+    
+    use mo_mhm_constants, only: nodata_dp
 
     implicit none
 
@@ -89,6 +93,7 @@ CONTAINS
     real(dp),                                intent(in)  :: cellsize2   ! Level-2 resolution  
     real(dp),                                intent(in)  :: cellsize1   ! Level-1 resolution 
     logical, dimension(:,:),                 intent(in)  :: mask1       ! Level-1 mask
+    logical, dimension(:,:),                 intent(in)  :: mask2       ! Level-2 mask
 
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data1       ! Level-1 data
         
@@ -128,7 +133,7 @@ CONTAINS
        jc = ceiling( real(j,dp)/cellFactor )
        do i=1, nr2
           ic = ceiling(real(i,dp)/cellFactor)
-          if( .not. mask1(ic,jc) ) cycle
+          if( .not. mask2(i,j) ) cycle
           nTCells(ic,jc) = nTcells(ic,jc) + 1  
        end do
     end do
@@ -148,7 +153,7 @@ CONTAINS
              ic = ceiling(real(i,dp)/cellFactor)
              
              ! only in valid masked area
-             if( .not. mask1(ic,jc) ) cycle
+             if( .not. mask2(i,j) ) cycle
              data1(ic,jc,t) = data1(ic,jc,t) + data2(i,j, t)
              
           end do
@@ -156,7 +161,11 @@ CONTAINS
        
        ! perform spatial average only over valid masked domain
        ! out of the masked domain nTCells(:,:) = 0
-       where( mask1 ) data1(:,:,t) = data1(:,:,t) / real( nTcells(:,:), dp )
+       where( mask1 )
+          data1(:,:,t) = data1(:,:,t) / real( nTcells(:,:), dp )
+       elsewhere
+          data1(:,:,t) = nodata_dp
+       endwhere
 
     end do
     
@@ -184,7 +193,8 @@ CONTAINS
   !>                                                                   dim1=nRows, dim2=nCols, dim3=nTimeSteps
   !>        \param[in] "real(dp)                     :: cellsize2"     Level-2 resolution 
   !>        \param[in] "real(dp)                     :: cellsize1"     Level-1 resolution 
-  !>        \param[in] "real(dp), dimension(:,:)     :: mask2"         Level-2 basin mask \n
+  !>        \param[in] "logical, dimension(:,:)      :: mask1"         Level-1 basin mask \n
+  !>        \param[in] "logical, dimension(:,:)      :: mask2"         Level-2 basin mask \n
   !>                                                                   dim1=nRows, dim2=nCols
 
   !     INTENT(INOUT)
@@ -217,8 +227,11 @@ CONTAINS
   !>        \author Rohini Kumar
   !>        \date Jan 2013
   !          Modified Rohini Kumar,   Nov 2013 - data1 changed from intent(inout) to intent(out)
+  !          Modified RK, MZ, DS,     May 2014 - added mask2
 
-  subroutine spatial_disaggregation(data2, cellsize2, cellsize1, mask1, data1)
+  subroutine spatial_disaggregation(data2, cellsize2, cellsize1, mask1, mask2, data1)
+
+    use mo_mhm_constants, only: nodata_dp
 
     implicit none
 
@@ -226,6 +239,7 @@ CONTAINS
     real(dp),                                   intent(in) :: cellsize2   ! Level-2 resolution  
     real(dp),                                   intent(in) :: cellsize1   ! Level-1 resolution 
     logical, dimension(:,:),                    intent(in) :: mask1       ! Level-1 mask
+    logical, dimension(:,:),                    intent(in) :: mask2       ! Level-2 mask
 
     real(dp), dimension(:,:,:), allocatable, intent(out)   :: data1       ! Level-1 data
         
@@ -248,7 +262,7 @@ CONTAINS
 
     ! allocate and initalize L1_data
     allocate( data1(nr1, nc1, nTimeSteps) )
-    data1(:,:,:) = 0.0_dp
+    data1(:,:,:) = nodata_dp
     
     ! over the time loop
     do t = 1, nTimeSteps
@@ -259,7 +273,7 @@ CONTAINS
          do i=1, nr1
            ic = ceiling(real(i,dp)/cellFactor)
            ! only over the valid masked area
-           if( .not. mask1(i,j) ) cycle
+           if( .not. mask2(ic,jc) ) cycle
            data1(i,j,t) = data2(ic,jc, t)
           end do
       end do

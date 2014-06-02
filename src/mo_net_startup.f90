@@ -2244,7 +2244,7 @@ CONTAINS
   ! --------------------------------------------------------------------------
   subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
 
-    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
+    use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
     implicit none
 
     real(dp), intent(in)             :: lat1, long1, lat2, long2
@@ -2273,7 +2273,7 @@ CONTAINS
     temp   = term1+term2+term3
     if(temp .GT. 1.0_dp) temp = 1.0_dp
 
-    distance_out = RADUIS_EARTH_dp*acos(temp);
+    distance_out = RadiusEarth_dp*acos(temp);
 
   end subroutine get_distance_two_lat_lon_points
 

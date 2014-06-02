@@ -94,6 +94,7 @@ CONTAINS
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
   !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
   !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
+  !                  Stephan Thober, May  2014 - added switch for chunk read in
 
   subroutine read_config()
 
@@ -117,6 +118,7 @@ CONTAINS
          file_geolut, ugeolut                                 ! file specifying geological formations
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
+         timestep_model_inputs,                             & ! read input frequency
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
@@ -275,7 +277,7 @@ CONTAINS
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, restart_flag_states_read, &
                  restart_flag_states_write, restart_flag_config_read, restart_flag_config_write,   &
-                 warmingDays, evalPer
+                 warmingDays, evalPer, timestep_model_inputs
     ! namelsit soil layering
     namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes

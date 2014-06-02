@@ -15,6 +15,7 @@
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
 ! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
+! Stephan Thober, May 2014 - added switch for chunk read in
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -215,6 +216,13 @@ evalPer%yEnd   = 1993
 evalPer%mEnd   = 12
 !> last day    of wanted simulation period
 evalPer%dEnd   = 31
+! switch to control read input frequency of the gridded meteo input
+! >0: after each <timeStep_model_inputs> days
+!  0: only at beginning of the run
+! -1: daily
+! -2: monthly
+! -3: yearly
+timestep_model_inputs = -2
 /
 
 !******************************************************************************************

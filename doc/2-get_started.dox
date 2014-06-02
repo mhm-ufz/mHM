@@ -102,14 +102,13 @@ In between two compilations, it might be useful to apply the command <code>make 
 (without using old temporary files).
 
 
-\section test Test mHM on Two Example Basins
+\section test Test mHM on Example Basin
 
-The mHM distribution usually comes with an example test case located in 
+The mHM distribution usually comes with an example test basin located in 
 \code
-test/
+test_basin/  .
 \endcode
-The directory provides input data for two basins and output examples. All parameters and paths are allready set by default to the test case,
-so you can just start the simulation with the command
+The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
 ./mhm
 \endcode
@@ -214,7 +213,7 @@ There are two scripts that help you with that:
 \li <code>pre-proc/create_multiple_mhm_parameter_nml.sh</code><br>
     Useful for many optimisation runs (many lines in <code>FinalParams.out</code>)
 \li <code>post-proc/opt2nml-params.pl</code><br>
-    Useful to analize where the optimisation arrived. Using two arguments, <code>pathto/FinalParams.out</code> and <code>pathto/mhm_parameters.nml</code>,
+    Useful to analyze where the optimisation arrived. Using two arguments, <code>pathto/FinalParams.out</code> and <code>pathto/mhm_parameters.nml</code>,
     it will (1) create a new <code>mhm_parameters.nml.opt</code> filled with the new values and (2) directly show the new parameters within their ranges and warn
     if some have been close to their end of range by 1%.
 

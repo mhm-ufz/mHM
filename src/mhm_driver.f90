@@ -131,6 +131,7 @@
 !                                              - run mHM at the input data level i.e. L0 grid
 !               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or 
 !                                                on a regular X-Y coordinate system
+!                Stephan Thober May 2014       - moved read meteo forcings to mo_mhm_eval
 !
 ! --------------------------------------------------------------------------
 
@@ -161,7 +162,6 @@ PROGRAM mhm_driver
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc                           ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
-  USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data 
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_objective_function,  ONLY : objective, loglikelihood       ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
@@ -293,8 +293,8 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
      
-     ! meteorological forcings (reading, upscaling or downscaling)
-     call prepare_meteo_forcings_data(ii)
+     ! ! meteorological forcings (reading, upscaling or downscaling)
+     ! call prepare_meteo_forcings_data(ii)
 
      ! read lat lon coordinates of each basin
      call message('  Reading lat-lon for basin: ', trim(adjustl(num2str(ii))),' ...')

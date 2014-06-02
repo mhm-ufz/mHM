@@ -44,7 +44,7 @@ CC  := $(GNUBIN)/gcc
 ifeq ($(release),debug)
     F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
     FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
     #CFLAGS   += -Wall -W -O -g
 else
     # -vec-report1 to see vectorized loops; -vec-report2 to see also non-vectorized loops

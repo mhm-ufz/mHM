@@ -1,0 +1,54 @@
+------------------------------------------------------------
+                         RELEASES
+------------------------------------------------------------
+
+----------------------------------------
+     New Features of mHM v5.1
+     (released at Jun 1st, 2014)
+----------------------------------------
+
+New Features:
+- OpenMP handling of routines such as the multi-scale parameter regionalization (MPR)
+- Multi-scale implementation, i.e. running mHM simultaneously in several basins with different resolutions
+- Automatic check case framework, i.e. testing new implementations on their validity and back-compatibility
+- Implementation of inflow gauges, i.e. feeding discharge time series from upstream areas at catchment boundaries
+- File gaugeinfo.txt specifying gauging stations is now part of namelist mhm.nml
+- Code is now free of Numerical Recipes proprietary code
+- Can now run on a single cell (no routing performed)
+- Hydrological modelling resolution (L1) equal to morphological input data resolution (L0) possible
+- Windows compatible (with Cygwin)
+- Support of regular geographic coordinate systems (e.g lat-lon) in addition to equal-area coordinate systems (UTM)
+
+Bugs resolved:
+- Initialization of states was not correct when running mHM in calibration mode.
+- Calculated parameter values (mhm_parameters.nml) not necessarily in bound (check added).
+- Aggregation/Disaggregation of meteorological data corrected.
+- Forecast with mHM did not work because modelling period was restricted to discharge data period.
+- Wrong mapping of evaluation discharge gauges for runs involving multiple gauges.
+
+Known bugs:
+- None.
+
+
+
+----------------------------------------
+     FEATURES OF mHM v5.0
+     (released at Dec 1st, 2013)
+----------------------------------------
+
+New Features:
+- Full modular version
+- Automatic documentation by doxygen
+- Running mHM for multiple basin simultaneously
+- Definition of 8 major processes: 
+    interception, snow, soil moisture, direct runoff, evapotranspiration, interflow, percolation, routing, geology
+- Choice of different descriptions of processes possible
+- Input in binary *.bin or netcdf *.nc format
+- Various calibration routines and objective functions
+- Consistent numerical precision handling of variables
+
+Bugs resolved:
+- Unknown.
+
+Known bugs:
+- None.

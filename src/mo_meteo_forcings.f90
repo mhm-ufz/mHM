@@ -74,7 +74,7 @@ CONTAINS
   !>        \date Jan 2013
   !           Rohini Kumar,   Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
   !
-  subroutine prepare_meteo_forcings_data(iBasin)
+  subroutine prepare_meteo_forcings_data(iBasin, tt)
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_timer,            only:                         &
@@ -87,30 +87,44 @@ CONTAINS
     implicit none
 
     integer(i4),                   intent(in)  :: iBasin        ! Basin Id
-
-    ! basic basin characteristics and read meteo header
-    call message( '  Reading meteorological forcings for basin: ', trim(adjustl(num2str(iBasin))),' ...')
-    call timer_start(1)
-
-    call L2_variable_init(iBasin)
-
-    ! precipitation
-    call message( '    read precipitation ...' )
-    call meteo_forcings_wrapper( iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
-                                 L1_pre, lower=0.0_dp, upper=1000._dp, ncvarName='pre' )
-
-    ! temperature
-    call message( '    read temperature   ...' )
-    call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
-                                 L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
+    integer(i4),                   intent(in)  :: tt            ! current timestep
     
-    ! pet
-    call message( '    read pet           ...' )
-    call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
-                                 L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
- 
-    call timer_stop(1)
-    call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
+    ! local variables
+    logical                                    :: read_flag     ! indicate whether data should be read
+    integer(i4)                                :: start_date    ! julian date of beginning of read period
+    integer(i4)                                :: end_date      ! julian date of end of read period
+
+    ! configuration of chunk_read
+    call chunk_config(iBasin, tt, read_flag, start_date, end_date )
+    read_flag = .FALSe.
+    if ( tt .eq. 1 ) read_flag = .true.
+
+    ! only read, if read_flag is true
+    if ( read_flag ) then
+       ! basic basin characteristics and read meteo header
+       call message( '  Reading meteorological forcings for basin: ', trim(adjustl(num2str(iBasin))),' ...')
+       call timer_start(1)
+
+       call L2_variable_init(iBasin)
+
+       ! precipitation
+       call message( '    read precipitation ...' )
+       call meteo_forcings_wrapper( iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
+            L1_pre, lower=0.0_dp, upper=1000._dp, ncvarName='pre' )
+
+       ! temperature
+       call message( '    read temperature   ...' )
+       call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
+            L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
+    
+       ! pet
+       call message( '    read pet           ...' )
+       call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
+            L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
+       
+       call timer_stop(1)
+       call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
+    end if
 
 end subroutine prepare_meteo_forcings_data
 
@@ -251,10 +265,10 @@ end subroutine prepare_meteo_forcings_data
 
     ! upscaling & packing
     if(cellFactorHbyM .gt. 1.0_dp) then 
-        call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
+        call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
     ! downscaling   
     elseif(cellFactorHbyM .lt. 1.0_dp) then
-        call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, L1_data)
+        call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
     ! nothing
     else
       allocate( L1_data( size(L2_data,1), size(L2_data,2), size(L2_data,3) ) )
@@ -270,7 +284,7 @@ end subroutine prepare_meteo_forcings_data
     
     ! append
     call append( dataOut1, L1_data_packed(:,:) )
-    
+
     !free space
     deallocate(L1_data, L2_data, L1_data_packed) 
     
@@ -460,4 +474,191 @@ end subroutine prepare_meteo_forcings_data
 
   end subroutine L2_variable_init
 
+  ! ------------------------------------------------------------------
+  !
+  ! subroutine chunk_config
+  !
+  ! determines the start date, end date, and read_flag 
+  ! given basin id and current timestep
+  !
+  ! author: Stephan Thober
+  !
+  ! created: June 2014
+  ! ------------------------------------------------------------------
+  subroutine chunk_config( ii, tt, read_flag, start_date, end_date )
+    !
+    use mo_kind,             only: i4
+    use mo_julian,           only: caldat
+    use mo_global_variables, only: simPer
+    use mo_mhm_constants,    only: nodata_dp
+    !
+    implicit none
+    !
+    ! input variables
+    integer(i4), intent(in)  :: ii  ! basin id
+    integer(i4), intent(in)  :: tt  ! current timestep
+    !
+    ! output variables
+    logical,     intent(out) :: read_flag  ! indicate whether reading data should be read
+    integer(i4), intent(out) :: start_date ! start date of read period
+    integer(i4), intent(out) :: end_date   ! end date of read period
+    !
+    ! local variables
+    integer(i4)              :: year     ! current year
+    integer(i4)              :: month    ! current month
+    integer(i4)              :: day      ! current day
+
+    ! initialize
+    read_flag  = .false.
+    start_date = int( nodata_dp, i4 )
+    end_date   = int( nodata_dp, i4 )
+
+    ! evaluate date and timeStep_model_inputs to get read_flag -------
+    read_flag = is_read( tt )
+    !
+    ! determine start and end date of chunk to read
+    if ( read_flag ) call chunk_size( tt, start_date, end_date )
+    print *, tt, read_flag, start_date, end_date
+    !
+  end subroutine chunk_config
+
+  ! ------------------------------------------------------------------
+  !
+  ! function is_read
+  !
+  ! evaluates the current date and read condition
+  !
+  ! author: Stephan Thober
+  !
+  ! created: Jun 2014
+  ! ------------------------------------------------------------------
+  function is_read( tt )
+    
+    use mo_kind,             only: i4
+    use mo_global_variables, only: simPer, timeStep_model_inputs, timestep
+    use mo_message,          only: message
+    use mo_julian,           only: caldat
+
+    ! input variables
+    integer(i4), intent(in) :: tt ! timestep
+    
+    ! return variable
+    logical :: is_read
+
+    ! local variables
+    integer(i4)             :: Ndays        ! number of simulated days
+    integer(i4)             :: day          ! day
+    integer(i4)             :: month        ! months
+    integer(i4)             :: year         ! years
+    integer(i4)             :: Ndays_before ! number of simulated days one timestep before
+    integer(i4)             :: day_before   ! day one simulated timestep before
+    integer(i4)             :: month_before ! month one simulated timestep before
+    integer(i4)             :: year_before  ! year one simulated timestep before
+    
+    
+    ! initialize
+    is_read      = .false.
+    Ndays        = ( tt * timestep ) / 24_i4 + 1
+    Ndays_before = ( ( tt - 1_i4 ) * timestep ) / 24_i4 + 1
+    
+    ! evaluate cases of given timeStep_model_inputs
+    select case( timeStep_model_inputs )
+    case(0)  ! only at the beginning of the period
+       if ( tt .eq. 1_i4 ) is_read = .true.
+    case(1:) ! every timestep with frequency timeStep_model_inputs
+       if ( mod( tt - 1_i4, 24 ) .eq. 0_i4 ) then
+          if ( mod( (tt - 1_i4) / 24_i4 , timeStep_model_inputs ) .eq. 0_i4 ) is_read = .true.
+       end if
+    case(-1) ! every day
+       if ( Ndays .ne. Ndays_before ) is_read = .true.
+    case(-2) ! every month
+       if ( Ndays .ne. Ndays_before ) then
+          ! calculate months
+          call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+          call caldat( simPer%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+          if ( month .ne. month_before ) is_read = .true.
+       end if
+    case(-3) ! every year
+       if ( Ndays .ne. Ndays_before ) then
+          ! calculate months
+          call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+          call caldat( simPer%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+          if ( year .ne. year_before ) is_read = .true.
+       end if
+    case default ! not specified correctly
+       call message('ERROR*** mo_meteo_forcings: function is_read: timStep_model_inputs not specified correctly!')
+       stop
+    end select
+  
+  end function is_read
+  ! ------------------------------------------------------------------
+  !
+  ! subroutine chunk_size
+  !
+  ! calculating start and end date of chunk 
+  !
+  ! author: Stephan Thober
+  !
+  ! created: 2.6.2014
+  ! 
+  ! ------------------------------------------------------------------
+  subroutine chunk_size( tt, start_date, end_date )
+    
+    use mo_kind,             only: i4
+    use mo_global_variables, only: simPer, timeStep_model_inputs, timestep
+    use mo_message,          only: message
+    use mo_julian,           only: caldat, julday
+    
+    implicit none
+    
+    ! input variables
+    integer(i4), intent(in)  :: tt
+    
+    ! output variables
+    integer(i4), intent(out) :: start_date   ! julian start date
+    integer(i4), intent(out) :: end_date     ! julian end date
+
+    ! local variables
+    integer(i4)              :: Ndays        ! number of simulated days
+    integer(i4)              :: day          ! day
+    integer(i4)              :: month        ! months
+    integer(i4)              :: year         ! years
+
+    ! calculate date of start date
+    Ndays        = ( tt * timestep ) / 24_i4 + 1
+
+    ! get start date
+    start_date   = simPer%julStart + Ndays
+    
+    ! calculate length of the period
+    select case ( timeStep_model_inputs )
+    case(0)  ! length of chunk has to cover whole period
+       end_date = simPer%julEnd 
+    case(1:) ! every timestep with frequency timeStep_model_inputs
+       end_date= start_date + timeStep_model_inputs - 1
+    case(-1) ! every day
+       end_date = start_date + 1_i4
+    case(-2) ! every month
+       ! calculate date
+       call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+       ! increment month
+       if ( month .eq. 12 ) then
+          month = 1
+          year  = year + 1
+       else
+          month = month + 1
+       end if
+       end_date = julday( dd = 1, mm = month, yy = year ) - 1
+    case(-3) ! every year
+       ! calculate date
+       call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+       end_date = julday( dd = 31, mm = 12, yy = year )
+    case default ! not specified correctly
+       call message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
+       stop
+    end select   
+    
+    
+  end subroutine chunk_size
+  !
 END MODULE mo_meteo_forcings

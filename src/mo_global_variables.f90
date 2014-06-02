@@ -38,6 +38,7 @@ MODULE mo_global_variables
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  integer(i4),   public                              :: timeStep_model_inputs      ! frequency for reading meteo input
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
   real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin

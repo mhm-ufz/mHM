@@ -98,10 +98,10 @@ LIBNAME  := #mhm.a #libminpack.a # Name of library
 #
 # Options
 # Systems: eve and personal computers such as mcimac for Matthias Cuntz' iMac; look in $(MAKEDPATH) or type 'make info'
-system   := eve
+system   := stufz
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := intel
+compiler := gnu
 # Releases: debug, release
 release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -111,7 +111,7 @@ lapack   :=
 # MKL (Intel's Math Kernel Library): mkl, mkl95, [anything else]
 mkl      :=
 # Proj4 (Cartographic Projections Library): true, [anything else]
-proj     := 
+proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
@@ -155,8 +155,8 @@ static   := shared
 #                  This means that all tests do not work which use netcdf and/or lapack.
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
 EXTRA_FCFLAGS  :=
-EXTRA_F90FLAGS :=
-EXTRA_DEFINES  := 
+EXTRA_F90FLAGS := #-C=undefined
+EXTRA_DEFINES  :=
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=
@@ -237,7 +237,7 @@ endif
 #
 # --- CHECK 2 ---------------------------------------------------
 #
-compilers := $(shell ls -1 $(CONFIGPATH) | sed -e "/$(MAKEDSCRIPT)/d" -e '/f2html/d' -e '/alias/d' | grep $(system) | cut -d '.' -f 2 | sort | uniq)
+compilers := $(shell ls -1 $(CONFIGPATH) | sed -e "/$(MAKEDSCRIPT)/d" -e '/f2html/d' -e '/alias/d' -e '/~$$/d' | grep $(system) | cut -d '.' -f 2 | sort | uniq)
 gnucompilers := $(filter gnu%, $(compilers))
 nagcompilers := $(filter nag%, $(compilers))
 intelcompilers := $(filter intel%, $(compilers))
@@ -824,20 +824,20 @@ endif
 	for i in $(shell ls -d $(CHECKPATH)/test* $(CHECKPATH)/check*) ; do \
 	    rm -f "$(PROGNAME)" ; \
 	    j=$${i/minpack/maxpack} ; \
-	    ldextra= ; \
+	    libextra= ; \
 	    if [ $$i != $$j ] ; then \
 	    	 $(MAKE) -s MAKEDPATH=$(MAKEDPATH) SRCPATH="$$i"/../../minpack PROGPATH=$(PROGPATH) \
 	    	      CONFIGPATH=$(CONFIGPATH) PROGNAME= LIBNAME=libminpack.a system=$(system) \
 	    	      release=$(release) netcdf=$(netcdf) static=$(static) proj=$(proj) \
 	    	      imsl=$(imsl) mkl=$(mkl) lapack=$(lapack) compiler=$(compiler) \
 	    	      openmp=$(openmp) > /dev/null ; \
-                 ldextra="-L. -lminpack" ; \
+                 libextra="-L. -lminpack" ; \
 	    fi ; \
 	    $(MAKE) -s MAKEDPATH=$(MAKEDPATH) SRCPATH=$$i PROGPATH=$(PROGPATH) \
 	         CONFIGPATH=$(CONFIGPATH) PROGNAME=$(PROGNAME) system=$(system) \
 	         release=$(release) netcdf=$(netcdf) static=$(static) proj=$(proj) \
 	         imsl=$(imsl) mkl=$(mkl) lapack=$(lapack) compiler=$(compiler) \
-	         openmp=$(openmp) NOMACWARN=true EXTRA_LDFLAGS="$$ldextra" > /dev/null \
+	         openmp=$(openmp) NOMACWARN=true EXTRA_LIBS="$$libextra" > /dev/null \
 	    && { $(PROGNAME) 2>&1 | grep -E '(o\.k\.|failed)' ;} ; status=$$? ; \
 	    if [ $$status != 0 ] ; then echo "$$i failed!" ; fi ; \
 	    $(MAKE) -s SRCPATH=$$i cleanclean ; \

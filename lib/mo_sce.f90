@@ -31,7 +31,7 @@ MODULE mo_sce
   ! You should have received a copy of the GNU Lesser General Public License
   ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
 
-  ! Copyright 2011-2013 Juliane Mai, Matthias Cuntz
+  ! Copyright 2011-2014 Juliane Mai, Matthias Cuntz
 
   IMPLICIT NONE
 
@@ -143,6 +143,7 @@ MODULE mo_sce
   !>                                                                    # of headlines: 1 \n
   !>                                                                    format: #_evolution_loop, xf(i), (x(i,j),j=1,nn)\n
   !>                                                                    total number of lines written <= neval <= mymaxn\n
+  !>        \param[in]  "logical, optional  :: popul_file_append"    if true, append to existing population file (default: false)\n
   !>        \param[in]  "logical, optional  :: parallel"    sce runs in parallel (true) or not (false)
   !>                                                             parallel sce should only be used if model/ objective 
   !>                                                             is not parallel
@@ -196,6 +197,9 @@ MODULE mo_sce
   !                  Matthias Cuntz,              Nov 2013 - progress dots
   !                                                        - use iso_fortran_env
   !                                                        - treat functn=NaN as worse function value in cce
+  !                  Matthias Cuntz,              May 2014 - sort -> orderpack
+  !                  Matthias Cuntz,              May 2014 - popul_file_append
+  !                  Matthias Cuntz,              May 2014 - sort with NaNs
 
   ! ------------------------------------------------------------------
 
@@ -216,18 +220,19 @@ CONTAINS
        myngs,mynpg,mynps,mynspl,mymings,myiniflg,myprint, & ! Optional IN
        mymask,myalpha, mybeta,                            & ! Optional IN
        tmp_file, popul_file,                              & ! Optional IN
+       popul_file_append,                                 & ! Optional IN
        parallel,                                          & ! OPTIONAL IN
        bestf,neval,history                                & ! Optional OUT
        ) result(bestx)
 
     use mo_kind,         only: i4, i8, dp
-    use mo_sort,         only: sort
+    use mo_orderpack,    only: sort
     use mo_string_utils, only: num2str, compress
     use mo_xor4096,      only: get_timeseed, n_save_state, xor4096, xor4096g
     !$ use omp_lib,      only: OMP_GET_THREAD_NUM, OMP_GET_NUM_THREADS
     use iso_fortran_env, only: output_unit, error_unit
 #ifndef GFORTRAN
-    use ieee_arithmetic, only: ieee_is_finite
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite, ieee_value, IEEE_QUIET_NAN
 #endif
 
     implicit none
@@ -294,6 +299,7 @@ CONTAINS
     !                                                               !     # of headlines: 1
     !                                                               !     format: #_evolution_loop, xf(i), (x(i,j),j=1,nn)
     !                                                               !     total number of lines written <= neval <= mymaxn
+    logical,          optional,          intent(in)  :: popul_file_append ! if true, append to popul_file
     logical,     optional,               intent(in)  :: parallel    ! sce runs in parallel (true) or not (false)
     !                                                               !     parallel sce should only be used if model/ objective 
     !                                                               !     is not parallel
@@ -387,6 +393,12 @@ CONTAINS
     real(dp),    dimension(:,:), allocatable         :: xtmp          ! tmp array for complex reduction
     real(dp),    dimension(:),   allocatable         :: ftmp          !            %
     real(dp)                                         :: large         ! for treating NaNs
+    logical                                          :: ipopul_file_append
+    integer(i4)                                      :: nonan         ! # of non-NaN in history_tmp
+    real(dp), dimension(:), allocatable              :: htmp          ! tmp storage for history_tmp
+#ifdef GFORTRAN
+    real(dp)                                         :: NaN           ! NaN value
+#endif
 
     if (present(parallel)) then
        parall = parallel
@@ -538,6 +550,12 @@ CONTAINS
        beta = 0.45_dp
     end if
 
+    if (present(popul_file_append)) then
+       ipopul_file_append = popul_file_append
+    else
+       ipopul_file_append = .false.
+    endif
+
     if(present(tmp_file)) then
        open(unit=999,file=trim(adjustl(tmp_file)), action='write', status = 'unknown')
        write(999,*) '# settings :: general'
@@ -550,7 +568,7 @@ CONTAINS
        close(999)
     end if
 
-    if(present(popul_file)) then
+    if (present(popul_file) .and. (.not. ipopul_file_append)) then
        open(unit=999,file=trim(adjustl(popul_file)), action='write', status = 'unknown')
        write(999,*) '#   xf(i)   (x(i,j),j=1,nn)'
        close(999)
@@ -734,7 +752,6 @@ CONTAINS
 
     end if
 
-    call sort(history_tmp(1:npt1))
     icall = int(npt1,i8)
     !
     !  arrange the points in order of increasing function value
@@ -747,11 +764,66 @@ CONTAINS
     endif
 #ifndef GFORTRAN
     xf(1:npt1) = merge(xf(1:npt1), large, ieee_is_finite(xf(1:npt1))) ! NaN and Infinite
+    ! sort does not work with NaNs
+    ! -> get history_tmp w/o NaN, sort it, and set the rest to NaN
+    nonan = size(pack(history_tmp(1:npt1), mask=ieee_is_finite(history_tmp(1:npt1))))
+    if (nonan /= npt1) then
+       allocate(htmp(nonan))
+       htmp(1:nonan) = pack(history_tmp(1:npt1), mask=ieee_is_finite(history_tmp(1:npt1)))
+       call sort(htmp(1:nonan))
+       history_tmp(1:nonan) = htmp(1:nonan)
+       history_tmp(nonan+1:npt1) = ieee_value(1.0_dp, IEEE_QUIET_NAN)
+       deallocate(htmp)
+    else
+       call sort(history_tmp(1:npt1))
+    endif
 #else
 #ifdef GFORTRAN41
     xf(1:npt1) = merge(xf(1:npt1), large, xf(1:npt1) == xf(1:npt1))   ! only NaN
+    ! sort does not work with NaNs
+    ! -> get the NaN value
+    ! -> get history_tmp w/o NaN, sort it, and set the rest to NaN
+    nonan = size(pack(history_tmp(1:npt1), mask=(xf(1:npt1)==xf(1:npt1))))
+    if (nonan /= npt1) then
+       NaN = large
+       do ii=1, npt1
+          if (xf(ii) /= xf(ii)) then
+             NaN = xf(ii)
+             exit
+          endif
+       end do
+       allocate(htmp(nonan))
+       htmp(1:nonan) = pack(history_tmp(1:npt1), mask=(xf(1:npt1)==xf(1:npt1)))
+       call sort(htmp(1:nonan))
+       history_tmp(1:nonan) = htmp(1:nonan)
+       history_tmp(nonan+1:npt1) = NaN
+       deallocate(htmp)
+    else
+       call sort(history_tmp(1:npt1))
+    endif
 #else
     xf(1:npt1) = merge(xf(1:npt1), large, .not. isnan(xf(1:npt1)))   ! only NaN
+    ! sort does not work with NaNs
+    ! -> get the NaN value
+    ! -> get history_tmp w/o NaN, sort it, and set the rest to NaN
+    nonan = size(pack(history_tmp(1:npt1), mask=(.not. isnan(xf(1:npt1)))))
+    if (nonan /= npt1) then
+       NaN = large
+       do ii=1, npt1
+          if (isnan(xf(ii))) then
+             NaN = xf(ii)
+             exit
+          endif
+       end do
+       allocate(htmp(nonan))
+       htmp(1:nonan) = pack(history_tmp(1:npt1), mask=(.not. isnan(xf(1:npt1))))
+       call sort(htmp(1:nonan))
+       history_tmp(1:nonan) = htmp(1:nonan)
+       history_tmp(nonan+1:npt1) = NaN
+       deallocate(htmp)
+    else
+       call sort(history_tmp(1:npt1))
+    endif
 #endif
 #endif
     call sort_matrix(x(1:npt1,1:nn),xf(1:npt1))
@@ -1459,10 +1531,8 @@ CONTAINS
 
   subroutine sort_matrix(rb,ra)
     !
-    ! This subroutine is adapted from "Numerical Recipes" by Press et al., pp. 233-234
-    !
-    use mo_sort, only: sort_index
-    use mo_kind, only: i4, dp
+    use mo_kind,      only: i4, dp
+    use mo_orderpack, only: sort_index
 
     implicit none    
 
