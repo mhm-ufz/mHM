@@ -344,11 +344,6 @@ PROGRAM mhm_driver
   call message()
   if ( optimize ) then
      call message('  Start optimization')
-     ! check for optimzation and timestep_model_inputs options
-     if ( timestep_model_inputs .ne. 0 ) then
-        call message()
-        call message('***WARNING: chunk read is switched on!')
-     end if
      call timer_start(iTimer)
 
      ! mask parameter which have a FLAG=0 in mhm_parameter.nml

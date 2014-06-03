@@ -359,6 +359,12 @@ CONTAINS
        call message('***ERROR: coordinate system for the model run should be 0 or 1')
        stop
     end if
+    ! check for optimzation and timestep_model_inputs options
+    if ( optimize .and. ( timestep_model_inputs .ne. 0 ) ) then
+       call message()
+       call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
+       stop
+    end if
     
     !===============================================================
     !  determine simulation time period incl. warming days
