@@ -23,9 +23,6 @@ PET module
 Transfer mo_file to a namelist to allow for more flexible filenames
 (Resp.: NA)
 
-Chunk read-in of data 
-(Resp.: Stephan)
-
 L11 - outlet plot 
 (Resp.: Luis, Rohini)
 -- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
@@ -46,9 +43,10 @@ mo_multi_param_reg
 =================================================================================================
 
 BUG FIX:
--- L11_config in ConfigFile correctly printed
+-- L11_config in ConfigFile correctly printed (Resp.: Stephan)
 
-
+NEW FEATURES:
+-- Chunk read-in of data (Resp.: Stephan)
 =================================================================================================
                       NEXT RELEASE
 =================================================================================================

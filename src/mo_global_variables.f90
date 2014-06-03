@@ -21,6 +21,7 @@ MODULE mo_global_variables
   !           Luis Samaniego, Nov 2013  - documentation of dimensions
   !           Matthias Zink,  Nov 2013  - added "InflowGauge" and inflow gauge variabels in basin 
   !           Rohini Kumar,   May 2014  - added options for the model run cordinate system
+  !           Stephan Thober, Jun 2014  - added timeStep_model_inputs and readPer
 
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
@@ -38,6 +39,7 @@ MODULE mo_global_variables
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  integer(i4),   public                              :: timeStep_model_inputs      ! frequency for reading meteo input
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
   real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
@@ -274,7 +276,7 @@ MODULE mo_global_variables
   type(period), public :: warmPer     ! time period for warming
   type(period), public :: evalPer     ! time period for model evaluation
   type(period), public :: simPer      ! warmPer + evalPer
-
+  type(period), public :: readPer     ! start and end dates of read period
   integer(i4), public  :: warmingDays ! number of days for warm up period
 
   ! -------------------------------------------------------------------

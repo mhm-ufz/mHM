@@ -131,6 +131,7 @@
 !                                              - run mHM at the input data level i.e. L0 grid
 !               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or 
 !                                                on a regular X-Y coordinate system
+!                Stephan Thober May 2014       - moved read meteo forcings to mo_mhm_eval
 !
 ! --------------------------------------------------------------------------
 
@@ -145,7 +146,7 @@ PROGRAM mhm_driver
        file_defOutput                                               ! filename of namelist: output setup
   USE mo_finish,              ONLY : finish                         ! Finish with style
   USE mo_global_variables,    ONLY :                         &
-       nbasins,                                              &      ! number of basins
+       nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
        restart_flag_states_write, restart_flag_config_write, &      ! restart writing flags
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
@@ -293,10 +294,13 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
      
+     ! read meteorology now, if optimization is switched on
      ! meteorological forcings (reading, upscaling or downscaling)
-     call prepare_meteo_forcings_data(ii)
+     if ( timestep_model_inputs .eq. 0_i4 ) then
+        call prepare_meteo_forcings_data(ii, 1)
+     end if
 
-     ! read lat lon coordinates of each basin
+    ! read lat lon coordinates of each basin
      call message('  Reading lat-lon for basin: ', trim(adjustl(num2str(ii))),' ...')
      call timer_start(itimer)
      call read_latlon(ii)
@@ -340,6 +344,11 @@ PROGRAM mhm_driver
   call message()
   if ( optimize ) then
      call message('  Start optimization')
+     ! check for optimzation and timestep_model_inputs options
+     if ( timestep_model_inputs .ne. 0 ) then
+        call message()
+        call message('***WARNING: chunk read is switched on!')
+     end if
      call timer_start(iTimer)
 
      ! mask parameter which have a FLAG=0 in mhm_parameter.nml
