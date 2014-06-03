@@ -222,7 +222,7 @@ evalPer%dEnd   = 31
 ! -1: daily
 ! -2: monthly
 ! -3: yearly
-timestep_model_inputs = -2
+timestep_model_inputs = 0
 /
 
 !******************************************************************************************

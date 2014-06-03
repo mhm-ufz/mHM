@@ -104,8 +104,10 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date Dec 2012
+  !         Modified, Stephan Thober, Jun 2014 -- added julstart and julend
 
-  subroutine read_meteo_bin(folder, nRows, nCols, periode, data, mask, lower, upper)
+  subroutine read_meteo_bin(folder, nRows, nCols, periode, data, mask, &
+       lower, upper )
 
     use mo_global_variables, only: period
     use mo_julian,           only: date2dec
@@ -169,7 +171,7 @@ CONTAINS
        open(unit=umeteo, file=trim(fName), &
             form='unformatted', access='direct', recl=4*nRows*nCols)
 
-       ! julian day of strating and end year
+       ! julian day of starting and end year
        jday_frac    = date2dec(dd=01, mm=01, yy=year)
        julStartYear = nint(jday_frac)
 
@@ -198,7 +200,7 @@ CONTAINS
     end do yearLoop
 
     ! start checking values
-    do i = 1, (periode%julEnd - periode%julStart + 1_i4)
+    do i = 1, size( data, dim = 3 )
        ! for no data value
        if(  any(                                                                  &
             ( abs(data(:,:,i) - nodata_value) .LT. tiny(1.0_dp) )  .AND.       &
@@ -271,6 +273,7 @@ CONTAINS
   !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
   !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
   !>        \param[in] "type(period)     :: periode"       Period the data are needed for
+  !>        \param[in] "type(period), optional :: readPer" Period the data should be read for
 
   !     INTENT(INOUT)
   !         None

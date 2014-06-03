@@ -75,6 +75,7 @@ CONTAINS
   !                   R. Kumar              Nov 2013 - update intent variables in documentation
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
   !                   Matthias Zink,        Mar 2014 - added inflow from upstream areas
+  !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -94,7 +95,7 @@ CONTAINS
     use mo_global_variables,    only : &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          restart_flag_states_read, fracSealed_CityArea,      &
-         timeStep, nBasins, basin, simPer,                   & 
+         timeStep, nBasins, basin, simPer, readPer,          & 
          nGaugesTotal,                                       &
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
@@ -267,7 +268,7 @@ CONTAINS
        hour = -timestep
        do tt = 1, nTimeSteps
 
-          ! meteorological forcings (reading, upscaling or downscaling)read meteo
+          ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
           call prepare_meteo_forcings_data(ii, tt)
 
           hour = mod(hour+timestep, 24)
@@ -277,10 +278,11 @@ CONTAINS
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
           ! time step for meteorological variable (daily values)
-          iMeteoTS    = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
-
+          iMeteoTS    = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
+               - ( readPer%julStart - simPer%julStart )
+          
           ! time step for gridded LAI data (daily values)
-          iGridLAI_TS = iMeteoTS ! ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
+          iGridLAI_TS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
 
           !--------------------------------------------------------------------
           ! call LAI function to get LAI fields for this timestep and basin
@@ -342,7 +344,8 @@ CONTAINS
                L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
-               L1_pet(s1:e1,iMeteoTS), L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),     & ! IN F
+!                L1_pet(s1:e1,iMeteoTS), L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),     & ! IN F
+               L1_pet(:,iMeteoTS), L1_pre(:,iMeteoTS), L1_temp(:,iMeteoTS),     & ! IN F
                InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 

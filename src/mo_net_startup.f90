@@ -535,7 +535,7 @@ CONTAINS
     cellCoor0(:,:)  = L0_cellCoor  (iStart0 : iEnd0,  :)
     cellCoor11(:,:) = L11_cellCoor (iStart11: iEnd11, :)
 
-    ! CASE WHERE ROUTING AND INPUT DATA SCALE IS SIMILAR
+    ! case where routing and input data scale is similar
     IF(nCells0 .EQ. nNodes) THEN
       oLoc = maxloc( fAcc0, mask0 )
       kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
@@ -558,8 +558,8 @@ CONTAINS
          jj = cellCoor0( kk, 2 )
          draSC0(ii,jj) = kk
       end do
-      !
-      ! CASE WHERE ROUTING AND INPUT DATA SCALE DIFFERS 
+
+      ! case where routing and input data scale differs 
     ELSE
       ! finding main outlet (row, col) in L11
       oLoc = maxloc( fAcc0, mask0 )
