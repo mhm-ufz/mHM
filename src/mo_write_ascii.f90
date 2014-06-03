@@ -72,7 +72,8 @@ MODULE mo_write_ascii
   !     HISTORY
   !>        \author Christoph Schneider
   !>        \date May 2013
-  !         Modified, Juliane Mai, May 2013 - module version and documentation
+  !         Modified, Juliane Mai,    May 2013 - module version and documentation
+  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
 
   PRIVATE
 
@@ -286,7 +287,7 @@ CONTAINS
                '       [-]'
           !
           do j=basin%L11_iStart(n), basin%L11_iEnd(n)-1
-             i=L11_netPerm(j)
+             i=L11_netPerm(j) + basin%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
              write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                   L11_length(i)/1000.0_dp, L11_slope(i)
           end do
