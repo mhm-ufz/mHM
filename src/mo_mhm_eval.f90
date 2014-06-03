@@ -95,6 +95,7 @@ CONTAINS
     use mo_global_variables,    only : &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          restart_flag_states_read, fracSealed_CityArea,      &
+         timeStep_model_inputs,                              &
          timeStep, nBasins, basin, simPer, readPer,          & 
          nGaugesTotal,                                       &
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
@@ -167,6 +168,7 @@ CONTAINS
     integer(i4)                               :: s1, e1
     integer(i4)                               :: s11, e11
     integer(i4)                               :: s110, e110
+    integer(i4)                               :: s_meteo, e_meteo
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
     integer(i4)                               :: day, month, year, hour
@@ -268,8 +270,25 @@ CONTAINS
        hour = -timestep
        do tt = 1, nTimeSteps
 
-          ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
-          call prepare_meteo_forcings_data(ii, tt)
+          if ( timeStep_model_inputs .eq. 0_i4 ) then
+             ! whole meteorology is already read
+
+             ! set start and end of meteo position
+             s_meteo = s1
+             e_meteo = e1
+             ! time step for meteorological variable (daily values)
+             iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )             
+          else
+             ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
+             call prepare_meteo_forcings_data(ii, tt)
+             
+             ! set start and end of meteo position
+             s_meteo = 1
+             e_meteo = e1 - s1 + 1
+             ! time step for meteorological variable (daily values)
+             iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
+                  - ( readPer%julStart - simPer%julStart )             
+          end if
 
           hour = mod(hour+timestep, 24)
 
@@ -277,10 +296,6 @@ CONTAINS
           ! month needed for LAI process
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
-          ! time step for meteorological variable (daily values)
-          iMeteoTS    = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
-               - ( readPer%julStart - simPer%julStart )
-          
           ! time step for gridded LAI data (daily values)
           iGridLAI_TS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
 
@@ -344,8 +359,9 @@ CONTAINS
                L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
-!                L1_pet(s1:e1,iMeteoTS), L1_pre(s1:e1,iMeteoTS), L1_temp(s1:e1,iMeteoTS),     & ! IN F
-               L1_pet(:,iMeteoTS), L1_pre(:,iMeteoTS), L1_temp(:,iMeteoTS),     & ! IN F
+               L1_pet(s_meteo:e_meteo,iMeteoTS),                                            & ! IN PET
+               L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN Pre 
+               L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN Temperature
                InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 

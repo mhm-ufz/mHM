@@ -359,6 +359,7 @@ CONTAINS
        call message('***ERROR: coordinate system for the model run should be 0 or 1')
        stop
     end if
+    
     !===============================================================
     !  determine simulation time period incl. warming days
     !===============================================================

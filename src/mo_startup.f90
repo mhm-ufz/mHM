@@ -87,6 +87,7 @@ CONTAINS
   !                  Luis Samaniego, Dec 2012 - modular version
   !                  Rohini Kumar,   May 2013 - code cleaned and error checks
   !                  Rohini Kumar,   Nov 2013 - updated documentation
+  !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
 
   subroutine initialise(iBasin)
 
@@ -128,6 +129,9 @@ CONTAINS
     else
        call read_restart_config( iBasin, soilDB%is_present, dirRestartIn(iBasin ) )
     end if
+
+    ! L2 inialization
+    call L2_variable_init(iBasin)
 
     ! L11: network initialization
     if ( processMatrix(8, 1) .ne. 0 ) then
@@ -806,5 +810,189 @@ CONTAINS
                 leftBound, rightBound, nTCells        )
 
   end subroutine L1_variable_init
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         L2_variable_init
+  
+  !     PURPOSE
+  !>        \brief Initalize Level-2 meteorological forcings data
+
+  !>        \details following tasks are performed
+  !>                 1)  cell id & numbering
+  !>                 2)  mask creation
+  !>                 3)  append variable of intrest to global ones
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date Feb 2013
+
+  ! --------------------------------------------------------------------------
+  subroutine L2_variable_init(iBasin)
+
+    use mo_read_spatial_data,only: read_header_ascii
+    use mo_message,          only: message
+    use mo_append,           only: append                      ! append vector
+    use mo_string_utils,     only: num2str
+    use mo_init_states,      only: get_basin_info
+    use mo_init_states,      only: calculate_grid_properties
+
+    use mo_global_variables, only: nBasins, basin, level0, level2, dirPrecipitation
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_file,             only: file_meteo_header, umeteo_header
+
+    
+    implicit none
+
+    integer(i4), intent(in)                   :: iBasin
+
+    ! local variables
+    integer(i4)                               :: nrows0, ncols0
+    logical, dimension(:,:), allocatable      :: mask0
+    real(dp)                                  :: xllcorner0, yllcorner0
+    real(dp)                                  :: cellsize0
+
+    integer(i4)                               :: nrows2, ncols2
+    logical, dimension(:,:), allocatable      :: mask2
+    real(dp)                                  :: xllcorner2, yllcorner2
+    real(dp)                                  :: cellsize2
+    integer(i4)                               :: nCells2
+    real(dp)                                  :: cellFactor
+    integer(i4)                               :: i, j, ic, jc
+    character(256)                            :: fName
+
+    !--------------------------------------------------------
+    ! STEPS::
+    ! 1) Estimate each variable locally for a given basin
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+    
+    ! assign space
+    if(iBasin .eq. 1) then
+       allocate( level2%nrows        (nBasins) )
+       allocate( level2%ncols        (nBasins) )
+       allocate( level2%xllcorner    (nBasins) )
+       allocate( level2%yllcorner    (nBasins) )
+       allocate( level2%cellsize     (nBasins) )
+       allocate( level2%nodata_value (nBasins) )
+     end if
+
+    ! read header file 
+    ! NOTE: assuming the header file for all metero variables are same as that of precip.
+    !       A counter check for this assumption is perfromed in the read_meteo_bin file 
+    
+    fName =  trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
+    call read_header_ascii( trim(fName), umeteo_header,   &
+                            level2%nrows(iBasin), level2%ncols(iBasin), level2%xllcorner(iBasin), &
+                            level2%yllcorner(iBasin), level2%cellsize(iBasin),  level2%nodata_value(iBasin) )
+  
+   ! level-0 information
+   call get_basin_info( iBasin, 0, nrows0, ncols0, mask=mask0,                         &
+                        xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0 ) 
+   ! grid information
+   call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,          &
+                                   level2%cellsize(iBasin), &
+                                   nrows2, ncols2, xllcorner2, yllcorner2, cellsize2,level2%nodata_value(iBasin) )
+
+   ! check
+   if (  (ncols2     .ne.  level2%ncols(iBasin))         .or. &
+         (nrows2     .ne.  level2%nrows(iBasin))         .or. &
+         ( abs(xllcorner2 - level2%xllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
+         ( abs(yllcorner2 - level2%yllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
+         ( abs(cellsize2  - level2%cellsize(iBasin))  .gt. tiny(1.0_dp) )             ) then
+      call message()
+      call message('***ERROR: L2_variable_init: Resolution of meteorology differs in basin: ', &
+           trim(adjustl(num2str(iBasin))))
+      stop
+    end if
+
+  
+    ! cellfactor = leve1-2 / level-0
+    cellFactor = level2%cellsize(iBasin) / level0%cellsize(iBasin)
+
+    ! allocation and initalization of mask at level-2
+    allocate( mask2(nrows2, ncols2) )
+    mask2(:,:) = .FALSE.
+
+    ! create mask at level-2
+    do j = 1, ncols0
+       jc = ceiling( real(j,dp)/cellFactor )
+       do i = 1, nrows0
+          if ( .NOT. mask0(i,j) ) cycle
+          ic = ceiling( real(i,dp)/cellFactor )
+          mask2(ic,jc) = .TRUE.
+       end do
+    end do
+    
+    ! no. of valid cells at level-2
+    nCells2 = count( mask2 )
+
+    !--------------------------------------------------------
+    ! Start padding up local variables to global variables
+    !--------------------------------------------------------
+    if (iBasin .eq. 1) then
+ 
+       ! allocate space
+       allocate(basin%L2_iStart     (nBasins))
+       allocate(basin%L2_iEnd       (nBasins))
+       allocate(basin%L2_iStartMask (nBasins))
+       allocate(basin%L2_iEndMask   (nBasins))    
+
+       ! basin information
+       basin%L2_iStart(iBasin) = 1_i4
+       basin%L2_iEnd  (iBasin) = basin%L2_iStart(iBasin) + nCells2 - 1_i4
+
+       basin%L2_iStartMask(iBasin) = 1_i4
+       basin%L2_iEndMask  (iBasin) = basin%L2_iStartMask(iBasin) + nrows2*ncols2 - 1_i4
+
+    else
+
+       ! basin information
+       basin%L2_iStart(iBasin) = basin%L2_iEnd(iBasin-1) + 1_i4
+       basin%L2_iEnd  (iBasin) = basin%L2_iStart(iBasin) + nCells2 - 1_i4
+
+       basin%L2_iStartMask(iBasin) = basin%L2_iEndMask(iBasin-1) + 1_i4
+       basin%L2_iEndMask  (iBasin) = basin%L2_iStartMask(iBasin) + nrows2*ncols2 - 1_i4
+
+    end if
+
+    call append( basin%L2_Mask,  RESHAPE( mask2, (/nrows2*ncols2/)  )  )
+
+    ! free space
+    deallocate(mask0, mask2)
+
+  end subroutine L2_variable_init
 
 END MODULE mo_startup
