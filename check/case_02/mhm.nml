@@ -187,6 +187,13 @@ evalPer%yEnd         = 1993
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
 evalPer%dEnd         = 31
+! switch to control read input frequency of the gridded meteo input
+! >0: after each <timeStep_model_inputs> days
+!  0: only at beginning of the run
+! -1: daily
+! -2: monthly
+! -3: yearly
+timestep_model_inputs = 0
 /
 
 !******************************************************************************************

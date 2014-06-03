@@ -95,14 +95,16 @@ CONTAINS
     logical                                    :: read_flag     ! indicate whether data should be read
 
     ! configuration of chunk_read
-    call chunk_config(iBasin, tt, read_flag, readPer )
+    call chunk_config( tt, read_flag, readPer )
  
     ! only read, if read_flag is true
     if ( read_flag ) then
-       ! free L1 variables
-       if ( allocated( L1_pre ) )  deallocate( L1_pre )
-       if ( allocated( L1_temp ) ) deallocate( L1_temp )
-       if ( allocated( L1_pet ) )  deallocate( L1_pet  )
+       ! free L1 variables if chunk read is activated
+       if ( timeStep_model_inputs .ne. 0 ) then
+          if ( allocated( L1_pre ) )  deallocate( L1_pre )
+          if ( allocated( L1_temp ) ) deallocate( L1_temp )
+          if ( allocated( L1_pet ) )  deallocate( L1_pet  )
+       end if
        
        ! basic basin characteristics and read meteo header
        if ( timeStep_model_inputs .eq. 0 ) then
@@ -314,27 +316,20 @@ end subroutine prepare_meteo_forcings_data
   !
   ! created: June 2014
   ! ------------------------------------------------------------------
-  subroutine chunk_config( ii, tt, read_flag, readPer )
+  subroutine chunk_config( tt, read_flag, readPer )
     !
     use mo_kind,             only: i4
-    use mo_julian,           only: caldat
-    use mo_global_variables, only: simPer, period
+    use mo_global_variables, only: period
     use mo_mhm_constants,    only: nodata_dp
     !
     implicit none
     !
     ! input variables
-    integer(i4), intent(in)  :: ii  ! basin id
     integer(i4), intent(in)  :: tt  ! current timestep
     !
     ! output variables
     logical,     intent(out) :: read_flag  ! indicate whether reading data should be read
     type(period),intent(out) :: readPer    ! start and end dates of reading Period
-    !
-    ! local variables
-    integer(i4)              :: year     ! current year
-    integer(i4)              :: month    ! current month
-    integer(i4)              :: day      ! current day
 
     ! initialize
     read_flag        = .false.
