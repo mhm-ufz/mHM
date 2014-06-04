@@ -86,23 +86,23 @@ dir_RestartIn(2)     = "../../test_basin/restart/"
 !
 !**** for Basin 3
 !> directory where morphological files are located
-dir_Morpho(3)        = "../../test_basin/input/morph/"
+dir_Morpho(3)        = "../../test_basin_2/input/morph/"
 !> directory where land cover files are located
-dir_LCover(3)        = "../../test_basin/input/luse/"
+dir_LCover(3)        = "../../test_basin_2/input/luse/"
 !> directory where discharge files are located
-dir_Gauges(3)        = "../../test_basin/input/gauge/"
+dir_Gauges(3)        = "../../test_basin_2/input/gauge/"
 !> directory where meteorological input is located
-dir_Precipitation(3) = "../../test_basin/input/meteo/pre/"
-dir_Temperature(3)   = "../../test_basin/input/meteo/tavg/"
-dir_ReferenceET(3)   = "../../test_basin/input/meteo/pet/"
+dir_Precipitation(3) = "../../test_basin_2/input/meteo/pre/"
+dir_Temperature(3)   = "../../test_basin_2/input/meteo/tavg/"
+dir_ReferenceET(3)   = "../../test_basin_2/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dir_LatLon(3)        = "../../test_basin/input/latlon/latlon_1.nc"
+dir_LatLon(3)        = "../../test_basin_2/input/latlon/latlon.nc"
 !> directory where output should be written to
 dir_Out(3)           = "output_b1/b3_"
 !> directory where restart output should be written
 dir_RestartOut(3)    = "output_b1/b3_"
 !> directory where restart input is located
-dir_RestartIn(3)     = "../../test_basin/restart/"
+dir_RestartIn(3)     = "../../test_basin_2/restart/"
 !
 !**** for Basin 4
 !> directory where morphological files are located
@@ -116,13 +116,53 @@ dir_Precipitation(4) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(4)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(4)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
-dir_LatLon(4)        = "../../test_basin/input/latlon/latlon_2.nc"
+dir_LatLon(4)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where output should be written to
 dir_Out(4)           = "output_b1/b4_"
 !> directory where restart output should be written
 dir_RestartOut(4)    = "output_b1/b4_"
 !> directory where restart input is located
 dir_RestartIn(4)     = "../../test_basin/restart/"
+!
+!**** for Basin 5
+!> directory where morphological files are located
+dir_Morpho(5)        = "../../test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(5)        = "../../test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(5)        = "../../test_basin/input/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(5) = "../../test_basin/input/meteo/pre/"
+dir_Temperature(5)   = "../../test_basin/input/meteo/tavg/"
+dir_ReferenceET(5)   = "../../test_basin/input/meteo/pet/"
+!> directory where latitude and longitude file is located
+dir_LatLon(5)        = "../../test_basin/input/latlon/latlon_2.nc"
+!> directory where output should be written to
+dir_Out(5)           = "output_b1/b5_"
+!> directory where restart output should be written
+dir_RestartOut(5)    = "output_b1/b5_"
+!> directory where restart input is located
+dir_RestartIn(5)     = "../../test_basin/restart/"
+!
+!**** for Basin 6
+!> directory where morphological files are located
+dir_Morpho(6)        = "../../test_basin_2/input/morph/"
+!> directory where land cover files are located
+dir_LCover(6)        = "../../test_basin_2/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(6)        = "../../test_basin_2/input/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(6) = "../../test_basin_2/input/meteo/pre/"
+dir_Temperature(6)   = "../../test_basin_2/input/meteo/tavg/"
+dir_ReferenceET(6)   = "../../test_basin_2/input/meteo/pet/"
+!> directory where latitude and longitude file is located
+dir_LatLon(6)        = "../../test_basin_2/input/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(6)           = "output_b1/b6_"
+!> directory where restart output should be written
+dir_RestartOut(6)    = "output_b1/b6_"
+!> directory where restart input is located
+dir_RestartIn(6)     = "../../test_basin_2/restart/"
 !
 /
 
@@ -151,14 +191,16 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 4
+nBasins             = 6
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m] per basin
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
 resolution_Hydrology(2) = 12000 
 resolution_Hydrology(3) = 24000 
-resolution_Hydrology(4) = 12000
+resolution_Hydrology(4) = 24000
+resolution_Hydrology(5) = 12000 
+resolution_Hydrology(6) = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -167,7 +209,9 @@ resolution_Hydrology(4) = 12000
 resolution_Routing(1)   = 24000 
 resolution_Routing(2)   = 12000
 resolution_Routing(3)   = 24000
-resolution_Routing(4)   = 12000
+resolution_Routing(4)   = 24000
+resolution_Routing(5)   = 12000
+resolution_Routing(6)   = 24000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
@@ -177,6 +221,8 @@ L0Basin(1)            = 1
 L0Basin(2)            = 1
 L0Basin(3)            = 2
 L0Basin(4)            = 3
+L0Basin(5)            = 4
+L0Basin(6)            = 5
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -385,7 +431,7 @@ processCase(8) = 1
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal           = 4
+nGaugesTotal           = 6
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -411,9 +457,9 @@ Gauge_filename(2,1)     = "00398.txt"
 !> number of gauges for subbasin (3)
 NoGauges_basin(3)       = 1
 !> id of gauge(1) for subbasin(3) --> (3,1) 
-Gauge_id(3,1)           = 398
+Gauge_id(3,1)           = 45
 !> name of file with timeseries of gauge(1) for subbasin(3) --> (3,1) 
-Gauge_filename(3,1)     = "00398.txt"
+Gauge_filename(3,1)     = "45.txt"
 !
 !> basin 4
 !> number of gauges for subbasin (4)
@@ -422,6 +468,22 @@ NoGauges_basin(4)       = 1
 Gauge_id(4,1)           = 398
 !> name of file with timeseries of gauge(1) for subbasin(4) --> (4,1) 
 Gauge_filename(4,1)     = "00398.txt"
+!
+!> basin 5
+!> number of gauges for subbasin (5)
+NoGauges_basin(5)       = 1
+!> id of gauge(1) for subbasin(5) --> (5,1) 
+Gauge_id(5,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(5) --> (5,1) 
+Gauge_filename(5,1)     = "00398.txt"
+!
+!> basin 6
+!> number of gauges for subbasin (6)
+NoGauges_basin(6)       = 1
+!> id of gauge(1) for subbasin(6) --> (6,1) 
+Gauge_id(6,1)           = 45
+!> name of file with timeseries of gauge(1) for subbasin(6) --> (6,1) 
+Gauge_filename(6,1)     = "45.txt"
 /
 
 &inflow_gauges
