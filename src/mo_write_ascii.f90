@@ -21,6 +21,8 @@ MODULE mo_write_ascii
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
   ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
   ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
+  ! Modified, Stephan Thober      Jun 2014 - bug fixed: in writing network properties
+  ! Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -223,8 +225,12 @@ CONTAINS
        write(uconfig, 202) '                Basin Runoff Data                '
        write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
        do i=1, nGaugesTotal
-          write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
-               minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+          if( all(gauge%Q(:,i) > nodata_dp) ) then
+             write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
+                                                    minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+          else
+             write(uconfig,108) i, gauge%basinId(i), nodata_dp, nodata_dp
+          end if
        end do
     end if
     ! inflow gauge data
@@ -232,8 +238,12 @@ CONTAINS
        write(uconfig, 202) '                Basin Inflow Data                 '
        write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
        do i=1, nInflowGaugesTotal
-          write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
-               minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
+          if( all(InflowGauge%Q(:,i) > nodata_dp) ) then
+             write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
+                                                           minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
+          else
+             write(uconfig,108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
+          end if
        end do
     end if
     ! basin config

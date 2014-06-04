@@ -15,7 +15,6 @@
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
 ! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
-! Stephan Thober, May 2014 - added switch for chunk read in
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -32,11 +31,11 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "test_basin/"
+dirConfigOut = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_basin/input/morph/"
+dirCommonFiles = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/morph/"
 !
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
@@ -48,63 +47,263 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_basin/input/morph/"
+dir_Morpho(1)        = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_basin/input/luse/"
+dir_LCover(1)        = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/luse/"
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_basin/input/gauge/"
+dir_Gauges(1)        = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/gauge/"
 !> directory where meteorological input is located
-dir_Precipitation(1) = "test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
-dir_ReferenceET(1)   = "test_basin/input/meteo/pet/"
+dir_Precipitation(1) = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/meteo/"
+dir_Temperature(1)   = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/meteo/"
+dir_ReferenceET(1)   = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/meteo/"
 !> directory where latitude and longitude file is located
-dir_LatLon(1)        = "test_basin/input/latlon/latlon_1.nc"
+dir_LatLon(1)        = "/data/stohyd/data/processed/europe/sub_basins/durance_espinasses/latlon/latlon.nc"
 !> directory where output should be written to
-dir_Out(1)           = "test_basin/output_b1/"
+dir_Out(1)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b01/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_basin/restart/"
+dir_RestartOut(1)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
 !> directory where restart output should be written
-dir_RestartIn(1)     = "test_basin/restart/"
+dir_RestartIn(1)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
 !
 !**** for Basin 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "test_basin/input/morph/"
+dir_Morpho(2)        = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/morph/"
 !> directory where land cover files are located
-dir_LCover(2)        = "test_basin/input/luse/"
+dir_LCover(2)        = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/luse/"
 !> directory where discharge files are located
-dir_Gauges(2)        = "test_basin/input/gauge/"
+dir_Gauges(2)        = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/gauge/"
 !> directory where meteorological input is located
-dir_Precipitation(2) = "test_basin/input/meteo/pre/"
-dir_Temperature(2)   = "test_basin/input/meteo/tavg/"
-dir_ReferenceET(2)   = "test_basin/input/meteo/pet/"
+dir_Precipitation(2) = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/meteo/"
+dir_Temperature(2)   = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/meteo/"
+dir_ReferenceET(2)   = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/meteo/"
 !> directory where latitude and longitude file is located
-dir_LatLon(2)        = "test_basin/input/latlon/latlon_2.nc"
+dir_LatLon(2)        = "/data/stohyd/data/processed/europe/sub_basins/inn_passau-ingling/latlon/latlon.nc"
 !> directory where output should be written to
-dir_Out(2)           = "test_basin/output_b2/"
+dir_Out(2)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b02/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin/restart/"
-!> directory where restart input is located
-dir_RestartIn(2)     = "test_basin/restart/"
+dir_RestartOut(2)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(2)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
 !
 !**** for Basin 3
 !> directory where morphological files are located
-dir_Morpho(3)        = "test_basin/input/morph/"
+dir_Morpho(3)        = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/morph/"
 !> directory where land cover files are located
-dir_LCover(3)        = "test_basin/input/luse/"
+dir_LCover(3)        = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/luse/"
 !> directory where discharge files are located
-dir_Gauges(3)        = "test_basin/input/gauge/"
+dir_Gauges(3)        = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/gauge/"
 !> directory where meteorological input is located
-dir_Precipitation(3) = "test_basin/input/meteo/pre/"
-dir_Temperature(3)   = "test_basin/input/meteo/tavg/"
-dir_ReferenceET(3)   = "test_basin/input/meteo/pet/"
+dir_Precipitation(3) = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/meteo/"
+dir_Temperature(3)   = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/meteo/"
+dir_ReferenceET(3)   = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/meteo/"
 !> directory where latitude and longitude file is located
-dir_LatLon(3)        = "test_basin/input/latlon/latlon_2.nc"
+dir_LatLon(3)        = "/data/stohyd/data/processed/europe/sub_basins/mur_spielfeld/latlon/latlon.nc"
 !> directory where output should be written to
-dir_Out(3)           = "test_basin/output_b3/"
+dir_Out(3)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b03/"
 !> directory where restart output should be written
-dir_RestartOut(3)    = "test_basin/restart/"
-!> directory where restart input is located
-dir_RestartIn(3)     = "test_basin/restart/"
+dir_RestartOut(3)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(3)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 4
+!> directory where morphological files are located
+dir_Morpho(4)        = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/morph/"
+!> directory where land cover files are located
+dir_LCover(4)        = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/luse/"
+!> directory where discharge files are located
+dir_Gauges(4)        = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(4) = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/meteo/"
+dir_Temperature(4)   = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/meteo/"
+dir_ReferenceET(4)   = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(4)        = "/data/stohyd/data/processed/europe/sub_basins/neckar_lauffen/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(4)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b04/"
+!> directory where restart output should be written
+dir_RestartOut(4)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(4)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 5
+!> directory where morphological files are located
+dir_Morpho(5)        = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/morph/"
+!> directory where land cover files are located
+dir_LCover(5)        = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/luse/"
+!> directory where discharge files are located
+dir_Gauges(5)        = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(5) = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/meteo/"
+dir_Temperature(5)   = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/meteo/"
+dir_ReferenceET(5)   = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(5)        = "/data/stohyd/data/processed/europe/sub_basins/weser_porta/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(5)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b05/"
+!> directory where restart output should be written
+dir_RestartOut(5)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(5)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 6
+!> directory where morphological files are located
+dir_Morpho(6)        = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/morph/"
+!> directory where land cover files are located
+dir_LCover(6)        = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/luse/"
+!> directory where discharge files are located
+dir_Gauges(6)        = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(6) = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/meteo/"
+dir_Temperature(6)   = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/meteo/"
+dir_ReferenceET(6)   = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(6)        = "/data/stohyd/data/processed/europe/sub_basins/vezere_campagne/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(6)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b06/"
+!> directory where restart output should be written
+dir_RestartOut(6)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(6)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 7
+!> directory where morphological files are located
+dir_Morpho(7)        = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/morph/"
+!> directory where land cover files are located
+dir_LCover(7)        = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/luse/"
+!> directory where discharge files are located
+dir_Gauges(7)        = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(7) = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/meteo/"
+dir_Temperature(7)   = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/meteo/"
+dir_ReferenceET(7)   = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(7)        = "/data/stohyd/data/processed/europe/sub_basins/vereinigte-mulde_bad-dueben/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(7)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b07/"
+!> directory where restart output should be written
+dir_RestartOut(7)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(7)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 8
+!> directory where morphological files are located
+dir_Morpho(8)        = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/morph/"
+!> directory where land cover files are located
+dir_LCover(8)        = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/luse/"
+!> directory where discharge files are located
+dir_Gauges(8)        = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(8) = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/meteo/"
+dir_Temperature(8)   = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/meteo/"
+dir_ReferenceET(8)   = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(8)        = "/data/stohyd/data/processed/europe/sub_basins/oise_sempigny/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(8)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b08/"
+!> directory where restart output should be written
+dir_RestartOut(8)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(8)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 9
+!> directory where morphological files are located
+dir_Morpho(9)        = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/morph/"
+!> directory where land cover files are located
+dir_LCover(9)        = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/luse/"
+!> directory where discharge files are located
+dir_Gauges(9)        = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(9) = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/meteo/"
+dir_Temperature(9)   = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/meteo/"
+dir_ReferenceET(9)   = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(9)        = "/data/stohyd/data/processed/europe/sub_basins/ibar_leposavic/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(9)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b09/"
+!> directory where restart output should be written
+dir_RestartOut(9)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(9)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 10
+!> directory where morphological files are located
+dir_Morpho(10)        = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/morph/"
+!> directory where land cover files are located
+dir_LCover(10)        = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/luse/"
+!> directory where discharge files are located
+dir_Gauges(10)        = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(10) = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/meteo/"
+dir_Temperature(10)   = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/meteo/"
+dir_ReferenceET(10)   = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(10)        = "/data/stohyd/data/processed/europe/sub_basins/ebro_castejon/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(10)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b10/"
+!> directory where restart output should be written
+dir_RestartOut(10)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(10)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2010_12_31/"
+!
+!**** for Basin 11
+!> directory where morphological files are located
+dir_Morpho(11)        = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/morph/"
+!> directory where land cover files are located
+dir_LCover(11)        = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/luse/"
+!> directory where discharge files are located
+dir_Gauges(11)        = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(11) = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/meteo/"
+dir_Temperature(11)   = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/meteo/"
+dir_ReferenceET(11)   = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(11)        = "/data/stohyd/data/processed/europe/sub_basins/pisuerga_cabezon-de-pisuerga/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(11)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b11/"
+!> directory where restart output should be written
+dir_RestartOut(11)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2011_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(11)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2011_12_31/"
+!
+!**** for Basin 12
+!> directory where morphological files are located
+dir_Morpho(12)        = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/morph/"
+!> directory where land cover files are located
+dir_LCover(12)        = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/luse/"
+!> directory where discharge files are located
+dir_Gauges(12)        = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(12) = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/meteo/"
+dir_Temperature(12)   = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/meteo/"
+dir_ReferenceET(12)   = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(12)        = "/data/stohyd/data/processed/europe/sub_basins/duero_gormaz/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(12)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b12/"
+!> directory where restart output should be written
+dir_RestartOut(12)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2012_12_31/"
+!> directory where restart output should be written
+dir_RestartIn(12)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2012_12_31/"
+!
+!**** for Basin 13
+!> directory where morphological files are located
+dir_Morpho(13)        = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/morph/"
+!> directory where land cover files are located
+dir_LCover(13)        = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/luse/"
+!> directory where discharge files are located
+dir_Gauges(13)        = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(13) = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/meteo/"
+dir_Temperature(13)   = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/meteo/"
+dir_ReferenceET(13)   = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(13)        = "/data/stohyd/data/processed/europe/sub_basins/henares_espinillos/latlon/latlon.nc"
+!> directory where output should be written to
+dir_Out(13)           = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/default_run/output/b13/"
+!> directory where restart output should be written
+dir_RestartOut(13)    = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2013_13_31/"
+!> directory where restart output should be written
+dir_RestartIn(13)     = "/data/stohyd/mHM_project/europe/13_basin_multiscale_verif_run/RK_OR_06_2014/realization_02/restart_2013_13_31/"
 /
 
 !
@@ -132,15 +331,25 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins = 3
+nBasins = 13
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
-resolution_Hydrology(2) = 12000 
-resolution_Hydrology(3) = 12000 
+resolution_Hydrology(2) = 24000 
+resolution_Hydrology(3) = 24000 
+resolution_Hydrology(4) = 24000 
+resolution_Hydrology(5) = 24000 
+resolution_Hydrology(6) = 24000 
+resolution_Hydrology(7) = 24000 
+resolution_Hydrology(8) = 24000 
+resolution_Hydrology(9) = 24000 
+resolution_Hydrology(10) = 24000 
+resolution_Hydrology(11) = 24000 
+resolution_Hydrology(12) = 24000 
+resolution_Hydrology(13) = 24000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -148,17 +357,37 @@ resolution_Hydrology(3) = 12000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 48000 
+resolution_Routing(1) = 24000 
 resolution_Routing(2) = 24000 
-resolution_Routing(3) = 48000
+resolution_Routing(3) = 24000 
+resolution_Routing(4) = 24000 
+resolution_Routing(5) = 24000 
+resolution_Routing(6) = 24000 
+resolution_Routing(7) = 24000 
+resolution_Routing(8) = 24000 
+resolution_Routing(9) = 24000 
+resolution_Routing(10) = 24000 
+resolution_Routing(11) = 24000 
+resolution_Routing(12) = 24000 
+resolution_Routing(13) = 24000 
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
-L0Basin(1) = 1
-L0Basin(2) = 1
-L0Basin(3) = 2
+L0Basin(1)  = 1 
+L0Basin(2)  = 2 
+L0Basin(3)  = 3 
+L0Basin(4)  = 4 
+L0Basin(5)  = 5 
+L0Basin(6)  = 6 
+L0Basin(7)  = 7 
+L0Basin(8)  = 8 
+L0Basin(9)  = 9 
+L0Basin(10) = 10
+L0Basin(11) = 11
+L0Basin(12) = 12
+L0Basin(13) = 13
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -205,13 +434,13 @@ restart_flag_config_write = .TRUE.
 !-----------------------------------------------------------------------------
 warmingDays    = 360
 !> first year of wanted simulation period
-evalPer%yStart = 1990
+evalPer%yStart = 1951
 !> first month of wanted simulation period
 evalPer%mStart = 01
 !> first day   of wanted simulation period
 evalPer%dStart = 01
 !> last year   of wanted simulation period
-evalPer%yEnd   = 1993
+evalPer%yEnd   = 1955
 !> last month  of wanted simulation period
 evalPer%mEnd   = 12
 !> last day    of wanted simulation period
@@ -232,13 +461,15 @@ timestep_model_inputs = 0
 !> Variables given in this namelist are common to all basins to be modeled.
 &soilLayer
 !> [mm] soil depth down to which organic matter is possible  
-tillageDepth      = 200
+tillageDepth      = 300
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM = 2
+nSoilHorizons_mHM = 3
 ! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soil_Depth(1)     = 200
+soil_Depth(1)   = 50
+soil_Depth(2)   = 250
 /
+
 
 !******************************************************************************************
 ! LAND COVER 
@@ -252,29 +483,15 @@ fracSealed_cityArea = 0.6
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered 
 !> chronologically.
-nLcover_scene = 3
+nLcover_scene = 1
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1) = 1975
+LCoverYearStart(1) = 1950
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1990
+LCoverYearEnd(1)   = 2010
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 2
-LCoverYearStart(2) = 1991
-!> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 1993
-!> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 3
-LCoverYearStart(3) = 1994
-!> ending year of land cover scnene 3
-LCoverYearEnd(3)   = 2004
-!> name of land cover file for scnene 3
-LCoverfName(3)     = 'lc_1990.asc'
 /
 !
 !******************************************************************************************
@@ -363,7 +580,7 @@ processCase(7) = 1
 processCase(8) = 1
 /
 
-
+!
 !******************************************************************************************
 ! Specifcation of evaluation and inflow gauges
 !******************************************************************************************
@@ -375,7 +592,7 @@ processCase(8) = 1
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 3
+nGaugesTotal = 13
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -385,25 +602,105 @@ nGaugesTotal = 3
 !> number of gauges for subbasin (1)
 NoGauges_basin(1)   = 1
 !> id of gauge(1) for subbasin(1) --> (1,1) 
-Gauge_id(1,1)       = 398
+Gauge_id(1,1)       = 1929
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
-gauge_filename(1,1) = "00398.txt"
+gauge_filename(1,1) = "1929.txt"
 !
 !> basin 2
-!> number of gauges for subbasin (2)
+!> number of gauges for subbasin (1)
 NoGauges_basin(2)   = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(2,1)       = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(2,1) = "00398.txt"
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(2,1)       = 209
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(2,1) = "209.txt"
 !
 !> basin 3
-!> number of gauges for subbasin (3)
+!> number of gauges for subbasin (1)
 NoGauges_basin(3)   = 1
-!> id of gauge(1) for subbasin(3) --> (3,1) 
-Gauge_id(3,1)       = 398
-!> name of file with timeseries of gauge(1) for subbasin(3) --> (3,1) 
-Gauge_filename(3,1) = "00398.txt"
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(3,1)       = 363
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(3,1) = "363.txt"
+!
+!> basin 4
+!> number of gauges for subbasin (1)
+NoGauges_basin(4)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(4,1)       = 393
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(4,1) = "393.txt"
+!
+!> basin 5
+!> number of gauges for subbasin (1)
+NoGauges_basin(5)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(5,1)       = 166
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(5,1) = "166.txt"
+!
+!> basin 6
+!> number of gauges for subbasin (1)
+NoGauges_basin(6)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(6,1)       = 1876
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(6,1) = "1876.txt"
+!
+!> basin 7
+!> number of gauges for subbasin (1)
+NoGauges_basin(7)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(7,1)       = 190
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(7,1) = "190.txt"
+!
+!> basin 8
+!> number of gauges for subbasin (1)
+NoGauges_basin(8)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(8,1)       = 1762
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(8,1) = "1762.txt"
+!
+!> basin 9
+!> number of gauges for subbasin (1)
+NoGauges_basin(9)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(9,1)       = 56
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(9,1) = "56.txt"
+!
+!> basin 10
+!> number of gauges for subbasin (1)
+NoGauges_basin(10)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(10,1)       = 924
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(10,1) = "924.txt"
+!
+!> basin 11
+!> number of gauges for subbasin (1)
+NoGauges_basin(11)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(11,1)       = 1210
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(11,1) = "1210.txt"
+!
+!> basin 12
+!> number of gauges for subbasin (1)
+NoGauges_basin(12)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(12,1)       = 718
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(12,1) = "718.txt"
+!
+!> basin 13
+!> number of gauges for subbasin (1)
+NoGauges_basin(13)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(13,1)       = 1481
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(13,1) = "1481.txt"
 /
 
 &inflow_gauges
@@ -425,20 +722,6 @@ NoInflowGauges_basin(1)   = 0
 InflowGauge_id(1,1)       = -9
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
 InflowGauge_filename(1,1) = ""
-!
-!> basin 2
-NoInflowGauges_basin(2)   = 0
-!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(2,1)       = -9
-!> name of file with timeseries of inflow gauge(1) for subbasin(2) --> (2,1) 
-InflowGauge_filename(2,1) = ""
-!
-!> basin 3
-NoInflowGauges_basin(3)   = 0
-!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(3,1)       = -9
-!> name of file with timeseries of inflow gauge(1) for subbasin(3) --> (3,1) 
-InflowGauge_filename(3,1) = ""
 /
 
 !******************************************************************************************
