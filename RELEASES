@@ -27,7 +27,7 @@ Bugs resolved:
 - Wrong mapping of evaluation discharge gauges for runs involving multiple gauges.
 
 Known bugs:
-- None.
+- Print out of River network in Config File is wrong for Multi-Basin setup, i.e., the River network is always correctly written for the first basin, but in correctly for following basins when these are either different ones or the same one with a different Hydrology or Routing resolution.
 
 
 
