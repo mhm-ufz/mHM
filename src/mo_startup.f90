@@ -92,7 +92,8 @@ CONTAINS
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, restart_flag_config_read, dirRestartIn
+    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, &
+         restart_flag_config_read, restart_flag_states_read, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
     USE mo_restart,          ONLY: read_restart_L11_config, read_restart_config
@@ -111,12 +112,14 @@ CONTAINS
        ! soilDB common for all basins
        call generate_soil_database(soilDB)
     end if
-
+    
     ! L0 and L1 initialization
-    if (iBasin .eq. 1) then
-       call L0_check_input(iBasin)
-    else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
-       call L0_check_input(iBasin)
+    if ( .not. restart_flag_states_read ) then
+       if (iBasin .eq. 1) then
+          call L0_check_input(iBasin)
+       else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+          call L0_check_input(iBasin)
+       end if
     end if
 
     if ( .not. restart_flag_config_read ) then

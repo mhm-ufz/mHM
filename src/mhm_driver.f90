@@ -148,6 +148,7 @@ PROGRAM mhm_driver
   USE mo_global_variables,    ONLY :                         &
        nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
        restart_flag_states_write, restart_flag_config_write, &      ! restart writing flags
+       restart_flag_states_read,                             &      ! restart reading flags
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
@@ -275,7 +276,7 @@ PROGRAM mhm_driver
   itimer = 1
   call message()
 
-  !if (.not. restart_flag_read ) then
+  ! if (.not. restart_flag_states_read ) then
      call message('  Read data ' )
      call timer_start(itimer)
      ! for DEM, slope, ... define nGvar local
@@ -283,7 +284,7 @@ PROGRAM mhm_driver
      call read_data()
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  !end if
+  ! end if
 
   ! read data for every basin
   do ii=1, nbasins

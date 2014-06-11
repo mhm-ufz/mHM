@@ -482,7 +482,6 @@ CONTAINS
          basin, & 
          nBasins, &
          level1, &
-         L0_soilId, &
          L0_nCells, &
          nSoilTypes, &
          resolutionHydrology, &
@@ -515,7 +514,6 @@ CONTAINS
     real(dp)                                             :: cellsize0
     !
     ! Dummy Variables
-    integer(i4)                                          :: k, j
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 
@@ -612,11 +610,6 @@ CONTAINS
        allocate( soilId_isPresent(nSoilTypes) )
        soilId_isPresent(:) = 0
     end if
-
-    do k = iStart0, iEnd0
-       j = L0_soilId(k)
-       soilId_isPresent(j) = 1
-    end do
     !
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Read L1 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
