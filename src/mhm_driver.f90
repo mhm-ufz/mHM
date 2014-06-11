@@ -169,7 +169,7 @@ PROGRAM mhm_driver
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
-  USE mo_restart,             ONLY : write_restart,          &
+  USE mo_restart,             ONLY : write_restart_file,     &
        write_restart_states,                                 &      ! Writing states for restart
        write_restart_config                                         ! Writing configuration for restart
   USE mo_sce,                 ONLY : sce                            ! Optimize with Shuffled Complex Evolution SCE
@@ -483,7 +483,7 @@ PROGRAM mhm_driver
      call message()
      call message( '  Write restart states file')
      call timer_start(itimer)
-     call write_restart( dirRestartOut )
+     call write_restart_file( dirRestartOut )
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if

@@ -25,13 +25,313 @@ MODULE mo_restart
   PUBLIC :: read_restart_config     ! read restart files for configuration from a given path
   PUBLIC :: read_restart_L11_config ! read L11 configuration
   PUBLIC :: write_restart_config    ! write restart files for configuration to a given path
+  PUBLIC :: write_restart_file
 
   PRIVATE
 
 CONTAINS
   ! ------------------------------------------------------------------
-
+  
   !      NAME
+  !         write_restart
+  
+  subroutine write_restart_file( OutPath )
+
+    use mo_kind,             only: i4, dp
+    use mo_init_states,      only: get_basin_info
+    use mo_message,          only: message
+    use mo_string_utils,     only: num2str
+    use mo_ncwrite,          only: create_netcdf, write_static_netcdf, close_netcdf, var2nc
+    use mo_mhm_constants,    only: nodata_i4, nodata_dp
+    use mo_global_variables, only: processMatrix, &
+         L1_fSealed, &
+         L1_fForest, &
+         L1_fPerm, &
+         L1_Inter, &
+         L1_snowPack, &
+         L1_sealSTW, &
+         L1_soilMoist, &
+         L1_unsatSTW, &
+         L1_satSTW, &
+         L1_aETSoil, &
+         L1_aETCanopy, &
+         L1_aETSealed, &
+         L1_baseflow, &
+         L1_infilSoil, &
+         L1_fastRunoff, &
+         L1_melt, &
+         L1_percol, &
+         L1_preEffect, &
+         L1_rain, &
+         L1_runoffSeal, &
+         L1_slowRunoff, &
+         L1_snow, &
+         L1_Throughfall, &
+         L1_total_runoff, &
+         L1_alpha, &
+         L1_degDayInc, &
+         L1_degDayMax, &
+         L1_degDayNoPre, &
+         L1_degDay, &
+         L1_karstLoss, &
+         L1_fAsp, &
+         L1_fRoots, &
+         L1_maxInter, &
+         L1_kfastFlow, &
+         L1_kSlowFlow, &
+         L1_kBaseFlow, &
+         L1_kPerco, &
+         L1_soilMoistFC, &
+         L1_soilMoistSat, &
+         L1_soilMoistExp, &
+         L1_tempThresh, &
+         L1_unsatThresh, &
+         L1_sealedThresh, &
+         L1_wiltingPoint, &
+         L11_Qmod, &
+         L11_qOUT, &
+         L11_qTIN, &
+         L11_qTR, &
+         L11_K, &
+         L11_xi, &
+         L11_C1, &
+         L11_C2, &
+         L11_FracFPimp, &
+         nSoilHorizons_mHM
+
+    implicit none
+
+    character(256)                           :: Fname
+    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
+    integer(i4)                              :: iBasin
+    integer(i4)                              :: ii
+    integer(i4)                              :: s1       ! start index at level 1
+    integer(i4)                              :: e1       ! end index at level 1
+    integer(i4)                              :: ncols1   ! number of colums at level 1
+    integer(i4)                              :: nrows1   ! number of rows at level 1
+    logical, dimension(:,:), allocatable     :: mask1    ! mask at level 1
+    real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
+    ! dimension variables
+    character(256), dimension(3)             :: dims_L1 ! dimension names for L1 states
+    character(256), dimension(3)             :: dims_L11! dimension names for L11 states
+
+    ! initialize
+    dims_L1(1) = 'nrows1'
+    dims_L1(2) = 'ncols1'
+    dims_L1(3) = 'L1_soilhorizons'
+    dims_L11(1) = 'nrows11'
+    dims_L11(2) = 'ncols11'
+    dims_L11(3) = 'nIT'
+
+    basin_loop: do iBasin = 1, size(OutPath)
+       
+       ! get Level1 information about the basin
+       call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
+
+       ! write restart file for iBasin
+       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+
+       call var2nc( Fname, unpack( L1_fSealed(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fSealed', &
+            longname = 'fraction of Sealed area at level 1', fill_value = nodata_dp, &
+            f_exists = .false. ) ! create file
+
+       call var2nc( Fname, unpack( L1_fForest(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fForest', &
+            longname = 'fraction of Forest area at level 1', fill_value = nodata_dp)
+       
+       call var2nc( Fname, unpack( L1_fPerm(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fPerm', &
+            longname = 'fraction of permeable area at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_inter(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_Inter', &
+            longname = 'Interception storage at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_snowPack(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_snowPack', &
+            longname = 'Snowpack at level 1', fill_value = nodata_dp)
+       
+       call var2nc( Fname, unpack( L1_sealSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_sealSTW', &
+            longname = 'Retention storage of impervious areas at level 1', fill_value = nodata_dp)
+
+       allocate( dummy_d3( nrows1, ncols1, size( L1_soilMoist, 2) ) )
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoist(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_soilMoist', &
+            longname = 'soil moisture at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_unsatSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_unsatSTW', &
+            longname = 'upper soil storage at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_satSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_satSTW', &
+            longname = 'groundwater storage at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_aETSoil(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_aETSoil', &
+            longname = 'soil actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_aETCanopy(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_aETCanopy', &
+            longname = 'canopy actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_aETSealed(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_aETSealed', &
+            longname = 'sealed actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_baseflow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_baseflow', &
+            longname = 'baseflow at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_infilSoil(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_infilSoil', &
+            longname = 'soil in-exfiltration at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_fastRunoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fastRunoff', &
+            longname = 'fast runoff', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_percol(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_percol', &
+            longname = 'snow melt at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_melt(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_melt', &
+            longname = 'percolation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_preEffect(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_preEffect', &
+            longname = 'effective precip. depth (snow melt + rain) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_rain(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_rain', &
+            longname = 'rain (liquid water) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_runoffSeal(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_runoffSeal', &
+            longname = 'runoff from impervious area at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_slowRunoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_slowRunoff', &
+            longname = 'slow runoff at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_snow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_snow', &
+            longname = 'snow (solid water) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_Throughfall(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_Throughfall', &
+            longname = 'throughfall at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_total_runoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_total_runoff', &
+            longname = 'total runoff at level 1', fill_value = nodata_dp)
+
+       !-------------------------------------------
+       ! EFFECTIVE PARAMETERS
+       !-------------------------------------------
+       call var2nc( Fname, unpack( L1_alpha(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_alpha', &
+            longname = 'exponent for the upper reservoir at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayInc(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayInc', &
+            longname = 'increase of the Degree-day factor per mm of increase in precipitation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayMax(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayMax', &
+            longname = 'maximum degree-day factor at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayNoPre(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayNoPre', &
+            longname = 'degree-day factor with no precipitation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDay(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDay', &
+            longname = 'degree-day factor at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_karstLoss(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_karstLoss', &
+            longname = 'Karstic percolation loss at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fAsp', &
+            longname = 'PET correction factor due to terrain aspect at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_fRoots(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1(1:2), 'L1_fRoots', &
+            longname = 'Fraction of roots in soil horizons at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_maxInter(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_maxInter', &
+            longname = 'Maximum interception at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kfastFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kfastFlow', &
+            longname = 'fast interflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kSlowFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kSlowFlow', &
+            longname = 'slow interflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kBaseFlow', &
+            longname = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kBaseFlow', &
+            longname = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kPerco(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kPerco', &
+            longname = 'percolation coefficient at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistFC(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1(1:2), 'L1_soilMoistFCs', &
+            longname = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1(1:2), 'L1_soilMoistSat', &
+            longname = 'Saturation soil moisture for each horizon [mm] at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistExp(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1(1:2), 'L1_soilMoistExp', &
+            longname = 'Exponential parameter to how non-linear is the soil water retention at level 1', fill_value = nodata_dp)
+
+       
+       ! free dummy variables
+       deallocate( dummy_d3 )
+       
+    end do basin_loop
+    
+    
+  end subroutine write_restart_file
+  ! ------------------------------------------------------------------
+
+  !      NAMEw
   !         read_restart_L11_config
 
   !     PURPOSE
