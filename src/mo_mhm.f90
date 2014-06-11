@@ -108,7 +108,7 @@ CONTAINS
   subroutine mHM(  &
       ! Input -----------------------------------------------------------------
       ! Configuration
-      restart_iFlag_read  , & ! flag for reading restart files for state variables
+      perform_mpr  , & ! flag for reading restart files for state variables
       fSealedInCity       , & ! sealed area fraction within cities
       LAI_option_Flag     , & ! Flag for LAI option
       counter_month       , & ! counter to tackle the change of month 
@@ -256,7 +256,7 @@ CONTAINS
     implicit none
 
     ! Intent
-    logical,                     intent(in) :: restart_iFlag_read   ! flag for reading restart files for state variables
+    logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: LAI_option_Flag      ! Flag for LAI option
     integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
@@ -486,7 +486,7 @@ CONTAINS
         !-------------------------------------------------------------------
         ! NOW call MPR, if mHM has not been restarted
         !-------------------------------------------------------------------
-        if ( .not. restart_iFlag_read ) then
+        if ( perform_mpr ) then
            call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
                 geoUnit0, GeoUnitList, GeoUnitKar,                                   &
                 SDB_is_present, SDB_nHorizons,                                       &
@@ -504,11 +504,11 @@ CONTAINS
         end if
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
-        ! step and when restart_iFlag_read = FALSE 
+        ! step and when perform_mpr = FALSE 
         ! based on the half of the derived values of Field capacity
         ! other states are kept at their inital values
         !-------------------------------------------------------------------
-        if( (tt .EQ. 1) .AND. (.NOT. restart_iFlag_read) ) then
+        if( (tt .EQ. 1) .AND. ( perform_mpr ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
 

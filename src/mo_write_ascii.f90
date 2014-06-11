@@ -76,6 +76,7 @@ MODULE mo_write_ascii
   !>        \date May 2013
   !         Modified, Juliane Mai,    May 2013 - module version and documentation
   !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
+  !                   Stephan Thober, Jun 2014 - updated read_restart
 
   PRIVATE
 
@@ -114,10 +115,8 @@ CONTAINS
          timeStep,                  &
          resolutionHydrology,       &
          resolutionRouting,         &  
-         restart_flag_states_read,  &
-         restart_flag_states_write, &
-         restart_flag_config_read,  &
-         restart_flag_config_write, &
+         read_restart,              &
+         write_restart,             &
          dirConfigOut,              &
          dirMorpho,                 &
          dirLCover,                 &
@@ -175,10 +174,8 @@ CONTAINS
           write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
        end if
     end do
-    write(uconfig, 126)    'Flag READ  restart states     ', restart_flag_states_read
-    write(uconfig, 126)    'Flag WRITE restart states     ', restart_flag_states_write
-    write(uconfig, 126)    'Flag READ  restart config.    ', restart_flag_config_read
-    write(uconfig, 126)    'Flag WRITE restart config.    ', restart_flag_config_write
+    write(uconfig, 126)    'Flag READ  restart            ', read_restart
+    write(uconfig, 126)    'Flag WRITE restart            ', write_restart
     !
     !******************
     ! Model Run period 

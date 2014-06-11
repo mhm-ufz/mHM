@@ -88,12 +88,13 @@ CONTAINS
   !                  Rohini Kumar,   May 2013 - code cleaned and error checks
   !                  Rohini Kumar,   Nov 2013 - updated documentation
   !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
+  !                  Stephan Thober, Jun 2014 - updated flag for read_restart
 
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
     use mo_global_variables, only: processMatrix, soilDB, L0_Basin, &
-         restart_flag_config_read, restart_flag_states_read, dirRestartIn
+         read_restart, perform_mpr, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
     USE mo_restart,          ONLY: read_restart_L11_config, read_restart_config
@@ -114,7 +115,7 @@ CONTAINS
     end if
     
     ! L0 and L1 initialization
-    if ( .not. restart_flag_states_read ) then
+    if ( perform_mpr ) then
        if (iBasin .eq. 1) then
           call L0_check_input(iBasin)
        else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
@@ -122,7 +123,7 @@ CONTAINS
        end if
     end if
 
-    if ( .not. restart_flag_config_read ) then
+    if ( .not. read_restart ) then
        if (iBasin .eq. 1) then
           call L0_variable_init(iBasin, soilDB%is_present)
        else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
@@ -139,7 +140,7 @@ CONTAINS
     ! L11: network initialization
     if ( processMatrix(8, 1) .ne. 0 ) then
        ! check if variables should be read from restart
-       if ( .not. restart_flag_config_read ) then
+       if ( .not. read_restart ) then
           call L11_variable_init(iBasin)
           call L11_flow_direction(iBasin)
           call L11_set_network_topology(iBasin)

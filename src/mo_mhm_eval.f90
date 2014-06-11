@@ -76,6 +76,7 @@ CONTAINS
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
   !                   Matthias Zink,        Mar 2014 - added inflow from upstream areas
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
+  !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -94,7 +95,7 @@ CONTAINS
     use mo_write_fluxes_states, only : WriteFluxStateInit
     use mo_global_variables,    only : &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
-         restart_flag_states_read, fracSealed_CityArea,      &
+         read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
          timeStep, nBasins, basin, simPer, readPer,          & 
          nGaugesTotal,                                       &
@@ -222,7 +223,7 @@ CONTAINS
     ! All variables to be initalized had been allocated to the required 
     ! space before this point (see, mo_startup: initialise)
     !-------------------------------------------------------------------
-    if (.NOT. restart_flag_states_read ) then
+    if (.NOT. read_restart ) then
        ! as default values, 
        ! all cells for all modeled basins are simultenously initalized ONLY ONCE
        call variables_default_init()
@@ -339,7 +340,7 @@ CONTAINS
           !  S    STATE VARIABLES L1
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
-          call mhm(restart_flag_states_read, fracSealed_cityArea,                           & ! IN C
+          call mhm(perform_mpr, fracSealed_cityArea,                           & ! IN C
                iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
                nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 

@@ -78,6 +78,7 @@ CONTAINS
   !                    Stephan Thober             to process_matrix flag
   !                    Matthias Zink   Mar 2014   added inflow gauge
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
+  !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -132,7 +133,7 @@ CONTAINS
                                      evalPer,                             & ! model evaluation period (for discharge read in)
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
-                                     restart_flag_states_read,            & ! flag indicating whether L0 is read
+                                     perform_mpr,                         & ! flag indicating whether L0 is read
                                      iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
                                      resolutionHydrology                    ! hydrology resolution (L1 scale)
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
@@ -269,7 +270,7 @@ CONTAINS
           basin%L0_iEndMask  (iBasin) = basin%L0_iStartMask(iBasin) + nCells - 1
        end if
        ! Read L0 data, if restart is false
-       read_L0_data: if ( .not. restart_flag_states_read ) then
+       read_L0_data: if ( perform_mpr ) then
           !
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
@@ -461,7 +462,7 @@ CONTAINS
     !----------------------------------------------------------------
     ! Correction for slope and aspect -- min value set above
     !----------------------------------------------------------------
-    if ( .not. restart_flag_states_read ) then
+    if ( perform_mpr ) then
        L0_slope  = merge(  slope_minVal, L0_slope,  (L0_slope  .lt.  slope_minVal)  )
        L0_asp    = merge( aspect_minVal, L0_asp,    (L0_asp    .lt. aspect_minVal)  )
     end if

@@ -22,6 +22,7 @@ MODULE mo_global_variables
   !           Matthias Zink,  Nov 2013  - added "InflowGauge" and inflow gauge variabels in basin 
   !           Rohini Kumar,   May 2014  - added options for the model run cordinate system
   !           Stephan Thober, Jun 2014  - added timeStep_model_inputs and readPer
+  !           Stephan Thober, Jun 2014  - added perform_mpr, updated restart flags
 
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
@@ -43,14 +44,10 @@ MODULE mo_global_variables
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
   real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
-  logical,       public                              :: restart_flag_states_read   ! flag for reading restart files 
-  !                                                                                ! for state variables
-  logical,       public                              :: restart_flag_states_write  ! flag for writing restrat files 
-  !                                                                                ! for state variables
-  logical,       public                              :: restart_flag_config_read   ! flag for reading restart files 
-  !                                                                                ! for config variables
-  logical,       public                              :: restart_flag_config_write  ! flag for writing restrat files 
-  !                                                                                ! for config variables
+  logical,       public                              :: read_restart               ! flag 
+  logical,       public                              :: write_restart              ! flag 
+  logical,       public                              :: perform_mpr                ! switch for performing
+                                                                                   ! multiscale parameter regionalization
   character(256),public                              :: inputFormat_meteo_forcings ! format of meteo input data(bin or nc)
   ! LAI information
   integer(i4),    public                             :: iFlag_LAI_data_format      ! flag on how LAI data has to be read
