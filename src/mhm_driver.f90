@@ -457,31 +457,10 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
-  ! write restart for configuration
   if ( write_restart ) then
      itimer = itimer + 1
      call message()
-     call message( '  Write restart config file')
-     call timer_start(itimer)
-     call write_restart_config( dirRestartOut )
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  end if
-  ! write restart for states
-  if ( write_restart ) then
-     itimer = itimer + 1
-     call message()
-     call message( '  Write restart states file')
-     call timer_start(itimer)
-     call write_restart_states( dirRestartOut )
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  end if
-  ! write restart for states
-  if ( write_restart ) then
-     itimer = itimer + 1
-     call message()
-     call message( '  Write restart states file')
+     call message( '  Write restart file')
      call timer_start(itimer)
      call write_restart_file( dirRestartOut )
      call timer_stop(itimer)
