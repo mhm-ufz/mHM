@@ -39,10 +39,9 @@ CONTAINS
 
     use mo_kind,             only: i4, dp
     use mo_init_states,      only: get_basin_info
-    use mo_message,          only: message
     use mo_string_utils,     only: num2str
-    use mo_ncwrite,          only: create_netcdf, write_static_netcdf, close_netcdf, var2nc
-    use mo_mhm_constants,    only: nodata_i4, nodata_dp
+    use mo_ncwrite,          only: var2nc
+    use mo_mhm_constants,    only: nodata_dp
     use mo_global_variables, only: processMatrix, &
          L1_fSealed, &
          L1_fForest, &
@@ -96,8 +95,7 @@ CONTAINS
          L11_xi, &
          L11_C1, &
          L11_C2, &
-         L11_FracFPimp, &
-         nSoilHorizons_mHM
+         L11_FracFPimp
 
     implicit none
 
@@ -110,6 +108,11 @@ CONTAINS
     integer(i4)                              :: ncols1   ! number of colums at level 1
     integer(i4)                              :: nrows1   ! number of rows at level 1
     logical, dimension(:,:), allocatable     :: mask1    ! mask at level 1
+    integer(i4)                              :: s11      ! start index at level 11
+    integer(i4)                              :: e11      ! end index at level 11
+    integer(i4)                              :: ncols11  ! number of colums at level 11
+    integer(i4)                              :: nrows11  ! number of rows at level 11
+    logical, dimension(:,:), allocatable     :: mask11   ! mask at level 11
     real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
     ! dimension variables
     character(256), dimension(3)             :: dims_L1 ! dimension names for L1 states
@@ -127,6 +130,8 @@ CONTAINS
        
        ! get Level1 information about the basin
        call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
+       ! get Level11 information about the basin
+       call get_basin_info( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
 
        ! write restart file for iBasin
        Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
@@ -204,11 +209,11 @@ CONTAINS
 
        call var2nc( Fname, unpack( L1_percol(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_percol', &
-            longname = 'snow melt at level 1', fill_value = nodata_dp)
+            longname = 'percolation at level 1', fill_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_melt(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_melt', &
-            longname = 'percolation at level 1', fill_value = nodata_dp)
+            longname = 'snow melt at level 1', fill_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_preEffect(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_preEffect', &
@@ -292,10 +297,6 @@ CONTAINS
             dims_L1(1:2), 'L1_kBaseFlow', &
             longname = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
 
-       call var2nc( Fname, unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp ), &
-            dims_L1(1:2), 'L1_kBaseFlow', &
-            longname = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
-
        call var2nc( Fname, unpack( L1_kPerco(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_kPerco', &
             longname = 'percolation coefficient at level 1', fill_value = nodata_dp)
@@ -321,6 +322,74 @@ CONTAINS
             dims_L1(1:2), 'L1_soilMoistExp', &
             longname = 'Exponential parameter to how non-linear is the soil water retention at level 1', fill_value = nodata_dp)
 
+       call var2nc( Fname, unpack( L1_tempThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_tempThresh', &
+            longname = 'Threshold temperature for snow/rain at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_unsatThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_unsatThresh', &
+            longname = 'Threshhold water depth controlling fast interflow at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_sealedThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_sealedThresh', &
+            longname = 'Threshhold water depth for surface runoff in sealed surfaces at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_wiltingPoint(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1(1:2), 'L1_wiltingPoint', &
+            longname = 'Permanent wilting point at level 1', fill_value = nodata_dp)
+
+       !-------------------------------------------
+       ! L11 ROUTING STATE VARIABLES, FLUXES AND
+       !             PARAMETERS
+       !-------------------------------------------
+       if ( processMatrix(8,1) .ne. 0 ) then
+          
+          call var2nc( Fname, unpack( L11_Qmod, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_Qmod', &
+            longname = 'simulated discharge at each node at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_qOUT, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_qOUT', &
+            longname = 'Total outflow from cells L11 at time tt at level 11', fill_value = nodata_dp)
+
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L11_qTIN(s1:e1,ii), mask1, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               dims_L1(1:2), 'L11_qTIN', &
+               longname = 'Total discharge inputs at t-1 and t at level 11', fill_value = nodata_dp)
+
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L11_qTR(s1:e1,ii), mask1, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               dims_L1(1:2), 'L11_qTR', &
+               longname = 'Routed outflow leaving a node at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_K, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_K', &
+            longname = 'kappa: Muskingum travel time parameter at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_xi, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_xi', &
+            longname = 'xi: Muskingum diffusion parameter at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_C1, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_C1', &
+            longname = 'Routing parameter C1=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_C2, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_C2', &
+            longname = 'Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_FracFPimp, mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_FracFPimp', &
+            longname = 'Fraction of the flood plain with impervious cover at level 11', fill_value = nodata_dp)
+ 
+       end if
        
        ! free dummy variables
        deallocate( dummy_d3 )
