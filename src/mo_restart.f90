@@ -41,7 +41,7 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_string_utils,     only: num2str
     use mo_ncwrite,          only: var2nc
-    use mo_mhm_constants,    only: nodata_dp
+    use mo_mhm_constants,    only: nodata_dp, nRoutingStates
     use mo_global_variables, only: processMatrix, &
          L1_fSealed, &
          L1_fForest, &
@@ -130,8 +130,6 @@ CONTAINS
        
        ! get Level1 information about the basin
        call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
-       ! get Level11 information about the basin
-       call get_basin_info( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
 
        ! write restart file for iBasin
        Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
@@ -340,52 +338,56 @@ CONTAINS
        call var2nc( Fname, dummy_d3, &
             dims_L1(1:2), 'L1_wiltingPoint', &
             longname = 'Permanent wilting point at level 1', fill_value = nodata_dp)
-
+       
+       deallocate( dummy_d3 )
        !-------------------------------------------
        ! L11 ROUTING STATE VARIABLES, FLUXES AND
        !             PARAMETERS
        !-------------------------------------------
        if ( processMatrix(8,1) .ne. 0 ) then
+          ! get Level11 information about the basin
+          call get_basin_info( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
           
-          call var2nc( Fname, unpack( L11_Qmod, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_Qmod(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_Qmod', &
             longname = 'simulated discharge at each node at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_qOUT, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_qOUT(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_qOUT', &
             longname = 'Total outflow from cells L11 at time tt at level 11', fill_value = nodata_dp)
-
+          
+          allocate( dummy_d3( nrows11, ncols11, nRoutingStates ) )
           do ii = 1, size( dummy_d3, 3 )
-             dummy_d3(:,:,ii) = unpack( L11_qTIN(s1:e1,ii), mask1, nodata_dp )
+             dummy_d3(:,:,ii) = unpack( L11_qTIN(s11:e11,ii), mask11, nodata_dp )
           end do
           call var2nc( Fname, dummy_d3, &
-               dims_L1(1:2), 'L11_qTIN', &
+               dims_L11, 'L11_qTIN', &
                longname = 'Total discharge inputs at t-1 and t at level 11', fill_value = nodata_dp)
 
           do ii = 1, size( dummy_d3, 3 )
-             dummy_d3(:,:,ii) = unpack( L11_qTR(s1:e1,ii), mask1, nodata_dp )
+             dummy_d3(:,:,ii) = unpack( L11_qTR(s11:e11,ii), mask11, nodata_dp )
           end do
           call var2nc( Fname, dummy_d3, &
-               dims_L1(1:2), 'L11_qTR', &
+               dims_L11, 'L11_qTR', &
                longname = 'Routed outflow leaving a node at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_K, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_K(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_K', &
             longname = 'kappa: Muskingum travel time parameter at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_xi, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_xi(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_xi', &
             longname = 'xi: Muskingum diffusion parameter at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_C1, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_C1(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_C1', &
             longname = 'Routing parameter C1=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_C2, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_C2(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_C2', &
             longname = 'Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
 
-          call var2nc( Fname, unpack( L11_FracFPimp, mask11, nodata_dp ), &
+          call var2nc( Fname, unpack( L11_FracFPimp(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_FracFPimp', &
             longname = 'Fraction of the flood plain with impervious cover at level 11', fill_value = nodata_dp)
  

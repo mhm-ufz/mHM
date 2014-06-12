@@ -2369,7 +2369,7 @@ contains
        V(i)%nLvls       =  1
        V(i)%nSubs       =  1
        V(i)%nDims       =  3
-       V(i)%dimTypes    =  (/1,2,3,0,0/)
+       V(i)%dimTypes    =  (/4,5,6,0,0/)
        ! printing
        V(i)%wFlag       =  .true.
        ! pointer  
@@ -2394,7 +2394,7 @@ contains
        V(i)%nLvls       =  1
        V(i)%nSubs       =  1
        V(i)%nDims       =  3
-       V(i)%dimTypes    =  (/1,2,3,0,0/)
+       V(i)%dimTypes    =  (/4,5,6,0,0/)
        ! printing
        V(i)%wFlag       =  .true.
        ! pointer  
