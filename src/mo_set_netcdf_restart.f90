@@ -674,7 +674,7 @@ contains
     !    
     ii = size(DNC) + 11
     V(ii)%name        =  "L11_rightBound_L0"
-    V(ii)%G2_i        => L11_leftBound_L0_out
+    V(ii)%G2_i        => L11_rightBound_L0_out
     V(ii)%att(2)%values = "Col end at finer level-0 scale of Level 11 cell"
     !    
     ii = size(DNC) + 12
@@ -2337,7 +2337,7 @@ contains
        V(i)%att(2)%xType  = NF90_DOUBLE
        V(i)%att(2)%nValues= 1
        V(i)%att(2)%values = num2str(nodata_dp)
-
+       ! herehere
        i                = i + 1_i4
        V(i)%name        =  "L11_qOUT"
        V(i)%xType       =  NF90_DOUBLE
@@ -2369,7 +2369,7 @@ contains
        V(i)%nLvls       =  1
        V(i)%nSubs       =  1
        V(i)%nDims       =  3
-       V(i)%dimTypes    =  (/1,2,3,0,0/)
+       V(i)%dimTypes    =  (/4,5,6,0,0/)
        ! printing
        V(i)%wFlag       =  .true.
        ! pointer  
@@ -2394,7 +2394,7 @@ contains
        V(i)%nLvls       =  1
        V(i)%nSubs       =  1
        V(i)%nDims       =  3
-       V(i)%dimTypes    =  (/1,2,3,0,0/)
+       V(i)%dimTypes    =  (/4,5,6,0,0/)
        ! printing
        V(i)%wFlag       =  .true.
        ! pointer  
