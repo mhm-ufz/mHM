@@ -555,7 +555,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
     do i=1, ndim
@@ -662,7 +662,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
     do i=1, ndim
@@ -769,7 +769,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
     do i=1, ndim
@@ -801,11 +801,12 @@ contains
     integer(i4),      optional,         intent(in) :: dim_unlimit
     character(len=*), optional,         intent(in) :: longname
     character(len=*), optional,         intent(in) :: units
-    real(sp),         optional,         intent(in) :: fill_value
+    integer(i4),      optional,         intent(in) :: fill_value
     logical,          optional,         intent(in) :: is_dim
     logical,          optional,         intent(in) :: f_exists
     ! local variables
     character(256)                 :: dummy_name
+    integer(i4)                    :: deflate
     integer(i4), dimension(ndim)   :: start    ! start array for write
     integer(i4), dimension(ndim)   :: counter  ! length array for write
     integer(i4)                    :: idim     ! read dimension on append
@@ -820,6 +821,7 @@ contains
     ! check for is dim
     if ( present( is_dim ) ) stop 'var2nc_2d_i4: is_dim only available for 1 d calls'
     ! initialize
+    deflate      = 1
     dims(1:ndim) = shape( arr )
     start(:)     = 1_i4
     counter(:)   = dims
@@ -867,13 +869,14 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1),&
+            shuffle=.true., deflate_level=deflate))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -910,6 +913,7 @@ contains
     logical,          optional,         intent(in) :: f_exists
     ! local variables
     character(256)                 :: dummy_name
+    integer(i4)                    :: deflate
     integer(i4), dimension(ndim)   :: start    ! start array for write
     integer(i4), dimension(ndim)   :: counter  ! length array for write
     integer(i4)                    :: idim     ! read dimension on append
@@ -924,6 +928,7 @@ contains
     ! check for is dim
     if ( present( is_dim ) ) stop 'var2nc_2d_sp: is_dim only available for 1 d calls'
     ! initialize
+    deflate      = 1
     dims(1:ndim) = shape( arr )
     start(:)     = 1_i4
     counter(:)   = dims
@@ -971,13 +976,14 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1),&
+            shuffle=.true., deflate_level=deflate))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1014,6 +1020,8 @@ contains
     logical,          optional,         intent(in) :: f_exists
     ! local variables
     character(256)                 :: dummy_name
+    integer(i4)                    :: deflate
+    integer(i4), dimension(ndim)   :: chunksizes
     integer(i4), dimension(ndim)   :: start    ! start array for write
     integer(i4), dimension(ndim)   :: counter  ! length array for write
     integer(i4)                    :: idim     ! read dimension on append
@@ -1028,6 +1036,8 @@ contains
     ! check for is dim
     if ( present( is_dim ) ) stop 'var2nc_2d_dp: is_dim only available for 1 d calls'
     ! initialize
+    deflate      = 1
+    chunksizes   = (/ size( arr, 1), size( arr, 2) /)
     dims(1:ndim) = shape( arr )
     start(:)     = 1_i4
     counter(:)   = dims
@@ -1075,13 +1085,14 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1), &
+            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), '_FillValue',fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1113,7 +1124,7 @@ contains
     integer(i4),      optional,         intent(in) :: dim_unlimit
     character(len=*), optional,         intent(in) :: longname
     character(len=*), optional,         intent(in) :: units
-    real(sp),         optional,         intent(in) :: fill_value
+    integer(i4),      optional,         intent(in) :: fill_value
     logical,          optional,         intent(in) :: is_dim
     logical,          optional,         intent(in) :: f_exists
     ! local variables
@@ -1179,13 +1190,13 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1)))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1289,7 +1300,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1393,7 +1404,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), '_FillValue',fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1425,7 +1436,7 @@ contains
     integer(i4),      optional,           intent(in) :: dim_unlimit
     character(len=*), optional,           intent(in) :: longname
     character(len=*), optional,           intent(in) :: units
-    real(sp),         optional,           intent(in) :: fill_value
+    integer(i4),      optional,           intent(in) :: fill_value
     logical,          optional,           intent(in) :: is_dim
     logical,          optional,           intent(in) :: f_exists
     ! local variables
@@ -1491,13 +1502,13 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1)))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1601,7 +1612,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1705,7 +1716,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), '_FillValue',fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1737,7 +1748,7 @@ contains
     integer(i4),      optional,             intent(in) :: dim_unlimit
     character(len=*), optional,             intent(in) :: longname
     character(len=*), optional,             intent(in) :: units
-    real(sp),         optional,             intent(in) :: fill_value
+    integer(i4),      optional,             intent(in) :: fill_value
     logical,          optional,             intent(in) :: is_dim
     logical,          optional,             intent(in) :: f_exists
     ! local variables
@@ -1803,13 +1814,13 @@ contains
           end if
        end do
        ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1)))
+       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1)))
        ! add attributes
        if ( present( longname   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'longname', longname ) )
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -1913,7 +1924,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), '_FillValue', fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim
@@ -2017,7 +2028,7 @@ contains
        if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
        if ( present( fill_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), '_FillValue',fill_value ) )
        ! end definition
-       call check(nf90_enddef(f_handle))
+       !call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
     do i=1, ndim

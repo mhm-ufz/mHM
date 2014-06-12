@@ -169,9 +169,7 @@ PROGRAM mhm_driver
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
-  USE mo_restart,             ONLY : write_restart_file,     &
-       write_restart_states,                                 &      ! Writing states for restart
-       write_restart_config                                         ! Writing configuration for restart
+  USE mo_restart,             ONLY : write_restart_file
   USE mo_sce,                 ONLY : sce                            ! Optimize with Shuffled Complex Evolution SCE
   USE mo_startup,             ONLY : initialise
   USE mo_string_utils,        ONLY : num2str, separator             ! String magic

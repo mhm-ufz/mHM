@@ -108,7 +108,8 @@ CONTAINS
   subroutine mHM(  &
       ! Input -----------------------------------------------------------------
       ! Configuration
-      perform_mpr  , & ! flag for reading restart files for state variables
+      perform_mpr,          & ! flag for reading restart files for state variables
+      read_states,          & ! flag indicating whether states have been read
       fSealedInCity       , & ! sealed area fraction within cities
       LAI_option_Flag     , & ! Flag for LAI option
       counter_month       , & ! counter to tackle the change of month 
@@ -257,6 +258,7 @@ CONTAINS
 
     ! Intent
     logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
+    logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: LAI_option_Flag      ! Flag for LAI option
     integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
@@ -508,7 +510,7 @@ CONTAINS
         ! based on the half of the derived values of Field capacity
         ! other states are kept at their inital values
         !-------------------------------------------------------------------
-        if( (tt .EQ. 1) .AND. ( perform_mpr ) ) then
+        if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
 

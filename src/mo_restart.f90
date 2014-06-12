@@ -821,8 +821,8 @@ CONTAINS
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP
 
     ! set file name
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    call message('    Reading L11_config from ', trim(adjustl(Fname)),' ...')
 
     ! level-0 information
     call get_basin_info( iBasin, 0, nrows0, ncols0,&
@@ -1139,6 +1139,8 @@ CONTAINS
     use mo_mhm_constants,    only: nodata_dp
     use mo_init_states,      only: calculate_grid_properties
     use mo_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
+         perform_mpr,    & ! switch that controls whether mpr is performed or not
+         L0_soilId,      & ! soil IDs at lower level
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          L0_areaCell   , & ! Ids of grid at level-0
@@ -1178,6 +1180,7 @@ CONTAINS
     real(dp)                                             :: cellsize0
     !
     ! Dummy Variables
+    integer(i4)                                          :: ii
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 
@@ -1186,8 +1189,8 @@ CONTAINS
     character(256) :: Fname
 
     ! read config
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    call message('    Reading config from     ', trim(adjustl(Fname)),' ...')
  
     !
     ! level-0 information
@@ -1273,6 +1276,14 @@ CONTAINS
     if ( iBasin .eq. 1 ) then
        allocate( soilId_isPresent(nSoilTypes) )
        soilId_isPresent(:) = 0
+    end if
+    !------------------------------------------------------
+    ! set soil types when mpr should be performed
+    !------------------------------------------------------
+    if ( perform_mpr ) then
+       do ii = iStart0, iEnd0
+          soilId_isPresent(L0_soilId(ii)) = 1
+       end do
     end if
     !
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -1482,8 +1493,8 @@ CONTAINS
     real(dp), dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension
     real(dp), dimension(:,:,:), allocatable           :: dummyD3  ! dummy, 3 dimension
 
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get basin information at level 1
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1, &

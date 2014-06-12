@@ -95,6 +95,7 @@ CONTAINS
   !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
   !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
   !                  Stephan Thober, May  2014 - added switch for chunk read in
+  !                  Stephan Thober, Jun  2014 - added option for switching off mpr
 
   subroutine read_config()
 
@@ -364,9 +365,10 @@ CONTAINS
        stop
     end if
     ! check for perform_mpr
-    if ( ( .not. read_restart ) .and. perform_mpr ) then
+    if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
        call message()
        call message('***ERROR: cannot omit mpr when read_restart is set to .false.')
+       stop
     end if
     
     !===============================================================

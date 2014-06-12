@@ -340,7 +340,7 @@ CONTAINS
           !  S    STATE VARIABLES L1
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
-          call mhm(perform_mpr, fracSealed_cityArea,                           & ! IN C
+          call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
                iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
                nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
