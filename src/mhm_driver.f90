@@ -147,7 +147,7 @@ PROGRAM mhm_driver
   USE mo_finish,              ONLY : finish                         ! Finish with style
   USE mo_global_variables,    ONLY :                         &
        nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
-       read_restart, write_restart,                          &      ! restart writing flags
+       write_restart,                                        &      ! restart writing flags
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
@@ -169,7 +169,7 @@ PROGRAM mhm_driver
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
-  USE mo_restart,             ONLY : write_restart_file
+  USE mo_restart,             ONLY : write_restart_files
   USE mo_sce,                 ONLY : sce                            ! Optimize with Shuffled Complex Evolution SCE
   USE mo_startup,             ONLY : initialise
   USE mo_string_utils,        ONLY : num2str, separator             ! String magic
@@ -460,7 +460,7 @@ PROGRAM mhm_driver
      call message()
      call message( '  Write restart file')
      call timer_start(itimer)
-     call write_restart_file( dirRestartOut )
+     call write_restart_files( dirRestartOut )
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if

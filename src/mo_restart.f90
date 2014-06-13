@@ -22,7 +22,7 @@ MODULE mo_restart
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: read_restart_config     ! read restart files for configuration from a given path
   PUBLIC :: read_restart_L11_config ! read L11 configuration
-  PUBLIC :: write_restart_file      ! write restart files for configuration to a given path
+  PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
   PRIVATE
 
@@ -32,9 +32,50 @@ CONTAINS
   !      NAME
   !         write_restart
 
-  ! ------------------------------------------------------------------
-  
-  subroutine write_restart_file( OutPath )
+  !     PURPOSE
+  !>        \brief write restart files for each basin
+
+  !>        \details write restart files for each basin. For each basin
+  !>        three restart files are written. These are xxx_states.nc, 
+  !>        xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !>        basin index). If a variable is added here, it should also be added
+  !>        in the read restart routines below.
+
+  !     INTENT(IN)
+  !>        \param[in] "character(256), dimension(:) :: OutPath"     Output Path for each basin
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+
+  !     RESTRICTIONS 
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         see library routine var2nc in mo_ncwrite.f90
+
+  !     HISTORY
+  !>        \author   Stephan Thober
+  !>        \date     Jun 2014
+
+  ! ------------------------------------------------------------------ 
+  subroutine write_restart_files( OutPath )
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -201,7 +242,8 @@ CONTAINS
        call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
 
        ! write restart file for iBasin
-       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+       ! Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
        ! print a message
        call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
        
@@ -347,7 +389,7 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_fRoots(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1(1:2), 'L1_fRoots', &
+            dims_L1, 'L1_fRoots', &
             longname = 'Fraction of roots in soil horizons at level 1', fill_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_maxInter(s1:e1), mask1, nodata_dp ), &
@@ -374,21 +416,21 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_soilMoistFC(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1(1:2), 'L1_soilMoistFC', &
+            dims_L1, 'L1_soilMoistFC', &
             longname = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', fill_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1(1:2), 'L1_soilMoistSat', &
+            dims_L1, 'L1_soilMoistSat', &
             longname = 'Saturation soil moisture for each horizon [mm] at level 1', fill_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistExp(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1(1:2), 'L1_soilMoistExp', &
+            dims_L1, 'L1_soilMoistExp', &
             longname = 'Exponential parameter to how non-linear is the soil water retention at level 1', fill_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_tempThresh(s1:e1), mask1, nodata_dp ), &
@@ -407,7 +449,7 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_wiltingPoint(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1(1:2), 'L1_wiltingPoint', &
+            dims_L1, 'L1_wiltingPoint', &
             longname = 'Permanent wilting point at level 1', fill_value = nodata_dp)
        
        deallocate( dummy_d3 )
@@ -465,14 +507,16 @@ CONTAINS
             longname = 'Fraction of the flood plain with impervious cover at level 11', fill_value = nodata_dp)
           
           ! ----------------------------------------------------------
-          ! L11 config set
+          ! L11 config set - create new file
           ! ----------------------------------------------------------
+          Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc'
+          call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
           call var2nc( Fname, &
                merge( 1_i4, 0_i4,  &
                reshape(basin%L11_Mask(basin%L11_iStartMask(iBasin):basin%L11_iEndMask(iBasin)),&
                (/nrows11,ncols11/)) ),&
                dims_L11(1:2), 'L11_basin_Mask', &
-               longname = 'Mask at Level 11', fill_value = nodata_i4 )
+               longname = 'Mask at Level 11', fill_value = nodata_i4, f_exists = .false. )
           
           call var2nc( Fname, unpack( L11_cellCoor(s11:e11,1), mask11, nodata_i4 ), &
                dims_L11(1:2),'L11_rowCoor', &
@@ -617,15 +661,22 @@ CONTAINS
           call var2nc( Fname, basin%InflowGaugeNodeList(iBasin,:), &
                dims_inflow, 'InflowGaugeNodeList', &
                longname = 'cell ID of gauges',fill_value=nodata_i4)
+       
+          ! free dummy variables
+          deallocate( dummy_d3 )
 
        end if
 
        ! -------------------------------------------------------------
-       ! config set
+       ! config set - create new file
        ! -------------------------------------------------------------
+       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc'
+       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
+
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,1), mask0, nodata_i4 ), &
             dims_L0,'L0_rowCoor', &
-            longname = 'row coordinates at Level 0', fill_value = nodata_i4 )
+            longname = 'row coordinates at Level 0', fill_value = nodata_i4, &
+            f_exists = .false. )
 
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,2), mask0, nodata_i4 ), &
             dims_L0,'L0_colCoor', &
@@ -686,13 +737,10 @@ CONTAINS
             dims_L1(1:2),'L1_areaCell', &
             longname = 'Effective area of cell at this level [km2]', fill_value = nodata_dp )
        
-       ! free dummy variables
-       deallocate( dummy_d3 )
-       
     end do basin_loop
     
     
-  end subroutine write_restart_file
+  end subroutine write_restart_files
   ! ------------------------------------------------------------------
 
   !      NAMEw
@@ -729,7 +777,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_config 
+  !>        it would have been written by subroutine write_restart_files 
 
   !     EXAMPLE
   !         None
@@ -821,7 +869,7 @@ CONTAINS
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP
 
     ! set file name
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc' ! '_restart.nc'
     call message('    Reading L11_config from ', trim(adjustl(Fname)),' ...')
 
     ! level-0 information
@@ -1116,7 +1164,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_config 
+  !>        it would have been written by subroutine write_restart_files
 
   !     EXAMPLE
   !         None
@@ -1189,7 +1237,7 @@ CONTAINS
     character(256) :: Fname
 
     ! read config
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc' ! '_restart.nc'
     call message('    Reading config from     ', trim(adjustl(Fname)),' ...')
  
     !
@@ -1393,7 +1441,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_states 
+  !>        it would have been written by subroutine write_restart_files
 
   !     EXAMPLE
   !         None
@@ -1493,7 +1541,7 @@ CONTAINS
     real(dp), dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension
     real(dp), dimension(:,:,:), allocatable           :: dummyD3  ! dummy, 3 dimension
 
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
     call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get basin information at level 1

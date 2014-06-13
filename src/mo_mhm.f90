@@ -103,6 +103,7 @@ CONTAINS
   !                                                             call
   !                 Matthias Zink,                   Mar 2014 - added inflow from upstream areas
   !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -437,6 +438,13 @@ CONTAINS
     !-------------------------------------------------------------------
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
         
+       ! abort if land cover change is there and mpr is switched off
+       if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
+          call message()
+          call message('***ERROR: land cover change detected and mpr is switched off!')
+          stop
+       end if
+
         ! update yId to keep track of LC change         
         yId = LCyearId        
   
@@ -486,10 +494,10 @@ CONTAINS
         end if
 
         !-------------------------------------------------------------------
-        ! NOW call MPR, if mHM has not been restarted
+        ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
+           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,      &
                 geoUnit0, GeoUnitList, GeoUnitKar,                                   &
                 SDB_is_present, SDB_nHorizons,                                       &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth, &
