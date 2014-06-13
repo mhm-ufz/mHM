@@ -583,7 +583,7 @@ contains
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012
   !         Written, Stephan Thober, Dec 2012
-  !         Modified, Matthias Zink,  Nov 2013 - documentation, moved constants to mhm_constants
+  !         Modified, Matthias Zink, Nov 2013 - documentation, moved constants to mhm_constants
 
   subroutine hydro_cond( KS, param, sand, clay )
 
@@ -606,14 +606,24 @@ contains
     ! (Cosby et. al.1984.; WRR)
     x  =  param(1) +  param(2) * sand -  param(3) * clay
     Ks =  param(4) * exp(X * log(Ks_c))
-
+    ! Comments MatthiasC:
+    ! 1. The citation of Cosby et. al. (WRR, 1984) is most probably wrong.
+    !    Cosby, B. J., Hornberger, G. M., Clapp, R. B., & Ginn, T. R. (1984). 
+    !        A statistical exploration of the relationships of soil-moisture characteristics
+    !        to the physical-properties of soils.
+    !        Water Resources Research, 20(6), 682-690.
+    !    Ks was measured in that publication.
+    ! 2. param(1) and param(4) must be highly correlated, because
+    !        Ks = param(4) * Ks_c**param(1) * Ks_c**(param(2)*sand+param(3)*clay)
+    !    and Ks_c is a constant.
+    !    --> Check correlation and get rid of either param(1) or param(4).
 
     if ( Ks < 1.10_dp ) then
        write(*,*) 'JMJMJM-Ks-BAD'
     end if
 
     ! minimum value of Ks = 1.1cm/d
-    if(Ks < 1.10_dp) Ks = 1.10_dp
+    if (Ks < 1.10_dp) Ks = 1.10_dp
 
   end subroutine hydro_cond
 

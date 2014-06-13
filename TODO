@@ -28,6 +28,23 @@ L11 - outlet plot
 -- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
    The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
 
+In subroutine hydro_cond of mo_mpr_soilmoist.f90
+  !>        \author Stephan Thober, Rohini Kumar
+  !         Written, Stephan Thober, Dec 2012
+  !         Modified, Matthias Zink, Nov 2013 - documentation, moved constants to mhm_constants
+    ! Comments MatthiasC:
+    ! 1. The citation of Cosby et. al. (WRR, 1984) is most probably wrong.
+    !    Cosby, B. J., Hornberger, G. M., Clapp, R. B., & Ginn, T. R. (1984). 
+    !        A statistical exploration of the relationships of soil-moisture characteristics
+    !        to the physical-properties of soils.
+    !        Water Resources Research, 20(6), 682-690.
+    !    Ks was measured in that publication.
+    ! 2. param(1) and param(4) must be highly correlated, because
+    !        Ks = param(4) * Ks_c**param(1) * Ks_c**(param(2)*sand+param(3)*clay)
+    !    and Ks_c is a constant.
+    !    --> Check correlation and get rid of either param(1) or param(4).
+
+
 
 =================================================================================================
                       UNDER CONSTRUCTION
