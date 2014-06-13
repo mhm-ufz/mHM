@@ -41,7 +41,7 @@ parser.add_option('-s', '--states', action='store', dest='states_file', type='st
                   help='States as obtained from mHM output file')
 parser.add_option('-d', '--date', action='store', dest='date', type='string',
                   default=date, metavar='Date',
-                  help='Date as YYYY-MM-DD at which states shall be extracted from States File.')
+                  help='Date as YYYY-MM-DD HH at which states shall be extracted from States File.')
 parser.add_option('-r', '--restart', action='store', dest='restart_file', type='string',
                   default=restart_file, metavar='Restart File',
                   help='Restart File obtained for exactly the same domain as the States File.')
@@ -67,6 +67,10 @@ from readnetcdf import readnetcdf      # from ufz
 
 # translate date to time slice index
 if date != '':
+    # check whether ref dates is in hours
+    if (readnetcdf( states_file, 'time', attributes = True)['units'][:5] == 'hours') and (np.diff(readnetcdf( states_file, 'time'))[0] != 1):
+        print( '***ERROR: time axis in states file is not in hours' )
+        exit
     # get reference time from states_file
     ref_date = readnetcdf( states_file, 'time', attributes = True)['units'].split(' ')[2]
     ref_year = np.int( ref_date.split('-')[0])
@@ -82,21 +86,24 @@ if date != '':
     ref_julian = ref_julian + sta_julian - 1
 
     # get julian date of actual time step
-    ref_year = np.int( date.split('-')[0])
-    ref_mo   = np.int( date.split('-')[1])
-    ref_day  = np.int( date.split('-')[2])
+    ref_year = np.int( date.split(' ')[0].split('-')[0])
+    ref_mo   = np.int( date.split(' ')[0].split('-')[1])
+    ref_day  = np.int( date.split(' ')[0].split('-')[2])
+    ref_hour = np.int( date.split(' ')[1])
     act_julian = date2dec( yr = ref_year, mo = ref_mo, dy = ref_day)
-    tt = np.int(act_julian - ref_julian)
+    dd = np.int(act_julian - ref_julian)
+    tt = dd * 24 + ref_hour
 else:
     tt = 0
 
+print( 'selecting timestep: '+ str(tt) )
 #############################################
 
 # name of states in states_file
 in_states = [ 'interception', 'snowpack', 'SWC', 'sealedSTW', 'unsatSTW', 'satSTW' ]
 
 # name of states in restart file
-out_states = [ 'L1_maxInter', 'L1_snowPack', 'L1_soilMoist', 'L1_sealSTW', 'L1_unsatSTW', 'L1_satSTW' ]
+out_states = [ 'L1_Inter', 'L1_snowPack', 'L1_soilMoist', 'L1_sealSTW', 'L1_unsatSTW', 'L1_satSTW' ]
 
 #############################################
 # COPY THE STATES ###########################
@@ -126,7 +133,7 @@ for ii in np.arange( len(in_states) ):
 
     else:
         # read states from mHM
-        fi,s_arr = readnetcdf( states_file, in_states[ii], pointer = True )
+        fi, s_arr = readnetcdf( states_file, in_states[ii], pointer = True )
     
         # copy states to out_file
         fo, r_arr = readnetcdf( out_file, out_states[ii], overwrite = True )
