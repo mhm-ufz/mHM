@@ -16,6 +16,7 @@
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
 ! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
 ! Stephan Thober, May 2014 - added switch for chunk read in
+! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -181,12 +182,11 @@ opti_method = 1
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
-!> flags for reading and writing restart output
+!> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
-restart_flag_states_read  = .FALSE.
-restart_flag_states_write = .TRUE.
-restart_flag_config_read  = .FALSE.
-restart_flag_config_write = .TRUE.
+read_restart  = .FALSE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
@@ -203,7 +203,7 @@ restart_flag_config_write = .TRUE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warmingDays    = 360
+warmingDays    = 0
 !> first year of wanted simulation period
 evalPer%yStart = 1990
 !> first month of wanted simulation period
@@ -258,12 +258,12 @@ nLcover_scene = 3
 !> starting year of land cover scene 1
 LCoverYearStart(1) = 1975
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1990
+LCoverYearEnd(1)   = 1989
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
 
 !> starting year of land cover scene 2
-LCoverYearStart(2) = 1991
+LCoverYearStart(2) = 1990
 !> ending year of land cover scnene 2
 LCoverYearEnd(2)   = 1993
 !> name of land cover file for scnene 2

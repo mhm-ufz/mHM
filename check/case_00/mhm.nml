@@ -14,6 +14,9 @@
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
+! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
+! Stephan Thober, May 2014 - added switch for chunk read in
+! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -152,12 +155,11 @@ opti_method = 1
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
-!> flags for reading and writing restart output
+!> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .FALSE.
-restart_flag_states_write  = .TRUE.
-restart_flag_config_read   = .FALSE.
-restart_flag_config_write  = .TRUE.
+read_restart  = .FALSE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 

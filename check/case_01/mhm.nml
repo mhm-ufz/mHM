@@ -154,10 +154,9 @@ opti_function = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .TRUE.
-restart_flag_states_write  = .TRUE.
-restart_flag_config_read   = .TRUE.
-restart_flag_config_write  = .TRUE.
+read_restart  = .TRUE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 

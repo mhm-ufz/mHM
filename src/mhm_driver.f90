@@ -147,7 +147,7 @@ PROGRAM mhm_driver
   USE mo_finish,              ONLY : finish                         ! Finish with style
   USE mo_global_variables,    ONLY :                         &
        nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
-       restart_flag_states_write, restart_flag_config_write, &      ! restart writing flags
+       write_restart,                                        &      ! restart writing flags
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
@@ -169,9 +169,7 @@ PROGRAM mhm_driver
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
-  USE mo_restart,             ONLY :                         &
-       write_restart_states,                                 &      ! Writing states for restart
-       write_restart_config                                         ! Writing configuration for restart
+  USE mo_restart,             ONLY : write_restart_files
   USE mo_sce,                 ONLY : sce                            ! Optimize with Shuffled Complex Evolution SCE
   USE mo_startup,             ONLY : initialise
   USE mo_string_utils,        ONLY : num2str, separator             ! String magic
@@ -275,15 +273,13 @@ PROGRAM mhm_driver
   itimer = 1
   call message()
 
-  !if (.not. restart_flag_read ) then
-     call message('  Read data ' )
-     call timer_start(itimer)
-     ! for DEM, slope, ... define nGvar local
-     ! read_data has a basin loop inside
-     call read_data()
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  !end if
+  call message('  Read data ' )
+  call timer_start(itimer)
+  ! for DEM, slope, ... define nGvar local
+  ! read_data has a basin loop inside
+  call read_data()
+  call timer_stop(itimer)
+  call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
   ! read data for every basin
   do ii=1, nbasins
@@ -313,22 +309,12 @@ PROGRAM mhm_driver
   end do
 
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
-  ! if ( restart_flag_config_write ) then
+  ! if ( write_restart ) then
   !    itimer = itimer + 1
   !    call message()
   !    call message( '  Write restart config file')
   !    call timer_start(itimer)
   !    call write_restart_config( dirRestartOut )
-  !    call timer_stop(itimer)
-  !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  ! end if
-  ! ! write restart for states
-  ! if ( restart_flag_states_write ) then
-  !    itimer = itimer + 1
-  !    call message()
-  !    call message( '  Write restart states file')
-  !    call timer_start(itimer)
-  !    call write_restart_states( dirRestartOut )
   !    call timer_stop(itimer)
   !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   ! end if
@@ -469,26 +455,16 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
-  ! write restart for configuration
-  if ( restart_flag_config_write ) then
+  if ( write_restart ) then
      itimer = itimer + 1
      call message()
-     call message( '  Write restart config file')
+     call message( '  Write restart file')
      call timer_start(itimer)
-     call write_restart_config( dirRestartOut )
+     call write_restart_files( dirRestartOut )
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
-  ! write restart for states
-  if ( restart_flag_states_write ) then
-     itimer = itimer + 1
-     call message()
-     call message( '  Write restart states file')
-     call timer_start(itimer)
-     call write_restart_states( dirRestartOut )
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  end if
+  
   
   ! --------------------------------------------------------------------------
   ! FINISH UP

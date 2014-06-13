@@ -78,6 +78,7 @@ CONTAINS
   !                    Stephan Thober             to process_matrix flag
   !                    Matthias Zink   Mar 2014   added inflow gauge
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
+  !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -132,6 +133,7 @@ CONTAINS
                                      evalPer,                             & ! model evaluation period (for discharge read in)
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
+                                     perform_mpr,                         & ! flag indicating whether L0 is read
                                      iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
                                      resolutionHydrology                    ! hydrology resolution (L1 scale)
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
@@ -153,6 +155,8 @@ CONTAINS
     logical, dimension(:,:), allocatable      :: mask_2d
     logical, dimension(:,:), allocatable      :: mask_global
     integer(i4), dimension(3)                 :: start_tmp, end_tmp
+    integer(i4), dimension(:),  allocatable   :: dummy_i4
+    real(dp),    dimension(:),  allocatable   :: dummy_dp
     
     ! min. value of slope and aspect
     real(dp), parameter                       :: slope_minVal  = 0.01_dp
@@ -245,7 +249,6 @@ CONTAINS
           end if
        end if
        !
-       ! Read L0 data
        call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
        !
        ! create overall mHM mask on L0 and save indices
@@ -266,144 +269,175 @@ CONTAINS
           basin%L0_iStartMask(iBasin) = basin%L0_iEndMask(iBasin-1) + 1
           basin%L0_iEndMask  (iBasin) = basin%L0_iStartMask(iBasin) + nCells - 1
        end if
-       !
-       ! put global nodata value into array (probably not all grid cells have values)
-       data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
-       ! put data in variable 
-       call append( L0_elev, pack(data_dp_2d, mask_global) )
-       ! deallocate arrays
-       deallocate(data_dp_2d)
-       !
-       ! read slope and aspect - datatype real
-       nVars_real: do iVar = 1, 2
-          select case (iVar)
-          case(1) ! slope
-             fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_slope))
-             nunit = uslope
-          case(2) ! aspect
-             fName = trim(adjustl(dirMorpho(iBasin)))// trim(adjustl(file_aspect))
-             nunit = uaspect
-          end select
-          !
-          ! reading
-          call read_spatial_data_ascii(trim(fName), nunit,                                     &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_2d)
+       ! Read L0 data, if restart is false
+       read_L0_data: if ( perform_mpr ) then
           !
           ! put global nodata value into array (probably not all grid cells have values)
-          data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
-          !
+          data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
           ! put data in variable 
-          select case (iVar)
-          case(1) ! slope
-             call append( L0_slope, pack(data_dp_2d, mask_global) )
-          case(2) ! aspect
-             call append( L0_asp, pack(data_dp_2d, mask_global) )
-          end select
-          !
+          call append( L0_elev, pack(data_dp_2d, mask_global) )
           ! deallocate arrays
-          deallocate(data_dp_2d, mask_2d)
+          deallocate(data_dp_2d)
           !
-       end do nVars_real
-       !
-       ! read fAcc, fDir, soilID, geoUnit, gaugeLoc, LAI, LCover - datatype integer
-       nVars_integer: do iVar = 1, 6
-          
-          ! handle routing related input data
-          if( ( (iVar .EQ. 1) .or. (iVar .EQ. 2) .or. (iVar .EQ. 5) ) .and. &
-                (processMatrix(8, 1) .EQ. 0)  ) CYCLE
-
-          ! handle LAI options
-          if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE       
-       
-          select case (iVar)
-          case(1) ! flow accumulation
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_facc))
-             nunit = ufacc
-          case(2) ! flow direction
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_fdir))
-             nunit = ufdir
-          case(3) ! soil ID
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
-             nunit = usoilclass
-          case(4) ! geological ID
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
-             nunit = uhydrogeoclass
-          case(5) ! location of gauging stations
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc))
-             nunit = ugaugeloc
-          case(6) ! LAI classes
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-             nunit = ulaiclass
-          end select
-
+          ! read slope and aspect - datatype real
+          nVars_real: do iVar = 1, 2
+             select case (iVar)
+             case(1) ! slope
+                fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_slope))
+                nunit = uslope
+             case(2) ! aspect
+                fName = trim(adjustl(dirMorpho(iBasin)))// trim(adjustl(file_aspect))
+                nunit = uaspect
+             end select
+             !
+             ! reading
+             call read_spatial_data_ascii(trim(fName), nunit,                                     &
+                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_2d)
+             !
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
+             !
+             ! put data in variable 
+             select case (iVar)
+             case(1) ! slope
+                call append( L0_slope, pack(data_dp_2d, mask_global) )
+             case(2) ! aspect
+                call append( L0_asp, pack(data_dp_2d, mask_global) )
+             end select
+             !
+             ! deallocate arrays
+             deallocate(data_dp_2d, mask_2d)
+             !
+          end do nVars_real
           !
-          ! reading and transposing
-          call read_spatial_data_ascii(trim(fName), nunit,                               &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          ! read fAcc, fDir, soilID, geoUnit, gaugeLoc, LAI, LCover - datatype integer
+          nVars_integer: do iVar = 1, 6
 
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+             ! handle routing related input data
+             if( ( (iVar .EQ. 1) .or. (iVar .EQ. 2) .or. (iVar .EQ. 5) ) .and. &
+                  (processMatrix(8, 1) .EQ. 0)  ) CYCLE
 
-          ! put data into global L0 variable 
-          select case (iVar)
-          case(1) ! flow accumulation
-             call append( L0_fAcc,    pack(data_i4_2d, mask_global) )
-          case(2) ! flow direction
-             ! rotate flow direction and any other variable with directions
-             ! NOTE: ONLY when ASCII files are read
-             call rotate_fdir_variable(data_i4_2d)
-             ! append 
-             call append( L0_fDir,    pack(data_i4_2d, mask_global) )
-          case(3) ! soil class ID
-             call append( L0_soilId,  pack(data_i4_2d, mask_global) )
-          case(4) ! hydrogeological class ID
-             call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-          case(5) ! location of evaluation and inflow gauging stations 
-             ! evaluation gauges
-             ! Input data check
-             do iGauge = 1, basin%nGauges(iBasin)
-                ! If gaugeId is found in gauging location file?
-                if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
-                   call message()
-                   call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
-                        '" not found in ' )
-                   call message('          Gauge location input file: ', &
-                        trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
-                   stop
-                end if
-             end do
+             ! handle LAI options
+             if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE       
 
-             call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
- 
-             ! inflow gauges
-             ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
-             if (basin%nInflowGauges(iBasin) .GT. 0_i4) then 
+             select case (iVar)
+             case(1) ! flow accumulation
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_facc))
+                nunit = ufacc
+             case(2) ! flow direction
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_fdir))
+                nunit = ufdir
+             case(3) ! soil ID
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
+                nunit = usoilclass
+             case(4) ! geological ID
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
+                nunit = uhydrogeoclass
+             case(5) ! location of gauging stations
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc))
+                nunit = ugaugeloc
+             case(6) ! LAI classes
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+                nunit = ulaiclass
+             end select
+
+             !
+             ! reading and transposing
+             call read_spatial_data_ascii(trim(fName), nunit,                               &
+                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+
+             ! put data into global L0 variable 
+             select case (iVar)
+             case(1) ! flow accumulation
+                call append( L0_fAcc,    pack(data_i4_2d, mask_global) )
+             case(2) ! flow direction
+                ! rotate flow direction and any other variable with directions
+                ! NOTE: ONLY when ASCII files are read
+                call rotate_fdir_variable(data_i4_2d)
+                ! append 
+                call append( L0_fDir,    pack(data_i4_2d, mask_global) )
+             case(3) ! soil class ID
+                call append( L0_soilId,  pack(data_i4_2d, mask_global) )
+             case(4) ! hydrogeological class ID
+                call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
+             case(5) ! location of evaluation and inflow gauging stations 
+                ! evaluation gauges
                 ! Input data check
-                do iGauge = 1, basin%nInflowGauges(iBasin)
-                   ! If InflowGaugeId is found in gauging location file?
-                   if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
+                do iGauge = 1, basin%nGauges(iBasin)
+                   ! If gaugeId is found in gauging location file?
+                   if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
                       call message()
-                      call message('***ERROR: Inflow Gauge ID "', trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
+                      call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
                            '" not found in ' )
                       call message('          Gauge location input file: ', &
                            trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
                       stop
                    end if
                 end do
-             end if
 
-             call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
+                call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
 
-          case(6) ! Land cover related to LAI classes
-             call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )             
-          end select
+                ! inflow gauges
+                ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
+                if (basin%nInflowGauges(iBasin) .GT. 0_i4) then 
+                   ! Input data check
+                   do iGauge = 1, basin%nInflowGauges(iBasin)
+                      ! If InflowGaugeId is found in gauging location file?
+                      if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
+                         call message()
+                         call message('***ERROR: Inflow Gauge ID "', &
+                              trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
+                              '" not found in ' )
+                         call message('          Gauge location input file: ', &
+                              trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
+                         stop
+                      end if
+                   end do
+                end if
+
+                call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
+
+             case(6) ! Land cover related to LAI classes
+                call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )             
+             end select
+             !
+             ! deallocate arrays
+             deallocate(data_i4_2d, mask_2d)
+             !
+          end do nVars_integer
           !
-          ! deallocate arrays
-          deallocate(data_i4_2d, mask_2d)
-          !
-       end do nVars_integer
+       else
+          ! if restart is switched on, perform dummy allocation of 
+          allocate( dummy_dp( count(mask_global) ) )
+          allocate( dummy_i4( count(mask_global) ) )
+          call append( L0_elev,     dummy_dp )
+          call append( L0_slope,    dummy_dp )
+          call append( L0_asp,      dummy_dp )
+          call append( L0_fAcc,     dummy_i4 )
+          call append( L0_fDir,     dummy_i4 )
+          call append( L0_soilId,   dummy_i4 )
+          call append( L0_geoUnit,  dummy_i4 )
+          call append( L0_gaugeLoc, dummy_i4 )
+          call append( L0_InflowGaugeLoc, dummy_i4 )
+          deallocate( dummy_dp, dummy_i4 )
+          ! read L0_LCover_LAI
+          if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE  
+          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+          nunit = ulaiclass
+          call read_spatial_data_ascii(trim(fName), nunit,                               &
+               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+       end if read_L0_data
+       
        !
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCover_scene
@@ -411,7 +445,7 @@ CONTAINS
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
+          
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global))
@@ -423,16 +457,16 @@ CONTAINS
        !
        deallocate(mask_global)
        deallocate(dataMatrix_i4)
-       !
-
+       
     end do basins
-
     !----------------------------------------------------------------
     ! Correction for slope and aspect -- min value set above
     !----------------------------------------------------------------
-    L0_slope  = merge(  slope_minVal, L0_slope,  (L0_slope  .lt.  slope_minVal)  )
-    L0_asp    = merge( aspect_minVal, L0_asp,    (L0_asp    .lt. aspect_minVal)  )
-
+    if ( perform_mpr ) then
+       L0_slope  = merge(  slope_minVal, L0_slope,  (L0_slope  .lt.  slope_minVal)  )
+       L0_asp    = merge( aspect_minVal, L0_asp,    (L0_asp    .lt. aspect_minVal)  )
+    end if
+    
     ! ************************************************
     ! READ DISCHARGE TIME SERIES
     ! ************************************************

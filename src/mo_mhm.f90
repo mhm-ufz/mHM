@@ -103,12 +103,14 @@ CONTAINS
   !                                                             call
   !                 Matthias Zink,                   Mar 2014 - added inflow from upstream areas
   !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
       ! Input -----------------------------------------------------------------
       ! Configuration
-      restart_iFlag_read  , & ! flag for reading restart files for state variables
+      perform_mpr,          & ! flag for reading restart files for state variables
+      read_states,          & ! flag indicating whether states have been read
       fSealedInCity       , & ! sealed area fraction within cities
       LAI_option_Flag     , & ! Flag for LAI option
       counter_month       , & ! counter to tackle the change of month 
@@ -256,7 +258,8 @@ CONTAINS
     implicit none
 
     ! Intent
-    logical,                     intent(in) :: restart_iFlag_read   ! flag for reading restart files for state variables
+    logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
+    logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: LAI_option_Flag      ! Flag for LAI option
     integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
@@ -435,6 +438,13 @@ CONTAINS
     !-------------------------------------------------------------------
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
         
+       ! abort if land cover change is there and mpr is switched off
+       if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
+          call message()
+          call message('***ERROR: land cover change detected and mpr is switched off!')
+          stop
+       end if
+
         ! update yId to keep track of LC change         
         yId = LCyearId        
   
@@ -486,27 +496,29 @@ CONTAINS
         !-------------------------------------------------------------------
         ! NOW call MPR
         !-------------------------------------------------------------------
-        call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
-                  geoUnit0, GeoUnitList, GeoUnitKar,                                   &
-                  SDB_is_present, SDB_nHorizons,                                       &
-                  SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth, &
-                  nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,   &
-                  soilId0, LCover0, Asp0, length11, slope11, fFPimp11,                 &
-                  slope_emp0, cellId0,                                                 &
-                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                  &
-                  L0rightBound_inL1, nTCells0_inL1,                                    &
-                  alpha, deg_day_incr, deg_day_max, deg_day_noprec,                    &
-                  fAsp, frac_roots, k0, k1, k2, kp, karst_loss,                        &
-                  nLink_C1,  nLink_C2,                                                 &
-                  soil_moist_FC, soil_moist_sat, soil_moist_exponen,                   &
-                  temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point        )
+        if ( perform_mpr ) then
+           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,      &
+                geoUnit0, GeoUnitList, GeoUnitKar,                                   &
+                SDB_is_present, SDB_nHorizons,                                       &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth, &
+                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,   &
+                soilId0, LCover0, Asp0, length11, slope11, fFPimp11,                 &
+                slope_emp0, cellId0,                                                 &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                  &
+                L0rightBound_inL1, nTCells0_inL1,                                    &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                    &
+                fAsp, frac_roots, k0, k1, k2, kp, karst_loss,                        &
+                nLink_C1,  nLink_C2,                                                 &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen,                   &
+                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point        )
+        end if
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
-        ! step and when restart_iFlag_read = FALSE 
+        ! step and when perform_mpr = FALSE 
         ! based on the half of the derived values of Field capacity
         ! other states are kept at their inital values
         !-------------------------------------------------------------------
-        if( (tt .EQ. 1) .AND. (.NOT. restart_iFlag_read) ) then
+        if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
 

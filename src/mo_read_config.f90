@@ -95,6 +95,7 @@ CONTAINS
   !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
   !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
   !                  Stephan Thober, May  2014 - added switch for chunk read in
+  !                  Stephan Thober, Jun  2014 - added option for switching off mpr
 
   subroutine read_config()
 
@@ -145,10 +146,9 @@ CONTAINS
          fracSealed_cityArea, nLcover_scene,                & ! land cover information
          LCfilename, LCyearId,                              & ! 
          nBasins,                                           & ! number of basins
-         restart_flag_states_read,                          & ! flag reading restart (state variables)
-         restart_flag_states_write,                         & ! flag writing restart (state variables)
-         restart_flag_config_read,                          & ! flag reading restart (config variables)
-         restart_flag_config_write,                         & ! flag writing restart (config variables)
+         read_restart,                                      & ! flag reading restart
+         write_restart,                                     & ! flag writing restart
+         perform_mpr,                                       & ! switch for performing mpr
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods  
          !                                                    ! (sim. = wrm. + eval.)
@@ -275,9 +275,8 @@ CONTAINS
                            dir_RestartIn, dir_LatLon
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
-                 L0Basin, optimize, opti_method, opti_function, nBasins, restart_flag_states_read, &
-                 restart_flag_states_write, restart_flag_config_read, restart_flag_config_write,   &
-                 warmingDays, evalPer, timestep_model_inputs
+                 L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
+                 write_restart, perform_mpr, warmingDays, evalPer, timestep_model_inputs
     ! namelsit soil layering
     namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
@@ -363,6 +362,12 @@ CONTAINS
     if ( optimize .and. ( timestep_model_inputs .ne. 0 ) ) then
        call message()
        call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
+       stop
+    end if
+    ! check for perform_mpr
+    if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
+       call message()
+       call message('***ERROR: cannot omit mpr when read_restart is set to .false.')
        stop
     end if
     

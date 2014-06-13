@@ -221,7 +221,7 @@ contains
           ! tillage horizons
           
           if ( j .le. nTillHorizons(i) ) then
-             
+
              ! LC class
              do L = 1, maxval( LCOVER0 )
                 select case (L)

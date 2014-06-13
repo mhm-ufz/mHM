@@ -20,18 +20,730 @@ MODULE mo_restart
   IMPLICIT NONE
 
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
-  PUBLIC :: write_restart_states    ! write restart files for state variables to a given path
-
   PUBLIC :: read_restart_config     ! read restart files for configuration from a given path
   PUBLIC :: read_restart_L11_config ! read L11 configuration
-  PUBLIC :: write_restart_config    ! write restart files for configuration to a given path
+  PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
   PRIVATE
 
 CONTAINS
   ! ------------------------------------------------------------------
-
+  
   !      NAME
+  !         write_restart
+
+  !     PURPOSE
+  !>        \brief write restart files for each basin
+
+  !>        \details write restart files for each basin. For each basin
+  !>        three restart files are written. These are xxx_states.nc, 
+  !>        xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !>        basin index). If a variable is added here, it should also be added
+  !>        in the read restart routines below.
+
+  !     INTENT(IN)
+  !>        \param[in] "character(256), dimension(:) :: OutPath"     Output Path for each basin
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+
+  !     RESTRICTIONS 
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         see library routine var2nc in mo_ncwrite.f90
+
+  !     HISTORY
+  !>        \author   Stephan Thober
+  !>        \date     Jun 2014
+
+  ! ------------------------------------------------------------------ 
+  subroutine write_restart_files( OutPath )
+
+    use mo_kind,             only: i4, dp
+    use mo_message,          only: message
+    use mo_init_states,      only: get_basin_info
+    use mo_string_utils,     only: num2str
+    use mo_ncwrite,          only: var2nc
+    use mo_mhm_constants,    only: nodata_dp, nodata_i4, nRoutingStates
+    use mo_global_variables, only: processMatrix, &
+         L1_fSealed, &
+         L1_fForest, &
+         L1_fPerm, &
+         L1_Inter, &
+         L1_snowPack, &
+         L1_sealSTW, &
+         L1_soilMoist, &
+         L1_unsatSTW, &
+         L1_satSTW, &
+         L1_aETSoil, &
+         L1_aETCanopy, &
+         L1_aETSealed, &
+         L1_baseflow, &
+         L1_infilSoil, &
+         L1_fastRunoff, &
+         L1_melt, &
+         L1_percol, &
+         L1_preEffect, &
+         L1_rain, &
+         L1_runoffSeal, &
+         L1_slowRunoff, &
+         L1_snow, &
+         L1_Throughfall, &
+         L1_total_runoff, &
+         L1_alpha, &
+         L1_degDayInc, &
+         L1_degDayMax, &
+         L1_degDayNoPre, &
+         L1_degDay, &
+         L1_karstLoss, &
+         L1_fAsp, &
+         L1_fRoots, &
+         L1_maxInter, &
+         L1_kfastFlow, &
+         L1_kSlowFlow, &
+         L1_kBaseFlow, &
+         L1_kPerco, &
+         L1_soilMoistFC, &
+         L1_soilMoistSat, &
+         L1_soilMoistExp, &
+         L1_tempThresh, &
+         L1_unsatThresh, &
+         L1_sealedThresh, &
+         L1_wiltingPoint, &
+         L11_Qmod, &
+         L11_qOUT, &
+         L11_qTIN, &
+         L11_qTR, &
+         L11_K, &
+         L11_xi, &
+         L11_C1, &
+         L11_C2, &
+         L11_FracFPimp, &
+         L11_cellCoor, &
+         L11_Id, &
+         L0_L11_Id, &
+         L1_L11_Id, &
+         L11_rowOut, &
+         L11_colOut, &
+         L11_fDir, &
+         L11_upBound_L0, &
+         L11_downBound_L0, &
+         L11_leftBound_L0, &
+         L11_rightBound_L0, &
+         L11_upBound_L1, &
+         L11_downBound_L1, &
+         L11_leftBound_L1, &
+         L11_rightBound_L1, &
+         L11_fDir, &
+         L11_fromN, &
+         L11_toN, &
+         L11_rOrder, &
+         L11_label, &
+         L11_sink, &
+         L11_netPerm, &
+         L11_rowOut, &
+         L11_colOut, &
+         L11_fRow, &
+         L11_fCol, &
+         L11_tRow, &
+         L11_tCol, &
+         L0_draSC, &
+         L0_draCell, &
+         L0_streamNet, &
+         L0_floodPlain, &
+         L11_length, &
+         L11_aFloodPlain, &
+         L11_slope, &
+         basin, &
+         L0_cellCoor    ,          & 
+         L0_Id         ,           & ! Ids of grid at level-0 
+         L0_areaCell   ,           & ! Ids of grid at level-0
+         L0_slope_emp  ,           & ! Empirical quantiles of slope
+         L1_Id         ,           & ! Ids of grid at level-1
+         L1_cellCoor    ,          &
+         L1_upBound_L0 ,           & ! Row start at finer level-0 scale 
+         L1_downBound_L0,          & ! Row end at finer level-0 scale
+         L1_leftBound_L0,          & ! Col start at finer level-0 scale
+         L1_rightBound_L0,         & ! Col end at finer level-0 scale
+         L1_areaCell   ,           & ! [km2] Effective area of cell at this level
+         L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
+
+    implicit none
+
+    character(256)                           :: Fname
+    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
+    integer(i4)                              :: iBasin
+    integer(i4)                              :: ii
+    integer(i4)                              :: s0       ! start index at level 0
+    integer(i4)                              :: e0       ! end index at level 0
+    integer(i4)                              :: ncols0   ! number of colums at level 0
+    integer(i4)                              :: nrows0   ! number of rows at level 0
+    logical, dimension(:,:), allocatable     :: mask0    ! mask at level 0
+    integer(i4)                              :: s1       ! start index at level 1
+    integer(i4)                              :: e1       ! end index at level 1
+    integer(i4)                              :: ncols1   ! number of colums at level 1
+    integer(i4)                              :: nrows1   ! number of rows at level 1
+    logical, dimension(:,:), allocatable     :: mask1    ! mask at level 1
+    integer(i4)                              :: s110     ! start index at pseudo level 110 
+    integer(i4)                              :: e110     ! end index at pseudo level 110
+    integer(i4)                              :: ncols110 ! number of colums at pseudo level 110
+    integer(i4)                              :: nrows110 ! number of rows at pseudo level 110
+    integer(i4)                              :: s11      ! start index at level 11
+    integer(i4)                              :: e11      ! end index at level 11
+    integer(i4)                              :: ncols11  ! number of colums at level 11
+    integer(i4)                              :: nrows11  ! number of rows at level 11
+    logical, dimension(:,:), allocatable     :: mask11   ! mask at level 11
+    real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
+    ! dimension variables
+    character(256), dimension(2)             :: dims_L0     ! dimension names for L0 states
+    character(256), dimension(3)             :: dims_L1     ! dimension names for L1 states
+    character(256), dimension(3)             :: dims_L11    ! dimension names for L11 states
+    character(256), dimension(1)             :: dims_outlet ! dimension name  for outlet Coordinates
+    character(256), dimension(1)             :: dims_gauges ! dimension name  for number of gauges
+    character(256), dimension(1)             :: dims_inflow ! dimension name  for inflow gauge
+
+    ! initialize
+    dims_L0(1)     = 'nrows0'
+    dims_L0(2)     = 'ncols0'
+    dims_L1(1)     = 'nrows1'
+    dims_L1(2)     = 'ncols1'
+    dims_L1(3)     = 'L1_soilhorizons'
+    dims_L11(1)    = 'nrows11'
+    dims_L11(2)    = 'ncols11'
+    dims_L11(3)    = 'nIT'
+    dims_outlet(1) = 'NoutletCoord'
+    dims_gauges(1) = 'Ngauges'
+    dims_inflow(1) = 'nInflowGauges'
+
+    basin_loop: do iBasin = 1, size(OutPath)
+
+       ! get Level0 information about the basin
+       call get_basin_info( iBasin, 0, nrows0, ncols0, iStart=s0, iEnd=e0, mask=mask0 )
+
+       ! get Level1 information about the basin
+       call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
+
+       ! write restart file for iBasin
+       ! Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
+       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
+       ! print a message
+       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
+       
+       call var2nc( Fname, unpack( L1_fSealed(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fSealed', &
+            longname = 'fraction of Sealed area at level 1', fill_value = nodata_dp, &
+            f_exists = .false. ) ! create file
+
+       call var2nc( Fname, unpack( L1_fForest(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fForest', &
+            longname = 'fraction of Forest area at level 1', fill_value = nodata_dp)
+       
+       call var2nc( Fname, unpack( L1_fPerm(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fPerm', &
+            longname = 'fraction of permeable area at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_inter(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_Inter', &
+            longname = 'Interception storage at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_snowPack(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_snowPack', &
+            longname = 'Snowpack at level 1', fill_value = nodata_dp)
+       
+       call var2nc( Fname, unpack( L1_sealSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_sealSTW', &
+            longname = 'Retention storage of impervious areas at level 1', fill_value = nodata_dp)
+
+       allocate( dummy_d3( nrows1, ncols1, size( L1_soilMoist, 2) ) )
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoist(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_soilMoist', &
+            longname = 'soil moisture at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_unsatSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_unsatSTW', &
+            longname = 'upper soil storage at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_satSTW(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_satSTW', &
+            longname = 'groundwater storage at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_aETSoil(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_aETSoil', &
+            longname = 'soil actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_aETCanopy(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_aETCanopy', &
+            longname = 'canopy actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_aETSealed(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_aETSealed', &
+            longname = 'sealed actual ET at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_baseflow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_baseflow', &
+            longname = 'baseflow at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_infilSoil(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_infilSoil', &
+            longname = 'soil in-exfiltration at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_fastRunoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fastRunoff', &
+            longname = 'fast runoff', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_percol(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_percol', &
+            longname = 'percolation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_melt(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_melt', &
+            longname = 'snow melt at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_preEffect(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_preEffect', &
+            longname = 'effective precip. depth (snow melt + rain) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_rain(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_rain', &
+            longname = 'rain (liquid water) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_runoffSeal(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_runoffSeal', &
+            longname = 'runoff from impervious area at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_slowRunoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_slowRunoff', &
+            longname = 'slow runoff at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_snow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_snow', &
+            longname = 'snow (solid water) at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_Throughfall(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_Throughfall', &
+            longname = 'throughfall at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_total_runoff(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_total_runoff', &
+            longname = 'total runoff at level 1', fill_value = nodata_dp)
+
+       !-------------------------------------------
+       ! EFFECTIVE PARAMETERS
+       !-------------------------------------------
+       call var2nc( Fname, unpack( L1_alpha(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_alpha', &
+            longname = 'exponent for the upper reservoir at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayInc(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayInc', &
+            longname = 'increase of the Degree-day factor per mm of increase in precipitation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayMax(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayMax', &
+            longname = 'maximum degree-day factor at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDayNoPre(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDayNoPre', &
+            longname = 'degree-day factor with no precipitation at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_degDay(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_degDay', &
+            longname = 'degree-day factor at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_karstLoss(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_karstLoss', &
+            longname = 'Karstic percolation loss at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_fAsp', &
+            longname = 'PET correction factor due to terrain aspect at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_fRoots(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_fRoots', &
+            longname = 'Fraction of roots in soil horizons at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_maxInter(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_maxInter', &
+            longname = 'Maximum interception at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kfastFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kfastFlow', &
+            longname = 'fast interflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kSlowFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kSlowFlow', &
+            longname = 'slow interflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kBaseFlow', &
+            longname = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_kPerco(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_kPerco', &
+            longname = 'percolation coefficient at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistFC(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_soilMoistFC', &
+            longname = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_soilMoistSat', &
+            longname = 'Saturation soil moisture for each horizon [mm] at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_soilMoistExp(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_soilMoistExp', &
+            longname = 'Exponential parameter to how non-linear is the soil water retention at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_tempThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_tempThresh', &
+            longname = 'Threshold temperature for snow/rain at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_unsatThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_unsatThresh', &
+            longname = 'Threshhold water depth controlling fast interflow at level 1', fill_value = nodata_dp)
+
+       call var2nc( Fname, unpack( L1_sealedThresh(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2), 'L1_sealedThresh', &
+            longname = 'Threshhold water depth for surface runoff in sealed surfaces at level 1', fill_value = nodata_dp)
+
+       do ii = 1, size( dummy_d3, 3 )
+          dummy_d3(:,:,ii) = unpack( L1_wiltingPoint(s1:e1,ii), mask1, nodata_dp )
+       end do
+       call var2nc( Fname, dummy_d3, &
+            dims_L1, 'L1_wiltingPoint', &
+            longname = 'Permanent wilting point at level 1', fill_value = nodata_dp)
+       
+       deallocate( dummy_d3 )
+       !-------------------------------------------
+       ! L11 ROUTING STATE VARIABLES, FLUXES AND
+       !             PARAMETERS
+       !-------------------------------------------
+       if ( processMatrix(8,1) .ne. 0 ) then
+          ! get Level11 information about the basin
+          call get_basin_info( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
+          ! get Level110 information about the basin
+          call get_basin_info( iBasin, 110, nrows110, ncols110, iStart=s110, iEnd=e110)
+          
+          call var2nc( Fname, unpack( L11_Qmod(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_Qmod', &
+            longname = 'simulated discharge at each node at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_qOUT(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_qOUT', &
+            longname = 'Total outflow from cells L11 at time tt at level 11', fill_value = nodata_dp)
+          
+          allocate( dummy_d3( nrows11, ncols11, nRoutingStates ) )
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L11_qTIN(s11:e11,ii), mask11, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               dims_L11, 'L11_qTIN', &
+               longname = 'Total discharge inputs at t-1 and t at level 11', fill_value = nodata_dp)
+
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L11_qTR(s11:e11,ii), mask11, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               dims_L11, 'L11_qTR', &
+               longname = 'Routed outflow leaving a node at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_K(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_K', &
+            longname = 'kappa: Muskingum travel time parameter at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_xi(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_xi', &
+            longname = 'xi: Muskingum diffusion parameter at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_C1(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_C1', &
+            longname = 'Routing parameter C1=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_C2(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_C2', &
+            longname = 'Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+
+          call var2nc( Fname, unpack( L11_FracFPimp(s11:e11), mask11, nodata_dp ), &
+            dims_L11(1:2), 'L11_FracFPimp', &
+            longname = 'Fraction of the flood plain with impervious cover at level 11', fill_value = nodata_dp)
+          
+          ! ----------------------------------------------------------
+          ! L11 config set - create new file
+          ! ----------------------------------------------------------
+          Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc'
+          call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
+          call var2nc( Fname, &
+               merge( 1_i4, 0_i4,  &
+               reshape(basin%L11_Mask(basin%L11_iStartMask(iBasin):basin%L11_iEndMask(iBasin)),&
+               (/nrows11,ncols11/)) ),&
+               dims_L11(1:2), 'L11_basin_Mask', &
+               longname = 'Mask at Level 11', fill_value = nodata_i4, f_exists = .false. )
+          
+          call var2nc( Fname, unpack( L11_cellCoor(s11:e11,1), mask11, nodata_i4 ), &
+               dims_L11(1:2),'L11_rowCoor', &
+               longname = 'row coordinates at Level 11', fill_value = nodata_i4 )
+
+          call var2nc( Fname, unpack( L11_cellCoor(s11:e11,2), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_colCoor', &
+               longname = 'col coordinates at Level 11', fill_value = nodata_i4 )
+
+          call var2nc( Fname, unpack( L11_Id(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_Id', &
+               longname = 'cell Ids at Level 11', fill_value = nodata_i4 )
+
+          call var2nc( Fname, unpack( L11_fDir(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_fDir', &
+               longname = 'flow Direction at Level 11', fill_value = nodata_i4 )     
+
+          call var2nc( Fname, unpack( L11_rowOut(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_rowOut', &
+               longname = 'Grid vertical location of the Outlet at Level 11', fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_colOut(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_colOut', &
+               longname = 'Grid horizontal location of the Outlet at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_upBound_L0(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_upBound_L0', &
+               longname = 'Row start at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_downBound_L0(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_downBound_L0', &
+               longname = 'Row end at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_leftBound_L0(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_leftBound_L0', &
+               longname = 'Col start at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_rightBound_L0(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_rightBound_L0', &
+               longname = 'Col end at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_fromN(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_fromN', &
+               longname = 'From Node',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_toN(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_toN', &
+               longname = 'To Node',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_rOrder(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_rOrder', &
+               longname = 'Network routing order at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_label(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_label', &
+               longname = 'Label Id [0='', 1=HeadWater, 2=Sink] at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( merge( 1_i4, 0_i4, L11_sink(s11:e11)), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_sink', &
+               longname = '.true. if sink node reached at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_netPerm(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_netPerm', &
+               longname = 'Routing sequence (permutation of L11_rOrder) at Level 11',fill_value=nodata_i4)
+      
+          call var2nc( Fname, unpack( L11_fRow(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_fRow', &
+               longname = 'From row in L0 grid at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_fCol(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_fCol', &
+               longname = 'From col in L0 grid at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_tRow(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_tRow', &
+               longname = 'To row in L0 grid at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_tCol(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_tCol', &
+               longname = 'To Col in L0 grid at Level 11',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_length(s11:e11), mask11, nodata_dp ), &
+               dims_L11(1:2), 'L11_length', &
+               longname = 'Total length of river link [m]',fill_value=nodata_dp)
+
+          call var2nc( Fname, unpack( L11_aFloodPlain(s11:e11), mask11, nodata_dp ), &
+               dims_L11(1:2), 'L11_aFloodPlain', &
+               longname = 'Area of the flood plain [m2]',fill_value=nodata_dp)
+
+          call var2nc( Fname, unpack( L11_slope(s11:e11), mask11, nodata_dp ), &
+               dims_L11(1:2), 'L11_slope', &
+               longname = 'Average slope of river link',fill_value=nodata_dp)
+
+          call var2nc( Fname, unpack( L0_draCell(s110:e110), mask0, nodata_i4 ), &
+               dims_L0, 'L0_draCell', &
+               longname = 'Draining cell id at L11 of ith cell of L0',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L0_streamNet(s110:e110), mask0, nodata_i4 ), &
+               dims_L0, 'L0_streamNet', &
+               longname = 'Stream network',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L0_floodPlain(s110:e110), mask0, nodata_i4 ), &
+               dims_L0, 'L0_floodPlain', &
+               longname = 'Floodplains of stream i',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L0_draSC(s110:e110), mask0, nodata_i4 ), &
+               dims_L0, 'L0_draSC', &
+               longname = 'Floodplains of stream i',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L0_L11_Id(s110:e110), mask0, nodata_i4 ), &
+               dims_L0, 'L0_L11_Id', &
+               longname = 'Mapping of L11 Id on L0',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L1_L11_Id(s1:e1), mask1, nodata_i4 ), &
+               dims_L1(1:2), 'L1_L11_Id', &
+               longname = 'Mapping of L11 Id on L1',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_upBound_L1(s1:e1), mask1, nodata_i4 ), &
+               dims_L1(1:2), 'L11_upBound_L1', &
+               longname = 'Row start at finer level-1 scale',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_downBound_L1(s1:e1), mask1, nodata_i4 ), &
+               dims_L1(1:2), 'L11_downBound_L1', &
+               longname = 'Row end at finer level-1 scale',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_leftBound_L1(s1:e1), mask1, nodata_i4 ), &
+               dims_L1(1:2), 'L11_leftBound_L1', &
+               longname = 'Col start at finer level-1 scale',fill_value=nodata_i4)
+
+          call var2nc( Fname, unpack( L11_rightBound_L1(s1:e1), mask1, nodata_i4 ), &
+               dims_L1(1:2), 'L11_rightBound_L1', &
+               longname = 'Col start at finer level-1 scale',fill_value=nodata_i4)
+
+          call var2nc( Fname, (/ basin%L0_rowOutlet(iBasin), basin%L0_colOutlet(iBasin) /), &
+                dims_outlet, 'L0_OutletCoord', &
+                longname = 'Outlet Coordinates at Level 0',fill_value=nodata_i4)
+          
+          call var2nc( Fname, basin%gaugeNodeList(iBasin,:), &
+               dims_gauges, 'gaugeNodeList', &
+               longname = 'cell ID of gauges',fill_value=nodata_i4)
+
+          call var2nc( Fname, basin%InflowGaugeNodeList(iBasin,:), &
+               dims_inflow, 'InflowGaugeNodeList', &
+               longname = 'cell ID of gauges',fill_value=nodata_i4)
+       
+          ! free dummy variables
+          deallocate( dummy_d3 )
+
+       end if
+
+       ! -------------------------------------------------------------
+       ! config set - create new file
+       ! -------------------------------------------------------------
+       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc'
+       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
+
+       call var2nc( Fname, unpack( L0_cellCoor(s0:e0,1), mask0, nodata_i4 ), &
+            dims_L0,'L0_rowCoor', &
+            longname = 'row coordinates at Level 0', fill_value = nodata_i4, &
+            f_exists = .false. )
+
+       call var2nc( Fname, unpack( L0_cellCoor(s0:e0,2), mask0, nodata_i4 ), &
+            dims_L0,'L0_colCoor', &
+            longname = 'col coordinates at Level 0', fill_value = nodata_i4 )
+
+       call var2nc( Fname, unpack( L0_Id(s0:e0), mask0, nodata_i4 ), &
+            dims_L0,'L0_Id', &
+            longname = 'cell IDs at level 0', fill_value = nodata_i4 )
+
+       call var2nc( Fname, unpack( L0_areaCell(s0:e0), mask0, nodata_dp ), &
+            dims_L0,'L0_areaCell', &
+            longname = 'Area of a cell at level-0 [m2]', fill_value = nodata_dp )
+
+       call var2nc( Fname, unpack( L0_slope_emp(s0:e0), mask0, nodata_dp ), &
+            dims_L0,'L0_slope_emp', &
+            longname = 'Empirical quantiles of slope', fill_value = nodata_dp )
+ 
+       call var2nc( Fname, &
+            merge( 1_i4, 0_i4,  &
+            reshape(basin%L1_Mask(basin%L1_iStartMask(iBasin):basin%L1_iEndMask(iBasin)),&
+            (/nrows1,ncols1/)) ),&
+            dims_L1(1:2), 'L1_basin_Mask', &
+            longname = 'Mask at Level 1', fill_value = nodata_i4 )
+ 
+       call var2nc( Fname, unpack( L1_Id(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_Id', &
+            longname = 'cell IDs at level 1', fill_value = nodata_i4 )
+
+       call var2nc( Fname, unpack( L1_cellCoor(s1:e1,1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_rowCoor', &
+            longname = 'row cell Coordinates at Level 1', fill_value = nodata_i4 )
+
+       call var2nc( Fname, unpack( L1_cellCoor(s1:e1,2), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_colCoor', &
+            longname = 'col cell Coordinates at Level 1', fill_value = nodata_i4 )
+ 
+       call var2nc( Fname, unpack( L1_upBound_L0(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_upBound_L0', &
+            longname = 'Row start at finer level-0 scale', fill_value = nodata_i4 )
+ 
+       call var2nc( Fname, unpack( L1_downBound_L0(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_downBound_L0', &
+            longname = 'Row end at finer level-0 scale', fill_value = nodata_i4 )
+  
+       call var2nc( Fname, unpack( L1_leftBound_L0(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_leftBound_L0', &
+            longname = 'Col start at finer level-0 scale', fill_value = nodata_i4 )
+ 
+       call var2nc( Fname, unpack( L1_rightBound_L0(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_rightBound_L0', &
+            longname = 'Col end at finer level-0 scal', fill_value = nodata_i4 )
+ 
+       call var2nc( Fname, unpack( L1_nTCells_L0(s1:e1), mask1, nodata_i4 ), &
+            dims_L1(1:2),'L1_nTCells_L0', &
+            longname = 'Total number of valid L0 cells in a given L1 cell', fill_value = nodata_i4 )
+  
+       call var2nc( Fname, unpack( L1_areaCell(s1:e1), mask1, nodata_dp ), &
+            dims_L1(1:2),'L1_areaCell', &
+            longname = 'Effective area of cell at this level [km2]', fill_value = nodata_dp )
+       
+    end do basin_loop
+    
+    
+  end subroutine write_restart_files
+  ! ------------------------------------------------------------------
+
+  !      NAMEw
   !         read_restart_L11_config
 
   !     PURPOSE
@@ -65,7 +777,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_config 
+  !>        it would have been written by subroutine write_restart_files 
 
   !     EXAMPLE
   !         None
@@ -157,8 +869,8 @@ CONTAINS
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP
 
     ! set file name
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc' ! '_restart.nc'
+    call message('    Reading L11_config from ', trim(adjustl(Fname)),' ...')
 
     ! level-0 information
     call get_basin_info( iBasin, 0, nrows0, ncols0,&
@@ -452,7 +1164,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_config 
+  !>        it would have been written by subroutine write_restart_files
 
   !     EXAMPLE
   !         None
@@ -475,6 +1187,8 @@ CONTAINS
     use mo_mhm_constants,    only: nodata_dp
     use mo_init_states,      only: calculate_grid_properties
     use mo_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
+         perform_mpr,    & ! switch that controls whether mpr is performed or not
+         L0_soilId,      & ! soil IDs at lower level
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          L0_areaCell   , & ! Ids of grid at level-0
@@ -482,7 +1196,6 @@ CONTAINS
          basin, & 
          nBasins, &
          level1, &
-         L0_soilId, &
          L0_nCells, &
          nSoilTypes, &
          resolutionHydrology, &
@@ -515,7 +1228,7 @@ CONTAINS
     real(dp)                                             :: cellsize0
     !
     ! Dummy Variables
-    integer(i4)                                          :: k, j
+    integer(i4)                                          :: ii
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 
@@ -524,8 +1237,8 @@ CONTAINS
     character(256) :: Fname
 
     ! read config
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc' ! '_restart.nc'
+    call message('    Reading config from     ', trim(adjustl(Fname)),' ...')
  
     !
     ! level-0 information
@@ -612,11 +1325,14 @@ CONTAINS
        allocate( soilId_isPresent(nSoilTypes) )
        soilId_isPresent(:) = 0
     end if
-
-    do k = iStart0, iEnd0
-       j = L0_soilId(k)
-       soilId_isPresent(j) = 1
-    end do
+    !------------------------------------------------------
+    ! set soil types when mpr should be performed
+    !------------------------------------------------------
+    if ( perform_mpr ) then
+       do ii = iStart0, iEnd0
+          soilId_isPresent(L0_soilId(ii)) = 1
+       end do
+    end if
     !
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Read L1 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -725,7 +1441,7 @@ CONTAINS
 
   !     RESTRICTIONS 
   !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_states 
+  !>        it would have been written by subroutine write_restart_files
 
   !     EXAMPLE
   !         None
@@ -825,8 +1541,8 @@ CONTAINS
     real(dp), dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension
     real(dp), dimension(:,:,:), allocatable           :: dummyD3  ! dummy, 3 dimension
 
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
-    call message('    Reading Restart-file: ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
+    call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get basin information at level 1
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1, &
@@ -1152,1437 +1868,5 @@ CONTAINS
     end if
 
   end subroutine read_restart_states
-
-  ! ------------------------------------------------------------------
-
-  !      NAME
-  !         write_restart_states
-
-  !     PURPOSE
-  !>        \brief writes states to a restart file
-
-  !>        \details writes all state variables and fluxes to file in 
-  !>        a given restart directory
-
-  !     INTENT(IN)
-  !>        \param[in] "character(256), dimension(:) :: OutPath" Output Path including trailing slash
-  !>                                                             for each basin (size(OutPath)==nBasins)
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS
-  !>        \note file name cannot be specified, it is <number of basin>_states.nc, with
-  !>        number of basins as three digits
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Apr 2013
-  !         modified Stephan Thober,    Nov 2013 - only writting L11 variables if routing is switched on
-
-  subroutine write_restart_states( OutPath )
-
-    use mo_kind,             only: i4
-    use mo_message,          only: message
-    use mo_string_utils,     only: num2str
-    use mo_ncwrite,          only: create_netcdf, write_static_netcdf, close_netcdf
-    use mo_global_variables, only: processMatrix
-
-    implicit none
-
-    character(256)                           :: Fname
-    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
-    integer(i4)                              :: hnc     ! handle for netcdf file
-    integer(i4)                              :: i
-
-    do i = 1, size(OutPath) 
-
-       Fname = trim(OutPath(i)) // trim(num2str(i, '(i3.3)')) // '_states.nc'
-       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
-       call state_variables_set( i )
-       ! call create_netcdf( trim(Fname), hnc, lfs = .true., netcdf4 = .false.)
-       call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
-       call write_static_netcdf( hnc)
-       call close_netcdf(hnc)
-
-       ! free memory
-       call free_memory_states( (processMatrix(8,1) .ne. 0))
-
-    end do
-
-  end subroutine write_restart_states
-
-  ! ------------------------------------------------------------------
-
-  !      NAME
-  !         write_restart_config
-
-  !     PURPOSE
-  !>        \brief writes configuration variables to a restart file
-
-  !>        \details writes configuration variables EXCLUDING state
-  !>        variables to a file in a given restart directory. Two files
-  !>        are written: 1) for L11_configuration containing configuration
-  !>        variables for routing and 2) other configuration variables
-
-  !     INTENT(IN)
-  !>        \param[in] "character(256), dimension(:) :: OutPath" Output Path including trailing slash
-  !>                                                             for each basin (size(OutPath)==nBasins)
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS
-  !>        \note file names cannot be specified, it is <number of basin>_L11_config.nc 
-  !>        and <number of basin>_config.nc, respectively. L11_config is only written, 
-  !>        when routing is switched on in the process matrix
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Jul 2013
-  subroutine write_restart_config( OutPath )
-
-    use mo_kind,         only: i4
-    use mo_message,      only: message
-    use mo_string_utils, only: num2str
-    use mo_ncwrite,      only: create_netcdf, write_static_netcdf, close_netcdf
-    use mo_global_variables, only: processMatrix, nBasins
-
-    implicit none
-
-    character(256)                           :: Fname
-    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
-    integer(i4)                              :: hnc     ! handle for netcdf file
-    integer(i4)                              :: i
-
-    if ( size( OutPath ) .ne. nBasins ) then
-       stop 'write_restart_config: size of OutPath does not match Number of Basins'
-    End if
-
-    do i = 1, nBasins
-
-       Fname = trim(OutPath(i)) // trim(num2str(i, '(i3.3)')) // '_config.nc'
-       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
-       call config_variables_set( i )
-       call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
-       call write_static_netcdf( hnc)
-        call close_netcdf(hnc)
-
-       ! free memory
-       call free_memory_config
-
-       ! if L11 routing is activated, then write it to an OutFile
-       ! L11: network initialization
-       if ( processMatrix(8, 1) .ne. 0 ) then
-
-          Fname = trim(OutPath(i)) // trim(num2str(i, '(i3.3)')) // '_L11_config.nc'
-          call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
-          call L11_config_set( i )
-          call create_netcdf( trim(Fname), hnc, netcdf4 = .true.)
-          call write_static_netcdf( hnc)
-          call close_netcdf(hnc)
-
-          ! free memory
-          call free_memory_L11_config
-
-       end if
-
-    end do
-
-  end subroutine write_restart_config
-  ! ------------------------------------------------------------------
-
-  !      NAME
-  !         config_variables_set
-
-  !     PURPOSE
-  !        sets netcdf target variables for all mHM configure variables. These target variables
-  !        are defined in the module mo_set_netcdf_restart. The actual setting of the netcdf
-  !        output variable V, that points to the target variables here, takes place in the 
-  !        subroutine set_config contained in mo_set_netcdf_restart. In general each variable
-  !        defined in the subroutine L0_variable_init and L1_variable_init (mo_startup) 
-  !        requires a netcdf target variable.
-
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !         author Stephan Thober
-  !         date Jul 2013
-  subroutine config_variables_set( iBasin )
-    !
-    use mo_kind,             only: i4
-    use mo_mhm_constants,    only: nodata_i4, nodata_dp
-    USE mo_init_states,      ONLY: get_basin_info
-    use mo_set_netcdf_restart, only: set_config
-    use mo_global_variables, only: &
-         L0_cellCoor    ,          & 
-         L0_Id         ,           & ! Ids of grid at level-0 
-         L0_areaCell   ,           & ! Ids of grid at level-0
-         L0_slope_emp  ,           & ! Empirical quantiles of slope
-         L1_Id         ,           & ! Ids of grid at level-1
-         L1_cellCoor    ,          &
-         L1_upBound_L0 ,           & ! Row start at finer level-0 scale 
-         L1_downBound_L0,          & ! Row end at finer level-0 scale
-         L1_leftBound_L0,          & ! Col start at finer level-0 scale
-         L1_rightBound_L0,         & ! Col end at finer level-0 scale
-         L1_areaCell   ,           & ! [km2] Effective area of cell at this level
-         L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
-    use mo_set_netcdf_restart,     &
-         only: L0_rowCoor_out    , & ! row cell Coordinates at Level 0
-         L0_colCoor_out    ,       & ! column cell Coordinates at Level 0  
-         L0_Id_out         ,       & ! Ids of grid at level-0 
-         L0_areaCell_out   ,       & ! Ids of grid at level-0
-         L0_slope_emp_out  ,       & ! Empirical quantiles of slope
-         L1_basin_Mask_out ,       & ! Mask at Level 1
-         L1_Id_out         ,       & ! Ids of grid at level-1
-         L1_rowCoor_out    ,       & ! row cell Coordinates at Level 1
-         L1_colCoor_out    ,       & ! column cell Coordinates at Level 1  
-         L1_upBound_L0_out ,       & ! Row start at finer level-0 scale 
-         L1_downBound_L0_out,      & ! Row end at finer level-0 scale
-         L1_leftBound_L0_out,      & ! Col start at finer level-0 scale
-         L1_rightBound_L0_out,     & ! Col end at finer level-0 scale
-         L1_areaCell_out   ,       & ! [km2] Effective area of cell at this level
-         L1_nTCells_L0_out           ! Total number of valid L0 cells in a given L1 cell
-    !
-    implicit none 
-    !
-    ! Input Variables
-    integer(i4), intent(in) :: iBasin
-    !
-    ! Local variables
-    integer(i4)                                :: nrows0    ! Number of rows at Level 0
-    integer(i4)                                :: ncols0    ! Number of cols at Level 0
-    integer(i4)                                :: iStart0   ! Start of Basin at Level 0
-    integer(i4)                                :: iEnd0     ! End of Basin at Level 0
-    logical, dimension(:,:), allocatable       :: mask0     ! Mask at Level 0
-    integer(i4)                                :: nrows1    ! Number of rows at Level 1
-    integer(i4)                                :: ncols1    ! Number of cols at Level 1
-    integer(i4)                                :: iStart1   ! Start of Basin at Level 1
-    integer(i4)                                :: iEnd1     ! End of Basin at Level 1
-    logical, dimension(:,:), allocatable       :: mask1     ! Mask at Level 1
-    !
-    ! get level-0 information
-    call get_basin_info(iBasin, 0, nrows0, ncols0, iStart=iStart0, &
-         iEnd = iEnd0, mask = mask0 )
-
-    ! get level-1 information
-    call get_basin_info(iBasin, 1, nrows1, ncols1, iStart=iStart1, &
-         iEnd = iEnd1, mask = mask1 )  
-    !
-    ! Variables set by L0_variable_init <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    allocate( L0_rowCoor_out( nrows0, ncols0 ) )
-    L0_rowCoor_out = unpack( L0_cellCoor(iStart0:iEnd0,1), mask0, nodata_i4 )
-    !
-    allocate( L0_colCoor_out( nrows0, ncols0 ) )
-    L0_colCoor_out = unpack( L0_cellCoor(iStart0:iEnd0,2), mask0, nodata_i4 )
-    !
-    allocate( L0_Id_out( nrows0, ncols0 ) )
-    L0_Id_out = unpack( L0_Id(iStart0:iEnd0), mask0, nodata_i4 )
-    !
-    allocate( L0_areaCell_out( nrows0, ncols0 ) )
-    L0_areaCell_out = unpack( L0_areaCell(iStart0:iEnd0), mask0, nodata_dp )
-    !
-    allocate( L0_slope_emp_out( nrows0, ncols0 ) )
-    L0_slope_emp_out = unpack( L0_slope_emp(iStart0:iEnd0), mask0, nodata_dp )
-
-    ! variables set by L1_variable_init <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    allocate( L1_basin_Mask_out( nrows1, ncols1 ) )
-    L1_basin_Mask_out = merge( 1_i4, 0_i4,  mask1 )
-    !
-    allocate( L1_Id_out( nrows1, ncols1 ) )
-    L1_Id_out = unpack( L1_Id(iStart1:iEnd1), mask1, nodata_i4 )
-    !
-    allocate( L1_rowCoor_out( nrows1, ncols1 ) )
-    L1_rowCoor_out = unpack( L1_cellCoor(iStart1:iEnd1,1), mask1, nodata_i4 )
-    !
-    allocate( L1_colCoor_out( nrows1, ncols1 ) )
-    L1_colCoor_out = unpack( L1_cellCoor(iStart1:iEnd1,2), mask1, nodata_i4 )
-    !
-    allocate( L1_upBound_L0_out( nrows1, ncols1 ) )
-    L1_upBound_L0_out = unpack( L1_upBound_L0(iStart1:iEnd1), mask1, nodata_i4 )
-    !
-    allocate( L1_downBound_L0_out( nrows1, ncols1 ) )
-    L1_downBound_L0_out = unpack( L1_downBound_L0(iStart1:iEnd1), mask1, nodata_i4 ) 
-    !
-    allocate( L1_leftBound_L0_out( nrows1, ncols1 ) )
-    L1_leftBound_L0_out = unpack( L1_leftBound_L0(iStart1:iEnd1), mask1, nodata_i4 )
-    !
-    allocate( L1_rightBound_L0_out( nrows1, ncols1 ) )
-    L1_rightBound_L0_out = unpack( L1_rightBound_L0(iStart1:iEnd1), mask1, nodata_i4 )
-    !
-    allocate( L1_areaCell_out( nrows1, ncols1 ) )
-    L1_areaCell_out = unpack( L1_areaCell(iStart1:iEnd1), mask1, nodata_dp )
-    !
-    allocate( L1_nTCells_L0_out( nrows1, ncols1 ) )
-    L1_nTCells_L0_out = unpack( L1_nTCells_L0(iStart1:iEnd1), mask1, nodata_i4) 
-
-    ! allocate V
-    call set_config
-
-  end subroutine config_variables_set
-  ! ------------------------------------------------------------------
-
-  !      NAME
-  !         L11_config_set
-
-  !     PURPOSE
-  !        sets netcdf target variables for all mHM L11 configuration variables. These target variables
-  !        are defined in the module mo_set_netcdf_restart. The actual setting of the netcdf
-  !        output variable V, that points to the target variables here, takes place in the 
-  !        subroutine set_L11_config contained in mo_set_netcdf_restart. In general each variable
-  !        defined in the subroutines contained in the module mo_net_startup 
-  !        requires a netcdf target variable.
-
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !         author    Stephan Thober
-  !         date      Jul 2013
-
-  !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
-
-  subroutine L11_config_set( iBasin )
-
-    use mo_kind,               only: i4
-    use mo_mhm_constants,      only: nodata_i4, nodata_dp
-    USE mo_init_states,        ONLY: get_basin_info
-    use mo_set_netcdf_restart, only: set_L11_config
-    use mo_global_variables,   only: basin, &
-         L11_cellCoor, &
-         L11_Id, &
-         L0_L11_Id, &
-         L1_L11_Id, &
-         L11_rowOut, &
-         L11_colOut, &
-         L11_fDir, &
-         L11_upBound_L0, &
-         L11_downBound_L0, &
-         L11_leftBound_L0, &
-         L11_rightBound_L0, &
-         L11_upBound_L1, &
-         L11_downBound_L1, &
-         L11_leftBound_L1, &
-         L11_rightBound_L1, &
-         L11_fDir, &
-         L11_fromN, &
-         L11_toN, &
-         L11_rOrder, &
-         L11_label, &
-         L11_sink, &
-         L11_netPerm, &
-         L11_rowOut, &
-         L11_colOut, &
-         L11_fRow, &
-         L11_fCol, &
-         L11_tRow, &
-         L11_tCol, &
-         L0_draSC, &
-         L0_draCell, &
-         L0_streamNet, &
-         L0_floodPlain, &
-         L11_length, &
-         L11_aFloodPlain, &
-         L11_slope
-    use mo_set_netcdf_restart, only: L11_basin_Mask_out, &
-         L11_rowCoor_out, &
-         L11_colCoor_out, &
-         L11_Id_out, &
-         L0_OutletCoord_out, &
-         L0_draSC_out, &
-         L0_L11_Id_out, &
-         L1_L11_Id_out, &
-         L11_rowOut_out, &
-         L11_colOut_out, &
-         L11_fDir_out, &
-         L11_upBound_L0_out, &
-         L11_downBound_L0_out, &
-         L11_leftBound_L0_out, &
-         L11_rightBound_L0_out, &
-         L11_upBound_L1_out, &
-         L11_downBound_L1_out, &
-         L11_leftBound_L1_out, &
-         L11_rightBound_L1_out, &
-         L11_fromN_out, &
-         L11_toN_out, &
-         L11_rOrder_out, &
-         L11_label_out, &
-         L11_sink_out, &
-         L11_netPerm_out, &
-         L11_fRow_out, &
-         L11_fCol_out, &
-         L11_tRow_out, &
-         L11_tCol_out, &
-         L0_draCell_out, &
-         gaugeNodeList_out, &
-         InflowGaugeNodeList_out, &
-         L0_streamNet_out, &
-         L0_floodPlain_out, &
-         L11_length_out, &
-         L11_aFloodPlain_out, &
-         L11_slope_out
-
-    implicit none
-
-    ! Input variables
-    integer(i4), intent(in)                    :: iBasin    ! Basin number
-
-    ! Local variables
-    integer(i4)                                :: nrows0    ! Number of rows at Level 0
-    integer(i4)                                :: ncols0    ! Number of cols at Level 0
-    integer(i4)                                :: iStart0   ! Start of Basin at Level 0
-    integer(i4)                                :: iEnd0     ! End of Basin at Level 0
-    logical, dimension(:,:), allocatable       :: mask0     ! Mask at Level 0
-    integer(i4)                                :: nrows110  ! Number of rows at Level 110
-    integer(i4)                                :: ncols110  ! Number of cols at Level 110
-    integer(i4)                                :: iStart110 ! Start of Basin at Level 110
-    integer(i4)                                :: iEnd110   ! End of Basin at Level 110
-    integer(i4)                                :: nrows1    ! Number of rows at Level 1
-    integer(i4)                                :: ncols1    ! Number of cols at Level 1
-    integer(i4)                                :: iStart1   ! Start of Basin at Level 1
-    integer(i4)                                :: iEnd1     ! End of Basin at Level 1
-    logical, dimension(:,:), allocatable       :: mask1     ! Mask at Level 1
-    integer(i4)                                :: nCells11  ! Number of cells at Level 11
-    integer(i4)                                :: nrows11   ! Number of rows at Level 11
-    integer(i4)                                :: ncols11   ! Number of cols at Level 11
-    integer(i4)                                :: iStart11  ! Start of Basin at Level 11
-    integer(i4)                                :: iEnd11    ! End of Basin at level 11
-    logical, dimension(:,:), allocatable       :: mask11    ! Mask at Level 11
-    integer(i4)                                :: startMask ! starting position of mask at L11
-    integer(i4)                                :: endMask   ! ending position of mask at L11
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_variable_init(iBasin) sets
-    ! level11,resolutionRouting, L11_cellCoor, L11_nCells, L11_Id
-
-    ! get level-0 information
-    call get_basin_info(iBasin, 0, nrows0, ncols0, iStart=iStart0, &
-         iEnd = iEnd0, mask = mask0 )
-
-    ! get level-110 information
-    call get_basin_info(iBasin, 110, nrows110, ncols110, iStart=iStart110, &
-         iEnd = iEnd110 )
-
-    ! get level-11 information
-    call get_basin_info(iBasin, 1, nrows1, ncols1, iStart=iStart1, &
-         iEnd = iEnd1, mask = mask1 )
-
-    ! get level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nCells11, &
-         iStart=iStart11, iEnd=iEnd11, mask=mask11)
-    startMask = basin%L11_iStartMask(iBasin)
-    endMask   = basin%L11_iEndMask(iBasin)
-    nCells11  = count( basin%L11_Mask(startMask:endMask) )
-
-    ! Level 11 mask
-    allocate( L11_basin_Mask_out( nrows11, ncols11))
-    L11_basin_Mask_out = merge( 1_i4, 0_i4,  &
-         reshape(basin%L11_Mask(startMask:endMask),(/nrows11,ncols11/)) )
-
-    ! Level 11 cell coordinates
-    allocate(L11_rowCoor_out(nrows11,ncols11))
-    L11_rowCoor_out = unpack( L11_cellCoor(iStart11:iEnd11,1), mask11, nodata_i4 )
-    allocate(L11_colCoor_out(nrows11,ncols11))
-    L11_colCoor_out = unpack( L11_cellCoor(iStart11:iEnd11,2), mask11, nodata_i4 )
-
-
-    ! Level 11 id
-    allocate(L11_Id_out(nrows11,ncols11))
-    L11_Id_out = unpack( L11_Id(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_flow_direction(iBasin) sets
-    ! basin%L0_rowOutlet, basin%L0_colOutlet
-    ! L0_drasC, L0_L11_Id, L1_L11_Id, L11_Id, L11_rowOut, 
-    ! L11_colOut, L11_fDir, L11_upBound_L0, L11_downBound_L0, L11_leftBound_L0,
-    ! L11_rightBound_L0, L11_upBound_L1, L11_downBound_L1, L11_leftBound_L1, 
-    ! L11_rightBound_L1
-
-    ! L0 data sets <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! L0 Outlet coordinates
-    L0_OutletCoord_out = (/ basin%L0_rowOutlet(iBasin), basin%L0_colOutlet(iBasin) /)
-
-    ! L0 draining cell index
-    allocate( L0_draSC_out( nrows0,ncols0 ) )
-    L0_draSC_out = unpack( L0_draSC(iStart110:iEnd110), mask0, nodata_i4 )
-
-    ! Mapping of L11 Id on L0  
-    allocate( L0_L11_Id_out( nrows0,ncols0 ) )
-    L0_L11_Id_out = unpack( L0_L11_Id(iStart110:iEnd110), mask0, nodata_i4)
-
-    ! L1 data sets <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! Mapping of L11 Id on L1
-    allocate( L1_L11_Id_out( nrows1, ncols1) )
-    L1_L11_Id_out = unpack( L1_L11_Id(iStart1:iEnd1), mask1, nodata_i4)
-
-    ! L11 data sets <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! Flow direction (standard notation)
-    allocate(L11_fDir_out(nrows11, ncols11))
-    L11_fDir_out = unpack( L11_fDir(iStart11:iEnd11), mask11, nodata_i4)
-
-    ! Grid vertical location of the Outlet
-    allocate(L11_rowOut_out(nrows11, ncols11))
-    L11_rowOut_out = unpack( L11_rowOut(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Grid horizontal location  of the Outlet
-    allocate(L11_colOut_out(nrows11, ncols11))
-    L11_colOut_out = unpack( L11_colOut(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Row start at finer level-0 scale 
-    allocate(L11_upBound_L0_out(nrows11, ncols11))
-    L11_upBound_L0_out = unpack( L11_upBound_L0(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Row end at finer level-0 scale
-    allocate(L11_downBound_L0_out(nrows11, ncols11))
-    L11_downBound_L0_out = unpack( L11_downBound_L0(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Col start at finer level-0 scale 
-    allocate(L11_leftBound_L0_out(nrows11, ncols11))
-    L11_leftBound_L0_out = unpack( L11_leftBound_L0(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Col end at finer level-0 scale 
-    allocate(L11_rightBound_L0_out(nrows11, ncols11))
-    L11_rightBound_L0_out = unpack( L11_rightBound_L0(iStart11:iEnd11), mask11, nodata_i4 )
-
-    ! Row start at finer level-1 scale 
-    allocate(L11_upBound_L1_out(nrows1, ncols1))
-    L11_upBound_L1_out = unpack( L11_upBound_L1(iStart1:iEnd1), mask1, nodata_i4 )
-
-    ! Row end at finer level-1 scale
-    allocate(L11_downBound_L1_out(nrows1, ncols1))
-    L11_downBound_L1_out = unpack( L11_downBound_L1(iStart1:iEnd1), mask1, nodata_i4 )
-
-    ! Col start at finer level-1 scale 
-    allocate(L11_leftBound_L1_out(nrows1, ncols1))
-    L11_leftBound_L1_out = unpack( L11_leftBound_L1(iStart1:iEnd1), mask1, nodata_i4 )
-
-    ! Col end at finer level-1 scale 
-    allocate(L11_rightBound_L1_out(nrows1, ncols1))
-    L11_rightBound_L1_out = unpack( L11_rightBound_L1(iStart1:iEnd1), mask1, nodata_i4 )
-
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_set_network_topology(iBasin) sets
-    ! L11_fromN, L11_toN
-
-    ! From node
-    allocate( L11_fromN_out( nrows11, ncols11) )
-    L11_fromN_out = unpack( L11_fromN( iStart11: iEnd11), mask11, nodata_i4 )
-
-    ! To node
-    allocate( L11_toN_out( nrows11, ncols11 ) )
-    L11_toN_out = unpack( L11_toN( iStart11: iEnd11 ), mask11, nodata_i4 )
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_routing_order(iBasin) sets
-    ! L11_rOrder, L11_label, L11_sink, L11_netPerm
-
-    ! Network routing order
-    allocate( L11_rOrder_out( nrows11, ncols11 ) )
-    L11_rOrder_out = unpack( L11_rOrder( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! Label Id [0='', 1=HeadWater, 2=Sink]
-    allocate( L11_label_out( nrows11, ncols11 ) )
-    L11_label_out = unpack( L11_label( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! .true. if sink node reached
-    allocate( L11_sink_out( nrows11, ncols11 ) )
-    L11_sink_out = unpack(merge( 1_i4, 0_i4, L11_sink( iStart11 : iEnd11 ) ), mask11, nodata_i4)
-
-    ! Routing sequence (permutation of L11_rOrder)
-    allocate( L11_netPerm_out( nrows11, ncols11 ) )
-    L11_netPerm_out = unpack( L11_netPerm( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_link_location(iBasin) sets
-    ! L11_fRow, L11_fCol, L11_tRow, L11_tCol
-
-    ! From row in L0 grid
-    allocate( L11_fRow_out( nrows11, ncols11 ) )
-    L11_fRow_out = unpack( L11_fRow( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! From col in L0 grid
-    allocate( L11_fCol_out( nrows11, ncols11 ) )
-    L11_fCol_out = unpack( L11_fCol( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! To row in L0 grid 
-    allocate( L11_tRow_out( nrows11, ncols11 ) )
-    L11_tRow_out = unpack( L11_tRow( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! To col in L0 grid 
-    allocate( L11_tCol_out( nrows11, ncols11 ) )
-    L11_tCol_out = unpack( L11_tCol( iStart11 : iEnd11 ), mask11, nodata_i4 )
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! call L11_set_drain_outlet_gauges(iBasin) sets
-    ! L0_draCell
-
-    ! Draining cell id at L11 of ith cell of L0
-    allocate( L0_draCell_out( nrows0, ncols0 ) )
-    L0_draCell_out = unpack( L0_draCell( iStart110 : iEnd110), mask0, nodata_i4 )
-
-    allocate( gaugeNodeList_out( size( basin%gaugeNodeList(iBasin,:), dim=1)))
-    gaugeNodeList_out = basin%gaugeNodeList(iBasin,:)
-
-    allocate( InflowGaugeNodeList_out( size( basin%InflowGaugeNodeList(iBasin,:), dim=1)))
-    InflowGaugeNodeList_out = basin%InflowGaugeNodeList(iBasin,:)
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! stream characteristics
-    ! call L11_stream_features(iBasin)
-    ! L0_streamNet, L0_floodPlain, L11_length, L11_aFloodPlain, L11_slope
-
-    ! L0 data sets
-    ! Stream network
-    allocate( L0_streamNet_out( nrows0, ncols0 ) )
-    L0_streamNet_out = unpack( L0_streamNet( iStart110 : iEnd110 ), mask0, nodata_i4 )
-
-    ! Floodplains of stream i
-    allocate( L0_floodPlain_out( nrows0, ncols0 ) )
-    L0_floodPlain_out = unpack( L0_floodPlain( iStart110 : iEnd110 ), mask0, nodata_i4 )
-
-    ! L11 network data sets
-    ! [m]     Total length of river link
-    allocate( L11_length_out( nrows11, ncols11 ) )
-    L11_length_out = unpack( L11_length( iStart11 : iEnd11 ), mask11, nodata_dp )
-
-    ! [m2]    Area of the flood plain
-    allocate( L11_aFloodPlain_out( nrows11, ncols11 ) )
-    L11_aFloodPlain_out = unpack( L11_aFloodPlain( iStart11 : iEnd11 ), mask11, nodata_dp )
-
-    ! Average slope of river link
-    allocate( L11_slope_out( nrows11, ncols11 ) )
-    L11_slope_out = unpack( L11_slope( iStart11 : iEnd11 ), mask11, nodata_dp )
-
-    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    ! initialize netcdf output structure V
-    call set_L11_config
-
-  end subroutine L11_config_set
-  ! ---------------------------------------------------------------------------
-
-  !     NAME
-  !        state_variables_set
-
-  !     PURPOSE
-
-  !        sets netcdf target variables for all mHM state variables. These target variables
-  !        are defined in the module mo_set_netcdf_restart. The actual setting of the netcdf
-  !        output variable V, that points to the target variables here, takes place in the 
-  !        subroutine set_state contained in mo_set_netcdf_restart. In general each variable
-  !        defined in the subroutine variables_default_init (mo_init_states) requires a netcdf 
-  !        target variable.
-  !        
-
-  !     INTENT(IN)
-  !        integer(i4)    :: iBasin"   id of the Basin to write state variables for
-
-  !     INTENT(INOUT)
-  !        None
-
-  !     INTENT(OUT)
-  !        None
-
-  !     INTENT(IN), OPTIONAL
-  !        None
-
-  !     INTENT(INOUT), OPTIONAL
-  !        None
-
-  !     INTENT(OUT), OPTIONAL
-  !        None
-
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !        None
-
-  !     HISTORY
-  !        author  Stephan Thober
-  !        date    Apr 2013
-  ! --------------------------------------------------------------------------
-  subroutine state_variables_set( iBasin )
-
-    use mo_kind,               only: i4
-    use mo_init_states,        only: get_basin_info
-    use mo_mhm_constants,      only: nodata_dp
-    use mo_set_netcdf_restart, only: set_state, & 
-         L1_fSealed_out, & ! netcdf output variables
-         L1_fForest_out, &
-         L1_fPerm_out, &
-         L1_Inter_out, &
-         L1_snowPack_out, &
-         L1_sealSTW_out, &
-         L1_soilMoist_out, &
-         L1_unsatSTW_out, &
-         L1_satSTW_out, &
-         L1_aETSoil_out, &
-         L1_aETCanopy_out, &
-         L1_aETSealed_out, &
-         L1_baseflow_out, &
-         L1_infilSoil_out, &
-         L1_fastRunoff_out, &
-         L1_melt_out, &
-         L1_percol_out, &
-         L1_preEffect_out, &
-         L1_rain_out, &
-         L1_runoffSeal_out, &
-         L1_slowRunoff_out, &
-         L1_snow_out, &
-         L1_Throughfall_out, &
-         L1_total_runoff_out, &
-         L1_alpha_out, &
-         L1_degDayInc_out, &
-         L1_degDayMax_out, &
-         L1_degDayNoPre_out, &
-         L1_degDay_out, &
-         L1_karstLoss_out, &
-         L1_fAsp_out, &
-         L1_fRoots_out, &
-         L1_maxInter_out, &
-         L1_kfastFlow_out, &
-         L1_kSlowFlow_out, &
-         L1_kBaseFlow_out, &
-         L1_kPerco_out, &
-         L1_soilMoistFC_out, &
-         L1_soilMoistSat_out, &
-         L1_soilMoistExp_out, &
-         L1_tempThresh_out, &
-         L1_unsatThresh_out, &
-         L1_sealedThresh_out, &
-         L1_wiltingPoint_out, &
-         L11_Qmod_out, &
-         L11_qOUT_out, &
-         L11_qTIN_out, &
-         L11_qTR_out, &
-         L11_K_out, &
-         L11_xi_out, &
-         L11_C1_out, &
-         L11_C2_out, &
-         L11_FracFPimp_out
-    use mo_global_variables, only: processMatrix, & ! mhm_state_variables
-         L1_fSealed, &
-         L1_fForest, &
-         L1_fPerm, &
-         L1_Inter, &
-         L1_snowPack, &
-         L1_sealSTW, &
-         L1_soilMoist, &
-         L1_unsatSTW, &
-         L1_satSTW, &
-         L1_aETSoil, &
-         L1_aETCanopy, &
-         L1_aETSealed, &
-         L1_baseflow, &
-         L1_infilSoil, &
-         L1_fastRunoff, &
-         L1_melt, &
-         L1_percol, &
-         L1_preEffect, &
-         L1_rain, &
-         L1_runoffSeal, &
-         L1_slowRunoff, &
-         L1_snow, &
-         L1_Throughfall, &
-         L1_total_runoff, &
-         L1_alpha, &
-         L1_degDayInc, &
-         L1_degDayMax, &
-         L1_degDayNoPre, &
-         L1_degDay, &
-         L1_karstLoss, &
-         L1_fAsp, &
-         L1_fRoots, &
-         L1_maxInter, &
-         L1_kfastFlow, &
-         L1_kSlowFlow, &
-         L1_kBaseFlow, &
-         L1_kPerco, &
-         L1_soilMoistFC, &
-         L1_soilMoistSat, &
-         L1_soilMoistExp, &
-         L1_tempThresh, &
-         L1_unsatThresh, &
-         L1_sealedThresh, &
-         L1_wiltingPoint, &
-         L11_Qmod, &
-         L11_qOUT, &
-         L11_qTIN, &
-         L11_qTR, &
-         L11_K, &
-         L11_xi, &
-         L11_C1, &
-         L11_C2, &
-         L11_FracFPimp
-
-    implicit none
-
-    ! Input and Output variables
-    integer(i4),    intent(in) :: iBasin
-
-    ! local variables
-    integer(i4)                          :: i
-    integer(i4)                          :: s1       ! start index at level 1
-    integer(i4)                          :: e1       ! end index at level 1
-    integer(i4)                          :: ncols1   ! number of colums at level 1
-    integer(i4)                          :: nrows1   ! number of rows at level 1
-    integer(i4)                          :: ncells1  ! number of cells at level 1
-    logical, dimension(:,:), allocatable :: mask1    ! mask at level 1
-    integer(i4)                          :: s11      ! start index at level 11
-    integer(i4)                          :: e11      ! end index at level 11
-    integer(i4)                          :: ncols11  ! number of colums at level 11
-    integer(i4)                          :: nrows11  ! number of rows at level 11
-    integer(i4)                          :: ncells11 ! number of cells at level 11
-    logical, dimension(:,:), allocatable :: mask11   ! mask at level 11
-
-    ! get Level1 information about the basin
-    call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1, &
-         iStart=s1, iEnd=e1, mask=mask1 ) 
-
-    !-------------------------------------------
-    ! LAND COVER variables
-    !-------------------------------------------
-    allocate( L1_fSealed_out( nrows1, ncols1 ) )
-    allocate( L1_fForest_out( nrows1, ncols1 ) )
-    allocate( L1_fPerm_out(   nrows1, ncols1 ) )
-
-    L1_fSealed_out = unpack( L1_fSealed(s1:e1), mask1, nodata_dp )
-    L1_fForest_out = unpack( L1_fForest(s1:e1), mask1, nodata_dp )
-    L1_fPerm_out   = unpack( L1_fPerm(s1:e1), mask1, nodata_dp )
-
-    !-------------------------------------------
-    ! STATE VARIABLES
-    !-------------------------------------------
-    ! Interception
-    allocate( L1_inter_out( nrows1, ncols1 ) )
-    L1_inter_out = unpack( L1_inter(s1:e1), mask1, nodata_dp )
-
-    !Snowpack
-    allocate( L1_snowPack_out( nrows1, ncols1 ) )
-    L1_snowPack_out = unpack( L1_snowPack(s1:e1), mask1, nodata_dp )
-
-    !Retention storage of impervious areas
-    allocate( L1_sealSTW_out( nrows1, ncols1 ) )
-    L1_sealSTW_out = unpack( L1_sealSTW(s1:e1), mask1, nodata_dp )
-
-    ! Soil moisture of each horizon    
-    allocate( L1_soilMoist_out( nrows1, ncols1, size(L1_soilMoist,2) ) )
-    do i = 1, size(L1_soilMoist_out, 3)
-       L1_soilMoist_out(:,:,i) = unpack( L1_soilMoist(s1:e1,i), mask1, nodata_dp )
-    end do
-
-    ! upper soil storage
-    allocate( L1_unsatSTW_out( nrows1, ncols1 ) )
-    L1_unsatSTW_out = unpack( L1_unsatSTW(s1:e1), mask1, nodata_dp )
-
-    ! groundwater storage
-    allocate( L1_satSTW_out( nrows1, ncols1 ) )
-    L1_satSTW_out = unpack( L1_satSTW(s1:e1), mask1, nodata_dp )
-
-    !-------------------------------------------
-    ! FLUXES
-    !-------------------------------------------
-
-    !  soil actual ET
-    allocate( L1_aETSoil_out( nrows1, ncols1, size(L1_aETSoil, 2) ) )
-    do i = 1, size( L1_aETSoil_out, 3 )
-       L1_aETSoil_out(:,:,i) = unpack( L1_aETSoil(s1:e1,i), mask1, nodata_dp )
-    end do
-
-    ! canopy actual ET
-    allocate( L1_aETCanopy_out( nrows1, ncols1 ) )
-    L1_aETCanopy_out = unpack( L1_aETCanopy(s1:e1), mask1, nodata_dp )
-
-    ! sealed area actual ET
-    allocate( L1_aETSealed_out( nrows1, ncols1 ) )
-    L1_aETSealed_out = unpack( L1_aETSealed(s1:e1), mask1, nodata_dp )
-
-    ! baseflow
-    allocate( L1_baseflow_out( nrows1, ncols1 ) )
-    L1_baseflow_out = unpack( L1_baseflow(s1:e1), mask1, nodata_dp )
-
-    !  soil in-exfiltration
-    allocate( L1_infilSoil_out( nrows1, ncols1, size(L1_infilSoil,2) ) )
-    do i = 1, size( L1_infilSoil_out, 3 )
-       L1_infilSoil_out(:,:,i) = unpack( L1_infilSoil(s1:e1,i), mask1, nodata_dp)
-    end do
-
-    ! fast runoff
-    allocate( L1_fastRunoff_out( nrows1, ncols1 ) )
-    L1_fastRunoff_out = unpack( L1_fastRunoff(s1:e1), mask1, nodata_dp )
-
-    ! snow melt
-    allocate( L1_melt_out( nrows1, ncols1 ) )
-    L1_melt_out = unpack( L1_melt(s1:e1), mask1, nodata_dp )
-
-    ! percolation
-    allocate( L1_percol_out( nrows1, ncols1 ) )
-    L1_percol_out = unpack( L1_percol(s1:e1), mask1, nodata_dp )
-
-    ! effective precip. depth (snow melt + rain)
-    allocate( L1_preEffect_out( nrows1, ncols1 ) )
-    L1_preEffect_out = unpack( L1_preEffect(s1:e1), mask1, nodata_dp )
-
-    ! rain (liquid water)
-    allocate( L1_rain_out( nrows1, ncols1 ) )
-    L1_rain_out = unpack( L1_rain(s1:e1), mask1, nodata_dp )
-
-    ! runoff from impervious area
-    allocate( L1_runoffSeal_out( nrows1, ncols1 ) )
-    L1_runoffSeal_out = unpack( L1_runoffSeal(s1:e1), mask1, nodata_dp )
-
-    ! slow runoff 
-    allocate( L1_slowRunoff_out( nrows1, ncols1 ) )
-    L1_slowRunoff_out = unpack( L1_slowRunoff(s1:e1), mask1, nodata_dp )
-
-    ! snow (solid water) 
-    allocate( L1_snow_out( nrows1, ncols1 ) )
-    L1_snow_out = unpack( L1_snow(s1:e1), mask1, nodata_dp )
-
-    ! throughfall 
-    allocate( L1_Throughfall_out( nrows1, ncols1 ) )
-    L1_Throughfall_out = unpack( L1_Throughfall(s1:e1), mask1, nodata_dp )
-
-    ! total runoff
-    allocate( L1_total_runoff_out( nrows1, ncols1 ) )
-    L1_total_runoff_out = unpack( L1_total_runoff(s1:e1), mask1, nodata_dp )
-
-    !-------------------------------------------
-    ! EFFECTIVE PARAMETERS
-    !-------------------------------------------
-
-    ! exponent for the upper reservoir
-    allocate( L1_alpha_out( nrows1, ncols1 ) )
-    L1_alpha_out = unpack( L1_alpha(s1:e1), mask1, nodata_dp )
-
-    ! increase of the Degree-day factor per mm of increase in precipitation
-    allocate( L1_degDayInc_out( nrows1, ncols1 ) )
-    L1_degDayInc_out = unpack( L1_degDayInc(s1:e1), mask1, nodata_dp )
-
-    ! maximum degree-day factor 
-    allocate( L1_degDayMax_out( nrows1, ncols1 ) )
-    L1_degDayMax_out = unpack( L1_degDayMax(s1:e1), mask1, nodata_dp )
-
-    ! degree-day factor with no precipitation
-    allocate( L1_degDayNoPre_out( nrows1, ncols1 ) )
-    L1_degDayNoPre_out = unpack( L1_degDayNoPre(s1:e1), mask1, nodata_dp )
-
-    ! degree-day factor
-    allocate( L1_degDay_out( nrows1, ncols1 ) )
-    L1_degDay_out = unpack( L1_degDay(s1:e1), mask1, nodata_dp )
-
-    ! Karstic percolation loss
-    allocate( L1_karstLoss_out( nrows1, ncols1 ) )
-    L1_karstLoss_out = unpack( L1_karstLoss(s1:e1), mask1, nodata_dp )
-
-    ! PET correction factor due to terrain aspect
-    allocate( L1_fAsp_out( nrows1, ncols1 ) )
-    L1_fAsp_out = unpack( L1_fAsp(s1:e1), mask1, nodata_dp )
-
-    ! Fraction of roots in soil horizons
-    allocate( L1_fRoots_out( nrows1, ncols1, size(L1_fRoots, 2 ) ) )
-    do i = 1, size( L1_fRoots_out, 3)
-       L1_fRoots_out(:,:,i) = unpack( L1_fRoots(s1:e1,i), mask1, nodata_dp )
-    end do
-
-    ! Maximum interception 
-    allocate( L1_maxInter_out( nrows1, ncols1 ) )
-    L1_maxInter_out = unpack( L1_maxInter(s1:e1), mask1, nodata_dp )
-
-    ! fast interflow recession coefficient 
-    allocate( L1_kfastFlow_out( nrows1, ncols1 ) )
-    L1_kfastFlow_out = unpack( L1_kfastFlow(s1:e1), mask1, nodata_dp )
-
-    ! slow interflow recession coefficient 
-    allocate( L1_kSlowFlow_out( nrows1, ncols1 ) )
-    L1_kSlowFlow_out = unpack( L1_kSlowFlow(s1:e1), mask1, nodata_dp )
-
-    ! baseflow recession coefficient 
-    allocate( L1_kBaseFlow_out( nrows1, ncols1 ) )
-    L1_kBaseFlow_out = unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp )
-
-    ! percolation coefficient 
-    allocate( L1_kPerco_out( nrows1, ncols1 ) )
-    L1_kPerco_out = unpack( L1_kPerco(s1:e1), mask1, nodata_dp )
-
-    ! Soil moisture below which actual ET is reduced linearly till PWP
-    allocate( L1_soilMoistFC_out( nrows1, ncols1, size( L1_soilMoistFC, 2 ) ) )
-    do i = 1, size( L1_soilMoistFC_out, 3 )
-       L1_soilMoistFC_out(:,:,i) = unpack( L1_soilMoistFC(s1:e1, i), mask1, nodata_dp )
-    end do
-
-    ! Saturation soil moisture for each horizon [mm]
-    allocate( L1_soilMoistSat_out( nrows1, ncols1, size( L1_soilMoistSat, 2 ) ) )
-    do i = 1, size( L1_soilMoistSat_out, 3 )
-       L1_soilMoistSat_out(:,:,i) = unpack( L1_soilMoistSat(s1:e1, i), mask1, nodata_dp )
-    end do
-
-    ! Exponential parameter to how non-linear is the soil water retention
-    allocate( L1_soilMoistExp_out( nrows1, ncols1, size( L1_soilMoistExp, 2 ) ) )
-    do i = 1, size( L1_soilMoistExp_out, 3 )
-       L1_soilMoistExp_out(:,:,i) = unpack( L1_soilMoistExp(s1:e1, i), mask1, nodata_dp )
-    end do
-
-    ! Threshold temperature for snow/rain 
-    allocate( L1_tempThresh_out( nrows1, ncols1 ) )
-    L1_tempThresh_out = unpack( L1_tempThresh(s1:e1), mask1, nodata_dp )
-
-    ! Threshhold water depth controlling fast interflow
-    allocate( L1_unsatThresh_out( nrows1, ncols1 ) )
-    L1_unsatThresh_out = unpack( L1_unsatThresh(s1:e1), mask1, nodata_dp )
-
-    ! Threshhold water depth for surface runoff in sealed surfaces
-    allocate( L1_sealedThresh_out( nrows1, ncols1 ) )
-    L1_sealedThresh_out = unpack( L1_sealedThresh(s1:e1), mask1, nodata_dp )
-
-    ! Permanent wilting point
-    allocate( L1_wiltingPoint_out( nrows1, ncols1, size( L1_wiltingPoint, 2 ) ) )
-    do i = 1, size( L1_wiltingPoint_out, 3 )
-       L1_wiltingPoint_out(:,:,i) = unpack( L1_wiltingPoint(s1:e1, i), mask1, nodata_dp )
-    end do
-
-    !-------------------------------------------
-    ! L11 ROUTING STATE VARIABLES, FLUXES AND
-    !             PARAMETERS
-    !-------------------------------------------
-    if (  processMatrix(8, 1) /= 0 ) then
-
-       ! level-11 information
-       call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11, &
-            iStart=s11, iEnd=e11, mask=mask11 ) 
-
-       ! simulated discharge at each node
-       allocate( L11_Qmod_out( nrows11, ncols11 ) )
-       L11_Qmod_out = unpack( L11_Qmod(s11:e11), mask11, nodata_dp )
-
-       ! Total outflow from cells L11 at time tt
-       allocate( L11_qOUT_out( nrows11, ncols11 ) )
-       L11_qOUT_out = unpack( L11_qOUT(s11:e11), mask11, nodata_dp )
-
-       ! Total discharge inputs at t-1 and t
-       allocate( L11_qTIN_out( nrows11, ncols11, size( L11_qTIN, 2 ) ) )
-       do i = 1, size( L11_qTIN_out, 3 )
-          L11_qTIN_out(:,:,i) = unpack( L11_qTIN(s11:e11, i), mask11, nodata_dp )
-       end do
-
-       !  Routed outflow leaving a node
-       allocate( L11_qTR_out( nrows11, ncols11, size( L11_qTR, 2 ) ) )
-       do i = 1, size( L11_qTR_out, 3 )
-          L11_qTR_out(:,:,i) = unpack( L11_qTR(s11:e11, i), mask11, nodata_dp )
-       end do
-
-       ! kappa: Muskingum travel time parameter.
-       allocate( L11_K_out( nrows11, ncols11 ) )
-       L11_K_out = unpack( L11_K(s11:e11), mask11, nodata_dp )
-
-       ! xi:    Muskingum diffusion parameter
-       allocate( L11_xi_out( nrows11, ncols11 ) )
-       L11_xi_out = unpack( L11_xi(s11:e11), mask11, nodata_dp )
-
-       ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
-       allocate( L11_C1_out( nrows11, ncols11 ) )
-       L11_C1_out = unpack( L11_C1(s11:e11), mask11, nodata_dp )
-
-       ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
-       allocate( L11_C2_out( nrows11, ncols11 ) )
-       L11_C2_out = unpack( L11_C2(s11:e11), mask11, nodata_dp )
-
-       ! Fraction of the flood plain with impervious cover
-       allocate( L11_FracFPimp_out( nrows11, ncols11 ) )
-       L11_FracFPimp_out = unpack( L11_FracFPimp(s11:e11), mask11, nodata_dp )
-
-    end if
-
-    ! initialize netcdf output structure V
-    call set_state( (processMatrix( 8, 1) /= 0_i4 ) )
-
-  end subroutine state_variables_set
-  !
-  ! ----------------------------------------------------------------------------
-  !
-  ! subroutine free memory config
-  !
-  ! frees all variables that are required by create_netcdf and that were set by
-  ! config_set
-  !
-  ! author: Stephan Thober
-  ! created: 11.07.2013
-  !
-  ! ----------------------------------------------------------------------------
-  subroutine free_memory_config
-    !
-    use mo_set_netcdf_restart , only: nrows0, & ! Number of rows at Level 0
-         ncols0               , & ! Number of colss at Level 0
-         nrows1               , & ! Number of rows at Level 1
-         ncols1               , & ! Number of cols at Level 1
-         L0_rowCoor_out       , & ! row cell Coordinates at Level 0
-         L0_colCoor_out       , & ! column cell Coordinates at Level 0  
-         L0_Id_out            , & ! Ids of grid at level-0 
-         L0_areaCell_out      , & ! Ids of grid at level-0
-         L0_slope_emp_out     , & ! Empirical quantiles of slope
-         L1_basin_Mask_out    , & ! Mask at Level 1
-         L1_Id_out            , & ! Ids of grid at level-1
-         L1_rowCoor_out       , & ! row cell Coordinates at Level 1
-         L1_colCoor_out       , & ! column cell Coordinates at Level 1  
-         L1_upBound_L0_out    , & ! Row start at finer level-0 scale 
-         L1_downBound_L0_out  , & ! Row end at finer level-0 scale
-         L1_leftBound_L0_out  , & ! Col start at finer level-0 scale
-         L1_rightBound_L0_out , & ! Col end at finer level-0 scale
-         L1_areaCell_out      , & ! [km2] Effective area of cell at this level
-         L1_nTCells_L0_out        ! Total number of valid L0 cells in a given L1 cell
-    !
-    implicit none
-    !
-    deallocate(  nrows0,       & ! Number of rows at Level 0
-         ncols0             ,  & ! Number of colss at Level 0
-         nrows1             ,  & ! Number of rows at Level 1
-         ncols1             ,  & ! Number of cols at Level 1
-         L0_rowCoor_out    ,   & ! row cell Coordinates at Level 0
-         L0_colCoor_out    ,   & ! column cell Coordinates at Level 0  
-         L0_Id_out         ,   & ! Ids of grid at level-0 
-         L0_areaCell_out   ,   & ! Ids of grid at level-0
-         L0_slope_emp_out  ,   & ! Empirical quantiles of slope
-         L1_basin_Mask_out ,   & ! Mask at Level 1
-         L1_Id_out         ,   & ! Ids of grid at level-1
-         L1_rowCoor_out    ,   & ! row cell Coordinates at Level 1
-         L1_colCoor_out    ,   & ! column cell Coordinates at Level 1  
-         L1_upBound_L0_out ,   & ! Row start at finer level-0 scale 
-         L1_downBound_L0_out,  & ! Row end at finer level-0 scale
-         L1_leftBound_L0_out,  & ! Col start at finer level-0 scale
-         L1_rightBound_L0_out, & ! Col end at finer level-0 scale
-         L1_areaCell_out   ,   & ! [km2] Effective area of cell at this level
-         L1_nTCells_L0_out )     ! Total number of valid L0 cells in a given L1 cell
-    !
-  end subroutine free_memory_config
-  !
-  ! ----------------------------------------------------------------------------
-  !
-  ! subroutine free memory L11 config
-  !
-  ! frees all variables that are required by create_netcdf and that were set by
-  ! L11_config_set
-  !
-  ! author: Stephan Thober
-  ! created: 10.07.2013
-  !
-  ! ----------------------------------------------------------------------------
-  subroutine free_memory_L11_config
-    use mo_set_netcdf_restart, only: nrows0, & ! Number of rows at Level 0
-         ncols0            ,                 & ! Number of colss at Level 0
-         nrows1            ,                 & ! Number of rows at Level 1
-         ncols1            ,                 & ! Number of cols at Level 1
-         nrows11           ,                 & ! Number of rows at Level 11
-         ncols11           ,                 & ! Number of cols at Level 11
-         NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges           ,                 & ! Number of evaluation gauges
-         nInflowGauges     ,                 & ! Number of inflow gauges
-         L11_basin_Mask_out,                 & ! Mask at Level 11
-         L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
-         L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
-         L11_Id_out        ,                 & ! Ids of grid at level-11 
-         L0_draSC_out      ,                 & ! Index of draining cell of each sub catchment 
-         L0_L11_Id_out     ,                 & ! Mapping of L11 Id on L0 
-         L1_L11_Id_out     ,                 & ! Mapping of L11 Id on L1
-         L11_fDir_out      ,                 & ! Flow direction (standard notation)
-         L11_rowOut_out    ,                 & ! Grid vertical location of the Outlet
-         L11_colOut_out    ,                 & ! Grid horizontal location  of the Outlet
-         L11_upBound_L0_out,                 & ! Row start at finer level-0 scale 
-         L11_downBound_L0_out,               & ! Row end at finer level-0 scale
-         L11_leftBound_L0_out,               & ! Col start at finer level-0 scale
-         L11_rightBound_L0_out,              & ! Col end at finer level-0 scale
-         L11_upBound_L1_out,                 & ! Row start at finer level-1 scale 
-         L11_downBound_L1_out,               & ! Row end at finer level-1 scale
-         L11_leftBound_L1_out,               & ! Col start at finer level-1 scale
-         L11_rightBound_L1_out,              & ! Col end at finer level-1 scale 
-         L11_fromN_out     ,                 & ! From node
-         L11_toN_out       ,                 & ! To node
-         L11_rOrder_out    ,                 & ! Network routing order
-         L11_label_out     ,                 & ! Label Id [0='', 1=HeadWater, 2=Sink]
-         L11_sink_out      ,                 & ! .true. if sink node reached
-         L11_netPerm_out   ,                 & ! Routing sequence (permutation of L11_rOrder)
-         L11_fRow_out      ,                 & ! From row in L0 grid 
-         L11_fCol_out      ,                 & ! From col in L0 grid
-         L11_tRow_out      ,                 & ! To row in L0 grid
-         L11_tCol_out      ,                 & ! To col in L0 grid 
-         L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
-         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
-         L0_streamNet_out  ,                 & ! Stream network
-         L0_floodPlain_out ,                 & ! Floodplains of stream i
-         L11_length_out    ,                 & ! [m]     Total length of river link
-         L11_aFloodPlain_out,                & ! [m2]    Area of the flood plain
-         L11_slope_out                         ! Average slope of river link
-
-    implicit none
-
-    ! free memory
-    deallocate( nrows0, & ! Number of rows at Level 0
-         ncols0            ,                 & ! Number of colss at Level 0
-         nrows1            ,                 & ! Number of rows at Level 1
-         ncols1            ,                 & ! Number of cols at Level 1
-         nrows11           ,                 & ! Number of rows at Level 11
-         ncols11           ,                 & ! Number of cols at Level 11
-         NoutletCoord      ,                 & ! Dimension of outlet coordiantes at Level 0
-         Ngauges           ,                 & ! Number of evaluation gauges
-         nInflowGauges     ,                 & ! Number of inflow gauges
-         L11_basin_Mask_out,                 & ! Mask at Level 11
-         L11_rowCoor_out   ,                 & ! row cell Coordinates at Level 11
-         L11_colCoor_out   ,                 & ! column cell Coordinates at Level 11
-         L11_Id_out        ,                 & ! Ids of grid at level-11 
-         L0_draSC_out      ,                 & ! Index of draining cell of each sub catchment 
-         L0_L11_Id_out     ,                 & ! Mapping of L11 Id on L0 
-         L1_L11_Id_out     ,                 & ! Mapping of L11 Id on L1
-         L11_fDir_out      ,                 & ! Flow direction (standard notation)
-         L11_rowOut_out    ,                 & ! Grid vertical location of the Outlet
-         L11_colOut_out    ,                 & ! Grid horizontal location  of the Outlet
-         L11_upBound_L0_out,                 & ! Row start at finer level-0 scale 
-         L11_downBound_L0_out,               & ! Row end at finer level-0 scale
-         L11_leftBound_L0_out,               & ! Col start at finer level-0 scale
-         L11_rightBound_L0_out,              & ! Col end at finer level-0 scale
-         L11_upBound_L1_out,                 & ! Row start at finer level-1 scale 
-         L11_downBound_L1_out,               & ! Row end at finer level-1 scale
-         L11_leftBound_L1_out,               & ! Col start at finer level-1 scale
-         L11_rightBound_L1_out,              & ! Col end at finer level-1 scale 
-         L11_fromN_out     ,                 & ! From node
-         L11_toN_out       ,                 & ! To node
-         L11_rOrder_out    ,                 & ! Network routing order
-         L11_label_out     ,                 & ! Label Id [0='', 1=HeadWater, 2=Sink]
-         L11_sink_out      ,                 & ! .true. if sink node reached
-         L11_netPerm_out   ,                 & ! Routing sequence (permutation of L11_rOrder)
-         L11_fRow_out      ,                 & ! From row in L0 grid 
-         L11_fCol_out      ,                 & ! From col in L0 grid
-         L11_tRow_out      ,                 & ! To row in L0 grid
-         L11_tCol_out      ,                 & ! To col in L0 grid 
-         L0_draCell_out    ,                 & ! Draining cell id at L11 of ith cell of L0
-         gaugeNodeList_out ,                 & ! Id of evaluation gauge at L11
-         InflowGaugeNodeList_out ,           & ! Id of inflow gauge at L11
-         L0_streamNet_out  ,                 & ! Stream network
-         L0_floodPlain_out ,                 & ! Floodplains of stream i
-         L11_length_out    ,                 & ! [m]     Total length of river link
-         L11_aFloodPlain_out,                & ! [m2]    Area of the flood plain
-         L11_slope_out )                       ! Average slope of river link
-
-  end subroutine free_memory_L11_config
-  !
-  ! ----------------------------------------------------------------------------
-  !
-  ! subroutine free memory
-  !
-  ! frees all variables that are required by create_netcdf and that were set by 
-  ! set_state
-  !
-  ! author: Stephan Thober
-  ! created: 24.4.2013
-  !
-  ! ----------------------------------------------------------------------------
-  subroutine free_memory_states( L11_flag )
-
-    use mo_set_netcdf_restart, only: x1, y1, z1, x11, y11, z11, DNC, &
-         V, &
-         L1_fSealed_out, &
-         L1_fForest_out, &
-         L1_fPerm_out, &
-         L1_Inter_out, &
-         L1_snowPack_out, &
-         L1_sealSTW_out, &
-         L1_soilMoist_out, &
-         L1_unsatSTW_out, &
-         L1_satSTW_out, &
-         L1_aETSoil_out, &
-         L1_aETCanopy_out, &
-         L1_aETSealed_out, &
-         L1_baseflow_out, &
-         L1_infilSoil_out, &
-         L1_fastRunoff_out, &
-         L1_melt_out, &
-         L1_percol_out, &
-         L1_preEffect_out, &
-         L1_rain_out, &
-         L1_runoffSeal_out, &
-         L1_slowRunoff_out, &
-         L1_snow_out, &
-         L1_Throughfall_out, &
-         L1_total_runoff_out, &
-         L1_alpha_out, &
-         L1_degDayInc_out, &
-         L1_degDayMax_out, &
-         L1_degDayNoPre_out, &
-         L1_degDay_out, &
-         L1_karstLoss_out, &
-         L1_fAsp_out, &
-         L1_fRoots_out, &
-         L1_maxInter_out, &
-         L1_kfastFlow_out, &
-         L1_kSlowFlow_out, &
-         L1_kBaseFlow_out, &
-         L1_kPerco_out, &
-         L1_soilMoistFC_out, &
-         L1_soilMoistSat_out, &
-         L1_soilMoistExp_out, &
-         L1_tempThresh_out, &
-         L1_unsatThresh_out, &
-         L1_sealedThresh_out, &
-         L1_wiltingPoint_out, &
-         L11_Qmod_out, &
-         L11_qOUT_out, &
-         L11_qTIN_out, &
-         L11_qTR_out, &
-         L11_K_out, &
-         L11_xi_out, &
-         L11_C1_out, &
-         L11_C2_out, &
-         L11_FracFPimp_out
-
-    implicit none
-
-    logical, intent(in) :: L11_flag ! flag for L11_variables
-
-    deallocate( x1, y1, z1, DNC, &
-         V, &
-         L1_fSealed_out, &
-         L1_fForest_out, &
-         L1_fPerm_out, &
-         L1_Inter_out, &
-         L1_snowPack_out, &
-         L1_sealSTW_out, &
-         L1_soilMoist_out, &
-         L1_unsatSTW_out, &
-         L1_satSTW_out, &
-         L1_aETSoil_out, &
-         L1_aETCanopy_out, &
-         L1_aETSealed_out, &
-         L1_baseflow_out, &
-         L1_infilSoil_out, &
-         L1_fastRunoff_out, &
-         L1_melt_out, &
-         L1_percol_out, &
-         L1_preEffect_out, &
-         L1_rain_out, &
-         L1_runoffSeal_out, &
-         L1_slowRunoff_out, &
-         L1_snow_out, &
-         L1_Throughfall_out, &
-         L1_total_runoff_out, &
-         L1_alpha_out, &
-         L1_degDayInc_out, &
-         L1_degDayMax_out, &
-         L1_degDayNoPre_out, &
-         L1_degDay_out, &
-         L1_karstLoss_out, &
-         L1_fAsp_out, &
-         L1_fRoots_out, &
-         L1_maxInter_out, &
-         L1_kfastFlow_out, &
-         L1_kSlowFlow_out, &
-         L1_kBaseFlow_out, &
-         L1_kPerco_out, &
-         L1_soilMoistFC_out, &
-         L1_soilMoistSat_out, &
-         L1_soilMoistExp_out, &
-         L1_tempThresh_out, &
-         L1_unsatThresh_out, &
-         L1_sealedThresh_out, &
-         L1_wiltingPoint_out )
-
-    if ( L11_flag ) then
-       deallocate( x11, y11, z11, &
-         L11_Qmod_out, &
-         L11_qOUT_out, &
-         L11_qTIN_out, &
-         L11_qTR_out, &
-         L11_K_out, &
-         L11_xi_out, &
-         L11_C1_out, &
-         L11_C2_out, &
-         L11_FracFPimp_out )
-    end if           
-
-  end subroutine free_memory_states
 
 END MODULE mo_restart
