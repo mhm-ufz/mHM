@@ -207,7 +207,7 @@ PROGRAM mhm_driver
   call message('    MULTISCALE HYDROLOGIC MODEL')
   call message('           Revision ', trim(version))
   call message('Originally by L. Samaniego & R. Kumar')
-  call message('          February 2013')
+  call message('          June 2014')
   call message(separator)
 
   call message()
