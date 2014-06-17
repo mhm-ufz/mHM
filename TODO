@@ -44,7 +44,23 @@ In subroutine hydro_cond of mo_mpr_soilmoist.f90
     !    and Ks_c is a constant.
     !    --> Check correlation and get rid of either param(1) or param(4).
 
+    ! ***** ANSWER TO Comments of MatthiasC by Rohini Kumar:
+    
+    ! 1. The citation of Cosby et. al. (WRR, 1984) is perfectly right.
+    !    Of course Cosby et.al., had measured Ks values, upon which they derived
+    !    their pedo-transfer functions. You need observations of variables (e.g., Ks) 
+    !    to derive pedo-transfer functions, relating measured variables with explantory 
+    !    variables (e.g., sand and clay contents)
 
+
+    ! 2. You are right that param(1) and param(4) could be highly correlated. 
+    !    Note that param(4) was orignally a unit conversion constant with a value of 
+    !    around 60.96 (to convert a Ks value from inches/hour to cm/d). I tried to first get rid of 
+    !    it to but latter decided to give a very narrow range of this parameter (58 to 62; see original 
+    !    mHM version that accounts for a small shift in pedo-transfer curve. 
+    !    With the latter coding and the expansion of the parameter range, this param(4) somehow got
+    !    a range of 1 to 150 !!!!! In some basins we got calibrated values at both extremes !!!!!!
+   
 
 =================================================================================================
                       UNDER CONSTRUCTION
