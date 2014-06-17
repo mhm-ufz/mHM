@@ -80,6 +80,7 @@ CONTAINS
     USE mo_append,           ONLY: append
     USE mo_message,          ONLY: message
     USE mo_ncread,           ONLY: get_NcVar, get_NcDim
+    use mo_string_utils,     only: num2str
 
     implicit none
 
@@ -97,11 +98,15 @@ CONTAINS
     dl = get_NcDim( trim(fname), 'lat' )
     
     ! consistency check
-    if ( (dl(1) /= level1%nrows(ii) ) .or. &
-         (dl(2) /= level1%ncols(ii) ) ) then
+    if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
+         (dl(2) .NE. level1%ncols(ii) ) ) then
          call message( '   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!')
-         stop '    ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!'
-    end if
+         call message( '  Latlon expected to have following dimensions ... level1%nrows(ii):',               &
+              trim(adjustl(num2str(level1%nrows(ii)))),', level1%ncols(ii):', trim(adjustl(num2str(level1%ncols(ii)))))
+         call message( '  Latlon provided ... level1%nrows(ii):',               &
+              trim(adjustl(num2str(dl(1)))),', level1%ncols(ii):', trim(adjustl(num2str(dl(2)))))
+           stop '    ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!' 
+  end if
     
     allocate(dummy(dl(1), dl(2)))
     
@@ -116,9 +121,13 @@ CONTAINS
     dl = get_NcDim( trim(fname), 'lon' )
     
     ! consistency check
-    if ( (dl(1) /= level1%nrows(ii) ) .or. &
-         (dl(2) /= level1%ncols(ii) ) ) then
+    if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
+         (dl(2) .NE. level1%ncols(ii) ) ) then
          call message( '   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!')
+         call message( '  Latlon expected to have following dimensions ... level1%nrows(ii):',               &
+              trim(adjustl(num2str(level1%nrows(ii)))),', level1%ncols(ii):', trim(adjustl(num2str(level1%ncols(ii)))))
+         call message( '  Latlon provided ... level1%nrows(ii):',               &
+              trim(adjustl(num2str(dl(1)))),', level1%ncols(ii):', trim(adjustl(num2str(dl(2)))))
          stop '    ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!'
     end if
     
