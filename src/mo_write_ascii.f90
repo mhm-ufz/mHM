@@ -358,7 +358,7 @@ CONTAINS
     !
 218 format (/ 80('-')/ 26x, a24,26x,  /80('-'))
 222 format (/80('-')/ 26x,a21 /80('-'))
-224 format (a40, 5x, a40)
+224 format (a40, 5x, a256)
 
 301 format (a7, i2, a33,f10.0)
   end Subroutine write_configfile
