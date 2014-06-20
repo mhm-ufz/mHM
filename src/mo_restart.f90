@@ -249,28 +249,28 @@ CONTAINS
        
        call var2nc( Fname, unpack( L1_fSealed(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_fSealed', &
-            long_name = 'fraction of Sealed area at level 1', fill_value = nodata_dp, &
-            f_exists = .false. ) ! create file
+            long_name = 'fraction of Sealed area at level 1', missing_value = nodata_dp, &
+            create = .true. ) ! create file
 
        call var2nc( Fname, unpack( L1_fForest(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_fForest', &
-            long_name = 'fraction of Forest area at level 1', fill_value = nodata_dp)
+            long_name = 'fraction of Forest area at level 1', missing_value = nodata_dp)
        
        call var2nc( Fname, unpack( L1_fPerm(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_fPerm', &
-            long_name = 'fraction of permeable area at level 1', fill_value = nodata_dp)
+            long_name = 'fraction of permeable area at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_inter(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_Inter', &
-            long_name = 'Interception storage at level 1', fill_value = nodata_dp)
+            long_name = 'Interception storage at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_snowPack(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_snowPack', &
-            long_name = 'Snowpack at level 1', fill_value = nodata_dp)
+            long_name = 'Snowpack at level 1', missing_value = nodata_dp)
        
        call var2nc( Fname, unpack( L1_sealSTW(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_sealSTW', &
-            long_name = 'Retention storage of impervious areas at level 1', fill_value = nodata_dp)
+            long_name = 'Retention storage of impervious areas at level 1', missing_value = nodata_dp)
 
        allocate( dummy_d3( nrows1, ncols1, size( L1_soilMoist, 2) ) )
        do ii = 1, size( dummy_d3, 3 )
@@ -278,179 +278,180 @@ CONTAINS
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_soilMoist', &
-            long_name = 'soil moisture at level 1', fill_value = nodata_dp)
+            long_name = 'soil moisture at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_unsatSTW(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_unsatSTW', &
-            long_name = 'upper soil storage at level 1', fill_value = nodata_dp)
+            long_name = 'upper soil storage at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_satSTW(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_satSTW', &
-            long_name = 'groundwater storage at level 1', fill_value = nodata_dp)
+            long_name = 'groundwater storage at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_aETSoil(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_aETSoil', &
-            long_name = 'soil actual ET at level 1', fill_value = nodata_dp)
+            long_name = 'soil actual ET at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_aETCanopy(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_aETCanopy', &
-            long_name = 'canopy actual ET at level 1', fill_value = nodata_dp)
+            long_name = 'canopy actual ET at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_aETSealed(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_aETSealed', &
-            long_name = 'sealed actual ET at level 1', fill_value = nodata_dp)
+            long_name = 'sealed actual ET at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_baseflow(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_baseflow', &
-            long_name = 'baseflow at level 1', fill_value = nodata_dp)
+            long_name = 'baseflow at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_infilSoil(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_infilSoil', &
-            long_name = 'soil in-exfiltration at level 1', fill_value = nodata_dp)
+            long_name = 'soil in-exfiltration at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_fastRunoff(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_fastRunoff', &
-            long_name = 'fast runoff', fill_value = nodata_dp)
+            long_name = 'fast runoff', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_percol(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_percol', &
-            long_name = 'percolation at level 1', fill_value = nodata_dp)
+            long_name = 'percolation at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_melt(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_melt', &
-            long_name = 'snow melt at level 1', fill_value = nodata_dp)
+            long_name = 'snow melt at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_preEffect(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_preEffect', &
-            long_name = 'effective precip. depth (snow melt + rain) at level 1', fill_value = nodata_dp)
+            long_name = 'effective precip. depth (snow melt + rain) at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_rain(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_rain', &
-            long_name = 'rain (liquid water) at level 1', fill_value = nodata_dp)
+            long_name = 'rain (liquid water) at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_runoffSeal(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_runoffSeal', &
-            long_name = 'runoff from impervious area at level 1', fill_value = nodata_dp)
+            long_name = 'runoff from impervious area at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_slowRunoff(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_slowRunoff', &
-            long_name = 'slow runoff at level 1', fill_value = nodata_dp)
+            long_name = 'slow runoff at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_snow(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_snow', &
-            long_name = 'snow (solid water) at level 1', fill_value = nodata_dp)
+            long_name = 'snow (solid water) at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_Throughfall(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_Throughfall', &
-            long_name = 'throughfall at level 1', fill_value = nodata_dp)
+            long_name = 'throughfall at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_total_runoff(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_total_runoff', &
-            long_name = 'total runoff at level 1', fill_value = nodata_dp)
+            long_name = 'total runoff at level 1', missing_value = nodata_dp)
 
        !-------------------------------------------
        ! EFFECTIVE PARAMETERS
        !-------------------------------------------
        call var2nc( Fname, unpack( L1_alpha(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_alpha', &
-            long_name = 'exponent for the upper reservoir at level 1', fill_value = nodata_dp)
+            long_name = 'exponent for the upper reservoir at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_degDayInc(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_degDayInc', &
-            long_name = 'increase of the Degree-day factor per mm of increase in precipitation at level 1', fill_value = nodata_dp)
+            long_name = 'increase of the Degree-day factor per mm of increase in precipitation at level 1', &
+            missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_degDayMax(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_degDayMax', &
-            long_name = 'maximum degree-day factor at level 1', fill_value = nodata_dp)
+            long_name = 'maximum degree-day factor at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_degDayNoPre(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_degDayNoPre', &
-            long_name = 'degree-day factor with no precipitation at level 1', fill_value = nodata_dp)
+            long_name = 'degree-day factor with no precipitation at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_degDay(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_degDay', &
-            long_name = 'degree-day factor at level 1', fill_value = nodata_dp)
+            long_name = 'degree-day factor at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_karstLoss(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_karstLoss', &
-            long_name = 'Karstic percolation loss at level 1', fill_value = nodata_dp)
+            long_name = 'Karstic percolation loss at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_fAsp', &
-            long_name = 'PET correction factor due to terrain aspect at level 1', fill_value = nodata_dp)
+            long_name = 'PET correction factor due to terrain aspect at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_fRoots(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_fRoots', &
-            long_name = 'Fraction of roots in soil horizons at level 1', fill_value = nodata_dp)
+            long_name = 'Fraction of roots in soil horizons at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_maxInter(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_maxInter', &
-            long_name = 'Maximum interception at level 1', fill_value = nodata_dp)
+            long_name = 'Maximum interception at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_kfastFlow(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_kfastFlow', &
-            long_name = 'fast interflow recession coefficient at level 1', fill_value = nodata_dp)
+            long_name = 'fast interflow recession coefficient at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_kSlowFlow(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_kSlowFlow', &
-            long_name = 'slow interflow recession coefficient at level 1', fill_value = nodata_dp)
+            long_name = 'slow interflow recession coefficient at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_kBaseFlow(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_kBaseFlow', &
-            long_name = 'baseflow recession coefficient at level 1', fill_value = nodata_dp)
+            long_name = 'baseflow recession coefficient at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_kPerco(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_kPerco', &
-            long_name = 'percolation coefficient at level 1', fill_value = nodata_dp)
+            long_name = 'percolation coefficient at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistFC(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_soilMoistFC', &
-            long_name = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', fill_value = nodata_dp)
+            long_name = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_soilMoistSat', &
-            long_name = 'Saturation soil moisture for each horizon [mm] at level 1', fill_value = nodata_dp)
+            long_name = 'Saturation soil moisture for each horizon [mm] at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistExp(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_soilMoistExp', &
-            long_name = 'Exponential parameter to how non-linear is the soil water retention at level 1', fill_value = nodata_dp)
+            long_name = 'Exponential parameter to how non-linear is the soil water retention at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_tempThresh(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_tempThresh', &
-            long_name = 'Threshold temperature for snow/rain at level 1', fill_value = nodata_dp)
+            long_name = 'Threshold temperature for snow/rain at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_unsatThresh(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_unsatThresh', &
-            long_name = 'Threshhold water depth controlling fast interflow at level 1', fill_value = nodata_dp)
+            long_name = 'Threshhold water depth controlling fast interflow at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_sealedThresh(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_sealedThresh', &
-            long_name = 'Threshhold water depth for surface runoff in sealed surfaces at level 1', fill_value = nodata_dp)
+            long_name = 'Threshhold water depth for surface runoff in sealed surfaces at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_wiltingPoint(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
             dims_L1, 'L1_wiltingPoint', &
-            long_name = 'Permanent wilting point at level 1', fill_value = nodata_dp)
+            long_name = 'Permanent wilting point at level 1', missing_value = nodata_dp)
        
        deallocate( dummy_d3 )
        !-------------------------------------------
@@ -465,11 +466,11 @@ CONTAINS
           
           call var2nc( Fname, unpack( L11_Qmod(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_Qmod', &
-            long_name = 'simulated discharge at each node at level 11', fill_value = nodata_dp)
+            long_name = 'simulated discharge at each node at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_qOUT(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_qOUT', &
-            long_name = 'Total outflow from cells L11 at time tt at level 11', fill_value = nodata_dp)
+            long_name = 'Total outflow from cells L11 at time tt at level 11', missing_value = nodata_dp)
           
           allocate( dummy_d3( nrows11, ncols11, nRoutingStates ) )
           do ii = 1, size( dummy_d3, 3 )
@@ -477,34 +478,34 @@ CONTAINS
           end do
           call var2nc( Fname, dummy_d3, &
                dims_L11, 'L11_qTIN', &
-               long_name = 'Total discharge inputs at t-1 and t at level 11', fill_value = nodata_dp)
+               long_name = 'Total discharge inputs at t-1 and t at level 11', missing_value = nodata_dp)
 
           do ii = 1, size( dummy_d3, 3 )
              dummy_d3(:,:,ii) = unpack( L11_qTR(s11:e11,ii), mask11, nodata_dp )
           end do
           call var2nc( Fname, dummy_d3, &
                dims_L11, 'L11_qTR', &
-               long_name = 'Routed outflow leaving a node at level 11', fill_value = nodata_dp)
+               long_name = 'Routed outflow leaving a node at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_K(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_K', &
-            long_name = 'kappa: Muskingum travel time parameter at level 11', fill_value = nodata_dp)
+            long_name = 'kappa: Muskingum travel time parameter at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_xi(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_xi', &
-            long_name = 'xi: Muskingum diffusion parameter at level 11', fill_value = nodata_dp)
+            long_name = 'xi: Muskingum diffusion parameter at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_C1(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_C1', &
-            long_name = 'Routing parameter C1=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+            long_name = 'Routing parameter C1=f(K,xi, DT) (Chow, 25-41) at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_C2(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_C2', &
-            long_name = 'Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11', fill_value = nodata_dp)
+            long_name = 'Routing parameter C2=f(K,xi, DT) (Chow, 25-41) at level 11', missing_value = nodata_dp)
 
           call var2nc( Fname, unpack( L11_FracFPimp(s11:e11), mask11, nodata_dp ), &
             dims_L11(1:2), 'L11_FracFPimp', &
-            long_name = 'Fraction of the flood plain with impervious cover at level 11', fill_value = nodata_dp)
+            long_name = 'Fraction of the flood plain with impervious cover at level 11', missing_value = nodata_dp)
           
           ! ----------------------------------------------------------
           ! L11 config set - create new file
@@ -516,151 +517,151 @@ CONTAINS
                reshape(basin%L11_Mask(basin%L11_iStartMask(iBasin):basin%L11_iEndMask(iBasin)),&
                (/nrows11,ncols11/)) ),&
                dims_L11(1:2), 'L11_basin_Mask', &
-               long_name = 'Mask at Level 11', fill_value = nodata_i4, f_exists = .false. )
+               long_name = 'Mask at Level 11', missing_value = nodata_i4, create = .true. )
           
           call var2nc( Fname, unpack( L11_cellCoor(s11:e11,1), mask11, nodata_i4 ), &
                dims_L11(1:2),'L11_rowCoor', &
-               long_name = 'row coordinates at Level 11', fill_value = nodata_i4 )
+               long_name = 'row coordinates at Level 11', missing_value = nodata_i4 )
 
           call var2nc( Fname, unpack( L11_cellCoor(s11:e11,2), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_colCoor', &
-               long_name = 'col coordinates at Level 11', fill_value = nodata_i4 )
+               long_name = 'col coordinates at Level 11', missing_value = nodata_i4 )
 
           call var2nc( Fname, unpack( L11_Id(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_Id', &
-               long_name = 'cell Ids at Level 11', fill_value = nodata_i4 )
+               long_name = 'cell Ids at Level 11', missing_value = nodata_i4 )
 
           call var2nc( Fname, unpack( L11_fDir(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_fDir', &
-               long_name = 'flow Direction at Level 11', fill_value = nodata_i4 )     
+               long_name = 'flow Direction at Level 11', missing_value = nodata_i4 )     
 
           call var2nc( Fname, unpack( L11_rowOut(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_rowOut', &
-               long_name = 'Grid vertical location of the Outlet at Level 11', fill_value=nodata_i4)
+               long_name = 'Grid vertical location of the Outlet at Level 11', missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_colOut(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_colOut', &
-               long_name = 'Grid horizontal location of the Outlet at Level 11',fill_value=nodata_i4)
+               long_name = 'Grid horizontal location of the Outlet at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_upBound_L0(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_upBound_L0', &
-               long_name = 'Row start at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+               long_name = 'Row start at finer level-0 scale of Level 11 cell',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_downBound_L0(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_downBound_L0', &
-               long_name = 'Row end at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+               long_name = 'Row end at finer level-0 scale of Level 11 cell',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_leftBound_L0(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_leftBound_L0', &
-               long_name = 'Col start at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+               long_name = 'Col start at finer level-0 scale of Level 11 cell',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_rightBound_L0(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_rightBound_L0', &
-               long_name = 'Col end at finer level-0 scale of Level 11 cell',fill_value=nodata_i4)
+               long_name = 'Col end at finer level-0 scale of Level 11 cell',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_fromN(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_fromN', &
-               long_name = 'From Node',fill_value=nodata_i4)
+               long_name = 'From Node',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_toN(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_toN', &
-               long_name = 'To Node',fill_value=nodata_i4)
+               long_name = 'To Node',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_rOrder(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_rOrder', &
-               long_name = 'Network routing order at Level 11',fill_value=nodata_i4)
+               long_name = 'Network routing order at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_label(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_label', &
-               long_name = 'Label Id [0='', 1=HeadWater, 2=Sink] at Level 11',fill_value=nodata_i4)
+               long_name = 'Label Id [0='', 1=HeadWater, 2=Sink] at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( merge( 1_i4, 0_i4, L11_sink(s11:e11)), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_sink', &
-               long_name = '.true. if sink node reached at Level 11',fill_value=nodata_i4)
+               long_name = '.true. if sink node reached at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_netPerm(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_netPerm', &
-               long_name = 'Routing sequence (permutation of L11_rOrder) at Level 11',fill_value=nodata_i4)
+               long_name = 'Routing sequence (permutation of L11_rOrder) at Level 11',missing_value=nodata_i4)
       
           call var2nc( Fname, unpack( L11_fRow(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_fRow', &
-               long_name = 'From row in L0 grid at Level 11',fill_value=nodata_i4)
+               long_name = 'From row in L0 grid at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_fCol(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_fCol', &
-               long_name = 'From col in L0 grid at Level 11',fill_value=nodata_i4)
+               long_name = 'From col in L0 grid at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_tRow(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_tRow', &
-               long_name = 'To row in L0 grid at Level 11',fill_value=nodata_i4)
+               long_name = 'To row in L0 grid at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_tCol(s11:e11), mask11, nodata_i4 ), &
                dims_L11(1:2), 'L11_tCol', &
-               long_name = 'To Col in L0 grid at Level 11',fill_value=nodata_i4)
+               long_name = 'To Col in L0 grid at Level 11',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_length(s11:e11), mask11, nodata_dp ), &
                dims_L11(1:2), 'L11_length', &
-               long_name = 'Total length of river link [m]',fill_value=nodata_dp)
+               long_name = 'Total length of river link [m]',missing_value=nodata_dp)
 
           call var2nc( Fname, unpack( L11_aFloodPlain(s11:e11), mask11, nodata_dp ), &
                dims_L11(1:2), 'L11_aFloodPlain', &
-               long_name = 'Area of the flood plain [m2]',fill_value=nodata_dp)
+               long_name = 'Area of the flood plain [m2]',missing_value=nodata_dp)
 
           call var2nc( Fname, unpack( L11_slope(s11:e11), mask11, nodata_dp ), &
                dims_L11(1:2), 'L11_slope', &
-               long_name = 'Average slope of river link',fill_value=nodata_dp)
+               long_name = 'Average slope of river link',missing_value=nodata_dp)
 
           call var2nc( Fname, unpack( L0_draCell(s110:e110), mask0, nodata_i4 ), &
                dims_L0, 'L0_draCell', &
-               long_name = 'Draining cell id at L11 of ith cell of L0',fill_value=nodata_i4)
+               long_name = 'Draining cell id at L11 of ith cell of L0',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L0_streamNet(s110:e110), mask0, nodata_i4 ), &
                dims_L0, 'L0_streamNet', &
-               long_name = 'Stream network',fill_value=nodata_i4)
+               long_name = 'Stream network',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L0_floodPlain(s110:e110), mask0, nodata_i4 ), &
                dims_L0, 'L0_floodPlain', &
-               long_name = 'Floodplains of stream i',fill_value=nodata_i4)
+               long_name = 'Floodplains of stream i',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L0_draSC(s110:e110), mask0, nodata_i4 ), &
                dims_L0, 'L0_draSC', &
-               long_name = 'Floodplains of stream i',fill_value=nodata_i4)
+               long_name = 'Floodplains of stream i',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L0_L11_Id(s110:e110), mask0, nodata_i4 ), &
                dims_L0, 'L0_L11_Id', &
-               long_name = 'Mapping of L11 Id on L0',fill_value=nodata_i4)
+               long_name = 'Mapping of L11 Id on L0',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L1_L11_Id(s1:e1), mask1, nodata_i4 ), &
                dims_L1(1:2), 'L1_L11_Id', &
-               long_name = 'Mapping of L11 Id on L1',fill_value=nodata_i4)
+               long_name = 'Mapping of L11 Id on L1',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_upBound_L1(s1:e1), mask1, nodata_i4 ), &
                dims_L1(1:2), 'L11_upBound_L1', &
-               long_name = 'Row start at finer level-1 scale',fill_value=nodata_i4)
+               long_name = 'Row start at finer level-1 scale',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_downBound_L1(s1:e1), mask1, nodata_i4 ), &
                dims_L1(1:2), 'L11_downBound_L1', &
-               long_name = 'Row end at finer level-1 scale',fill_value=nodata_i4)
+               long_name = 'Row end at finer level-1 scale',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_leftBound_L1(s1:e1), mask1, nodata_i4 ), &
                dims_L1(1:2), 'L11_leftBound_L1', &
-               long_name = 'Col start at finer level-1 scale',fill_value=nodata_i4)
+               long_name = 'Col start at finer level-1 scale',missing_value=nodata_i4)
 
           call var2nc( Fname, unpack( L11_rightBound_L1(s1:e1), mask1, nodata_i4 ), &
                dims_L1(1:2), 'L11_rightBound_L1', &
-               long_name = 'Col start at finer level-1 scale',fill_value=nodata_i4)
+               long_name = 'Col start at finer level-1 scale',missing_value=nodata_i4)
 
           call var2nc( Fname, (/ basin%L0_rowOutlet(iBasin), basin%L0_colOutlet(iBasin) /), &
                 dims_outlet, 'L0_OutletCoord', &
-                long_name = 'Outlet Coordinates at Level 0',fill_value=nodata_i4)
+                long_name = 'Outlet Coordinates at Level 0',missing_value=nodata_i4)
           
           call var2nc( Fname, basin%gaugeNodeList(iBasin,:), &
                dims_gauges, 'gaugeNodeList', &
-               long_name = 'cell ID of gauges',fill_value=nodata_i4)
+               long_name = 'cell ID of gauges',missing_value=nodata_i4)
 
           call var2nc( Fname, basin%InflowGaugeNodeList(iBasin,:), &
                dims_inflow, 'InflowGaugeNodeList', &
-               long_name = 'cell ID of gauges',fill_value=nodata_i4)
+               long_name = 'cell ID of gauges',missing_value=nodata_i4)
        
           ! free dummy variables
           deallocate( dummy_d3 )
@@ -675,67 +676,67 @@ CONTAINS
 
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,1), mask0, nodata_i4 ), &
             dims_L0,'L0_rowCoor', &
-            long_name = 'row coordinates at Level 0', fill_value = nodata_i4, &
-            f_exists = .false. )
+            long_name = 'row coordinates at Level 0', missing_value = nodata_i4, &
+            create = .true. )
 
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,2), mask0, nodata_i4 ), &
             dims_L0,'L0_colCoor', &
-            long_name = 'col coordinates at Level 0', fill_value = nodata_i4 )
+            long_name = 'col coordinates at Level 0', missing_value = nodata_i4 )
 
        call var2nc( Fname, unpack( L0_Id(s0:e0), mask0, nodata_i4 ), &
             dims_L0,'L0_Id', &
-            long_name = 'cell IDs at level 0', fill_value = nodata_i4 )
+            long_name = 'cell IDs at level 0', missing_value = nodata_i4 )
 
        call var2nc( Fname, unpack( L0_areaCell(s0:e0), mask0, nodata_dp ), &
             dims_L0,'L0_areaCell', &
-            long_name = 'Area of a cell at level-0 [m2]', fill_value = nodata_dp )
+            long_name = 'Area of a cell at level-0 [m2]', missing_value = nodata_dp )
 
        call var2nc( Fname, unpack( L0_slope_emp(s0:e0), mask0, nodata_dp ), &
             dims_L0,'L0_slope_emp', &
-            long_name = 'Empirical quantiles of slope', fill_value = nodata_dp )
+            long_name = 'Empirical quantiles of slope', missing_value = nodata_dp )
  
        call var2nc( Fname, &
             merge( 1_i4, 0_i4,  &
             reshape(basin%L1_Mask(basin%L1_iStartMask(iBasin):basin%L1_iEndMask(iBasin)),&
             (/nrows1,ncols1/)) ),&
             dims_L1(1:2), 'L1_basin_Mask', &
-            long_name = 'Mask at Level 1', fill_value = nodata_i4 )
+            long_name = 'Mask at Level 1', missing_value = nodata_i4 )
  
        call var2nc( Fname, unpack( L1_Id(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_Id', &
-            long_name = 'cell IDs at level 1', fill_value = nodata_i4 )
+            long_name = 'cell IDs at level 1', missing_value = nodata_i4 )
 
        call var2nc( Fname, unpack( L1_cellCoor(s1:e1,1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_rowCoor', &
-            long_name = 'row cell Coordinates at Level 1', fill_value = nodata_i4 )
+            long_name = 'row cell Coordinates at Level 1', missing_value = nodata_i4 )
 
        call var2nc( Fname, unpack( L1_cellCoor(s1:e1,2), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_colCoor', &
-            long_name = 'col cell Coordinates at Level 1', fill_value = nodata_i4 )
+            long_name = 'col cell Coordinates at Level 1', missing_value = nodata_i4 )
  
        call var2nc( Fname, unpack( L1_upBound_L0(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_upBound_L0', &
-            long_name = 'Row start at finer level-0 scale', fill_value = nodata_i4 )
+            long_name = 'Row start at finer level-0 scale', missing_value = nodata_i4 )
  
        call var2nc( Fname, unpack( L1_downBound_L0(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_downBound_L0', &
-            long_name = 'Row end at finer level-0 scale', fill_value = nodata_i4 )
+            long_name = 'Row end at finer level-0 scale', missing_value = nodata_i4 )
   
        call var2nc( Fname, unpack( L1_leftBound_L0(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_leftBound_L0', &
-            long_name = 'Col start at finer level-0 scale', fill_value = nodata_i4 )
+            long_name = 'Col start at finer level-0 scale', missing_value = nodata_i4 )
  
        call var2nc( Fname, unpack( L1_rightBound_L0(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_rightBound_L0', &
-            long_name = 'Col end at finer level-0 scal', fill_value = nodata_i4 )
+            long_name = 'Col end at finer level-0 scal', missing_value = nodata_i4 )
  
        call var2nc( Fname, unpack( L1_nTCells_L0(s1:e1), mask1, nodata_i4 ), &
             dims_L1(1:2),'L1_nTCells_L0', &
-            long_name = 'Total number of valid L0 cells in a given L1 cell', fill_value = nodata_i4 )
+            long_name = 'Total number of valid L0 cells in a given L1 cell', missing_value = nodata_i4 )
   
        call var2nc( Fname, unpack( L1_areaCell(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2),'L1_areaCell', &
-            long_name = 'Effective area of cell at this level [km2]', fill_value = nodata_dp )
+            long_name = 'Effective area of cell at this level [km2]', missing_value = nodata_dp )
        
     end do basin_loop
     
