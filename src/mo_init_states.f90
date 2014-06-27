@@ -874,7 +874,7 @@ CONTAINS
     cellsizeOut     = cellsizeIn * cellFactor
     ncolsOut        = ceiling( real(ncolsIn, dp) / cellFactor)
     nrowsOut        = ceiling( real(nrowsIn, dp) / cellFactor)
-    xllcornerOut    = xllcornerIn
+    xllcornerOut    = xllcornerIn + real(ncolsIn,dp) * cellsizeIn - real(ncolsOut,dp) * cellsizeOut  
     yllcornerOut    = yllcornerIn + real(nrowsIn,dp) * cellsizeIn - real(nrowsOut,dp) * cellsizeOut  
     nodata_valueOut  = nodata_valueIn
 

@@ -101,4 +101,6 @@ mo_multi_param_reg
 
 -- L11_config in ConfigFile correctly printed 
    (Resp.: Stephan)
+-- xllcornerOut in calculate_grid_properties correctly calculated
+   (Resp.: Stephan)
 
