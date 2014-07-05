@@ -291,7 +291,12 @@ if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
-        module load cdo
+	if [[ $(hostname) == 'frontend1' ]]; then
+            module load cdo
+	fi
+	if [[ $(hostname) == 'frontend2' ]]; then
+	    module load cdo/1.6.4rc5-2_gcc_4.8.1_CentOS6
+	fi
         icdo=$(which cdo)
     fi
 fi
