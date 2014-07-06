@@ -73,11 +73,13 @@
 #    GNU Lesser General Public License for more details.
 #
 #    You should have received a copy of the GNU Lesser General Public License
-#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#    along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
+#    If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2011-2013 Matthias Cuntz, Juliane Mai, Stephan Thober
+#    Copyright 2011-2014 Matthias Cuntz
 #
-# Written Matthias Cuntz & Juliane Mai, UFZ Leipzig, Germany, Nov. 2011 - mc (at) macu.de
+# Written Matthias Cuntz, Nov. 2011 - mc (at) macu.de
+# Modified Matthias Cuntz, Juliane Mai, Stephan Thober, UFZ Leipzig, Germany
 
 SHELL = /bin/bash
 
@@ -136,6 +138,16 @@ static   := shared
 #     EXTRA_F90FLAGS := -mcmodel=medium
 #     EXTRA_LDFLAGS  := -mcmodel=medium -shared-intel
 #
+# If you encouter with the intel compiler the following error (compiler bug):
+#      0_10708
+#     : catastrophic error: **Internal compiler error: internal abort** Please report this error along with the
+#     circumstances in which it occurred in a Software Problem Report.
+#      Note: File and line given may not be explicit cause of this error.
+# then add the file to the list
+#     INTEL_EXCLUDE
+# below. This will not set the compiler flag -assume realloc-lhs.
+# If this does not work, try to reduce the optimisation in the make.config files (e.g. -O1)
+#
 #
 # Specific notes on optimisation and debugging
 # INTEL optimisation: -fast (=-ipo -O3 -static)
@@ -161,6 +173,8 @@ EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   :=
+
+INTEL_EXCLUDE := mo_read_wrapper.f90
 
 #
 # --- CHECK 0 ---------------------------------------------------
@@ -596,6 +610,14 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
     endif
 endif
 
+# --- INTEL ERROR ---------------------------------------------------
+ifneq (,$(findstring $(icompiler),$(intelcompilers)))
+    F90FLAGS1 = $(subst -assume realloc-lhs,,"$(F90FLAGS)")
+else
+    F90FLAGS1 = $(F90FLAGS)
+endif
+
+
 #
 # --- FINISH SETUP ---------------------------------------------------
 #
@@ -752,17 +774,23 @@ $(OBJS):
 ifneq (,$(findstring $(icompiler),gnu41 gnu42))
 	@nobj=$$(echo $(OBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
+	ssrc=$$(basename $$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p)) ; \
 	tmp=$@.$$(echo $${src} | sed 's/.*\.//') ; \
-	echo "$(F90) -E $(DEFINES) $(INCLUDES) $(F90FLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
-	$(F90) -E $(DEFINES) $(INCLUDES) $(F90FLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
+	doex=$$(echo $(INTEL_EXCLUDE) | grep -i "$${ssrc}" -) ; \
+	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
+	echo "$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
+	$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
 	echo "$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@" ; \
 	$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@ ; \
 	rm $${tmp}
 else
 	@nobj=$$(echo $(OBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
-	echo $(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
-	$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${src} -o $@
+	ssrc=$$(basename $$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p)) ; \
+	doex=$$(echo $(INTEL_EXCLUDE) | grep -i "$${ssrc}" -) ; \
+	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
+	echo $(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
+	$(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@
 endif
 
 $(FOBJS):

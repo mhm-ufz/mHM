@@ -28,6 +28,8 @@
 # Define subirectories if another structure
 
 # Paths
+# INTEL    := /opt/intel/composer_xe_2013.1.117
+# INTELDIR := /usr/local/intel/13.0.1
 INTEL    := /opt/intel/composer_xe_2013.2.146
 INTELDIR := /usr/local/intel/13.1.0
 INTELLIB := $(INTELDIR)
@@ -47,7 +49,7 @@ else
     FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -assume byterecl -cpp -fp-model source -m64 # -assume realloc-lhs causes ifort to fail to compile mHM (in detail mo_read_wrapper.f90); precise -> source: suppress warning, computation identical
+F90FLAGS += -assume byterecl -cpp -fp-model source -m64 -assume realloc-lhs # precise -> source: suppress warning, computation identical
 MODFLAG  := -module # space significant
 FCFLAGS  += -assume byterecl -cpp -fp-model source -m64 -fixed
 CFLAGS   += -m64 -std=c99
