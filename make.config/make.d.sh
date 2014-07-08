@@ -70,7 +70,7 @@ done
 shift $((${OPTIND} - 1))
 
 # Check that enough arguments
-if [ $# -lt 3 ] ; then
+if [[ $# -lt 3 ]] ; then
     printf "Error ${pprog}: not enough input arguments.\n\n" 1>&2
     usage 1>&2
     exit 1
@@ -93,7 +93,8 @@ for i in $srcfiles ; do alldirs="${alldirs}\n$(dirname ${i})" ; done
 firstdir=$(printf ${alldirs} | sort | uniq | sed '/^$/d' | tr '\n' '\t' | cut -f 1)
 # dictionary in first input directory
 dict="${firstdir}/${src2obj}/${pprog}.dict"
-if [ ! -f ${dict} ] ; then # new dict only if it does not exist in directory yet
+if [[ ! -f ${dict} ]] ; then # new dict only if it does not exist in directory yet
+    if [[ ! -d $(dirname ${dict}) ]] ; then mkdir -p $(dirname ${dict}) ; fi
     for i in ${srcfiles} ; do # all files in all input dirs
 	# 1. all blanks to one space, 2. rm f90 comments, 3. rm f77 comments,
 	# 4. rm leading blank, 5. rm trailing blank, 6. rm blank lines,
