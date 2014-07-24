@@ -157,6 +157,7 @@ set -e
 # Modified Feb 2014 Matthias Cuntz                 - lots of small changes
 #          Mar 2014 Stephan Thober, Matthias Cuntz - added OpenMP test
 #          May 2014 Matthias Cuntz                 - specify compiler during clean
+#          Jul 2014 Juliane Mai                    - checking daily_discharge files added
 
 # -------------------------------------------------------------------------------------------
 #
@@ -228,7 +229,7 @@ function cleanup ()
 
     # everything in case_?? dirs
     case_dirs=$(ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out"
+    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff.*.terminal"
     rmdirs="output_b1 output_b2"
 
     # using brace expansion
@@ -292,7 +293,7 @@ if [[ "${icdo}z" == "z" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
 	if [[ $(hostname) == 'frontend1' ]]; then
-            module load cdo
+            module load cdo/1.6.0-1 
 	fi
 	if [[ $(hostname) == 'frontend2' ]]; then
 	    module load cdo/1.6.4rc5-2_gcc_4.8.1_CentOS6
@@ -341,7 +342,7 @@ for irelease in ${release} ; do
 	    # run checks
             cd check
             case_dirs=$(\ls -d case_*)
-            #case_dirs=$(\ls -d case_04)
+            #case_dirs=$(\ls -d case_02)
 
             nRecordsDiffer_allCases=0
             for case_dir in ${case_dirs} ; do
@@ -363,11 +364,20 @@ for irelease in ${release} ; do
                 # mhm was running till the end?
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
                 if [[ ${found} == 'mHM: Finished!' ]] ; then
-                    # compare outputs in output_b1/ with reference in output_save/
+                  
                     nRecordsDiffer=0
                     cd output_save
-                    nc_files=$(ls *.nc)
+                    nc_files=$(\ls *.nc)
+		    set +e
+		    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
+		    set -e
+		    if [[ -z ${discharge_files} ]] ; then
+			echo '   No discharge files written!'
+		    fi
                     cd ..
+		    echo ''
+
+                    # compare NetCDF outputs in output_b1/ with reference in output_save/
                     for nc_file in ${nc_files} ; do
                         # cdo -b 16 :: precision=double=16bit
                         echo '   *  cdo diff output_save/'${nc_file}' output_b1/'${nc_file}
@@ -377,15 +387,42 @@ for irelease in ${release} ; do
                         nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
                         echo '      Number of records that differ more than 0.001: '${iRecordsDiffer}
                         if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                             echo '                  Details '
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                             ${icdo} diffn output_save/${nc_file} output_b1/${nc_file}
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                         fi
                         echo ''
                     done
-                    echo '   Total Number of records that differ more than 0.001: '${nRecordsDiffer}
+
+		    # compare daily_discharge outputs in output_b1/ with reference in output_save/
+		    # if [[ -e output_save/daily_discharge.out ]] ; then
+		    for discharge_file in ${discharge_files} ; do
+			echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
+			set +e
+			diff output_save/${discharge_file} output_b1/${discharge_file} > diff.${pid}.terminal
+			set -e
+			iRecordsDiffer=$(echo $(wc -l diff.${pid}.terminal) | cut -d ' ' -f 1)
+			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+			    iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
+			fi
+			nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
+			nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
+			echo '      Number of records that differ: '${iRecordsDiffer}
+			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            echo '            --------------------------------------'
+                            echo '                  Details                         '
+                            echo '            --------------------------------------'
+                            set +e
+			    diff output_save/${discharge_file} output_b1/${discharge_file}
+			    set -e
+                            echo '            --------------------------------------'
+			fi
+			echo ''
+		    done
+			
+                    echo '   Total Number of records that differ: '${nRecordsDiffer}
 
                     if [[ ${nRecordsDiffer} -eq 0 ]] ; then
                         echo ''
@@ -424,7 +461,7 @@ for irelease in ${release} ; do
             if [[ ${nRecordsDiffer_allCases} -gt 0 ]] ; then
                 echo ''
                 echo '##############################################################################################'
-                echo '#     At least one case failed in this comiler setup                                         #'
+                echo '#     At least one case failed in this compiler setup                                        #'
                 echo '#     check_mhm_cases is aborted without cleaning up the output in the case directories,     #'
                 echo '#     such that it can be used to identify the bug                                           #'
                 echo '##############################################################################################'
