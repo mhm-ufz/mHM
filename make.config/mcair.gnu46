@@ -81,6 +81,9 @@ FPROJDIR :=
 LAPACKDIR   := 
 GFORTRANDIR := $(GNUDIR)
 
+# MPI
+MPIDIR := /usr/local/openmpi_1.8.1_gfortran46
+
 # Documentation
 DOXYGENDIR := /usr/local/bin
 DOTDIR     := /usr/local/bin

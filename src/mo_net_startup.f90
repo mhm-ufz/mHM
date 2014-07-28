@@ -1337,7 +1337,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable  :: InflowGaugeLoc0   
     integer(i4), dimension(:,:), allocatable  :: draCell0
     integer(i4), dimension(:,:), allocatable  :: L11Id_on_L0
-    integer(i4)                               :: ii, jj, kk, ll, index_gauge
+    integer(i4)                               :: ii, jj, kk, ll
     integer(i4)                               :: iSc
     integer(i4)                               :: iRow, jCol
 
@@ -1376,7 +1376,6 @@ CONTAINS
     InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
     L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
-    index_gauge = nodata_i4
 
     do kk = 1, nCells0
 

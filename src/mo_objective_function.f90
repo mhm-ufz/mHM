@@ -254,8 +254,8 @@ CONTAINS
   !         Modified, 
 
   FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
+    use mo_constants,        only: pi_dp
     use mo_moment,           only: stddev, correlation
-    use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
     use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
     use mo_global_variables, only: gauge
@@ -284,12 +284,14 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
     logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
     integer(i4)                           :: nmeas
-    real(dp), dimension(:),   allocatable :: errors
+    real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
     real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c
+    real(dp)                              :: a, b, c, vary, vary1
     real(dp)                              :: stddev_tmp
+    integer(i4)                           :: npara
 
-    call mhm_eval(parameterset, runoff=runoff)
+    npara = size(parameterset)
+    call mhm_eval(parameterset(1:npara-2), runoff=runoff)
 
     ! simulated timesteps per day 
     timestepsPerDay_modelled = nTstepDay
@@ -326,25 +328,32 @@ CONTAINS
 
     nmeas     = size(runoff_model_agg,1) * nGaugesTotal
     
-    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
+    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
 
     obs       = reshape(gauge%Q, (/nmeas/))
     calc      = reshape(runoff_model_agg, (/nmeas/))
-    errors(:) = abs( calc(:) - obs(:) )
+    ! residual errors
+    errors(:) = calc(:) - obs(:)
 
-    ! remove linear trend of errors - must be model NOT obs
-    out = linfit(calc, errors, a=a, b=b, model2=.False.)
-    errors(:) = errors(:) / (a + calc(:)*b)
+    ! linear error model
+    a = parameterset(npara-1)
+    b = parameterset(npara)
+print*, 'a = ',a, '   b = ',b
+    sigma(:) = a + b * calc(:)
+    ! standardized residual errors (SRE)
+    eta(:)   = errors(:) / sigma(:)
 
-    ! remove lag(1)-autocorrelation of errors
-    c = correlation(errors(2:nmeas),errors(1:nmeas-1))
-    errors(1:nmeas-1) = errors(2:nmeas) - c*errors(1:nmeas-1)
-    errors(nmeas)     = 0.0_dp
+    ! remove lag(1)-autocorrelation of SRE
+    c = correlation(eta(2:nmeas),eta(1:nmeas-1))
+    y(1) = 0.0_dp ! only for completeness
+    y(2:nmeas) = eta(2:nmeas) - c*eta(1:nmeas-1)
 
-    ! you have to take stddev_old=const because otherwise loglikelihood_kavetski is always N
-    ! in MCMC stddev gets updated only when a better likelihood is found.
-    loglikelihood_kavetski = sum( errors(:) * errors(:) / stddev_old**2 )
-    loglikelihood_kavetski = -0.5_dp * loglikelihood_kavetski
+    ! likelihood of residual errors (leave out ln(1/sqrt(2*pi)))
+    vary  = 1.0_dp - c*c
+    vary1 = 1.0_dp / vary
+    loglikelihood_kavetski = real(nmeas-1,dp)*log(1.0_dp/sqrt(2.0_dp*pi_dp*vary)) &
+         - log(sigma(1)) - 0.5_dp*eta(1)*eta(1) &
+         - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1 + log(sigma(2:nmeas)))
 
     write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
 
@@ -361,7 +370,7 @@ CONTAINS
     end if
 
     deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
-    deallocate(obs, calc, out, errors)
+    deallocate(obs, calc, out, errors, sigma, eta, y)
     
   END FUNCTION loglikelihood_kavetski
 

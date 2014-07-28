@@ -87,7 +87,6 @@ CONTAINS
     use mo_mhm,                 only : mhm
     use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
-    use mo_utils,               only : ne 
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
     use mo_write_ascii,         only : write_daily_obs_sim_discharge
     use mo_write_fluxes_states, only : CloseFluxState_file
