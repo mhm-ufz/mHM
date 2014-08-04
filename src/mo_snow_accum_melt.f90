@@ -87,7 +87,8 @@ CONTAINS
   !>        \date Dec 2012
   !         Modified JM, Aug 2013 - ordering of arguments changed
 
-  SUBROUTINE snow_accum_melt( deg_day_incr, deg_day_max, deg_day_noprec, prec,temperature, temperature_thresh, thrfall, &
+  SUBROUTINE snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, &
+       temperature, temperature_thresh, thrfall, &
        snow_pack, deg_day, melt,  prec_effect, rain, snow)
 
     IMPLICIT NONE
@@ -119,14 +120,14 @@ CONTAINS
     end if
 
     ! calculate degree daily factor
-    if( prec <= (deg_day_max - deg_day_noprec) / deg_day_incr ) then
+    if ( prec <= (deg_day_max - deg_day_noprec) / deg_day_incr ) then
        deg_day = deg_day_noprec + deg_day_incr * prec
     else
        deg_day = deg_day_max
     end if
 
     ! melting/snow accumulation
-    if(temperature > temperature_thresh ) then
+    if (temperature > temperature_thresh) then
        ! melting
        if ( snow_pack > 0.0_dp ) then
           aux_help = deg_day * ( temperature - temperature_thresh )
