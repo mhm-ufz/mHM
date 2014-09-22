@@ -12,6 +12,7 @@
 !>          (6) SSE  \n
 !>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !>          (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
+!>          (9) KGE  \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -613,6 +614,9 @@ print*, 'a = ',a, '   b = ',b
     case (8)
        ! -loglikelihood with trend removed from relative errors and then lag(1)-autocorrelation removed
        objective = - loglikelihood_kavetski( parameterset, 1.0_dp )
+    case (9)
+       ! KGE
+       objective = objective_kge(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -1286,5 +1290,142 @@ print*, 'a = ',a, '   b = ',b
     deallocate( runoff_model_agg_mask )
     
   END FUNCTION objective_power6_nse_lnnse
+  ! ------------------------------------------------------------------
 
+  !      NAME
+  !          objective_kge
+
+  !>        \brief Objective function of KGE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>        The model will be called with that parameter vector and 
+  !>        the model output is subsequently compared to observed data.
+  !>        Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>        \f[ KGE = SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
+  !>        is calculated and the objective function is
+  !>        \f[ obj\_value = KGE \f]
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        \f[ r \f] = Pearson product-moment correlation coefficient
+  !>        \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>        \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge(para)
+
+  !     LITERATURE
+  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date August 2014
+  !         Modified, R. Kumar & O. Rakovec, Sep. 2014
+
+  FUNCTION objective_kge(parameterset)
+    
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_errormeasures,    only: kge
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_kge
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    !
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
+
+    objective_kge = 0.0_dp
+    do gg=1,nGaugesTotal
+       ! KGE
+       objective_kge = objective_kge + &
+            kge(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+    end do
+    ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
+    objective_kge = objective_kge / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_kge = ', objective_kge
+    ! pause
+
+    deallocate( runoff_model_agg )
+    deallocate( runoff_model_agg_mask )
+    
+  END FUNCTION objective_kge
+  
 END MODULE mo_objective_function
