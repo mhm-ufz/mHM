@@ -39,6 +39,7 @@ MODULE mo_errormeasures
   PUBLIC :: SSE                          ! Sum of squared errors
   PUBLIC :: SAE                          ! Sum of absolute errors
   PUBLIC :: RMSE                         ! Root mean squared error
+  PUBLIC :: KGE                          ! Kling-Gupta efficiency measure
 
   ! ------------------------------------------------------------------
 
@@ -534,6 +535,69 @@ MODULE mo_errormeasures
      MODULE PROCEDURE RMSE_sp_1d, RMSE_dp_1d, RMSE_sp_2d, RMSE_dp_2d, RMSE_sp_3d, RMSE_dp_3d
   END INTERFACE RMSE
 
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          KGE
+
+  !>        \brief Objective function of KGE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>        The model will be called with that parameter vector and 
+  !>        the model output is subsequently compared to observed data.
+  !>        Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>        \f[ KGE = SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
+  !>        is calculated and the objective function is
+  !>        \f[ obj\_value = KGE \f]
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        \f[ r \f] = Pearson product-moment correlation coefficient
+  !>        \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>        \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge(para)
+
+  !     LITERATURE
+  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date August 2014
+  !         Modified, R. Kumar & O. Rakovec - Sep. 2014
+
+  INTERFACE KGE
+     MODULE PROCEDURE KGE_dp_1d
+  END INTERFACE KGE
+  
   ! ------------------------------------------------------------------
 
   PRIVATE
@@ -2359,5 +2423,62 @@ CONTAINS
     RMSE_dp_3d = sqrt(MSE_dp_3d(x,y,mask=maske))
 
   END FUNCTION RMSE_dp_3d
+  
+  FUNCTION KGE_dp_1d(x, y, mask)
 
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                          :: KGE_dp_1d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    LOGICAL,  DIMENSION(size(x))                      :: maske
+    
+    REAL(dp), DIMENSION(:), allocatable               :: v1, v2
+    REAL(dp)                                          :: mu_Obs, mu_Sim, sigma_Obs, sigma_Sim, pearson_coor
+
+
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_dp_1d: sample size must be at least 2'
+
+    !  
+    allocate( V1(n), V2(n) )
+    V1(:) = PACK(x, maske  )
+    V2(:) = PACK(y, maske  )
+    mu_Obs = SUM(V1, maske ) / real(n, dp) 
+    mu_Sim = SUM(V2, maske ) / real(n, dp) 
+    !
+    sigma_Obs = DOT_PRODUCT( (V1(:) - mu_Obs), (V1(:) - mu_Obs) ) / real((n-1), dp) 
+    sigma_Sim = DOT_PRODUCT( (V2(:) - mu_Sim), (V2(:) - mu_Sim) ) / real((n-1), dp) 
+    sigma_Obs = SQRT(sigma_Obs)
+    sigma_Sim = SQRT(sigma_Sim)
+    pearson_coor = DOT_PRODUCT( ((V1(:) - mu_Obs)/ sigma_Obs), ((V2(:) - mu_Sim)/sigma_Sim) ) / real((n-1), dp) 
+    ! 
+    KGE_dp_1d = SQRT( ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+                      ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
+                      ( 1.0_dp - pearson_coor)**2             &  	   
+                    )
+    deallocate(V1, V2)
+ 
+  END FUNCTION KGE_dp_1d
+  
 END MODULE mo_errormeasures
