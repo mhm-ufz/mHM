@@ -50,7 +50,7 @@ else
     FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -assume byterecl -cpp -fp-model precise -m64
+F90FLAGS += -assume byterecl -assume realloc-lhs -cpp -fp-model precise -m64
 MODFLAG  := -module # space significant
 FCFLAGS  += -assume byterecl -cpp -fp-model precise -m64 -fixed
 CFLAGS   += -m64 -std=c99

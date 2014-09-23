@@ -40,7 +40,9 @@ F90 := $(INTELBIN)/ifort
 FC  := $(F90)
 CC  := $(INTELBIN)/icc
 ifeq ($(release),debug)
-    F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
+    F90FLAGS += -warn all -g -debug -traceback -fp-stack-check -O0 -debug
+    F90FLAGS += -check all
+    # F90FLAGS += -check all,noarg_temp_created
     FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
     CFLAGS   += -g -debug -traceback -fp-stack-check -O0 -debug -Wall -Wcheck
 else
@@ -71,9 +73,8 @@ else
     LDPATH := $(iLDPATH)
 endif
 
-
 # IMSL
-IMSLDIR :=
+IMSLDIR := /usr/local/imsl/imsl/fnl700/rdhin111e64
 
 # MKL
 MKLDIR := $(INTEL)/mkl

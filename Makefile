@@ -118,6 +118,8 @@ proj     :=
 imsl     :=
 # OpenMP parallelization: true, [anything else]
 openmp   := 
+# MPI parallelization - experimental: true, [anything else]
+mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
 static   := shared
 
@@ -128,8 +130,13 @@ static   := shared
 # option or define a preprocessor variable such as: EXTRA_DEFINES := -DNOGUI -DDPREC
 #
 #
+# The Makefile compiles all files found in the source directories.
+# If you want excludes files from compilation, set EXCLUDE_FILES, e.g.
+# make EXCLUDE_FILES="*mpi*.f90"
+#
+#
 # Specific notes
-# If you encounter during linking error messages such as
+# If you encounter error messages during linking such as
 #     ... relocation truncated to fit: R_X86_64_PC32 against ...
 # then you ran out of memory address space, i.e. some hard-coded numbers in the code got too big.
 # Check that you have set the 64-bit addressing model in the F90FLAGS and LDFAGS: -m64
@@ -138,12 +145,13 @@ static   := shared
 #     EXTRA_F90FLAGS := -mcmodel=medium
 #     EXTRA_LDFLAGS  := -mcmodel=medium -shared-intel
 #
-# If you encouter with the intel compiler the following error (compiler bug):
+# If you encouter the following error with the intel compiler (compiler bug):
 #      0_10708
 #     : catastrophic error: **Internal compiler error: internal abort** Please report this error along with the
 #     circumstances in which it occurred in a Software Problem Report.
 #      Note: File and line given may not be explicit cause of this error.
-# then add the file to the list
+# then you probably assume the F2003 feature that arrays can be allocated as a result of a function.
+# Add the file afected to the list
 #     INTEL_EXCLUDE
 # below. This will not set the compiler flag -assume realloc-lhs.
 # If this does not work, try to reduce the optimisation in the make.config files (e.g. -O1)
@@ -166,6 +174,8 @@ static   := shared
 #     -C=undefined must be used on all routines, i.e. also on netcdf for example.
 #                  This means that all tests do not work which use netcdf and/or lapack.
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
+
+# Special compilation flags 
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_DEFINES  :=
@@ -174,7 +184,11 @@ EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   :=
 
+# Intel F2003 -assume realloc-lhs
 INTEL_EXCLUDE  := mo_read_wrapper.f90
+
+# Exclude certin files from compilation
+EXCLUDE_FILES  :=
 
 #
 # --- CHECK 0 ---------------------------------------------------
@@ -196,7 +210,7 @@ ifeq (,$(findstring $(static),static shared dynamic))
 endif
 
 #
-# --- PATHES ------------------------------------------------
+# --- PATHS ------------------------------------------------
 #
 
 # Make absolute pathes from relative pathes - there should be no space nor comment at the end of the next lines
@@ -546,6 +560,19 @@ ifeq ($(lapack),true)
     DEFINES += -DLAPACK
 endif
 
+# --- MPI ---------------------------------------------------
+ifeq ($(mpi),true)
+    ifneq (exists, $(shell if [ -d "$(MPIDIR)" ] ; then echo 'exists' ; fi))
+        $(error Error: MPI path '$(MPIDIR)' not found.)
+    endif
+    MPIINC   ?= $(MPIDIR)/include
+    MPILIB   ?= $(MPIDIR)/lib
+    iLIBS    += -L$(MPILIB) # -lproj
+    RPATH    += -Wl,-rpath=$(MPILIB)
+    INCLUDES += -I$(MPIINC) -I$(MPILIB) # mpi.h in lib and not include <- strange
+    DEFINES  += -DMPI
+endif
+
 # --- DOXYGEN ---------------------------------------------------
 ISDOX := True
 ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
@@ -663,8 +690,10 @@ endif
 
 # ASRCS contain Fortran 90 source dir informations
 ifeq (False,$(iphony))
-    SRCS := $(wildcard $(addsuffix /*.f90, $(SRCPATH))) $(wildcard $(addsuffix /*.F90, $(SRCPATH)))  $(wildcard $(addsuffix /*.f95, $(SRCPATH))) $(wildcard $(addsuffix /*.F95, $(SRCPATH))) $(wildcard $(addsuffix /*.f03, $(SRCPATH))) $(wildcard $(addsuffix /*.F03, $(SRCPATH))) $(wildcard $(addsuffix /*.f08, $(SRCPATH))) $(wildcard $(addsuffix /*.F08, $(SRCPATH)))
+    SRCS1 := $(wildcard $(addsuffix /*.f90, $(SRCPATH))) $(wildcard $(addsuffix /*.F90, $(SRCPATH)))  $(wildcard $(addsuffix /*.f95, $(SRCPATH))) $(wildcard $(addsuffix /*.F95, $(SRCPATH))) $(wildcard $(addsuffix /*.f03, $(SRCPATH))) $(wildcard $(addsuffix /*.F03, $(SRCPATH))) $(wildcard $(addsuffix /*.f08, $(SRCPATH))) $(wildcard $(addsuffix /*.F08, $(SRCPATH)))
 endif
+# exclude files from compilation
+SRCS  := $(foreach f,$(SRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 # source files but all with .o
 OSRCS := $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(patsubst %.f95,%.o,$(patsubst %.F95,%.o,$(patsubst %.f03,%.o,$(patsubst %.F03,%.o,$(patsubst %.f08,%.o,$(patsubst %.F08,%.o,$(SRCS)))))))))
 # object files
@@ -677,8 +706,10 @@ GOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(OBJS)))) $(patsu
 
 # Same for Fortran77 files
 ifeq (False,$(iphony))
-    FSRCS := $(wildcard $(addsuffix /*.f, $(SRCPATH))) $(wildcard $(addsuffix /*.F, $(SRCPATH)))  $(wildcard $(addsuffix /*.for, $(SRCPATH))) $(wildcard $(addsuffix /*.FOR, $(SRCPATH))) $(wildcard $(addsuffix /*.f77, $(SRCPATH))) $(wildcard $(addsuffix /*.F77, $(SRCPATH))) $(wildcard $(addsuffix /*.ftn, $(SRCPATH))) $(wildcard $(addsuffix /*.FTN, $(SRCPATH)))
+    FSRCS1 := $(wildcard $(addsuffix /*.f, $(SRCPATH))) $(wildcard $(addsuffix /*.F, $(SRCPATH)))  $(wildcard $(addsuffix /*.for, $(SRCPATH))) $(wildcard $(addsuffix /*.FOR, $(SRCPATH))) $(wildcard $(addsuffix /*.f77, $(SRCPATH))) $(wildcard $(addsuffix /*.F77, $(SRCPATH))) $(wildcard $(addsuffix /*.ftn, $(SRCPATH))) $(wildcard $(addsuffix /*.FTN, $(SRCPATH)))
 endif
+# exclude files from compilation
+FSRCS  := $(foreach f,$(FSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 # source files but all with .o
 FOSRCS := $(patsubst %.f,%.o,$(patsubst %.F,%.o,$(patsubst %.for,%.o,$(patsubst %.FOR,%.o,$(patsubst %.f77,%.o,$(patsubst %.F77,%.o,$(patsubst %.ftn,%.o,$(patsubst %.FTN,%.o,$(FSRCS)))))))))
 # object files
@@ -691,8 +722,11 @@ FGOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(FOBJS)))) $(pat
 
 # Same for C files with ending .c
 ifeq (False,$(iphony))
-    CSRCS := $(wildcard $(addsuffix /*.c, $(SRCPATH))) $(wildcard $(addsuffix /*.C, $(SRCPATH)))
+    CSRCS1 := $(wildcard $(addsuffix /*.c, $(SRCPATH))) $(wildcard $(addsuffix /*.C, $(SRCPATH)))
 endif
+# exclude files from compilation
+CSRCS  := $(foreach f,$(CSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+# source files but all with .o
 COSRCS := $(patsubst %.c,%.o,$(patsubst %.C,%.o,$(CSRCS)))
 # object files
 COBJS  := $(join $(dir $(COSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(COSRCS))))
@@ -701,8 +735,9 @@ CDOBJS := $(COBJS:.o=.d)
 
 # Libraries in source path
 ifeq (False,$(iphony))
-    LSRCS := $(wildcard $(addsuffix /*.a, $(SRCPATH))) $(wildcard $(addsuffix /*.so, $(SRCPATH)))  $(wildcard $(addsuffix /*.dylib, $(SRCPATH)))
+    LSRCS1 := $(wildcard $(addsuffix /*.a, $(SRCPATH))) $(wildcard $(addsuffix /*.so, $(SRCPATH)))  $(wildcard $(addsuffix /*.dylib, $(SRCPATH)))
 endif
+LSRCS  := $(foreach f,$(LSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 LOSRCS := $(patsubst %.a,,$(patsubst %.so,,$(patsubst %.dylib,,$(LSRCS))))
 LOBJS  := $(addprefix -L,$(dir $(SRCPATH))) $(addprefix -l, $(patsubst lib%, %, $(notdir $(LOSRCS))))
 

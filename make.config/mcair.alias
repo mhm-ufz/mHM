@@ -5,6 +5,6 @@ endif
 ifneq (,$(findstring $(compiler),intel ifort))
     icompiler := intel12
 endif
-ifneq (,$(findstring $(compiler),nag nag52 nagfor))
-    icompiler := nag53
+ifneq (,$(findstring $(compiler),nag nag52 nag53 nagfor))
+    icompiler := nag60
 endif
