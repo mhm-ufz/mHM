@@ -12,7 +12,7 @@
 # -------------------------------------------------------------------------
 # Command line arguments
 #
-catchm    = ''
+catchm    = '398'
 infile    = '../test_basin/output_b1/daily_discharge.out'
 gaugeid   = '398'
 pdffile   = ''
@@ -139,15 +139,15 @@ Qdata       = np.array(fread(infile, skip=1, squeeze=False))
 # prepare data for plot
 ######################
 gauge = gaugeid.zfill(10)
-Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]]
-Qobs  = Qobs[Qobs >= 0.0]
-#
-day   = Qdata[:,np.where(QHead == 'Day')[0][0]][Qobs >= 0.0]
-month = Qdata[:,np.where(QHead == 'Mon')[0][0]][Qobs >= 0.0]
-year  = Qdata[:,np.where(QHead == 'Year')[0][0]][Qobs >= 0.0]
+Qobs  = Qdata[:,np.where(QHead == 'Qobs_'+gaugeid.zfill(10))[0]].flatten()
+maske = (Qobs < 0.0)
+Qobs  = np.ma.array(Qobs, mask = maske)
+
+day   = Qdata[:,np.where(QHead == 'Day') [0]]
+month = Qdata[:,np.where(QHead == 'Mon') [0]]
+year  = Qdata[:,np.where(QHead == 'Year')[0]]
 time  = date2dec(dy=day,mo=month,yr=year) - date2dec(dy=1,mo=1,yr=year[0])
-Qcal  = np.squeeze(Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0]][Qobs >= 0.0])
-#
+Qcal  = np.ma.array(Qdata[:,np.where(QHead == 'Qsim_'+gaugeid.zfill(10))[0][0]].flatten(), mask = maske)
 ###################################################################
 # plot
 ###################################################################
@@ -173,7 +173,7 @@ ax.set_ylim([0,700])
 #
 #catch=[s for s in infile.split('/') if 'sub' in s][0].split('_')[1].upper()
 #plt.title(catch)
-NSE = 1. - np.sum((Qcal-Qobs)**2) / np.sum((Qobs-np.mean(Qobs))**2)
+NSE = 1. - np.ma.sum((Qcal-Qobs)**2) / np.ma.sum((Qobs-np.ma.mean(Qobs))**2)
 plt.figtext(0.15, 0.85, r'NSE = '+ str(np.round(NSE,4)) )
 # legend
 handle, label = ax.get_legend_handles_labels()
