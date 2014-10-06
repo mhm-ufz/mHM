@@ -105,7 +105,7 @@ system   := eve
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
 compiler := intel
 # Releases: debug, release
-release  := release
+release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
