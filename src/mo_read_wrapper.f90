@@ -11,7 +11,7 @@
 MODULE mo_read_wrapper
 
   ! Written  Juliane Mai & Matthias Zink, Jan 2013
-  ! Modified 
+  ! Modified
   !                       Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
 
   USE mo_kind, ONLY: i4, dp
@@ -32,7 +32,7 @@ CONTAINS
   !>        \brief Reads data.
 
   !>        \details The namelists are already read by read_config call./n
-  !>                 All LUTs are read from their respective directory and information within those 
+  !>                 All LUTs are read from their respective directory and information within those
   !>                 files are shared across all basins to be modeled.
   !     INTENT(IN)
   !         None
@@ -67,7 +67,7 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai & Matthias Zink
   !>        \date Feb 2013
-  !          Modified, 
+  !          Modified,
   !                    Luis Samaniego, Feb 2013  - rotate fdir variable to the new coordinate system
   !                    Rohini Kumar,   Aug 2013  - name changed from "L0_LAI" to "L0_LCover_LAI"
   !                    Rohini Kumar,   Aug 2013  - added dirSoil_LUT and dirGeology_LUT, and changed to
@@ -88,7 +88,7 @@ CONTAINS
     USE mo_soil_database,      ONLY: read_soil_LUT
     USE mo_read_spatial_data,  ONLY: read_header_ascii,                   &
                                      read_spatial_data_ascii
-    USE mo_read_timeseries ,   ONLY: read_timeseries 
+    USE mo_read_timeseries ,   ONLY: read_timeseries
     USE mo_julian,             ONLY: julday
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
@@ -122,7 +122,7 @@ CONTAINS
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
-                                     dirCommonFiles,                      & ! directory of common files  
+                                     dirCommonFiles,                      & ! directory of common files
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      optimize,                            & ! optimizeation flag for some error checks
@@ -136,7 +136,7 @@ CONTAINS
                                      perform_mpr,                         & ! flag indicating whether L0 is read
                                      iFlag_LAI_data_format,               & ! flag on how LAI data has to be read
                                      resolutionHydrology                    ! hydrology resolution (L1 scale)
-    USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB 
+    USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
 
     implicit none
@@ -157,7 +157,7 @@ CONTAINS
     integer(i4), dimension(3)                 :: start_tmp, end_tmp
     integer(i4), dimension(:),  allocatable   :: dummy_i4
     real(dp),    dimension(:),  allocatable   :: dummy_dp
-    
+
     ! min. value of slope and aspect
     real(dp), parameter                       :: slope_minVal  = 0.01_dp
     real(dp), parameter                       :: aspect_minVal = 1.00_dp
@@ -185,7 +185,7 @@ CONTAINS
     !
     ! allocate necessary variables at Level0
     allocate(level0%nrows       (nBasins))
-    allocate(level0%ncols       (nBasins)) 
+    allocate(level0%ncols       (nBasins))
     allocate(level0%xllcorner   (nBasins))
     allocate(level0%yllcorner   (nBasins))
     allocate(level0%cellsize    (nBasins))
@@ -211,14 +211,14 @@ CONTAINS
        ! check for L0 and L1 scale consistency
        if( resolutionHydrology(iBasin) .LT. level0%cellsize(iBasin)) then
           call message()
-          call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')  
+          call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')
           call message('          check set-up (in mhm.nml) for basin: ', trim(adjustl(num2str(iBasin))),' ...')
           stop
        end if
 
        !
        ! DEM + overall mask creation
-       fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))       
+       fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
        call read_spatial_data_ascii(trim(fName), udem, &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
             level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
@@ -240,7 +240,7 @@ CONTAINS
              basin%L0_iStart(iBasin) = basin%L0_iStart(iBasin - 1)
              basin%L0_iEnd  (iBasin) = basin%L0_iEnd(iBasin - 1)
              !
-             basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 ) 
+             basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 )
              basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
              !
              ! DONT read L0 data
@@ -274,7 +274,7 @@ CONTAINS
           !
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
-          ! put data in variable 
+          ! put data in variable
           call append( L0_elev, pack(data_dp_2d, mask_global) )
           ! deallocate arrays
           deallocate(data_dp_2d)
@@ -298,7 +298,7 @@ CONTAINS
              ! put global nodata value into array (probably not all grid cells have values)
              data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
              !
-             ! put data in variable 
+             ! put data in variable
              select case (iVar)
              case(1) ! slope
                 call append( L0_slope, pack(data_dp_2d, mask_global) )
@@ -319,7 +319,7 @@ CONTAINS
                   (processMatrix(8, 1) .EQ. 0)  ) CYCLE
 
              ! handle LAI options
-             if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE       
+             if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE
 
              select case (iVar)
              case(1) ! flow accumulation
@@ -351,7 +351,7 @@ CONTAINS
              ! put global nodata value into array (probably not all grid cells have values)
              data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
 
-             ! put data into global L0 variable 
+             ! put data into global L0 variable
              select case (iVar)
              case(1) ! flow accumulation
                 call append( L0_fAcc,    pack(data_i4_2d, mask_global) )
@@ -359,13 +359,13 @@ CONTAINS
                 ! rotate flow direction and any other variable with directions
                 ! NOTE: ONLY when ASCII files are read
                 call rotate_fdir_variable(data_i4_2d)
-                ! append 
+                ! append
                 call append( L0_fDir,    pack(data_i4_2d, mask_global) )
              case(3) ! soil class ID
                 call append( L0_soilId,  pack(data_i4_2d, mask_global) )
              case(4) ! hydrogeological class ID
                 call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-             case(5) ! location of evaluation and inflow gauging stations 
+             case(5) ! location of evaluation and inflow gauging stations
                 ! evaluation gauges
                 ! Input data check
                 do iGauge = 1, basin%nGauges(iBasin)
@@ -384,7 +384,7 @@ CONTAINS
 
                 ! inflow gauges
                 ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
-                if (basin%nInflowGauges(iBasin) .GT. 0_i4) then 
+                if (basin%nInflowGauges(iBasin) .GT. 0_i4) then
                    ! Input data check
                    do iGauge = 1, basin%nInflowGauges(iBasin)
                       ! If InflowGaugeId is found in gauging location file?
@@ -403,7 +403,7 @@ CONTAINS
                 call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
 
              case(6) ! Land cover related to LAI classes
-                call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )             
+                call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
              end select
              !
              ! deallocate arrays
@@ -412,7 +412,7 @@ CONTAINS
           end do nVars_integer
           !
        else
-          ! if restart is switched on, perform dummy allocation of 
+          ! if restart is switched on, perform dummy allocation of
           allocate( dummy_dp( count(mask_global) ) )
           allocate( dummy_i4( count(mask_global) ) )
           call append( L0_elev,     dummy_dp )
@@ -426,18 +426,18 @@ CONTAINS
           call append( L0_InflowGaugeLoc, dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
           ! read L0_LCover_LAI
-          if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE  
+          if( (iVar .EQ. 6)  .AND. (iFlag_LAI_data_format .NE. 0) ) CYCLE
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
           nunit = ulaiclass
           call read_spatial_data_ascii(trim(fName), nunit,                               &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-          
+
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
        end if read_L0_data
-       
+
        !
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCover_scene
@@ -445,11 +445,11 @@ CONTAINS
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-          
+
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global))
-          !         
+          !
           deallocate(data_i4_2d)
        end do
        !
@@ -457,20 +457,21 @@ CONTAINS
        !
        deallocate(mask_global)
        deallocate(dataMatrix_i4)
-       
+
     end do basins
     !----------------------------------------------------------------
     ! Correction for slope and aspect -- min value set above
     !----------------------------------------------------------------
     if ( perform_mpr ) then
-       L0_slope  = merge(  slope_minVal, L0_slope,  (L0_slope  .lt.  slope_minVal)  )
-       L0_asp    = merge( aspect_minVal, L0_asp,    (L0_asp    .lt. aspect_minVal)  )
+       ! keep the colons (:) in the statements because of Intel's reallocation lhs problem
+       L0_slope(:)  = merge(  slope_minVal, L0_slope(:),  (L0_slope(:)  .lt.  slope_minVal)  )
+       L0_asp(:)    = merge( aspect_minVal, L0_asp(:),    (L0_asp(:)    .lt. aspect_minVal)  )
     end if
-    
+
     ! ************************************************
     ! READ DISCHARGE TIME SERIES
     ! ************************************************
-    ! 
+    !
     ! evaluation gauge
     start_tmp = (/evalPer%yStart, evalPer%mStart, evalPer%dStart/)
     end_tmp   = (/evalPer%yEnd,   evalPer%mEnd,   evalPer%dEnd  /)
@@ -491,7 +492,7 @@ CONTAINS
 
 
     ! inflow gauge
-    !   
+    !
     ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation and initialization
     if (nInflowGaugesTotal .EQ. 0) then
        allocate(data_dp_1d( julday(simPer%dEnd,   simPer%mEnd,   simPer%yEnd)   -    &
@@ -509,8 +510,8 @@ CONTAINS
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
           if ( .NOT. (all(mask_1d)) ) then
              call message()
-             call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName)) 
-             call message('          During simulation period from ', num2str(simPer%yStart) ,' to ', num2str(simPer%yEnd))        
+             call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
+             call message('          During simulation period from ', num2str(simPer%yStart) ,' to ', num2str(simPer%yEnd))
              stop
           end if
           data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
@@ -535,14 +536,14 @@ CONTAINS
     integer(i4)                                :: i, j
 
     !-------------------------------------------------------------------
-    ! NOTE: 
-    ! 
+    ! NOTE:
+    !
     !     Since the DEM was transposed from (lat,lon) to (lon,lat), i.e.
     !     new DEM = transpose(DEM_old), then
-    !     
-    !     the flow direction X (which was read) for every i, j cell needs 
+    !
+    !     the flow direction X (which was read) for every i, j cell needs
     !     to be rotated as follows
-    !     
+    !
     !                 X(i,j) = [R] * {uVector}
     !
     !     with
@@ -550,9 +551,9 @@ CONTAINS
     !               e.g. dir 8 => {-1, -1, 0 }
     !     [R]       denting a full rotation matrix to transform the flow
     !               direction into the new coordinate system (lon,lat).
-    !     
+    !
     !     [R] = [rx][rz]
-    ! 
+    !
     !     with
     !           |      1       0      0 |
     !     [rx] =|      0   cos T  sin T | = elemental rotation along x axis
@@ -565,7 +566,7 @@ CONTAINS
     !     and T = pi, F = - pi/2
     !     thus
     !          !  0  -1   0 |
-    !     [R] =| -1   0   0 | 
+    !     [R] =| -1   0   0 |
     !          |  0   0  -1 |
     !     making all 8 directions the following transformation were
     !     obtained.
@@ -575,7 +576,7 @@ CONTAINS
        do j = 1, size(x,2)
           if ( x(i,j)  .eq. nodata_i4 ) cycle
           select case ( x(i,j) )
-          case(1) 
+          case(1)
              x(i,j) =   4
           case(2)
              x(i,j) =   2

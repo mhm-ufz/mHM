@@ -672,7 +672,8 @@ CONTAINS
     allocate(LCfilename(nLcover_scene))
     LCfilename(:) = LCoverfName(minval(LCyearId):maxval(LCyearId))
     ! update the ID's
-    LCyearId = LCyearId - minval(LCyearId) + 1
+    ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
+    LCyearId(:) = LCyearId(:) - minval(LCyearId) + 1
     !
     if (any(LCyearId .EQ. nodata_i4)) then 
        call message()
