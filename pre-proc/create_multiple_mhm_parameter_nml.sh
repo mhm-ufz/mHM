@@ -297,7 +297,7 @@ printf "${str}" > front.${pid}                                                  
 # Now put everything together...
 i=0
 while read line ; do
-    ((i++))
+    i=$((i+1))
     if [[ ${i} -le ${pskip} ]] ; then continue ; fi
     # New file name
     if [[ ${zeros} -eq 1 ]] ; then
