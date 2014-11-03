@@ -40,7 +40,7 @@ GNUBIN := $(GNUDIR)/bin
 # Compiling
 F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc
+CC  := /usr/bin/gcc
 ifeq ($(release),debug)
     # The compiler switch "-w=ques" turns off the message:
     #   Comment begins with the OpenMP sentinel but the -openmp option was not used
@@ -64,7 +64,7 @@ else
     FCFLAGS  += $(F90FLAGS)
     CFLAGS   += -O3
 endif
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient # -ieee=full -mismatch-all
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full # -ieee=stop -mismatch-all
 MODFLAG  := -mdir # space significant
 FCFLAGS  +=
 CFLAGS   +=
@@ -90,7 +90,7 @@ else
     NCFDIR  := /usr/local/netcdf-fortran-4.4.1-nagfor
     CURLLIB := /usr/lib
     SZLIB   := /usr/local/lib
-    HDF5LIB := /usr/local/hdf5_1.1.8_gfortran46/lib
+    HDF5LIB := /usr/local/lib
 endif
 
 # PROJ

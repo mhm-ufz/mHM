@@ -88,7 +88,7 @@ MKL95LIB := $(MKL95DIR)/lib/intel64
 ifeq ($(netcdf),netcdf3)
     NCDIR := /usr/local/netcdf/3.6.3_intel_12.0.4
 else
-    ZLIB    := /usr/local/zlib/1.2.8-3_intel_13.1.0_CentOS6/lib
+    ZLIB    := /usr/local/zlib/1.2.8-3_icc_13.1.0_CentOS6/lib
     SZLIB   := /usr/local/szip/2.1_intel_13.1.0_CentOS6/lib
     HDF5LIB := /usr/local/hdf5/1.8.12-1_intel_13.1.0_CentOS6/lib
     NCDIR   := /usr/local/netcdf/4.3.2-2_intel_13.1.0_CentOS6
