@@ -2,14 +2,14 @@
 
 !> \brief  Fitting a straight line.
 
-!> \details This module provides a to fit straight line with model I or model II regression.
+!> \details This module provides a routine to fit a straight line with model I or model II regression.
 
 !> \authors Matthias Cuntz
 !> \date Mar 2011
 
 MODULE mo_linfit
 
-  ! This module provides a to fit straight line with model I or model II regression.
+  ! This module provides a routine to fit a straight line with model I or model II regression.
   ! Written  Matthias Cuntz, Mar 2011
 
   ! License
@@ -27,7 +27,8 @@ MODULE mo_linfit
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011 Matthias Cuntz
 
@@ -45,8 +46,8 @@ MODULE mo_linfit
   !     PURPOSE
   !>        \brief Fits a straight line to input data by minimizing chi^2.
 
-  !>        \details Given a set of data points x(1:ndata), y(1:ndata), fit them to a straight line \f$ y = a+bx \f$
-  !>         by minimizing chi2.
+  !>        \details Given a set of data points x(1:ndata), y(1:ndata),
+  !>         fit them to a straight line \f$ y = a+bx \f$ by minimizing chi2.\n
   !>         Model I minimizes y vs. x while Model II takes the geometric mean of y vs. x and x vs. y.
   !>         Returned is the fitted line at x.
   !>         Optional returns are a, b and their respective probable uncertainties siga and sigb,
@@ -66,7 +67,7 @@ MODULE mo_linfit
   !         None
 
   !     INTENT(IN), OPTIONAL
-  !>         \param[in] "logical, optional :: model2"        If present, use geometric mean regression 
+  !>         \param[in] "logical, optional :: model2"        If present, use geometric mean regression
   !>                                                         instead of ordinary least square
 
   !     INTENT(INOUT), OPTIONAL
@@ -80,13 +81,13 @@ MODULE mo_linfit
   !>        \param[out] "real(sp/dp)               :: chisq"  Minimum chi^2
 
   !     RETURN
-  !>       \return     real(sp/dp), dimension(size(x)) :: out   &mdash;   fitted values
+  !>       \return real(sp/dp), dimension(:), allocatable :: out &mdash; fitted values at x(:).
 
   !     RESTRICTIONS
   !         None
 
   !     EXAMPLE
-  !         ytmp = linfit(x,y, a=inter, b=slope, model2=.true.)
+  !         ytmp = linfit(x, y, a=inter, b=slope, model2=.true.)
 
   !     LITERATURE
   !     Model I follows closely
@@ -123,7 +124,7 @@ CONTAINS
     REAL(dp), DIMENSION(:), INTENT(IN)  :: x, y
     REAL(dp), OPTIONAL,     INTENT(OUT) :: a, b, siga, sigb, chi2
     LOGICAL , OPTIONAL,     INTENT(IN)  :: model2
-    REAL(dp), DIMENSION(size(x))        :: linfit_dp
+    REAL(dp), DIMENSION(:), allocatable :: linfit_dp
 
     REAL(dp) :: sigdat, nx, sx, sxoss, sy, st2
     REAL(dp), DIMENSION(size(x)), TARGET :: t
@@ -133,6 +134,7 @@ CONTAINS
     !REAL(dp) :: r
 
     if (size(x) /= size(y))   stop 'linfit_dp: size(x) /= size(y)'
+    if (.not. allocated(linfit_dp)) allocate(linfit_dp(size(x)))
     if (present(model2)) then
        mod2 = model2
     else
@@ -159,13 +161,17 @@ CONTAINS
        if (present(siga) .or. present(sigb)) then
           syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_dp)
           sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_dp)
-          ssigb = sqrt(syx2/sx2)
+          ! syx2 should be >0
+          ! ssigb = sqrt(syx2/sx2)
+          ssigb = sqrt(abs(syx2)/sx2)
           if (present(sigb)) sigb = ssigb
           if (present(siga)) then
-             siga = sqrt(syx2*(1.0_dp/nX+mx*mx/sx2))
+             ! siga = sqrt(syx2*(1.0_dp/nX+mx*mx/sx2))
+             siga = sqrt(abs(syx2)*(1.0_dp/nX+mx*mx/sx2))
              ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
              ! They take the error estimate of the chi-squared error for a.
-             siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+             ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+             siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
           endif
        endif
     else
@@ -209,7 +215,7 @@ CONTAINS
     REAL(sp), DIMENSION(:), INTENT(IN)  :: x, y
     REAL(sp), OPTIONAL,     INTENT(OUT) :: a, b, siga, sigb, chi2
     LOGICAL , OPTIONAL,     INTENT(IN)  :: model2
-    REAL(sp), DIMENSION(size(x))        :: linfit_sp
+    REAL(sp), DIMENSION(:), allocatable :: linfit_sp
 
     REAL(sp) :: sigdat, nx, sx, sxoss, sy, st2
     REAL(sp), DIMENSION(size(x)), TARGET :: t
@@ -219,6 +225,7 @@ CONTAINS
     !REAL(sp) :: r
 
     if (size(x) /= size(y))   stop 'linfit_sp: size(x) /= size(y)'
+    if (.not. allocated(linfit_sp)) allocate(linfit_sp(size(x)))
     if (present(model2)) then
        mod2 = model2
     else
@@ -245,13 +252,17 @@ CONTAINS
        if (present(siga) .or. present(sigb)) then
           syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_sp)
           sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_sp)
-          ssigb = sqrt(syx2/sx2)
+          ! syx2 should be >0
+          ! ssigb = sqrt(syx2/sx2)
+          ssigb = sqrt(abs(syx2)/sx2)
           if (present(sigb)) sigb = ssigb
           if (present(siga)) then
-             siga = sqrt(syx2*(1.0_sp/nX+mx*mx/sx2))
+             ! siga = sqrt(syx2*(1.0_sp/nX+mx*mx/sx2))
+             siga = sqrt(abs(syx2)*(1.0_sp/nX+mx*mx/sx2))
              ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
              ! They take the error estimate of the chi-squared error for a.
-             siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+             ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+             siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
           endif
        endif
     else

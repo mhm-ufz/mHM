@@ -26,7 +26,8 @@ MODULE mo_string_utils
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011-2012 Matthias Cuntz
 
@@ -34,15 +35,15 @@ MODULE mo_string_utils
 
   IMPLICIT NONE
 
+  PUBLIC :: compress      ! Conversion   : 'A b C x Y z' -> 'AbCxYz'
 #ifndef ABSOFT
-  PUBLIC :: DIVIDE_STRING ! split string in substring with the help of delimiter
+  PUBLIC :: divide_string ! split string in substring with the help of delimiter
 #endif
   PUBLIC :: nonull        ! Check if string is still NULL
   PUBLIC :: num2str       ! Convert a number to a string
   PUBLIC :: separator     ! Format string: '-----...-----'
   PUBLIC :: tolower       ! Conversion   : 'ABCXYZ' -> 'abcxyz'
   PUBLIC :: toupper       ! Conversion   : 'abcxyz' -> 'ABCXYZ'
-  PUBLIC :: compress      ! Conversion   : 'A b C x Y z' -> 'AbCxYz'
 
   ! ------------------------------------------------------------------
 
@@ -125,11 +126,103 @@ MODULE mo_string_utils
 
 CONTAINS
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         compress
+
+  !     PURPOSE
+  !         \brief Remove white spaces
+
+  !         \details Return a copy of an input string with all whitespace (spaces and tabs) removed
+
+  !     CALLING SEQUENCE
+  !         noSpaces = compress(whiteSpaces)
+
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: whiteSpaces"    String
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         \param[out] "integer(i4) :: n"  Integer
+
+  !     RETURN
+  !         \return character(len = len(whiteSpaces)) :: compress;  String where all all whitespace (spaces and tabs) are removed
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         ! Returns 'Hallo'
+  !         whiteSpaces = compress('H a l l o')
+  !         -> see also example in test directory
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
+  !         \date Jan 2013
+
+  function compress( whiteSpaces, n )
+
+        use mo_kind,    only : i4
+
+        implicit none
+
+        character(len=*),               intent(in)  :: whiteSpaces
+        integer(i4),        optional,   intent(out) :: n
+
+        character(len(whiteSpaces))                 ::  compress
+
+        ! Local parameters
+        integer(i4),    parameter                   :: iachar_space = 32_i4
+        integer(i4),    parameter                   :: iachar_tab   = 9_i4
+
+        ! Local variables
+        integer(i4)                                 :: i, j
+        integer(i4)                                 :: iachar_character
+
+        ! Setup
+
+        ! Initialise compress
+        compress = ' '
+        ! Initialise counter
+        j = 0_i4
+
+        ! Loop over string
+        do i = 1, len(whiteSpaces)
+            ! Convert the current character to its position
+            iachar_character = iachar(whiteSpaces(i:i))
+
+            ! If the character is NOT a space ' ' or a tab '->|' copy it to the output string.
+            if ( iachar_character .ne. iachar_space .and. iachar_character .ne. iachar_tab )    then
+                j = j + 1
+                compress(j:j) = whiteSpaces(i:i)
+            end if
+        end do
+
+        ! Save the non-whitespace count
+        if ( present(n) ) n = j
+
+    end function compress
+
 #ifndef ABSOFT
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         DIVIDE_STRING
+  !         divide_string
 
   !     PURPOSE
   !>        \brief Divide string in substrings.
@@ -138,7 +231,7 @@ CONTAINS
   !>        specified delimiter.
 
   !     CALLING SEQUENCE
-  !         call DIVIDE_STRING(string, delim, strArr(:))
+  !         call divide_string(string, delim, strArr(:))
 
   !     INTENT(IN)
   !>        \param[in] "CHARACTER(len=*), INTENT(IN) :: string"     - string to be divided
@@ -166,7 +259,7 @@ CONTAINS
   !             allocation is done in in devide_string
 
   !     EXAMPLE
-  !        DIVIDE_STRING('I want to test this routine!', ' ', strArr(:))
+  !        divide_string('I want to test this routine!', ' ', strArr(:))
   !         -> see also example in test directory
 
   !     LITERATURE
@@ -176,7 +269,7 @@ CONTAINS
   !>        \author Matthias Zink
   !>        \date Oct 2012
 
-  SUBROUTINE DIVIDE_STRING(string, delim, strArr)
+  SUBROUTINE divide_string(string, delim, strArr)
 
     IMPLICIT NONE
 
@@ -220,7 +313,7 @@ CONTAINS
 
     deallocate(strDummyArr)
 
-  END SUBROUTINE DIVIDE_STRING
+  END SUBROUTINE divide_string
 #endif
 
   ! ------------------------------------------------------------------
@@ -511,97 +604,5 @@ CONTAINS
     END DO
 
   END FUNCTION toupper
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         compress
-
-  !     PURPOSE
-  !         \brief Remove white spaces
-
-  !         \details Return a copy of an input string with all whitespace (spaces and tabs) removed
-
-  !     CALLING SEQUENCE
-  !         noSpaces = compress(whiteSpaces)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: whiteSpaces"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         \param[out] "integer(i4) :: n"  Integer
-
-  !     RETURN
-  !         \return character(len = len(whiteSpaces)) :: compress;  String where all all whitespace (spaces and tabs) are removed
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         ! Returns 'Hallo'
-  !         whiteSpaces = compress('H a l l o')
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
-  !         \date Jan 2013
-
-  function compress( whiteSpaces, n )
-
-        use mo_kind,    only : i4
-
-        implicit none
-
-        character(len=*),               intent(in)  :: whiteSpaces
-        integer(i4),        optional,   intent(out) :: n
-
-        character(len(whiteSpaces))                 ::  compress
-
-        ! Local parameters
-        integer(i4),    parameter                   :: iachar_space = 32_i4
-        integer(i4),    parameter                   :: iachar_tab   = 9_i4
-
-        ! Local variables
-        integer(i4)                                 :: i, j
-        integer(i4)                                 :: iachar_character
-
-        ! Setup
-
-        ! Initialise compress
-        compress = ' '
-        ! Initialise counter
-        j = 0_i4
-
-        ! Loop over string
-        do i = 1, len(whiteSpaces)
-            ! Convert the current character to its position
-            iachar_character = iachar(whiteSpaces(i:i))
-
-            ! If the character is NOT a space ' ' or a tab '->|' copy it to the output string.
-            if ( iachar_character .ne. iachar_space .and. iachar_character .ne. iachar_tab )    then
-                j = j + 1
-                compress(j:j) = whiteSpaces(i:i)
-            end if
-        end do
-
-        ! Save the non-whitespace count
-        if ( present(n) ) n = j
-
-    end function compress
 
 END MODULE mo_string_utils

@@ -27,7 +27,8 @@ MODULE mo_utils
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
@@ -43,7 +44,7 @@ MODULE mo_utils
   PUBLIC :: ne           ! a /= b, a .ne. b
   PUBLIC :: ge           ! a >= b, a .ge. b
   PUBLIC :: le           ! a <= b, a .le. b
-  PUBLIC :: locate       ! Find closest values in monotonic series
+  PUBLIC :: locate       ! Find closest values in a monotonic series
   PUBLIC :: swap         ! swaps arrays or elements of an array
 
   ! ------------------------------------------------------------------
@@ -197,9 +198,9 @@ MODULE mo_utils
   !         locate
 
   !     PURPOSE
-  !         Find closest values in monotonic series
+  !         Find closest values in a monotonic series
   !
-  !>         \brief Find closest values in monotonic series, returns the index.
+  !>         \brief Find closest values in a monotonic series, returns the indexes.
   !
   !>         \details Given an array x(1:n), and given a value y,
   !>         returns a value j such that y is between

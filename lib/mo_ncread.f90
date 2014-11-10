@@ -17,7 +17,8 @@ module mo_NcRead
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011-2014 Stephan Thober, Matthias Cuntz
 
@@ -54,7 +55,7 @@ module mo_NcRead
   !        lengths of the array will be filled with ones.
 
   !    CALLING SEQUENCE
-  !        call Get_NcVar(Filename, VarName, Dat, start=jdate, count=Nvalues, fid=fid)
+  !        call Get_NcVar(Filename, VarName, Dat, start=jdate, a_count=Nvalues, fid=fid)
 
   !    INTENT(IN)
   !        character(len=*) :: Filename - Name of the nc file
@@ -69,7 +70,7 @@ module mo_NcRead
   !        integer(i4), dimension(:) :: jdate ! starting indeces of first value to read
   !                                           ! len is the number of dimensions of
   !                                           ! array, default is 1, see example
-  !        integer(i4), dimension(:) :: count ! same size as jdate, specifies how
+  !        integer(i4), dimension(:) :: a_count ! same size as jdate, specifies how
   !                                           ! many values in each dimension
   !                                           ! is going to be read
   !        integer(i4)               :: fid   ! file handle of opened netcdf file
