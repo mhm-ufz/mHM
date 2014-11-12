@@ -282,7 +282,7 @@ CONTAINS
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
                                    nLCover_scene            , &
-                                   L0_LCover, iFlag_LAI_data_format, &
+                                   L0_LCover, timeStep_LAI_input, &
                                    processMatrix
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
@@ -368,7 +368,7 @@ CONTAINS
 
 
        ! land cover scenes related to LAI
-       if(iFlag_LAI_data_format .EQ. 0) then
+       if(timeStep_LAI_input .EQ. 0) then
          if ( L0_LCover_LAI(k) .eq. nodata_i4 ) then
             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
             call message(' Error: land cover ID for LAI has missing values within the valid masked area at cell in basin ', &

@@ -3,7 +3,7 @@
 !> \brief Reads meteorological input data.
 
 !> \details This module is to read meteorological input data, e.g. temperature, precipitation.\n
-!> Up to now, only daily data are handled. The treatment of sub-daily input data will come with release 5.1.\n 
+!> Up to now, only daily data are handled. The treatment of sub-daily input data will come with release 5.1.\n
 !> The module provides a subroutine for binary files and a subroutine for NetCDF files.\n
 !> First, the dimensions given are cross-checked with header.txt information. Second, the data of the specified period are
 !> read from the specified directory. The names of files in this directory have to be always "YYYY.bin" or "YYYY.nc".\n
@@ -299,26 +299,29 @@ CONTAINS
   !     RESTRICTIONS
   !>        \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
   !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 3 dimensions:
-  !>              1. x, 2. y, 3. t. It is expected that the variables (especially)within the NetCDF files contain an 
-  !>              unit attribute. The timestep has to be equidistant 
+  !>              1. x, 2. y, 3. t. It is expected that the variables (especially)within the NetCDF files contain an
+  !>              unit attribute. The timestep has to be equidistant
 
   !     EXAMPLE
 
   !     LITERATURE
   !         None
 
-  !     HISTORY 
+  !     HISTORY
   !>        \author Matthias Zink
   !>        \date May 2013
-  !               modified Stephan Thober     Nov 2013 - only read required 
+  !               modified Stephan Thober     Nov 2013 - only read required
   !                                                      chunk from nc file
+  !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
 
-  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper)
+  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep)
 
     use mo_global_variables, only: period
+    use mo_julian,           only: caldat, julday
     use mo_message,          only: message
-    use mo_string_utils,     only: num2str
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
+    use mo_string_utils,     only: num2str
+    use mo_utils,            only: eq
 
     implicit none
 
@@ -333,17 +336,29 @@ CONTAINS
     logical, dimension(:,:),                           intent(in)  :: mask      ! mask of valid data fields
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
+    integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly
     !
     ! local variables
-    character(256)                                                 :: fName     ! name of NetCDF file
-    character(256)                                                 :: AttValues ! netcdf attribute values
-    integer(i4)                                                    :: i         ! loop variable
-    integer(i4)                                                    :: ncJulSta  ! start time of nc dataset
-    integer(i4)                                                    :: ncJulEnd  ! end time of nc dataset
-    integer(i4)                                                    :: datatype  ! datatype of attribute
-    integer(i4), dimension(5)                                      :: dimen     ! dimension for NetCDF file
-    real(dp)                                                       :: nodata_value ! data nodata value
- 
+    character(256)            :: fName        ! name of NetCDF file
+    character(256)            :: AttValues    ! netcdf attribute values
+    integer(i4)               :: i            ! loop variable
+    integer(i4)               :: ncJulSta     ! start time of nc dataset
+    integer(i4)               :: ncJulEnd     ! end time of nc dataset
+    integer(i4)               :: datatype     ! datatype of attribute
+    integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
+    real(dp)                  :: nodata_value ! data nodata value
+    integer(i4)               :: dim3         ! time dim of input data
+    integer(i4)               :: ncdim3start  ! start of reading in nc file
+    integer(i4)               :: inctimestep  ! local nctimestep
+    ! time helpers
+    integer(i4)               :: julStart1, julEnd1, ncJulSta1, ncJulEnd1, dd
+    integer(i4)               :: mmcalstart, mmcalend, yycalstart, yycalend
+    integer(i4)               :: mmncstart, mmncend, yyncstart, yyncend
+
+    ! check optional nctimestep
+    inctimestep = -1
+    if (present(nctimestep)) inctimestep = nctimestep
+
     fName = trim(folder) // trim(varName) // '.nc'
     ! get dimensions
     dimen = Get_NcDim(trim(fName), trim(varName))
@@ -351,48 +366,77 @@ CONTAINS
     if ( (dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols) ) then
        stop '***ERROR: read_meteo_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
-    !
-    allocate(data(dimen(1), dimen(2), periode%julEnd - periode%julStart + 1_i4))
 
     ! determine no data value
     call Get_NcVarAtt(fName, varName, '_FillValue', AttValues, dtype=datatype)
     ! convert to number
-    read(AttValues, *) nodata_value 
+    read(AttValues, *) nodata_value
 
     ! get time intervall & check time steps
-    call get_time(fName, varName, ncJulSta, ncJulEnd)
+    call get_time(fName, varName, ncJulSta, ncJulEnd, nctimestep=inctimestep)
 
-    ! check if time periods overlay, put data of relevant time period 
-    if ((ncJulSta .LE. periode%julStart) .AND. (ncJulEnd .GE. periode%julEnd)) then
+    !
+    select case(inctimestep)
+    case(-1) ! daily
+       julStart1 = periode%julStart
+       ncJulSta1 = ncJulSta
+       julEnd1   = periode%julEnd
+       ncJulEnd1 = ncJulEnd
+       dim3 = periode%julEnd - periode%julStart + 1_i4
+       ncdim3start = periode%julStart-ncJulSta+1
+    case(-2) ! monthly
+       call caldat(periode%julStart, dd, mmcalstart, yycalstart)
+       julStart1 = julday(1, mmcalstart, yycalstart)
+       call caldat(ncJulSta, dd, mmncstart, yyncstart)
+       ncJulSta1 = julday(1, mmncstart, yyncstart)
+       call caldat(periode%julEnd, dd, mmcalend, yycalend)
+       julEnd1 = julday(1, mmcalend, yycalend)
+       call caldat(ncJulEnd, dd, mmncend, yyncend)
+       ncJulEnd1 = julday(1, mmncend, yyncend)
+       dim3 = (yycalend*12+mmcalend) - (yycalstart*12+mmcalstart) + 1_i4
+       ncdim3start = (yycalstart*12+mmcalstart) - (yyncstart*12+mmncstart) + 1_i4
+    case(-3) ! yearly
+       call caldat(periode%julStart, dd, mmcalstart, yycalstart)
+       julStart1 = julday(1, 1, yycalstart)
+       call caldat(ncJulSta, dd, mmncstart, yyncstart)
+       ncJulSta1 = julday(1, 1, yyncstart)
+       call caldat(periode%julEnd, dd, mmcalend, yycalend)
+       julEnd1 = julday(1, 1, yycalend)
+       call caldat(ncJulEnd, dd, mmncend, yyncend)
+       ncJulEnd1 = julday(1, 1, yyncend)
+       dim3 = yycalend - yycalstart + 1_i4
+       ncdim3start = yycalstart - yyncstart + 1_i4
+    case default ! no output at all
+       call message('***ERROR: read_meteo_nc: unknown nctimestep switch.')
+       stop
+    end select
 
-       call Get_NcVar(trim(fName), trim(varName), data, &
-            start = (/ 1_i4, 1_i4, periode%julStart-ncJulSta+1 /), &
-            a_count = (/ dimen(1), dimen(2), size(data,3) /) )
-
-    else
+    ! Check if time steps in file cover simulation period
+    if (.not. ((ncJulSta1 .LE. julStart1) .AND. (ncJulEnd1 .GE. julEnd1))) then
        call message('***ERROR: read_meteo_nc: time period of input data: ', trim(varName), &
-                    '          is not matching modelling period.')
+            '          is not matching modelling period.')
        stop
     end if
 
+    !
+    ! alloc and read
+    allocate(data(dimen(1), dimen(2), dim3))
+    call Get_NcVar(trim(fName), trim(varName), data, &
+         start = (/ 1_i4, 1_i4, ncdim3start /), &
+         a_count = (/ dimen(1), dimen(2), dim3 /) )
+
     ! start checking values
-    do i = 1, (periode%julEnd - periode%julStart + 1_i4)
-       ! for no data value
-       if(  any(                                                              &
-            ( abs(data(:,:,i) - nodata_value) .LT. tiny(1.0_dp) )  .AND.   &
-            mask(:,:)                                                         &
-            )                                                                 &
-            ) then
+    do i = 1, dim3
+       if (any(eq(data(:,:,i),nodata_value) .and. (.not. mask))) then
           call message('***ERROR: read_meteo_nc: nodata value within basin ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
           stop
        end if
 
-
-       ! optinal check
+       ! optional check
        if (present(lower)) then
-          if(  any( (data(:,:,i) .lt. lower) .AND. mask(:,:) )  ) then
+          if ( any( (data(:,:,i) .lt. lower) .AND. mask(:,:) )  ) then
              call message('***ERROR: read_meteo_nc: values in variable "', &
                   trim(varName),                                           &
                   '" are lower than ', trim(num2str(lower,'(F7.2)')) )
@@ -402,7 +446,7 @@ CONTAINS
        end if
 
        if (present(upper)) then
-          if(  any( (data(:,:,i) .gt. upper) .AND. mask(:,:) )  ) then
+          if ( any( (data(:,:,i) .gt. upper) .AND. mask(:,:) )  ) then
              call message('***ERROR: read_meteo_nc: values in variable"',  &
                   trim(varName),                                           &
                   '" are greater than ', trim(num2str(upper,'(F7.2)')) )
@@ -418,45 +462,58 @@ CONTAINS
   !
   !     PORPOSE
   !         Determine data time interval & check timesteps
-  
+
   !     CALLING SEQUENCE
   !         BIAS(NetCDF_filename, VariableName, startJulianDay, endJulianDay)
-  
+
   !     RESTRICTIONS
   !         Input values must be floating points.
-  
+
   !     LITERATURE
   !         None
-  
+
   !     HISTORY
   !         Written,  Matthias Zink, Oct 2012
+  !         Modified  Matthias Cuntz & Juliane Mai Nov 2014 - time int or double
 
-  subroutine get_time(fName, vName, julStart, julEnd)
+  subroutine get_time(fName, vName, julStart, julEnd, nctimestep)
     !
     use mo_julian,       only: date2dec
     use mo_message,      only: message
     use mo_NcRead,       only: Get_NcVar, Get_NcDim, Get_NcVarAtt
     use mo_string_utils, only: DIVIDE_STRING
+    use netcdf,          only: NF90_INT, NF90_DOUBLE, NF90_NOWRITE
+    use netcdf,          only: nf90_open, nf90_close, nf90_inq_varid, nf90_inquire_variable
     !
     implicit none
     !
     character(len=*)            , intent(in)  :: fName               ! name of NetCDF file
     character(len=*)            , intent(in)  :: vName               ! name of variable
-    integer(i4)                 , intent(out) :: julStart 
+    integer(i4)                 , intent(out) :: julStart
     integer(i4)                 , intent(out) :: julEnd
+    integer(i4),        optional, intent(in)  :: nctimestep          ! -1: daily (default); -2:monthly; -3:yearly
     !
     integer(i4)                               :: i
     integer(i4)                               :: deltaT              ! diff between single time steps in NetCDF
     integer(i4)                               :: yRef, dRef, mRef    ! reference time of NetCDF (unit attribute of
     integer(i4)                               :: datatype            ! datatype of attribute
-    integer(i4),    dimension(5)              :: dimen 
+    integer(i4),    dimension(5)              :: dimen
     !
     integer(i4),   dimension(:), allocatable  :: timesteps           ! time variable of NetCDF
+    real(dp),      dimension(:), allocatable  :: itimesteps          ! time variable of NetCDF
     !
     character(256)                            :: AttValues           ! netcdf attribute values
     character(256), dimension(:), allocatable :: strArr              ! dummy for netcdf attribute handling
-    real(dp)                                 :: jday_frac            ! julian day from dec2date
+    real(dp)                                  :: jday_frac           ! julian day from dec2date
+    integer(i4)                               :: inctimestep         ! local nctimestep
+    integer(i4) :: ncid    ! id of input stream
+    integer(i4) :: varid   ! id of variable to be read
+    integer(i4) :: status  ! netcdf inquire return
     !
+    ! check optional nctimestep
+    inctimestep = -1
+    if (present(nctimestep)) inctimestep = nctimestep
+
     dimen = Get_NCDim(fName, trim(vName))
     ! get unit attribute of variable 'time'
     call Get_NcVarAtt(fName, 'time', 'units', AttValues, dtype=datatype)
@@ -466,31 +523,71 @@ CONTAINS
     ! strArr(1) is <unit>
     if (strArr(1) .EQ. 'days') then
        ! determine reference time and convert to integer
-       call DIVIDE_STRING(trim(strArr(3)), '-', strArr) 
+       call DIVIDE_STRING(trim(strArr(3)), '-', strArr)
        read(strArr(1),*) yRef
        read(strArr(2),*) mRef
        read(strArr(3),*) dRef
        !
-       allocate(timesteps(dimen(3)))
-       call Get_NcVar(fName, 'time', timesteps)
+       status = nf90_open(fName, NF90_NOWRITE, ncid)
+       status = nf90_inq_varid(ncid, 'time', varid)
+       status = nf90_inquire_variable(ncid, varid, xtype=datatype)
+       status = nf90_close(ncid)
+       if ((datatype .eq. NF90_INT) .or. (datatype .eq. NF90_DOUBLE)) then
+          if (datatype .eq. NF90_INT) then
+             allocate(timesteps(dimen(3)))
+             call Get_NcVar(fName, 'time', timesteps)
+          else
+             allocate(itimesteps(dimen(3)))
+             allocate(timesteps(dimen(3)))
+             call Get_NcVar(fName, 'time', itimesteps)
+             timesteps = nint(itimesteps, i4)
+          endif
+       else
+          call message('***ERROR: data type of time must be NF90_INT or NF90_DOUBLE in netcdf file.')
+          stop
+       end if
        !
        ! check if timestep is one day
-       do i = 2, dimen(3)
-          deltaT = timesteps(i) - timesteps(i-1)
-          ! deltaT has to be one but with inetger conversion 1000
-          if ( deltaT .NE. 1_i4) then
-             call message('***ERROR: Timestep has to be equidistant as one day in ', trim(vName))
-             stop
-          end if
-       end do
+       select case(inctimestep)
+       case(-1) ! daily
+          do i = 2, dimen(3)
+             deltaT = timesteps(i) - timesteps(i-1)
+             ! deltaT has to be one but with integer conversion
+             if ( deltaT .NE. 1_i4) then
+                call message('***ERROR: ', trim(vName),' must have daily time steps.')
+                stop
+             end if
+          end do
+       case(-2) ! monthly
+          do i = 2, dimen(3)
+             deltaT = timesteps(i) - timesteps(i-1)
+             ! deltaT has to be one but with integer conversion
+             if (( deltaT .lt. 28_i4) .or. ( deltaT .gt. 31_i4)) then
+                call message('***ERROR: ', trim(vName),' must have monthly time steps.')
+                stop
+             end if
+          end do
+       case(-3) ! yearly
+          do i = 2, dimen(3)
+             deltaT = timesteps(i) - timesteps(i-1)
+             ! deltaT has to be one but with integer conversion
+             if ( deltaT .lt. 360_i4) then
+                call message('***ERROR: ', trim(vName),' must have yearly time steps.')
+                stop
+             end if
+          end do
+       case default
+          call message('***ERROR: get_time: unknown nctimestep switch.')
+          stop
+       end select
        !
        ! determine starting and ending julian day of the dataset
        jday_frac = date2dec(dd=dRef, mm=mRef, yy=yRef)
-       i  = nint(jday_frac, i4 ) 
-       julStart = i + timesteps(1)       
+       i  = nint(jday_frac, i4 )
+       julStart = i + timesteps(1)
        julEnd   = i + timesteps(dimen(3))
-    else 
-       call message('***ERROR: Please provide the input data ', trim(vName) , 'in days.')
+    else
+       call message('***ERROR: Please provide the input data in days since YYYY-MM-DD HH:MM:SS in ', trim(vName))
        stop
     end if
     !

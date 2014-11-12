@@ -77,6 +77,7 @@ CONTAINS
   !                   Matthias Zink,        Mar 2014 - added inflow from upstream areas
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
+  !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -129,8 +130,8 @@ CONTAINS
          L1_wiltingPoint, L11_C1, L11_C2,                    &
          warmingDays, evalPer, gauge, InflowGauge,           &  
          optimize,  nMeasPerDay,                             &
-         iFlag_LAI_data_format, L0_daily_LAI,                &   ! flag on how LAI data has to be read
-         dirRestartIn                                            ! restart directory location
+         timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
+         L0_gridded_LAI, dirRestartIn                            ! restart directory location
 
     implicit none
 
@@ -268,6 +269,7 @@ CONTAINS
        average_counter  = 0
        writeout_counter = 0
        hour = -timestep
+       iGridLAI_TS = 0
        do tt = 1, nTimeSteps
 
           if ( timeStep_model_inputs .eq. 0_i4 ) then
@@ -296,9 +298,6 @@ CONTAINS
           ! month needed for LAI process
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
-          ! time step for gridded LAI data (daily values)
-          iGridLAI_TS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
-
           !--------------------------------------------------------------------
           ! call LAI function to get LAI fields for this timestep and basin
           !--------------------------------------------------------------------
@@ -309,8 +308,8 @@ CONTAINS
              year_counter  = year
           end if
           ! 
-          SELECT CASE(iFlag_LAI_data_format)
-          CASE(0)
+          select case(timeStep_LAI_input)
+          case(0)
              ! create gridded fields of LAI using long term monthly mean LAI values
              ! and the corresponding LC file 
              ! update LAI --> for 1st timestep and when month changes
@@ -320,11 +319,24 @@ CONTAINS
                 end do
              end if
              !              
-          CASE(1)
-             ! create gridded fields of LAI using daily LAI values
-             if( (tt .EQ. 1) .OR. (day_counter .NE. day) ) LAI(:) = L0_daily_LAI(s0:e0, iGridLAI_TS)
-
-          END SELECT
+          case(-1) ! daily
+             if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
+                iGridLAI_TS = iGridLAI_TS + 1_i4
+                LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
+             endif
+          case(-2) ! monthly
+             if ( (tt .EQ. 1) .OR. (month .NE. month_counter) ) then
+                iGridLAI_TS = iGridLAI_TS + 1_i4
+                LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
+             endif
+          case(-3) ! yearly
+             if ( (tt .EQ. 1) .OR. (year .NE. year_counter) ) then
+                iGridLAI_TS = iGridLAI_TS + 1_i4
+                LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
+             endif
+          case default ! no output at all
+             continue
+          end select
           ! -------------------------------------------------------------------------
           ! ARGUMENT LIST KEY FOR mHM
           ! -------------------------------------------------------------------------
@@ -340,7 +352,7 @@ CONTAINS
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
-               iFlag_LAI_data_format, month_counter, day_counter,                           & ! IN C          
+               timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
                nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
                basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
