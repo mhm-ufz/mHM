@@ -16,11 +16,11 @@ set -e
 # DETAILS
 # -------------------------------------------------------------------------------------------
 #
-# To run all the test cases on (s)ystem "eve" with (c)ompiler "nag53" in (r)elease mode "debug"
+# To run all the test cases on (s)ystem "eve2" with (c)ompiler "nag53" in (r)elease mode "debug"
 # type
 
 #      $ cd check/
-#      $ ./check_mhm_cases -s eve -c nag53 -r debug
+#      $ ./check_mhm_cases -s eve2 -c nag53 -r debug
 
 # on your command line. If test case was running properly, i.e. is
 # consistent with the pre-defined output, command line output will be
@@ -29,7 +29,7 @@ set -e
 #      $     #     case_[id]  o.k.     #
 #      $     ###########################
 #      $     using
-#      $        System:   eve
+#      $        System:   eve2
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -40,7 +40,7 @@ set -e
 #      $     #     case_[id]  failed   #
 #      $     ###########################
 #      $     using
-#      $        System:   eve
+#      $        System:   eve2
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -142,7 +142,7 @@ set -e
 #       dir_Out(6)                 = "output_b1/b6_" (default: )
 #       dir_RestartOut(6)          = "output_b1/b6_" (default: )
 
-#    case 5 :: INFLOW GAUGE
+#    case 5 :: INFLOW GAUGE and GRIDDED LAI
 #        nInflowGaugesTotal	   = 1               (default: nInflowGaugesTotal            = 0)
 #        NoInflowGauges_basin(1)   = 1               (default: NoInflowGauges_basin(1)       = 0)
 #        InflowGauge_id(1,1)       = 333             (default: InflowGauge_id(1,1)           = 398)
@@ -151,6 +151,8 @@ set -e
 #        dir_RestartOut(1)         = "output_b1/b1_" (default: "output_b1/")
 #        dir_Out(2)                = "output_b1/b2_" (default: "output_b1/")
 #        dir_RestartOut(2)         = "output_b1/b2_" (default: "output_b1/")
+#        timeStep_LAI_input = -2                     (default: timeStep_LAI_input = 0)        ! monthly gridded LAI input
+#        outputFlxState(9)=.TRUE.                    (default: outputFlxState(9)=.FALSE.)     ! actual evapotranspiration aET [mm/T]
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
@@ -210,14 +212,14 @@ function usage () {
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           'all' or 'both' loop over debug and release\n"
     printf "           (Default: all)\n"
-    printf "    -s     System on which mHM will be compiled, e.g. 'eve'\n"
-    printf "           (Default: eve).\n"
+    printf "    -s     System on which mHM will be compiled, e.g. 'eve2'\n"
+    printf "           (Default: eve2).\n"
     printf "    -t     Number of threads for OpenMP, e.g. 6\n"
     printf "           Set to '' for deactivation of parallel test\n"
     printf "           (Default: 2).\n"
     printf "\n"
     printf "Example\n"
-    printf "    ${pprog} -c gnu45 -s eve -r debug -t 1\n"
+    printf "    ${pprog} -c gnu45 -s eve2 -r debug -t 1\n"
 }
 
 # cleanup at end and when interupted
@@ -228,7 +230,7 @@ function cleanup ()
     rm -f 'mhm_for_check'
 
     # everything in case_?? dirs
-    case_dirs=$(ls -d case_*)
+    case_dirs=$(\ls -d case_*)
     rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff.*.terminal"
     rmdirs="output_b1 output_b2"
 
@@ -254,7 +256,7 @@ mhm_exe='mhm_for_check'
 
 # switches
 compilers='all'
-system='eve'
+system='eve2'
 release='all'
 threads=2
 while getopts "c:hr:s:t:" Option ; do
@@ -272,8 +274,8 @@ shift $((${OPTIND} - 1))
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
 if [[ "${compilers}" == "all" ]] ; then
-    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
-    # compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    # compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
 fi
 
 # argument
@@ -289,14 +291,14 @@ fi
 set +e
 icdo=$(which cdo)
 if [[ "${icdo}z" == "z" ]] ; then
-    if [[ ${system} == "eve" ]] ; then
+    if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
 	if [[ $(hostname) == 'frontend1' ]]; then
             module load cdo/1.6.0-1 
 	fi
 	if [[ $(hostname) == 'frontend2' ]]; then
-	    module load cdo/1.6.4rc5-2_gcc_4.8.1_CentOS6
+	    module load cdo
 	fi
         icdo=$(which cdo)
     fi
