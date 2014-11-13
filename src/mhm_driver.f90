@@ -127,15 +127,16 @@
 !                Matthias Zink  Mar 2013         edited screen output for gauges
 !                                                added inflow gauges
 !               Rohini Kumar, Apr 2014         - implementation of the mHM run on a single cell
-!                                                configuration that too in the routing mode. 
+!                                                configuration that too in the routing mode.
 !                                              - run mHM at the input data level i.e. L0 grid
-!               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or 
+!               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or
 !                                                on a regular X-Y coordinate system
-!                Stephan Thober May 2014       - moved read meteo forcings to mo_mhm_eval
+!               Stephan Thober May 2014       - moved read meteo forcings to mo_mhm_eval
+!               Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 !
 ! --------------------------------------------------------------------------
 
-PROGRAM mhm_driver 
+PROGRAM mhm_driver
 
   USE mo_anneal,              ONLY : anneal                         ! Optimise with Simulated Annealing SA
   USE mo_dds,                 ONLY : dds                            ! Optimise with Dynam. Dimens. Search DDS
@@ -153,17 +154,18 @@ PROGRAM mhm_driver
        dirRestartOut,                                        &      ! directories
        dirMorpho, dirLCover, dirGauges, dirPrecipitation,    &      ! directories
        dirTemperature, dirReferenceET, dirOut,               &      ! directories
+       dirgridded_LAI,                                       &      ! directories
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
-       iFlag_LAI_data_format,                                &      ! LAI option for reading gridded LAI field 
+       timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
        basin, processMatrix                                         ! basin information,  processMatrix
   USE mo_global_variables, ONLY: opti_function
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc                           ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
-  USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data 
+  USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_objective_function,  ONLY : objective, loglikelihood       ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
@@ -190,7 +192,7 @@ PROGRAM mhm_driver
   integer(i4)                           :: ii, jj           ! Counters
   integer(i4)                           :: iTimer          ! Current timer number
   integer(i4)                           :: nTimeSteps
-  real(dp)                              :: funcbest        ! best objective function achivied during optimization 
+  real(dp)                              :: funcbest        ! best objective function achivied during optimization
   ! model output
   real(dp), allocatable, dimension(:,:) :: riverrun        ! simulated river runoff at all gauges, timepoints
   ! mcmc
@@ -244,13 +246,16 @@ PROGRAM mhm_driver
      call message( '  --------------' )
      call message( '      BASIN ', num2str(ii,'(I3)') )
      call message( '  --------------' )
-     call message('    Morphological directory:  ', trim(dirMorpho(ii) ))         
-     call message('    Land cover directory:     ', trim(dirLCover(ii) ))          
-     call message('    Discharge directory:      ', trim(dirGauges(ii)  ))          
+     call message('    Morphological directory:  ', trim(dirMorpho(ii) ))
+     call message('    Land cover directory:     ', trim(dirLCover(ii) ))
+     call message('    Discharge directory:      ', trim(dirGauges(ii)  ))
      call message('    Precipitation directory:  ', trim(dirPrecipitation(ii)  ))
-     call message('    Temperature directory:    ', trim(dirTemperature(ii)  ))   
-     call message('    PET directory:            ', trim(dirReferenceET(ii)  )) 
-     call message('    Output directory:         ', trim(dirOut(ii) ))        
+     call message('    Temperature directory:    ', trim(dirTemperature(ii)  ))
+     call message('    PET directory:            ', trim(dirReferenceET(ii)  ))
+     call message('    Output directory:         ', trim(dirOut(ii) ))
+     if (timeStep_LAI_input < 0) then
+        call message('    LAI directory:            ', trim(dirgridded_LAI(ii)) )
+     end if
      if (processMatrix(8,1) .GT. 0) then
         call message('    Evaluation gauge          ', 'ID')
         do jj = 1 , basin%nGauges(ii)
@@ -293,7 +298,7 @@ PROGRAM mhm_driver
      call initialise(ii)
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-     
+
      ! read meteorology now, if optimization is switched on
      ! meteorological forcings (reading, upscaling or downscaling)
      if ( timestep_model_inputs .eq. 0_i4 ) then
@@ -306,10 +311,16 @@ PROGRAM mhm_driver
      call read_latlon(ii)
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-     
+
      ! daily gridded LAI values
-     if(iFlag_LAI_data_format .EQ. 1) call prepare_gridded_daily_LAI_data(ii)
-  
+     if (timeStep_LAI_input < 0) then
+        call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
+        call timer_start(itimer)
+        call prepare_gridded_daily_LAI_data(ii)
+        call timer_stop(itimer)
+        call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+     endif
+
   end do
 
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -323,7 +334,7 @@ PROGRAM mhm_driver
   !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-  
+
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
 
@@ -377,7 +388,7 @@ PROGRAM mhm_driver
         call message('    Use MCMC')
 
         if (seed .gt. 0_i8) then
-           ! use fixed user-defined seed 
+           ! use fixed user-defined seed
            call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
                 ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
                 maskpara_in=local_maskpara,                                                                           &
@@ -453,7 +464,7 @@ PROGRAM mhm_driver
      end select
      call timer_stop(iTimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-     
+
      global_parameters(:,:) = local_parameters(1:npara,:)
      maskpara(:)    = local_maskpara(1:npara)
 
@@ -468,12 +479,12 @@ PROGRAM mhm_driver
 
   else
     ! --------------------------------------------------------------------------
-    ! call mHM 
+    ! call mHM
     ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
     ! get other model outputs  (i.e. gridded fields of model output)
     ! --------------------------------------------------------------------------
     call message('  Run mHM')
-    call timer_start(iTimer) 
+    call timer_start(iTimer)
     if ( processMatrix(8,1) .eq. 0 ) then
        ! call mhm without routing
        call mhm_eval(global_parameters(:,3))
@@ -498,8 +509,8 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
-  
-  
+
+
   ! --------------------------------------------------------------------------
   ! FINISH UP
   ! --------------------------------------------------------------------------

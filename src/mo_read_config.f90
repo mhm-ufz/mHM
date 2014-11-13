@@ -96,6 +96,7 @@ CONTAINS
   !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
   !                  Stephan Thober, May  2014 - added switch for chunk read in
   !                  Stephan Thober, Jun  2014 - added option for switching off mpr
+  !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
 
   subroutine read_config()
 
@@ -133,6 +134,7 @@ CONTAINS
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
+         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -165,10 +167,8 @@ CONTAINS
          global_parameters_name,                            & ! clear names of global parameters
          timeStep_model_outputs,                            & ! timestep for writing model outputs
          outputFlxState,                                    & ! definition which output to write
-         iFlag_LAI_data_format,                             & ! flag on how LAI data has to be read
-         !                                                    ! used when iFlag_LAI_data_format = 1
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
-         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
+         timeStep_LAI_input,                                & ! time step of gridded LAI input
          iFlag_cordinate_sys                                  ! model run cordinate system
 
     implicit none
@@ -246,13 +246,13 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
     character(256), dimension(maxNoBasins)          :: dir_LatLon
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data 
+    !                                                                            ! used when timeStep_LAI_input<0
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
     character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data 
-    !                                                                            ! used when iFlag_LAI_data_format = 1
     real(dp)                                        :: jday_frac
     !
     real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
@@ -272,7 +272,7 @@ CONTAINS
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,  &
                            dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,        &
                            dir_Temperature, dir_ReferenceET, dir_Out, dir_RestartOut, &
-                           dir_RestartIn, dir_LatLon
+                           dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
@@ -282,7 +282,7 @@ CONTAINS
     ! namelist for land cover scenes
     namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
     ! namelist for LAI related data
-    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI
+    namelist /LAI_data_information/ inputFormat_gridded_LAI, timeStep_LAI_input
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
@@ -347,6 +347,7 @@ CONTAINS
     allocate(dirRestartOut(nBasins))
     allocate(dirRestartIn(nBasins))
     allocate(dirLatLon(nBasins))
+    allocate(dirgridded_LAI(nBasins))
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -416,6 +417,7 @@ CONTAINS
     dirRestartOut   = dir_RestartOut(1:nBasins)
     dirRestartIn    = dir_RestartIn(1:nBasins)
     dirLatLon       = dir_LatLon(1:nBasins)
+    dirgridded_LAI  = dir_gridded_LAI(1:nBasins)
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
@@ -451,9 +453,17 @@ CONTAINS
     call position_nml('LAI_data_information', unamelist)
     read(unamelist, nml=LAI_data_information)
 
-    if(iFlag_LAI_data_format .EQ. 1) then
-       allocate( dirgridded_LAI(nBasins) )
-       dirgridded_LAI(:) = dir_gridded_LAI(1:nBasins)
+    if (timeStep_LAI_input .ne. 0) then
+       if ( (timeStep_LAI_input .ne. -1) .and. (trim(inputFormat_gridded_LAI) .eq. 'bin') ) then
+          call message()
+          call message('***ERROR: Gridded LAI input in bin format must be daily.')
+          stop
+       end if
+       if (timeStep_LAI_input > 0) then
+          call message()
+          call message('***ERROR: timeStep_LAI_input must be <= 0.')
+          stop
+       end if
     end if
 
     !===============================================================

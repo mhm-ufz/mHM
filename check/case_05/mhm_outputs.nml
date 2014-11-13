@@ -52,7 +52,7 @@ outputFlxState(8)=.FALSE.
 !----------------
 !
 ! actual evapotranspiration aET [mm/T]                                -- case  9
-outputFlxState(9)=.FALSE. 
+outputFlxState(9)=.TRUE. 
 !
 ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 10
 outputFlxState(10)=.TRUE.

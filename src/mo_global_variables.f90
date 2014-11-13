@@ -23,6 +23,7 @@ MODULE mo_global_variables
   !           Rohini Kumar,   May 2014  - added options for the model run cordinate system
   !           Stephan Thober, Jun 2014  - added timeStep_model_inputs and readPer
   !           Stephan Thober, Jun 2014  - added perform_mpr, updated restart flags
+  !           Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
@@ -50,10 +51,9 @@ MODULE mo_global_variables
                                                                                    ! multiscale parameter regionalization
   character(256),public                              :: inputFormat_meteo_forcings ! format of meteo input data(bin or nc)
   ! LAI information
-  integer(i4),    public                             :: iFlag_LAI_data_format      ! flag on how LAI data has to be read
   character(256), public                             :: inputFormat_gridded_LAI    ! format of gridded LAI data(bin or nc)
-                                                                                   ! used when iFlag_LAI_data_format = 1
-  integer(i4),   public                              :: iFlag_cordinate_sys        ! options model for the run cordinate system 
+  integer(i4),    public                             :: timeStep_LAI_input         ! time step of gridded LAI input
+  integer(i4),    public                             :: iFlag_cordinate_sys        ! options model for the run cordinate system
   ! -------------------------------------------------------------------
   ! OPTIMIZATION
   ! -------------------------------------------------------------------
@@ -121,7 +121,7 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
   character(256), dimension(:), allocatable, public :: dirRestartIn       ! Directory where input of restart is read from
   character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! directory where gridded LAI is located
-                                                                          ! used when iFlag_LAI_data_format = 1
+                                                                          ! used when timeStep_LAI_input < 0
   character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
 
   ! directory common to all basins 
@@ -227,7 +227,7 @@ MODULE mo_global_variables
   integer(i4),    public, dimension(:), allocatable   :: LCyearId            ! Mapping of landcover scenes (1, 2, ...)
                                                                              ! to the actual year(1960, 1961, ...)
   ! LAI data
-  ! variables used when iFlag_LAI_data_format = 0
+  ! variables used when timeStep_LAI_input == 0
   integer(i4),    public                              :: nLAIclass         ! Number of LAI classes
   integer(i4),    public, dimension(:),   allocatable :: LAIUnitList       ! List of ids of each LAI class --> New
   real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index
@@ -367,8 +367,8 @@ MODULE mo_global_variables
   integer(i4), public, dimension(:), allocatable   :: L0_streamNet  !      Stream network
   integer(i4), public, dimension(:), allocatable   :: L0_floodPlain !      Floodplains of stream i
   !
-  real(dp),    public, dimension(:,:), allocatable :: L0_daily_LAI  !      daily gridded LAI data used when iFlag_LAI_data_format = 1
-  !                                                                 !      dim1=number of grid cells, dim2=number of LAI time steps
+  real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0
+  !                                                                  !      dim1=number of grid cells, dim2=number of LAI time steps
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------

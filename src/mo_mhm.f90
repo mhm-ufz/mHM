@@ -104,6 +104,7 @@ CONTAINS
   !                 Matthias Zink,                   Mar 2014 - added inflow from upstream areas
   !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
   !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
+  !                 Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -112,8 +113,9 @@ CONTAINS
       perform_mpr,          & ! flag for reading restart files for state variables
       read_states,          & ! flag indicating whether states have been read
       fSealedInCity       , & ! sealed area fraction within cities
-      LAI_option_Flag     , & ! Flag for LAI option
-      counter_month       , & ! counter to tackle the change of month 
+      timeStep_LAI_input  , & ! time step of gridded LAI input
+      counter_year        , & ! counter to tackle the change of year
+      counter_month       , & ! counter to tackle the change of month
       counter_day         , & ! counter to tackle the change of day
       tt                  , & ! simulation time step
       time                , & ! current decimal Julian day
@@ -261,7 +263,8 @@ CONTAINS
     logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
     logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
-    integer(i4),                 intent(in) :: LAI_option_Flag      ! Flag for LAI option
+    integer(i4),                 intent(in) :: timeStep_LAI_input   ! time step of gridded LAI input
+    integer(i4),                 intent(in) :: counter_year         ! counter to tackle the change of year
     integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
     integer(i4),                 intent(in) :: counter_day          ! counter to tackle the change of day 
     integer(i4),                 intent(in) :: tt
@@ -528,8 +531,8 @@ CONTAINS
     ! CALL regionalization of parameters related to LAI
     ! IT is now outside of mHM since LAI is now dynamic variable
     !-------------------------------------------------------------------
-    SELECT CASE(LAI_option_Flag)
-    CASE(0)
+    select case(timeStep_LAI_input)
+    case(0)
        ! Estimate max. intecept. capacity based on long term monthly mean LAI values
        ! Max. interception is updated every month rather than every day
        if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
@@ -539,21 +542,34 @@ CONTAINS
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               ) 
        end if
-    CASE(1)
        ! Estimate max. inteception based on daily LAI values
-       ! Max. interception is updated every month
-       if( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then 
+    case(-1) ! daily
+       if ( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
                LAI0, nTCells0_inL1, L0upBound_inL1, & 
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
-       end if
-    CASE DEFAULT
-       call message('mo_mhm: This LAI_option_Flag=',num2str(LAI_option_Flag),' is not implemented!')
-       stop
-    END SELECT
-
+               nodata_dp,  interc_max               )
+       endif
+    case(-2) ! monthly
+       if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               )
+       endif
+    case(-3) ! yearly
+       if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               )
+       endif
+    case default ! no output at all
+       continue
+    end select
 
     ! if ( process ...  ) then
     !  call PET_upscaling (processMatrix, Temp_in, Tmax_in, Tmin_in, pet_in)
