@@ -62,14 +62,58 @@ dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 dir_ReferenceET(1)   = "test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
 dir_LatLon(1)        = "test_basin/input/latlon/latlon_1.nc"
-!> directory where output should be written to
-dir_Out(1)           = "test_basin/output_b1/"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(1)   = "test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(1)     = "test_basin/restart/"
 !> directory where restart output should be written
 dir_RestartOut(1)    = "test_basin/restart/"
+!> directory where output should be written
+dir_Out(1)           = "test_basin/output_b1/"
+!
+!**** for Basin 2
+!> directory where morphological files are located
+dir_Morpho(2)        = "test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(2)        = "test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(2)        = "test_basin/input/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(2) = "test_basin/input/meteo/pre/"
+dir_Temperature(2)   = "test_basin/input/meteo/tavg/"
+dir_ReferenceET(2)   = "test_basin/input/meteo/pet/"
+!> directory where latitude and longitude file is located
+dir_LatLon(2)        = "test_basin/input/latlon/latlon_2.nc"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(2)   = "test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(2)     = "test_basin/restart/"
 !> directory where restart output should be written
-dir_RestartIn(1)     = "test_basin/restart/"
-!> where gridded LAI files are located.
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
+dir_RestartOut(2)    = "test_basin/restart/"
+!> directory where output should be written
+dir_Out(2)           = "test_basin/output_b2/"
+!
+!**** for Basin 3
+!> directory where morphological files are located
+dir_Morpho(3)        = "test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(3)        = "test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(3)        = "test_basin/input/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(3) = "test_basin/input/meteo/pre/"
+dir_Temperature(3)   = "test_basin/input/meteo/tavg/"
+dir_ReferenceET(3)   = "test_basin/input/meteo/pet/"
+!> directory where latitude and longitude file is located
+dir_LatLon(3)        = "test_basin/input/latlon/latlon_2.nc"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(3)   = "test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(3)     = "test_basin/restart/"
+!> directory where restart output should be written
+dir_RestartOut(3)    = "test_basin/restart/"
+!> directory where output should be written
+dir_Out(3)           = "test_basin/output_b3/"
 /
 
 !
@@ -97,13 +141,15 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins = 1
+nBasins = 3
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
+resolution_Hydrology(2) = 12000 
+resolution_Hydrology(3) = 12000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -112,12 +158,16 @@ resolution_Hydrology(1) = 24000
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
 resolution_Routing(1) = 48000 
+resolution_Routing(2) = 24000 
+resolution_Routing(3) = 48000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
 L0Basin(1) = 1
+L0Basin(2) = 1
+L0Basin(3) = 2
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -175,12 +225,13 @@ evalPer%yEnd   = 1993
 evalPer%mEnd   = 12
 !> last day    of wanted simulation period
 evalPer%dEnd   = 31
-! switch to control read input frequency of the gridded meteo input
-! >0: after each <timeStep_model_inputs> days
-!  0: only at beginning of the run
-! -1: daily
-! -2: monthly
-! -3: yearly
+!> switch to control read input frequency of the gridded meteo input, 
+!> i.e. precipitation, potential evapotransiration, and temperature\n
+!>      >0: after each <timeStep_model_inputs> days\n
+!>       0: only at beginning of the run\n
+!>      -1: daily\n
+!>      -2: monthly\n
+!>      -3: yearly\n
 timestep_model_inputs = 0
 /
 
@@ -194,7 +245,7 @@ timestep_model_inputs = 0
 tillageDepth      = 200
 !> No. of soil horizons to be modeled
 nSoilHorizons_mHM = 2
-! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
+!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
 soil_Depth(1)     = 200
 /
@@ -254,9 +305,9 @@ LCoverfName(3)     = 'lc_1990.asc'
 !>     The respective plant functional type is in LAI_class.asc, which must be   
 !>         located in each basin's morph directory.
 !> <0: Read gridded LAI files.\n
-!>     -1: gridded LAI are daily values
-!>     -2: gridded LAI are monthly values
-!>     -3: gridded LAI are yearly values
+!>     -1: gridded LAI are daily values\n
+!>     -2: gridded LAI are monthly values\n
+!>     -3: gridded LAI are yearly values\n
 !-----------------------------------------------------------------------------------
 timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
@@ -309,12 +360,11 @@ processCase(8) = 1
 !> namelist controlling the gauging station information
 !> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
 !> to the filename containing the time series 
-
 &evaluation_gauges
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal = 3
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -327,6 +377,22 @@ NoGauges_basin(1)   = 1
 Gauge_id(1,1)       = 398
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
 gauge_filename(1,1) = "00398.txt"
+!
+!> basin 2
+!> number of gauges for subbasin (2)
+NoGauges_basin(2)   = 1
+!> id of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_id(2,1)       = 398
+!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
+Gauge_filename(2,1) = "00398.txt"
+!
+!> basin 3
+!> number of gauges for subbasin (3)
+NoGauges_basin(3)   = 1
+!> id of gauge(1) for subbasin(3) --> (3,1) 
+Gauge_id(3,1)       = 398
+!> name of file with timeseries of gauge(1) for subbasin(3) --> (3,1) 
+Gauge_filename(3,1) = "00398.txt"
 /
 
 &inflow_gauges
@@ -348,6 +414,20 @@ NoInflowGauges_basin(1)   = 0
 InflowGauge_id(1,1)       = -9
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
 InflowGauge_filename(1,1) = ""
+!
+!> basin 2
+NoInflowGauges_basin(2)   = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_id(2,1)       = -9
+!> name of file with timeseries of inflow gauge(1) for subbasin(2) --> (2,1) 
+InflowGauge_filename(2,1) = ""
+!
+!> basin 3
+NoInflowGauges_basin(3)   = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_id(3,1)       = -9
+!> name of file with timeseries of inflow gauge(1) for subbasin(3) --> (3,1) 
+InflowGauge_filename(3,1) = ""
 /
 
 !******************************************************************************************
@@ -380,7 +460,7 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations = 6
+nIterations = 400
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
 seed = 1235876
