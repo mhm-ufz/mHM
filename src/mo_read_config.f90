@@ -1160,7 +1160,10 @@ CONTAINS
       call message( '    baseflow generated per cell        (L1_baseflow)           [mm/T]')
     end if
     if (outputFlxState(15)) then
-      call message( '    groundwater recharge               (L1_percol)             [mm/T]')
+       call message( '    groundwater recharge               (L1_percol)             [mm/T]')
+    end if
+    if (outputFlxState(16)) then 
+       call message( '    infiltration                       (L1_infilSoil)          [mm/T]') 
     end if
     call message( '' )
     call message( 'FINISHED readin config' )

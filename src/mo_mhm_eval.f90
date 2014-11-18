@@ -139,26 +139,27 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
 
     ! FOR WRITING GRIDDED STATES AND FLUXES 
-    integer(i4)                                   :: hh                  ! Counter
-    integer(i4)                                   :: ncid                ! netcdf fileID
-    integer(i4)                                   :: tIndex_out          ! for writing netcdf file
+    integer(i4)                           :: hh                  ! Counter
+    integer(i4)                           :: ncid                ! netcdf fileID
+    integer(i4)                           :: tIndex_out          ! for writing netcdf file
     ! States L1
-    real(dp), dimension(:), allocatable           :: L1_inter_out        ! Interception
-    real(dp), dimension(:), allocatable           :: L1_snowPack_out     ! Snowpack
-    real(dp), dimension(:,:), allocatable         :: L1_soilMoist_out    ! Soil moisture of each horizon
-    real(dp), dimension(:), allocatable           :: L1_sealSTW_out      ! Retention storage of impervious areas
-    real(dp), dimension(:), allocatable           :: L1_unsatSTW_out     ! Upper soil storage
-    real(dp), dimension(:), allocatable           :: L1_satSTW_out       ! Groundwater storage
+    real(dp), dimension(:),   allocatable :: L1_inter_out        ! Interception
+    real(dp), dimension(:),   allocatable :: L1_snowPack_out     ! Snowpack
+    real(dp), dimension(:,:), allocatable :: L1_soilMoist_out    ! Soil moisture of each horizon
+    real(dp), dimension(:),   allocatable :: L1_sealSTW_out      ! Retention storage of impervious areas
+    real(dp), dimension(:),   allocatable :: L1_unsatSTW_out     ! Upper soil storage
+    real(dp), dimension(:),   allocatable :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
-    real(dp), dimension(:,:), allocatable         :: L1_aETSoil_out      ! actual ET of each horizon
-    real(dp), dimension(:), allocatable           :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
-    real(dp), dimension(:), allocatable           :: L1_aETSealed_out    ! Actual ET from free-water surfaces
-    real(dp), dimension(:), allocatable           :: L1_total_runoff_out ! Generated runoff
-    real(dp), dimension(:), allocatable           :: L1_runoffSeal_out   ! Direct runoff from impervious areas
-    real(dp), dimension(:), allocatable           :: L1_fastRunoff_out   ! Fast runoff component
-    real(dp), dimension(:), allocatable           :: L1_slowRunoff_out   ! Slow runoff component
-    real(dp), dimension(:), allocatable           :: L1_baseflow_out     ! Baseflow
-    real(dp), dimension(:), allocatable           :: L1_percol_out       ! Percolation
+    real(dp), dimension(:,:), allocatable :: L1_aETSoil_out      ! actual ET of each horizon
+    real(dp), dimension(:),   allocatable :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
+    real(dp), dimension(:),   allocatable :: L1_aETSealed_out    ! Actual ET from free-water surfaces
+    real(dp), dimension(:),   allocatable :: L1_total_runoff_out ! Generated runoff
+    real(dp), dimension(:),   allocatable :: L1_runoffSeal_out   ! Direct runoff from impervious areas
+    real(dp), dimension(:),   allocatable :: L1_fastRunoff_out   ! Fast runoff component
+    real(dp), dimension(:),   allocatable :: L1_slowRunoff_out   ! Slow runoff component
+    real(dp), dimension(:),   allocatable :: L1_baseflow_out     ! Baseflow
+    real(dp), dimension(:),   allocatable :: L1_percol_out       ! Percolation
+    real(dp), dimension(:,:), allocatable :: L1_infilSoil_out    ! Infiltration 
 
     ! local variables
     integer(i4)                               :: nTimeSteps
@@ -417,15 +418,18 @@ CONTAINS
                 if ( tIndex_out .EQ. 1 ) then
 
                    ! initalize
-                   call WriteFluxStateInit(ii, ncid, timeStep_model_outputs, &
-                                ! States L1
+                   call WriteFluxStateInit( &
+                        ! Input
+                        ii                     , &
+                        timeStep_model_outputs , &
+                        ! Inout: States L1
                         L1_inter_out           , & ! Interception
                         L1_snowPack_out        , & ! Snowpack
                         L1_soilMoist_out       , & ! Soil moisture of each horizon
                         L1_sealSTW_out         , & ! Retention storage of impervious areas
                         L1_unsatSTW_out        , & ! Upper soil storage
                         L1_satSTW_out          , & ! Groundwater storage
-                                ! Fluxes L1
+                        ! Inout: Fluxes L1
                         L1_aETSoil_out         , & ! actual ET
                         L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                         L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -434,7 +438,10 @@ CONTAINS
                         L1_fastRunoff_out      , & ! Fast runoff component
                         L1_slowRunoff_out      , & ! Slow runoff component
                         L1_baseflow_out        , & ! Baseflow
-                        L1_percol_out            ) ! Percolation
+                        L1_percol_out          , & ! Percolation 
+                        L1_infilSoil_out       , & ! Infiltration 
+                        ! Output
+                        ncid )
 
 
                 end if ! <- tIndex_out CONDITION
@@ -473,6 +480,11 @@ CONTAINS
                      L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(15)) &
                      L1_percol_out(:)       = L1_percol_out(:)       + L1_percol(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                if (outputFlxState(16)      ) then 
+                   do hh = 1, nSoilHorizons_mHM 
+                      L1_infilSoil_out(:,hh) = L1_infilSoil_out(:,hh) + L1_infilSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1)) 
+                   end do
+                end if
 
                 ! write data
                 writeout = .false.
@@ -510,44 +522,46 @@ CONTAINS
                    writeout_counter = writeout_counter + 1
                    call WriteFluxState(tIndex_out*timestep-1, writeout_counter, ncid, ii, mask1, &
                         ! States L1
-                        L1_inter_out           , & ! Interception
-                        L1_snowPack_out        , & ! Snowpack
-                        L1_soilMoist_out       , & ! Soil moisture of each horizon
-                        L1_sealSTW_out         , & ! Retention storage of impervious areas
-                        L1_unsatSTW_out        , & ! Upper soil storage
-                        L1_satSTW_out          , & ! Groundwater storage
+                        L1_inter_out             , & ! Interception
+                        L1_snowPack_out          , & ! Snowpack
+                        L1_soilMoist_out         , & ! Soil moisture of each horizon
+                        L1_sealSTW_out           , & ! Retention storage of impervious areas
+                        L1_unsatSTW_out          , & ! Upper soil storage
+                        L1_satSTW_out            , & ! Groundwater storage
                         ! Fluxes L1
-                        L1_aETSoil_out         , & ! actual ET
-                        L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
-                        L1_aETSealed_out       , & ! Actual ET from free-water surfaces
-                        L1_total_runoff_out    , & ! Generated runoff
-                        L1_runoffSeal_out      , & ! Direct runoff from impervious areas
-                        L1_fastRunoff_out      , & ! Fast runoff component
-                        L1_slowRunoff_out      , & ! Slow runoff component
-                        L1_baseflow_out        , & ! Baseflow
-                        L1_percol_out          , & ! Percolation
-                        L1_soilMoistSat(s1:e1,:) ) ! Saturation soil moisture for each horizon [mm]
+                        L1_aETSoil_out           , & ! actual ET
+                        L1_aETCanopy_out         , & ! Real evaporation intensity from canopy
+                        L1_aETSealed_out         , & ! Actual ET from free-water surfaces
+                        L1_total_runoff_out      , & ! Generated runoff
+                        L1_runoffSeal_out        , & ! Direct runoff from impervious areas
+                        L1_fastRunoff_out        , & ! Fast runoff component
+                        L1_slowRunoff_out        , & ! Slow runoff component
+                        L1_baseflow_out          , & ! Baseflow
+                        L1_percol_out            , & ! Percolation
+                        L1_soilMoistSat(s1:e1 ,:), & ! Saturation soil moisture for each horizon [mm] 
+                        L1_infilSoil_out)            ! Infiltration
 
                    ! set variables to zero
                    ! States L1
-                   if (outputFlxState(1)  ) L1_inter_out    (:)   = 0.0_dp       
-                   if (outputFlxState(2)  ) L1_snowPack_out (:)   = 0.0_dp      
+                   if (outputFlxState(1)  ) L1_inter_out(:)        = 0.0_dp       
+                   if (outputFlxState(2)  ) L1_snowPack_out(:)     = 0.0_dp      
                    if( outputFlxState(3) .OR. &
                         outputFlxState(4) .OR. &
                         outputFlxState(5)  ) L1_soilMoist_out(:,:) = 0.0_dp       
-                   if (outputFlxState(6)  ) L1_sealSTW_out  (:)   = 0.0_dp      
-                   if (outputFlxState(7)  ) L1_unsatSTW_out (:)   = 0.0_dp      
-                   if (outputFlxState(8)  ) L1_satSTW_out   (:)   = 0.0_dp      
+                   if (outputFlxState(6)  ) L1_sealSTW_out(:)      = 0.0_dp      
+                   if (outputFlxState(7)  ) L1_unsatSTW_out(:)     = 0.0_dp      
+                   if (outputFlxState(8)  ) L1_satSTW_out(:)       = 0.0_dp      
                    ! Fluxes L1
-                   if (outputFlxState(9)  ) L1_aETSoil_out   (:,:) = 0.0_dp     
-                   if (outputFlxState(9)  ) L1_aETCanopy_out   (:) = 0.0_dp    
-                   if (outputFlxState(9)  ) L1_aETSealed_out   (:) = 0.0_dp    
+                   if (outputFlxState(9)  ) L1_aETSoil_out(:,:)    = 0.0_dp     
+                   if (outputFlxState(9)  ) L1_aETCanopy_out(:)    = 0.0_dp    
+                   if (outputFlxState(9)  ) L1_aETSealed_out(:)    = 0.0_dp    
                    if (outputFlxState(10) ) L1_total_runoff_out(:) = 0.0_dp   
-                   if (outputFlxState(11) ) L1_runoffSeal_out  (:) = 0.0_dp   
-                   if (outputFlxState(12) ) L1_fastRunoff_out  (:) = 0.0_dp   
-                   if (outputFlxState(13) ) L1_slowRunoff_out  (:) = 0.0_dp   
-                   if (outputFlxState(14) ) L1_baseflow_out    (:) = 0.0_dp   
-                   if (outputFlxState(15) ) L1_percol_out      (:) = 0.0_dp   
+                   if (outputFlxState(11) ) L1_runoffSeal_out(:)   = 0.0_dp   
+                   if (outputFlxState(12) ) L1_fastRunoff_out(:)   = 0.0_dp   
+                   if (outputFlxState(13) ) L1_slowRunoff_out(:)   = 0.0_dp   
+                   if (outputFlxState(14) ) L1_baseflow_out(:)     = 0.0_dp   
+                   if (outputFlxState(15) ) L1_percol_out(:)       = 0.0_dp
+                   if (outputFlxState(16) ) L1_infilSoil_out(:,:)  = 0.0_dp   
                 end if
                 !    
                 ! close file and deallocate variables
@@ -572,6 +586,7 @@ CONTAINS
                    if (outputFlxState(13) ) deallocate( L1_slowRunoff_out  )  
                    if (outputFlxState(14) ) deallocate( L1_baseflow_out    )  
                    if (outputFlxState(15) ) deallocate( L1_percol_out      )  
+                   if (outputFlxState(16) ) deallocate( L1_infilSoil_out   ) 
                    !
                 end if
                 !

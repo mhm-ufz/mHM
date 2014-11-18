@@ -44,7 +44,7 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: C1_InitStateSM     =    0.25_dp
 
   ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState       = 15_i4     ! max. number of outputs to write into a netcdf file
+  integer(i4), public, parameter :: nOutFlxState       = 16_i4     ! max. number of outputs to write into a netcdf file
 
   ! constants in the Duffie formulae for computing extraterrestrial radiation
   real(dp),    public, parameter :: DuffieDr          =    0.033_dp
