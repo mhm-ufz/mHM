@@ -33,8 +33,7 @@ MODULE mo_mHM
 
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
-  use mo_message,       only: message
-  use mo_string_utils,  only: num2str 
+  use mo_message,       only: message 
   !$ USE omp_lib
  
   IMPLICIT NONE

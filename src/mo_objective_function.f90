@@ -267,7 +267,7 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in)            :: parameterset
-    real(dp),               intent(in)            :: stddev_old           ! standard deviation of data
+    real(dp),               intent(in)            :: stddev_old       ! standard deviation of data
     real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
     real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
     real(dp)                                      :: loglikelihood_kavetski
@@ -358,6 +358,7 @@ print*, 'a = ',a, '   b = ',b
 
     write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
 
+    stddev_tmp = stddev_old   ! this is only to make stddev_old used
     stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
        stddev_tmp = stddev(errors(:))

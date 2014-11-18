@@ -551,22 +551,22 @@ CONTAINS
   !>         \param[in] "integer(i4) :: iBasin"           ! mumber of subbasin
   !>         \param[in] "integer(i4) :: output_timeStep"  ! timestep (e.g. hour, day,..) of the output
   !>         \param[in] "logical     :: mask(:,:)"        ! mask for unpacking vectorized data to array 
-  !>         \param[in] "real(dp)    :: L1_inter_out(:)"        ! Interception
-  !>         \param[in] "real(dp)    :: L1_snowPack_out(:)"     ! Snowpack
-  !>         \param[in] "real(dp)    :: L1_soilMoist_out(:,:)"  ! Soil moisture of each horizon
-  !>         \param[in] "real(dp)    :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
-  !>         \param[in] "real(dp)    :: L1_unsatSTW_out(:)"     ! Upper soil storage
-  !>         \param[in] "real(dp)    :: L1_satSTW_out(:)"       ! Groundwater storage
-  !>         \param[in] "real(dp)    :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
-  !>         \param[in] "real(dp)    :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
-  !>         \param[in] "real(dp)    :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
-  !>         \param[in] "real(dp)    :: L1_total_runoff_out(:)" ! Generated runoff
-  !>         \param[in] "real(dp)    :: L1_runoffSeal_out(:)"   ! Direct runoff from impervious areas
-  !>         \param[in] "real(dp)    :: L1_fastRunoff_out(:)"   ! Fast runoff component
-  !>         \param[in] "real(dp)    :: L1_slowRunoff_out(:)"   ! Slow runoff component
-  !>         \param[in] "real(dp)    :: L1_baseflow_out(:)"     ! Baseflow
-  !>         \param[in] "real(dp)    :: L1_percol_out(:)"       ! Percolation
-  !>         \param[in] "real(dp)    :: L1_infilSoil_out(:)"    ! Infiltration  
+  !>         \param[in] "real(dp), allocatable    :: L1_inter_out(:)"        ! Interception
+  !>         \param[in] "real(dp), allocatable    :: L1_snowPack_out(:)"     ! Snowpack
+  !>         \param[in] "real(dp), allocatable    :: L1_soilMoist_out(:,:)"  ! Soil moisture of each horizon
+  !>         \param[in] "real(dp), allocatable    :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
+  !>         \param[in] "real(dp), allocatable    :: L1_unsatSTW_out(:)"     ! Upper soil storage
+  !>         \param[in] "real(dp), allocatable    :: L1_satSTW_out(:)"       ! Groundwater storage
+  !>         \param[in] "real(dp), allocatable    :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
+  !>         \param[in] "real(dp), allocatable    :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
+  !>         \param[in] "real(dp), allocatable    :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
+  !>         \param[in] "real(dp), allocatable    :: L1_total_runoff_out(:)" ! Generated runoff
+  !>         \param[in] "real(dp), allocatable    :: L1_runoffSeal_out(:)"   ! Direct runoff from impervious areas
+  !>         \param[in] "real(dp), allocatable    :: L1_fastRunoff_out(:)"   ! Fast runoff component
+  !>         \param[in] "real(dp), allocatable    :: L1_slowRunoff_out(:)"   ! Slow runoff component
+  !>         \param[in] "real(dp), allocatable    :: L1_baseflow_out(:)"     ! Baseflow
+  !>         \param[in] "real(dp), allocatable    :: L1_percol_out(:)"       ! Percolation
+  !>         \param[in] "real(dp), allocatable    :: L1_infilSoil_out(:)"    ! Infiltration  
 
   !     INTENT(INOUT)
   !          None
@@ -651,24 +651,24 @@ CONTAINS
     integer(i4),               intent(in) :: iBasin              ! mumber of subbasin
     logical,   dimension(:,:), intent(in) :: mask                ! mask for unpacking
     ! States L1
-    real(dp), dimension(:),    intent(in) :: L1_inter_out        ! Interception
-    real(dp), dimension(:),    intent(in) :: L1_snowPack_out     ! Snowpack
-    real(dp), dimension(:,:),  intent(in) :: L1_soilMoist_out    ! Soil moisture of each horizon
-    real(dp), dimension(:),    intent(in) :: L1_sealSTW_out      ! Retention storage of impervious areas
-    real(dp), dimension(:),    intent(in) :: L1_unsatSTW_out     ! Upper soil storage
-    real(dp), dimension(:),    intent(in) :: L1_satSTW_out       ! Groundwater storage
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_inter_out        ! Interception
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_snowPack_out     ! Snowpack
+    real(dp), dimension(:,:),  allocatable, intent(in) :: L1_soilMoist_out    ! Soil moisture of each horizon
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_sealSTW_out      ! Retention storage of impervious areas
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_unsatSTW_out     ! Upper soil storage
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
-    real(dp), dimension(:,:),  intent(in) :: L1_aETSoil_out      ! actual ET of each horizon
-    real(dp), dimension(:),    intent(in) :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
-    real(dp), dimension(:),    intent(in) :: L1_aETSealed_out    ! Actual ET from free-water surfaces
-    real(dp), dimension(:),    intent(in) :: L1_total_runoff_out ! Generated runoff
-    real(dp), dimension(:),    intent(in) :: L1_runoffSeal_out   ! Direct runoff from impervious areas
-    real(dp), dimension(:),    intent(in) :: L1_fastRunoff_out   ! Fast runoff component
-    real(dp), dimension(:),    intent(in) :: L1_slowRunoff_out   ! Slow runoff component
-    real(dp), dimension(:),    intent(in) :: L1_baseflow_out     ! Baseflow
-    real(dp), dimension(:),    intent(in) :: L1_percol_out       ! Percolation
-    real(dp), dimension(:,:),  intent(in) :: L1_soilMoistSat_out ! Saturation soil moisture for each horizon [mm]
-    real(dp), dimension(:,:),  intent(in) :: L1_infilSoil_out    ! Infiltration for each horizon
+    real(dp), dimension(:,:),  allocatable, intent(in) :: L1_aETSoil_out      ! actual ET of each horizon
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_aETSealed_out    ! Actual ET from free-water surfaces
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_total_runoff_out ! Generated runoff
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_runoffSeal_out   ! Direct runoff from impervious areas
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_fastRunoff_out   ! Fast runoff component
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_slowRunoff_out   ! Slow runoff component
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_baseflow_out     ! Baseflow
+    real(dp), dimension(:),    allocatable, intent(in) :: L1_percol_out       ! Percolation
+    real(dp), dimension(:,:),  allocatable, intent(in) :: L1_soilMoistSat_out ! Saturation soil moisture for each horizon [mm]
+    real(dp), dimension(:,:),  allocatable, intent(in) :: L1_infilSoil_out    ! Infiltration for each horizon
 
     ! local variables
     integer(i4)                                     :: totalVarNo ! total number of variables

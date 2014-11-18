@@ -532,6 +532,7 @@ CONTAINS
        status = nf90_inq_varid(ncid, 'time', varid)
        status = nf90_inquire_variable(ncid, varid, xtype=datatype)
        status = nf90_close(ncid)
+       status = status + 0  ! this is only to make the variable used
        if ((datatype .eq. NF90_INT) .or. (datatype .eq. NF90_DOUBLE)) then
           if (datatype .eq. NF90_INT) then
              allocate(timesteps(dimen(3)))
