@@ -111,7 +111,7 @@ CONTAINS
        L1_slowRunoff_out      , & ! Slow runoff component
        L1_baseflow_out        , & ! Baseflow
        L1_percol_out          , & ! Percolation 
-       L1_infilSoil_out       , & ! Infiltration
+       L1_infilSoil_out       , & ! Infiltrationf
        ! Output
        ncid)
 
@@ -667,7 +667,7 @@ CONTAINS
     real(dp), dimension(:),    allocatable, intent(in) :: L1_slowRunoff_out   ! Slow runoff component
     real(dp), dimension(:),    allocatable, intent(in) :: L1_baseflow_out     ! Baseflow
     real(dp), dimension(:),    allocatable, intent(in) :: L1_percol_out       ! Percolation
-    real(dp), dimension(:,:),  allocatable, intent(in) :: L1_soilMoistSat_out ! Saturation soil moisture for each horizon [mm]
+    real(dp), dimension(:,:),               intent(in) :: L1_soilMoistSat_out ! Saturation soil moisture for each horizon [mm]
     real(dp), dimension(:,:),  allocatable, intent(in) :: L1_infilSoil_out    ! Infiltration for each horizon
 
     ! local variables
