@@ -12,7 +12,7 @@
 !>          (6) SSE  \n
 !>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !>          (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
-!>          (9) KGE  \n
+!>          (9) 1.0 - KGE  \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -1299,16 +1299,22 @@ print*, 'a = ',a, '   b = ',b
   !>        \brief Objective function of KGE.
 
   !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
-  !>        \f[ KGE = SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
-  !>        is calculated and the objective function is
-  !>        \f[ obj\_value = KGE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
-  !>        \f[ r \f] = Pearson product-moment correlation coefficient
-  !>        \f[ \alpha \f] = ratio of similated mean to observed mean 
-  !>        \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 The model will be called with that parameter vector and 
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>                       \f[ KGE = 1.0 - SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
+  !>                 where
+  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
+  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 is calculated and the objective function is
+  !>                       \f[ obj\_value = 1.0 - KGE \f]
+  !>                 (1-KGE) is the objective since we always apply minimization methods. 
+  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
+  !>
+  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -1419,7 +1425,7 @@ print*, 'a = ',a, '   b = ',b
             kge(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
     end do
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
-    objective_kge = objective_kge / real(nGaugesTotal,dp)
+    objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal,dp)
 
     write(*,*) 'objective_kge = ', objective_kge
     ! pause

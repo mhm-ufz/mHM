@@ -688,11 +688,15 @@ CONTAINS
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
-    use mo_julian,              only: dec2date
+
+    use mo_errormeasures,       only: kge, nse
     use mo_file,                only: file_daily_discharge, udaily_discharge
     use mo_global_variables,    only: nBasins, basin, dirOut, gauge, evalPer
+    use mo_julian,              only: dec2date
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
+    use mo_utils,               only: ge
+
 
     implicit none
 
@@ -753,6 +757,12 @@ CONTAINS
        write(dummy,'(I3)') bb
        call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
        call message('    to ',trim(fname))
+       do gg=igauge_start, igauge_end
+          call message('    KGE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+               trim(adjustl(num2str(kge(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+          call message('    NSE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+               trim(adjustl(num2str(nse(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+       end do
 
        ! update igauge_start
        igauge_start = igauge_end + 1

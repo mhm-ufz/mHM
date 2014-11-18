@@ -187,7 +187,7 @@ opti_method = 1
 !> (6) SSE  \n
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
-!> (9) Kling-Gupta efficiency measure  \n
+!> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------

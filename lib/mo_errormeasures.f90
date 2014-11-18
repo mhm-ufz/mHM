@@ -108,23 +108,34 @@ MODULE mo_errormeasures
   !      NAME
   !          KGE
 
-  !>        \brief Objective function of KGE.
+  !>        \brief Kling-Gupta-Efficiency measure.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>                 The model will be called with that parameter vector and 
-  !>                 the model output is subsequently compared to observed data.
-  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
-  !>                     \f[ KGE = SQRT( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 ) \f]
-  !>                 is calculated and the objective function is
-  !>                     \f[ obj\_value = KGE \f]
-  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        \details The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
+  !>                     \f[ KGE = 1 - SQRT( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 ) \f]
+  !>                 where
   !>                     \f[ r \f]      = Pearson product-moment correlation coefficient
   !>                     \f[ \alpha \f] = ratio of simulated mean to observed mean 
   !>                     \f[ \beta  \f] = ratio of simulated standard deviation to 
   !>                                      observed standard deviation
+  !>                 This three measures are calculated between two arrays (1d, 2d, or 3d). 
+  !>                 Usually, one is an observation and the second is a modelled variable.\n
+  !>
+  !>                 The higher the KGE the better the observation and simulation are matching. 
+  !>                 The upper limit of KGE is 1.\n
+  !>                 
+  !>                 Therefore, if you apply a minimization algorithm to calibrate regarding 
+  !>                 KGE you have to use the objective function 
+  !>                     \f[ obj\_value = 1.0 - KGE \f]
+  !>                 which has then the optimum at 0.0.
+  !>                 (Like for the NSE where you always optimize 1-NSE.)\n
+  !>
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>        real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
+  !             OR
+  !>        real(sp/dp), dimension(:,:)   :: x, y    2D-array with input numbers
+  !             OR
+  !>        real(sp/dp), dimension(:,:,:) :: x, y    3D-array with input numbers
 
   !     INTENT(INOUT)
   !         None
@@ -133,7 +144,11 @@ MODULE mo_errormeasures
   !         None
 
   !     INTENT(IN), OPTIONAL
-  !         None
+  !>        logical     :: mask(:)     1D-array of logical values with size(x/y).
+  !             OR
+  !>        logical     :: mask(:,:)   2D-array of logical values with size(x/y).
+  !             OR
+  !>        logical     :: mask(:,:,:) 3D-array of logical values with size(x/y).
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -142,29 +157,32 @@ MODULE mo_errormeasures
   !         None
 
   !     RETURN
-  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
-  !>       (which will be e.g. minimized by an optimization routine like DDS)
+  !>       \return  kge &mdash; Kling-Gupta-Efficiency (value less equal 1.0)
 
   !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
 
   !     EXAMPLE
   !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge(para)
+  !         kge = kge(x,y,mask=mask)
 
   !     LITERATURE
-  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
-  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+  !>        Gupta, Hoshin V., et al. 
+  !>           "Decomposition of the mean squared error and NSE performance criteria: 
+  !>           Implications for improving hydrological modelling." 
+  !>           Journal of Hydrology 377.1 (2009): 80-91.
 
 
   !     HISTORY
   !>        \author Rohini Kumar
   !>        \date August 2014
   !         Modified, R. Kumar & O. Rakovec - Sep. 2014
+  !                   J. Mai                - remove double packing of input data (bug)
+  !                                         - KGE instead of 1.0-KGE
+  !                                         - 1d, 2d, 3d, version in sp and dp
 
   INTERFACE KGE
-     MODULE PROCEDURE KGE_dp_1d
+     MODULE PROCEDURE KGE_dp_1d, KGE_dp_2d, KGE_dp_3d, KGE_sp_1d, KGE_sp_2d, KGE_sp_3d
   END INTERFACE KGE
 
   ! ------------------------------------------------------------------
@@ -850,7 +868,190 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
+  FUNCTION KGE_sp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                          :: KGE_sp_1d
+
+    ! local variables
+    INTEGER(i4)                             :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) ) :: shapemask
+    LOGICAL,     DIMENSION(size(x))         :: maske
+    
+    REAL(sp)                                :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp)                                :: pearson_coor         ! Pearson Corr. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_sp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask=maske) 
+    mu_Sim = average(y, mask=maske)  
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask=maske)
+    sigma_Sim = stddev(y, mask=maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask=maske) * real(n,sp) / real(n-1,sp)
+    ! 
+    KGE_sp_1d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_sp - pearson_coor)**2             &  	   
+         )
+ 
+  END FUNCTION KGE_sp_1d
+
+  FUNCTION KGE_sp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                            :: KGE_sp_2d
+
+    ! local variables
+    INTEGER(i4)                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2)) :: maske
+    REAL(sp)                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp)                                               :: pearson_coor         ! Pearson Corr. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_sp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) * &
+         real(n,sp) / real(n-1,sp)
+    ! 
+    KGE_sp_2d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_sp - pearson_coor)**2             &  	   
+         )
+ 
+  END FUNCTION KGE_sp_2d
+
+  FUNCTION KGE_sp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                            :: KGE_sp_3d
+
+    ! local variables
+    INTEGER(i4)                                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2), size(x, dim=3)) :: maske
+    REAL(sp)                                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp)                                                               :: pearson_coor         ! Pearson Corr. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_sp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) * &
+         real(n,sp) / real(n-1,sp)
+    ! 
+    KGE_sp_3d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_sp - pearson_coor)**2             &  	   
+         )
+ 
+  END FUNCTION KGE_sp_3d
+
   FUNCTION KGE_dp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
 
     IMPLICIT NONE
 
@@ -859,14 +1060,13 @@ CONTAINS
     REAL(dp)                                          :: KGE_dp_1d
 
     ! local variables
-    INTEGER(i4)                                       :: n
-    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
-    LOGICAL,  DIMENSION(size(x))                      :: maske
+    INTEGER(i4)                             :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) ) :: shapemask
+    LOGICAL,     DIMENSION(size(x))         :: maske
     
-    REAL(dp), DIMENSION(:), allocatable               :: v1, v2
-    REAL(dp)                                          :: mu_Obs, mu_Sim, sigma_Obs, sigma_Sim, pearson_coor
-
-
+    REAL(dp)                                :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp)                                :: pearson_coor         ! Pearson Corr. of x and y
 
     if (present(mask)) then
        shapemask = shape(mask)
@@ -885,26 +1085,150 @@ CONTAINS
     endif
     if (n .LE. 1_i4) stop 'KGE_dp_1d: sample size must be at least 2'
 
-    !  
-    allocate( V1(n), V2(n) )
-    V1(:) = PACK(x, maske  )
-    V2(:) = PACK(y, maske  )
-    mu_Obs = SUM(V1, maske ) / real(n, dp) 
-    mu_Sim = SUM(V2, maske ) / real(n, dp) 
-    !
-    sigma_Obs = DOT_PRODUCT( (V1(:) - mu_Obs), (V1(:) - mu_Obs) ) / real((n-1), dp) 
-    sigma_Sim = DOT_PRODUCT( (V2(:) - mu_Sim), (V2(:) - mu_Sim) ) / real((n-1), dp) 
-    sigma_Obs = SQRT(sigma_Obs)
-    sigma_Sim = SQRT(sigma_Sim)
-    pearson_coor = DOT_PRODUCT( ((V1(:) - mu_Obs)/ sigma_Obs), ((V2(:) - mu_Sim)/sigma_Sim) ) / real((n-1), dp) 
+    ! Mean
+    mu_Obs = average(x, mask=maske) 
+    mu_Sim = average(y, mask=maske)  
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask=maske)
+    sigma_Sim = stddev(y, mask=maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask=maske) * real(n,dp) / real(n-1,dp)
     ! 
-    KGE_dp_1d = SQRT( ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
-                      ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
-                      ( 1.0_dp - pearson_coor)**2             &  	   
-                    )
-    deallocate(V1, V2)
+    KGE_dp_1d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_dp - pearson_coor)**2             &  	   
+         )
  
   END FUNCTION KGE_dp_1d
+
+  FUNCTION KGE_dp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                            :: KGE_dp_2d
+
+    ! local variables
+    INTEGER(i4)                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2)) :: maske
+    REAL(dp)                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp)                                               :: pearson_coor         ! Pearson Corr. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_dp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) * &
+         real(n,dp) / real(n-1,dp)
+    ! 
+    KGE_dp_2d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_dp - pearson_coor)**2             &  	   
+         )
+ 
+  END FUNCTION KGE_dp_2d
+
+  FUNCTION KGE_dp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                            :: KGE_dp_3d
+
+    ! local variables
+    INTEGER(i4)                                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2), size(x, dim=3)) :: maske
+    REAL(dp)                                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp)                                                               :: pearson_coor         ! Pearson Corr. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    endif
+    if (n .LE. 1_i4) stop 'KGE_dp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) * &
+         real(n,dp) / real(n-1,dp)
+    ! 
+    KGE_dp_3d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
+         ( 1.0_dp - pearson_coor)**2             &  	   
+         )
+ 
+  END FUNCTION KGE_dp_3d
 
   ! ------------------------------------------------------------------
 
