@@ -528,7 +528,7 @@ CONTAINS
     ! local variables
     character(256)                           :: fName
     character(3)                             :: flag
-    character(len=25), dimension(nProcesses) :: Process_descr
+    character(len=28), dimension(nProcesses) :: Process_descr
     integer(i4)                              :: err
     integer(i4)                              :: iProc, iPar, iPar_start
 
@@ -536,7 +536,7 @@ CONTAINS
     Process_descr(2) = 'snow'
     Process_descr(3) = 'soilmoisture'
     Process_descr(4) = 'directSealedAreaRunoff'
-    Process_descr(5) = 'Potential Evapotranspiration'
+    Process_descr(5) = 'potential evapotranspiration'
     Process_descr(6) = 'interflow'
     Process_descr(7) = 'percolation'
     Process_descr(8) = 'routing'

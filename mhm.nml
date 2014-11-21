@@ -1,4 +1,3 @@
-! Emacs: -*- mode: f90 -*-
 !> \file mhm.nml
 !
 !> \brief Namelists of mHM
@@ -14,7 +13,6 @@
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
-! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -31,7 +29,7 @@
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut      = "/data/stohyd/mHM_project/germany/basin//sub_9305116/output/zink/pet/"
+dirConfigOut      = "/home/zink/source_code/mhm/test_reintegration/PenMon_regio_sce001/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
@@ -63,10 +61,10 @@ dir_Temperature(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/me
 !> if processCase(5) == 0  input directory of pet has to be specified
 dir_ReferenceET(1)          = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dirMinTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
-dirMaxTemperature_dummy(1)  = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+dir_MinTemperature(1)       = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+dir_MaxTemperature(1)       = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dirNetRadiation_dummy(1)    = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
+dir_NetRadiation(1)         = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(1)       = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 dir_windspeed(1)            = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
@@ -74,11 +72,11 @@ dir_windspeed(1)            = "/data/stohyd/mHM_project/germany/basin//sub_93051
 !> directory where latitude and longitude file is located
 dir_LatLon(1)        = "/data/stohyd/mHM_project/germany/basin//sub_9305116/morph/latlon.nc"
 !> directory where output should be written to
-dir_Out(1)           = "/data/stohyd/mHM_project/germany/basin//sub_9305116/output/zink/pet/"
+dir_Out(1)           = "/home/zink/source_code/mhm/test_reintegration/PenMon_regio_sce001/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart/"
+dir_RestartOut(1)    = "xxx"
 !> directory where restart output should be written
-dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart/"
+dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart_31-12-2004_4000/"
 !
 /
 
@@ -95,12 +93,6 @@ dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/rest
 !-----------------------------------------------------------------------------
 timestep            = 1
 !-----------------------------------------------------------------------------
-!> input data & model run cordinate system 
-!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
-!> 1 -> regular lat & lon coordinate system
-!-----------------------------------------------------------------------------
-iFlag_cordinate_sys = 0
-!-----------------------------------------------------------------------------
 !> Number of basins to be modeled. \n 
 !> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
 !> All gauging stations within those basins will be taken for the optimization.\n
@@ -109,17 +101,13 @@ iFlag_cordinate_sys = 0
 !-----------------------------------------------------------------------------
 nBasins                       = 1
 !-----------------------------------------------------------------------------
-!> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
-!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
+!> resolution of Level-1 hydrological simulations in mHM [m] per basin
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 4000 
 !-----------------------------------------------------------------------------
-!> resolution of Level-11 discharge routing [m or degree] per basin \n
+!> resolution of Level-11 discharge routing [m] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
-!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 4000 
 !----------------------------------------------------------------------------
@@ -138,7 +126,7 @@ optimize            = .FALSE.
 !> (2) Simulated Annealing \n
 !> (3) SCE                 \n
 !> additional settings for the different methods can be provided below in namelist Optimization
-opti_method         = -9
+opti_method         = 3
 !> (1) 1.0 - NSE  \n
 !> (2) 1.0 - lnNSE  \n
 !> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
@@ -148,13 +136,13 @@ opti_method         = -9
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> further functions can be implemented in mo_objective_function
-opti_function       = -9
+opti_function       = 5
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .FALSE.
+restart_flag_states_read   = .TRUE.
 restart_flag_states_write  = .FALSE.
-restart_flag_config_read   = .FALSE.
+restart_flag_config_read   = .TRUE.
 restart_flag_config_write  = .FALSE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
@@ -172,7 +160,7 @@ restart_flag_config_write  = .FALSE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warmingDays          = 0
+warmingDays          = 1826
 !> first year of wanted simulation period
 evalPer%yStart       = 2005
 !> first month of wanted simulation period
@@ -194,13 +182,13 @@ evalPer%dEnd         = 31
 !> Variables given in this namelist are common to all basins to be modeled.
 &soilLayer
 !> [mm] soil depth down to which organic matter is possible  
-tillageDepth      = 300
+tillageDepth         = 300
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM = 3
+nSoilHorizons_mHM    = 3
 ! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soil_Depth(1)     =  50
-soil_Depth(2)     = 250
+soil_Depth(1)        = 50
+soil_Depth(2)        = 250
 /
 
 !******************************************************************************************
@@ -365,7 +353,29 @@ nInflowGaugesTotal            = 0
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
 !> numbering has to be consecutive
-/
+
+!> basin 1
+!> number of gauges for subbasin (1)
+NoInflowGauges_basin(1)       = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_id(1,1)           = -999999
+!> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_filename(1,1)     = "-999999.txt"
+
+!> id of inflow gauge(2) for subbasin(1) --> (1,2) 
+InflowGauge_id(1,2)           = -999999
+!> name of file with timeseries of inflow gauge(2) for subbasin(1) --> (1,2) 
+InflowGauge_filename(1,2)     = "-999999.txt"
+
+!> id of inflow gauge(3) for subbasin(1) --> (1,3) 
+InflowGauge_id(1,3)           = -999999
+!> name of file with timeseries of inflow gauge(3) for subbasin(1) --> (1,3) 
+InflowGauge_filename(1,3)     = "-999999.txt"
+
+!> id of inflow gauge(4) for subbasin(1) --> (1,4) 
+InflowGauge_id(1,4)           = -999999
+!> name of file with timeseries of inflow gauge(4) for subbasin(1) --> (1,4) 
+InflowGauge_filename(1,4)     = "-999999.txt"/
 
 !******************************************************************************************
 ! ANNUAL CYCLE PAN EVAPORATION
@@ -397,10 +407,10 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations    = 1000
+nIterations    = 50000
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
-seed           = 346906658
+seed           = 28697675
 !  -------------------------------------
 !> DDS specific: \n
 !  -------------------------------------

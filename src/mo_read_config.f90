@@ -255,9 +255,9 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_Gauges
     character(256), dimension(maxNoBasins)          :: dir_Precipitation
     character(256), dimension(maxNoBasins)          :: dir_Temperature
-    character(256), dimension(maxNoBasins)          :: dirMinTemperature_dummy
-    character(256), dimension(maxNoBasins)          :: dirMaxTemperature_dummy
-    character(256), dimension(maxNoBasins)          :: dirNetRadiation_dummy
+    character(256), dimension(maxNoBasins)          :: dir_MinTemperature
+    character(256), dimension(maxNoBasins)          :: dir_MaxTemperature
+    character(256), dimension(maxNoBasins)          :: dir_NetRadiation
     character(256), dimension(maxNoBasins)          :: dir_windspeed
     character(256), dimension(maxNoBasins)          :: dir_absVapPressure
     character(256), dimension(maxNoBasins)          :: dir_ReferenceET
@@ -291,9 +291,9 @@ CONTAINS
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,          &
                            dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                &
-                           dir_Temperature, dir_ReferenceET, dirMinTemperature_dummy,         &
-                           dirMaxTemperature_dummy, dir_absVapPressure, dir_windspeed,        &
-                           dirNetRadiation_dummy, dir_Out, dir_RestartOut,                    &
+                           dir_Temperature, dir_ReferenceET, dir_MinTemperature,              &
+                           dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
+                           dir_NetRadiation, dir_Out, dir_RestartOut,                          &
                            dir_RestartIn, dir_LatLon
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
@@ -426,21 +426,21 @@ CONTAINS
     call position_nml('directories', unamelist)
     read(unamelist, nml=directories)
 
-    dirMorpho                 = dir_Morpho              (1:nBasins)
-    dirLCover                 = dir_LCover              (1:nBasins)
-    dirGauges                 = dir_Gauges              (1:nBasins)      
-    dirPrecipitation          = dir_Precipitation       (1:nBasins)
-    dirTemperature            = dir_Temperature         (1:nBasins)
-    dirReferenceET            = dir_ReferenceET         (1:nBasins)
-    dirMinTemperature         = dirMinTemperature_dummy (1:nBasins)
-    dirMaxTemperature         = dirMaxTemperature_dummy (1:nBasins)
-    dirNetRadiation           = dirNetRadiation_dummy   (1:nBasins)
-    dirwindspeed              = dir_windspeed           (1:nBasins)
-    dirabsVapPressure         = dir_absVapPressure      (1:nBasins)
-    dirOut                    = dir_Out                 (1:nBasins)
-    dirRestartOut             = dir_RestartOut          (1:nBasins)
-    dirRestartIn              = dir_RestartIn           (1:nBasins)
-    dirLatLon                 = dir_LatLon              (1:nBasins)
+    dirMorpho                 = dir_Morpho         (1:nBasins)
+    dirLCover                 = dir_LCover         (1:nBasins)
+    dirGauges                 = dir_Gauges         (1:nBasins)      
+    dirPrecipitation          = dir_Precipitation  (1:nBasins)
+    dirTemperature            = dir_Temperature    (1:nBasins)
+    dirReferenceET            = dir_ReferenceET    (1:nBasins)
+    dirMinTemperature         = dir_MinTemperature (1:nBasins)
+    dirMaxTemperature         = dir_MaxTemperature (1:nBasins)
+    dirNetRadiation           = dir_NetRadiation   (1:nBasins)
+    dirwindspeed              = dir_windspeed      (1:nBasins)
+    dirabsVapPressure         = dir_absVapPressure (1:nBasins)
+    dirOut                    = dir_Out            (1:nBasins)
+    dirRestartOut             = dir_RestartOut     (1:nBasins)
+    dirRestartIn              = dir_RestartIn      (1:nBasins)
+    dirLatLon                 = dir_LatLon         (1:nBasins)
 
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
