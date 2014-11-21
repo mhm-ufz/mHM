@@ -9,7 +9,7 @@
 !> \date Dec 2012
 
 module mo_mpr_soilmoist
-  
+
 
   use mo_kind, only: i4, dp
 
@@ -82,24 +82,24 @@ contains
   !         Written,  Stephan Thober, Dec 2012
   !         Modified, Juliane Mai,    Oct 2013 - OLD parametrization
   !                                                --> param(1) = orgMatterContent_forest
-  !                                                --> param(2) = orgMatterContent_impervious 
+  !                                                --> param(2) = orgMatterContent_impervious
   !                                                --> param(3) = orgMatterContent_pervious
   !                                                --> param(4:13) = ...
   !                                             -------------------------------
   !                                             orgMatterContent_forest = orgMatterContent_perv + delta_1
   !                                             -------------------------------
   !                                             NEW parametrization
-  !                                                --> param(1) = delta_1 
-  !                                                --> param(2) = orgMatterContent_impervious 
-  !                                                --> param(3) = orgMatterContent_pervious  
+  !                                                --> param(1) = delta_1
+  !                                                --> param(2) = orgMatterContent_impervious
+  !                                                --> param(3) = orgMatterContent_pervious
   !                                                --> param(4:13) = ...
-  !         Modified, Matthias Zink,  Nov 2013 - documentation, inouts --> out 
+  !         Modified, Matthias Zink,  Nov 2013 - documentation, inouts --> out
   !                                              moved constants to mhm_constants
   !         Modified, Stephan Thober, Mar 2014 - separated cell loop from soil loop for better
   !                                              scaling in parallelization
 
   subroutine mpr_sm( &
-       ! Input -----------------------------------------------------------------
+                                ! Input -----------------------------------------------------------------
        param        , & ! global parameter set
        nodata       , & ! nodata value
        is_present   , & ! flag indicating presence of soil
@@ -111,7 +111,7 @@ contains
        ID0          , & ! cell ids at level 0
        soilId0      , & ! soil ids at level 0
        LCover0      , & ! land cover ids at level 0
-       ! Output ----------------------------------------------------------------
+                                ! Output ----------------------------------------------------------------
        thetaS_till  , & ! saturated soil moisture tillage layer
        thetaFC_till , & ! field capacity tillage layer
        thetaPW_till , & ! permanent wilting point tillage layer
@@ -121,12 +121,12 @@ contains
        Ks           , & ! saturated hydraulic conductivity
        Db           , & ! Bulk density
        KsVar_H0     , & ! relative variability of saturated
-                        ! hydraulic counductivity for Horizantal flow
+                                ! hydraulic counductivity for Horizantal flow
        KsVar_V0     , & ! relative variability of saturated
-                        ! hydraulic counductivity for Horizantal flow
+                                ! hydraulic counductivity for Horizantal flow
        SMs_tot0     , & ! total saturated soil mositure content
        SMs_FC0    )     ! soil mositure deficit from field capacity
-                        ! w.r.t to saturation
+    ! w.r.t to saturation
 
     use mo_mhm_constants, only: BulkDens_OrgMatter
     !$  use omp_lib
@@ -158,16 +158,16 @@ contains
     real(dp),    dimension(:,:,:), intent(out) :: Ks            ! saturated hydraulic conductivity
     real(dp),    dimension(:,:,:), intent(out) :: Db            ! Bulk density
     real(dp),    dimension(:),     intent(out) :: KsVar_H0      ! relative variability of
-                                                                ! saturated hydraulic
-                                                                ! cound. for Horizantal flow
-                                                                ! dimension is number of cells at level 0
+    ! saturated hydraulic
+    ! cound. for Horizantal flow
+    ! dimension is number of cells at level 0
     real(dp),    dimension(:),     intent(out) :: KsVar_V0      ! relative variability of
-                                                                  ! saturated hydraulic
-                                                                  ! cound. for vertical flow
+    ! saturated hydraulic
+    ! cound. for vertical flow
     real(dp),    dimension(:),     intent(out) :: SMs_tot0      ! total saturated soilmositure
-                                                                  ! content
+    ! content
     real(dp),    dimension(:),     intent(out) :: SMs_FC0       ! soil mositure deficit from
-                                                                  ! field cap. w.r.t to saturation
+    ! field cap. w.r.t to saturation
 
     ! Local variables
     integer(i4)                               :: i               ! loop index
@@ -200,7 +200,7 @@ contains
     thetaS       = 0.0_dp
     thetaFC      = 0.0_dp
     thetaPW      = 0.0_dp
-    Ks           = 0.0_dp  
+    Ks           = 0.0_dp
     Db           = 0.0_dp
 
     !$OMP PARALLEL default(shared)
@@ -210,34 +210,34 @@ contains
     do i = 1, size(is_present)
 
        if ( is_present(i) .lt. 1 ) cycle
-       
+
        horizon: do j = 1, nHorizons(i)
 
-          ! calculating vertical hydraulic conductivity 
+          ! calculating vertical hydraulic conductivity
           call hydro_cond( Ks_tmp, param(10:13), sand(i,j), clay(i,j) )
           Ks(i,j,:) = Ks_tmp
 
           ! calculating other soil hydraulic
           ! tillage horizons
-          
+
           if ( j .le. nTillHorizons(i) ) then
-             
+
              ! LC class
              do L = 1, maxval( LCOVER0 )
                 select case (L)
                 case(1)               ! forest
                    pOM = tmp_orgMatterContent_forest
                 case(2)               ! impervious
-                   pOM = tmp_orgMatterContent_impervious !param(2)  
-                case(3)               ! permeable   
+                   pOM = tmp_orgMatterContent_impervious !param(2)
+                case(3)               ! permeable
                    pOM = tmp_orgMatterContent_pervious
                 case default
                    stop 'Error mpr_sm: pOM used uninitialized.'
                 end select
                 pM = 100.0_dp - pOM
 
-                ! bulk density acording to Rawl's (1982) paper 
-                Db(i,j,L) = 100.0_dp / ( (pOM/BulkDens_OrgMatter) + (pM/DbM(i,j)) ) 
+                ! bulk density acording to Rawl's (1982) paper
+                Db(i,j,L) = 100.0_dp / ( (pOM/BulkDens_OrgMatter) + (pM/DbM(i,j)) )
 
                 ! Effect of organic matter content
                 ! This is taken into account in a simplified form by using
@@ -246,8 +246,8 @@ contains
                 Ks(i,j,L) =  Ks_tmp
 
                 ! estimated SMs_till & van Genuchten's shape parameter (n)
-                call Genuchten( thetaS_till(i,j,L), Genu_Mual_n, Genu_Mual_alpha, & 
-                                param(4:9), sand(i,j), clay(i,j), Db(i,j,L)       )
+                call Genuchten( thetaS_till(i,j,L), Genu_Mual_n, Genu_Mual_alpha, &
+                     param(4:9), sand(i,j), clay(i,j), Db(i,j,L)       )
 
                 ! estimating field capacity
                 call field_cap( thetaFC_till(i,j,L), Ks_tmp, thetaS_till(i,j,L), Genu_Mual_n )
@@ -256,24 +256,24 @@ contains
                 call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS_till(i,j,L), thetaPW_till(i,j,L) )
 
              end do
-             
+
              ! deeper layers
           else
-             
+
              ! estimate SMs & van Genuchten's shape parameter (n)
              call Genuchten( thetaS(i, j-minval(nTillHorizons(:))), Genu_Mual_n, Genu_Mual_alpha, &
                   param(4:9), sand(i,j), clay(i,j), DbM(i,j) )
-             
+
              ! estimate field capacity
              call field_cap( thetaFC(i,j-minval(nTillHorizons(:))), &
                   Ks_tmp, thetaS(i,j-minval(nTillHorizons(:))), Genu_Mual_n )
-             
+
              ! estimate permanent wilting point
              call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j-minval(nTillHorizons(:))), &
                   thetaPW(i, j-minval(nTillHorizons(:))) )
-             
+
           end if
-         
+
        end do horizon
 
     end do
@@ -300,7 +300,7 @@ contains
        end do
 
        ! ------------------------------------------------------------------
-       ! DETERMINE RELATIVE VARIABILITIES OF 
+       ! DETERMINE RELATIVE VARIABILITIES OF
        !   Ks FOR HORIZONTAL FLOW (KsVar_H)
        !               &
        !   Ks FOR VERTICAL FLOW (KsVar_V)
@@ -315,7 +315,7 @@ contains
     end do cellloop
     !$OMP END DO
     !$OMP END PARALLEL
-    
+
   end subroutine mpr_sm
 
   ! ------------------------------------------------------------------
@@ -327,7 +327,7 @@ contains
 
   !>        \details This subroutine calculates the permanent wilting
   !>        point according to Zacharias et al. (2007, Soil Phy.) and
-  !>        using van Genuchten 1980's equation. For the water retention curve at 
+  !>        using van Genuchten 1980's equation. For the water retention curve at
   !>        a matrix potential of -1500 kPa, it is assumed that thetaR = 0.
 
   !      INTENT(IN)
@@ -349,14 +349,14 @@ contains
   ! ------------------------------------------------------------------
 
   elemental pure subroutine PWP( &
-       ! Input variables
-       Genu_Mual_n     , & ! Genuchten shape parameters   
+                                ! Input variables
+       Genu_Mual_n     , & ! Genuchten shape parameters
        Genu_Mual_alpha , & ! Genuchten shape parameters
        thetaS          , & ! saturated water content
-       ! Output
+                                ! Output
        thetaPWP )          ! Permanent wilting point
 
-    use mo_mhm_constants , only: PWP_c, PWP_matPot_ThetaR ! constant for m, 
+    use mo_mhm_constants , only: PWP_c, PWP_matPot_ThetaR ! constant for m,
     !                                                      ! matrix potential of 1500 kPa, assumed as thetaR = 0
 
     implicit none
@@ -391,8 +391,8 @@ contains
 
   !>        \details estimate Field capacity; FC -- Flux based
   !>        approach (Twarakavi, et. al. 2009, WRR) \n
-  !>        According to the 
-  !>        above reference FC is defined as the soil water content at 
+  !>        According to the
+  !>        above reference FC is defined as the soil water content at
   !>        which the drainage from a profile ceases under natural
   !>        conditions. Since drainage from a soil profile in a simulation
   !>        never becomes zero, we assume that drainage ceases when the
@@ -477,29 +477,29 @@ contains
   !>        \date Dec 2012
   !         Written, Stephan Thober, Dec 2012
   !         Modified, Rohini Kumar , Mar 2014   - ThetaS limit changed from 0 to 0.001
-  
+
   subroutine Genuchten(thetaS, Genu_Mual_n, Genu_Mual_alpha, & ! Output variables
        param, sand, clay, Db )                                 ! Input variables
 
     use mo_mhm_constants, only:  vGenuchten_sandtresh,&        ! van Genuchten snad treshold
-                                 vGenuchtenN_c1 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c2 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c3 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c4 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c5 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c6 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c7 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c8 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c9 , &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c10, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c11, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c12, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c13, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c14, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c15, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c16, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c17, &            ! constants for van Genuchten n 
-                                 vGenuchtenN_c18               ! constants for van Genuchten n 
+         vGenuchtenN_c1 , &            ! constants for van Genuchten n
+         vGenuchtenN_c2 , &            ! constants for van Genuchten n
+         vGenuchtenN_c3 , &            ! constants for van Genuchten n
+         vGenuchtenN_c4 , &            ! constants for van Genuchten n
+         vGenuchtenN_c5 , &            ! constants for van Genuchten n
+         vGenuchtenN_c6 , &            ! constants for van Genuchten n
+         vGenuchtenN_c7 , &            ! constants for van Genuchten n
+         vGenuchtenN_c8 , &            ! constants for van Genuchten n
+         vGenuchtenN_c9 , &            ! constants for van Genuchten n
+         vGenuchtenN_c10, &            ! constants for van Genuchten n
+         vGenuchtenN_c11, &            ! constants for van Genuchten n
+         vGenuchtenN_c12, &            ! constants for van Genuchten n
+         vGenuchtenN_c13, &            ! constants for van Genuchten n
+         vGenuchtenN_c14, &            ! constants for van Genuchten n
+         vGenuchtenN_c15, &            ! constants for van Genuchten n
+         vGenuchtenN_c16, &            ! constants for van Genuchten n
+         vGenuchtenN_c17, &            ! constants for van Genuchten n
+         vGenuchtenN_c18               ! constants for van Genuchten n
 
     implicit none
 
@@ -521,21 +521,21 @@ contains
     if ( sand < vGenuchten_sandtresh ) then
        thetaS      =  param(1) + param(2) * clay + param(3) * Db
        Genu_Mual_n =  vGenuchtenN_c1  - vGenuchtenN_c2  * ( sand**(vGenuchtenN_c3) )     + &
-                                        vGenuchtenN_c4  * ( clay**(vGenuchtenN_c5) ) 
+            vGenuchtenN_c4  * ( clay**(vGenuchtenN_c5) )
        x           =  vGenuchtenN_c6  + vGenuchtenN_c7  * sand +   vGenuchtenN_c8 * clay - &
-                                        vGenuchtenN_c9  * Db
+            vGenuchtenN_c9  * Db
     else
        thetaS      =  param(4) + param(5) * clay + param(6) * Db
        Genu_Mual_n =  vGenuchtenN_c10 + vGenuchtenN_c11 * (sand**(vGenuchtenN_c12) )    + &
-                                        vGenuchtenN_c13 * (clay**(vGenuchtenN_c14) )
+            vGenuchtenN_c13 * (clay**(vGenuchtenN_c14) )
        x           = vGenuchtenN_c15  + vGenuchtenN_c16 * sand  + vGenuchtenN_c17 * clay - &
-                                        vGenuchtenN_c18 * Db
+            vGenuchtenN_c18 * Db
     end if
 
     ! Maulaum alpha
     Genu_Mual_alpha = exp(x)
 
-    ! hard coded limits 
+    ! hard coded limits
     if (thetaS < 0.001_dp) then
        write(*,*) 'JMJMJM-thetaS-BAD'
     end if
@@ -553,7 +553,7 @@ contains
     ! according to (Zacharias et al, 2007, soil Phy.)
     if(Genu_Mual_n     < 1.01000_dp) Genu_Mual_n     = 1.01000_dp
     if(Genu_Mual_alpha < 0.00001_dp) Genu_Mual_alpha = 0.00001_dp
-    
+
   end subroutine Genuchten
 
   ! ----------------------------------------------------------------------------
@@ -563,7 +563,7 @@ contains
 
   !>        \brief calculates the hydraulic conductivity Ks
 
-  !>        \details By default save this value of Ks, particularly for the 
+  !>        \details By default save this value of Ks, particularly for the
   !>        deeper layers where OM content plays relatively low or no role\n
   !>        Global parameters needed (see mhm_parameter.nml):\n
   !>           - param(1) = PTF_Ks_constant   \n
@@ -582,12 +582,13 @@ contains
   !      HISTORY
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012
-  !         Written, Stephan Thober, Dec 2012
+  !         Written,  Stephan Thober, Dec 2012
   !         Modified, Matthias Zink,  Nov 2013 - documentation, moved constants to mhm_constants
+  !                   Matthias Cuntz, Jun 2014 - suggested to fix param(4)
 
   subroutine hydro_cond( KS, param, sand, clay )
 
-    use mo_mhm_constants, only: Ks_c 
+    use mo_mhm_constants, only: Ks_c
 
     implicit none
 
@@ -603,17 +604,20 @@ contains
     real(dp)                            :: x ! temporal variable
 
     ! saturated vertical hydraulic conductivity, Ks (cm/d)
-    ! (Cosby et. al.1984.; WRR)
+    !   from Cosby et. al. (WRR 1984) Table 4
+    ! param(4) is the unit conversion from inch/h to cm/d and should be a constant.
+    ! Fix it in the namelist, i.e. in
+    ! mhm_parameter.nml set the 4th value (=FLAG) to 0 and the third value to 60.96
+    !   PTF_Ks_curveSlope = 60.96, 60.96, 60.96, 0, 1
     x  =  param(1) +  param(2) * sand -  param(3) * clay
     Ks =  param(4) * exp(X * log(Ks_c))
-
 
     if ( Ks < 1.10_dp ) then
        write(*,*) 'JMJMJM-Ks-BAD'
     end if
 
     ! minimum value of Ks = 1.1cm/d
-    if(Ks < 1.10_dp) Ks = 1.10_dp
+    if (Ks < 1.10_dp) Ks = 1.10_dp
 
   end subroutine hydro_cond
 

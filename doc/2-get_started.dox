@@ -15,9 +15,37 @@ The mHM input and output file format is NETCDF, so the according library is requ
 <a href="http://www.unidata.ucar.edu/software/netcdf/">www.unidata.ucar.edu/software/netcdf</a> in order to download the current version.
 
 \li <b>on Linux:</b> Install as described in the online documentation.
-\li <b>on Windows:</b> An installed distribution of NETCDF has not proofed to be successful on windows yet, since there will be conflicts of the
-gfortran build version in netcdf and the available versions of gfortran on Windows. Please let us know if you find a solution for that.
+\li <b>on Windows:</b> Use the short guide below.
 \li <b>on MacOS:</b> Use the short guide below.
+
+\subsection netcdfwindows Short Guide to NETCDF on Windows7
+
+A NETCDF installation under Windows7 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed:
+
+First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
+
+\image html cygwin_netcdf.png "netcdf packages for CYGWIN"
+\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.png "netcdf packages for CYGWIN" width=14cm
+
+Second, the following hdf5 version has to be installed for netcdf-4 support. Please note the version number, which has to be 1.8.12 NOT 1.8.13 (Just click the 1.8.13 to get to 1.8.12).
+
+\image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
+\image latex cygwin_hdf5.png "hdf5 packages for CYGWIN" width=14cm
+
+Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_liggfortran) have to be installed
+
+\image html cygwin_gfortran.png "gfortran packages for CYGWIN"
+\anchor fig_cygwin_gfortran \image latex cygwin_gfortran.png "gfortran packages for CYGWIN" width=14cm
+
+\image html cygwin_libgfortran.png "libgfortran packages for CYGWIN"
+\anchor fig_cygwin_libgfortran \image latex cygwin_libgfortran.png "libgfortran packages for CYGWIN" width=14cm
+
+Fourth, GNU make has to be made available by selecting the following:
+
+\image html cygwin_make.png "make packages for CYGWIN"
+\image latex cygwin_make.png "make packages for CYGWIN" width=14cm
+
+Once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'. Then the mhm has proven to compile and run successfully under Windows.
 
 \subsection netcdfmacos Short Guide to NETCDF on MacOS
 
@@ -102,14 +130,13 @@ In between two compilations, it might be useful to apply the command <code>make 
 (without using old temporary files).
 
 
-\section test Test mHM on Two Example Basins
+\section test Test mHM on Example Basin
 
-The mHM distribution usually comes with an example test case located in 
+The mHM distribution usually comes with an example test basin located in 
 \code
-test/
+test_basin/  .
 \endcode
-The directory provides input data for two basins and output examples. All parameters and paths are allready set by default to the test case,
-so you can just start the simulation with the command
+The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
 ./mhm
 \endcode
@@ -214,7 +241,7 @@ There are two scripts that help you with that:
 \li <code>pre-proc/create_multiple_mhm_parameter_nml.sh</code><br>
     Useful for many optimisation runs (many lines in <code>FinalParams.out</code>)
 \li <code>post-proc/opt2nml-params.pl</code><br>
-    Useful to analize where the optimisation arrived. Using two arguments, <code>pathto/FinalParams.out</code> and <code>pathto/mhm_parameters.nml</code>,
+    Useful to analyze where the optimisation arrived. Using two arguments, <code>pathto/FinalParams.out</code> and <code>pathto/mhm_parameters.nml</code>,
     it will (1) create a new <code>mhm_parameters.nml.opt</code> filled with the new values and (2) directly show the new parameters within their ranges and warn
     if some have been close to their end of range by 1%.
 

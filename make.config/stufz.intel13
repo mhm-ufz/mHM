@@ -47,7 +47,7 @@ else
     FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -assume byterecl -cpp -fp-model source -m64 # -fp-model source is the same as -fp-model precise
+F90FLAGS += -assume byterecl -assume realloc-lhs -cpp -fp-model source -m64 # -fp-model source is the same as -fp-model precise
 MODFLAG  := -module # space significant
 FCFLAGS  += -assume byterecl -cpp -fp-model source -m64 -fixed
 CFLAGS   += -m64 -std=c99

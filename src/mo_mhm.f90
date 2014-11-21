@@ -36,8 +36,7 @@ MODULE mo_mHM
 
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
-  use mo_message,       only: message
-  use mo_string_utils,  only: num2str 
+  use mo_message,       only: message 
   !$ USE omp_lib
  
   IMPLICIT NONE
@@ -109,15 +108,19 @@ CONTAINS
   !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
   !                                                             and its parameterization (Process 5)
   !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
+  !                 Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
       ! Input -----------------------------------------------------------------
       ! Configuration
-      restart_iFlag_read  , & ! flag for reading restart files for state variables
+      perform_mpr,          & ! flag for reading restart files for state variables
+      read_states,          & ! flag indicating whether states have been read
       fSealedInCity       , & ! sealed area fraction within cities
-      LAI_option_Flag     , & ! Flag for LAI option
-      counter_month       , & ! counter to tackle the change of month 
+      timeStep_LAI_input  , & ! time step of gridded LAI input
+      counter_year        , & ! counter to tackle the change of year
+      counter_month       , & ! counter to tackle the change of month
       counter_day         , & ! counter to tackle the change of day
       tt                  , & ! simulation time step
       time                , & ! current decimal Julian day
@@ -273,32 +276,35 @@ CONTAINS
     use mo_runoff,                  only: L11_runoff_acc
     use mo_routing,                 only: L11_routing
     use mo_julian,                  only: dec2date, date2dec
+    use mo_string_utils,            only: num2str
 
     use mo_mhm_constants,           only: HarSamConst                      ! parameters for Hargreaves-Samani Equation
                                           
     implicit none
 
     ! Intent
-    logical,                       intent(in)    :: restart_iFlag_read   ! flag for reading restart files for state variables
-    real(dp),                      intent(in)    :: fSealedInCity        ! fraction of perfectly sealed area within cities
-    integer(i4),                   intent(in)    :: LAI_option_Flag      ! Flag for LAI option
-    integer(i4),                   intent(in)    :: counter_month        ! counter to tackle the change of month 
-    integer(i4),                   intent(in)    :: counter_day          ! counter to tackle the change of day 
-    integer(i4),                   intent(in)    :: tt
-    real(dp),                      intent(in)    :: time
-    integer(i4), dimension(:,:),   intent(in)    :: processMatrix
-    real(dp),                      intent(in)    :: c2TSTu
-    real(dp),    dimension(:),     intent(in)    :: horizon_depth
-    integer(i4),                   intent(in)    :: nCells1
-    integer(i4),                   intent(in)    :: nNodes
-    integer(i4),                   intent(in)    :: nHorizons_mHM
-    real(dp),                      intent(in)    :: ntimesteps_day
-    integer(i4),                   intent(in)    :: TS
-    logical,     dimension(:,:),   intent(in)    :: mask0
-    integer(i4),                   intent(in)    :: nInflowGauges 
-    integer(i4), dimension(:)  ,   intent(in)    :: InflowIndexList
-    integer(i4), dimension(:)  ,   intent(in)    :: InflowNodeList
-    real(dp),    dimension(:),     intent(in)    :: global_parameters
+    logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
+    logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
+    real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
+    integer(i4),                 intent(in) :: timeStep_LAI_input   ! time step of gridded LAI input
+    integer(i4),                 intent(in) :: counter_year         ! counter to tackle the change of year
+    integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
+    integer(i4),                 intent(in) :: counter_day          ! counter to tackle the change of day 
+    integer(i4),                 intent(in) :: tt
+    real(dp),                    intent(in) :: time
+    integer(i4), dimension(:,:), intent(in) :: processMatrix
+    real(dp),                    intent(in) :: c2TSTu
+    real(dp),    dimension(:),   intent(in) :: horizon_depth
+    integer(i4),                 intent(in) :: nCells1
+    integer(i4),                 intent(in) :: nNodes
+    integer(i4),                 intent(in) :: nHorizons_mHM
+    real(dp),                    intent(in) :: ntimesteps_day
+    integer(i4),                 intent(in) :: TS
+    logical,     dimension(:,:), intent(in) :: mask0
+    integer(i4),                 intent(in) :: nInflowGauges 
+    integer(i4), dimension(:)  , intent(in) :: InflowIndexList
+    integer(i4), dimension(:)  , intent(in) :: InflowNodeList
+    real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
     integer(i4),                   intent(in)    :: LCyearId
@@ -417,7 +423,6 @@ CONTAINS
     real(dp), dimension(:,:),      intent(inout) ::  PrieTayAlpha
     real(dp), dimension(:,:),      intent(inout) ::  aeroResist
     real(dp), dimension(:,:),      intent(inout) ::  surfResist
-
     real(dp), dimension(:,:),      intent(inout) ::  frac_roots
     real(dp), dimension(:),        intent(inout) ::  interc_max
     real(dp), dimension(:),        intent(inout) ::  karst_loss
@@ -458,36 +463,6 @@ CONTAINS
     !-------------------------------------------------------------------
     call dec2date(time, yy=year, mm=month, dd=day, hh=hour)
 
-    !-------------------------------------------------------------------
-    ! CALL regionalization of parameters related to LAI
-    ! IT is now outside of mHM since LAI is now dynamic variable
-    !-------------------------------------------------------------------
-    SELECT CASE(LAI_option_Flag)
-    CASE(0)
-       ! Estimate max. intecept. capacity based on long term monthly mean LAI values
-       ! Max. interception is updated every month rather than every day
-       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
-          call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
-               L0downBound_inL1, L0leftBound_inL1,  &
-               L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
-       end if
-    CASE(1)
-       ! Estimate max. inteception based on daily LAI values
-       ! Max. interception is updated every month
-       if( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then 
-          call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
-               L0downBound_inL1, L0leftBound_inL1,  &
-               L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
-       end if
-    CASE DEFAULT
-       call message('mo_mhm: This LAI_option_Flag=',num2str(LAI_option_Flag),' is not implemented!')
-       stop
-    END SELECT
- 
    !-------------------------------------------------------------------
     ! MPR CALL
     !   -> call only when LC had changed 
@@ -503,6 +478,13 @@ CONTAINS
     !-------------------------------------------------------------------
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
         
+       ! abort if land cover change is there and mpr is switched off
+       if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
+          call message()
+          call message('***ERROR: land cover change detected and mpr is switched off!')
+          stop
+       end if
+
         ! update yId to keep track of LC change         
         yId = LCyearId        
   
@@ -571,15 +553,59 @@ CONTAINS
                   temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
-        ! step and when restart_iFlag_read = FALSE 
+        ! step and when perform_mpr = FALSE 
         ! based on the half of the derived values of Field capacity
         ! other states are kept at their inital values
         !-------------------------------------------------------------------
-        if( (tt .EQ. 1) .AND. (.NOT. restart_iFlag_read) ) then
+        if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
 
     end if
+    
+    !-------------------------------------------------------------------
+    ! CALL regionalization of parameters related to LAI
+    ! IT is now outside of mHM since LAI is now dynamic variable
+    !-------------------------------------------------------------------
+    select case(timeStep_LAI_input)
+    case(0)
+       ! Estimate max. intecept. capacity based on long term monthly mean LAI values
+       ! Max. interception is updated every month rather than every day
+       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               ) 
+       end if
+       ! Estimate max. inteception based on daily LAI values
+    case(-1) ! daily
+       if ( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               )
+       endif
+    case(-2) ! monthly
+       if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               )
+       endif
+    case(-3) ! yearly
+       if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
+          call canopy_intercept_param( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               L0downBound_inL1, L0leftBound_inL1,  &
+               L0rightBound_inL1, cellId0, mask0,   &
+               nodata_dp,  interc_max               )
+       endif
+    case default ! no output at all
+       continue
+    end select
 
     !-------------------------------------------------------------------
     ! flag for day or night depending on hours of the day
@@ -622,7 +648,7 @@ CONTAINS
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
-            pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                  & ! Intent IN
+            pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                          & ! Intent IN
             fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month),       & ! Intent IN
             prec, pet, temp )                                                                    ! Intent OUT
 

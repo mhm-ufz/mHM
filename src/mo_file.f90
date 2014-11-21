@@ -12,7 +12,7 @@ MODULE mo_file
   IMPLICIT NONE
   
   !> Current mHM model version
-  CHARACTER(len=*), PARAMETER :: version                = '5.0'                         ! Version
+  CHARACTER(len=*), PARAMETER :: version                = '5.1'                         ! Version
   !> Driver file
   CHARACTER(len=*), PARAMETER :: file_main              = 'mhm_driver.f90'              ! Driver
   !> Namelist file name

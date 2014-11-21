@@ -48,7 +48,7 @@ ifeq ($(release),debug)
     endif
     FCFLAGS  += $(F90FLAGS)
     #FCFLAGS  += -C -C=dangling -g -nan -O0 -fixed
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
     LDFLAGS  += -g90
 else
     F90FLAGS += -O3

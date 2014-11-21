@@ -13,6 +13,10 @@
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
+! Stephan Thober, May 2014 - added switch for chunk read in
+! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
+! Rohini Kumar and
+! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -68,16 +72,16 @@ dir_NetRadiation(1)         = "/data/stohyd/mHM_project/germany/basin//sub_93051
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(1)       = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
 dir_windspeed(1)            = "/data/stohyd/mHM_project/germany/basin//sub_9305116//meteo/"
-
 !> directory where latitude and longitude file is located
 dir_LatLon(1)        = "/data/stohyd/mHM_project/germany/basin//sub_9305116/morph/latlon.nc"
-!> directory where output should be written to
-dir_Out(1)           = "/home/zink/source_code/mhm/test_reintegration/PenMon_regio_sce001/"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(1)   = "test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart_31-12-2004_4000/"
 !> directory where restart output should be written
 dir_RestartOut(1)    = "xxx"
-!> directory where restart output should be written
-dir_RestartIn(1)     = "/data/stohyd/mHM_project/germany/basin//sub_9305116/restart_31-12-2004_4000/"
-!
+!> directory where output should be written
+dir_Out(1)           = "/home/zink/source_code/mhm/test_reintegration/PenMon_regio_sce001/"
 /
 
 !
@@ -135,15 +139,15 @@ opti_method         = 3
 !> (6) SSE  \n
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
+!> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> further functions can be implemented in mo_objective_function
 opti_function       = 5
 !-----------------------------------------------------------------------------
-!> flags for reading and writing restart output
+!> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .TRUE.
-restart_flag_states_write  = .FALSE.
-restart_flag_config_read   = .TRUE.
-restart_flag_config_write  = .FALSE.
+read_restart  = .FALSE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
@@ -160,7 +164,11 @@ restart_flag_config_write  = .FALSE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
+<<<<<<< .working
 warmingDays          = 1826
+=======
+warmingDays    = 0
+>>>>>>> .merge-right.r1790
 !> first year of wanted simulation period
 evalPer%yStart       = 2005
 !> first month of wanted simulation period
@@ -173,6 +181,14 @@ evalPer%yEnd         = 2006
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
 evalPer%dEnd         = 31
+!> switch to control read input frequency of the gridded meteo input, 
+!> i.e. precipitation, potential evapotransiration, and temperature\n
+!>      >0: after each <timeStep_model_inputs> days\n
+!>       0: only at beginning of the run\n
+!>      -1: daily\n
+!>      -2: monthly\n
+!>      -3: yearly\n
+timestep_model_inputs = 0
 /
 
 !******************************************************************************************
@@ -185,7 +201,7 @@ evalPer%dEnd         = 31
 tillageDepth         = 300
 !> No. of soil horizons to be modeled
 nSoilHorizons_mHM    = 3
-! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
+!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
 soil_Depth(1)        = 50
 soil_Depth(2)        = 250
@@ -234,46 +250,27 @@ LCoverfName(3)   = 'lc_2006.asc'
 &LAI_data_information
 !
 !-----------------------------------------------------------------------------------
-!> Flag "iFlag_LAI_data_format"  to identify how LAI data has to be read in mHM. 
-!> This flag is unique and valid for all basins to be modeled.\n
+!> Flag timeStep_LAI_input identifies how LAI is read in mHM. 
+!> This flag is unique and valid for all basins.\n
 !
-!> 0 = Normal way of reading the long term monthly mean LAI LUT, and the related LAI
-!>     land cover file. 
-!> Note:: a) LAI-LUT filename (LAI_classdefinition.txt) is hard coded within mHM.
-!>           Information regarding long-term monthly mean LAI for land cover classes
-!>           appearing in all modeled basins should be included in this LUT file. 
-!>           This is an unique file applicable to all basins to be modeled. \n
-!>        b) The accompanied seperate LC file related to LAI (LAI_class.asc) must be   
-!>           located in the morph directory (provided above) for each basin to be modeled!
-!>
-!> 1 = Read daily gridded LAI files. Some additional information is needed in this case.\n
-!
-!> NOTE:: Fill all information required in this namelist, whatever may be the 
-!>        "iFlag_LAI_data_format" option is so to maintain the consistency during the reading 
-!>        of this namelist. You must provide some dummy information regarding, for e.g.,  
-!>        the input format and the directory paths as let say a blank string (""). \n 
+!> timeStep_LAI_input
+!>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
+!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
+!>         Information regarding long-term monthly mean LAI for land cover classes
+!>         appearing in all modeled basins should be included in this LUT file. 
+!>         This is an unique file applicable to all basins to be modeled. \n
+!>     The respective plant functional type is in LAI_class.asc, which must be   
+!>         located in each basin's morph directory.
+!> <0: Read gridded LAI files.\n
+!>     -1: gridded LAI are daily values\n
+!>     -2: gridded LAI are monthly values\n
+!>     -3: gridded LAI are yearly values\n
 !-----------------------------------------------------------------------------------
-!
-!> flag-Id
-iFlag_LAI_data_format = 0
-!
-!-----------------------------------------------------------------------------------
-!> For iFlag_LAI_data_format = 1 \n
-!> If the above "iFlag_LAI_data_format" is 1 then \n 
-!>   1) give the input file format (nc or bin)
-!>   2) path where the daily gridded files are located (for each basin seprately).\n 
-!>      Filename is hard coded within mHM as, e.g., \n
-!>      LAI.nc   -- data of multiple years are stored in this single file \n
-!>        or \n
-!>      YYYY.bin -- data are stored seprately for each year, where YYYY is year id).
-!>                  A single header file must accomony binary files  
-!-----------------------------------------------------------------------------------
-!> input file format
-inputFormat_gridded_LAI = "xxxbin"
-!
-!> For each basin (number given in bracket), provide the path to the directory 
-!> where gridded LAI files are located.
-dir_gridded_LAI(1)  = "xxxtest/input/lai/"
+timeStep_LAI_input = 0
+!> input file format of gridded file (if timeStep_LAI_input < 0)
+!>     bin - assume yearly files with name YYYY.bin
+!>     nc  - assume one file with name lai.nc
+inputFormat_gridded_LAI = "nc"
 /
 
 !
@@ -322,7 +319,6 @@ processCase(8) = 1
 !> namelist controlling the gauging station information
 !> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
 !> to the filename containing the time series 
-
 &evaluation_gauges
 !> Gauges for model evaluation
 !

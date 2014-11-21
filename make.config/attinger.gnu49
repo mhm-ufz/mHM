@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Absoft compiler at Matthias' Macbook Air
+# Setup file for Gnu compiler 4.9 at Giovanni's Macbook Pro
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2012 Matthias Cuntz
+#    Copyright 2012 Giovanni Dalmasso
 
 # The Makefile assumes the standard bin, include and lib directories
 # i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
@@ -28,67 +28,58 @@
 # Define subirectories if another structure
 
 # Paths
-ABSOFT := /Applications/Absoft11.1
-ABSOFTBIN := $(ABSOFT)/bin
-ABSOFTINC := $(ABSOFT)/f90includes64
-ABSOFTLIB := $(ABSOFT)/lib64
-
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(ABSOFTBIN)/f90
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
 ifeq ($(release),debug)
-    # -s for initialize to 0;
-    # -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end interface
-    # Vectorisation: -YLOOP_ANALYZER -LNO:simd_verbose=on -LNO:simd=2 (1: default; 2: aggressive)
-    F90FLAGS += -g -en -Ra -Rb -Rc -Rn -Rp -Rs -YNDFP=1 -O0 -z0
-    #F90FLAGS += -g -en     -Rb -Rc     -Rp -Rs -YNDFP=1 -O0 -z0
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
-    #CFLAGS   += -Wall -W -O -g
+    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
+    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
 else
     F90FLAGS += -O3
+    FCFLAGS  += -ffixed-form -O3
     CFLAGS   += -O3
 endif
-#F90FLAGS += -m64 -cpp -f free -safefp -OPT:roundoff=0 #-stack:1f40000
-F90FLAGS += -m64 -cpp -safefp -OPT:roundoff=0 -p $(OBJPATH) #-stack:1f40000
-# -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end F90FLAGS += -Z399
-MODFLAG := -YMOD_OUT_DIR=# space significant -p
-FCFLAGS += $(F90FLAGS)
-CFLAGS  +=
-DEFINES += -DABSOFT -DgFortran
-LDFLAGS += -m64
+F90FLAGS += -cpp
+F90FLAGS += -ffpe-summary=none
+MODFLAG  := -J# space significant
+FCFLAGS  +=
+CFLAGS   +=
+DEFINES  += -DGFORTRAN -DgFortran
+
+# Linking
+LIBS += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
 
 # IMSL
-IMSLDIR := /opt/imsl/fnl600/macab110e64
+IMSLDIR :=
 
 # MKL
-MKLDIR := 
+MKLDIR :=
 MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := $(ABSOFT)
-    NCINC := $(ABSOFTINC)
-    NCLIB := $(ABSOFTLIB)
+    NCDIR :=
 else
-    NCDIR   := $(ABSOFT)
-    NCINC   := $(ABSOFTINC)
-    NCLIB   := $(ABSOFTLIB)
-    SZLIB   := /usr/local
-    HDF5LIB := $(ABSOFTLIB)
+    NCDIR    = /usr/local/netcdf_4.2_gfortran49
+    CURLLIB := /usr/bin
+    SZLIB   := /usr/local/lib
+    HDF5LIB := /usr/local/lib
 endif
 
 # PROJ
-PROJ4DIR := /usr/local
-FPROJDIR := 
+#PROJ4DIR := #/usr/local/
+#FPROJDIR := 
 
 # LAPACK
-LAPACKDIR   :=
-GFORTRANDIR := /usr/local
+LAPACKDIR   := 
+GFORTRANDIR := $(GNUDIR)
 
 # Documentation
 DOXYGENDIR := /usr/local/bin

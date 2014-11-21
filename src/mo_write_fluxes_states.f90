@@ -7,8 +7,6 @@
 !> \authors Matthias Zink
 !> \date Apr 2013
 
-
-
 MODULE mo_write_fluxes_states
 
   ! This module creates the output for mHM.
@@ -60,6 +58,7 @@ CONTAINS
   !>         \param[inout] "real(dp), allocatable :: L1_slowRunoff_out(:)"   ! Slow runoff component
   !>         \param[inout] "real(dp), allocatable :: L1_baseflow_out(:)"     ! Baseflow
   !>         \param[inout] "real(dp), allocatable :: L1_percol_out(:)"       ! Percolation
+  !>         \param[inout] "real(dp), allocatable :: L1_infilSoil_out(:)"    ! Infiltration  
 
   !     INTENT(OUT)
   !>         \param[out] "integer(i4), intent(out) :: ncid" ! ID of NetCDF to be written in
@@ -77,12 +76,13 @@ CONTAINS
   !         None
 
   !     RESTRICTIONS
-  !
+  !         None
 
   !     EXAMPLE
-  !        
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author Matthias Zink
@@ -90,26 +90,33 @@ CONTAINS
   !         Modified: R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
   !                                                     during writing of the netcdf file
   !                   Matthias Zink       , Feb. 2014 - added aditional output: pet
+  !                   V. Prykhodk, J. Mai,  Nov. 2014 - adding new variable infilSoil - case 16
 
-  Subroutine WriteFluxStateInit(iBasin, ncid, output_timeStep, &
-                                ! States L1
-                                L1_inter_out           , & ! Interception
-                                L1_snowPack_out        , & ! Snowpack
-                                L1_soilMoist_out       , & ! Soil moisture of each horizon
-                                L1_sealSTW_out         , & ! Retention storage of impervious areas
-                                L1_unsatSTW_out        , & ! Upper soil storage
-                                L1_satSTW_out          , & ! Groundwater storage
-                                ! Fluxes L1
-                                L1_pet_out             , & ! potential evapotranspiration (PET)
-                                L1_aETSoil_out         , & ! actual ET
-                                L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
-                                L1_aETSealed_out       , & ! Actual ET from free-water surfaces
-                                L1_total_runoff_out    , & ! Generated runoff
-                                L1_runoffSeal_out      , & ! Direct runoff from impervious areas
-                                L1_fastRunoff_out      , & ! Fast runoff component
-                                L1_slowRunoff_out      , & ! Slow runoff component
-                                L1_baseflow_out        , & ! Baseflow
-                                L1_percol_out            ) ! Percolation
+  Subroutine WriteFluxStateInit(&
+       ! Input
+       iBasin                 , &
+       output_timeStep        , &
+       ! Inout: States L1
+       L1_inter_out           , & ! Interception
+       L1_snowPack_out        , & ! Snowpack
+       L1_soilMoist_out       , & ! Soil moisture of each horizon
+       L1_sealSTW_out         , & ! Retention storage of impervious areas
+       L1_unsatSTW_out        , & ! Upper soil storage
+       L1_satSTW_out          , & ! Groundwater storage
+       ! Inout: Fluxes L1
+       L1_pet_out             , & ! potential evapotranspiration (PET)
+       L1_aETSoil_out         , & ! actual ET
+       L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
+       L1_aETSealed_out       , & ! Actual ET from free-water surfaces
+       L1_total_runoff_out    , & ! Generated runoff
+       L1_runoffSeal_out      , & ! Direct runoff from impervious areas
+       L1_fastRunoff_out      , & ! Fast runoff component
+       L1_slowRunoff_out      , & ! Slow runoff component
+       L1_baseflow_out        , & ! Baseflow
+       L1_percol_out          , & ! Percolation 
+       L1_infilSoil_out       , & ! Infiltrationf
+       ! Output
+       ncid)
 
     use mo_global_variables,  only : & 
                                      dirOut            , & ! output directory
@@ -134,10 +141,11 @@ CONTAINS
     implicit none
     
     !
-    integer(i4), intent(in)                              :: iBasin    ! mumber of subbasin
-    integer(i4), intent(out)                             :: ncid      ! ID of NetCDF
-    integer(i4), intent(in)                              :: output_timeStep    
-
+    integer(i4),                           intent(in)    :: iBasin    ! mumber of subbasin
+    integer(i4),                           intent(out)   :: ncid      ! ID of NetCDF
+    !
+    integer(i4),                           intent(in)    :: output_timeStep
+    !
     ! States L1
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_inter_out        ! Interception
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_snowPack_out     ! Snowpack
@@ -156,6 +164,7 @@ CONTAINS
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_slowRunoff_out   ! Slow runoff component
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_baseflow_out     ! Baseflow
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_percol_out       ! Percolation
+    real(dp), dimension(:,:), allocatable, intent(inout) :: L1_infilSoil_out    ! Infiltration 
     !
     ! local
     integer(i4)                                      :: i
@@ -186,8 +195,9 @@ CONTAINS
     totalVarNo = count(outputFlxState)
     
     ! output for soil every layer > increases number of output parameters
-    if (outputFlxState(3)) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
-    if (outputFlxState(4)) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if (outputFlxState(3))  totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if (outputFlxState(4))  totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if (outputFlxState(17)) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1 
     
     ! Initialize NetCDF dimensions and Variables incl. attributes
     call set_netCDF(totalVarNo, level1%nrows(iBasin), level1%ncols(iBasin))
@@ -199,7 +209,7 @@ CONTAINS
     
        ! name
        V(VarNo+5)%name          = "interception"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm"
        ! long_name
        V(VarNo+5)%att(2)%values = "canopy interception storage"
@@ -213,7 +223,7 @@ CONTAINS
        
        ! name
        V(VarNo+5)%name          = "snowpack"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm"
        ! long_name
        V(VarNo+5)%att(2)%values = "depth of snowpack"
@@ -232,7 +242,7 @@ CONTAINS
     if (outputFlxState(3)) then
        do i = 1, nSoilHorizons_mHM
           ! all Vars same attributes
-          !unit
+          ! unit
           V(VarNo+5)%att(1)%values = "mm"
           write(V(VarNo+5)%name, "('SWC_L', i2.2)") i
           write(V(VarNo+5)%att(2)%values,"('soil water content of soil layer',i2)") i
@@ -243,7 +253,7 @@ CONTAINS
     ! volumetric soil moisture in every soil layer
     if (outputFlxState(4)) then
        do i = 1, nSoilHorizons_mHM
-          !unit
+          ! unit
           V(VarNo+5)%att(1)%values = "mm mm-1"
           write(V(VarNo+5)%name, "('SM_L', i2.2)") i
           write(V(VarNo+5)%att(2)%values,"('volumetric soil moisture of soil layer',i2)") i
@@ -256,7 +266,7 @@ CONTAINS
     if (outputFlxState(5)) then
        ! name
        V(VarNo+5)%name          = "SM_Lall"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm mm-1"
        ! long_name
        V(VarNo+5)%att(2)%values = "average soil moisture over all layers"
@@ -271,7 +281,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "sealedSTW"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm"
        ! long_name
        V(VarNo+5)%att(2)%values = "reservoir of sealed areas (sealedSTW)"
@@ -286,7 +296,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "unsatSTW"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm"
        ! long_name
        V(VarNo+5)%att(2)%values = "reservoir of unsaturated zone"
@@ -301,7 +311,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "satSTW"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = "mm"
        ! long_name
        V(VarNo+5)%att(2)%values = "water level in groundwater reservoir"
@@ -309,7 +319,7 @@ CONTAINS
     end if
 
     ! ---------
-    ! 1. Fluxes
+    ! 2. Fluxes
     ! ---------
     nTimeSteps = ( simPer%julEnd - simPer%julStart + 1 ) * NTSTEPDAY
     if (output_timeStep > 0) then
@@ -361,7 +371,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "aET"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "actual Evapotranspiration"
@@ -377,7 +387,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "Q"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "total runoff generated by every cell"
@@ -393,7 +403,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "QD"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "direct runoff generated by every cell (runoffSeal)"
@@ -409,7 +419,7 @@ CONTAINS
        
        ! name
        V(VarNo+5)%name          = "QIf"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "fast interflow generated by every cell (fastRunoff)"
@@ -425,7 +435,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "QIs"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "slow interflow generated by every cell (slowRunoff)"
@@ -441,7 +451,7 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "QB"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "baseflow generated by every cell"
@@ -456,11 +466,27 @@ CONTAINS
 
        ! name
        V(VarNo+5)%name          = "recharge"
-       !unit
+       ! unit
        V(VarNo+5)%att(1)%values = trim(unit)
        ! long_name
        V(VarNo+5)%att(2)%values = "groundwater recharge"
        VarNo = VarNo + 1
+    end if
+
+    ! 
+    if (outputFlxState(17)) then 
+       allocate( L1_infilSoil_out(nCells, nSoilHorizons_mHM) ) 
+       L1_infilSoil_out = 0.0_dp 
+       do i = 1, nSoilHorizons_mHM 
+          ! all Vars same attributes 
+          ! name 
+          write(V(VarNo+5)%name, "('soil_infil_L', i2.2)") i 
+          ! unit 
+          V(VarNo+5)%att(1)%values = trim(unit) 
+          ! long_name 
+          write(V(VarNo+5)%att(2)%values,"('infiltration flux from soil layer',i2)") i 
+          VarNo = VarNo + 1 
+       end do
     end if
 
     !
@@ -540,31 +566,35 @@ CONTAINS
   !>        \details All the outputs defined in the outputs namlist are written to a NetCDF file. 
 
   !     INTENT(IN)
-  !>         \param[in]  "integer(i4),             intent(in) :: iBasin"           ! mumber of subbasin
-  !>         \param[in]  "integer(i4),             intent(in) :: output_timeStep"  ! timestep (e.g. hour, day,..) of the output
-  !>         \param[in]  "logical, dimension(:,:), intent(in) :: mask              ! mask for unpacking vectorized data
-  !>                                                                               ! to an array  
+  !>         \param[in] "integer(i4) :: hours_eval"       ! hours since beginning of evaluation period
+  !>         \param[in] "integer(i4) :: curr_wstep"       ! current write out step
+  !>         \param[in] "integer(i4) :: ncid"             ! ID of NetCDF to be written in
+  !>         \param[in] "integer(i4) :: iBasin"           ! mumber of subbasin
+  !>         \param[in] "integer(i4) :: output_timeStep"  ! timestep (e.g. hour, day,..) of the output
+  !>         \param[in] "logical     :: mask(:,:)"        ! mask for unpacking vectorized data to array 
+  !>         \param[in] "real(dp), allocatable    :: L1_inter_out(:)"        ! Interception
+  !>         \param[in] "real(dp), allocatable    :: L1_snowPack_out(:)"     ! Snowpack
+  !>         \param[in] "real(dp), allocatable    :: L1_soilMoist_out(:,:)"  ! Soil moisture of each horizon
+  !>         \param[in] "real(dp), allocatable    :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
+  !>         \param[in] "real(dp), allocatable    :: L1_unsatSTW_out(:)"     ! Upper soil storage
+  !>         \param[in] "real(dp), allocatable    :: L1_satSTW_out(:)"       ! Groundwater storage
+  !>         \param[in] "real(dp), allocatable    :: L1_pet_out(:)"          ! potential evapotranspiration (PET) 
+  !>         \param[in] "real(dp), allocatable    :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
+  !>         \param[in] "real(dp), allocatable    :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
+  !>         \param[in] "real(dp), allocatable    :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
+  !>         \param[in] "real(dp), allocatable    :: L1_total_runoff_out(:)" ! Generated runoff
+  !>         \param[in] "real(dp), allocatable    :: L1_runoffSeal_out(:)"   ! Direct runoff from impervious areas
+  !>         \param[in] "real(dp), allocatable    :: L1_fastRunoff_out(:)"   ! Fast runoff component
+  !>         \param[in] "real(dp), allocatable    :: L1_slowRunoff_out(:)"   ! Slow runoff component
+  !>         \param[in] "real(dp), allocatable    :: L1_baseflow_out(:)"     ! Baseflow
+  !>         \param[in] "real(dp), allocatable    :: L1_percol_out(:)"       ! Percolation
+  !>         \param[in] "real(dp), allocatable    :: L1_infilSoil_out(:)"    ! Infiltration  
 
   !     INTENT(INOUT)
-  !>         \param[inout] "real(dp),  allocatable :: L1_inter_out(:)"        ! Interception
-  !>         \param[inout] "real(dp),  allocatable :: L1_snowPack_out(:)"     ! Snowpack
-  !>         \param[inout] "real(dp),  allocatable :: L1_soilMoist_out(:,:)"  ! Soil moisture of each horizon
-  !>         \param[inout] "real(dp),  allocatable :: L1_sealSTW_out(:)"      ! Retention storage of impervious areas
-  !>         \param[inout] "real(dp),  allocatable :: L1_unsatSTW_out(:)"     ! Upper soil storage
-  !>         \param[inout] "real(dp),  allocatable :: L1_satSTW_out(:)"       ! Groundwater storage
-  !>         \param[inout] "real(dp),  allocatable :: L1_pet_out(:)"          ! potential evapotranspiration (PET) 
-  !>         \param[inout] "real(dp),  allocatable :: L1_aETSoil_out(:,:)"    ! actual ET of each horizon
-  !>         \param[inout] "real(dp),  allocatable :: L1_aETCanopy_out(:)"    ! Real evaporation intensity from canopy
-  !>         \param[inout] "real(dp),  allocatable :: L1_aETSealed_out(:)"    ! Actual ET from free-water surfaces
-  !>         \param[inout] "real(dp),  allocatable :: L1_total_runoff_out(:)" ! Generated runoff
-  !>         \param[inout] "real(dp),  allocatable :: L1_runoffSeal_out(:)"   ! Direct runoff from impervious areas
-  !>         \param[inout] "real(dp),  allocatable :: L1_fastRunoff_out(:)"   ! Fast runoff component
-  !>         \param[inout] "real(dp),  allocatable :: L1_slowRunoff_out(:)"   ! Slow runoff component
-  !>         \param[inout] "real(dp),  allocatable :: L1_baseflow_out(:)"     ! Baseflow
-  !>         \param[inout] "real(dp),  allocatable :: L1_percol_out(:)"       ! Percolation
+  !          None
 
   !     INTENT(OUT)
-  !>         \param[out] "integer(i4), intent(out) :: ncid" ! ID of NetCDF to be written in
+  !          None         
 
   !     INTENT(IN), OPTIONAL
   !         None
@@ -579,12 +609,13 @@ CONTAINS
   !         None
 
   !     RESTRICTIONS
-  !
+  !         None
 
   !     EXAMPLE
-  !        
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author Matthias Zink
@@ -593,28 +624,38 @@ CONTAINS
   !                                                     during writing of the netcdf file
   !                   L. Samaniego et al.,  Dec  2013 - nullify pointer
   !                   Matthias Zink,        Feb. 2014 - added aditional output: pet
+  !                   V. Prykhodk, J. Mai,  Nov. 2014 - adding new variable infilSoil - case 16
 
-  Subroutine WriteFluxState(hours_eval, curr_wstep, ncid, iBasin, mask, &
-                             ! States L1
-                             L1_inter_out           , & ! Interception
-                             L1_snowPack_out        , & ! Snowpack
-                             L1_soilMoist_out       , & ! Soil moisture of each horizon
-                             L1_sealSTW_out         , & ! Retention storage of impervious areas
-                             L1_unsatSTW_out        , & ! Upper soil storage
-                             L1_satSTW_out          , & ! Groundwater storage
-                             ! Fluxes L1
-                             L1_pet_out             , & ! potential evapotranspiration (PET)
-                             L1_aETSoil_out         , & ! actual ET
-                             L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
-                             L1_aETSealed_out       , & ! Actual ET from free-water surfaces
-                             L1_total_runoff_out    , & ! Generated runoff
-                             L1_runoffSeal_out      , & ! Direct runoff from impervious areas
-                             L1_fastRunoff_out      , & ! Fast runoff component
-                             L1_slowRunoff_out      , & ! Slow runoff component
-                             L1_baseflow_out        , & ! Baseflow
-                             L1_percol_out          , & ! Percolation
-                             L1_soilMoistSat          ) ! Saturation soil moisture for each horizon [mm]
-                                                        ! part (s1:e1) from global variable
+  Subroutine WriteFluxState( &
+       ! input
+       hours_eval          , &
+       curr_wstep          , &
+       ncid                , &
+       iBasin              , &
+       mask                , &
+       ! input: States L1
+       L1_inter_out        , & ! Interception
+       L1_snowPack_out     , & ! Snowpack
+       L1_soilMoist_out    , & ! Soil moisture of each horizon
+       L1_sealSTW_out      , & ! Retention storage of impervious areas
+       L1_unsatSTW_out     , & ! Upper soil storage
+       L1_satSTW_out       , & ! Groundwater storage
+       ! input: Fluxes L1
+       L1_pet_out             , & ! potential evapotranspiration (PET)
+       L1_aETSoil_out      , & ! actual ET
+       L1_aETCanopy_out    , & ! Real evaporation intensity from canopy
+       L1_aETSealed_out    , & ! Actual ET from free-water surfaces
+       L1_total_runoff_out , & ! Generated runoff
+       L1_runoffSeal_out   , & ! Direct runoff from impervious areas
+       L1_fastRunoff_out   , & ! Fast runoff component
+       L1_slowRunoff_out   , & ! Slow runoff component
+       L1_baseflow_out     , & ! Baseflow
+       L1_percol_out       , & ! Percolation
+       L1_soilMoistSat_out , & ! Saturation soil moisture for each horizon [mm]
+       !                       ! part (s1:e1) from global variable
+       L1_infilSoil_out      & ! Infiltration for each horizon
+       ! output
+       )
                              
     use mo_global_variables, only : & 
          outputFlxState    , & ! definition which output to write
@@ -628,7 +669,6 @@ CONTAINS
 
     implicit none
     !
-    ! local
     integer(i4),                           intent(in)    :: hours_eval ! hours since beginning of evaluation period
     integer(i4),                           intent(in)    :: curr_wstep ! current write out step
     integer(i4),                           intent(in)    :: ncid       ! ID of NetCDF
@@ -653,10 +693,11 @@ CONTAINS
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_slowRunoff_out   ! Slow runoff component
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_baseflow_out     ! Baseflow
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_percol_out       ! Percolation
-    real(dp), dimension(:,:),              intent(in)    :: L1_soilMoistSat     ! Saturation soil moisture for each 
+    real(dp), dimension(:,:),              intent(in)    :: L1_soilMoistSat_out ! Saturation soil moisture for each 
     !                                                                           ! horizon [mm]
+    real(dp), dimension(:,:),  allocatable, intent(in)   :: L1_infilSoil_out    ! Infiltration for each horizon
 
-    !
+    ! local variables
     integer(i4)                                     :: totalVarNo ! total number of variables
     integer(i4)                                     :: VarNo      ! counter for variable
     integer(i4)                                     :: i
@@ -666,8 +707,9 @@ CONTAINS
     VarNo = 1
     !
     totalVarNo = count(outputFlxState)
-    if( outputFlxState(3) ) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
-    if( outputFlxState(4) ) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if( outputFlxState(3) )  totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if( outputFlxState(4) )  totalVarNo = totalVarNo + nSoilHorizons_mHM - 1
+    if( outputFlxState(17) ) totalVarNo = totalVarNo + nSoilHorizons_mHM - 1 
     
     ! Write files
     allocate( OutPut(level1%nrows(iBasin), level1%ncols(iBasin), totalVarNo) )
@@ -675,7 +717,8 @@ CONTAINS
     OutPut = nodata_dp
 
     ! ---------
-    ! 1. States    print *, outputFlxState
+    ! 1. States    
+    ! ---------
     if (outputFlxState(1)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_inter_out(:), mask, nodata_dp)
@@ -708,7 +751,7 @@ CONTAINS
     if (outputFlxState(4)) then
        do i = 1, nSoilHorizons_mHM
           OutPut(:,:,VarNo) = unpack(L1_soilMoist_out(:,i)    / &
-                                     L1_soilMoistSat(:,i) , &
+                                     L1_soilMoistSat_out(:,i) , &
                                      mask, nodata_dp )
           !
           V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo)
@@ -721,7 +764,7 @@ CONTAINS
     if (outputFlxState(5)) then
 
        OutPut(:,:,VarNo) = unpack(sum(L1_soilMoist_out(:,:),    dim=2) / &
-                                  sum(L1_soilMoistSat(:,:), dim=2) , &
+                                  sum(L1_soilMoistSat_out(:,:), dim=2) , &
                                   mask, nodata_dp)                                 
 
        V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo)
@@ -754,7 +797,7 @@ CONTAINS
     end if
 
     ! ---------
-    ! 1. Fluxes
+    ! 2. Fluxes
     ! ---------
     if (outputFlxState(9)) then
        
@@ -821,6 +864,16 @@ CONTAINS
 
        V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo)
        VarNo = VarNo + 1
+    end if
+
+    if (outputFlxState(17)) then 
+       do i = 1, nSoilHorizons_mHM 
+ 
+          OutPut(:,:,VarNo) = unpack(L1_infilSoil_out(:,i), mask, nodata_dp) 
+          
+          V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo) 
+          VarNo = VarNo + 1 
+       end do
     end if
     
     ! timestep

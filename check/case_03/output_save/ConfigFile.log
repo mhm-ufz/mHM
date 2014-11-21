@@ -8,13 +8,15 @@
 Number of basins                       2
 Total No. of nodes                    68
 Total No. of reaches                  67
-No. of cells L0                    93090
+No. of cells L0                    46545
 No. of cells L1                       68
 No. of cells L11                      68
 Total No. of gauges                    2
 Time Step [h]                          1
-Hydrology Resolution [m]           24000.
-Routing Resolution [m]             24000.
+Basin   1   Hydrology Resolution [m]          24000.
+Basin   1   Routing Resolution [m]            24000.
+Basin   2   Hydrology Resolution [m]          24000.
+Basin   2   Routing Resolution [m]            24000.
 Flag READ  restart states              F
 Flag WRITE restart states              T
 Flag READ  restart config.             F

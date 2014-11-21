@@ -1,0 +1,146 @@
+# -*- Makefile -*-
+
+#
+# Setup file for NAG compiler 5.3 at eve.ufz.de
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.  
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subdirectories if another structure
+
+# Paths
+NAGDIR := /opt/nag/5.3.2-963
+NAGLIB := $(NAGDIR)/lib
+NAGBIN := $(NAGDIR)/bin
+
+GNUDIR := /usr/local/gcc/4.8.1-3_CentOS6/
+GNULIB := $(GNUDIR)/lib64
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(NAGBIN)/nagfor
+FC  := $(F90)
+CC  := $(GNUBIN)/gcc
+ifeq ($(release),debug)
+    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
+    # -gline not supported in NAG v5.3 under OpenMP 
+    ifeq ($(openmp),true) 
+        F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90 
+    else 
+        F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90 
+    endif 
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
+    LDFLAGS  += -g90
+else
+    F90FLAGS += -O3
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -O3
+endif
+# -mismatch-all
+#F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
+MODFLAG  := -mdir # space significant
+FCFLAGS  +=
+CFLAGS   +=
+LDFLAGS  += -ideclient -unsharedrts
+DEFINES  += -DNAG -DgFortran
+
+# Linking
+LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
+RPATH += -Wl,-rpath,$(NAGLIB)
+iLDPATH = $(GNUDIR)/lib/gcc/x86_64-unknown-linux-gnu/4.8.1:/usr/local/cloog/0.18.0-2/lib:/usr/local/isl/0.11.1-2/lib:/usr/local/mpc/1.0.1-3/lib:/usr/local/mpfr/3.1.2-2/lib:/usr/local/gmp/5.1.2-1/lib
+ifneq ($(LDPATH),)
+    LDPATH += :$(iLDPATH)
+else
+    LDPATH := $(iLDPATH)
+endif
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+INTEL  := /usr/local/intel/composerxe-2011.4.191
+MKLDIR := $(INTEL)/mkl
+MKLINC := $(MKLDIR)/include/intel64/lp64
+MKLLIB := $(MKLDIR)/lib/intel64
+INTELLIB := $(INTEL)/compiler/lib/intel64
+MKL95DIR := /usr/local/intel/interfaces/lapack95_nag53
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR := /usr/local/netcdf/3.6.3_nag53
+else
+    ZLIB    := /usr/local/zlib/1.2.8-2_gcc_4.8.1_CentOS6/lib
+    SZLIB   := /usr/local/szip/2.1_gcc_4.8.1_CentOS6/lib
+    HDF5LIB := /usr/local/hdf5/1.8.12-1_gcc_4.8.1_CentOS6/lib
+    NCDIR   := /usr/local/netcdf/4.3.2_gcc_4.8.1_CentOS6
+    # NCFDIR  := /usr/local/netcdf-fortran/???
+    NCFDIR  := /usr/local/netcdf-fortran/4.2_gcc_4.8.1_nagfor_5.3.2_CentOS6
+endif
+
+# PROJ
+PROJ4DIR := /usr/local/proj/4.7.0
+FPROJDIR := /usr/local/fproj/4.7.0-1_nag53
+
+# LAPACK
+LAPACKDIR   := /usr/local/lapack/3.5.0-1_gcc_4.8.1_CentOS6
+GFORTRANDIR := $(GNUDIR)
+GFORTRANLIB := $(GNULIB)
+
+# Documentation
+DOXYGENDIR := /usr/local/doxygen/1.8.7-1_gcc_4.8.1_CentOS6/bin
+DOTDIR     := /usr/bin
+TEXDIR     := /usr/local/texlive/2011/bin/x86_64-linux
+PERLDIR    := /usr/bin
+iiLDPATH := /usr/local/flex/2.5.39-1_gcc_4.8.1_CentOS6/lib:/usr/local/bison/3.0.2-1_gcc_4.8.1_CentOS6/lib
+ifneq ($(LDPATH),)
+    LDPATH += :$(iiLDPATH)
+else
+    LDPATH := $(iiLDPATH)
+endif
+
+# Check some dependices, e.g. IMSL needs intel11 on eve
+ifneq (,$(findstring $(system),eve))
+    ifneq (,$(findstring $(imsl),vendor imsl))
+        ifneq ($(icompiler),intel11)
+            $(error Error: IMSL needs intel11.0.075, set 'compiler=intel11')
+        endif
+        ifeq ($(imsl),vendor)
+            ifeq (,$(findstring $(mkl),mkl mkl95))
+                $(error Error: IMSL vendor needs MKL, set 'mkl=mkl' or 'mkl=mkl95')
+            endif
+        endif
+    endif
+endif
+
+# Lapack on eve needs libgfortran
+ifeq ($(lapack),true)
+    ifneq (exists, $(shell if [ -d "$(GFORTRANDIR)" ] ; then echo 'exists' ; fi))
+        $(error Error: GFORTRAN path '$(GFORTRANDIR)' not found.)
+    endif
+    GFORTRANLIB ?= $(GFORTRANDIR)/lib
+    iLIBS       += -L$(GFORTRANLIB) -lgfortran
+    RPATH       += -Wl,-rpath,$(GFORTRANLIB)
+endif

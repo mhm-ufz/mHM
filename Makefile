@@ -73,11 +73,13 @@
 #    GNU Lesser General Public License for more details.
 #
 #    You should have received a copy of the GNU Lesser General Public License
-#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#    along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
+#    If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2011-2013 Matthias Cuntz, Juliane Mai, Stephan Thober
+#    Copyright 2011-2014 Matthias Cuntz
 #
-# Written Matthias Cuntz & Juliane Mai, UFZ Leipzig, Germany, Nov. 2011 - mc (at) macu.de
+# Written Matthias Cuntz, Nov. 2011 - mc (at) macu.de
+# Modified Matthias Cuntz, Juliane Mai, Stephan Thober, UFZ Leipzig, Germany
 
 SHELL = /bin/bash
 
@@ -86,22 +88,22 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src ./lib      # where are the source files; use test_??? to run a test directory
-PROGPATH   := .       # where shall be the executable
-CONFIGPATH := make.config # where are the $(system).$(compiler) files
-MAKEDPATH  := make.config # where is the make.d.sh script
-DOXPATH    := .           # where is doxygen.config
-CHECKPATH  := .           # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
+SRCPATH    := ./src ./lib   # where are the source files; use test_??? to run a test directory
+PROGPATH   := .             # where shall be the executable
+CONFIGPATH := make.config   # where are the $(system).$(compiler) files
+MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
+DOXPATH    := .             # where is doxygen.config
+CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
 #
 PROGNAME := mhm # Name of executable
-LIBNAME  := #mhm.a #libminpack.a # Name of library
+LIBNAME  := #libminpack.a # Name of library
 #
 # Options
 # Systems: eve and personal computers such as mcimac for Matthias Cuntz' iMac; look in $(MAKEDPATH) or type 'make info'
-system   := eve
+system   := eve2
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := nag
+compiler := gnu
 # Releases: debug, release
 release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -111,11 +113,13 @@ lapack   :=
 # MKL (Intel's Math Kernel Library): mkl, mkl95, [anything else]
 mkl      :=
 # Proj4 (Cartographic Projections Library): true, [anything else]
-proj     := 
+proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
 openmp   := 
+# MPI parallelization - experimental: true, [anything else]
+mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
 static   := shared
 
@@ -126,8 +130,13 @@ static   := shared
 # option or define a preprocessor variable such as: EXTRA_DEFINES := -DNOGUI -DDPREC
 #
 #
+# The Makefile compiles all files found in the source directories.
+# If you want excludes files from compilation, set EXCLUDE_FILES, e.g.
+# make EXCLUDE_FILES="*mpi*.f90"
+#
+#
 # Specific notes
-# If you encounter during linking error messages such as
+# If you encounter error messages during linking such as
 #     ... relocation truncated to fit: R_X86_64_PC32 against ...
 # then you ran out of memory address space, i.e. some hard-coded numbers in the code got too big.
 # Check that you have set the 64-bit addressing model in the F90FLAGS and LDFAGS: -m64
@@ -135,6 +144,17 @@ static   := shared
 # Intel might also need -shared-intel at the LDFLAGS, i.e.
 #     EXTRA_F90FLAGS := -mcmodel=medium
 #     EXTRA_LDFLAGS  := -mcmodel=medium -shared-intel
+#
+# If you encouter the following error with the intel compiler (compiler bug):
+#      0_10708
+#     : catastrophic error: **Internal compiler error: internal abort** Please report this error along with the
+#     circumstances in which it occurred in a Software Problem Report.
+#      Note: File and line given may not be explicit cause of this error.
+# then you probably assume the F2003 feature that arrays can be allocated as a result of a function.
+# Add the file afected to the list
+#     INTEL_EXCLUDE
+# below. This will not set the compiler flag -assume realloc-lhs.
+# If this does not work, try to reduce the optimisation in the make.config files (e.g. -O1)
 #
 #
 # Specific notes on optimisation and debugging
@@ -154,13 +174,21 @@ static   := shared
 #     -C=undefined must be used on all routines, i.e. also on netcdf for example.
 #                  This means that all tests do not work which use netcdf and/or lapack.
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
+
+# Special compilation flags 
 EXTRA_FCFLAGS  :=
-EXTRA_F90FLAGS :=
-EXTRA_DEFINES  := 
+EXTRA_F90FLAGS := #-C=undefined
+EXTRA_DEFINES  :=
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   :=
+
+# Intel F2003 -assume realloc-lhs
+INTEL_EXCLUDE  := #mo_read_wrapper.f90
+
+# Exclude certin files from compilation
+EXCLUDE_FILES  :=
 
 #
 # --- CHECK 0 ---------------------------------------------------
@@ -182,7 +210,7 @@ ifeq (,$(findstring $(static),static shared dynamic))
 endif
 
 #
-# --- PATHES ------------------------------------------------
+# --- PATHS ------------------------------------------------
 #
 
 # Make absolute pathes from relative pathes - there should be no space nor comment at the end of the next lines
@@ -237,7 +265,7 @@ endif
 #
 # --- CHECK 2 ---------------------------------------------------
 #
-compilers := $(shell ls -1 $(CONFIGPATH) | sed -e "/$(MAKEDSCRIPT)/d" -e '/f2html/d' -e '/alias/d' | grep $(system) | cut -d '.' -f 2 | sort | uniq)
+compilers := $(shell ls -1 $(CONFIGPATH) | sed -e "/$(MAKEDSCRIPT)/d" -e '/f2html/d' -e '/alias/d' -e '/~$$/d' | grep $(system) | cut -d '.' -f 2 | sort | uniq)
 gnucompilers := $(filter gnu%, $(compilers))
 nagcompilers := $(filter nag%, $(compilers))
 intelcompilers := $(filter intel%, $(compilers))
@@ -532,6 +560,19 @@ ifeq ($(lapack),true)
     DEFINES += -DLAPACK
 endif
 
+# --- MPI ---------------------------------------------------
+ifeq ($(mpi),true)
+    ifneq (exists, $(shell if [ -d "$(MPIDIR)" ] ; then echo 'exists' ; fi))
+        $(error Error: MPI path '$(MPIDIR)' not found.)
+    endif
+    MPIINC   ?= $(MPIDIR)/include
+    MPILIB   ?= $(MPIDIR)/lib
+    iLIBS    += -L$(MPILIB) # -lproj
+    RPATH    += -Wl,-rpath=$(MPILIB)
+    INCLUDES += -I$(MPIINC) -I$(MPILIB) # mpi.h in lib and not include <- strange
+    DEFINES  += -DMPI
+endif
+
 # --- DOXYGEN ---------------------------------------------------
 ISDOX := True
 ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
@@ -596,6 +637,14 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
     endif
 endif
 
+# --- INTEL ERROR ---------------------------------------------------
+ifneq (,$(findstring $(icompiler),$(intelcompilers)))
+    F90FLAGS1 = $(subst -assume realloc-lhs,,"$(F90FLAGS)")
+else
+    F90FLAGS1 = $(F90FLAGS)
+endif
+
+
 #
 # --- FINISH SETUP ---------------------------------------------------
 #
@@ -641,8 +690,10 @@ endif
 
 # ASRCS contain Fortran 90 source dir informations
 ifeq (False,$(iphony))
-    SRCS := $(wildcard $(addsuffix /*.f90, $(SRCPATH))) $(wildcard $(addsuffix /*.F90, $(SRCPATH)))  $(wildcard $(addsuffix /*.f95, $(SRCPATH))) $(wildcard $(addsuffix /*.F95, $(SRCPATH))) $(wildcard $(addsuffix /*.f03, $(SRCPATH))) $(wildcard $(addsuffix /*.F03, $(SRCPATH))) $(wildcard $(addsuffix /*.f08, $(SRCPATH))) $(wildcard $(addsuffix /*.F08, $(SRCPATH)))
+    SRCS1 := $(wildcard $(addsuffix /*.f90, $(SRCPATH))) $(wildcard $(addsuffix /*.F90, $(SRCPATH)))  $(wildcard $(addsuffix /*.f95, $(SRCPATH))) $(wildcard $(addsuffix /*.F95, $(SRCPATH))) $(wildcard $(addsuffix /*.f03, $(SRCPATH))) $(wildcard $(addsuffix /*.F03, $(SRCPATH))) $(wildcard $(addsuffix /*.f08, $(SRCPATH))) $(wildcard $(addsuffix /*.F08, $(SRCPATH)))
 endif
+# exclude files from compilation
+SRCS  := $(foreach f,$(SRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 # source files but all with .o
 OSRCS := $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(patsubst %.f95,%.o,$(patsubst %.F95,%.o,$(patsubst %.f03,%.o,$(patsubst %.F03,%.o,$(patsubst %.f08,%.o,$(patsubst %.F08,%.o,$(SRCS)))))))))
 # object files
@@ -655,8 +706,10 @@ GOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(OBJS)))) $(patsu
 
 # Same for Fortran77 files
 ifeq (False,$(iphony))
-    FSRCS := $(wildcard $(addsuffix /*.f, $(SRCPATH))) $(wildcard $(addsuffix /*.F, $(SRCPATH)))  $(wildcard $(addsuffix /*.for, $(SRCPATH))) $(wildcard $(addsuffix /*.FOR, $(SRCPATH))) $(wildcard $(addsuffix /*.f77, $(SRCPATH))) $(wildcard $(addsuffix /*.F77, $(SRCPATH))) $(wildcard $(addsuffix /*.ftn, $(SRCPATH))) $(wildcard $(addsuffix /*.FTN, $(SRCPATH)))
+    FSRCS1 := $(wildcard $(addsuffix /*.f, $(SRCPATH))) $(wildcard $(addsuffix /*.F, $(SRCPATH)))  $(wildcard $(addsuffix /*.for, $(SRCPATH))) $(wildcard $(addsuffix /*.FOR, $(SRCPATH))) $(wildcard $(addsuffix /*.f77, $(SRCPATH))) $(wildcard $(addsuffix /*.F77, $(SRCPATH))) $(wildcard $(addsuffix /*.ftn, $(SRCPATH))) $(wildcard $(addsuffix /*.FTN, $(SRCPATH)))
 endif
+# exclude files from compilation
+FSRCS  := $(foreach f,$(FSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 # source files but all with .o
 FOSRCS := $(patsubst %.f,%.o,$(patsubst %.F,%.o,$(patsubst %.for,%.o,$(patsubst %.FOR,%.o,$(patsubst %.f77,%.o,$(patsubst %.F77,%.o,$(patsubst %.ftn,%.o,$(patsubst %.FTN,%.o,$(FSRCS)))))))))
 # object files
@@ -669,8 +722,11 @@ FGOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(FOBJS)))) $(pat
 
 # Same for C files with ending .c
 ifeq (False,$(iphony))
-    CSRCS := $(wildcard $(addsuffix /*.c, $(SRCPATH))) $(wildcard $(addsuffix /*.C, $(SRCPATH)))
+    CSRCS1 := $(wildcard $(addsuffix /*.c, $(SRCPATH))) $(wildcard $(addsuffix /*.C, $(SRCPATH)))
 endif
+# exclude files from compilation
+CSRCS  := $(foreach f,$(CSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+# source files but all with .o
 COSRCS := $(patsubst %.c,%.o,$(patsubst %.C,%.o,$(CSRCS)))
 # object files
 COBJS  := $(join $(dir $(COSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(COSRCS))))
@@ -679,8 +735,9 @@ CDOBJS := $(COBJS:.o=.d)
 
 # Libraries in source path
 ifeq (False,$(iphony))
-    LSRCS := $(wildcard $(addsuffix /*.a, $(SRCPATH))) $(wildcard $(addsuffix /*.so, $(SRCPATH)))  $(wildcard $(addsuffix /*.dylib, $(SRCPATH)))
+    LSRCS1 := $(wildcard $(addsuffix /*.a, $(SRCPATH))) $(wildcard $(addsuffix /*.so, $(SRCPATH)))  $(wildcard $(addsuffix /*.dylib, $(SRCPATH)))
 endif
+LSRCS  := $(foreach f,$(LSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
 LOSRCS := $(patsubst %.a,,$(patsubst %.so,,$(patsubst %.dylib,,$(LSRCS))))
 LOBJS  := $(addprefix -L,$(dir $(SRCPATH))) $(addprefix -l, $(patsubst lib%, %, $(notdir $(LOSRCS))))
 
@@ -752,17 +809,23 @@ $(OBJS):
 ifneq (,$(findstring $(icompiler),gnu41 gnu42))
 	@nobj=$$(echo $(OBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
+	ssrc=$$(basename $$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p)) ; \
 	tmp=$@.$$(echo $${src} | sed 's/.*\.//') ; \
-	echo "$(F90) -E $(DEFINES) $(INCLUDES) $(F90FLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
-	$(F90) -E $(DEFINES) $(INCLUDES) $(F90FLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
+	doex=$$(echo $(INTEL_EXCLUDE) | grep -i "$${ssrc}" -) ; \
+	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
+	echo "$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
+	$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
 	echo "$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@" ; \
 	$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@ ; \
 	rm $${tmp}
 else
 	@nobj=$$(echo $(OBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
-	echo $(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
-	$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${src} -o $@
+	ssrc=$$(basename $$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p)) ; \
+	doex=$$(echo $(INTEL_EXCLUDE) | grep -i "$${ssrc}" -) ; \
+	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
+	echo $(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
+	$(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@
 endif
 
 $(FOBJS):
@@ -824,20 +887,20 @@ endif
 	for i in $(shell ls -d $(CHECKPATH)/test* $(CHECKPATH)/check*) ; do \
 	    rm -f "$(PROGNAME)" ; \
 	    j=$${i/minpack/maxpack} ; \
-	    ldextra= ; \
+	    libextra= ; \
 	    if [ $$i != $$j ] ; then \
 	    	 $(MAKE) -s MAKEDPATH=$(MAKEDPATH) SRCPATH="$$i"/../../minpack PROGPATH=$(PROGPATH) \
 	    	      CONFIGPATH=$(CONFIGPATH) PROGNAME= LIBNAME=libminpack.a system=$(system) \
 	    	      release=$(release) netcdf=$(netcdf) static=$(static) proj=$(proj) \
 	    	      imsl=$(imsl) mkl=$(mkl) lapack=$(lapack) compiler=$(compiler) \
 	    	      openmp=$(openmp) > /dev/null ; \
-                 ldextra="-L. -lminpack" ; \
+                 libextra="-L. -lminpack" ; \
 	    fi ; \
 	    $(MAKE) -s MAKEDPATH=$(MAKEDPATH) SRCPATH=$$i PROGPATH=$(PROGPATH) \
 	         CONFIGPATH=$(CONFIGPATH) PROGNAME=$(PROGNAME) system=$(system) \
 	         release=$(release) netcdf=$(netcdf) static=$(static) proj=$(proj) \
 	         imsl=$(imsl) mkl=$(mkl) lapack=$(lapack) compiler=$(compiler) \
-	         openmp=$(openmp) NOMACWARN=true EXTRA_LDFLAGS="$$ldextra" > /dev/null \
+	         openmp=$(openmp) NOMACWARN=true EXTRA_LIBS="$$libextra" > /dev/null \
 	    && { $(PROGNAME) 2>&1 | grep -E '(o\.k\.|failed)' ;} ; status=$$? ; \
 	    if [ $$status != 0 ] ; then echo "$$i failed!" ; fi ; \
 	    $(MAKE) -s SRCPATH=$$i cleanclean ; \

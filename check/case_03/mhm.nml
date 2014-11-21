@@ -57,12 +57,14 @@ dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(1)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
 dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
-!> directory where output should be written to
-dir_Out(1)           = "output_b1/"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(1)     = "../../test_basin/restart/"
 !> directory where restart output should be written
 dir_RestartOut(1)    = "output_b1/"
-!> directory where restart output should be written
-dir_RestartIn(1)     = "../../test_basin/restart/"
+!> directory where output should be written
+dir_Out(1)           = "output_b1/"
 !
 !**** for Basin 2
 !> directory where morphological files are located
@@ -77,12 +79,14 @@ dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(2)   = "../../test_basin/input/meteo/pet/"
 !> directory where latitude and longitude file is located
 dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
-!> directory where output should be written to
-dir_Out(2)           = "output_b2/"
-!> directory where restart output should be written
-dir_RestartOut(2)    = "output_b2/"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 !> directory where restart input is located
 dir_RestartIn(2)     = "../../test_basin/restart/"
+!> directory where restart output should be written
+dir_RestartOut(2)    = "output_b2/"
+!> directory where output should be written
+dir_Out(2)           = "output_b2/"
 /
 
 !
@@ -154,10 +158,9 @@ opti_function = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output
 !-----------------------------------------------------------------------------
-restart_flag_states_read   = .FALSE.
-restart_flag_states_write  = .TRUE.
-restart_flag_config_read   = .FALSE.
-restart_flag_config_write  = .TRUE.
+read_restart  = .FALSE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
@@ -187,6 +190,14 @@ evalPer%yEnd         = 1993
 evalPer%mEnd         = 12
 !> last day    of wanted simulation period
 evalPer%dEnd         = 31
+!> switch to control read input frequency of the gridded meteo input, 
+!> i.e. precipitation, potential evapotransiration, and temperature\n
+!>      >0: after each <timeStep_model_inputs> days\n
+!>       0: only at beginning of the run\n
+!>      -1: daily\n
+!>      -2: monthly\n
+!>      -3: yearly\n
+timestep_model_inputs = 0
 /
 
 !******************************************************************************************
@@ -199,7 +210,7 @@ evalPer%dEnd         = 31
 tillageDepth         = 200
 !> No. of soil horizons to be modeled
 nSoilHorizons_mHM    = 2
-! Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
+!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
 !> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
 soil_Depth(1)   = 200
 /
@@ -247,47 +258,27 @@ LCoverfName(3)   = 'lc_1990.asc'
 &LAI_data_information
 !
 !-----------------------------------------------------------------------------------
-!> Flag "iFlag_LAI_data_format"  to identify how LAI data has to be read in mHM. 
-!> This flag is unique and valid for all basins to be modeled.\n
+!> Flag timeStep_LAI_input identifies how LAI is read in mHM. 
+!> This flag is unique and valid for all basins.\n
 !
-!> 0 = Normal way of reading the long term monthly mean LAI LUT, and the related LAI
-!>     land cover file. 
-!> Note:: a) LAI-LUT filename (LAI_classdefinition.txt) is hard coded within mHM.
-!>           Information regarding long-term monthly mean LAI for land cover classes
-!>           appearing in all modeled basins should be included in this LUT file. 
-!>           This is an unique file applicable to all basins to be modeled. \n
-!>        b) The accompanied seperate LC file related to LAI (LAI_class.asc) must be   
-!>           located in the morph directory (provided above) for each basin to be modeled!
-!>
-!> 1 = Read daily gridded LAI files. Some additional information is needed in this case.\n
-!
-!> NOTE:: Fill all information required in this namelist, whatever may be the 
-!>        "iFlag_LAI_data_format" option is so to maintain the consistency during the reading 
-!>        of this namelist. You must provide some dummy information regarding, for e.g.,  
-!>        the input format and the directory paths as let say a blank string (""). \n 
+!> timeStep_LAI_input
+!>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
+!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
+!>         Information regarding long-term monthly mean LAI for land cover classes
+!>         appearing in all modeled basins should be included in this LUT file. 
+!>         This is an unique file applicable to all basins to be modeled. \n
+!>     The respective plant functional type is in LAI_class.asc, which must be   
+!>         located in each basin's morph directory.
+!> <0: Read gridded LAI files.\n
+!>     -1: gridded LAI are daily values\n
+!>     -2: gridded LAI are monthly values\n
+!>     -3: gridded LAI are yearly values\n
 !-----------------------------------------------------------------------------------
-!
-!> flag-Id
-iFlag_LAI_data_format = 0
-!
-!-----------------------------------------------------------------------------------
-!> For iFlag_LAI_data_format = 1 \n
-!> If the above "iFlag_LAI_data_format" is 1 then \n 
-!>   1) give the input file format (nc or bin)
-!>   2) path where the daily gridded files are located (for each basin seprately).\n 
-!>      Filename is hard coded within mHM as, e.g., \n
-!>      LAI.nc   -- data of multiple years are stored in this single file \n
-!>        or \n
-!>      YYYY.bin -- data are stored seprately for each year, where YYYY is year id).
-!>                  A single header file must accomony binary files  
-!-----------------------------------------------------------------------------------
-!> input file format
-inputFormat_gridded_LAI = "bin"
-!
-!> For each basin (number given in bracket), provide the path to the directory 
-!> where gridded LAI files are located.
-dir_gridded_LAI(1)  = "../../test_basin/input/lai/"
-dir_gridded_LAI(2)  = "../../test_basin/input/lai/"
+timeStep_LAI_input = 0
+!> input file format of gridded file (if timeStep_LAI_input < 0)
+!>     bin - assume yearly files with name YYYY.bin
+!>     nc  - assume one file with name lai.nc
+inputFormat_gridded_LAI = "nc"
 /
 
 !

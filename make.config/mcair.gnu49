@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.6 at Matthias' Macbook Air
+# Setup file for Gnu compiler 4.9 at Matthias' Macbook Air
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -35,11 +35,11 @@ GNUBIN := $(GNUDIR)/bin
 # Compiling
 F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc
+CC  := /usr/bin/gcc
 ifeq ($(release),debug)
     F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
     FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
     #CFLAGS   += -Wall -W -O -g
 else
     F90FLAGS += -O3
@@ -65,12 +65,13 @@ MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := /usr/local/netcdf_3.6.3_gfortran46
+    NCDIR := /usr/local/netcdf-3.6.3-gfortran
 else
-    NCDIR    = /usr/local/netcdf_4.1.2_gfortran46
-    CURLLIB :=
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-gfortran
+    CURLLIB := /usr/lib
     SZLIB   := /usr/local/lib
-    HDF5LIB := /usr/local/hdf5_1.1.8_gfortran46/lib
+    HDF5LIB := /usr/local/lib
 endif
 
 # PROJ
@@ -80,6 +81,9 @@ FPROJDIR :=
 # LAPACK
 LAPACKDIR   := 
 GFORTRANDIR := $(GNUDIR)
+
+# MPI
+MPIDIR := /usr/local/openmpi_1.8.1_gfortran
 
 # Documentation
 DOXYGENDIR := /usr/local/bin

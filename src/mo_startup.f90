@@ -18,6 +18,7 @@ MODULE mo_startup
   USE mo_kind,          ONLY: i4, dp
   USE mo_init_states,   ONLY: get_basin_info
   use mo_mhm_constants, only: nodata_i4, nodata_dp
+
   IMPLICIT NONE
 
   PRIVATE
@@ -85,12 +86,15 @@ CONTAINS
   !                  Luis Samaniego, Jul 2012 - removal of IMSL dependencies
   !                  Luis Samaniego, Dec 2012 - modular version
   !                  Rohini Kumar,   May 2013 - code cleaned and error checks
-  !                  Rohini Kumar,   Nov 2013 - updated documentation 
+  !                  Rohini Kumar,   Nov 2013 - updated documentation
+  !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
+  !                  Stephan Thober, Jun 2014 - updated flag for read_restart
 
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, restart_flag_config_read, dirRestartIn
+    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, &
+         read_restart, perform_mpr, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
     USE mo_restart,          ONLY: read_restart_L11_config, read_restart_config
@@ -109,16 +113,18 @@ CONTAINS
        ! soilDB common for all basins
        call generate_soil_database(soilDB)
     end if
-
+    
     ! L0 and L1 initialization
-    if (iBasin .eq. 1) then 
-       call L0_check_input(iBasin)
-    else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
-       call L0_check_input(iBasin)
+    if ( perform_mpr ) then
+       if (iBasin .eq. 1) then
+          call L0_check_input(iBasin)
+       else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+          call L0_check_input(iBasin)
+       end if
     end if
 
-    if ( .not. restart_flag_config_read ) then
-       if (iBasin .eq. 1) then 
+    if ( .not. read_restart ) then
+       if (iBasin .eq. 1) then
           call L0_variable_init(iBasin, soilDB%is_present)
        else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
           call L0_variable_init(iBasin, soilDB%is_present)
@@ -128,10 +134,13 @@ CONTAINS
        call read_restart_config( iBasin, soilDB%is_present, dirRestartIn(iBasin ) )
     end if
 
+    ! L2 inialization
+    call L2_variable_init(iBasin)
+
     ! L11: network initialization
     if ( processMatrix(8, 1) .ne. 0 ) then
        ! check if variables should be read from restart
-       if ( .not. restart_flag_config_read ) then
+       if ( .not. read_restart ) then
           call L11_variable_init(iBasin)
           call L11_flow_direction(iBasin)
           call L11_set_network_topology(iBasin)
@@ -148,17 +157,18 @@ CONTAINS
        call routing_dummy_alloc(iBasin)
   end if
 
-    ! State variables, fluxes and parameter fields 
+    ! State variables, fluxes and parameter fields
     ! have to be allocated in any case
     call variables_alloc(iBasin)
 
   end subroutine initialise
+
   ! ------------------------------------------------------------------
 
   !      NAME
   !          constants_init
 
-  !>        \brief Initialize mHM constants 
+  !>        \brief Initialize mHM constants
 
   !>        \details transformation of time units & initialize constants
 
@@ -202,7 +212,7 @@ CONTAINS
 
     use mo_global_variables, only: NTSTEPDAY, c2TSTu, timeStep
     use mo_message,          only: message
-    use mo_string_utils,     only: num2str 
+    use mo_string_utils,     only: num2str
 
     implicit none
 
@@ -213,7 +223,7 @@ CONTAINS
     endif
     NTSTEPDAY  = 24_i4/timeStep            ! # of time steps per day
     c2TSTu     = real(timeStep,dp)/24.0_dp ! from per timeStep to per day
-    
+
   end subroutine constants_init
 
   ! ------------------------------------------------------------------
@@ -221,10 +231,10 @@ CONTAINS
   !      NAME
   !          L0_check_input
 
-  !>        \brief Check for errors in L0 input data 
+  !>        \brief Check for errors in L0 input data
 
   !>        \details Check for possible errors in input data (morphological and land cover) at level-0
-                     
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4)       ::  iBasin"               basin id
 
@@ -263,7 +273,6 @@ CONTAINS
   !                                             and changed within the code made accordingly
   !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
   !                & Stephan Thober,           to process_matrix flag
-  ! ------------------------------------------------------------------
 
   subroutine L0_check_input(iBasin)
 
@@ -272,10 +281,10 @@ CONTAINS
                                    L0_fDir, L0_fAcc         , &
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
-                                   nLCover_scene            , &  
-                                   L0_LCover, iFlag_LAI_data_format, & 
-                                   processMatrix                                  
-    use mo_constants,    only: eps_dp             
+                                   nLCover_scene            , &
+                                   L0_LCover, timeStep_LAI_input, &
+                                   processMatrix
+    use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str
 
@@ -321,7 +330,7 @@ CONTAINS
             stop
          end if
 
-       end if     
+       end if
 
        ! aspect [degree]
        if ( abs( L0_asp(k) - nodata_dp ) .lt. eps_dp  ) then
@@ -359,7 +368,7 @@ CONTAINS
 
 
        ! land cover scenes related to LAI
-       if(iFlag_LAI_data_format .EQ. 0) then
+       if(timeStep_LAI_input .EQ. 0) then
          if ( L0_LCover_LAI(k) .eq. nodata_i4 ) then
             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
             call message(' Error: land cover ID for LAI has missing values within the valid masked area at cell in basin ', &
@@ -367,11 +376,11 @@ CONTAINS
             stop
          end if
        end if
-       
+
     end do
 
   end subroutine L0_check_input
-  
+
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -380,12 +389,12 @@ CONTAINS
   !>        \brief   level 0 variable initialization
 
   !>        \details following tasks are performed for L0 data sets
-  !>                 -  cell id & numbering 
+  !>                 -  cell id & numbering
   !>                 -  storage of cell cordinates (row and coloum id)
   !>                 -  empirical dist. of terrain slope
-  !>                 -  flag to determine the presence of a particular soil id 
+  !>                 -  flag to determine the presence of a particular soil id
   !>                    in this configuration of the model run
-  !>                 If a variable is added or removed here, then it also has to 
+  !>                 If a variable is added or removed here, then it also has to
   !>                 be added or removed in the subroutine config_variables_set in
   !>                 module mo_restart and in the subroutine set_config in module
   !>                 mo_set_netcdf_restart
@@ -394,8 +403,8 @@ CONTAINS
   !>        \param[in] "integer(i4)               :: iBasin"  basin id
 
   !     INTENT(INOUT)
-  !>        \param[in,out] "integer(i4), dimension(:) :: soilId_isPresent"   
-  !>        flag to indicate wether a given soil-id is present or not, DIMENSION [nSoilTypes]                                   
+  !>        \param[in,out] "integer(i4), dimension(:) :: soilId_isPresent"
+  !>        flag to indicate wether a given soil-id is present or not, DIMENSION [nSoilTypes]
 
   !     INTENT(OUT)
   !         None
@@ -420,25 +429,28 @@ CONTAINS
 
   !     LITERATURE
   !         None
-  
+
   !     HISTORY
   !         \author  Rohini Kumar
   !         \date    Jan 2013
   !         Modified
-  !         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
-  !                                     on a regular X-Y coordinate system
-  !
+  !         Rohini Kumar & Matthias Cuntz, May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                                   on a regular X-Y coordinate system
+  !         Matthias Cuntz,                May 2014 - changed empirical distribution function
+  !                                                   so that doubles get the same value
+
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
     use mo_global_variables, only: level0, L0_areaCell,    &
                                    L0_nCells, L0_cellCoor, &
-                                   L0_Id, L0_slope,        & 
+                                   L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
                                    L0_soilId, nSoilTypes,  &
-                                   iFlag_cordinate_sys 
-    use mo_append,        only: append                    
-    use mo_sort,          only: sort_index     
-    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
+                                   iFlag_cordinate_sys
+    use mo_append,        only: append
+    use mo_orderpack,     only: unirnk
+    use mo_utils,         only: le, eq
+    use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
 
     implicit none
 
@@ -458,10 +470,13 @@ CONTAINS
 
     real(dp), dimension(:), allocatable       :: slope_val, slope_emp
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
+    integer(i4)                               :: nuni
 
     integer(i4)                               :: i, j, k
     real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
-    
+    logical, dimension(:), allocatable        :: smask
+    real(dp)                                  :: emp
+
     !--------------------------------------------------------
     ! STEPS::
     ! 1) Estimate each variable locally for a given basin
@@ -469,7 +484,7 @@ CONTAINS
     !--------------------------------------------------------
 
     ! level-0 information
-    call get_basin_info( iBasin, 0, nrows, ncols, nCells=nCells, iStart=iStart, iEnd=iEnd, mask=mask ) 
+    call get_basin_info( iBasin, 0, nrows, ncols, nCells=nCells, iStart=iStart, iEnd=iEnd, mask=mask )
 
     allocate( cellCoor(nCells,2) )
     allocate(       Id(nCells  ) )
@@ -480,7 +495,7 @@ CONTAINS
     Id(:)         =  nodata_i4
     areaCell(:)   =  nodata_dp
     areaCell_2D(:,:) =  nodata_dp
-    
+
     !------------------------------------------------
     ! start looping for cell cordinates and ids
     !------------------------------------------------
@@ -503,36 +518,33 @@ CONTAINS
 
     ! regular lat-lon coordinate system
     else if(iFlag_cordinate_sys .eq. 1) then
-    
+
        degree_to_radian = TWOPI_dp / 360.0_dp
-       degree_to_metre  = RADUIS_EARTH_dp*TWOPI_dp/360.0_dp
+       degree_to_metre  = RadiusEarth_dp*TWOPI_dp/360.0_dp
        do i = ncols, 1, -1
          j =  ncols - i + 1
-         ! get latitude in degrees    
+         ! get latitude in degrees
          rdum = level0%yllcorner(iBasin) + (real(j,dp)-0.5_dp) * level0%cellsize(iBasin)
          ! convert to radians
          rdum = rdum*degree_to_radian
-         !    AREA[m²] 
-         areaCell_2D(:,i) = (level0%cellsize(iBasin) * cos(rdum) * degree_to_metre) * (level0%cellsize(iBasin)*degree_to_metre)  
-       end do 
-       areaCell(:) = pack( areaCell_2D(:,:), mask)   
+         !    AREA[m²]
+         areaCell_2D(:,i) = (level0%cellsize(iBasin) * cos(rdum) * degree_to_metre) * (level0%cellsize(iBasin)*degree_to_metre)
+       end do
+       areaCell(:) = pack( areaCell_2D(:,:), mask)
 
-    end if    
+    end if
 
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
-    allocate( slope_val(nCells), slope_sorted_index(nCells), slope_emp(nCells) )
-    slope_val(:)          = L0_slope(iStart:iEnd)
-    slope_sorted_index(:) = sort_index( slope_val(:) )
+    allocate( slope_val(nCells), slope_sorted_index(nCells), slope_emp(nCells), smask(nCells) )
+    slope_val(:) = L0_slope(iStart:iEnd)
 
-    do i = nCells, 1, -1
-      slope_val(i) = real(i, dp)
-    end do
-
-    do i = 1, nCells
-      j            = slope_sorted_index(i)
-      slope_emp(j) = slope_val(i) / real((nCells+1), dp)
+    ! empirical distribution of slopes = cumulated number points with slopes that are <= the slope at this point
+    call unirnk(slope_val, slope_sorted_index, nuni) ! unique values = slope_val(slope_sorted_index(1:nuni))
+    do i=1, nuni
+       emp = count(le(slope_val(:), slope_val(slope_sorted_index(i)))) / real(nCells+1,dp) ! # <= unique value
+       where (eq(slope_val(:), slope_val(slope_sorted_index(i)))) slope_emp(:) = emp       ! assign to == unique value
     end do
 
     !--------------------------------------------------------
@@ -542,9 +554,9 @@ CONTAINS
     call append( L0_Id, Id             )
     call append( L0_areaCell, areaCell )
     call append( L0_slope_emp, slope_emp )
-    
+
     L0_nCells = size(L0_Id,1)
- 
+
     !------------------------------------------------------
     ! Assign whether a given soil type is present or not
     !------------------------------------------------------
@@ -574,8 +586,8 @@ CONTAINS
   !>                 -  cell id & numbering
   !>                 -  mask creation
   !>                 -  storage of cell cordinates (row and coloum id)
-  !>                 -  sorage of four corner L0 cordinates 
-  !>                 If a variable is added or removed here, then it also has to 
+  !>                 -  sorage of four corner L0 cordinates
+  !>                 If a variable is added or removed here, then it also has to
   !>                 be added or removed in the subroutine config_variables_set in
   !>                 module mo_restart and in the subroutine set_config in module
   !>                 mo_set_netcdf_restart
@@ -666,7 +678,7 @@ CONTAINS
 
     ! level-0 information
     call get_basin_info( iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0, &
-                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     ) 
+                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
 
     if(iBasin == 1) then
        allocate( level1%nrows        (nBasins) )
@@ -684,7 +696,7 @@ CONTAINS
                                     level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
 
     ! level-1 information
-    call get_basin_info( iBasin, 1, nrows1, ncols1 ) 
+    call get_basin_info( iBasin, 1, nrows1, ncols1 )
 
     ! cellfactor = leve1-1 / level-0
     cellFactorHydro = level1%cellsize(iBasin) / level0%cellsize(iBasin)
@@ -692,7 +704,7 @@ CONTAINS
     ! allocation and initalization of mask at level-1
     allocate( mask1(nrows1, ncols1) )
     mask1(:,:) = .FALSE.
- 
+
     ! create mask at level-1
     do j=1,ncols0
        jc = ceiling( real(j,dp)/cellFactorHydro )
@@ -702,8 +714,8 @@ CONTAINS
           mask1(ic,jc) = .TRUE.
        end do
     end do
-    
-    
+
+
     ! level-0 cell area
     allocate( areaCell0_2D(nrows0,ncols0) )
     areaCell0_2D(:,:) = UNPACK( L0_areaCell(iStart0:iEnd0), mask0, nodata_dp )
@@ -718,7 +730,7 @@ CONTAINS
     allocate( downBound (nCells   ) )
     allocate( leftBound (nCells   ) )
     allocate( rightBound(nCells   ) )
-    allocate( areaCell  (nCells   ) )   
+    allocate( areaCell  (nCells   ) )
     allocate( nTCells   (nCells  ) )
 
     k   = 0
@@ -736,17 +748,17 @@ CONTAINS
           idown =    ic  * nint(cellFactorHydro,i4)
           jl    = (jc-1) * nint(cellFactorHydro,i4) + 1
           jr    =    jc  * nint(cellFactorHydro,i4)
-  
+
           ! constrain the range of up, down, left, and right boundaries
           if(iup   < 1      ) iup =  1
           if(idown > nrows0 ) idown =  nrows0
           if(jl    < 1      ) jl =  1
           if(jr    > ncols0 ) jr =  ncols0
 
-          upBound   (k) =  iup 
-          downBound (k) =  idown 
-          leftBound (k) =  jl 
-          rightBound(k) =  jr 
+          upBound   (k) =  iup
+          downBound (k) =  idown
+          leftBound (k) =  jl
+          rightBound(k) =  jr
 
           ! effective area [km2] & total no. of L0 cells within a given L1 cell
           areaCell(k) =   sum( areacell0_2D(iup:idown, jl:jr), mask0(iup:idown, jl:jr) )*1.0E-6
@@ -764,7 +776,7 @@ CONTAINS
        allocate(basin%L1_iStart(nBasins))
        allocate(basin%L1_iEnd  (nBasins))
        allocate(basin%L1_iStartMask(nBasins))
-       allocate(basin%L1_iEndMask   (nBasins))    
+       allocate(basin%L1_iEndMask   (nBasins))
 
        ! basin information
        basin%L1_iStart(iBasin) = 1
@@ -802,5 +814,189 @@ CONTAINS
                 leftBound, rightBound, nTCells        )
 
   end subroutine L1_variable_init
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         L2_variable_init
+  
+  !     PURPOSE
+  !>        \brief Initalize Level-2 meteorological forcings data
+
+  !>        \details following tasks are performed
+  !>                 1)  cell id & numbering
+  !>                 2)  mask creation
+  !>                 3)  append variable of intrest to global ones
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date Feb 2013
+
+  ! --------------------------------------------------------------------------
+  subroutine L2_variable_init(iBasin)
+
+    use mo_read_spatial_data,only: read_header_ascii
+    use mo_message,          only: message
+    use mo_append,           only: append                      ! append vector
+    use mo_string_utils,     only: num2str
+    use mo_init_states,      only: get_basin_info
+    use mo_init_states,      only: calculate_grid_properties
+
+    use mo_global_variables, only: nBasins, basin, level0, level2, dirPrecipitation
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_file,             only: file_meteo_header, umeteo_header
+
+    
+    implicit none
+
+    integer(i4), intent(in)                   :: iBasin
+
+    ! local variables
+    integer(i4)                               :: nrows0, ncols0
+    logical, dimension(:,:), allocatable      :: mask0
+    real(dp)                                  :: xllcorner0, yllcorner0
+    real(dp)                                  :: cellsize0
+
+    integer(i4)                               :: nrows2, ncols2
+    logical, dimension(:,:), allocatable      :: mask2
+    real(dp)                                  :: xllcorner2, yllcorner2
+    real(dp)                                  :: cellsize2
+    integer(i4)                               :: nCells2
+    real(dp)                                  :: cellFactor
+    integer(i4)                               :: i, j, ic, jc
+    character(256)                            :: fName
+
+    !--------------------------------------------------------
+    ! STEPS::
+    ! 1) Estimate each variable locally for a given basin
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+    
+    ! assign space
+    if(iBasin .eq. 1) then
+       allocate( level2%nrows        (nBasins) )
+       allocate( level2%ncols        (nBasins) )
+       allocate( level2%xllcorner    (nBasins) )
+       allocate( level2%yllcorner    (nBasins) )
+       allocate( level2%cellsize     (nBasins) )
+       allocate( level2%nodata_value (nBasins) )
+     end if
+
+    ! read header file 
+    ! NOTE: assuming the header file for all metero variables are same as that of precip.
+    !       A counter check for this assumption is perfromed in the read_meteo_bin file 
+    
+    fName =  trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
+    call read_header_ascii( trim(fName), umeteo_header,   &
+                            level2%nrows(iBasin), level2%ncols(iBasin), level2%xllcorner(iBasin), &
+                            level2%yllcorner(iBasin), level2%cellsize(iBasin),  level2%nodata_value(iBasin) )
+  
+   ! level-0 information
+   call get_basin_info( iBasin, 0, nrows0, ncols0, mask=mask0,                         &
+                        xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0 ) 
+   ! grid information
+   call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,          &
+                                   level2%cellsize(iBasin), &
+                                   nrows2, ncols2, xllcorner2, yllcorner2, cellsize2,level2%nodata_value(iBasin) )
+
+   ! check
+   if (  (ncols2     .ne.  level2%ncols(iBasin))         .or. &
+         (nrows2     .ne.  level2%nrows(iBasin))         .or. &
+         ( abs(xllcorner2 - level2%xllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
+         ( abs(yllcorner2 - level2%yllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
+         ( abs(cellsize2  - level2%cellsize(iBasin))  .gt. tiny(1.0_dp) )             ) then
+      call message()
+      call message('***ERROR: L2_variable_init: Resolution of meteorology differs in basin: ', &
+           trim(adjustl(num2str(iBasin))))
+      stop
+    end if
+
+  
+    ! cellfactor = leve1-2 / level-0
+    cellFactor = level2%cellsize(iBasin) / level0%cellsize(iBasin)
+
+    ! allocation and initalization of mask at level-2
+    allocate( mask2(nrows2, ncols2) )
+    mask2(:,:) = .FALSE.
+
+    ! create mask at level-2
+    do j = 1, ncols0
+       jc = ceiling( real(j,dp)/cellFactor )
+       do i = 1, nrows0
+          if ( .NOT. mask0(i,j) ) cycle
+          ic = ceiling( real(i,dp)/cellFactor )
+          mask2(ic,jc) = .TRUE.
+       end do
+    end do
+    
+    ! no. of valid cells at level-2
+    nCells2 = count( mask2 )
+
+    !--------------------------------------------------------
+    ! Start padding up local variables to global variables
+    !--------------------------------------------------------
+    if (iBasin .eq. 1) then
+ 
+       ! allocate space
+       allocate(basin%L2_iStart     (nBasins))
+       allocate(basin%L2_iEnd       (nBasins))
+       allocate(basin%L2_iStartMask (nBasins))
+       allocate(basin%L2_iEndMask   (nBasins))    
+
+       ! basin information
+       basin%L2_iStart(iBasin) = 1_i4
+       basin%L2_iEnd  (iBasin) = basin%L2_iStart(iBasin) + nCells2 - 1_i4
+
+       basin%L2_iStartMask(iBasin) = 1_i4
+       basin%L2_iEndMask  (iBasin) = basin%L2_iStartMask(iBasin) + nrows2*ncols2 - 1_i4
+
+    else
+
+       ! basin information
+       basin%L2_iStart(iBasin) = basin%L2_iEnd(iBasin-1) + 1_i4
+       basin%L2_iEnd  (iBasin) = basin%L2_iStart(iBasin) + nCells2 - 1_i4
+
+       basin%L2_iStartMask(iBasin) = basin%L2_iEndMask(iBasin-1) + 1_i4
+       basin%L2_iEndMask  (iBasin) = basin%L2_iStartMask(iBasin) + nrows2*ncols2 - 1_i4
+
+    end if
+
+    call append( basin%L2_Mask,  RESHAPE( mask2, (/nrows2*ncols2/)  )  )
+
+    ! free space
+    deallocate(mask0, mask2)
+
+  end subroutine L2_variable_init
 
 END MODULE mo_startup

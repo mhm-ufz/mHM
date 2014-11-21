@@ -70,7 +70,7 @@ done
 shift $((${OPTIND} - 1))
 
 # Check that enough arguments
-if [ $# -lt 3 ] ; then
+if [[ $# -lt 3 ]] ; then
     printf "Error ${pprog}: not enough input arguments.\n\n" 1>&2
     usage 1>&2
     exit 1
@@ -87,11 +87,21 @@ srcfiles=$@
 # Dependencies
 #
 # All module names and filenames into a dictionary
-# One dictionary per input directory
-dict="$(dirname ${thisfile})/${src2obj}/${pprog}.dict"
-if [ ! -f ${dict} ] ; then # new dict only if it does not exist in directory yet
-    for i in ${srcfiles} ; do
-	ismod=$(echo "${i}:$(sed -e 's/[[:blank:]]*\!.*//' -e '/^[Cc]/d' -e 's/^[[:blank:]]\{1,\}//' -e 's/[[:blank:]]\{1,\}\$//' -e 's/^[[:blank:]]\{1,\}$//' ${i} | tr [A-Z] [a-z] | tr -s ' ' | sed -n -e '/^module[[:blank:]]\{1,\}/p' | sed -n -e '/^module[[:blank:]]\{1,\}[[:alnum:]_]\{1,\}$/p' | sed -e 's/^module[[:blank:]]\{1,\}//')")
+# Same dictionary for all input directories
+alldirs=''
+for i in $srcfiles ; do alldirs="${alldirs}\n$(dirname ${i})" ; done
+firstdir=$(printf ${alldirs} | sort | uniq | sed '/^$/d' | tr '\n' '\t' | cut -f 1)
+# dictionary in first input directory
+dict="${firstdir}/${src2obj}/${pprog}.dict"
+if [[ ! -f ${dict} ]] ; then # new dict only if it does not exist in directory yet
+    if [[ ! -d $(dirname ${dict}) ]] ; then mkdir -p $(dirname ${dict}) ; fi
+    for i in ${srcfiles} ; do # all files in all input dirs
+	# 1. all blanks to one space, 2. rm f90 comments, 3. rm f77 comments,
+	# 4. rm leading blank, 5. rm trailing blank, 6. rm blank lines,
+	# 7. lowercase, 8. squeeze blanks (redundant),
+	# 9. lines with word 'module', 10. lines with only 'module name', i.e. not module procedure,
+	# 11. rm word 'module'
+	ismod=$(echo "${i}:$(sed -e 's/[[:blank:]]\{1,\}/ /g' -e 's/ *\!.*//' -e '/^[Cc]/d' -e 's/^ //' -e 's/ $//' -e 's/^$//' ${i} | tr [A-Z] [a-z] | sed -n -e '/^module /p' | sed -n -e '/^module [[:alnum:]_]\{1,\}$/p' | sed -e 's/^module //')")
 	if [[ "${ismod}z" != "${i}:z" ]] ; then echo ${ismod} >> ${dict} ; fi
     done
 fi

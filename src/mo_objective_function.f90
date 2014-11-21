@@ -12,6 +12,7 @@
 !>          (6) SSE  \n
 !>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !>          (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
+!>          (9) 1.0 - KGE  \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -254,8 +255,8 @@ CONTAINS
   !         Modified, 
 
   FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
+    use mo_constants,        only: pi_dp
     use mo_moment,           only: stddev, correlation
-    use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
     use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
     use mo_global_variables, only: gauge
@@ -266,7 +267,7 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in)            :: parameterset
-    real(dp),               intent(in)            :: stddev_old           ! standard deviation of data
+    real(dp),               intent(in)            :: stddev_old       ! standard deviation of data
     real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
     real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
     real(dp)                                      :: loglikelihood_kavetski
@@ -284,12 +285,14 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
     logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
     integer(i4)                           :: nmeas
-    real(dp), dimension(:),   allocatable :: errors
+    real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
     real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c
+    real(dp)                              :: a, b, c, vary, vary1
     real(dp)                              :: stddev_tmp
+    integer(i4)                           :: npara
 
-    call mhm_eval(parameterset, runoff=runoff)
+    npara = size(parameterset)
+    call mhm_eval(parameterset(1:npara-2), runoff=runoff)
 
     ! simulated timesteps per day 
     timestepsPerDay_modelled = nTstepDay
@@ -326,28 +329,36 @@ CONTAINS
 
     nmeas     = size(runoff_model_agg,1) * nGaugesTotal
     
-    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
+    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
 
     obs       = reshape(gauge%Q, (/nmeas/))
     calc      = reshape(runoff_model_agg, (/nmeas/))
-    errors(:) = abs( calc(:) - obs(:) )
+    ! residual errors
+    errors(:) = calc(:) - obs(:)
 
-    ! remove linear trend of errors - must be model NOT obs
-    out = linfit(calc, errors, a=a, b=b, model2=.False.)
-    errors(:) = errors(:) / (a + calc(:)*b)
+    ! linear error model
+    a = parameterset(npara-1)
+    b = parameterset(npara)
+print*, 'a = ',a, '   b = ',b
+    sigma(:) = a + b * calc(:)
+    ! standardized residual errors (SRE)
+    eta(:)   = errors(:) / sigma(:)
 
-    ! remove lag(1)-autocorrelation of errors
-    c = correlation(errors(2:nmeas),errors(1:nmeas-1))
-    errors(1:nmeas-1) = errors(2:nmeas) - c*errors(1:nmeas-1)
-    errors(nmeas)     = 0.0_dp
+    ! remove lag(1)-autocorrelation of SRE
+    c = correlation(eta(2:nmeas),eta(1:nmeas-1))
+    y(1) = 0.0_dp ! only for completeness
+    y(2:nmeas) = eta(2:nmeas) - c*eta(1:nmeas-1)
 
-    ! you have to take stddev_old=const because otherwise loglikelihood_kavetski is always N
-    ! in MCMC stddev gets updated only when a better likelihood is found.
-    loglikelihood_kavetski = sum( errors(:) * errors(:) / stddev_old**2 )
-    loglikelihood_kavetski = -0.5_dp * loglikelihood_kavetski
+    ! likelihood of residual errors (leave out ln(1/sqrt(2*pi)))
+    vary  = 1.0_dp - c*c
+    vary1 = 1.0_dp / vary
+    loglikelihood_kavetski = real(nmeas-1,dp)*log(1.0_dp/sqrt(2.0_dp*pi_dp*vary)) &
+         - log(sigma(1)) - 0.5_dp*eta(1)*eta(1) &
+         - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1 + log(sigma(2:nmeas)))
 
     write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
 
+    stddev_tmp = stddev_old   ! this is only to make stddev_old used
     stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
        stddev_tmp = stddev(errors(:))
@@ -361,7 +372,7 @@ CONTAINS
     end if
 
     deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
-    deallocate(obs, calc, out, errors)
+    deallocate(obs, calc, out, errors, sigma, eta, y)
     
   END FUNCTION loglikelihood_kavetski
 
@@ -604,6 +615,9 @@ CONTAINS
     case (8)
        ! -loglikelihood with trend removed from relative errors and then lag(1)-autocorrelation removed
        objective = - loglikelihood_kavetski( parameterset, 1.0_dp )
+    case (9)
+       ! KGE
+       objective = objective_kge(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -1277,5 +1291,148 @@ CONTAINS
     deallocate( runoff_model_agg_mask )
     
   END FUNCTION objective_power6_nse_lnnse
+  ! ------------------------------------------------------------------
 
+  !      NAME
+  !          objective_kge
+
+  !>        \brief Objective function of KGE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>                 The model will be called with that parameter vector and 
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>                       \f[ KGE = 1.0 - SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
+  !>                 where
+  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
+  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 is calculated and the objective function is
+  !>                       \f[ obj\_value = 1.0 - KGE \f]
+  !>                 (1-KGE) is the objective since we always apply minimization methods. 
+  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
+  !>
+  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge(para)
+
+  !     LITERATURE
+  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date August 2014
+  !         Modified, R. Kumar & O. Rakovec, Sep. 2014
+
+  FUNCTION objective_kge(parameterset)
+    
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
+    use mo_global_variables, only: gauge
+    use mo_errormeasures,    only: kge
+    use mo_mhm_constants,    only: nodata_dp
+    use mo_message,          only: message
+    use mo_utils,            only: ge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_kge
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
+    integer(i4)                           :: timestepsPerDay_modelled !
+    integer(i4)                           :: timestepsPerDay_measured !
+    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
+    !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: tt                       ! timestep counter
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
+    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    !
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    ! simulated timesteps per day 
+    timestepsPerDay_modelled = nTstepDay
+    ! measured timesteps per day 
+    timestepsPerDay_measured = nMeasPerDay
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
+       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! total number of simulated timesteps
+    ntimeSteps = size(runoff,1)
+    
+    ! allocation and initialization
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    runoff_model_agg      = nodata_dp
+    runoff_model_agg_mask = .false. ! take mask of observation
+
+    ! average <multiple> datapoints
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg(tt,gg) = &
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
+         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+    ! set mask
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
+
+    objective_kge = 0.0_dp
+    do gg=1,nGaugesTotal
+       ! KGE
+       objective_kge = objective_kge + &
+            kge(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+    end do
+    ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
+    objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_kge = ', objective_kge
+    ! pause
+
+    deallocate( runoff_model_agg )
+    deallocate( runoff_model_agg_mask )
+    
+  END FUNCTION objective_kge
+  
 END MODULE mo_objective_function

@@ -45,11 +45,11 @@ else
     FCFLAGS  += -fast -ftrap=%none
     CFLAGS   += -fast
 endif
-F90FLAGS += -fpp -fPIC -xtarget=generic -m64 -xarch=sse4_2
+F90FLAGS += -fpp -fPIC -xtarget=generic -m64 -xarch=sse4_2 -xcache=generic
 MODFLAG  := -moddir=# space significant
-FCFLAGS  += -fpp -fPIC -xtarget=generic -m64 -xarch=sse4_2 -errtags=INVOKE -fixed-form
-CFLAGS   += -fpp -fPIC -xtarget=generic -m64 -xarch=sse4_2
-DEFINES  += -DSUN
+FCFLAGS  += -fpp -fPIC -xtarget=generic -m64 -xarch=sse4_2 -errtags=INVOKE -fixed-form -xcache=generic
+CFLAGS   += -fPIC -xtarget=generic -m64 -xarch=sse4_2 -xcache=generic
+DEFINES  += -DSUN -Dsun -DsunFortran
 
 # Linking
 LIBS += -L$(SUNLIB)

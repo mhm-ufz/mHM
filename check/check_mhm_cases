@@ -16,11 +16,11 @@ set -e
 # DETAILS
 # -------------------------------------------------------------------------------------------
 #
-# To run all the test cases on (s)ystem "eve" with (c)ompiler "nag53" in (r)elease mode "debug"
+# To run all the test cases on (s)ystem "eve2" with (c)ompiler "nag53" in (r)elease mode "debug"
 # type
 
 #      $ cd check/
-#      $ ./check_mhm_cases -s eve -c nag53 -r debug
+#      $ ./check_mhm_cases -s eve2 -c nag53 -r debug
 
 # on your command line. If test case was running properly, i.e. is
 # consistent with the pre-defined output, command line output will be
@@ -29,7 +29,7 @@ set -e
 #      $     #     case_[id]  o.k.     #
 #      $     ###########################
 #      $     using
-#      $        System:   eve
+#      $        System:   eve2
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -40,7 +40,7 @@ set -e
 #      $     #     case_[id]  failed   #
 #      $     ###########################
 #      $     using
-#      $        System:   eve
+#      $        System:   eve2
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -77,23 +77,89 @@ set -e
 #    case 0 :: DEFAULT
 
 #    case 1 :: RESTART READING AND WRITING
-#       restart_flag_states_read   = .TRUE.      (default: .FALSE.)
-#       restart_flag_states_write  = .TRUE.      (default: .TRUE. )
-#       restart_flag_config_read   = .TRUE.      (default: .FALSE.)
-#       restart_flag_config_write  = .TRUE.      (default: .TRUE. )
+#       restart_flag_states_read   = .TRUE.          (default: .FALSE.)
+#       restart_flag_states_write  = .TRUE.          (default: .TRUE. )
+#       restart_flag_config_read   = .TRUE.          (default: .FALSE.)
+#       restart_flag_config_write  = .TRUE.          (default: .TRUE. )
 
 #    case 2 :: ROUTING DEACTIVATED
-#       processCase(8) = 0                       (default: 1)
+#       processCase(8) = 0                           (default: 1)
 
 #    case 3 :: OPTIMIZATION ACTIVATED
-#       optimize       = .TRUE.                  (default: .FALSE.)
-#       opti_method    = 1                       (default: 3      )
-#       nIterations    = 6                       (default: 400    )
+#       optimize       = .TRUE.                      (default: .FALSE.)
+#       opti_method    = 1                           (default: 3      )
+#       nIterations    = 6                           (default: 400    )
+
+#    case 4 :: MULTISCALE  
+#       nBasins                    = 6	             (default: nBasins                 = 2)
+#       resolution_Hydrology(1)    = 24000 	     (default: resolution_Hydrology(1) = 24000 )
+#       resolution_Hydrology(2)    = 12000	     (default: resolution_Hydrology(1) = 24000 )
+#       resolution_Hydrology(3)    = 24000 	     (default: )
+#       resolution_Hydrology(4)    = 24000	     (default: )
+#       resolution_Hydrology(5)    = 12000 	     (default: )
+#       resolution_Hydrology(6)    = 24000	     (default: )
+#       resolution_Routing(1)      = 24000 	     (default: resolution_Routing(1)   = 24000)
+#       resolution_Routing(2)      = 12000	     (default: resolution_Routing(2)   = 24000)
+#       resolution_Routing(3)      = 24000	     (default: )
+#       resolution_Routing(4)      = 24000	     (default: )
+#       resolution_Routing(5)      = 12000	     (default: )
+#       resolution_Routing(6)      = 24000	     (default: )
+#       L0Basin(1)                 = 1	             (default: )
+#       L0Basin(2)                 = 1	             (default: )
+#       L0Basin(3)                 = 2	             (default: )
+#       L0Basin(4)                 = 3	             (default: )
+#       L0Basin(5)                 = 4	             (default: )
+#       L0Basin(6)                 = 5	             (default: )
+#       nGaugesTotal               = 6	             (default: nGaugesTotal            = 2)
+#       NoGauges_basin(3)          = 1 	             (default: )
+#       Gauge_id(3,1)              = 45 	     (default: )
+#       Gauge_filename(3,1)        = "45.txt"        (default: )
+#       NoGauges_basin(4)          = 1	             (default: )
+#       Gauge_id(4,1)              = 398 	     (default: )
+#       Gauge_filename(4,1)        = "00398.txt"     (default: )
+#       NoGauges_basin(5)          = 1	             (default: )
+#       Gauge_id(5,1)              = 398 	     (default: )
+#       Gauge_filename(5,1)        = "00398.txt"     (default: )
+#       NoGauges_basin(6)          = 1	             (default: )
+#       Gauge_id(6,1)              = 45 	     (default: )
+#       Gauge_filename(6,1)        = "45.txt"        (default: )
+#       + adjust basin wise directory paths according to the multiscale setup:
+#       dir_Out(1)          	   = "output_b1/b1_" (default: "output_b1/")
+#       dir_RestartOut(1)          = "output_b1/b1_" (default: "output_b1/")
+#       dir_LatLon(2)              = "../../test_basin/input/latlon/latlon_2.nc" (default: latlon_1.nc )
+#       dir_Out(2)                 = "output_b1/b2_" (default: "output_b1/")
+#       dir_RestartOut(2)          = "output_b1/b2_" (default: "output_b1/")
+#       dir_LatLon(3)              = "../../test_basin_2/input/latlon/latlon.nc" (default: )
+#       dir_Out(3)                 = "output_b1/b3_" (default: )
+#       dir_RestartOut(3)          = "output_b1/b3_" (default: )
+#       dir_LatLon(4)              = "../../test_basin/input/latlon/latlon_1.nc" (default: )
+#       dir_Out(4)                 = "output_b1/b4_" (default: )
+#       dir_RestartOut(4)          = "output_b1/b4_" (default: )
+#       dir_LatLon(5)              = "../../test_basin/input/latlon/latlon_2.nc" (default: )
+#       dir_Out(5)                 = "output_b1/b5_" (default: )
+#       dir_RestartOut(5)          = "output_b1/b5_" (default: )
+#       dir_LatLon(6)              = "../../test_basin_2/input/latlon/latlon.nc" (default: )
+#       dir_Out(6)                 = "output_b1/b6_" (default: )
+#       dir_RestartOut(6)          = "output_b1/b6_" (default: )
+
+#    case 5 :: INFLOW GAUGE and GRIDDED LAI
+#        nInflowGaugesTotal	   = 1               (default: nInflowGaugesTotal            = 0)
+#        NoInflowGauges_basin(1)   = 1               (default: NoInflowGauges_basin(1)       = 0)
+#        InflowGauge_id(1,1)       = 333             (default: InflowGauge_id(1,1)           = 398)
+#        InflowGauge_filename(1,1) = "00333.txt"     (default: InflowGauge_filename(1,1)     = "00398.txt")
+#        dir_Out(1)          	   = "output_b1/b1_" (default: "output_b1/")
+#        dir_RestartOut(1)         = "output_b1/b1_" (default: "output_b1/")
+#        dir_Out(2)                = "output_b1/b2_" (default: "output_b1/")
+#        dir_RestartOut(2)         = "output_b1/b2_" (default: "output_b1/")
+#        timeStep_LAI_input = -2                     (default: timeStep_LAI_input = 0)        ! monthly gridded LAI input
+#        outputFlxState(9)=.TRUE.                    (default: outputFlxState(9)=.FALSE.)     ! actual evapotranspiration aET [mm/T]
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
-# Modified Feb 2014 Matthias Cuntz - lots of small changes
+# Modified Feb 2014 Matthias Cuntz                 - lots of small changes
 #          Mar 2014 Stephan Thober, Matthias Cuntz - added OpenMP test
+#          May 2014 Matthias Cuntz                 - specify compiler during clean
+#          Jul 2014 Juliane Mai                    - checking daily_discharge files added
 
 # -------------------------------------------------------------------------------------------
 #
@@ -146,14 +212,14 @@ function usage () {
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           'all' or 'both' loop over debug and release\n"
     printf "           (Default: all)\n"
-    printf "    -s     System on which mHM will be compiled, e.g. 'eve'\n"
-    printf "           (Default: eve).\n"
+    printf "    -s     System on which mHM will be compiled, e.g. 'eve2'\n"
+    printf "           (Default: eve2).\n"
     printf "    -t     Number of threads for OpenMP, e.g. 6\n"
     printf "           Set to '' for deactivation of parallel test\n"
     printf "           (Default: 2).\n"
     printf "\n"
     printf "Example\n"
-    printf "    ${pprog} -c gnu45 -s eve -r debug -t 1\n"
+    printf "    ${pprog} -c gnu45 -s eve2 -r debug -t 1\n"
 }
 
 # cleanup at end and when interupted
@@ -164,8 +230,8 @@ function cleanup ()
     rm -f 'mhm_for_check'
 
     # everything in case_?? dirs
-    case_dirs=$(ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out"
+    case_dirs=$(\ls -d case_*)
+    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff.*.terminal"
     rmdirs="output_b1 output_b2"
 
     # using brace expansion
@@ -177,7 +243,8 @@ function cleanup ()
 
     # make cleanclean
     cd ..
-    make system=${system} PROGNAME=${mhm_exe} cleanclean > /dev/null
+    if [[ "z${compiler}" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
+    make system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean > /dev/null
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -189,7 +256,7 @@ mhm_exe='mhm_for_check'
 
 # switches
 compilers='all'
-system='eve'
+system='eve2'
 release='all'
 threads=2
 while getopts "c:hr:s:t:" Option ; do
@@ -207,8 +274,8 @@ shift $((${OPTIND} - 1))
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
 if [[ "${compilers}" == "all" ]] ; then
-    compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
-    # compilers=$(ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    # compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
 fi
 
 # argument
@@ -224,10 +291,15 @@ fi
 set +e
 icdo=$(which cdo)
 if [[ "${icdo}z" == "z" ]] ; then
-    if [[ ${system} == "eve" ]] ; then
+    if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
-        module load cdo
+	if [[ $(hostname) == 'frontend1' ]]; then
+            module load cdo/1.6.0-1 
+	fi
+	if [[ $(hostname) == 'frontend2' ]]; then
+	    module load cdo
+	fi
         icdo=$(which cdo)
     fi
 fi
@@ -272,7 +344,7 @@ for irelease in ${release} ; do
 	    # run checks
             cd check
             case_dirs=$(\ls -d case_*)
-            #case_dirs=$(\ls -d case_00)
+            #case_dirs=$(\ls -d case_02)
 
             nRecordsDiffer_allCases=0
             for case_dir in ${case_dirs} ; do
@@ -294,11 +366,20 @@ for irelease in ${release} ; do
                 # mhm was running till the end?
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
                 if [[ ${found} == 'mHM: Finished!' ]] ; then
-                    # compare outputs in output_b1/ with reference in output_save/
+                  
                     nRecordsDiffer=0
                     cd output_save
-                    nc_files=$(ls *.nc)
+                    nc_files=$(\ls *.nc)
+		    set +e
+		    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
+		    set -e
+		    if [[ -z ${discharge_files} ]] ; then
+			echo '   No discharge files written!'
+		    fi
                     cd ..
+		    echo ''
+
+                    # compare NetCDF outputs in output_b1/ with reference in output_save/
                     for nc_file in ${nc_files} ; do
                         # cdo -b 16 :: precision=double=16bit
                         echo '   *  cdo diff output_save/'${nc_file}' output_b1/'${nc_file}
@@ -308,15 +389,42 @@ for irelease in ${release} ; do
                         nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
                         echo '      Number of records that differ more than 0.001: '${iRecordsDiffer}
                         if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                             echo '                  Details '
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                             ${icdo} diffn output_save/${nc_file} output_b1/${nc_file}
-                            echo '            -------------------'
+                            echo '            --------------------------------------'
                         fi
                         echo ''
                     done
-                    echo '   Total Number of records that differ more than 0.001: '${nRecordsDiffer}
+
+		    # compare daily_discharge outputs in output_b1/ with reference in output_save/
+		    # if [[ -e output_save/daily_discharge.out ]] ; then
+		    for discharge_file in ${discharge_files} ; do
+			echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
+			set +e
+			diff output_save/${discharge_file} output_b1/${discharge_file} > diff.${pid}.terminal
+			set -e
+			iRecordsDiffer=$(echo $(wc -l diff.${pid}.terminal) | cut -d ' ' -f 1)
+			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+			    iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
+			fi
+			nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
+			nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
+			echo '      Number of records that differ: '${iRecordsDiffer}
+			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            echo '            --------------------------------------'
+                            echo '                  Details                         '
+                            echo '            --------------------------------------'
+                            set +e
+			    diff output_save/${discharge_file} output_b1/${discharge_file}
+			    set -e
+                            echo '            --------------------------------------'
+			fi
+			echo ''
+		    done
+			
+                    echo '   Total Number of records that differ: '${nRecordsDiffer}
 
                     if [[ ${nRecordsDiffer} -eq 0 ]] ; then
                         echo ''
@@ -355,7 +463,7 @@ for irelease in ${release} ; do
             if [[ ${nRecordsDiffer_allCases} -gt 0 ]] ; then
                 echo ''
                 echo '##############################################################################################'
-                echo '#     At least one case failed in this comiler setup                                         #'
+                echo '#     At least one case failed in this compiler setup                                        #'
                 echo '#     check_mhm_cases is aborted without cleaning up the output in the case directories,     #'
                 echo '#     such that it can be used to identify the bug                                           #'
                 echo '##############################################################################################'

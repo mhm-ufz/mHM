@@ -49,7 +49,7 @@ ifeq ($(release),debug)
         F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90 
     endif 
     FCFLAGS  += $(F90FLAGS)
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
     LDFLAGS  += -g90
 else
     F90FLAGS += -O3
@@ -68,6 +68,11 @@ DEFINES  += -DNAG -DgFortran
 # Linking
 LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
 RPATH += -Wl,-rpath,$(NAGLIB)
+ifneq ($(LDPATH),)
+    LDPATH += :/usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+else
+    LDPATH := /usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+endif
 
 # IMSL
 IMSLDIR :=

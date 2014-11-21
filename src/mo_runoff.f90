@@ -414,7 +414,7 @@ CONTAINS
     !$OMP END DO
     !$OMP END PARALLEL
 
-    ! discharge for inflow gauges (e.g. for missing upstream catchemtns) id added here
+    ! discharge for inflow gauges (e.g. for missing upstream catchments) is added here
     if (nInflowGauges .gt. 0) then
        do k = 1, nInflowGauges
           qOUT(InflowNodeList(k)) = qOUT(InflowNodeList(k)) + QInflow(InflowIndexList(k))

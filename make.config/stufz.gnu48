@@ -1,0 +1,89 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Gnu compiler 4.6 at Stephan's UFZ Ubuntu
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Stephan Thober
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+GNUDIR := /usr
+GNULIB := $(GNUDIR)/lib
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(GNUBIN)/gfortran
+FC  := $(F90)
+CC  := $(GNUBIN)/gcc
+# GNU Fortran version >= 4.4
+ifeq ($(release),debug)
+    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
+    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
+else
+    F90FLAGS += -O3
+    FCFLAGS  += -ffixed-form -O3
+    CFLAGS   += -O3
+endif
+F90FLAGS += -cpp
+MODFLAG  := -J# space significant
+FCFLAGS  +=
+CFLAGS   +=
+DEFINES  += -DGFORTRAN -DgFortran
+
+# Linking
+LIBS  += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+MKLDIR := /usr/local/intel/composer_xe_2011_sp1.9.293/mkl
+MKLINC := $(MKLDIR)/include/intel64/lp64
+MKLLIB := $(MKLDIR)/lib/intel64
+MKL95DIR := $(MKLDIR)
+MKL95INC := $(MKL95DIR)/include/intel64/lp64
+MKL95LIB := $(MKL95DIR)/lib/intel64
+
+# NETCDF
+NCDIR   := /usr/local/netcdf-fortran-4.2-gfortran
+SZLIB   := 
+HDF5LIB := /usr/lib/x86_64-linux-gnu/
+
+# PROJ
+PROJ4DIR := 
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   := /usr/lib
+LAPACKLIB   := $(LAPACKDIR)/lapack
+GFORTRANDIR := $(GNUDIR)
+GFORTRANLIB := $(GNULIB)
+
+# Documentation
+DOXYGENDIR :=
+DOTDIR     :=
+TEXDIR     :=
+PERLDIR    :=

@@ -95,6 +95,9 @@ CONTAINS
   !                  Matthias Zink,  Feb  2014 - added multiple options for PET process
   !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
   !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
+  !                  Stephan Thober, May  2014 - added switch for chunk read in
+  !                  Stephan Thober, Jun  2014 - added option for switching off mpr
+  !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
 
   subroutine read_config()
 
@@ -118,6 +121,7 @@ CONTAINS
          file_geolut, ugeolut                                 ! file specifying geological formations
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
+         timestep_model_inputs,                             & ! read input frequency
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
@@ -135,6 +139,7 @@ CONTAINS
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
+         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -148,10 +153,9 @@ CONTAINS
          fracSealed_cityArea, nLcover_scene,                & ! land cover information
          LCfilename, LCyearId,                              & ! 
          nBasins,                                           & ! number of basins
-         restart_flag_states_read,                          & ! flag reading restart (state variables)
-         restart_flag_states_write,                         & ! flag writing restart (state variables)
-         restart_flag_config_read,                          & ! flag reading restart (config variables)
-         restart_flag_config_write,                         & ! flag writing restart (config variables)
+         read_restart,                                      & ! flag reading restart
+         write_restart,                                     & ! flag writing restart
+         perform_mpr,                                       & ! switch for performing mpr
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods  
          !                                                    ! (sim. = wrm. + eval.)
@@ -168,10 +172,8 @@ CONTAINS
          global_parameters_name,                            & ! clear names of global parameters
          timeStep_model_outputs,                            & ! timestep for writing model outputs
          outputFlxState,                                    & ! definition which output to write
-         iFlag_LAI_data_format,                             & ! flag on how LAI data has to be read
-         !                                                    ! used when iFlag_LAI_data_format = 1
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
-         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
+         timeStep_LAI_input,                                & ! time step of gridded LAI input
          iFlag_cordinate_sys                                  ! model run cordinate system
 
     implicit none
@@ -265,14 +267,13 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
     character(256), dimension(maxNoBasins)          :: dir_LatLon
-
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data 
+    !                                                                            ! used when timeStep_LAI_input<0
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
     character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data 
-    !                                                                            ! used when iFlag_LAI_data_format = 1
     real(dp)                                        :: jday_frac
     !
     real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
@@ -294,18 +295,17 @@ CONTAINS
                            dir_Temperature, dir_ReferenceET, dir_MinTemperature,              &
                            dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
                            dir_NetRadiation, dir_Out, dir_RestartOut,                          &
-                           dir_RestartIn, dir_LatLon
+                           dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
-                 L0Basin, optimize, opti_method, opti_function, nBasins, restart_flag_states_read, &
-                 restart_flag_states_write, restart_flag_config_read, restart_flag_config_write,   &
-                 warmingDays, evalPer
+                 L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
+                 write_restart, perform_mpr, warmingDays, evalPer, timestep_model_inputs
     ! namelsit soil layering
     namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
     namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
     ! namelist for LAI related data
-    namelist/LAI_data_information/iFlag_LAI_data_format,inputFormat_gridded_LAI,dir_gridded_LAI
+    namelist /LAI_data_information/ inputFormat_gridded_LAI, timeStep_LAI_input
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
@@ -379,6 +379,7 @@ CONTAINS
     allocate(dirRestartOut       (nBasins))
     allocate(dirRestartIn        (nBasins))
     allocate(dirLatLon           (nBasins))
+    allocate(dirgridded_LAI(nBasins))
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -390,6 +391,19 @@ CONTAINS
        call message('***ERROR: coordinate system for the model run should be 0 or 1')
        stop
     end if
+    ! check for optimzation and timestep_model_inputs options
+    if ( optimize .and. ( timestep_model_inputs .ne. 0 ) ) then
+       call message()
+       call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
+       stop
+    end if
+    ! check for perform_mpr
+    if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
+       call message()
+       call message('***ERROR: cannot omit mpr when read_restart is set to .false.')
+       stop
+    end if
+    
     !===============================================================
     !  determine simulation time period incl. warming days
     !===============================================================
@@ -442,6 +456,7 @@ CONTAINS
     dirRestartIn              = dir_RestartIn      (1:nBasins)
     dirLatLon                 = dir_LatLon         (1:nBasins)
 
+    dirgridded_LAI  = dir_gridded_LAI(1:nBasins)
     ! counter checks -- soil horizons
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
@@ -477,9 +492,17 @@ CONTAINS
     call position_nml('LAI_data_information', unamelist)
     read(unamelist, nml=LAI_data_information)
 
-    if(iFlag_LAI_data_format .EQ. 1) then
-       allocate( dirgridded_LAI(nBasins) )
-       dirgridded_LAI(:) = dir_gridded_LAI(1:nBasins)
+    if (timeStep_LAI_input .ne. 0) then
+       if ( (timeStep_LAI_input .ne. -1) .and. (trim(inputFormat_gridded_LAI) .eq. 'bin') ) then
+          call message()
+          call message('***ERROR: Gridded LAI input in bin format must be daily.')
+          stop
+       end if
+       if (timeStep_LAI_input > 0) then
+          call message()
+          call message('***ERROR: timeStep_LAI_input must be <= 0.')
+          stop
+       end if
     end if
 
     !===============================================================
@@ -698,7 +721,8 @@ CONTAINS
     allocate(LCfilename(nLcover_scene))
     LCfilename(:) = LCoverfName(minval(LCyearId):maxval(LCyearId))
     ! update the ID's
-    LCyearId = LCyearId - minval(LCyearId) + 1
+    ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
+    LCyearId(:) = LCyearId(:) - minval(LCyearId) + 1
     !
     if (any(LCyearId .EQ. nodata_i4)) then 
        call message()
@@ -1253,7 +1277,10 @@ CONTAINS
       call message( '    baseflow generated per cell        (L1_baseflow)           [mm/T]')
     end if
     if (outputFlxState(15)) then
-      call message( '    groundwater recharge               (L1_percol)             [mm/T]')
+       call message( '    groundwater recharge               (L1_percol)             [mm/T]')
+    end if
+    if (outputFlxState(16)) then 
+       call message( '    infiltration                       (L1_infilSoil)          [mm/T]') 
     end if
     call message( '' )
     call message( 'FINISHED readin config' )

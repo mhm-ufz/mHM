@@ -701,6 +701,7 @@ contains
   !>        threshold temperature (TT), degree-day factor without precipitation (DD)
   !>        and maximum degree-day factor (DDmax) as well as increase of degree-day 
   !>        factor per mm of increase in precipitation (IDDP).\n
+  !>
   !>        Global parameters needed (see mhm_parameter.nml):\n
   !>           - param(1) = snowTreshholdTemperature        \n
   !>           - param(2) = degreeDayFactor_forest          \n

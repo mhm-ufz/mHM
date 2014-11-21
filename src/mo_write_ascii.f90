@@ -21,6 +21,8 @@ MODULE mo_write_ascii
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
   ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
   ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
+  ! Modified, Stephan Thober      Jun 2014 - bug fixed: in writing network properties
+  ! Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -72,7 +74,9 @@ MODULE mo_write_ascii
   !     HISTORY
   !>        \author Christoph Schneider
   !>        \date May 2013
-  !         Modified, Juliane Mai, May 2013 - module version and documentation
+  !         Modified, Juliane Mai,    May 2013 - module version and documentation
+  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
+  !                   Stephan Thober, Jun 2014 - updated read_restart
 
   PRIVATE
 
@@ -111,10 +115,8 @@ CONTAINS
          timeStep,                  &
          resolutionHydrology,       &
          resolutionRouting,         &  
-         restart_flag_states_read,  &
-         restart_flag_states_write, &
-         restart_flag_config_read,  &
-         restart_flag_config_write, &
+         read_restart,              &
+         write_restart,             &
          dirConfigOut,              &
          dirMorpho,                 &
          dirLCover,                 &
@@ -172,10 +174,8 @@ CONTAINS
           write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
        end if
     end do
-    write(uconfig, 126)    'Flag READ  restart states     ', restart_flag_states_read
-    write(uconfig, 126)    'Flag WRITE restart states     ', restart_flag_states_write
-    write(uconfig, 126)    'Flag READ  restart config.    ', restart_flag_config_read
-    write(uconfig, 126)    'Flag WRITE restart config.    ', restart_flag_config_write
+    write(uconfig, 126)    'Flag READ  restart            ', read_restart
+    write(uconfig, 126)    'Flag WRITE restart            ', write_restart
     !
     !******************
     ! Model Run period 
@@ -222,8 +222,12 @@ CONTAINS
        write(uconfig, 202) '                Basin Runoff Data                '
        write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
        do i=1, nGaugesTotal
-          write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
-               minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+          if( all(gauge%Q(:,i) > nodata_dp) ) then
+             write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
+                                                    minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+          else
+             write(uconfig,108) i, gauge%basinId(i), nodata_dp, nodata_dp
+          end if
        end do
     end if
     ! inflow gauge data
@@ -231,8 +235,12 @@ CONTAINS
        write(uconfig, 202) '                Basin Inflow Data                 '
        write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
        do i=1, nInflowGaugesTotal
-          write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
-               minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
+          if( all(InflowGauge%Q(:,i) > nodata_dp) ) then
+             write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
+                                                           minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
+          else
+             write(uconfig,108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
+          end if
        end do
     end if
     ! basin config
@@ -286,7 +294,7 @@ CONTAINS
                '       [-]'
           !
           do j=basin%L11_iStart(n), basin%L11_iEnd(n)-1
-             i=L11_netPerm(j)
+             i=L11_netPerm(j) + basin%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
              write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                   L11_length(i)/1000.0_dp, L11_slope(i)
           end do
@@ -350,7 +358,7 @@ CONTAINS
     !
 218 format (/ 80('-')/ 26x, a24,26x,  /80('-'))
 222 format (/80('-')/ 26x,a21 /80('-'))
-224 format (a40, 5x, a40)
+224 format (a40, 5x, a256)
 
 301 format (a7, i2, a33,f10.0)
   end Subroutine write_configfile
@@ -687,11 +695,15 @@ CONTAINS
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
-    use mo_julian,              only: dec2date
+
+    use mo_errormeasures,       only: kge, nse
     use mo_file,                only: file_daily_discharge, udaily_discharge
     use mo_global_variables,    only: nBasins, basin, dirOut, gauge, evalPer
+    use mo_julian,              only: dec2date
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
+    use mo_utils,               only: ge
+
 
     implicit none
 
@@ -752,6 +764,12 @@ CONTAINS
        write(dummy,'(I3)') bb
        call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
        call message('    to ',trim(fname))
+       do gg=igauge_start, igauge_end
+          call message('    KGE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+               trim(adjustl(num2str(kge(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+          call message('    NSE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+               trim(adjustl(num2str(nse(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+       end do
 
        ! update igauge_start
        igauge_start = igauge_end + 1

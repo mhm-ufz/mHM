@@ -95,13 +95,13 @@ writenetcdf(fhandle, fileattributes=FiAtt)
 varAtt  = ([['axis'     , 'X']])
 varName = 'xc'
 dims    = ncols
-var     = xx[1,:] #np.arange(ncols)+1
+var     = xx[0,:] #np.arange(ncols)+1
 writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
 #
 varAtt  = ([['axis'     , 'Y']])
 varName = 'yc'
 dims    = nrows
-var     = yy[:,1] #np.arange(nrows)+1
+var     = yy[:,0] #np.arange(nrows)+1
 writenetcdf(fhandle, name=varName, dims=dims, var=var, attributes=varAtt, isdim=True)
 # Variables
 # lon

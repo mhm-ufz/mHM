@@ -13,7 +13,8 @@ MODULE mo_constants
 
   !  This module contains basic and derived constants
   !
-  !  Written Nov 2011, Matthias Cuntz
+  !  Written  Nov 2011, Matthias Cuntz
+  !  Modified Mar 2014, Matthias Cuntz - iso_fortran_env
 
   ! License
   ! -------
@@ -30,11 +31,13 @@ MODULE mo_constants
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library. If not, see <http://www.gnu.org/licenses/>.
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
-  ! Copyright 2011-2013 Matthias Cuntz
+  ! Copyright 2011-2014 Matthias Cuntz
 
   USE mo_kind, ONLY: sp, dp
+  use, intrinsic :: iso_fortran_env, only: input_unit, output_unit, error_unit
 
   IMPLICIT NONE
 
@@ -80,7 +83,7 @@ MODULE mo_constants
   !> Seconds per day [s] in single precision
   REAL(sp), PARAMETER :: secday_sp = 86400._sp
   !> Psychrometric constant [kPa K^-1] in double precision
-  REAL(dp), PARAMETER :: Psychro_dp      = 0.0646_dp                 ! psychrometric constant [kPa C-1]  
+  REAL(dp), PARAMETER :: Psychro_dp      = 0.0646_dp                 ! psychrometric constant [kPa C-1]
   !> Psychrometric constant [kPa K^-1] in sibgle precision
   REAL(sp), PARAMETER :: Psychro_sp      = 0.0646_sp
   !> Gravity accelaration [m^2 s^-1] in double precision
@@ -104,9 +107,9 @@ MODULE mo_constants
   !> Stefan-Boltzmann constant [W m^-2 K^-4] in single precision
   REAL(sp), PARAMETER :: sigma_sp     = 5.67e-08_sp
   ! Earth radius [m] in single precision
-  REAL(sp), PARAMETER   :: RADUIS_EARTH_sp  = 6371228_sp           
-  ! Earth radius [m] in double precision 
-  REAL(dp), PARAMETER   :: RADUIS_EARTH_dp  = 6371228_dp           
+  REAL(sp), PARAMETER   :: RadiusEarth_sp  = 6371228._sp
+  ! Earth radius [m] in double precision
+  REAL(dp), PARAMETER   :: RadiusEarth_dp  = 6371228._dp
 
   !> standard atmospehere
   !> Standard pressure [Pa] in double precision
@@ -146,11 +149,14 @@ MODULE mo_constants
 
   ! Standard file units
   !> Standard input file unit
-  INTEGER, PARAMETER :: nin  = 5   ! standard input stream
+  ! INTEGER, PARAMETER :: nin  = 5   ! standard input stream
+  INTEGER, PARAMETER :: nin  = input_unit   ! standard input stream
   !> Standard output file unit
-  INTEGER, PARAMETER :: nout = 6   ! standard output stream
+  ! INTEGER, PARAMETER :: nout = 6   ! standard output stream
+  INTEGER, PARAMETER :: nout = output_unit   ! standard output stream
   !> Standard error file unit
-  INTEGER, PARAMETER :: nerr = 0   ! error output stream
+  ! INTEGER, PARAMETER :: nerr = 0   ! error output stream
+  INTEGER, PARAMETER :: nerr = error_unit   ! error output stream
   !> Standard file unit for namelist
   INTEGER, PARAMETER :: nnml = 100 ! namelist unit
 

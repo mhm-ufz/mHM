@@ -535,7 +535,7 @@ CONTAINS
     cellCoor0(:,:)  = L0_cellCoor  (iStart0 : iEnd0,  :)
     cellCoor11(:,:) = L11_cellCoor (iStart11: iEnd11, :)
 
-    ! CASE WHERE ROUTING AND INPUT DATA SCALE IS SIMILAR
+    ! case where routing and input data scale is similar
     IF(nCells0 .EQ. nNodes) THEN
       oLoc = maxloc( fAcc0, mask0 )
       kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
@@ -558,8 +558,8 @@ CONTAINS
          jj = cellCoor0( kk, 2 )
          draSC0(ii,jj) = kk
       end do
-      !
-      ! CASE WHERE ROUTING AND INPUT DATA SCALE DIFFERS 
+
+      ! case where routing and input data scale differs 
     ELSE
       ! finding main outlet (row, col) in L11
       oLoc = maxloc( fAcc0, mask0 )
@@ -1337,7 +1337,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable  :: InflowGaugeLoc0   
     integer(i4), dimension(:,:), allocatable  :: draCell0
     integer(i4), dimension(:,:), allocatable  :: L11Id_on_L0
-    integer(i4)                               :: ii, jj, kk, ll, index_gauge
+    integer(i4)                               :: ii, jj, kk, ll
     integer(i4)                               :: iSc
     integer(i4)                               :: iRow, jCol
 
@@ -1376,7 +1376,6 @@ CONTAINS
     InflowGaugeLoc0(:,:) = UNPACK( L0_InflowgaugeLoc (iStart0:iEnd0),     mask0, nodata_i4 )
     L11Id_on_L0(:,:)     = UNPACK( L0_L11_Id         (iStart110:iEnd110), mask0, nodata_i4 ) 
 
-    index_gauge = nodata_i4
 
     do kk = 1, nCells0
 
@@ -2244,7 +2243,7 @@ CONTAINS
   ! --------------------------------------------------------------------------
   subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
 
-    use mo_constants,     only: TWOPI_dp, RADUIS_EARTH_dp
+    use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
     implicit none
 
     real(dp), intent(in)             :: lat1, long1, lat2, long2
@@ -2273,7 +2272,7 @@ CONTAINS
     temp   = term1+term2+term3
     if(temp .GT. 1.0_dp) temp = 1.0_dp
 
-    distance_out = RADUIS_EARTH_dp*acos(temp);
+    distance_out = RadiusEarth_dp*acos(temp);
 
   end subroutine get_distance_two_lat_lon_points
 

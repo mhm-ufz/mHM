@@ -39,7 +39,7 @@ CC  := $(GNUBIN)/gcc
 ifeq ($(release),debug)
     F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132  -Wall -W -O -g
     FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g
 else
     F90FLAGS += -O3
     FCFLAGS  += -ffixed-form -O3
@@ -63,14 +63,14 @@ MKLDIR :=
 MKL95DIR :=
 
 # NETCDF
- ifeq ($(netcdf),netcdf3)
-     NCDIR :=
- else
-     NCDIR    = /usr/local/netcdf_4.2_gfortran46
-     CURLLIB :=
-     SZLIB   := /usr/local/lib
-     HDF5LIB := /usr/local/hdf5_1.8.11_gfortran46/lib
- endif
+# ifeq ($(netcdf),netcdf3)
+#     NCDIR :=
+# else
+#     NCDIR    = /usr/local/netcdf_4.1.2_gfortran
+#     CURLLIB :=
+#     SZLIB   := /usr/local/lib
+#     HDF5LIB := /usr/local/lib
+# endif
 
 # PROJ
 PROJ4DIR := #/usr/local/
