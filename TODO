@@ -47,12 +47,7 @@ Groundwater (Process #7)
 -- following cases should be addressed:
    case 0 :: off
    case 1 :: bucket model (status quo)
-   case 2 :: modflow
-
-Proper implementation of John's LAI model as a new process (Process #9)
-(Resp.: Jule, Matthias C.)
--- case 1 :: lai read from file as monthly values 
--- case 2 :: lai calculated on weekly basis 
+   case 2 :: modflow 
 
 Water Quality Process (Process #10)
 (Resp.: Sumit Sinha)
@@ -93,6 +88,13 @@ mo_multi_param_reg
 
 -- perform_mpr flag
    (Resp.: Stephan)
+
+Proper implementation of John's LAI model as a new process
+(Resp.: Jule, Matthias C.)
+-- case  0 :: montly  lai read from LUT (default)
+-- case -1 :: daily   lai read from file 
+-- case -2 :: monthly lai read from file 
+-- case -3 :: yearly  lai read from file 
 
 =================================================================================================
                           SOLVED
