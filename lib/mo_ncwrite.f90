@@ -24,6 +24,7 @@ module mo_ncwrite
 
   use mo_kind,         only: i1, i4, sp, dp
   use mo_string_utils, only: nonull
+  use mo_utils,        only: ne
 
   ! functions and constants of netcdf4 library
   use netcdf,  only: nf90_create, nf90_def_dim, NF90_UNLIMITED, nf90_def_var, &
@@ -2764,7 +2765,7 @@ contains
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
+    integer(i4), dimension(1)              :: dummy     ! dummy read
     ! consistency checks
     d_unlimit    = 0_i4
     if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
@@ -2806,7 +2807,7 @@ contains
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
        call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim .ne. ndim) stop "var2nc_1d_i4: number of variable dimensions /= number of file variable dimensions."
+       if (idim .ne. ndim) stop "var2nc_1d_i4var2nc_1d_i4: number of variable dimensions /= number of file variable dimensions."
        ! check unlimited dimension
        call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
        if ( u_dimid .eq. -1 ) stop 'var2nc_1d_i4: cannot append, no unlimited dimension defined'
@@ -2963,7 +2964,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, find first chunk that was written
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_float ) exit
+          if ( ne(dummy(1) , nf90_fill_float) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -3109,7 +3110,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_double ) exit
+          if ( ne(dummy(1) , nf90_fill_double) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -3404,7 +3405,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_float ) exit
+          if ( ne(dummy(1) , nf90_fill_float) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -3552,7 +3553,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_double ) exit
+          if ( ne(dummy(1) , nf90_fill_double) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -3848,7 +3849,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_float ) exit
+          if ( ne(dummy(1) , nf90_fill_float) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -3996,7 +3997,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_double ) exit
+          if ( ne(dummy(1) , nf90_fill_double) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -4296,7 +4297,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_float ) exit
+          if ( ne(dummy(1) , nf90_fill_float) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -4446,7 +4447,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_double ) exit
+          if ( ne(dummy(1) , nf90_fill_double) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -4722,7 +4723,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_float ) exit
+          if ( ne(dummy(1) , nf90_fill_float) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
@@ -4860,7 +4861,7 @@ contains
        call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
        ! adapt start, that is find last written chunk
        do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_double ) exit
+          if ( ne(dummy(1) , nf90_fill_double) ) exit
           start(d_unlimit) = i
           call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
        end do
