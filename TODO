@@ -12,21 +12,6 @@
 Transfer mo_file to a namelist to allow for more flexible filenames
 (Resp.: NA)
 
-L11 - outlet plot 
-(Resp.: Luis, Rohini)
--- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
-   The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
-
-In subroutine hydro_cond of mo_mpr_soilmoist.f90
--- Added the following comment:
-   ! saturated vertical hydraulic conductivity, Ks (cm/d)
-   !   from Cosby et. al. (WRR 1984) Table 4
-   ! param(4) is the unit conversion from inch/h to cm/d and should be a constant.
-   ! Fix it in the namelist, i.e. in
-   ! mhm_parameter.nml set the 4th value (=FLAG) to 0 and the third value to 60.96
-   !   PTF_Ks_curveSlope = 60.96, 60.96, 60.96, 0, 1
-   This should be changed in the namelist.
-
 =================================================================================================
                      TASKS FOR NEXT RELEASE
                         -- Scientific --
@@ -96,6 +81,15 @@ Proper implementation of John's LAI model as a new process
 -- case -2 :: monthly lai read from file 
 -- case -3 :: yearly  lai read from file 
 
+In subroutine hydro_cond of mo_mpr_soilmoist.f90
+(Resp. Jule)
+-- saturated vertical hydraulic conductivity, Ks (cm/d)
+      from Cosby et. al. (WRR 1984) Table 4
+    param(4) is the unit conversion from inch/h to cm/d and should be a constant.
+    Fix it in the namelist, i.e. in
+    mhm_parameter.nml set the 4th value (=FLAG) to 0 and the third value to 60.96
+      PTF_Ks_curveSlope = 60.96, 60.96, 60.96, 0, 1
+
 =================================================================================================
                           SOLVED
                        -- Bug Fix --
@@ -103,6 +97,12 @@ Proper implementation of John's LAI model as a new process
 
 -- L11_config in ConfigFile correctly printed 
    (Resp.: Stephan)
+
 -- xllcornerOut in calculate_grid_properties correctly calculated
    (Resp.: Stephan)
+
+L11 - outlet plot 
+(Resp.: Luis, Rohini)
+-- Outlet displayed wrongly in file 001_L11_config.nc. It should be on the border. See var L11_label. 
+   The outlet has a cell attribute 2. In Horb this correspond to x=13, y=7, which is wrongly placed.
 
