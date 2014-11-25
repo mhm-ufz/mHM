@@ -1303,7 +1303,7 @@ print*, 'a = ',a, '   b = ',b
   !>                 the model output is subsequently compared to observed data.\n
   !>
   !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
-  !>                       \f[ KGE = 1.0 - SQRT( (1-r)^2 + (1-\aplha)^2 + (1-\beta)^2 ) \f]
+  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
   !>                 where
   !>                       \f[ r \f] = Pearson product-moment correlation coefficient
   !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
