@@ -551,7 +551,7 @@ CONTAINS
                      L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(16)) &
                      L1_percol_out(:)       = L1_percol_out(:)       + L1_percol(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
-                if (outputFlxState(16)      ) then 
+                if (outputFlxState(17)      ) then 
                    do hh = 1, nSoilHorizons_mHM 
                       L1_infilSoil_out(:,hh) = L1_infilSoil_out(:,hh) + L1_infilSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1)) 
                    end do

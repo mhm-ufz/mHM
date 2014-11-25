@@ -320,6 +320,8 @@ CONTAINS
     use mo_julian,           only: caldat, julday
     use mo_message,          only: message
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
+    use mo_ncwrite,          only: dump_netcdf !MZMZMZ
+
     use mo_string_utils,     only: num2str
     use mo_utils,            only: eq
 
@@ -427,7 +429,7 @@ CONTAINS
 
     ! start checking values
     do i = 1, dim3
-       if (any(eq(data(:,:,i),nodata_value) .and. (.not. mask))) then
+       if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
           call message('***ERROR: read_meteo_nc: nodata value within basin ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
