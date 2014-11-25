@@ -111,7 +111,7 @@ MODULE mo_errormeasures
   !>        \brief Kling-Gupta-Efficiency measure.
 
   !>        \details The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
-  !>                     \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )}s \f]
+  !>                     \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
   !>                 where
   !>                     \f[ r \f]      = Pearson product-moment correlation coefficient
   !>                     \f[ \alpha \f] = ratio of simulated mean to observed mean 
