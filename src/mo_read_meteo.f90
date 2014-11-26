@@ -427,7 +427,7 @@ CONTAINS
 
     ! start checking values
     do i = 1, dim3
-       if (any(eq(data(:,:,i),nodata_value) .and. (.not. mask))) then
+       if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
           call message('***ERROR: read_meteo_nc: nodata value within basin ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
