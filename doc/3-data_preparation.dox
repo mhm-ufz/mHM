@@ -477,4 +477,3 @@ If necessary the source grid will be shifted in order to make both origins match
 the values of the corner coordinates, no real interpolation will be done.
 
 */
-

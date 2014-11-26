@@ -42,7 +42,7 @@
 #        $(MAKEDPATH)/make.d.sh, $(CONFIGPATH)/$(system).$(compiler), $(CONFIGPATH)/$(system).alias
 #    The default $(MAKEDPATH) and $(CONFIGPATH) is make.config
 #    The makefile can use doxygen for html and pdf automatic documentation. It is then using:
-#        $(DOXPATH)/doxygen.config
+#        $(DOXCONFIG)
 #    If this is not available, it uses the perl script f2html for html documentation:
 #        $(CONFIGPATH)/f2html, $(CONFIGPATH)/f2html.fgenrc
 #
@@ -92,8 +92,8 @@ SRCPATH    := ./src ./lib   # where are the source files; use test_??? to run a 
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
-DOXPATH    := .             # where is doxygen.config
 CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
+DOXCONFIG  := ./doc/doxygen-1.8.7.config # the doxygen config file
 #
 PROGNAME := mhm # Name of executable
 LIBNAME  := #libminpack.a # Name of library
@@ -218,8 +218,9 @@ SRCPATH    := $(abspath $(SRCPATH:~%=${HOME}%))
 PROGPATH   := $(abspath $(PROGPATH:~%=${HOME}%))
 CONFIGPATH := $(abspath $(CONFIGPATH:~%=${HOME}%))
 MAKEDPATH  := $(abspath $(MAKEDPATH:~%=${HOME}%))
-DOXPATH    := $(abspath $(DOXPATH:~%=${HOME}%))
 CHECKPATH  := $(abspath $(CHECKPATH:~%=${HOME}%))
+DOXCONFIG  := $(abspath $(DOXCONFIG:~%=${HOME}%))
+#$(info "DOXCONFIG: "$(DOXCONFIG))
 
 # Program names
 # Only Prog or Lib
@@ -258,7 +259,7 @@ endif
 # Include compiler alias on specific systems, e.g. nag for nag53
 icompiler := $(compiler)
 ALIASINC  := $(CONFIGPATH)/$(system).alias
-ifeq (exists, $(shell if [ -f $(ALIASINC) ] ; then echo 'exists' ; fi))
+ifneq ("$(wildcard $(ALIASINC))","")
     include $(ALIASINC)
 endif
 
@@ -304,7 +305,7 @@ OBJPATH := $(addsuffix /.$(strip $(icompiler)).$(strip $(release)), $(SRCPATH))
 # Include the individual configuration files
 MAKEINC := $(addsuffix /$(system).$(icompiler), $(abspath $(CONFIGPATH:~%=${HOME}%)))
 #$(info "MAKEINC: "$(MAKEINC))
-ifneq (exists, $(shell if [ -f $(MAKEINC) ] ; then echo 'exists' ; fi))
+ifeq ("$(wildcard $(MAKEINC))","")
     $(error Error: '$(MAKEINC)' not found.)
 endif
 include $(MAKEINC)
@@ -334,7 +335,7 @@ endif
 
 # --- COMPILER ---------------------------------------------------
 ifneq (,$(findstring $(icompiler),$(gnucompilers)))
-    ifneq (exists, $(shell if [ -d "$(GFORTRANDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(GFORTRANDIR))","")
         $(error Error: GFORTRAN path '$(GFORTRANDIR)' not found.)
     endif
     GFORTRANLIB ?= $(GFORTRANDIR)/lib
@@ -344,7 +345,7 @@ endif
 
 # --- IMSL ---------------------------------------------------
 ifneq (,$(findstring $(imsl),vendor imsl))
-    ifneq (exists, $(shell if [ -d "$(IMSLDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(IMSLDIR))","")
         $(error Error: IMSL path '$(IMSLDIR)' not found.)
     endif
     IMSLINC ?= $(IMSLDIR)/include
@@ -403,7 +404,7 @@ endif
 # --- MKL ---------------------------------------------------
 ifneq (,$(findstring $(mkl),mkl mkl95))
     ifeq ($(mkl),mkl95) # First mkl95 then mkl for .mod files other then intel
-        ifneq (exists, $(shell if [ -d "$(MKL95DIR)" ] ; then echo 'exists' ; fi))
+        ifeq ("$(wildcard $(MKL95DIR))","")
             $(error Error: MKL95 path '$(MKL95DIR)' not found.)
         endif
         MKL95INC ?= $(MKL95DIR)/include
@@ -422,7 +423,7 @@ ifneq (,$(findstring $(mkl),mkl mkl95))
         endif
     endif
 
-    ifneq (exists, $(shell if [ -d "$(MKLDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(MKLDIR))","")
         $(error Error: MKL path '$(MKLDIR)' not found.)
     endif
     MKLINC ?= $(MKLDIR)/include
@@ -457,7 +458,7 @@ endif
 
 # --- NETCDF ---------------------------------------------------
 ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
-    ifneq (exists, $(shell if [ -d "$(NCDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(NCDIR))","")
         $(error Error: NETCDF path '$(NCDIR)' not found.)
     endif
     NCINC ?= $(strip $(NCDIR))/include
@@ -476,7 +477,7 @@ ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
     endif
     iLIBS += -lnetcdf
 
-    ifeq (exists, $(shell if [ -d "$(NCFDIR)" ] ; then echo 'exists' ; fi))
+    ifneq ("$(wildcard $(NCFDIR))","")
         NCFINC ?= $(strip $(NCFDIR))/include
         NCFLIB ?= $(strip $(NCFDIR))/lib
 
@@ -522,14 +523,14 @@ endif
 
 # --- PROJ --------------------------------------------------
 ifeq ($(proj),true)
-    ifneq (exists, $(shell if [ -d "$(PROJ4DIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(PROJ4DIR))","")
         $(error Error: PROJ4 path '$(PROJ4DIR)' not found.)
     endif
     PROJ4LIB ?= $(PROJ4DIR)/lib
     iLIBS    += -L$(PROJ4LIB) -lproj
     RPATH    += -Wl,-rpath=$(PROJ4LIB)
 
-    ifneq (exists, $(shell if [ -d "$(FPROJDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(FPROJDIR))","")
         $(error Error: FPROJ path '$(FPROJDIR)' not found.)
     endif
     FPROJINC ?= $(FPROJDIR)/include
@@ -550,7 +551,7 @@ ifeq ($(lapack),true)
     ifneq (,$(findstring $(iOS),Darwin))
         iLIBS += -framework veclib
     else
-        ifneq (exists, $(shell if [ -d "$(LAPACKDIR)" ] ; then echo 'exists' ; fi))
+        ifeq ("$(wildcard $(LAPACKDIR))","")
             $(error Error: LAPACK path '$(LAPACKDIR)' not found.)
         endif
         LAPACKLIB ?= $(LAPACKDIR)/lib
@@ -562,7 +563,7 @@ endif
 
 # --- MPI ---------------------------------------------------
 ifeq ($(mpi),true)
-    ifneq (exists, $(shell if [ -d "$(MPIDIR)" ] ; then echo 'exists' ; fi))
+    ifeq ("$(wildcard $(MPIDIR))","")
         $(error Error: MPI path '$(MPIDIR)' not found.)
     endif
     MPIINC   ?= $(MPIDIR)/include
@@ -574,11 +575,11 @@ ifeq ($(mpi),true)
 endif
 
 # --- DOXYGEN ---------------------------------------------------
-ISDOX := True
 ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
-    ifeq (exists, $(shell if [ -f $(DOXPATH)/"doxygen.config" ] ; then echo 'exists' ; fi))
+    ifneq ("$(wildcard $(DOXCONFIG))","")
+        ISDOX := True
         ifneq ($(DOXYGENDIR),)
-            ifneq (exists, $(shell if [ -f $(strip $(DOXYGENDIR))/"doxygen" ] ; then echo 'exists' ; fi))
+            ifeq ("$(wildcard $(DOXYGENDIR))","")
                 $(error Error: doxygen not found in $(strip $(DOXYGENDIR)).)
             else
                 DOXYGEN := $(strip $(DOXYGENDIR))/"doxygen"
@@ -591,7 +592,7 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
             endif
         endif
         ifneq ($(DOTDIR),)
-            ifneq (exists, $(shell if [ -f $(strip $(DOTDIR))/"dot" ] ; then echo 'exists' ; fi))
+            ifeq ("$(wildcard $(DOTDIR))","")
                 $(error Error: dot not found in $(strip $(DOTDIR)).)
             else
                 DOTPATH := $(strip $(DOTDIR))
@@ -604,7 +605,7 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
             endif
         endif
         ifneq ($(TEXDIR),)
-            ifneq (exists, $(shell if [ -f $(strip $(TEXDIR))/"latex" ] ; then echo 'exists' ; fi))
+            ifeq ("$(wildcard $(strip $(TEXDIR))/latex)","")
                 $(error Error: latex not found in $(strip $(TEXDIR)).)
             else
                 TEXPATH := $(strip $(TEXDIR))
@@ -617,7 +618,7 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
             endif
         endif
         ifneq ($(PERLDIR),)
-            ifneq (exists, $(shell if [ -f $(strip $(PERLDIR))/"perl" ] ; then echo 'exists' ; fi))
+            ifeq ("$(wildcard $(strip $(PERLDIR))/perl)","")
                 $(error Error: perl not found in $(strip $(PERLDIR)).)
             else
                 PERLPATH := $(strip $(PERLDIR))
@@ -630,11 +631,13 @@ ifneq (,$(filter doxygen html latex pdf, $(MAKECMDGOALS)))
             endif
         endif
     else
-        ISDOX += False
+        ISDOX := False
         ifneq (,$(filter doxygen latex pdf, $(MAKECMDGOALS)))
-            $(error Error: no doxygen.config found in $(DOXPATH).)
+            $(error Error: no doxygen config file $(DOXCONFIG) found in.)
         endif
     endif
+else
+    ISDOX := False
 endif
 
 # --- INTEL ERROR ---------------------------------------------------
@@ -863,8 +866,8 @@ endif
 cleanclean: clean
 	rm -rf $(addsuffix /.*.r*, $(SRCPATH)) $(addsuffix /.*.d*, $(SRCPATH))
 	rm -rf "$(PROGNAME)".dSYM $(addsuffix /html, $(SRCPATH))
-	@if [ -f $(DOXPATH)/"doxygen.config" ] ; then rm -rf $(PROGPATH)/latex ; fi
-	@if [ -f $(DOXPATH)/"doxygen.config" ] ; then rm -rf $(PROGPATH)/html ; fi
+	@if [ -f "$(DOXCONFIG)" ] ; then rm -rf $(PROGPATH)/latex ; fi
+	@if [ -f "$(DOXCONFIG)" ] ; then rm -rf $(PROGPATH)/html ; fi
 ifeq (True,$(islib))
 	rm -f "$(LIBNAME)"
 endif
@@ -935,13 +938,13 @@ dependencies:
 	@rm -f $(addsuffix /$(MAKEDSCRIPT).dict, $(OBJPATH))
 
 doxygen:
-	@cat $(DOXPATH)/"doxygen.config" | \
+	@cat $(DOXCONFIG) | \
 	     sed -e "/^PERL_PATH/s|=.*|=$(PERLPATH)|" | \
 	     sed -e "/^DOT_PATH/s|=.*|=$(DOTPATH)|" | env PATH=${PATH}:$(TEXPATH) $(DOXYGEN) -
 
 html:
 	@if [ $(ISDOX) == True ] ; then \
-	    cat $(DOXPATH)/"doxygen.config" | \
+	    cat "$(DOXCONFIG)" | \
 	        sed -e "/^PERL_PATH/s|=.*|=$(PERLPATH)|" | \
 	        sed -e "/^DOT_PATH/s|=.*|=$(DOTPATH)|" | env PATH=${PATH}:$(TEXPATH) $(DOXYGEN) - ; \
 	else \
@@ -997,7 +1000,7 @@ info:
 	@echo "RANLIB    = $(RANLIB)"
 	@echo ""
 	@echo "Configured compilers on $(system): $(compilers)"
-ifeq (exists, $(shell if [ -f $(ALIASINC) ] ; then echo 'exists' ; fi))
+ifneq ("$(wildcard $(ALIASINC))","")
 	@echo ""
 	@echo "Compiler aliases for $(system)"
 	@sed -n '/ifneq (,$$(findstring $$(compiler)/,/endif/p' $(ALIASINC) | \

@@ -105,21 +105,31 @@ GFORTRANDIR := /usr/local/gcc/4.8.1-3_CentOS6/
 GFORTRANLIB := $(GFORTRANDIR)/lib64
 
 # Documentation
-DOXYGENDIR := /usr/local/doxygen/1.8.2-1/bin
-DOTDIR     := /usr/local/graphviz/2.28.0-2/bin
+DOXYGENDIR := /usr/local/doxygen/1.8.7-1_gcc_4.8.1_CentOS6/bin
+DOTDIR     := /usr/bin
 TEXDIR     := /usr/local/texlive/2011/bin/x86_64-linux
 PERLDIR    := /usr/bin
+iiLDPATH := /usr/local/flex/2.5.39-1_gcc_4.8.1_CentOS6/lib:/usr/local/bison/3.0.2-1_gcc_4.8.1_CentOS6/lib
 ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH += :$(iiLDPATH)
 else
-    LDPATH := /usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH := $(iiLDPATH)
 endif
-LDPATH     += :/usr/local/libcroco/0.6.8-1/lib:/usr/local/pango/1.32.4-1/lib
-LDPATH     += :/usr/local/harfbuzz/0.9.9-1/lib:/usr/local/cairo/1.12.8-2/lib
-LDPATH     += :/usr/local/fontconfig/2.10.2-1/lib:/usr/local/freetype/2.4.10-1/lib
-LDPATH     += :/usr/local/expat/2.1.0-1/lib:/usr/local/pixman/0.28.0-1/lib
-LDPATH     += :/usr/local/libxml2/2.8.0/lib:/usr/local/gdk-pixbuf/2.26.5-1/lib
-LDPATH     += :/usr/local/glib/2.34.3-1/lib:/usr/local/libffi/3.0.11-1/lib
+# DOXYGENDIR := /usr/local/doxygen/1.8.2-1/bin
+# DOTDIR     := /usr/local/graphviz/2.28.0-2/bin
+# TEXDIR     := /usr/local/texlive/2011/bin/x86_64-linux
+# PERLDIR    := /usr/bin
+# ifneq ($(LDPATH),)
+#     LDPATH += :/usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+# else
+#     LDPATH := /usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+# endif
+# LDPATH     += :/usr/local/libcroco/0.6.8-1/lib:/usr/local/pango/1.32.4-1/lib
+# LDPATH     += :/usr/local/harfbuzz/0.9.9-1/lib:/usr/local/cairo/1.12.8-2/lib
+# LDPATH     += :/usr/local/fontconfig/2.10.2-1/lib:/usr/local/freetype/2.4.10-1/lib
+# LDPATH     += :/usr/local/expat/2.1.0-1/lib:/usr/local/pixman/0.28.0-1/lib
+# LDPATH     += :/usr/local/libxml2/2.8.0/lib:/usr/local/gdk-pixbuf/2.26.5-1/lib
+# LDPATH     += :/usr/local/glib/2.34.3-1/lib:/usr/local/libffi/3.0.11-1/lib
 
 # Check some dependices, e.g. IMSL needs intel11 on eve
 ifneq (,$(findstring $(system),eve))

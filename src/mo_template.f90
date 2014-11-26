@@ -19,7 +19,7 @@ MODULE mo_template
   !          Matthias Cuntz, Christoph Schneider, Dec 2012 - adapted for mHM and doxygen
 
   ! Always use the number precisions of mo_kind
-  ! All USE statemnets have the only clause
+  ! All USE statements have the only clause
   USE mo_kind, ONLY: i4, sp, dp
 
   ! Of course
