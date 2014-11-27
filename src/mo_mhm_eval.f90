@@ -126,7 +126,7 @@ CONTAINS
          L1_slowRunoff, L1_snow, L1_Throughfall,             & 
          L1_total_runoff, L11_Qmod, L11_qOUT, L11_qTIN,      & 
          L11_qTR, L1_alpha, L1_degDayInc, L1_degDayMax,      & 
-         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCeoff, & 
+         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, & 
          L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,      &
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
@@ -344,9 +344,6 @@ CONTAINS
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
           end select
              
-          ! time step for gridded LAI data (daily values)
-          iGridLAI_TS = iMeteoTS ! ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
-
           !--------------------------------------------------------------------
           ! call LAI function to get LAI fields for this timestep and basin
           !--------------------------------------------------------------------
@@ -386,7 +383,6 @@ CONTAINS
           case default ! no output at all
              continue
           end select
-          !print*, 'timing: ', year, month, day, hour, day_counter, tt
           !
           ! -------------------------------------------------------------------------
           ! ARGUMENT LIST KEY FOR mHM
@@ -445,7 +441,7 @@ CONTAINS
                L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:), & ! INOUT X11
                L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                   & ! INOUT E1
                L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1),                     & ! INOUT E1
-               L1_HarSamCeoff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),     & ! INOUT E1
+               L1_HarSamCoeff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),     & ! INOUT E1
                L1_surfResist(s1:e1,:), L1_fRoots(s1:e1,:),                                  & ! INOUT E1
                L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),               & ! INOUT E1
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1

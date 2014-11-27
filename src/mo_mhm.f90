@@ -239,7 +239,7 @@ CONTAINS
       deg_day_noprec      , & ! Degree-day factor with no precipitation
       deg_day             , & ! Degree-day factor
       fAsp                , & ! [1]     PET correction for Aspect at level 1
-      HarSamCeoff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
+      HarSamCoeff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
       PrieTayAlpha        , & ! [1]     PET Priestley Taylor coefficient at level 1
       aeroResist          , & ! [s m-1] PET aerodynamical resitance at level 1
       surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
@@ -419,7 +419,7 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  deg_day_noprec
     real(dp), dimension(:),        intent(inout) ::  deg_day
     real(dp), dimension(:),        intent(inout) ::  fAsp
-    real(dp), dimension(:),        intent(inout) ::  HarSamCeoff
+    real(dp), dimension(:),        intent(inout) ::  HarSamCoeff
     real(dp), dimension(:,:),      intent(inout) ::  PrieTayAlpha
     real(dp), dimension(:,:),      intent(inout) ::  aeroResist
     real(dp), dimension(:,:),      intent(inout) ::  surfResist
@@ -546,7 +546,7 @@ CONTAINS
                   L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                   L0rightBound_inL1, nTCells0_inL1,                                         &
                   alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
-                  fAsp, HarSamCeoff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
+                  fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
                   surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
                   nLink_C1,  nLink_C2,                                                      &
                   soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
@@ -632,7 +632,7 @@ CONTAINS
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCeoff(k), HarSamConst,  temp_in(k), tmax_in(k),   & 
+          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   & 
                tmin_in(k), latitude(k), doy)                                                
 
        case(2) ! Priestley-Taylor

@@ -449,7 +449,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable   :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
   real(dp), public, dimension(:), allocatable   :: L1_karstLoss    ! [1]    Karstic percolation loss
   real(dp), public, dimension(:), allocatable   :: L1_fAsp         ! [1]    PET correction for aspect
-  real(dp), public, dimension(:), allocatable   :: L1_HarSamCeoff  ! [1]    Hargreaves Samani coeffiecient
+  real(dp), public, dimension(:), allocatable   :: L1_HarSamCoeff  ! [1]    Hargreaves Samani coeffiecient
   real(dp), public, dimension(:,:), allocatable :: L1_PrieTayAlpha ! [1]    Priestley Taylor coeffiecient
   real(dp), public, dimension(:,:), allocatable :: L1_aeroResist   ! [s m-1] aerodynamical resitance
   real(dp), public, dimension(:,:), allocatable :: L1_surfResist   ! [s m-1] bulk surface resitance

@@ -115,7 +115,7 @@ CONTAINS
          L1_degDay, &
          L1_karstLoss, &
          L1_fAsp, &
-         L1_HarSamCeoff, &
+         L1_HarSamCoeff, &
          L1_PrieTayAlpha, &
          L1_aeroResist, &
          L1_surfResist, &
@@ -465,7 +465,7 @@ CONTAINS
           call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
                dims_L1(1:2), 'L1_fAsp', &
                long_name = 'PET correction factor due to terrain aspect at level 1', missing_value = nodata_dp)        
-          call var2nc( Fname, unpack( L1_HarSamCeoff(s1:e1), mask1, nodata_dp ), &
+          call var2nc( Fname, unpack( L1_HarSamCoeff(s1:e1), mask1, nodata_dp ), &
                dims_L1(1:2), 'L1_HarSamCoeff', &
                long_name = 'Hargreaves-Samani coefficient', missing_value = nodata_dp)        
        case(2) ! PrieTay
@@ -1538,7 +1538,7 @@ CONTAINS
          L1_degDay, &
          L1_karstLoss, &
          L1_fAsp, &
-         L1_HarSamCeoff, &
+         L1_HarSamCoeff, &
          L1_PrieTayAlpha, &
          L1_aeroResist, &
          L1_surfResist, &
@@ -1864,7 +1864,7 @@ CONTAINS
 
        ! Hargreaves Samani coeffiecient
        call Get_NcVar( Fname,  'L1_HarSamCoeff', dummyD2 )
-       L1_HarSamCeoff(s1:e1) = pack( dummyD2, mask1 ) 
+       L1_HarSamCoeff(s1:e1) = pack( dummyD2, mask1 ) 
 
        deallocate( dummyD2)
     case(2) ! PrieTay

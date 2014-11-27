@@ -103,7 +103,7 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve2
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := gnu
+compiler := nag
 # Releases: debug, release
 release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]

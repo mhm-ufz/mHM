@@ -145,7 +145,7 @@ contains
   !>       \param[out] "real(dp) :: IDDP1(:)"           - increase of the degree-day factor per mm
   !>                                                      of increase in precipitation
   !>       \param[out] "real(dp) :: fAsp1(:)"           - [1]     PET correction for Aspect at level 1
-  !>       \param[out] "real(dp) :: HarSamCeoff1(:)"    - [1]     PET Hargreaves Samani coefficient at level 1
+  !>       \param[out] "real(dp) :: HarSamCoeff1(:)"    - [1]     PET Hargreaves Samani coefficient at level 1
   !>       \param[out] "real(dp) :: PrieTayAlpha1(:,:)" - [1]     PET Priestley Taylor coefficient at level 1
   !>       \param[out] "real(dp) :: aeroResist1(:,:)"   - [s m-1] PET aerodynamical resitance at level 1
   !>       \param[out] "real(dp) :: surfResist1(:,:)"   - [s m-1] PET bulk surface resitance at level 1
@@ -218,7 +218,7 @@ contains
        DDmax1,         & ! Maximum Degree-day factor
        DD1,            & ! Degree-day factor with no precipitation
        fAsp1,          & ! [1]     PET correction for Aspect at level 1
-       HarSamCeoff1,   & ! [1]     PET Hargreaves Samani coefficient at level 1
+       HarSamCoeff1,   & ! [1]     PET Hargreaves Samani coefficient at level 1
        PrieTayAlpha1,  & ! [1]     PET Priestley Taylor coefficient at level 1
        aeroResist1,    & ! [s m-1] PET aerodynamical resitance at level 1
        surfResist1,    & ! [s m-1] PET bulk surface resitance at level 1
@@ -321,7 +321,7 @@ contains
 
                                                                                 ! Output for PET parameterization
     real(dp), dimension(:),                  intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
-    real(dp), dimension(:),                  intent(inout) :: HarSamCeoff1      ! [1]     PET Hargreaves Samani coeff. at level 1
+    real(dp), dimension(:),                  intent(inout) :: HarSamCoeff1      ! [1]     PET Hargreaves Samani coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: PrieTayAlpha1     ! [1]     PET Priestley Taylor coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
     real(dp), dimension(:,:),                intent(inout) :: surfResist1       ! [s m-1] PET bulk surface resitance at level 1
@@ -487,7 +487,7 @@ contains
           call pet_correct( fAsp0, cell_id0, Asp0, param( iStart : iEnd - 1), nodata )
           fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
-          HarSamCeoff1 = param(iEnd)
+          HarSamCoeff1 = param(iEnd)
        ! Priestley-Taylor Method 
        case(2)
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1

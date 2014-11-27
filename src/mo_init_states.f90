@@ -86,7 +86,7 @@ CONTAINS
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
-         L1_HarSamCeoff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
@@ -252,7 +252,7 @@ CONTAINS
 
     ! PET Hargreaves Samani coefficient
     dummy_Vector(:) = 0.0_dp
-    call append( L1_HarSamCeoff,   dummy_Vector )
+    call append( L1_HarSamCoeff,   dummy_Vector )
 
     ! PET Prietley Taylor coefficient
     dummy_Vector(:) = 0.0_dp
@@ -439,7 +439,7 @@ CONTAINS
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
-         L1_HarSamCeoff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
@@ -567,7 +567,7 @@ CONTAINS
     L1_fAsp = P1_InitStateFluxes
 
     ! PET Hargreaves Samani Coefficient
-    L1_HarSamCeoff = P1_InitStateFluxes
+    L1_HarSamCoeff = P1_InitStateFluxes
 
     ! PET Priestley Taylor coefficient
     L1_PrieTayAlpha = P1_InitStateFluxes
