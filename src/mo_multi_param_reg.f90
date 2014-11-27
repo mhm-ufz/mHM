@@ -21,6 +21,7 @@ MODULE mo_multi_param_reg
   !           update  Ku   25.03.2008 all parameters are regionalised  
   !           update  Ku   04.10.2010 vector version
   !           update  Th   20.12.2012 modular version
+  !           update  MZ   27.11.2014 added parameterization of PET
 
   !****************************************************************************** 
   
@@ -94,7 +95,6 @@ contains
   !>       \param[in] "real(dp)    :: Asp0(:,:)"        - [degree] Aspect at Level 0
   !>       \param[in] "real(dp)    :: LCover_LAI0(:)    - [1] land cover ID for LAI estimation
   !>       \param[in] "integer(i4) :: LCover0(:)"       - [1] land use cover at level 0 
-  !>       \param[in] "real(dp)    :: LAI0(:)"          - [m m-2] leaf area index at level 0 
   !>       \param[in] "real(dp)    :: length(:)"        - [m] total length
   !>       \param[in] "real(dp)    :: slope(:)"         - average slope
   !>       \param[in] "real(dp)    :: fFPimp(:)"        - fraction of the flood plain with
@@ -202,7 +202,6 @@ contains
        Asp0,           & ! [degree] Aspect at Level 0
        LCover_LAI0,    & ! [1] land cover ID for LAI estimation
        LCover0,        & ! land use cover at level 0
-       LAI0,           & ! leaf area index at level 0   
        length,         & ! [m] total length
        slope,          & ! average slope
        fFPimp,         & ! fraction of the flood plain with impervious layer
@@ -284,7 +283,6 @@ contains
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
-    real(dp),    dimension(:),               intent(in)    :: LAI0              ! land cover at level 0
                                                                                 ! Input for regionalized routing
     real(dp),    dimension(:),               intent(in)    :: length            ! [m] total length
     real(dp),    dimension(:),               intent(in)    :: slope             ! average slope
@@ -497,8 +495,6 @@ contains
           call priestley_taylor_alpha(LCover_LAI0, LAILUT, LAIUnitList, param(iStart : iEnd),       & 
                mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1,  &
                PrieTayAlpha1)
-          !PrieTayAlpha1 = param(iStart)
-          !print*,  param( iStart : iEnd),'PT: ',PrieTayAlpha1, 'cut', param(iEnd)
        ! Penman-Monteith method
        case(3) 
           iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
@@ -673,8 +669,7 @@ contains
 
     k2_0 = nodata
 
-    ! MZMZ: remapping of geounits is wrong, rollback to revision 1428
-    !$OMP PARALLEL                         ! >>>> revision 1581
+    !$OMP PARALLEL
     !$OMP DO PRIVATE(gg) SCHEDULE(STATIC)
     do ii = 1, size(k2_0)
        ! get parameter index in geoUnitList
@@ -682,10 +677,7 @@ contains
        k2_0(ii) = param( gg(1) )
     end do
     !$OMP END DO
-    !$OMP END PARALLEL                     ! >>>> revision 1581
-    ! do ii = 1, size(param)                    ! <<<< revision 1428
-    !    k2_0 = merge( param(ii), k2_0, geoUnit0 == geoUnitList(ii) ) 
-    ! end do                                   ! <<<< revision 1428
+    !$OMP END PARALLEL
 
 
   end subroutine baseflow_param
@@ -1314,7 +1306,7 @@ contains
                                       aerodyn_resistance1  ) ! aerodynmaical resistance
 
     use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_mhm_constants,       only: YearMonths_i4
+    use mo_mhm_constants,       only: YearMonths_i4, WindMeasHeight, karman
     use mo_constants,           only: eps_dp
 
     implicit none
@@ -1342,9 +1334,6 @@ contains
     real(dp), dimension(:),   allocatable  :: zm_zero, zh_zero, displace
     real(dp), dimension(:,:), allocatable  :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
     !                                                                    ! dim 2 = number of months in year (12)
-
-    real(dp), parameter                    :: WindMeasHeight = 10.0_dp ! MZMZ
-    real(dp), PARAMETER                    :: k              = 0.41_dp ! MZMZ
     !
     ! ID   LAI classes                 
     ! 1    Coniferous-forest        
@@ -1359,12 +1348,12 @@ contains
     ! 10   Wetlands                 
 
     ! initialize some things
-    allocate(zm                  (size(LCover0, dim=1)    )) ; zm                  = nodata
-    allocate(zm_zero             (size(LCover0, dim=1)    )) ; zm_zero             = nodata
-    allocate(zh_zero             (size(LCover0, dim=1)    )) ; zh_zero             = nodata
-    allocate(displace            (size(LCover0, dim=1)    )) ; displace            = nodata
-    allocate(canopy_height0      (size(LCover0, dim=1)    )) ; canopy_height0      = nodata
-    allocate(aerodyn_resistance0 (size(LCover0, dim=1), 12)) ; aerodyn_resistance0 = nodata
+    allocate(zm                  (size(LCover0, dim=1)               )) ; zm                  = nodata
+    allocate(zm_zero             (size(LCover0, dim=1)               )) ; zm_zero             = nodata
+    allocate(zh_zero             (size(LCover0, dim=1)               )) ; zh_zero             = nodata
+    allocate(displace            (size(LCover0, dim=1)               )) ; displace            = nodata
+    allocate(canopy_height0      (size(LCover0, dim=1)               )) ; canopy_height0      = nodata
+    allocate(aerodyn_resistance0 (size(LCover0, dim=1), YearMonths_i4)) ; aerodyn_resistance0 = nodata
     aerodyn_resistance1 = nodata
     !
     ! regionalization of canopy height
@@ -1391,7 +1380,7 @@ contains
        zh_zero  = param(6) * zm_zero
        !
        ! calculate aerodynamic resistance (changes monthly)
-       aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (k**2.0_dp)
+       aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (karman**2.0_dp)
        aerodyn_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, aerodyn_resistance0(:,iMon))
        !
@@ -1443,7 +1432,8 @@ contains
   !        None
 
   !     LITERATURE
-  !        None
+  !>        McMahon et al, 2013: Estimating actual, potential, reference crop and pan evaporation using standard 
+  !>        meteorological data: a pragmatic synthesis , HESS
 
   !     HISTORY
   !>       \author Matthias Zink
@@ -1464,11 +1454,8 @@ contains
                                     bulksurface_resistance1  ) ! bulk surface resistance
 
     use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_mhm_constants,       only: YearMonths_i4
+    use mo_mhm_constants,       only: YearMonths_i4, LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist
     use mo_constants,           only: eps_dp
-
-    use mo_ncwrite,  only: dump_netcdf !MZMZ
-    use mo_init_states,         only : get_basin_info
 
     implicit none
 
@@ -1495,14 +1482,6 @@ contains
     real(dp), dimension(:,:), allocatable  :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
     !                                                                    ! dim 2 = number of months in year (12)
 
-    ! real(dp), dimension(:,:,:), allocatable  :: tmp ! MZMZ
-    ! logical, dimension(:,:), allocatable  :: mask1 ! MZMZ
-
-
-    !call get_basin_info ( 1,  1, a, b, mask=mask1 )  !MZMZ
-    !allocate(tmp(size(mask1, dim=1), size(mask1, dim=2),YearMonths_i4)) ! MZMZ
-    !tmp = nodata ! MZMZ
-    
     ! initialize some things
     allocate(bulksurface_resistance0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; bulksurface_resistance0 = nodata
     allocate(leafarea0               (size(LCover_LAI0, dim=1), YearMonths_i4)) ; leafarea0               = nodata
@@ -1517,24 +1496,19 @@ contains
        ! correction for 0 LAI values
        leafarea0(:,iMon) = merge( 1.00E-10_dp,  leafarea0(:,iMon), leafarea0(:,iMon) .LT. eps_dp)
 
-       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / (0.3_dp * leafarea0(:,iMon) + 1.2_dp)) ! MZMZ
+       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / &
+            (LAI_factor_surfResi * leafarea0(:,iMon) + LAI_offset_surfResi))
        ! efeective LAI from McMahon et al ,2013 , HESS supplements
 
        ! since LAI may be very low, rs becomes very high 
        ! thus the values are restricted to maximum literaure values (i.e. McMahon et al ,2013 , HESS)
-       bulksurface_resistance0(:,iMon) = merge(250.0_dp, bulksurface_resistance0(:,iMon), &
-            bulksurface_resistance0(:,iMon) .GT. 250.0_dp)
+       bulksurface_resistance0(:,iMon) = merge(max_surfResist, bulksurface_resistance0(:,iMon), &
+            bulksurface_resistance0(:,iMon) .GT. max_surfResist)
 
        bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
-
-       ! tmp(:,:,iMon) = unpack(bulksurface_resistance0(:,iMon), mask0, nodata) ! MZMZ
-       !tmp(:,:,iMon) = unpack(bulksurface_resistance1(:,imon), mask1, nodata) ! MZMZ
     end do
 
-    ! call dump_netcdf( trim('surfres_L0.nc'), tmp)  ! MZMZ
-    ! call dump_netcdf( trim('surfres_L1.nc'), tmp)  ! MZMZ
-   !
   end subroutine bulksurface_resistance
 
 

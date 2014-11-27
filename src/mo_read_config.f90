@@ -931,7 +931,6 @@ CONTAINS
     end select
 
     ! Process 5 - potential evapotranspiration (PET)
-    print*, processCase(5)
     select case (processCase(5))
     ! 0 - PET is input, correct PET by aspect
     case(0)
@@ -982,6 +981,13 @@ CONTAINS
 
     ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
     case(2)
+       ! check which LAI input is specified
+       if (timeStep_LAI_input .NE. 0) then
+          call message('***ERROR: The specified option of process 5 does only work with LAI from LUT.')
+          call message('          For process 5 the options 0 and 1 work with timeStep_LAI_input unequal to 0.')
+          stop
+       end if
+
        call position_nml('PET2', unamelist_param)
        read(unamelist_param, nml=PET2)
        processMatrix(5, 1) = processCase(5)
@@ -1002,6 +1008,13 @@ CONTAINS
 
     ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
     case(3)
+       ! check which LAI input is specified
+       if (timeStep_LAI_input .NE. 0) then
+          call message('***ERROR: The specified option of process 5 does only work with LAI from LUT.')
+          call message('          For process 5 the options 0 and 1 work with timeStep_LAI_input unequal to 0.')
+          stop
+       end if
+
        call position_nml('PET3', unamelist_param)
        read(unamelist_param, nml=PET3)
        processMatrix(5, 1) = processCase(5)

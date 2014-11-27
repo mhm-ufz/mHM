@@ -320,7 +320,6 @@ CONTAINS
     use mo_julian,           only: caldat, julday
     use mo_message,          only: message
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
-    use mo_ncwrite,          only: dump_netcdf !MZMZMZ
 
     use mo_string_utils,     only: num2str
     use mo_utils,            only: eq

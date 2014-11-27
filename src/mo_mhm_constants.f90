@@ -88,20 +88,32 @@ MODULE mo_mhm_constants
 
 
   !> Stefan-Boltzmann constant [W m^-2 K^-4] 
-  real(dp),   public, parameter :: StBoltzmann          = 5.67e-08_dp                
+  real(dp),   public, parameter  :: StBoltzmann          = 5.67e-08_dp                
   !> Constant for Hargreaves-Samani ref. ET formula [deg C]
-  real(dp),   public, parameter :: HarSamConst          = 17.800_dp             
+  real(dp),   public, parameter  :: HarSamConst          = 17.800_dp             
+  !> assumed meteorol. measurement hight for estimation of aeroResist and surfResist
+  real(dp),    public, parameter :: WindMeasHeight       = 10.0_dp 
+  !> von karman constant 
+  real(dp),    public, parameter :: karman               = 0.41_dp
+
+  !> LAI factor for bulk surface resistance formulation
+  real(dp),    public, parameter :: LAI_factor_surfResi  = 0.3_dp
+  !> LAI offset for bulk surface resistance formulation
+  real(dp),    public, parameter :: LAI_offset_surfResi  = 1.2_dp
+  !> maximum bulk surface resistance
+  real(dp),    public, parameter :: max_surfResist       = 250.0_dp
+
 
   ! constants in the Duffie formula for computing extraterrestrial radiation
-  real(dp),    public, parameter :: DuffieDr          =   0.0330_dp
-  real(dp),    public, parameter :: DuffieDelta1      =   0.4090_dp
-  real(dp),    public, parameter :: DuffieDelta2      =   1.3900_dp
+  real(dp),    public, parameter :: DuffieDr             =   0.0330_dp
+  real(dp),    public, parameter :: DuffieDelta1         =   0.4090_dp
+  real(dp),    public, parameter :: DuffieDelta2         =   1.3900_dp
 
   !> constants for Tetens's formula to calculate saturated vapour pressure
-  real(dp),   public, parameter :: tetens_c1            = 0.6108_dp
-  real(dp),   public, parameter :: tetens_c2            = 17.270_dp
-  real(dp),   public, parameter :: tetens_c3            = 237.30_dp
+  real(dp),   public, parameter  :: tetens_c1            = 0.6108_dp
+  real(dp),   public, parameter  :: tetens_c2            = 17.270_dp
+  real(dp),   public, parameter  :: tetens_c3            = 237.30_dp
   !> constant for calculating the slope of the saturation vapour pressure curve following Tetens
-  real(dp),   public, parameter :: satpressureslope1    = 4098.0_dp
+  real(dp),   public, parameter  :: satpressureslope1    = 4098.0_dp
 
 END MODULE mo_mhm_constants

@@ -268,29 +268,6 @@ CONTAINS
        call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
-       ! preapare vector length specifications depending on the process case
-       !
-       ! process 5 - PET
-       select case (processMatrix(5,1))
-       case(0) ! PET is input
-          print*, 'PET: Input' ! MZMZMZ
-          !      (/pet, tmax, tmin, netrad/)
-          s_p5 = (/s1,  1,  1,  1,  1,  1/)
-          e_p5 = (/e1,  1,  1,  1,  1,  1/)
-       case(1) ! HarSam
-          print*, 'PET: HarSam' ! MZMZMZ
-          s_p5 = (/s1, s1, s1,  1,  1,  1/)
-          e_p5 = (/e1, e1, e1,  1,  1,  1/)
-       case(2) ! PrieTay
-          print*, 'PET: PrieTay' ! MZMZMZ
-          s_p5 = (/s1,  1,  1, s1,  1,  1/)
-          e_p5 = (/e1,  1,  1, e1,  1,  1/)
-       case(3) ! PenMon
-          print*, 'PET: PenMon' ! MZMZMZ
-          s_p5 = (/s1,  1,  1, s1, s1, s1/)
-          e_p5 = (/e1,  1,  1, e1, e1, e1/)
-       end select
-
        ! process 8 - routing process (on or off)
        if( processMatrix(8, 1) .eq. 0 ) then
           s11 = 1
@@ -322,7 +299,6 @@ CONTAINS
           else
              ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
              call prepare_meteo_forcings_data(ii, tt)
-             
              ! set start and end of meteo position
              s_meteo = 1
              e_meteo = e1 - s1 + 1
@@ -337,9 +313,24 @@ CONTAINS
           ! month needed for LAI process
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
-          ! time step for meteorological variable (daily values)
-          iMeteoTS    = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
-          ! 
+          ! preapare vector length specifications depending on the process case
+          ! process 5 - PET
+          select case (processMatrix(5,1))
+             !      (/pet,        tmax,    tmin,  netrad, absVapP,windspeed/)
+          case(0) ! PET is input
+             s_p5 = (/s_meteo,       1,       1,       1,       1,       1/)
+             e_p5 = (/e_meteo,       1,       1,       1,       1,       1/)
+          case(1) ! HarSam
+             s_p5 = (/s_meteo, s_meteo, s_meteo,       1,       1,       1/)
+             e_p5 = (/e_meteo, e_meteo, e_meteo,       1,       1,       1/)
+          case(2) ! PrieTay
+             s_p5 = (/s_meteo,       1,       1, s_meteo,       1,       1/)
+             e_p5 = (/e_meteo,       1,       1, e_meteo,       1,       1/)
+          case(3) ! PenMon
+             s_p5 = (/s_meteo,       1,       1, s_meteo, s_meteo, s_meteo/)
+             e_p5 = (/e_meteo,       1,       1, e_meteo, e_meteo, e_meteo/)
+          end select
+
           ! customize iMeteoTS for process 5 - PET
           select case (processMatrix(5,1))
           !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)  
@@ -352,7 +343,6 @@ CONTAINS
           case(3) ! PenMon
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
           end select
-          !print*, 'iMeteoTS', iMeteoTS MZMZ
              
           ! time step for gridded LAI data (daily values)
           iGridLAI_TS = iMeteoTS ! ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )

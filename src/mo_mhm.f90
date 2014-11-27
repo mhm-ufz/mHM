@@ -541,7 +541,7 @@ CONTAINS
                   SDB_is_present, SDB_nHorizons,                                            &
                   SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
                   nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
-                  soilId0, Asp0, L0_LCover_LAI, LCover0, LAI0, length11, slope11, fFPimp11, &
+                  soilId0, Asp0, L0_LCover_LAI, LCover0, length11, slope11, fFPimp11,       &
                   slope_emp0, cellId0,                                                      &
                   L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                   L0rightBound_inL1, nTCells0_inL1,                                         &
@@ -628,7 +628,7 @@ CONTAINS
 
        case(1) ! HarSam
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-          doy       = anint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          doy       = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')

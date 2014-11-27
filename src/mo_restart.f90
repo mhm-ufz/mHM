@@ -73,7 +73,7 @@ CONTAINS
   !     HISTORY
   !>        \author   Stephan Thober
   !>        \date     Jun 2014
-
+  !         Modified   Matthias Zink       Nov. 2014  - added PET related parameter writing
   ! ------------------------------------------------------------------ 
   subroutine write_restart_files( OutPath )
 
@@ -115,6 +115,10 @@ CONTAINS
          L1_degDay, &
          L1_karstLoss, &
          L1_fAsp, &
+         L1_HarSamCeoff, &
+         L1_PrieTayAlpha, &
+         L1_aeroResist, &
+         L1_surfResist, &
          L1_fRoots, &
          L1_maxInter, &
          L1_kfastFlow, &
@@ -214,7 +218,7 @@ CONTAINS
     real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
     ! dimension variables
     character(256), dimension(2)             :: dims_L0     ! dimension names for L0 states
-    character(256), dimension(3)             :: dims_L1     ! dimension names for L1 states
+    character(256), dimension(4)             :: dims_L1     ! dimension names for L1 states
     character(256), dimension(3)             :: dims_L11    ! dimension names for L11 states
     character(256), dimension(1)             :: dims_outlet ! dimension name  for outlet Coordinates
     character(256), dimension(1)             :: dims_gauges ! dimension name  for number of gauges
@@ -226,6 +230,7 @@ CONTAINS
     dims_L1(1)     = 'nrows1'
     dims_L1(2)     = 'ncols1'
     dims_L1(3)     = 'L1_soilhorizons'
+    dims_L1(4)     = 'MonthsPerYear'
     dims_L11(1)    = 'nrows11'
     dims_L11(2)    = 'ncols11'
     dims_L11(3)    = 'nIT'
@@ -277,7 +282,7 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_soilMoist(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_soilMoist', &
+            dims_L1(1:3), 'L1_soilMoist', &
             long_name = 'soil moisture at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_unsatSTW(s1:e1), mask1, nodata_dp ), &
@@ -292,7 +297,7 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_aETSoil(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_aETSoil', &
+            dims_L1(1:3), 'L1_aETSoil', &
             long_name = 'soil actual ET at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_aETCanopy(s1:e1), mask1, nodata_dp ), &
@@ -311,7 +316,7 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_infilSoil(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_infilSoil', &
+            dims_L1(1:3), 'L1_infilSoil', &
             long_name = 'soil in-exfiltration at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_fastRunoff(s1:e1), mask1, nodata_dp ), &
@@ -382,15 +387,11 @@ CONTAINS
             dims_L1(1:2), 'L1_karstLoss', &
             long_name = 'Karstic percolation loss at level 1', missing_value = nodata_dp)
 
-       call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
-            dims_L1(1:2), 'L1_fAsp', &
-            long_name = 'PET correction factor due to terrain aspect at level 1', missing_value = nodata_dp)
-
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_fRoots(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_fRoots', &
+            dims_L1(1:3), 'L1_fRoots', &
             long_name = 'Fraction of roots in soil horizons at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_maxInter(s1:e1), mask1, nodata_dp ), &
@@ -417,21 +418,21 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_soilMoistFC(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_soilMoistFC', &
+            dims_L1(1:3), 'L1_soilMoistFC', &
             long_name = 'Soil moisture below which actual ET is reduced linearly till PWP at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_soilMoistSat', &
+            dims_L1(1:3), 'L1_soilMoistSat', &
             long_name = 'Saturation soil moisture for each horizon [mm] at level 1', missing_value = nodata_dp)
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistExp(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_soilMoistExp', &
+            dims_L1(1:3), 'L1_soilMoistExp', &
             long_name = 'Exponential parameter to how non-linear is the soil water retention at level 1', missing_value = nodata_dp)
 
        call var2nc( Fname, unpack( L1_tempThresh(s1:e1), mask1, nodata_dp ), &
@@ -450,10 +451,51 @@ CONTAINS
           dummy_d3(:,:,ii) = unpack( L1_wiltingPoint(s1:e1,ii), mask1, nodata_dp )
        end do
        call var2nc( Fname, dummy_d3, &
-            dims_L1, 'L1_wiltingPoint', &
+            dims_L1(1:3), 'L1_wiltingPoint', &
             long_name = 'Permanent wilting point at level 1', missing_value = nodata_dp)
        
        deallocate( dummy_d3 )
+
+       select case (processMatrix(5,1))
+       case(0) ! PET is input
+          call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
+               dims_L1(1:2), 'L1_fAsp', &
+               long_name = 'PET correction factor due to terrain aspect at level 1', missing_value = nodata_dp)        
+       case(1) ! HarSam
+          call var2nc( Fname, unpack( L1_fAsp(s1:e1), mask1, nodata_dp ), &
+               dims_L1(1:2), 'L1_fAsp', &
+               long_name = 'PET correction factor due to terrain aspect at level 1', missing_value = nodata_dp)        
+          call var2nc( Fname, unpack( L1_HarSamCeoff(s1:e1), mask1, nodata_dp ), &
+               dims_L1(1:2), 'L1_HarSamCoeff', &
+               long_name = 'Hargreaves-Samani coefficient', missing_value = nodata_dp)        
+       case(2) ! PrieTay
+          allocate( dummy_d3( nrows1, ncols1, size( L1_PrieTayAlpha, 2) ) )
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L1_PrieTayAlpha(s1:e1,ii), mask1, nodata_dp )
+          end do
+
+          call var2nc( Fname, dummy_d3, &
+               (/dims_L1(1:2),dims_L1(4)/), 'L1_PrieTayAlpha', &
+               long_name = 'Priestley Taylor coeffiecient (alpha)', missing_value = nodata_dp)        
+          deallocate( dummy_d3 )
+       case(3) ! PenMon
+          allocate( dummy_d3( nrows1, ncols1, size( L1_aeroResist, 2) ) )
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L1_aeroResist(s1:e1,ii), mask1, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               (/dims_L1(1:2),dims_L1(4)/), 'L1_aeroResist', &
+               long_name = 'aerodynamical resitance', missing_value = nodata_dp)        
+
+          do ii = 1, size( dummy_d3, 3 )
+             dummy_d3(:,:,ii) = unpack( L1_surfResist(s1:e1,ii), mask1, nodata_dp )
+          end do
+          call var2nc( Fname, dummy_d3, &
+               (/dims_L1(1:2),dims_L1(4)/), 'L1_surfResist', &
+               long_name = 'bulk surface resitance', missing_value = nodata_dp)        
+          deallocate( dummy_d3 )
+       end select
+
        !-------------------------------------------
        ! L11 ROUTING STATE VARIABLES, FLUXES AND
        !             PARAMETERS
@@ -1454,6 +1496,7 @@ CONTAINS
   !>        \author Stephan Thober
   !>        \date Apr 2013
   !         Modified   R. Kumar, J. Mai    Sep. 2013  - Splitting allocation and initialization of arrays
+  !         Modified   Matthias Zink       Nov. 2014  - added PET related parameter read in
 
   subroutine read_restart_states( iBasin, InPath )
 
@@ -1462,7 +1505,7 @@ CONTAINS
     use mo_string_utils,     only: num2str
     use mo_init_states,      only: get_basin_info
     use mo_ncread,           only: Get_NcVar
-    use mo_mhm_constants,    only: nRoutingStates
+    use mo_mhm_constants,    only: nRoutingStates, YearMonths_i4
     use mo_global_variables, only: processMatrix, &
          L1_fSealed, &
          L1_fForest, &
@@ -1495,6 +1538,10 @@ CONTAINS
          L1_degDay, &
          L1_karstLoss, &
          L1_fAsp, &
+         L1_HarSamCeoff, &
+         L1_PrieTayAlpha, &
+         L1_aeroResist, &
+         L1_surfResist, &
          L1_fRoots, &
          L1_maxInter, &
          L1_kfastFlow, &
@@ -1708,10 +1755,6 @@ CONTAINS
     call Get_NcVar( Fname,  'L1_karstLoss', dummyD2 )
     L1_karstLoss(s1:e1) = pack( dummyD2, mask1 ) 
 
-    ! PET correction factor due to terrain aspect
-    call Get_NcVar( Fname,  'L1_fAsp', dummyD2 )
-    L1_fAsp(s1:e1) = pack( dummyD2, mask1 ) 
-
     ! Fraction of roots in soil horizons    
     deallocate( dummyD2, dummyD3 )
     allocate( dummyD3( nrows1, ncols1, nSoilHorizons_mHM ) )
@@ -1801,6 +1844,56 @@ CONTAINS
     end do
 
     deallocate( dummyD2, dummyD3 )
+
+    ! different parameters dependent on PET formulation
+    select case (processMatrix(5,1))
+    case(0) ! PET is input
+       allocate( dummyD2( nrows1, ncols1 ) )
+
+       ! PET correction factor due to terrain aspect
+       call Get_NcVar( Fname,  'L1_fAsp', dummyD2 )
+       L1_fAsp(s1:e1) = pack( dummyD2, mask1 ) 
+
+       deallocate( dummyD2)
+    case(1) ! HarSam
+       allocate( dummyD2( nrows1, ncols1 ) )
+
+       ! PET correction factor due to terrain aspect
+       call Get_NcVar( Fname,  'L1_fAsp', dummyD2 )
+       L1_fAsp(s1:e1) = pack( dummyD2, mask1 ) 
+
+       ! Hargreaves Samani coeffiecient
+       call Get_NcVar( Fname,  'L1_HarSamCoeff', dummyD2 )
+       L1_HarSamCeoff(s1:e1) = pack( dummyD2, mask1 ) 
+
+       deallocate( dummyD2)
+    case(2) ! PrieTay
+       allocate( dummyD3( nrows1, ncols1, YearMonths_i4) )
+
+       ! Priestley Taylor coeffiecient (alpha)
+       call Get_NcVar( Fname,  'L1_PrieTayAlpha', dummyD3 )
+       do ii = 1, YearMonths_i4
+          L1_PrieTayAlpha(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
+       end do
+
+       deallocate( dummyD3)
+    case(3) ! PenMon
+       allocate( dummyD3( nrows1, ncols1, YearMonths_i4) )
+
+       ! aerodynamical resitance
+       call Get_NcVar( Fname,  'L1_aeroResist', dummyD3 )
+       do ii = 1, YearMonths_i4
+          L1_aeroResist(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
+       end do
+
+       ! bulk surface resitance
+       call Get_NcVar( Fname,  'L1_surfResist', dummyD3 )
+       do ii = 1, YearMonths_i4
+          L1_surfResist(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
+       end do
+
+       deallocate( dummyD3)
+    end select
 
     !-------------------------------------------
     ! L11 ROUTING STATE VARIABLES, FLUXES AND

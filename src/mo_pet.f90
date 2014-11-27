@@ -239,7 +239,6 @@ CONTAINS
   !>        \date    Apr 2014
 
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
-!MZMZ  FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
 
     use mo_mhm_constants, only: DaySecs
     use mo_constants,     only: Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
@@ -249,7 +248,6 @@ CONTAINS
     real(dp), intent(in) :: net_rad                ! net radiation
     real(dp), intent(in) :: tavg                   ! average daily temperature
     real(dp), intent(in) :: act_vap_pressure       ! actual vapur pressure
-    !real(dp), intent(in) :: windspeed              ! windspeed ! MZMZMZ
     real(dp), intent(in) :: aerodyn_resistance     ! aerodynmaical resistance
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
