@@ -11,8 +11,8 @@
 !>          (5) ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
 !>          (6) SSE  \n
 !>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
-!>          (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
-!>          (9) 1.0 - KGE  \n
+!>          (8) -1.0 * loglikelihood with linear error model and lag(1)-autocorrelation of the relative errors \n
+!>          (9) 1.0 - KGE \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -204,13 +204,16 @@ CONTAINS
   !      NAME
   !          loglikelihood_kavetski
 
-  !>        \brief Logarithmic likelihood function with linear trend removed in relative errors
-  !>               and then Lag(1)-autocorrelation removed.
+  !>        \brief Logarithmised likelihood with linear error model and lag(1)-autocorrelation
+  !>               of the relative errors.
 
-  !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
-  !>        It can also be used for optimization when selecting the likelihood in the namelist as \e opti\_function.\n\n
-  !>               This is approach 2 of the paper Evin et al. (WRR 2013).
-
+  !>        \details This loglikelihood uses a linear error model and a lag(1)-autocorrelation
+  !>                 on the relative errors. This is approach 2 of the paper Evin et al. (WRR, 2013).
+  !>
+  !>                 This is opti_method = 8.
+  !>
+  !>                 mHM then adds two extra (local) parameters for the error model in mhm_driver,
+  !>                 which get optimised together with the other, global parameters.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -239,12 +242,11 @@ CONTAINS
   !>                                                     (absolute between running model with parameterset and observation) 
 
   !     RESTRICTIONS
-  !>       \note Input values must be floating points.
+  !>       \note Does not work with MCMC yet.
 
   !     EXAMPLE
   !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !         stddev = 0.5_dp
-  !         log_likeli = loglikelihood_kavetski(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
+  !         log_likeli = loglikelihood_kavetski(para, 1.0_dp)
 
   !     LITERATURE
   !         Evin et al., WRR 49, 4518-4524, 2013
@@ -339,7 +341,6 @@ CONTAINS
     ! linear error model
     a = parameterset(npara-1)
     b = parameterset(npara)
-print*, 'a = ',a, '   b = ',b
     sigma(:) = a + b * calc(:)
     ! standardized residual errors (SRE)
     eta(:)   = errors(:) / sigma(:)
@@ -358,7 +359,8 @@ print*, 'a = ',a, '   b = ',b
 
     write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
 
-    stddev_tmp = stddev_old   ! this is only to make stddev_old used
+    ! This is for the interface of MCMC
+    stddev_tmp = stddev_old   ! this is for the compiler so that stddev_old gets used
     stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
        stddev_tmp = stddev(errors(:))
@@ -602,7 +604,7 @@ print*, 'a = ',a, '   b = ',b
        objective = objective_equal_nse_lnnse(parameterset)
     case (4)
        ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
-       objective = - loglikelihood( parameterset, 1.0_dp )
+       objective = - loglikelihood(parameterset, 1.0_dp)
     case (5)
        ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
        objective = objective_power6_nse_lnnse(parameterset)
@@ -611,10 +613,10 @@ print*, 'a = ',a, '   b = ',b
        objective = objective_sse(parameterset)
     case (7)
        ! -loglikelihood with trend removed from absolute errors
-       objective = - loglikelihood_trend_no_autocorr( parameterset, 1.0_dp )
+       objective = -loglikelihood_trend_no_autocorr(parameterset, 1.0_dp)
     case (8)
        ! -loglikelihood with trend removed from relative errors and then lag(1)-autocorrelation removed
-       objective = - loglikelihood_kavetski( parameterset, 1.0_dp )
+       objective = -loglikelihood_kavetski(parameterset, 1.0_dp)
     case (9)
        ! KGE
        objective = objective_kge(parameterset)

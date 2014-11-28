@@ -123,16 +123,18 @@
 !                 Sa Ku Ma Cu 12.12.2012    v5.0 modularization
 !                       Sa Cu 12.12.2012    v5.0 automatic documentation
 !                          Ku 02.05.2013    v5.0 error/compatability checks
-!                Stephan Thober Nov 2013         added read in of latitude longitude fields
-!                Matthias Zink  Mar 2013         edited screen output for gauges
+!                     Stephan Thober, Nov 2013 - added read in of latitude longitude fields
+!                     Matthias Zink,  Mar 2013 - edited screen output for gauges
 !                                                added inflow gauges
-!               Rohini Kumar, Apr 2014         - implementation of the mHM run on a single cell
+!       Matthias Cuntz & Juliane Mai, Mar 2014 - Likelihood Kavetski uses 2 more parameters for the error model
+!                                                global_parameters -> local_parameters
+!                       Rohini Kumar, Apr 2014 - implementation of the mHM run on a single cell
 !                                                configuration that too in the routing mode.
 !                                              - run mHM at the input data level i.e. L0 grid
-!               Rohini Kumar, May 2014         - model run on a regular lat-lon grid or
+!                       Rohini Kumar, May 2014 - model run on a regular lat-lon grid or
 !                                                on a regular X-Y coordinate system
-!               Stephan Thober May 2014       - moved read meteo forcings to mo_mhm_eval
-!               Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+!                      Stephan Thober May 2014 - moved read meteo forcings to mo_mhm_eval
+!       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 !
 ! --------------------------------------------------------------------------
 
