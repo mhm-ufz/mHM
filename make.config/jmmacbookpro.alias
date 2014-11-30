@@ -3,5 +3,5 @@ ifneq (,$(findstring $(compiler),gnu gfortran gcc gfortran46 gcc46))
     icompiler := gnu46
 endif
 ifneq (,$(findstring $(compiler),nag nagfor))
-    icompiler := nag53
+    icompiler := nag60
 endif
