@@ -90,7 +90,7 @@ MODULE mo_global_variables
   !                                                                             !   process 2 :: snow
   !                                                                             !   process 3 :: soilmoisture
   !                                                                             !   process 4 :: sealed area direct runoff
-  !                                                                             !   process 5 :: meteo correction
+  !                                                                             !   process 5 :: potential evapotranspiration
   !                                                                             !   process 6 :: interflow
   !                                                                             !   process 7 :: percolation
   !                                                                             !   process 8 :: routing
@@ -98,7 +98,6 @@ MODULE mo_global_variables
   integer(i4),    dimension(nProcesses, 3),    public :: processMatrix          ! Info about which process runs in which option and
   !                                                                             ! number of parameters necessary for this option
   !                                                                             !   col1: process_switch 
-  !                                                                             !         (if 0: process switched off)
   !                                                                             !   col2: no. of parameters
   !                                                                             !   col3: cum. no. of parameters
   real(dp),       dimension(:,:), allocatable, public :: global_parameters      ! Matrix of global parameters (former: gamma)
@@ -116,6 +115,11 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirGauges          ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
+  character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
+  character(256), dimension(:), allocatable, public :: dirMaxTemperature  ! Directory where maximum temp. files are located
+  character(256), dimension(:), allocatable, public :: dirNetRadiation    ! Directory where abs. vap. pressure files are located
+  character(256), dimension(:), allocatable, public :: dirabsVapPressure  ! Directory where abs. vap. pressure files are located
+  character(256), dimension(:), allocatable, public :: dirwindspeed       ! Directory where windspeed files are located
   character(256), dimension(:), allocatable, public :: dirReferenceET     ! Directory where reference-ET files are located
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
@@ -229,8 +233,8 @@ MODULE mo_global_variables
   ! LAI data
   ! variables used when timeStep_LAI_input == 0
   integer(i4),    public                              :: nLAIclass         ! Number of LAI classes
-  integer(i4),    public, dimension(:),   allocatable :: LAIUnitList       ! List of ids of each LAI class --> New
-  real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index
+  integer(i4),    public, dimension(:),   allocatable :: LAIUnitList       ! List of ids of each LAI class in LAILUT
+  real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index for LAIUnit
   !                                                                        ! dim1=land cover class, dim2=month of year 
 
   ! -------------------------------------------------------------------
@@ -390,9 +394,14 @@ MODULE mo_global_variables
   ! Forcings
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]   Precipitation
-  real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC] Air temperature
-  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]   Potential evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]    Precipitation
+  real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC]  Air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]    Potential evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC]  minimum daily air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC]  maximum daily air temperature
+  real(dp), public, dimension(:,:), allocatable    :: L1_netrad        ! [W m2]  net radiation
+  real(dp), public, dimension(:,:), allocatable    :: L1_absvappress   ! [hPa]   absolute vapour pressure
+  real(dp), public, dimension(:,:), allocatable    :: L1_windspeed     ! [m s-1] windspeed
 
   ! Land cover
   ! dim1 = number grid cells L1
@@ -440,6 +449,11 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable   :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
   real(dp), public, dimension(:), allocatable   :: L1_karstLoss    ! [1]    Karstic percolation loss
   real(dp), public, dimension(:), allocatable   :: L1_fAsp         ! [1]    PET correction for aspect
+  real(dp), public, dimension(:), allocatable   :: L1_HarSamCoeff  ! [1]    Hargreaves Samani coeffiecient
+  real(dp), public, dimension(:,:), allocatable :: L1_PrieTayAlpha ! [1]    Priestley Taylor coeffiecient
+  real(dp), public, dimension(:,:), allocatable :: L1_aeroResist   ! [s m-1] aerodynamical resitance
+  real(dp), public, dimension(:,:), allocatable :: L1_surfResist   ! [s m-1] bulk surface resitance
+  !                                                                ! dim1 = No cells for basin, dim2 = No of Months in year
   real(dp), public, dimension(:,:), allocatable :: L1_fRoots       ! [1]    Fraction of roots in soil horizons   
   real(dp), public, dimension(:), allocatable   :: L1_maxInter     ! [mm]   Maximum interception 
   real(dp), public, dimension(:), allocatable   :: L1_kfastFlow    ! [d-1]  Fast interflow recession coefficient 

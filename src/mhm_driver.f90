@@ -155,7 +155,11 @@ PROGRAM mhm_driver
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
        dirMorpho, dirLCover, dirGauges, dirPrecipitation,    &      ! directories
-       dirTemperature, dirReferenceET, dirOut,               &      ! directories
+       dirTemperature, dirOut,                               &      ! directories
+       dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
+       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam  (case 1)
+       dirNetRadiation,                                      &      ! PET input paths if process 5 is PrieTay (case 2)
+       dirabsVapPressure, dirwindspeed,                      &      ! PET input paths if process 5 is PenMon  (case 3)
        dirgridded_LAI,                                       &      ! directories
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
@@ -246,18 +250,31 @@ PROGRAM mhm_driver
   call message('    # of basins  :          ', trim(num2str(nbasins)))
   do ii = 1, nbasins
      call message( '  --------------' )
-     call message( '      BASIN ', num2str(ii,'(I3)') )
+     call message( '      BASIN                    ', num2str(ii,'(I3)') )
      call message( '  --------------' )
-     call message('    Morphological directory:  ', trim(dirMorpho(ii) ))
-     call message('    Land cover directory:     ', trim(dirLCover(ii) ))
-     call message('    Discharge directory:      ', trim(dirGauges(ii)  ))
-     call message('    Precipitation directory:  ', trim(dirPrecipitation(ii)  ))
-     call message('    Temperature directory:    ', trim(dirTemperature(ii)  ))
-     call message('    PET directory:            ', trim(dirReferenceET(ii)  ))
-     call message('    Output directory:         ', trim(dirOut(ii) ))
+     call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
+     call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
+     call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
+     call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
+     call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
+     select case (processMatrix(5,1))
+     case(0)
+       call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
+     case(1)
+       call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
+       call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
+     case(2)
+       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
+     case(3)
+       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
+       call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
+       call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
+     end select
+     call message('    Output directory:           ',   trim(dirOut(ii) ))
      if (timeStep_LAI_input < 0) then
-        call message('    LAI directory:            ', trim(dirgridded_LAI(ii)) )
+        call message('    LAI directory:             ', trim(dirgridded_LAI(ii)) )
      end if
+
      if (processMatrix(8,1) .GT. 0) then
         call message('    Evaluation gauge          ', 'ID')
         do jj = 1 , basin%nGauges(ii)

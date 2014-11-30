@@ -12,7 +12,7 @@ MODULE mo_read_wrapper
 
   ! Written  Juliane Mai & Matthias Zink, Jan 2013
   ! Modified
-  !                       Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
+  !          Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
 
   USE mo_kind, ONLY: i4, dp
 
@@ -135,7 +135,7 @@ CONTAINS
                                      simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
                                      perform_mpr,                         & ! flag indicating whether L0 is read
-                                     timeStep_LAI_input,                  & ! flag on how LAI data has to be read
+                                     !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
                                      resolutionHydrology                    ! hydrology resolution (L1 scale)
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
@@ -176,10 +176,10 @@ CONTAINS
     call read_geoformation_lut(trim(fName), ugeolut, nGeoUnits, GeoUnitList, GeoUnitKar)
 
     ! LAI LUT
-    if (timeStep_LAI_input .EQ. 0) then
-      fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
-      call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
-    end if
+    ! if (timeStep_LAI_input .EQ. 0) then ! MZMZMZ
+    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
+    call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
+    ! end if
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
@@ -320,7 +320,7 @@ CONTAINS
                   (processMatrix(8, 1) .EQ. 0)  ) CYCLE
 
              ! handle LAI options
-             if( (iVar .EQ. 6)  .AND. (timeStep_LAI_input < 0) ) CYCLE
+             ! if( (iVar .EQ. 6)  .AND. (timeStep_LAI_input < 0) ) CYCLE
 
              select case (iVar)
              case(1) ! flow accumulation
@@ -426,18 +426,18 @@ CONTAINS
           call append( L0_gaugeLoc, dummy_i4 )
           call append( L0_InflowGaugeLoc, dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
+          ! if (timeStep_LAI_input .EQ. 0) then ! MZMZMZ
           ! read L0_LCover_LAI
-          if (timeStep_LAI_input == 0) then
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-             nunit = ulaiclass
-             call read_spatial_data_ascii(trim(fName), nunit,                               &
-                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+          nunit = ulaiclass
+          call read_spatial_data_ascii(trim(fName), nunit,                               &
+               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
 
-             ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-             call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
-          end if
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+          ! end if
        end if read_L0_data
 
        !

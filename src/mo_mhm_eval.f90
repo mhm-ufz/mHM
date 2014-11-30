@@ -74,7 +74,8 @@ CONTAINS
   !                   R. Kumar, J. Mai,     Sep 2013 - Splitting allocation and initialization of arrays
   !                   R. Kumar              Nov 2013 - update intent variables in documentation
   !                   L. Samaniego,         Nov 2013 - relational statements == to .eq., etc.
-  !                   Matthias Zink,        Mar 2014 - added inflow from upstream areas
+  !                   M. Zink,              Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                   M. Zink,              Mar 2014 - added inflow from upstream areas
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
@@ -109,10 +110,13 @@ CONTAINS
          soilDB, L1_areaCell, L1_nTCells_L0, L1_L11_Id,      & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
-         L1_rightBound_L0, L11_netPerm, L11_fromN, L11_toN,  & 
+         L1_rightBound_L0, latitude,                         &
+         L11_netPerm, L11_fromN, L11_toN,                    & 
          L11_length, L11_slope, evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
-         fnight_temp, L1_pet, L1_pre, L1_temp , L1_fForest,  & 
+         fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
+         L1_absvappress, L1_windspeed,                       &
+         L1_pre, L1_temp , L1_fForest,                       & 
          L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
          L11_aFloodPlain, L1_inter,                          & 
          L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, & 
@@ -122,8 +126,9 @@ CONTAINS
          L1_slowRunoff, L1_snow, L1_Throughfall,             & 
          L1_total_runoff, L11_Qmod, L11_qOUT, L11_qTIN,      & 
          L11_qTR, L1_alpha, L1_degDayInc, L1_degDayMax,      & 
-         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_fRoots,      & 
-         L1_maxInter, L1_karstLoss, L1_kfastFlow,            & 
+         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, & 
+         L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,      &
+         L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
@@ -150,6 +155,7 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: L1_unsatSTW_out     ! Upper soil storage
     real(dp), dimension(:),   allocatable :: L1_satSTW_out       ! Groundwater storage
     ! Fluxes L1
+    real(dp), dimension(:),   allocatable :: L1_pet_out          ! potential evapotranpiration (PET)
     real(dp), dimension(:,:), allocatable :: L1_aETSoil_out      ! actual ET of each horizon
     real(dp), dimension(:),   allocatable :: L1_aETCanopy_out    ! Real evaporation intensity from canopy
     real(dp), dimension(:),   allocatable :: L1_aETSealed_out    ! Actual ET from free-water surfaces
@@ -163,12 +169,21 @@ CONTAINS
 
     ! local variables
     integer(i4)                               :: nTimeSteps
-    integer(i4)                               :: ii, tt, gg, ll ! Counters
+    integer(i4)                               :: ii, tt, gg, ll   ! Counters
     integer(i4)                               :: nCells 
     integer(i4)                               :: nNodes
     integer(i4)                               :: s0, e0
     integer(i4)                               :: s1, e1
-    integer(i4)                               :: s11, e11
+    ! process case dependent length specefiers of vectors to pass to mHM
+    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
+    integer(i4), dimension(6)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
+    !                                                             ! index 1: pet
+    !                                                             ! index 2: tmin
+    !                                                             ! index 3: tmax
+    !                                                             ! index 4: netrad
+    !                                                             ! index 5: absolute vapour pressure
+    !                                                             ! index 6: windspeed
+    integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
     integer(i4)                               :: s110, e110
     integer(i4)                               :: s_meteo, e_meteo
     logical, dimension(:,:), allocatable      :: mask0, mask1
@@ -178,9 +193,9 @@ CONTAINS
     integer(i4)                               :: iGridLAI_TS
     integer(i4)                               :: yId
     real(dp)                                  :: newTime
-    integer(i4)                               :: year_counter    ! for yearly output
-    integer(i4)                               :: average_counter ! for averaging output
-    real(dp)                                  :: multiplier      ! for averaging output
+    integer(i4)                               :: year_counter     ! for yearly output
+    integer(i4)                               :: average_counter  ! for averaging output
+    real(dp)                                  :: multiplier       ! for averaging output
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
 
@@ -253,7 +268,7 @@ CONTAINS
        call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
-       ! routing process is on or off
+       ! process 8 - routing process (on or off)
        if( processMatrix(8, 1) .eq. 0 ) then
           s11 = 1
           e11 = 1
@@ -284,7 +299,6 @@ CONTAINS
           else
              ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
              call prepare_meteo_forcings_data(ii, tt)
-             
              ! set start and end of meteo position
              s_meteo = 1
              e_meteo = e1 - s1 + 1
@@ -299,6 +313,37 @@ CONTAINS
           ! month needed for LAI process
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
+          ! preapare vector length specifications depending on the process case
+          ! process 5 - PET
+          select case (processMatrix(5,1))
+             !      (/pet,        tmax,    tmin,  netrad, absVapP,windspeed/)
+          case(0) ! PET is input
+             s_p5 = (/s_meteo,       1,       1,       1,       1,       1/)
+             e_p5 = (/e_meteo,       1,       1,       1,       1,       1/)
+          case(1) ! HarSam
+             s_p5 = (/s_meteo, s_meteo, s_meteo,       1,       1,       1/)
+             e_p5 = (/e_meteo, e_meteo, e_meteo,       1,       1,       1/)
+          case(2) ! PrieTay
+             s_p5 = (/s_meteo,       1,       1, s_meteo,       1,       1/)
+             e_p5 = (/e_meteo,       1,       1, e_meteo,       1,       1/)
+          case(3) ! PenMon
+             s_p5 = (/s_meteo,       1,       1, s_meteo, s_meteo, s_meteo/)
+             e_p5 = (/e_meteo,       1,       1, e_meteo, e_meteo, e_meteo/)
+          end select
+
+          ! customize iMeteoTS for process 5 - PET
+          select case (processMatrix(5,1))
+          !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)  
+          case(0) ! PET is input
+             iMeteo_p5 = (/iMeteoTS,        1,        1,        1,        1,        1 /)
+          case(1) ! HarSam
+             iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1,        1,        1 /)
+          case(2) ! PrieTay
+             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS,        1,        1 /)
+          case(3) ! PenMon
+             iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
+          end select
+             
           !--------------------------------------------------------------------
           ! call LAI function to get LAI fields for this timestep and basin
           !--------------------------------------------------------------------
@@ -338,6 +383,7 @@ CONTAINS
           case default ! no output at all
              continue
           end select
+          !
           ! -------------------------------------------------------------------------
           ! ARGUMENT LIST KEY FOR mHM
           ! -------------------------------------------------------------------------
@@ -359,8 +405,8 @@ CONTAINS
                basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
                basin%InflowGaugeNodeList(ii,:),                                             & ! IN C
                parameterset,                                                                & ! IN P
-               LCyearId(year), GeoUnitList, GeoUnitKar,                                     & ! IN L0
-               L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0),                         & ! IN L0
+               LCyearId(year), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                & ! IN L0
+               L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
                L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
                L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
@@ -368,13 +414,19 @@ CONTAINS
                L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
                L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
                L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1),                             & ! IN L1
+               latitude(s_p5(1):e_p5(1)),                                                   & ! IN L1
                L11_netPerm(s11:e11), L11_fromN(s11:e11), L11_toN(s11:e11),                  & ! IN L11
                L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
-               L1_pet(s_meteo:e_meteo,iMeteoTS),                                            & ! IN PET
-               L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN Pre 
-               L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN Temperature
+               L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET
+               L1_tmin(s_p5(2):e_p5(2), iMeteo_p5(2)),                                      & ! IN F:PET
+               L1_tmax(s_p5(3):e_p5(3), iMeteo_p5(3)),                                      & ! IN F:PET
+               L1_netrad(s_p5(4):e_p5(4), iMeteo_p5(4)),                                    & ! IN F:PET
+               L1_absvappress(s_p5(5):e_p5(5), iMeteo_p5(5)),                               & ! IN F:PET
+               L1_windspeed(s_p5(6):e_p5(6), iMeteo_p5(6)),                                 & ! IN F:PET
+               L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN F:Pre 
+               L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN F:Temp
                InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
@@ -388,7 +440,9 @@ CONTAINS
                L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                               & ! INOUT X
                L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:), & ! INOUT X11
                L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                   & ! INOUT E1
-               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1), L1_fRoots(s1:e1,:), & ! INOUT E1
+               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1),                     & ! INOUT E1
+               L1_HarSamCoeff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),     & ! INOUT E1
+               L1_surfResist(s1:e1,:), L1_fRoots(s1:e1,:),                                  & ! INOUT E1
                L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),               & ! INOUT E1
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
@@ -430,6 +484,7 @@ CONTAINS
                         L1_unsatSTW_out        , & ! Upper soil storage
                         L1_satSTW_out          , & ! Groundwater storage
                         ! Inout: Fluxes L1
+                        L1_pet_out             , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out         , & ! actual ET
                         L1_aETCanopy_out       , & ! Real evaporation intensity from canopy
                         L1_aETSealed_out       , & ! Actual ET from free-water surfaces
@@ -459,28 +514,30 @@ CONTAINS
                 if (outputFlxState(8) ) L1_satSTW_out   (:)   = L1_satSTW_out   (:)   + L1_satSTW   (s1:e1)
 
                 ! Fluxes L1  --> AGGREGATED
-                if (outputFlxState(9)      ) then
+                if (outputFlxState(9) ) &
+                     L1_pet_out(:)          = L1_pet(s1:e1, iMeteoTS)         !+ L1_pet_out(:)
+                if (outputFlxState(10)      ) then
                    do hh = 1, nSoilHorizons_mHM
-                      L1_aETSoil_out(:,hh) = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))
+                      L1_aETSoil_out(:,hh)  = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))
                    end do
                 end if
-                if (outputFlxState(9) ) &
+                if (outputFlxState(10) ) &
                      L1_aETCanopy_out(:)    = L1_aETCanopy_out(:)    + L1_aETCanopy(s1:e1)
-                if (outputFlxState(9) ) &
+                if (outputFlxState(10) ) &
                      L1_aETSealed_out(:)    = L1_aETSealed_out(:)    + L1_aETSealed(s1:e1)*L1_fSealed(s1:e1)
-                if (outputFlxState(10)) &
-                     L1_total_runoff_out(:) = L1_total_runoff_out(:) + L1_total_runoff(s1:e1)
                 if (outputFlxState(11)) &
-                     L1_runoffSeal_out(:)   = L1_runoffSeal_out(:)   + L1_runoffSeal(s1:e1)*L1_fSealed(s1:e1)
+                     L1_total_runoff_out(:) = L1_total_runoff_out(:) + L1_total_runoff(s1:e1)
                 if (outputFlxState(12)) &
-                     L1_fastRunoff_out(:)   = L1_fastRunoff_out(:)   + L1_fastRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_runoffSeal_out(:)   = L1_runoffSeal_out(:)   + L1_runoffSeal(s1:e1)*L1_fSealed(s1:e1)
                 if (outputFlxState(13)) &
-                     L1_slowRunoff_out(:)   = L1_slowRunoff_out(:)   + L1_slowRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_fastRunoff_out(:)   = L1_fastRunoff_out(:)   + L1_fastRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(14)) &
-                     L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                     L1_slowRunoff_out(:)   = L1_slowRunoff_out(:)   + L1_slowRunoff(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
                 if (outputFlxState(15)) &
+                     L1_baseflow_out(:)     = L1_baseflow_out(:)     + L1_baseflow(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
+                if (outputFlxState(16)) &
                      L1_percol_out(:)       = L1_percol_out(:)       + L1_percol(s1:e1)*(1.0_dp - L1_fSealed(s1:e1))
-                if (outputFlxState(16)      ) then 
+                if (outputFlxState(17)      ) then 
                    do hh = 1, nSoilHorizons_mHM 
                       L1_infilSoil_out(:,hh) = L1_infilSoil_out(:,hh) + L1_infilSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1)) 
                    end do
@@ -529,6 +586,7 @@ CONTAINS
                         L1_unsatSTW_out          , & ! Upper soil storage
                         L1_satSTW_out            , & ! Groundwater storage
                         ! Fluxes L1
+                        L1_pet_out               , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out           , & ! actual ET
                         L1_aETCanopy_out         , & ! Real evaporation intensity from canopy
                         L1_aETSealed_out         , & ! Actual ET from free-water surfaces
@@ -552,41 +610,43 @@ CONTAINS
                    if (outputFlxState(7)  ) L1_unsatSTW_out(:)     = 0.0_dp      
                    if (outputFlxState(8)  ) L1_satSTW_out(:)       = 0.0_dp      
                    ! Fluxes L1
-                   if (outputFlxState(9)  ) L1_aETSoil_out(:,:)    = 0.0_dp     
-                   if (outputFlxState(9)  ) L1_aETCanopy_out(:)    = 0.0_dp    
-                   if (outputFlxState(9)  ) L1_aETSealed_out(:)    = 0.0_dp    
-                   if (outputFlxState(10) ) L1_total_runoff_out(:) = 0.0_dp   
-                   if (outputFlxState(11) ) L1_runoffSeal_out(:)   = 0.0_dp   
-                   if (outputFlxState(12) ) L1_fastRunoff_out(:)   = 0.0_dp   
-                   if (outputFlxState(13) ) L1_slowRunoff_out(:)   = 0.0_dp   
-                   if (outputFlxState(14) ) L1_baseflow_out(:)     = 0.0_dp   
-                   if (outputFlxState(15) ) L1_percol_out(:)       = 0.0_dp
-                   if (outputFlxState(16) ) L1_infilSoil_out(:,:)  = 0.0_dp   
+                   if (outputFlxState(9)  ) L1_pet_out(:)          = 0.0_dp     
+                   if (outputFlxState(10) ) L1_aETSoil_out(:,:)    = 0.0_dp     
+                   if (outputFlxState(10) ) L1_aETCanopy_out(:)    = 0.0_dp    
+                   if (outputFlxState(10) ) L1_aETSealed_out(:)    = 0.0_dp    
+                   if (outputFlxState(11) ) L1_total_runoff_out(:) = 0.0_dp   
+                   if (outputFlxState(12) ) L1_runoffSeal_out(:)   = 0.0_dp   
+                   if (outputFlxState(13) ) L1_fastRunoff_out(:)   = 0.0_dp   
+                   if (outputFlxState(14) ) L1_slowRunoff_out(:)   = 0.0_dp   
+                   if (outputFlxState(15) ) L1_baseflow_out(:)     = 0.0_dp   
+                   if (outputFlxState(16) ) L1_percol_out(:)       = 0.0_dp
+                   if (outputFlxState(17) ) L1_infilSoil_out(:,:)  = 0.0_dp   
                 end if
                 !    
                 ! close file and deallocate variables
                 if( tt .eq. nTimeSteps ) then
                    call CloseFluxState_file(ii, ncid)
                    ! States L1
-                   if (outputFlxState(1)  ) deallocate( L1_inter_out    )         
-                   if (outputFlxState(2)  ) deallocate( L1_snowPack_out )        
+                   if (outputFlxState(1)  ) deallocate( L1_inter_out       )         
+                   if (outputFlxState(2)  ) deallocate( L1_snowPack_out    )        
                    if( outputFlxState(3) .OR. &
-                        outputFlxState(4) .OR. &
-                        outputFlxState(5)  ) deallocate( L1_soilMoist_out)  
-                   if (outputFlxState(6)  ) deallocate( L1_sealSTW_out  )        
-                   if (outputFlxState(7)  ) deallocate( L1_unsatSTW_out )        
-                   if (outputFlxState(8)  ) deallocate( L1_satSTW_out   )        
+                       outputFlxState(4) .OR. &
+                       outputFlxState(5)  ) deallocate( L1_soilMoist_out   )  
+                   if (outputFlxState(6)  ) deallocate( L1_sealSTW_out     )        
+                   if (outputFlxState(7)  ) deallocate( L1_unsatSTW_out    )        
+                   if (outputFlxState(8)  ) deallocate( L1_satSTW_out      )        
                    ! Fluxes L1
-                   if (outputFlxState(9)  ) deallocate( L1_aETSoil_out     )    
-                   if (outputFlxState(9)  ) deallocate( L1_aETCanopy_out   )   
-                   if (outputFlxState(9)  ) deallocate( L1_aETSealed_out   )   
-                   if (outputFlxState(10) ) deallocate( L1_total_runoff_out)  
-                   if (outputFlxState(11) ) deallocate( L1_runoffSeal_out  )  
-                   if (outputFlxState(12) ) deallocate( L1_fastRunoff_out  )  
-                   if (outputFlxState(13) ) deallocate( L1_slowRunoff_out  )  
-                   if (outputFlxState(14) ) deallocate( L1_baseflow_out    )  
-                   if (outputFlxState(15) ) deallocate( L1_percol_out      )  
-                   if (outputFlxState(16) ) deallocate( L1_infilSoil_out   ) 
+                   if (outputFlxState(9)   ) deallocate( L1_pet_out        )    
+                   if (outputFlxState(10)  ) deallocate( L1_aETSoil_out    )    
+                   if (outputFlxState(10)  ) deallocate( L1_aETCanopy_out  )   
+                   if (outputFlxState(10)  ) deallocate( L1_aETSealed_out  )   
+                   if (outputFlxState(11) ) deallocate( L1_total_runoff_out)  
+                   if (outputFlxState(12) ) deallocate( L1_runoffSeal_out  )  
+                   if (outputFlxState(13) ) deallocate( L1_fastRunoff_out  )  
+                   if (outputFlxState(14) ) deallocate( L1_slowRunoff_out  )  
+                   if (outputFlxState(15) ) deallocate( L1_baseflow_out    )  
+                   if (outputFlxState(16) ) deallocate( L1_percol_out      )  
+                   if (outputFlxState(17) ) deallocate( L1_infilSoil_out   ) 
                    !
                 end if
                 !

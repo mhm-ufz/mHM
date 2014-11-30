@@ -72,7 +72,9 @@ CONTAINS
   !     HISTORY
   !>        \author Rohini Kumar
   !>        \date Jan 2013
-  !           Rohini Kumar,   Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  !           Matthias Zink,   Jun  2013 - addded NetCDf reader
+  !           Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  !           Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
   !           Stephan Thober, Jun  2014 - add chunk_config for chunk read, 
   !                                       copied L2 initialization to mo_startup
   !
@@ -82,9 +84,17 @@ CONTAINS
     use mo_timer,            only:                         &
          timer_start, timer_stop, timer_get, timer_clear  ! Timing of processes
     use mo_global_variables, only: &
-         dirPrecipitation, dirTemperature, dirReferenceET, &
-         inputFormat_meteo_forcings,                       &
-         L1_pre, L1_temp, L1_pet, readPer, timeStep_model_inputs
+         dirPrecipitation, dirTemperature,                  & ! directory of meteo input
+         dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam  (case 1)
+         dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
+         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon  (case 3)
+         inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
+         nBasins,                                           & ! Number of basins for multi-basin optimization 
+         processMatrix,                                     & ! process configuration
+         readPer, timeStep_model_inputs,                    & ! chunk read in config                           
+         L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
+         L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
 
     implicit none
 
@@ -101,9 +111,14 @@ CONTAINS
     if ( read_flag ) then
        ! free L1 variables if chunk read is activated
        if ( timeStep_model_inputs .ne. 0 ) then
-          if ( allocated( L1_pre ) )  deallocate( L1_pre )
-          if ( allocated( L1_temp ) ) deallocate( L1_temp )
-          if ( allocated( L1_pet ) )  deallocate( L1_pet  )
+          if ( allocated( L1_pre         )) deallocate( L1_pre         )
+          if ( allocated( L1_temp        )) deallocate( L1_temp        )
+          if ( allocated( L1_pet         )) deallocate( L1_pet         )
+          if ( allocated( L1_tmin        )) deallocate( L1_tmin        )
+          if ( allocated( L1_tmax        )) deallocate( L1_tmax        )
+          if ( allocated( L1_netrad      )) deallocate( L1_netrad      )
+          if ( allocated( L1_absvappress )) deallocate( L1_absvappress )
+          if ( allocated( L1_windspeed   )) deallocate( L1_windspeed   )
        end if
        
        ! basic basin characteristics and read meteo header
@@ -121,18 +136,66 @@ CONTAINS
        if ( timeStep_model_inputs .eq. 0 ) call message( '    read temperature   ...' )
        call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
             L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
-    
-       ! pet
-       if ( timeStep_model_inputs .eq. 0 ) call message( '    read pet           ...' )
-       call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
-            L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
-       
+
+       ! read input for PET (process 5) depending on specified option (0 - input, 1 - HarSam, 2 - PrieTay, 3 - PenMon)
+       select case (processMatrix(5,1))    
+
+       case(0) ! pet is input
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read pet                  ...' )
+          call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
+               L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
+          ! allocate PET and dummies for mhm_call
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+             allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
+             allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
+          end if
+
+       case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read max. temperature     ...' )
+          call meteo_forcings_wrapper( iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
+               L1_tmin, lower=-100.0_dp, upper = 100._dp, ncvarName='tmin' )
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read min. temperature     ...' )
+          call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
+               L1_tmax, lower=-100.0_dp, upper = 100._dp, ncvarName='tmax' )
+          ! allocate PET and dummies for mhm_call
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+             allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
+             allocate( L1_netrad(1,1) ); allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
+          end if
+
+       case(2) ! Priestley-Taylor formulation (input: net radiation)
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read net radiation        ...' )
+          call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+               L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
+          ! allocate PET and dummies for mhm_call
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+             allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
+             allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+             allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
+          end if
+
+       case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read net radiation        ...' )
+          call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
+               L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read abs. vapour pressue  ...' )
+          call meteo_forcings_wrapper( iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
+               L1_absvappress, lower=0.0_dp, upper = 2500.0_dp, ncvarName='eabs' )
+          if ( timeStep_model_inputs .eq. 0 ) call message( '    read windspeed            ...' )
+          call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
+               L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
+          ! allocate PET and dummies for mhm_call
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+             allocate( L1_pet    (size(L1_absvappress, dim=1), size(L1_absvappress, dim=2)))
+             allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
+          end if
+       end select
+
        if ( timeStep_model_inputs .eq. 0 ) then
           call timer_stop(1)
           call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
           call timer_clear(1)
        end if
-       
     end if
 
 end subroutine prepare_meteo_forcings_data
@@ -210,7 +273,7 @@ end subroutine prepare_meteo_forcings_data
     real(dp), dimension(:,:),allocatable, intent(inout) :: dataOut1      ! Packed meteorological variable
     real(dp),                   optional, intent(in)    :: lower         ! lower bound for data points
     real(dp),                   optional, intent(in)    :: upper         ! upper bound for data points
-     character(len=*),           optional, intent(in)   :: ncvarName     ! name of the variable (for .nc files)
+    character(len=*),           optional, intent(in)    :: ncvarName     ! name of the variable (for .nc files)
 
     
     integer(i4)                                :: nrows1, ncols1
@@ -431,7 +494,6 @@ end subroutine prepare_meteo_forcings_data
        ! 00:00 of that day
        Ndays        = ( ( tt - 1_i4 ) * timestep ) / nTstepDay
        Ndays_before = ( ( tt - 2_i4 ) * timestep ) / nTstepDay     
-       
        
        ! evaluate cases of given timeStep_model_inputs
        select case( timeStep_model_inputs )

@@ -14,12 +14,15 @@
 !>          2         | snow and melting          | 1     | Degree-day
 !>          3         | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
 !>          4         | direct runoff             | 1     | Linear reservoir exceedance 
-!>          5         | actual ET                 | 1     | Root fraction approach, Fedes, PET Hargreaves-Samani
+!>          5         | PET                       | 0     | PET is read as input 
+!>                                                | 1     | Hargreaves-Samani
+!>                                                | 2     | Priestley-Taylor
+!>                                                | 3     | Penman-Monteith
 !>          6         | interflow                 | 1     | Nonlinear reservoir with saturation excess
 !>          7         | percolation and base flow | 1     | GW linear reservoir     
 !>          8         | routing                   | 1     | Muskingum
 
-!>          These processes are executed in ascending order. At the moment only process 8 is optional.\n
+!>          These processes are executed in ascending order. At the moment only process 5 and 8 have options.\n
 !>          The MPR technique is only called either if the land cover has been changed or for very first time step.\n 
   
 !> \author Luis Samaniego
@@ -100,7 +103,10 @@ CONTAINS
   !                                                             the code made accordingly (e.g., canopy intecpt.)
   !                                                           - max. canopy interception is estimated outside of MPR
   !                                                             call
-  !                 Matthias Zink,                   Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
+  !                                                             and its parameterization (Process 5)
   !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
   !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
   !                 Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
@@ -135,10 +141,13 @@ CONTAINS
       LCyearId            , & ! mapping of landcover scenes
       GeoUnitList         , & ! List of Ids for geological units
       GeoUnitKar          , & ! List of Ids for geological units with Karstic formation
+      LAIUnitList         , & ! List of ids of each LAI class in LAILUT
+      LAILUT              , & ! List of Ids for LAI
       ! Physiographic L0
       slope_emp0          , &
       cellId0             , & ! cell Ids at level 0
       soilId0             , & ! soil Ids at level 0
+      L0_LCover_LAI       , & ! land cover ID for LAI estimation
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
       LAI0                , & ! LAI at level 0
@@ -161,6 +170,7 @@ CONTAINS
       L0downBound_inL1    , & ! lower row of L0 block within L1 cell
       L0leftBound_inL1    , & ! left column of L0 block within L1 cell
       L0rightBound_inL1   , & ! right column of L0 block within L1 cell
+      latitude            , & ! latitude on level 1
       ! Physiographic L11
       netPerm             , & ! Routing order
       nLink_fromN         , & ! Link: from node i
@@ -175,9 +185,14 @@ CONTAINS
       fnight_pet          , & ! [-] night ratio PET  < 1
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
-      pet_in              , & ! Daily potential evapotranspiration
-      prec_in             , & ! Daily mean precipitation
-      temp_in             , & ! Daily average temperature
+      pet_in              , & ! [mm d-1] Daily potential evapotranspiration (INOUT)
+      tmin_in             , & ! [degc]   Daily minimum temperature
+      tmax_in             , & ! [degc]   Daily maxumum temperature
+      netrad_in           , & ! [w m2]   Daily average net radiation
+      absvappres_in       , & ! [hPa]    Daily average absolute vapour pressure
+      windspeed_in        , & ! [m s-1]  Daily average wind speed
+      prec_in             , & ! [mm d-1] Daily mean precipitation
+      temp_in             , & ! [degc]   Daily average temperature
       ! discharge inflow
       QInflow             , & ! discharge time series of inflow
       ! In-Out -----------------------------------------------------------------
@@ -223,7 +238,11 @@ CONTAINS
       deg_day_max         , & ! Maximum Degree-day factor
       deg_day_noprec      , & ! Degree-day factor with no precipitation
       deg_day             , & ! Degree-day factor
-      fAsp                , & ! PET correction for Aspect at level 1
+      fAsp                , & ! [1]     PET correction for Aspect at level 1
+      HarSamCoeff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
+      PrieTayAlpha        , & ! [1]     PET Priestley Taylor coefficient at level 1
+      aeroResist          , & ! [s m-1] PET aerodynamical resitance at level 1
+      surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
       interc_max          , & ! Maximum interception
       karst_loss          , & ! Karstic percolation loss
@@ -245,6 +264,8 @@ CONTAINS
     use mo_net_startup,             only: L11_fraction_sealed_floodplain   ! flood plain subroutine
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
+    use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
+                                          pet_penman
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
     use mo_canopy_interc ,          only: canopy_interc
     use mo_snow_accum_melt,         only: snow_accum_melt
@@ -254,8 +275,11 @@ CONTAINS
     use mo_runoff,                  only: L1_total_runoff 
     use mo_runoff,                  only: L11_runoff_acc
     use mo_routing,                 only: L11_routing
-    use mo_julian,                  only: dec2date
+    use mo_julian,                  only: dec2date, date2dec
+    use mo_string_utils,            only: num2str
 
+    use mo_mhm_constants,           only: HarSamConst                      ! parameters for Hargreaves-Samani Equation
+                                          
     implicit none
 
     ! Intent
@@ -283,125 +307,138 @@ CONTAINS
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
-    integer(i4),                 intent(in) :: LCyearId
-    integer(i4), dimension(:),   intent(in) :: GeoUnitList
-    integer(i4), dimension(:),   intent(in) :: GeoUnitKar
+    integer(i4),                   intent(in)    :: LCyearId
+    integer(i4), dimension(:),     intent(in)    :: GeoUnitList
+    integer(i4), dimension(:),     intent(in)    :: GeoUnitKar
+    integer(i4), dimension(:),     intent(in)    :: LAIUnitList 
+    real(dp),    dimension(:,:),   intent(in)    :: LAILUT
 
     ! Physiographic L0
-    real(dp),    dimension(:),   intent(in) :: slope_emp0
-    integer(i4), dimension(:),   intent(in) :: cellId0
-    integer(i4), dimension(:),   intent(in) :: soilId0
-    integer(i4), dimension(:),   intent(in) :: LCover0
-    real(dp),    dimension(:),   intent(in) :: Asp0
-    real(dp),    dimension(:),   intent(in) :: LAI0
-    integer(i4), dimension(:),   intent(in) :: geoUnit0
-    real(dp), dimension(:),      intent(in) :: areaCell0
-    integer(i4), dimension(:),   intent(in) :: floodPlain0
+    real(dp),    dimension(:),     intent(in)    :: slope_emp0
+    integer(i4), dimension(:),     intent(in)    :: cellId0
+    integer(i4), dimension(:),     intent(in)    :: soilId0
+    integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
+    integer(i4), dimension(:),     intent(in)    :: LCover0
+    real(dp),    dimension(:),     intent(in)    :: Asp0
+    real(dp),    dimension(:),     intent(in)    :: LAI0
+    integer(i4), dimension(:),     intent(in)    :: geoUnit0
+    real(dp),    dimension(:),     intent(in)    :: areaCell0
+    integer(i4), dimension(:),     intent(in)    :: floodPlain0
 
-    integer(i4), dimension(:),   intent(in) :: SDB_is_present
-    integer(i4), dimension(:),   intent(in) :: SDB_nHorizons
-    integer(i4), dimension(:),   intent(in) :: SDB_nTillHorizons
-    real(dp),    dimension(:,:), intent(in) :: SDB_sand
-    real(dp),    dimension(:,:), intent(in) :: SDB_clay
-    real(dp),    dimension(:,:), intent(in) :: SDB_DbM
-    real(dp),    dimension(:,:,:),intent(in):: SDB_Wd
-    real(dp),    dimension(:),   intent(in) :: SDB_RZdepth
+    integer(i4), dimension(:),     intent(in)    :: SDB_is_present
+    integer(i4), dimension(:),     intent(in)    :: SDB_nHorizons
+    integer(i4), dimension(:),     intent(in)    :: SDB_nTillHorizons
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_sand
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_clay
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_DbM
+    real(dp),    dimension(:,:,:), intent(in)    :: SDB_Wd
+    real(dp),    dimension(:),     intent(in)    :: SDB_RZdepth
 
     ! Physiographic L1
-    real(dp),    dimension(:),   intent(in) :: areaCell1
-    integer(i4), dimension(:),   intent(in) :: nTCells0_inL1
-    integer(i4), dimension(:),   intent(in) :: L11Id_on_L1
-    integer(i4), dimension(:),   intent(in) :: L0upBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0downBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0leftBound_inL1
-    integer(i4), dimension(:),   intent(in) :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in)    :: areaCell1
+    integer(i4), dimension(:),     intent(in)    :: nTCells0_inL1
+    integer(i4), dimension(:),     intent(in)    :: L11Id_on_L1
+    integer(i4), dimension(:),     intent(in)    :: L0upBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0downBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0leftBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in)    :: latitude
 
     ! Physiographic L11
-    integer(i4), dimension(:),   intent(in) :: netPerm
-    integer(i4), dimension(:),   intent(in) :: nLink_fromN
-    integer(i4), dimension(:),   intent(in) :: nLink_toN
-    real(dp),    dimension(:),   intent(in) :: length11
-    real(dp),    dimension(:),   intent(in) :: slope11
+    integer(i4), dimension(:),     intent(in)    :: netPerm
+    integer(i4), dimension(:),     intent(in)    :: nLink_fromN
+    integer(i4), dimension(:),     intent(in)    :: nLink_toN
+    real(dp),    dimension(:),     intent(in)    :: length11
+    real(dp),    dimension(:),     intent(in)    :: slope11
 
     ! Forcings
-    real(dp),    dimension(:),   intent(in) :: evap_coeff
-    real(dp),    dimension(:),   intent(in) :: fday_prec
-    real(dp),    dimension(:),   intent(in) :: fnight_prec
-    real(dp),    dimension(:),   intent(in) :: fday_pet
-    real(dp),    dimension(:),   intent(in) :: fnight_pet
-    real(dp),    dimension(:),   intent(in) :: fday_temp
-    real(dp),    dimension(:),   intent(in) :: fnight_temp
-    real(dp),    dimension(:),   intent(in) :: pet_in
-    real(dp),    dimension(:),   intent(in) :: prec_in
-    real(dp),    dimension(:),   intent(in) :: temp_in
+    real(dp),    dimension(:),     intent(in)    :: evap_coeff
+    real(dp),    dimension(:),     intent(in)    :: fday_prec
+    real(dp),    dimension(:),     intent(in)    :: fnight_prec
+    real(dp),    dimension(:),     intent(in)    :: fday_pet
+    real(dp),    dimension(:),     intent(in)    :: fnight_pet
+    real(dp),    dimension(:),     intent(in)    :: fday_temp
+    real(dp),    dimension(:),     intent(in)    :: fnight_temp
+    real(dp),    dimension(:),     intent(inout) :: pet_in
+    real(dp),    dimension(:),     intent(in)    :: tmin_in
+    real(dp),    dimension(:),     intent(in)    :: tmax_in
+    real(dp),    dimension(:),     intent(in)    :: netrad_in
+    real(dp),    dimension(:),     intent(in)    :: absvappres_in
+    real(dp),    dimension(:),     intent(in)    :: windspeed_in
+    real(dp),    dimension(:),     intent(in)    :: prec_in
+    real(dp),    dimension(:),     intent(in)    :: temp_in
 
     ! discharge inflow
     real(dp),    dimension(:),   intent(in) :: QInflow
 
     ! Configuration
-    integer(i4),              intent(inout)   ::  yId
+    integer(i4),                   intent(inout) ::  yId
 
     ! Land cover L1 and
-    real(dp), dimension(:),   intent(inout)   :: fForest1
-    real(dp), dimension(:),   intent(inout)   :: fPerm1
-    real(dp), dimension(:),   intent(inout)   :: fSealed1
-    real(dp), dimension(:),   intent(inout)   :: fFPimp11
-    real(dp), dimension(:),   intent(in)      :: aFloodPlain11
+    real(dp), dimension(:),        intent(inout) :: fForest1
+    real(dp), dimension(:),        intent(inout) :: fPerm1
+    real(dp), dimension(:),        intent(inout) :: fSealed1
+    real(dp), dimension(:),        intent(inout) :: fFPimp11
+    real(dp), dimension(:),        intent(in)    :: aFloodPlain11
 
     ! States
-    real(dp),  dimension(:),    intent(inout) :: interc
-    real(dp),  dimension(:),    intent(inout) :: snowpack
-    real(dp),  dimension(:),    intent(inout) :: sealedStorage
-    real(dp),  dimension(:,:),  intent(inout) :: soilMoisture
-    real(dp),  dimension(:),    intent(inout) :: unsatStorage
-    real(dp),  dimension(:),    intent(inout) :: satStorage
+    real(dp),  dimension(:),       intent(inout) :: interc
+    real(dp),  dimension(:),       intent(inout) :: snowpack
+    real(dp),  dimension(:),       intent(inout) :: sealedStorage
+    real(dp),  dimension(:,:),     intent(inout) :: soilMoisture
+    real(dp),  dimension(:),       intent(inout) :: unsatStorage
+    real(dp),  dimension(:),       intent(inout) :: satStorage
 
     ! Fluxes L1
-    real(dp),  dimension(:,:), intent(inout)  :: aet_soil
-    real(dp),  dimension(:),   intent(inout)  :: aet_canopy
-    real(dp),  dimension(:),   intent(inout)  :: aet_sealed
-    real(dp),  dimension(:),   intent(inout)  :: baseflow
-    real(dp),  dimension(:,:), intent(inout)  :: infiltration
-    real(dp),  dimension(:),   intent(inout)  :: fast_interflow
-    real(dp),  dimension(:),   intent(inout)  :: melt
-    real(dp),  dimension(:),   intent(inout)  :: perc
-    real(dp),  dimension(:),   intent(inout)  :: prec_effect
-    real(dp),  dimension(:),   intent(inout)  :: rain
-    real(dp),  dimension(:),   intent(inout)  :: runoff_sealed
-    real(dp),  dimension(:),   intent(inout)  :: slow_interflow
-    real(dp),  dimension(:),   intent(inout)  :: snow
-    real(dp),  dimension(:),   intent(inout)  :: throughfall
-    real(dp),  dimension(:),   intent(inout)  :: total_runoff
+    real(dp),  dimension(:,:),     intent(inout) :: aet_soil
+    real(dp),  dimension(:),       intent(inout) :: aet_canopy
+    real(dp),  dimension(:),       intent(inout) :: aet_sealed
+    real(dp),  dimension(:),       intent(inout) :: baseflow
+    real(dp),  dimension(:,:),     intent(inout) :: infiltration
+    real(dp),  dimension(:),       intent(inout) :: fast_interflow
+    real(dp),  dimension(:),       intent(inout) :: melt
+    real(dp),  dimension(:),       intent(inout) :: perc
+    real(dp),  dimension(:),       intent(inout) :: prec_effect
+    real(dp),  dimension(:),       intent(inout) :: rain
+    real(dp),  dimension(:),       intent(inout) :: runoff_sealed
+    real(dp),  dimension(:),       intent(inout) :: slow_interflow
+    real(dp),  dimension(:),       intent(inout) :: snow
+    real(dp),  dimension(:),       intent(inout) :: throughfall
+    real(dp),  dimension(:),       intent(inout) :: total_runoff
 
     ! Fluxes L11
-    real(dp), dimension(:),   intent(out)     :: nNode_Qmod
-    real(dp), dimension(:),   intent(inout)   :: nNode_qOUT
-    real(dp), dimension(:,:),  intent(inout)  :: nNode_qTIN
-    real(dp), dimension(:,:),  intent(inout)  :: nNode_qTR
+    real(dp), dimension(:),        intent(out)   :: nNode_Qmod
+    real(dp), dimension(:),        intent(inout) :: nNode_qOUT
+    real(dp), dimension(:,:),      intent(inout) :: nNode_qTIN
+    real(dp), dimension(:,:),      intent(inout) :: nNode_qTR
 
     ! Effective Parameters
-    real(dp), dimension(:),    intent(inout)  ::  alpha
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_incr
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_max
-    real(dp), dimension(:),    intent(inout)  ::  deg_day_noprec
-    real(dp), dimension(:),    intent(inout)  ::  deg_day
-    real(dp), dimension(:),    intent(inout)  ::  fAsp
-    real(dp), dimension(:,:),  intent(inout)  ::  frac_roots
-    real(dp), dimension(:),    intent(inout)  ::  interc_max
-    real(dp), dimension(:),    intent(inout)  ::  karst_loss
-    real(dp), dimension(:),    intent(inout)  ::  k0
-    real(dp), dimension(:),    intent(inout)  ::  k1
-    real(dp), dimension(:),    intent(inout)  ::  k2
-    real(dp), dimension(:),    intent(inout)  ::  kp
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_FC
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_sat
-    real(dp), dimension(:,:),  intent(inout)  ::  soil_moist_exponen
-    real(dp), dimension(:),    intent(inout)  ::  temp_thresh
-    real(dp), dimension(:),    intent(inout)  ::  unsat_thresh
-    real(dp), dimension(:),    intent(inout)  ::  water_thresh_sealed
-    real(dp), dimension(:,:),  intent(inout)  ::  wilting_point
-    real(dp), dimension(:),    intent(inout)  ::  nLink_C1
-    real(dp), dimension(:),    intent(inout)  ::  nLink_C2
+    real(dp), dimension(:),        intent(inout) ::  alpha
+    real(dp), dimension(:),        intent(inout) ::  deg_day_incr
+    real(dp), dimension(:),        intent(inout) ::  deg_day_max
+    real(dp), dimension(:),        intent(inout) ::  deg_day_noprec
+    real(dp), dimension(:),        intent(inout) ::  deg_day
+    real(dp), dimension(:),        intent(inout) ::  fAsp
+    real(dp), dimension(:),        intent(inout) ::  HarSamCoeff
+    real(dp), dimension(:,:),      intent(inout) ::  PrieTayAlpha
+    real(dp), dimension(:,:),      intent(inout) ::  aeroResist
+    real(dp), dimension(:,:),      intent(inout) ::  surfResist
+    real(dp), dimension(:,:),      intent(inout) ::  frac_roots
+    real(dp), dimension(:),        intent(inout) ::  interc_max
+    real(dp), dimension(:),        intent(inout) ::  karst_loss
+    real(dp), dimension(:),        intent(inout) ::  k0
+    real(dp), dimension(:),        intent(inout) ::  k1
+    real(dp), dimension(:),        intent(inout) ::  k2
+    real(dp), dimension(:),        intent(inout) ::  kp
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_FC
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_sat
+    real(dp), dimension(:,:),      intent(inout) ::  soil_moist_exponen
+    real(dp), dimension(:),        intent(inout) ::  temp_thresh
+    real(dp), dimension(:),        intent(inout) ::  unsat_thresh
+    real(dp), dimension(:),        intent(inout) ::  water_thresh_sealed
+    real(dp), dimension(:,:),      intent(inout) ::  wilting_point
+    real(dp), dimension(:),        intent(inout) ::  nLink_C1
+    real(dp), dimension(:),        intent(inout) ::  nLink_C2
 
     ! local
     logical                :: isday       ! is day or night
@@ -409,6 +446,7 @@ CONTAINS
     integer(i4)            :: day         ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
     integer(i4)            :: month       ! Month of current day [1-12]
     integer(i4)            :: year        ! year
+    integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
 
     real(dp)               :: pet
@@ -424,8 +462,8 @@ CONTAINS
     ! date and month of this timestep
     !-------------------------------------------------------------------
     call dec2date(time, yy=year, mm=month, dd=day, hh=hour)
-  
-    !-------------------------------------------------------------------
+
+   !-------------------------------------------------------------------
     ! MPR CALL
     !   -> call only when LC had changed 
     !   -> or for very first time step  
@@ -499,20 +537,21 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,      &
-                geoUnit0, GeoUnitList, GeoUnitKar,                                   &
-                SDB_is_present, SDB_nHorizons,                                       &
-                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth, &
-                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,   &
-                soilId0, LCover0, Asp0, length11, slope11, fFPimp11,                 &
-                slope_emp0, cellId0,                                                 &
-                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                  &
-                L0rightBound_inL1, nTCells0_inL1,                                    &
-                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                    &
-                fAsp, frac_roots, k0, k1, k2, kp, karst_loss,                        &
-                nLink_C1,  nLink_C2,                                                 &
-                soil_moist_FC, soil_moist_sat, soil_moist_exponen,                   &
-                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point        )
+           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
+                geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
+                SDB_is_present, SDB_nHorizons,                                            &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
+                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
+                soilId0, Asp0, L0_LCover_LAI, LCover0, length11, slope11, fFPimp11,       &
+                slope_emp0, cellId0,                                                      &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
+                L0rightBound_inL1, nTCells0_inL1,                                         &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
+                fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
+                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
+                nLink_C1,  nLink_C2,                                                      &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
+                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
@@ -570,11 +609,6 @@ CONTAINS
        continue
     end select
 
-    ! if ( process ...  ) then
-    !  call PET_upscaling (processMatrix, Temp_in, Tmax_in, Tmin_in, pet_in)
-    !      optional depending of the PET eq.
-    ! end if
-
     !-------------------------------------------------------------------
     ! flag for day or night depending on hours of the day
     !-------------------------------------------------------------------
@@ -588,10 +622,35 @@ CONTAINS
     !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
     do k = 1, nCells1
+
+       ! PET calculation
+       select case (processMatrix(5,1))
+       case(0) ! PET is input ! correct pet for every day only once at the first time step
+          if (hour .EQ. 0) pet_in(k) =  fAsp(k) * pet_in(k)
+
+       case(1) ! HarSam
+          ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
+          doy       = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          !
+          if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
+               num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
+          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   & 
+               tmin_in(k), latitude(k), doy)                                                
+
+       case(2) ! Priestley-Taylor
+           ! Priestley Taylor is not defined for values netrad < 0.0_dp
+          pet_in(k) = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))  
+
+       case(3) ! Penman-Monteith
+          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
+                                   ! 100.0_dp, 100.0_dp) 
+                                   ! aeroResist(k,month) / windspeed_in(k), 100.0_dp)
+                                   aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
+       end select
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
-            fAsp(k)*pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                  & ! Intent IN
+            pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                          & ! Intent IN
             fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month),       & ! Intent IN
             prec, pet, temp )                                                                    ! Intent OUT
 

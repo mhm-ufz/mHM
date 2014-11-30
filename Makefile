@@ -103,9 +103,9 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve2
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := gnu
+compiler := nag
 # Releases: debug, release
-release  := release
+release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
@@ -185,7 +185,7 @@ EXTRA_LIBS     :=
 EXTRA_CFLAGS   :=
 
 # Intel F2003 -assume realloc-lhs
-INTEL_EXCLUDE  := #mo_read_wrapper.f90
+INTEL_EXCLUDE  := mo_multi_param_reg.f90 #mo_read_wrapper.f90
 
 # Exclude certin files from compilation
 EXCLUDE_FILES  :=

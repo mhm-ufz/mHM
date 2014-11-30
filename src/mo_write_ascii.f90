@@ -536,7 +536,7 @@ CONTAINS
     ! local variables
     character(256)                           :: fName
     character(3)                             :: flag
-    character(len=25), dimension(nProcesses) :: Process_descr
+    character(len=28), dimension(nProcesses) :: Process_descr
     integer(i4)                              :: err
     integer(i4)                              :: iProc, iPar, iPar_start
 
@@ -544,7 +544,7 @@ CONTAINS
     Process_descr(2) = 'snow'
     Process_descr(3) = 'soilmoisture'
     Process_descr(4) = 'directSealedAreaRunoff'
-    Process_descr(5) = 'meteoCorrectionFactor'
+    Process_descr(5) = 'potential evapotranspiration'
     Process_descr(6) = 'interflow'
     Process_descr(7) = 'percolation'
     Process_descr(8) = 'routing'
@@ -585,9 +585,16 @@ CONTAINS
              write(uopti_nml,*) '&directRunoff1'
           end if
        case(5)
-          if (processMatrix(iProc,1) .eq. 1) then
-             write(uopti_nml,*) '&actualET1'
-          end if
+          select case (processMatrix(iProc,1))
+             case(0)
+                write(uopti_nml,*) '&PET0'
+             case(1)
+                write(uopti_nml,*) '&PET1'
+             case(2)
+                write(uopti_nml,*) '&PET2'
+             case(3)
+                write(uopti_nml,*) '&PET3'
+          end select
        case(6)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&interflow1'

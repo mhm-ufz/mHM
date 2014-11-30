@@ -44,17 +44,13 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: C1_InitStateSM     =    0.25_dp
 
   ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState       = 16_i4     ! max. number of outputs to write into a netcdf file
-
-  ! constants in the Duffie formulae for computing extraterrestrial radiation
-  real(dp),    public, parameter :: DuffieDr          =    0.033_dp
-  real(dp),    public, parameter :: DuffieDelta1      =    0.409_dp
-  real(dp),    public, parameter :: DuffieDelta2      =    1.390_dp
+  integer(i4), public, parameter :: nOutFlxState       = 17_i4     ! max. number of outputs to write into a netcdf file
 
    ! Time constants
   real(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day
   real(dp),    public, parameter :: HourSecs           =   3600.0_dp  ! seconds per hour
   real(dp),    public, parameter :: YearMonths         =     12.0_dp  ! months per year
+  integer(i4), public, parameter :: YearMonths_i4      =     12       ! months per year
   real(dp),    public, parameter :: YearDays           =    365.0_dp  ! days in a year
   real(dp),    public, parameter :: DaySecs            =  86400.0_dp  ! sec in a day
  
@@ -92,12 +88,32 @@ MODULE mo_mhm_constants
 
 
   !> Stefan-Boltzmann constant [W m^-2 K^-4] 
-  REAL(dp),   public, parameter :: StBoltzmann         = 5.67e-08_dp                
-  !> Constant for Hargreaves ref. ET formula [deg C]
-  REAL(dp),   public, parameter :: HargreavesConst     =     17.8_dp             
-  !> First constant in the equation for slope of saturation - vapour pressure (Priestly ref ET) [deg C]
-  REAL(dp),   public, parameter :: DeltaPriestly1      =  0.04145_dp             
-  !> Second constant in the equation for slope of saturation vapour pressure (Priestly ref ET) 
-  REAL(dp),   public, parameter :: DeltaPriestly2      =  0.06088_dp 
+  real(dp),   public, parameter  :: StBoltzmann          = 5.67e-08_dp                
+  !> Constant for Hargreaves-Samani ref. ET formula [deg C]
+  real(dp),   public, parameter  :: HarSamConst          = 17.800_dp             
+  !> assumed meteorol. measurement hight for estimation of aeroResist and surfResist
+  real(dp),    public, parameter :: WindMeasHeight       = 10.0_dp 
+  !> von karman constant 
+  real(dp),    public, parameter :: karman               = 0.41_dp
+
+  !> LAI factor for bulk surface resistance formulation
+  real(dp),    public, parameter :: LAI_factor_surfResi  = 0.3_dp
+  !> LAI offset for bulk surface resistance formulation
+  real(dp),    public, parameter :: LAI_offset_surfResi  = 1.2_dp
+  !> maximum bulk surface resistance
+  real(dp),    public, parameter :: max_surfResist       = 250.0_dp
+
+
+  ! constants in the Duffie formula for computing extraterrestrial radiation
+  real(dp),    public, parameter :: DuffieDr             =   0.0330_dp
+  real(dp),    public, parameter :: DuffieDelta1         =   0.4090_dp
+  real(dp),    public, parameter :: DuffieDelta2         =   1.3900_dp
+
+  !> constants for Tetens's formula to calculate saturated vapour pressure
+  real(dp),   public, parameter  :: tetens_c1            = 0.6108_dp
+  real(dp),   public, parameter  :: tetens_c2            = 17.270_dp
+  real(dp),   public, parameter  :: tetens_c3            = 237.30_dp
+  !> constant for calculating the slope of the saturation vapour pressure curve following Tetens
+  real(dp),   public, parameter  :: satpressureslope1    = 4098.0_dp
 
 END MODULE mo_mhm_constants

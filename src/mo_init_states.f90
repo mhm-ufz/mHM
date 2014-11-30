@@ -85,13 +85,15 @@ CONTAINS
          L1_aETSealed, L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,       &        
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
-         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
+         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
          L11_FracFPimp
-    use mo_mhm_constants,    only: nRoutingStates    
+
+    use mo_mhm_constants,    only: nRoutingStates, YearMonths_i4    
     use mo_append,           only: append                      ! append vector
 
     implicit none
@@ -103,17 +105,19 @@ CONTAINS
     integer(i4)                               :: ncells1
     integer(i4)                               :: nrows11, ncols11
     integer(i4)                               :: ncells11
-    real(dp), dimension(:), allocatable       :: dummy_Vector
+    real(dp), dimension(:),   allocatable     :: dummy_Vector
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix
-    real(dp), dimension(:), allocatable       :: dummy_Vector11
+    real(dp), dimension(:,:), allocatable     :: dummy_Matrix_months
+    real(dp), dimension(:),   allocatable     :: dummy_Vector11
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix11_IT
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 ) 
 
     ! for appending and intialization
-    allocate( dummy_Vector (nCells1)                        )
-    allocate( dummy_Matrix (nCells1, nSoilHorizons_mHM)     )
+    allocate( dummy_Vector        (nCells1)                        )
+    allocate( dummy_Matrix        (nCells1, nSoilHorizons_mHM)     )
+    allocate( dummy_Matrix_months (nCells1,     YearMonths_i4)     )
 
     !-------------------------------------------
     ! LAND COVER variables
@@ -246,6 +250,22 @@ CONTAINS
     dummy_Vector(:) = 0.0_dp
     call append( L1_fAsp,  dummy_Vector )
 
+    ! PET Hargreaves Samani coefficient
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_HarSamCoeff,   dummy_Vector )
+
+    ! PET Prietley Taylor coefficient
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_PrieTayAlpha,  dummy_Matrix_months )
+
+    ! PET aerodynamical resistance
+    dummy_Matrix_months = 0.0_dp
+    call append( L1_aeroResist,   dummy_Matrix_months )
+
+    ! PET bulk surface resistance
+    dummy_Matrix_months = 0.0_dp
+    call append( L1_surfResist,   dummy_Matrix_months )
+
     ! Fraction of roots in soil horizons  
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_fRoots,  dummy_Matrix )
@@ -354,6 +374,7 @@ CONTAINS
     ! free space
     if ( allocated( dummy_Vector          ) ) deallocate( dummy_Vector          )  
     if ( allocated( dummy_Matrix          ) ) deallocate( dummy_Matrix          )
+    if ( allocated( dummy_Matrix_months   ) ) deallocate( dummy_Matrix_months   )
     if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
     if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
 
@@ -418,6 +439,7 @@ CONTAINS
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
@@ -543,6 +565,19 @@ CONTAINS
 
     ! PET correction factor due to terrain aspect
     L1_fAsp = P1_InitStateFluxes
+
+    ! PET Hargreaves Samani Coefficient
+    L1_HarSamCoeff = P1_InitStateFluxes
+
+    ! PET Priestley Taylor coefficient
+    L1_PrieTayAlpha = P1_InitStateFluxes
+
+    ! PET aerodynamical resistance 
+    L1_aeroResist = P1_InitStateFluxes
+
+    ! PET bulk surface resistance 
+    L1_surfResist = P1_InitStateFluxes
+
 
     ! Fraction of roots in soil horizons  
     L1_fRoots = P1_InitStateFluxes
