@@ -43,11 +43,30 @@ infiltrationShapeFactor            =  1.0000,      4.0000,     2.895E+00,     1,
 imperviousStorageCapacity          =  0.0000,      5.0000,     9.055E-01,     1,       1
 /
 
-! meteoCorrectionFactor
-&actualET1
+! potential evapotranspiration
+&PET0 ! PET is input
 minCorrectionFactorPET             =  0.7000,      1.3000,     9.307E-01,     1,       1
 maxCorrectionFactorPET             =  0.0000,      0.2000,     7.730E-02,     1,       1
 aspectTresholdPET                  =  160.00,      200.00,     1.838E+02,     1,       1
+/
+&PET1 ! PET - Hargreaves Samani
+minCorrectionFactorPET             =  0.7000,      1.3000,        0.9300,     1,       1
+maxCorrectionFactorPET             =  0.0000,      0.2000,        0.1900,     1,       1
+aspectTresholdPET                  =  160.00,      200.00,        171.00,     1,       1
+HargreavesSamaniCoeff              =  0.0016,      0.0030,        0.0023,     1,       1
+/
+&PET2 ! PET - Priestley Taylor 
+PriestleyTaylorCoeff               =    0.75,        1.75,        1.1900,     1,       1
+PriestleyTaylorLAIcorr             =   -0.50,        0.20,        0.0580,     1,       1
+/
+&PET3 ! PET - Penman Monteith
+canopyheigth_forest                =   15.00,       40.00,        15.000,     1,       1 
+canopyheigth_impervious            =    0.01,        0.50,        0.0200,     1,       1 
+canopyheigth_pervious              =    0.10,        5.00,        0.1100,     1,       1 
+displacementheight_coeff           =    0.50,        0.85,        0.6400,     1,       1
+roughnesslength_momentum_coeff     =    0.09,        0.16,        0.0950,     1,       1
+roughnesslength_heat_coeff         =    0.07,        0.13,        0.0750,     1,       1
+stomatal_resistance                =   10.00,      200.00,        56.000,     1,       1
 /
 
 ! interflow

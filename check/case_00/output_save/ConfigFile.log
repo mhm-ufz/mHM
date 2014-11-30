@@ -5,22 +5,18 @@
 
          M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         
 
-Number of basins                       2
-Total No. of nodes                    68
-Total No. of reaches                  67
+Number of basins                       1
+Total No. of nodes                    34
+Total No. of reaches                  33
 No. of cells L0                    46545
-No. of cells L1                       68
-No. of cells L11                      68
-Total No. of gauges                    2
+No. of cells L1                       34
+No. of cells L11                      34
+Total No. of gauges                    1
 Time Step [h]                          1
 Basin   1   Hydrology Resolution [m]          24000.
 Basin   1   Routing Resolution [m]            24000.
-Basin   2   Hydrology Resolution [m]          24000.
-Basin   2   Routing Resolution [m]            24000.
-Flag READ  restart states              F
-Flag WRITE restart states              T
-Flag READ  restart config.             F
-Flag WRITE restart config.             T
+Flag READ  restart                     F
+Flag WRITE restart                     T
 
 -------------------------------------------------------------
                       Model Run Periods                      
@@ -106,7 +102,6 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
 --------------------------------------------------
  Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
          1         1       1600.000         11.000
-         2         2       1600.000         11.000
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
@@ -117,14 +112,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/                              
-Directory to write output when restarted     output_b1/                              
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/                                                                                                                                                                                                                                                      
+Directory to write output when restarted     output_b1/                                                                                                                                                                                                                                                      
 
 ------------------------------
 River Network       
@@ -248,215 +243,7 @@ Node Index   Node Id
         32        32   555.250
         33        33    89.000
         34        34   121.750
-        35         1   126.750
-        36         2   229.750
-        37         3   107.750
-        38         4   312.500
-        39         5   573.750
-        40         6   314.250
-        41         7    42.500
-        42         8   524.750
-        43         9   576.000
-        44        10   146.500
-        45        11   470.000
-        46        12   576.000
-        47        13   414.500
-        48        14   340.750
-        49        15     9.000
-        50        16   230.250
-        51        17   576.000
-        52        18   576.000
-        53        19   527.250
-        54        20    48.250
-        55        21    10.500
-        56        22   545.000
-        57        23   576.000
-        58        24   576.000
-        59        25   318.500
-        60        26   456.250
-        61        27   551.250
-        62        28   576.000
-        63        29   337.000
-        64        30     3.250
-        65        31   198.000
-        66        32   555.250
-        67        33    89.000
-        68        34   121.750
 ------------------------------
-     Total[km2]      23272.500
+     Total[km2]      11636.250
 
-Basin No.                              2
-No. of gauges                          1
-
---------------------------------------------------------------------------------
-                                 Directory list
---------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b2/                              
-Directory to write output when restarted     output_b2/                              
-
-------------------------------
-River Network       
-------------------------------
-                                           Label 0 = intermediate draining cell 
-                                           Label 1 = headwater cell             
-                                           Label 2 = sink cell                  
-
----------------------------------------------------------------------------
-      Link      From        To   Routing     Label         Length      mean
-        Id      Node      Node  Sequence                              Slope
-                                                             [km]       [-]
----------------------------------------------------------------------------
-         1         1         5         1         1          7.536     0.000
-         6         7         3         2         1         28.349     0.000
-         9        10         9         3         1          9.243     0.001
-        10        11         8         4         1         40.042     0.001
-        14        15        14         5         1         27.728     0.001
-        19        20        19         6         1         28.435     0.002
-        20        21        16         7         1         21.728     0.005
-        24        25        24         8         1         32.127     0.004
-        29        30        26         9         1         28.642     0.004
-        32        33        29        10         1         27.142     0.013
-        33        34        32        11         1         31.763     0.003
-         2         3         4        12         0         29.642     0.000
-         7         8         4        13         0          1.414     0.000
-        13        14        13        14         0         38.213     0.001
-        15        16        17        15         0          9.985     0.000
-        18        19        18        16         0         33.799     0.001
-        25        26        22        17         0         61.734     0.001
-        28        29        28        18         0          6.243     0.003
-        31        32        31        19         0         16.399     0.001
-         3         4         5        20         0         38.420     0.001
-        12        13        12        21         0         42.127     0.000
-        17        18        17        22         0         42.542     0.000
-        27        28        24        23         0         32.835     0.002
-        30        31        27        24         0         32.728     0.003
-        23        24        23        25         0         34.420     0.001
-        26        27        23        26         0         29.799     0.001
-        22        23        22        27         0          0.707     0.000
-        21        22        17        28         0         38.456     0.000
-        16        17        12        29         0         35.885     0.002
-        11        12         9        30         0         30.263     0.000
-         8         9         5        31         0         24.399     0.000
-         4         5         6        32         0          5.036     0.000
-         5         6         2        33         2         14.692     0.000
-
---------------------
-Node Index   Node Id
---------------------
-        35         1
-        36         2
-        37         3
-        38         4
-        39         5
-        40         6
-        41         7
-        42         8
-        43         9
-        44        10
-        45        11
-        46        12
-        47        13
-        48        14
-        49        15
-        50        16
-        51        17
-        52        18
-        53        19
-        54        20
-        55        21
-        56        22
-        57        23
-        58        24
-        59        25
-        60        26
-        61        27
-        62        28
-        63        29
-        64        30
-        65        31
-        66        32
-        67        33
-        68        34
-
-------------------------------
-      Cell    L11-Id  efecArea
-       No.       [-]     [km2]
-------------------------------
-         1         1   126.750
-         2         2   229.750
-         3         3   107.750
-         4         4   312.500
-         5         5   573.750
-         6         6   314.250
-         7         7    42.500
-         8         8   524.750
-         9         9   576.000
-        10        10   146.500
-        11        11   470.000
-        12        12   576.000
-        13        13   414.500
-        14        14   340.750
-        15        15     9.000
-        16        16   230.250
-        17        17   576.000
-        18        18   576.000
-        19        19   527.250
-        20        20    48.250
-        21        21    10.500
-        22        22   545.000
-        23        23   576.000
-        24        24   576.000
-        25        25   318.500
-        26        26   456.250
-        27        27   551.250
-        28        28   576.000
-        29        29   337.000
-        30        30     3.250
-        31        31   198.000
-        32        32   555.250
-        33        33    89.000
-        34        34   121.750
-        35         1   126.750
-        36         2   229.750
-        37         3   107.750
-        38         4   312.500
-        39         5   573.750
-        40         6   314.250
-        41         7    42.500
-        42         8   524.750
-        43         9   576.000
-        44        10   146.500
-        45        11   470.000
-        46        12   576.000
-        47        13   414.500
-        48        14   340.750
-        49        15     9.000
-        50        16   230.250
-        51        17   576.000
-        52        18   576.000
-        53        19   527.250
-        54        20    48.250
-        55        21    10.500
-        56        22   545.000
-        57        23   576.000
-        58        24   576.000
-        59        25   318.500
-        60        26   456.250
-        61        27   551.250
-        62        28   576.000
-        63        29   337.000
-        64        30     3.250
-        65        31   198.000
-        66        32   555.250
-        67        33    89.000
-        68        34   121.750
-------------------------------
-     Total[km2]      23272.500
-
-
+ 

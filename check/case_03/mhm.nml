@@ -14,6 +14,12 @@
 !                            which are common to all modeled basins \n
 ! Luis Samaniego, Nov 2013 - process description
 ! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
+! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
+! Stephan Thober, May 2014 - added switch for chunk read in
+! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
+! Rohini Kumar and
+! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
+! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -54,13 +60,27 @@ dir_Gauges(1)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
 dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
-dir_ReferenceET(1)   = "../../test_basin/input/meteo/pet/"
+!> paths depending on PET process (processCase(5))
+!> 0 - PET is input 
+!> 1 - Hargreaves-Sammani method
+!> 2 - Priestley-Taylor mehtod
+!> 3 - Penman-Monteith method
+!> if processCase(5) == 0  input directory of pet has to be specified
+dir_ReferenceET(1)     = "../../test_basin/input/meteo/pet/"
+!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
+dir_MinTemperature(1)  = "../../test_basin/input/meteo/"
+dir_MaxTemperature(1)  = "../../test_basin/input/meteo/"
+!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+dir_NetRadiation(1)    = "../../test_basin/input/meteo/"
+!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
+dir_absVapPressure(1)  = "../../test_basin/input/meteo/"
+dir_windspeed(1)       = "../../test_basin/input/meteo/"
 !> directory where latitude and longitude file is located
 dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
 !> directory where restart input is located
-dir_RestartIn(1)     = "../../test_basin/restart/"
+dir_RestartIn(1)     = "restart/"
 !> directory where restart output should be written
 dir_RestartOut(1)    = "output_b1/"
 !> directory where output should be written
@@ -76,13 +96,27 @@ dir_Gauges(2)        = "../../test_basin/input/gauge/"
 !> directory where meteorological input is located
 dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
-dir_ReferenceET(2)   = "../../test_basin/input/meteo/pet/"
+!> paths depending on PET process (processCase(5))
+!> 0 - PET is input 
+!> 1 - Hargreaves-Sammani method
+!> 2 - Priestley-Taylor mehtod
+!> 3 - Penman-Monteith method
+!> if processCase(5) == 0  input directory of pet has to be specified
+dir_ReferenceET(2)     = "../../test_basin/input/meteo/pet/"
+!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
+dir_MinTemperature(2)  = "../../test_basin/input/meteo/"
+dir_MaxTemperature(2)  = "../../test_basin/input/meteo/"
+!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+dir_NetRadiation(2)    = "../../test_basin/input/meteo/"
+!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
+dir_absVapPressure(2)  = "../../test_basin/input/meteo/"
+dir_windspeed(2)       = "../../test_basin/input/meteo/"
 !> directory where latitude and longitude file is located
 dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "../../test_basin/restart/"
+dir_RestartIn(2)     = "restart/"
 !> directory where restart output should be written
 dir_RestartOut(2)    = "output_b2/"
 !> directory where output should be written
@@ -116,14 +150,18 @@ iFlag_cordinate_sys = 0
 !-----------------------------------------------------------------------------
 nBasins             = 2
 !-----------------------------------------------------------------------------
-!> resolution of Level-1 hydrological simulations in mHM [m] per basin
+!> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
+!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
 resolution_Hydrology(2) = 24000 
 !-----------------------------------------------------------------------------
-!> resolution of Level-11 discharge routing [m] per basin \n
+!> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
 !> level-1 hydrological simulations resolution \n
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
+!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 24000 
 resolution_Routing(2)   = 24000
@@ -153,10 +191,11 @@ opti_method = 1
 !> (6) SSE  \n
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
+!> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
-!> flags for reading and writing restart output
+!> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
 read_restart  = .FALSE.
 write_restart = .TRUE.
@@ -303,9 +342,12 @@ processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
-!> actualET
-!> 1 - root fraction approach
-processCase(5) = 1
+!> potential evapotranspiration (PET)
+!> 0 - read in PET (aspect correction)
+!> 1 - Hargreaves-Samani
+!> 2 - Priestley-Taylor
+!> 3 - Penman-Monteith
+processCase(5) = 3
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1
@@ -324,7 +366,6 @@ processCase(8) = 1
 !> namelist controlling the gauging station information
 !> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
 !> to the filename containing the time series 
-
 &evaluation_gauges
 !> Gauges for model evaluation
 !
