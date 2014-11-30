@@ -25,10 +25,8 @@ Basin   5   Hydrology Resolution [m]          12000.
 Basin   5   Routing Resolution [m]            12000.
 Basin   6   Hydrology Resolution [m]          24000.
 Basin   6   Routing Resolution [m]            24000.
-Flag READ  restart states              F
-Flag WRITE restart states              T
-Flag READ  restart config.             F
-Flag WRITE restart config.             T
+Flag READ  restart                     F
+Flag WRITE restart                     T
 
 -------------------------------------------------------------
                       Model Run Periods                      
@@ -129,14 +127,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/b1_                           
-Directory to write output when restarted     output_b1/b1_                           
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/b1_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b1_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -559,14 +557,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/b2_                           
-Directory to write output when restarted     output_b1/b2_                           
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/b2_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b2_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -1139,14 +1137,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin_2/input/morph/         
-Directory to land cover input                ../../test_basin_2/input/luse/          
-Directory to gauging station input           ../../test_basin_2/input/gauge/         
-Directory to precipitation input             ../../test_basin_2/input/meteo/pre/     
-Directory to temperature input               ../../test_basin_2/input/meteo/tavg/    
-Directory to reference ET input              ../../test_basin_2/input/meteo/pet/     
-Directory to write output by default         output_b1/b3_                           
-Directory to write output when restarted     output_b1/b3_                           
+Directory to morphological input             ../../test_basin_2/input/morph/                                                                                                                                                                                                                                 
+Directory to land cover input                ../../test_basin_2/input/luse/                                                                                                                                                                                                                                  
+Directory to gauging station input           ../../test_basin_2/input/gauge/                                                                                                                                                                                                                                 
+Directory to precipitation input             ../../test_basin_2/input/meteo/pre/                                                                                                                                                                                                                             
+Directory to temperature input               ../../test_basin_2/input/meteo/tavg/                                                                                                                                                                                                                            
+Directory to reference ET input              ../../test_basin_2/input/meteo/pet/                                                                                                                                                                                                                             
+Directory to write output by default         output_b1/b3_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b3_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -1539,14 +1537,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/b4_                           
-Directory to write output when restarted     output_b1/b4_                           
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/b4_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b4_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -1969,14 +1967,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to gauging station input           ../../test_basin/input/gauge/           
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/b5_                           
-Directory to write output when restarted     output_b1/b5_                           
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/b5_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b5_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -2549,14 +2547,14 @@ No. of gauges                          1
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin_2/input/morph/         
-Directory to land cover input                ../../test_basin_2/input/luse/          
-Directory to gauging station input           ../../test_basin_2/input/gauge/         
-Directory to precipitation input             ../../test_basin_2/input/meteo/pre/     
-Directory to temperature input               ../../test_basin_2/input/meteo/tavg/    
-Directory to reference ET input              ../../test_basin_2/input/meteo/pet/     
-Directory to write output by default         output_b1/b6_                           
-Directory to write output when restarted     output_b1/b6_                           
+Directory to morphological input             ../../test_basin_2/input/morph/                                                                                                                                                                                                                                 
+Directory to land cover input                ../../test_basin_2/input/luse/                                                                                                                                                                                                                                  
+Directory to gauging station input           ../../test_basin_2/input/gauge/                                                                                                                                                                                                                                 
+Directory to precipitation input             ../../test_basin_2/input/meteo/pre/                                                                                                                                                                                                                             
+Directory to temperature input               ../../test_basin_2/input/meteo/tavg/                                                                                                                                                                                                                            
+Directory to reference ET input              ../../test_basin_2/input/meteo/pet/                                                                                                                                                                                                                             
+Directory to write output by default         output_b1/b6_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b6_                                                                                                                                                                                                                                                   
 
 ------------------------------
 River Network       
@@ -2943,4 +2941,4 @@ Node Index   Node Id
 ------------------------------
      Total[km2]      57057.500
 
-
+ 

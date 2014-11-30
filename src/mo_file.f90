@@ -99,21 +99,6 @@ MODULE mo_file
   !> Unit for file defining mHM's outputs
   INTEGER,          PARAMETER :: uconfig                = 68                            ! 
 
-  !> file for precipitation input in NetCDF format
-  CHARACTER(len=*), PARAMETER :: file_pernc             = 'pre.nc'                      ! precipitation
-  !> Unit for precipitation input in NetCDF format
-  INTEGER,          PARAMETER :: uprenc                 = 69              
-
-  !> file for temperature input in NetCDF format
-  CHARACTER(len=*), PARAMETER :: file_tavgnc            = 'tavg.nc'                     ! avg. air temp.
-  !> Unit for temperature input in NetCDF format
-  INTEGER,          PARAMETER :: utavgnc                = 70
-
-  !> file for potential evapotranspiration input in NetCDF format
-  CHARACTER(len=*), PARAMETER :: file_pet               = 'pet.nc'                      ! pet
-  !> Unit for potential evapotranspiration input in NetCDF format
-  INTEGER,          PARAMETER :: upet                   = 71                            ! 
-
   !> file defining optimization outputs (objective and parameter set)
   CHARACTER(len=*), PARAMETER :: file_opti              = 'FinalParam.out'              ! final parameters & objective
   !> Unit for file optimization outputs (objective and parameter set)

@@ -1272,7 +1272,7 @@ CONTAINS
 
     call message( '  FLUXES:' )
     if (outputFlxState(9)) then
-      call message( '    actual evapotranspiration aET                              [mm/T]')
+      call message( '    actual evapotranspiration aET      (L1_pet)                [mm/T]')
     end if
     if (outputFlxState(10)) then
       call message( '    total discharge generated per cell (L1_total_runoff)       [mm/T]')

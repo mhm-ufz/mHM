@@ -536,21 +536,23 @@ CONTAINS
         !-------------------------------------------------------------------
         ! NOW call MPR
         !-------------------------------------------------------------------
-        call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,                &
-                  geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
-                  SDB_is_present, SDB_nHorizons,                                            &
-                  SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
-                  nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
-                  soilId0, Asp0, L0_LCover_LAI, LCover0, length11, slope11, fFPimp11,       &
-                  slope_emp0, cellId0,                                                      &
-                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
-                  L0rightBound_inL1, nTCells0_inL1,                                         &
-                  alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
-                  fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
-                  surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
-                  nLink_C1,  nLink_C2,                                                      &
-                  soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
-                  temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
+        if ( perform_mpr ) then
+           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
+                geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
+                SDB_is_present, SDB_nHorizons,                                            &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
+                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
+                soilId0, Asp0, L0_LCover_LAI, LCover0, length11, slope11, fFPimp11,       &
+                slope_emp0, cellId0,                                                      &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
+                L0rightBound_inL1, nTCells0_inL1,                                         &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
+                fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
+                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
+                nLink_C1,  nLink_C2,                                                      &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
+                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
+        end if
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time 
         ! step and when perform_mpr = FALSE 

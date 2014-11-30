@@ -13,10 +13,8 @@ No. of cells L1                       68
 Time Step [h]                          1
 Basin   1   Hydrology Resolution [m]          24000.
 Basin   2   Hydrology Resolution [m]          24000.
-Flag READ  restart states              F
-Flag WRITE restart states              T
-Flag READ  restart config.             F
-Flag WRITE restart config.             T
+Flag READ  restart                     F
+Flag WRITE restart                     T
 
 -------------------------------------------------------------
                       Model Run Periods                      
@@ -70,27 +68,26 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
         25          0.001          0.090          0.042   rootFractionCoefficient_pervious
         26          1.000          4.000          2.895            infiltrationShapeFactor
         27          0.000          5.000          0.905          imperviousStorageCapacity
-        28          0.700          1.300          0.931             minCorrectionFactorPET
-        29          0.000          0.200          0.077             maxCorrectionFactorPET
-        30        160.000        200.000        183.800                  aspectTresholdPET
-        31         75.000        200.000         91.280     interflowStorageCapacityFactor
-        32          0.000         10.000          8.490           interflowRecession_slope
-        33          1.000          3.000          1.760      fastInterflowRecession_forest
-        34          1.000         30.000          8.907          slowInterflowRecession_Ks
-        35          0.050          0.300          0.150              exponentSlowInterflow
-        36          0.000         50.000         10.380                rechargeCoefficient
-        37         -5.000          5.000         -1.251             rechargeFactor_karstic
-        38          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
-        39          1.000       1000.000        100.000                      GeoParam(1,:)
-        40          1.000       1000.000        100.000                      GeoParam(2,:)
-        41          1.000       1000.000        100.000                      GeoParam(3,:)
-        42          1.000       1000.000        100.000                      GeoParam(4,:)
-        43          1.000       1000.000        100.000                      GeoParam(5,:)
-        44          1.000       1000.000        100.000                      GeoParam(6,:)
-        45          1.000       1000.000        100.000                      GeoParam(7,:)
-        46          1.000       1000.000        100.000                      GeoParam(8,:)
-        47          1.000       1000.000        100.000                      GeoParam(9,:)
-        48      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
+        28          0.750          1.750          1.190               PriestleyTaylorCoeff
+        29         -0.500          0.200          0.058             PriestleyTaylorLAIcorr
+        30         75.000        200.000         91.280     interflowStorageCapacityFactor
+        31          0.000         10.000          8.490           interflowRecession_slope
+        32          1.000          3.000          1.760      fastInterflowRecession_forest
+        33          1.000         30.000          8.907          slowInterflowRecession_Ks
+        34          0.050          0.300          0.150              exponentSlowInterflow
+        35          0.000         50.000         10.380                rechargeCoefficient
+        36         -5.000          5.000         -1.251             rechargeFactor_karstic
+        37          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
+        38          1.000       1000.000        100.000                      GeoParam(1,:)
+        39          1.000       1000.000        100.000                      GeoParam(2,:)
+        40          1.000       1000.000        100.000                      GeoParam(3,:)
+        41          1.000       1000.000        100.000                      GeoParam(4,:)
+        42          1.000       1000.000        100.000                      GeoParam(5,:)
+        43          1.000       1000.000        100.000                      GeoParam(6,:)
+        44          1.000       1000.000        100.000                      GeoParam(7,:)
+        45          1.000       1000.000        100.000                      GeoParam(8,:)
+        46          1.000       1000.000        100.000                      GeoParam(9,:)
+        47      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
@@ -99,22 +96,22 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b1/                              
-Directory to write output when restarted     output_b1/                              
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/                                                                                                                                                                                                                                                      
+Directory to write output when restarted     output_b1/                                                                                                                                                                                                                                                      
 
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/           
-Directory to land cover input                ../../test_basin/input/luse/            
-Directory to precipitation input             ../../test_basin/input/meteo/pre/       
-Directory to temperature input               ../../test_basin/input/meteo/tavg/      
-Directory to reference ET input              ../../test_basin/input/meteo/pet/       
-Directory to write output by default         output_b2/                              
-Directory to write output when restarted     output_b2/                              
-
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b2/                                                                                                                                                                                                                                                      
+Directory to write output when restarted     output_b2/                                                                                                                                                                                                                                                      
+ 

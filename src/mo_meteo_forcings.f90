@@ -145,7 +145,7 @@ CONTAINS
           call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
                L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
           ! allocate PET and dummies for mhm_call
-          if (iBasin==nBasins) then
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
              allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
           end if
@@ -158,7 +158,7 @@ CONTAINS
           call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
                L1_tmax, lower=-100.0_dp, upper = 100._dp, ncvarName='tmax' )
           ! allocate PET and dummies for mhm_call
-          if (iBasin==nBasins) then
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
              allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
              allocate( L1_netrad(1,1) ); allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
           end if
@@ -168,7 +168,7 @@ CONTAINS
           call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
                L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
           ! allocate PET and dummies for mhm_call
-          if (iBasin==nBasins) then
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
              allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
              allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
@@ -185,7 +185,7 @@ CONTAINS
           call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
                L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
           ! allocate PET and dummies for mhm_call
-          if (iBasin==nBasins) then
+          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
              allocate( L1_pet    (size(L1_absvappress, dim=1), size(L1_absvappress, dim=2)))
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
           end if

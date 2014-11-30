@@ -1,5 +1,0 @@
-! read input for PET (process 5) depending on specified option (0 - input, 1 - HarSam, 2 - PrieTay, 3 - PenMon)
-case(0) ! pet is input
-case(1) ! Hargreaves-Samani formulation (minimum and maximum Tmeperature needed)
-
-! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax

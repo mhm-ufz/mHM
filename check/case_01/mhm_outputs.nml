@@ -56,10 +56,10 @@ outputFlxState(8)=.FALSE.
 !----------------
 !
 ! potential evapotranspiration PET [mm/T]                             -- case  9
-outputFlxState(9)=.FALSE. 
+outputFlxState(9)=.TRUE. 
 !
 ! actual evapotranspiration aET [mm/T]                                -- case 10
-outputFlxState(10)=.FALSE. 
+outputFlxState(10)=.TRUE. 
 !
 ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 11
 outputFlxState(11)=.TRUE.
@@ -77,7 +77,7 @@ outputFlxState(14)=.FALSE.
 outputFlxState(15)=.FALSE.
 !
 ! groundwater recharge               (L1_percol)       [mm/T]         -- case 16
-outputFlxState(16)=.FALSE.
+outputFlxState(16)=.TRUE.
 !
 ! infiltration                       (L1_infilSoil)    [mm/T]         -- case 17
 outputFlxState(17)=.FALSE.

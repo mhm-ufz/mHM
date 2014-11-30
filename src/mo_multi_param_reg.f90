@@ -1147,17 +1147,17 @@ contains
   !>           - param(1) = canopyInterceptionFactor \n
 
   !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: proc_Mat(:,:)" - process matrix
-  !>       \param[in] "real(dp)     :: param(:)       - array of global parameters
-  !>       \param[in] "real(dp)     :: LAI0(:)        - LAI at level-0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: upp_row_L1(:)  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: low_row_L1(:)  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: lef_col_L1(:)  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: rig_col_L1(:)  - Right column of high resolution block
-  !>       \param[in] "integer(i4)  :: cell_id0  (:)  - Cell ids at level 0
-  !>       \param[in] "logical      :: mask0(:,:)     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata         - nodata value
+  !>       \param[in] "integer(i4)  :: proc_Mat(:,:)"  - process matrix
+  !>       \param[in] "real(dp)     :: param(:)"       - array of global parameters
+  !>       \param[in] "real(dp)     :: LAI0(:)"        - LAI at level-0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: rig_col_L1(:)"  - Right column of high resolution block
+  !>       \param[in] "integer(i4)  :: cell_id0  (:)"  - Cell ids at level 0
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value
   !
   !      INTENT(OUT)
   !>       \param[out] "real(dp) :: max_intercept1(:)" - maximum canopy interception at Level-1
@@ -1255,17 +1255,18 @@ contains
   !>           - param(6) = roughnesslength_heat_coeff      \n
 
   !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover0(:)     - land cover at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)      - LUT of LAi values
-  !>       \param[in] "real(dp)     :: param(:)       - vector with global parameters
-  !>       \param[in] "logical      :: mask0(:,:)     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata         - nodata value 
-  !>       \param[in] "integer(i4)  :: cell_id0  (:)  - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: Low_row_L1(:)  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)  - Right column of high resolution block
+  !>       \param[in] "integer(i4)  :: LCover0(:)"     - land cover at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
+  !>       \param[in] "real(dp)     :: param(:)"       - vector with global parameters
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0  (:)"  - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
 
   !     INTENT(INOUT)
   !        None
@@ -1401,8 +1402,9 @@ contains
   !>           - param(1) = stomatal_resistance  \n
 
   !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)  - land cover id for LAI at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)       - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
   !>       \param[in] "real(dp)     :: param"          - global parameter
   !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
   !>       \param[in] "real(dp)     :: nodata"         - nodata value 
@@ -1525,8 +1527,9 @@ contains
   !>           - param(2) = PriestleyTaylorLAIcorr  \n
 
   !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)  - land cover id for LAI at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)       - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
   !>       \param[in] "real(dp)     :: param(:)"       - global parameter
   !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
   !>       \param[in] "real(dp)     :: nodata"         - nodata value 
@@ -1594,7 +1597,7 @@ contains
     integer(i4), dimension(:),   intent(in)  :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
     integer(i4), dimension(:),   intent(in)  :: Low_row_L1  ! lower row of a l1 cell in l0 grid
     integer(i4), dimension(:),   intent(in)  :: Lef_col_L1  ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1  ! right col of a l1 cell in l0 grid
     ! Output
     real(dp),    dimension(:,:), intent(out) :: priestley_taylor_alpha1
 
