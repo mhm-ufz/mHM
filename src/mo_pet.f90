@@ -207,7 +207,7 @@ CONTAINS
   !>                  {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
   !>        where \f$R_n\;[W m^{-2}]\f$ is the net solar radiation, \f$\Delta [kPa\;^{\circ}C^{-1}]\f$ is the slope 
   !>        of the saturation-vapour pressure curve, 
-  !>        \f$ \lamda [MJ\;kg^{-1}] \f$ is the latent heat of vaporization, \f$ (e_s-e) [kPa] \f$ is the vapour pressure
+  !>        \f$ \lambda [MJ\;kg^{-1}] \f$ is the latent heat of vaporization, \f$ (e_s-e) [kPa] \f$ is the vapour pressure
   !>         deficit of the air, \f$ \rho\;[kg\;m^{-3}] is the mean atmospheric density, 
   !>        c_p=1005.0\;J\;kg^{-1}\;K^{-1}) is the specific heat of the air, 
   !>        \f$ \gamma [kPa\;K^{-1}] \f$ is the psychrometric constant, \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance and
@@ -284,10 +284,10 @@ CONTAINS
   !>        \details Approximation of extraterrestrial radiation at the top of the atmosphere \f$ R_a \f$
   !>            after Duffie and Beckman (1980). 
   !>            \f$ R_a \f$ is converted from [J m-2 d-1] in [mm d-1]. 
-  !>            \f[ R_a   = \frac{86400}{ \pi \cdot \lambda} \cdot E_0 \cdot  &
+  !>            \f[ R_a   = \frac{86400}{ \pi \cdot \lambda} \cdot E_0 \cdot  
   !>             d_r \cdot (\omega \cdot \sin(latitude) \cdot \sin(delta) + \cos(latitude) \cdot \cos(delta) \cdot
   !>            \sin(\omega) \f] 
-  !>            where \f$ E_0=1367\;J\,m^[-2}\,s^{-1} \f$ is the solar constant, 
+  !>            where \f$ E_0=1367\;J\;m^{-2}\;s^{-1} \f$ is the solar constant, 
   !<            \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization. 
   !>            It is dependent on the following sub equations:\n The relative distance Earth-Sun:
   !>            \f[ d_r =  1 + 0.033 \cdot \cos( \frac{2 \cdot \pi \cdot doy}{365} ) \f]            
