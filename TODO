@@ -1,6 +1,6 @@
                     ====================================
-                               TODO for mHM v5.2
-                     NEXT RELEASE :: December 1st, 2014
+                               TODO for mHM v5.3
+                     NEXT RELEASE :: June 1st, 2014
                     ====================================
 
 
@@ -16,13 +16,6 @@ Transfer mo_file to a namelist to allow for more flexible filenames
                      TASKS FOR NEXT RELEASE
                         -- Scientific --
 =================================================================================================
-
-PET module (Process #5)
-(Resp.: Matthias Z.)
--- case 0 :: PET input file
--- case 1 :: Hargreaves-Samani
--- case 2 :: Priestley-Taylor
--- case 3 :: Penman-Monteith
 
 Groundwater (Process #7)
 (Resp.: Jude, Rohini)
@@ -73,6 +66,13 @@ mo_multi_param_reg
 
 -- perform_mpr flag
    (Resp.: Stephan)
+
+PET module (Process #5)
+(Resp.: Matthias Z.)
+-- case 0 :: PET input file
+-- case 1 :: Hargreaves-Samani
+-- case 2 :: Priestley-Taylor
+-- case 3 :: Penman-Monteith
 
 Proper implementation of John's LAI model as a new process
 (Resp.: Jule, Matthias C.)

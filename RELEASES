@@ -3,6 +3,32 @@
 ------------------------------------------------------------
 
 ----------------------------------------
+     New Features of mHM v5.2
+     (released at Dec 1st, 2014)
+----------------------------------------
+
+New Features:
+- chunk-wise reading of input data (see "timestep_model_inputs" in mhm.nml)
+- complete revision of writing netCDF files
+- possibility to discard multi-scale parameter regionalization (MPR) calculations (see "perform_mpr" in mhm.nml)
+- several process descriptions of evapotranspiration implemented (see processCase(4) in mhm.nml): 
+  (0) Read in potential evapotranspiration
+  (1) Hargreaves-samani
+  (2) Priestley-Taylor
+  (3) Penman-Monteith
+   --> please contact Matthias Zink (matthias.zink@ufz.de) if you use (1)-(3) since the code is not under GNU Public license up to now
+- adding routines for signature calculations of time series (see src/mo_signatures.f90)
+- new objective function for calibrating discharge with Kling-Gupta efficiency measure (see opti_function in mhm.nml)
+- new output variables implemented (see mhm_outputs.nml)
+- sorting algorithm changed to public available library orderpack (mo_orderpack.f90)
+
+Bugs resolved:
+- 
+
+Known bugs:
+- None.
+
+----------------------------------------
      New Features of mHM v5.1
      (released at Jun 1st, 2014)
 ----------------------------------------
