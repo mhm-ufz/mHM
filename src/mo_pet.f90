@@ -35,20 +35,20 @@ CONTAINS
 
   !>        \brief Reference Evapotranspiration after Hargreaves
 
-  !>        \details Calculates the Reference Evapotranspiration [mm/d] based on the Hargreaves-Samani (1982) 
+  !>        \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the Hargreaves-Samani (1982) 
   !>         model for a given cell by applying the equation
   !>         \f[ PET = HarSamCoeff * R_a * (T_{avg} +  HarSamConst) * \sqrt{ T_{max} - T_{min}} \f]
-  !>         with \f$R_a\,[W m^{-2}]\f$ the incoming solar radiation.
-  !>         input data \f$T_{avg}, T_{max} \f$ and \f$ T_{min}\f$ the mean, maximum,
-  !>         and minimum daily temperatures \f$ [ ^{\circ}C]\f$ at a given day.
+  !>         where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and 
+  !>         \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
+  !>         and minimum daily temperatures at the given day, respectively.
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp),    intent(in) :: HarSamCoeff" coefficient of Hargreaves-Samani equation
-  !>        \param[in] "real(dp),    intent(in) :: HarSamConst" constant    of Hargreaves-Samani equation
-  !>        \param[in] "real(dp),    intent(in) :: tavg"        daily men temperature
-  !>        \param[in] "real(dp),    intent(in) :: tmax"        daily maximum of temp.
-  !>        \param[in] "real(dp),    intent(in) :: tmin"        daily minimum of temp.
-  !>        \param[in] "real(dp),    intent(in) :: latitude"   latitude of the cell for Ra estimation
+  !>        \param[in] "real(dp),    intent(in) :: HarSamCoeff" coefficient of Hargreaves-Samani equation [-]
+  !>        \param[in] "real(dp),    intent(in) :: HarSamConst" constant    of Hargreaves-Samani equation [-]
+  !>        \param[in] "real(dp),    intent(in) :: tavg"        daily men temperature \f$[^{\circ}C]\f$
+  !>        \param[in] "real(dp),    intent(in) :: tmax"        daily maximum of temp \f$[^{\circ}C]\f$ 
+  !>        \param[in] "real(dp),    intent(in) :: tmin"        daily minimum of temp \f$[^{\circ}C]\f$
+  !>        \param[in] "real(dp),    intent(in) :: latitude"   latitude of the cell for Ra estimation \f$[radians]\f$
 
   !     INTENT(INOUT)
   !         None
@@ -75,7 +75,7 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !         Hargreaves, G.H., and Samani, Z.A. (1982). "Estimating potential evapotranspiration."
+  !         \note Hargreaves, G.H., and Samani, Z.A. (1982). "Estimating potential evapotranspiration."
   !             Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
 
   !     HISTORY
@@ -125,16 +125,15 @@ CONTAINS
 
   !>        \brief Reference Evapotranspiration after Priestly-Taylor
 
-  !>        \details Calculates the Reference Evapotranspiration [mm/d] based on the Priestly-Taylor (1972) model
-  !>        for every given cell by applying the equation
+  !>        \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
+  !>        Priestly-Taylor (1972) model for every given cell by applying the equation
   !>        \f[ PET = \alpha * \frac{\Delta}{(\gamma + \Delta)} * R_n \f]
-  !>        where \f$R_n\,[W m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope 
-  !>        of the saturation-vapour pressure curve, which is a function of the mean daily temperature 
-  !>        \f$ [ ^{\circ}C]\f$ and \f$\alpha\f$ is a emperical coefficient.
+  !>        where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope 
+  !>        of the saturation-vapour pressure curve and \f$\alpha\f$ is a emperical coefficient.
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp) :: PrieTayParam" Priestley-Taylor coefficient \f $\alpha [-] \f$
-  !        \param[in] "real(dp) :: Rn"           net solar radiation \f$ [W m^{-2}] \f$
+  !>        \param[in] "real(dp) :: PrieTayParam" Priestley-Taylor coefficient \f$ \alpha [-] \f$
+  !>        \param[in] "real(dp) :: Rn"           net solar radiation \f$ [W\;m^{-2}] \f$
   !>        \param[in] "real(dp) :: Tavg"         daily mean air temperature \f$ [ ^{\circ}C]\f$  
 
   !     INTENT(INOUT) 
@@ -162,9 +161,9 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !>         Priestley, C.H.B., and R.J. Taylor. 1972. On the assessment of surface heat flux and evaporation using
+  !>         \note Priestley, C.H.B., and R.J. Taylor. 1972. On the assessment of surface heat flux and evaporation using
   !>                   large-scale parameters. Mon. Weather Rev., 100:81-82.
-  !>         ASAE Standards. 1998. EP406.2: heating, cooling, and ventilating greenhouses. St. Joseph, MI, USA.
+  !>         \note ASAE Standards. 1998. EP406.2: heating, cooling, and ventilating greenhouses. St. Joseph, MI, USA.
 
   !     HISTORY
   !>        \author  Matthias Zink
@@ -200,26 +199,26 @@ CONTAINS
 
   !>        \brief Reference Evapotranspiration after Penman-Monteith
 
-  !>        \details Calculates the reference evapotranspiration [mm/d] based on the Penman-Monteith model
-  !>        for every given cell by applying the equation
+  !>        \details Calculates the reference evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
+  !>        Penman-Monteith model for every given cell by applying the equation
   !>        \f[ PET = \frac{1}{\lambda}  \cdot
   !>                  \frac{\Delta \cdot R_n + \frac{\rho \cdot c_p \cdot (e_s-e)}{r_a}}
   !>                  {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
-  !>        where \f$R_n\;[W m^{-2}]\f$ is the net solar radiation, \f$\Delta [kPa\;^{\circ}C^{-1}]\f$ is the slope 
+  !>        where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation, \f$\Delta\;[kPa\;K^{-1}]\f$ is the slope 
   !>        of the saturation-vapour pressure curve, 
-  !>        \f$ \lambda [MJ\;kg^{-1}] \f$ is the latent heat of vaporization, \f$ (e_s-e) [kPa] \f$ is the vapour pressure
-  !>         deficit of the air, \f$ \rho\;[kg\;m^{-3}] is the mean atmospheric density, 
-  !>        c_p=1005.0\;J\;kg^{-1}\;K^{-1}) is the specific heat of the air, 
+  !>        \f$ \lambda\;[MJ\;kg^{-1}] \f$ is the latent heat of vaporization, \f$ (e_s-e)\;[kPa] \f$ is the vapour pressure
+  !>        deficit of the air, \f$ \rho\;[kg\;m^{-3}] \f$ is the mean atmospheric density, 
+  !>        \f$ c_p=1005.0\;J\;kg^{-1}\;K^{-1} \f$ is the specific heat of the air, 
   !>        \f$ \gamma [kPa\;K^{-1}] \f$ is the psychrometric constant, \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance and
-  !>         \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance.
+  !>        \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: net_rad"                net radiation \f$[W m^{-2}]\f$
   !>        \param[in] "real(dp), intent(in) :: tavg"                   average daily temperature \f$[^{\circ}C]\f$ 
   !>        \param[in] "real(dp), intent(in) :: act_vap_pressure"       actual vapur pressure \f$[hPa]\f$ 
-  !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s m^{-1}\f$
-  !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s m^{-1}\f$
-  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration in [mm s-1]
+  !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
+  !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
+  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s-1]\f$
 
   !     INTENT(INOUT) 
   !         None
@@ -246,7 +245,7 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>        \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
   !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
 
   !     HISTORY
@@ -283,19 +282,20 @@ CONTAINS
 
   !>        \details Approximation of extraterrestrial radiation at the top of the atmosphere \f$ R_a \f$
   !>            after Duffie and Beckman (1980). 
-  !>            \f$ R_a \f$ is converted from [J m-2 d-1] in [mm d-1]. 
+  !>            \f$ R_a \f$ is converted from \f$ [J\;m^{-2}\;d^{-1}] \f$ in \f$ [mm\;d^{-1}]\f$ . 
   !>            \f[ R_a   = \frac{86400}{ \pi \cdot \lambda} \cdot E_0 \cdot  
-  !>             d_r \cdot (\omega \cdot \sin(latitude) \cdot \sin(delta) + \cos(latitude) \cdot \cos(delta) \cdot
+  !>             d_r \cdot (\omega \cdot \sin(latitude) \cdot \sin(\delta) + \cos(latitude) \cdot \cos(\delta) \cdot
   !>            \sin(\omega) \f] 
-  !>            where \f$ E_0=1367\;J\;m^{-2}\;s^{-1} \f$ is the solar constant, 
-  !<            \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization. 
-  !>            It is dependent on the following sub equations:\n The relative distance Earth-Sun:
-  !>            \f[ d_r =  1 + 0.033 \cdot \cos( \frac{2 \cdot \pi \cdot doy}{365} ) \f]            
-  !>            in which doy is the day of the year, 
-  !>            declination of the sun above the celestial equator in radians 
-  !>            \f[ \delta  = 0.4093 \cdot \sin( \frac{2 \cdot \pi \cdot doy}{365} - 1.405 ) \f]
-  !>            sunrise hour angle in radians
-  !>            \f[ \omega  = \arccos( - \tan(latitude) * \tan(delta) )  \f]                 
+  !>            where \f$ E_0=1367\;J\;m^{-2}\;s^{-1} \f$ is the solar constant and 
+  !<            \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization. \n
+  !>            It is dependent on the following sub equations:\n 
+  !>            The relative distance Earth-Sun:
+  !>            \f[ d_r =  1 + 0.033 \cdot \cos \left( \frac{2 \cdot \pi \cdot doy}{365} \right) \f]            
+  !>            in which doy is the day of the year.\n 
+  !>            The solar declination [radians] defined by
+  !>            \f[ \delta  = 0.4093 \cdot \sin\left( \frac{2 \cdot \pi \cdot doy}{365} - 1.405 \right) \f]
+  !>            The sunset hour angle [radians]:
+  !>            \f[ \omega  = \arccos( - \tan(latitude) * \tan(\delta) )  \f]                 
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4), intent(in) :: doy" day of year [-]
@@ -317,7 +317,7 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>         \return real(dp) :: extraterr_rad_approx &mdash; extraterrestrial radiation approximation \f$[W m^{-2}]\f$
+  !>         \return real(dp) :: extraterr_rad_approx &mdash; extraterrestrial radiation approximation \f$[W\;m^{-2}]\f$
 
   !     RESTRICTIONS
   !         None
@@ -326,7 +326,7 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !>        Duffie, J.A. and W.A. Beckman. 1980. Solar engineering of thermal processes.
+  !>        \note Duffie, J.A. and W.A. Beckman. 1980. Solar engineering of thermal processes.
   !>            John Wiley and Sons, New York. pp. 1-109.
 
   !     HISTORY
@@ -368,10 +368,10 @@ CONTAINS
   !>        \brief slope of saturation vapour pressure curve
 
   !>        \details slope of saturation vapour pressure curve after Tetens
-  !>           \f[ \Delta = 0.6108 * e_s(T_a) / \exp{2 \cdot \log(T_a + 237.3)} \f]
+  !>           \f[ \Delta = \frac{0.6108 * e_s(T_a)}{e^(2 \cdot \log(T_a + 237.3))} \f]
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp), intent(in) :: tavg" average daily temperature
+  !>        \param[in] "real(dp), intent(in) :: tavg" average daily temperature \f$[^{\circ}C]\f$ 
 
   !     INTENT(INOUT) 
   !         None
@@ -390,7 +390,7 @@ CONTAINS
 
   !     RETURN
   !>         \return real(dp) :: slope_satpressure &mdash;  slope of saturation vapour pressure curve 
-  !>                             \f$[kPa ^{\circ}C{-1}]\f$
+  !>                             \f$[kPa\;K{-1}]\f$
 
   !     RESTRICTIONS
   !         None
@@ -399,9 +399,9 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !>         Tetens, O., 1930. Ueber einige meteorologische Begriffe. z. Geophys. 6:297-309.
-  !>         Murray, F.W. 1967. On the computation of saturation vapor pressure. J. Appl. Meteor. 6: 203-204.
-  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>         \note Tetens, O., 1930. Ueber einige meteorologische Begriffe. z. Geophys. 6:297-309.
+  !>         \note Murray, F.W. 1967. On the computation of saturation vapor pressure. J. Appl. Meteor. 6: 203-204.
+  !>         \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
   !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
 
   !     HISTORY
@@ -431,7 +431,7 @@ CONTAINS
   !>        \brief calculation of the saturation vapour pressure
 
   !>        \details Calculation of the saturation vapour pressure
-  !>          \f[ e_s(T_a) = 0.6108 \cdot \exp{\frac{17.27 \cdot T_a}{T_a + 237.3}}  \f]
+  !>          \f[ e_s(T_a) = 0.6108 \cdot \exp \left( \frac{17.27 \cdot T_a}{T_a + 237.3} \right)  \f]
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: tavg" temperature [degC]
@@ -461,8 +461,8 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !>         Tetens, O., 1930. Ueber einige meteorologische Begriffe. z. Geophys. 6:297-309.
-  !>         Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
+  !>         \note Tetens, O., 1930. Ueber einige meteorologische Begriffe. z. Geophys. 6:297-309.
+  !>         \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
   !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
 
   !     HISTORY

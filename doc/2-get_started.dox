@@ -168,9 +168,16 @@ each single setting, this section will only roughly describe the structure of th
 \li <b>LAI data:</b> Switch for choosing LAI option. The user can either select to run mHM with monthly look-up-table
 LAI values defined for 10 land classes or choose to run mHM using gridded LAI input data (e.g., MODIS).
 Gridded LAI data must be provided on a daily time-step at the Level-0 resolution.
-\li <b>Process Switches:</b> Currently only the routing switch is implemented.
+/*!
+\li <b>Process Switches:</b> 
+*  - Proccess case 5 - potential evapotranspiration (PET):
+*      -# PET is input (processCase(5)=0)
+*      -# PET after Hargreaves-Samani (processCase(5)=1)
+*      -# PET after Priestley-Taylor (processCase(5)=2)
+*      -# PET after Penman-Monteith (processCase(5)=3)
+*  - Proccess case 8 - routing  can be activated (=1) or deactivated (=0). 
 \li <b>Annual Cycles:</b> Values for pan evaporation hold in impervious regions only. The meteorological forcing table disaggregates daily input data to hourly values.
-
+*/
 
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
 

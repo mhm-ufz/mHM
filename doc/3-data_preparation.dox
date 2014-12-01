@@ -25,13 +25,31 @@ finding measurement data for Potential Evapotranspiration (PET). One possible so
 would be to calculate PET from the much easier available variables mean, maximum and minimum 
 air temperature, using the Hargreaves-Samani method.
 
-The three meteorological variables needed:
+The two meteorological variables which are needed:
 
-<b> Name                         | Unit                    | Temporal resolution </b> 
----------------------------------|-------------------------|---------------------
-Precipitation                    | \f$\mathrm{mm}\f$       | hourly to daily  
-Average air temperature          | \f$^\circ \mathrm{C}\f$ | hourly to daily 
-Potential evapotranspiration     | \f$\mathrm{mm}\f$       | hourly to daily                
+<b> Name                          | Unit                    | Temporal resolution </b> 
+----------------------------------|-------------------------|---------------------
+Precipitation                     | \f$\mathrm{mm}\f$       | hourly to daily  
+Average air temperature           | \f$^\circ \mathrm{C}\f$ | hourly to daily 
+
+
+Dependent of the specification for the potential evapotranspiration (processCase(5)) additional
+meteorological variables may be need:
+
+\li processCase(5) = 0 - PET is read from input.
+\li processCase(5) = 1 - Hargreaves-Samani equation
+\li processCase(5) = 2 - Priestley-Taylor equation
+\li processCase(5) = 3 - Penam-Monteith equation
+
+<b> Name                          | Unit                    | Temporal resolution </b> 
+----------------------------------|-------------------------|---------------------
+0 - Potential evapotranspiration  | \f$\mathrm{mm}\f$       | hourly to daily
+1 - Minimum air temperature       | \f$^\circ \mathrm{C}\f$ | daily  
+1 - Maximum air temperature       | \f$^\circ \mathrm{C}\f$ | daily  
+2 - Net radiation                 | \f$ W\;m^{-2}       \f$ | daily  
+3 - Net radiation                 | \f$ W\;m^{-2}       \f$ | daily  
+3 - Absolut vapur pressure of air | \f$ kPA             \f$ | daily  
+3 - Windspeed                     | \f$ m\;s^{-1}       \f$ | daily  
 
 \subsection morph_data Morphological variables
 
