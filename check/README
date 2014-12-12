@@ -132,17 +132,26 @@ case 4 :: MULTISCALE
 
 case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
    nBasins                    = 2                                               (default:       1)
-   nGaugesTotal               = 2                                               (default:       1)
+   nGaugesTotal               = 4                                               (default:       1)
+   NoGauges_basin(1)          = 2                                               (default:       1)
+   NoGauges_basin(2)          = 2                                               (default:       1)
    timeStep_LAI_input         = -2                                              (default:       0)
-   nInflowGaugesTotal         = 1                                               (default: nInflowGaugesTotal            = 0)
+   Gauge_id(1,2)              = 333                                             (default: n.a.)
+   gauge_filename(1,2)        = "00333.txt"                                     (default: n.a.)
+   Gauge_id(2,2)              = 333                                             (default: n.a.)
+   gauge_filename(2,2)        = "00333.txt"                                     (default: n.a.)
+   nInflowGaugesTotal         = 2                                               (default: nInflowGaugesTotal            = 0)
    NoInflowGauges_basin(1)    = 1                                               (default: NoInflowGauges_basin(1)       = 0)
    InflowGauge_id(1,1)        = 333                                             (default: InflowGauge_id(1,1)           = 398)
    InflowGauge_filename(1,1)  = "00333.txt"                                     (default: InflowGauge_filename(1,1)     = "00398.txt")
+   NoInflowGauges_basin(2)    = 1                                               (default: NoInflowGauges_basin(2)       = 0)
+   InflowGauge_id(2,1)        = 333                                             (default: InflowGauge_id(2,1)           = 398)
+   InflowGauge_filename(2,1)  = "00333.txt"                                     (default: InflowGauge_filename(2,1)     = "00398.txt")
+   InflowGauge_Headwater(2,1) = .TRUE.                                          (default:             )
    dir_Out(1)                 = "output_b1/b1_"                                 (default: "output_b1/")
    dir_RestartOut(1)          = "output_b1/b1_"                                 (default: "output_b1/")
    dir_Out(2)                 = "output_b1/b2_"                                 (default: "output_b1/")
    dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
-
 # -------------------------------------------------------------------------------------------
 #
 # Copyright 2014 Juliane Mai
