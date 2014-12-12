@@ -20,6 +20,7 @@
 ! Rohini Kumar and
 ! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
+! Matthias Zink, Dec 2014 - adopted inflow gauges to ignore headwater cells
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -420,6 +421,8 @@ NoInflowGauges_basin(1)       = 0
 InflowGauge_id(1,1)           = 398
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
 InflowGauge_filename(1,1)     = "00398.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_Headwater(1,1) = .FALSE.
 /
 
 !******************************************************************************************

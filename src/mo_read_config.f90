@@ -98,6 +98,7 @@ CONTAINS
   !                  Stephan Thober, May  2014 - added switch for chunk read in
   !                  Stephan Thober, Jun  2014 - added option for switching off mpr
   !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
 
   subroutine read_config()
 
@@ -285,6 +286,7 @@ CONTAINS
     integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
+    logical,        dimension(maxNoBasins,maxNoGauges) :: InflowGauge_Headwater
     character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
     character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
 
@@ -315,7 +317,8 @@ CONTAINS
     ! namelist for evaluation gauges
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, InflowGauge_filename
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id,                    &
+         InflowGauge_filename, InflowGauge_Headwater
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
     namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,         &
@@ -607,6 +610,7 @@ CONTAINS
     allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))                       
     allocate(basin%nInflowGauges        (nBasins                                 )) 
     allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
+    allocate(basin%InflowGaugeHeadwater (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
     allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
     allocate(basin%InflowGaugeNodeList  (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
     ! initialization
@@ -615,6 +619,7 @@ CONTAINS
     InflowGauge%fName          = num2str(nodata_i4)
     basin%nInflowGauges        = 0
     basin%InflowGaugeIdList    = nodata_i4
+    basin%InflowGaugeHeadwater = .FALSE.
     basin%InflowGaugeIndexList = nodata_i4
     basin%InflowGaugeNodeList  = nodata_i4
 
@@ -651,8 +656,9 @@ CONTAINS
           InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
           InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge)) 
           basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
+          basin%InflowGaugeHeadwater(i_basin,i_gauge) = InflowGauge_Headwater(i_basin,i_gauge)
           basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
-       end do
+     end do
     end do
 
     if ( nInflowGaugesTotal .NE. idx) then 

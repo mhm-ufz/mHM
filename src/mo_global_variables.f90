@@ -24,6 +24,7 @@ MODULE mo_global_variables
   !           Stephan Thober, Jun 2014  - added timeStep_model_inputs and readPer
   !           Stephan Thober, Jun 2014  - added perform_mpr, updated restart flags
   !           Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+  !           Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
 
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
@@ -294,10 +295,11 @@ MODULE mo_global_variables
      integer(i4), dimension(:,:), allocatable   :: gaugeNodeList      ! Gauge node list at L11
 
      ! discharge inflow gauges (e.g if headwater bsins are missing)
-     integer(i4), dimension(:),   allocatable   :: nInflowGauges      ! Number of gauges within a basin
-     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIdList  ! Gauge Id list (e.g. 0000444 0000445)
+     integer(i4), dimension(:),   allocatable   :: nInflowGauges        ! Number of gauges within a basin
+     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
      integer(i4), dimension(:,:), allocatable   :: InflowGaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
-     integer(i4), dimension(:,:), allocatable   :: InflowGaugeNodeList ! Gauge node list at L11
+     integer(i4), dimension(:,:), allocatable   :: InflowGaugeNodeList  ! Gauge node list at L11
+     logical,     dimension(:,:), allocatable   :: InflowGaugeHeadwater ! if headwater cells of inflow gauge will be considered
 
      ! basin outlet
      integer(i4), dimension(:), allocatable     :: L0_rowOutlet       ! Outlet location in L0 

@@ -11,7 +11,7 @@ Total No. of reaches                  67
 No. of cells L0                    46545
 No. of cells L1                       68
 No. of cells L11                      68
-Total No. of gauges                    2
+Total No. of gauges                    4
 Time Step [h]                          1
 Basin   1   Hydrology Resolution [m]          24000.
 Basin   1   Routing Resolution [m]            24000.
@@ -104,19 +104,22 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
 --------------------------------------------------
  Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
          1         1       1600.000         11.000
-         2         2       1600.000         11.000
+         2         1       6310.000        714.000
+         3         2       1600.000         11.000
+         4         2       6310.000        714.000
 
 --------------------------------------------------
                 Basin Inflow Data                 
 --------------------------------------------------
  Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
          1         1       6310.000        678.000
+         2         2       6310.000        678.000
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
 --------------------------------------------------------------------------------
 Basin No.                              1
-No. of gauges                          1
+No. of gauges                          2
 
 --------------------------------------------------------------------------------
                                  Directory list
@@ -290,7 +293,7 @@ Node Index   Node Id
      Total[km2]      23272.500
 
 Basin No.                              2
-No. of gauges                          1
+No. of gauges                          2
 
 --------------------------------------------------------------------------------
                                  Directory list

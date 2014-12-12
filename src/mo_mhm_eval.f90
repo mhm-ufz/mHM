@@ -79,6 +79,7 @@ CONTAINS
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+  !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
 
   SUBROUTINE mhm_eval(parameterset, runoff)
 
@@ -403,7 +404,7 @@ CONTAINS
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
                nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
                basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
-               basin%InflowGaugeNodeList(ii,:),                                             & ! IN C
+               basin%InflowGaugeHeadwater(ii,:), basin%InflowGaugeNodeList(ii,:),           & ! IN C
                parameterset,                                                                & ! IN P
                LCyearId(year), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
