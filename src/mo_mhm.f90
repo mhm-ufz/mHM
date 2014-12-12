@@ -107,9 +107,10 @@ CONTAINS
   !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
   !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
   !                                                             and its parameterization (Process 5)
-  !                 Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  !                 Stephan Thober,                  Jun 2014 - added flag for switching of MPR
-  !                 Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Rohini Kumar,                   Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
+  !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -135,6 +136,7 @@ CONTAINS
       mask0               , & ! mask 0 for MPR
       nInflowGauges       , & ! number of inflow gauges
       InflowIndexList     , & ! list of indices for inflow gauges
+      InflowHeadwater     , & ! flag if headwater cells should be considered
       InflowNodeList      , & ! list of L11 ID for inflow gauges
       global_parameters   , & ! global mHM parameters
       ! LUT
@@ -303,6 +305,7 @@ CONTAINS
     logical,     dimension(:,:), intent(in) :: mask0
     integer(i4),                 intent(in) :: nInflowGauges 
     integer(i4), dimension(:)  , intent(in) :: InflowIndexList
+    logical ,    dimension(:)  , intent(in) :: InflowHeadwater
     integer(i4), dimension(:)  , intent(in) :: InflowNodeList
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
@@ -700,7 +703,7 @@ CONTAINS
 
        ! runoff accumulation at L11 from L1 level
        call L11_runoff_acc( total_runoff, areaCell1, L11Id_on_L1, TS,                          & ! Intent IN
-            nInflowGauges, InflowIndexList, InflowNodeList, QInflow,                           & ! Intent IN
+            nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow,          & ! Intent IN
             nNode_qOUT )                                                                         ! Intent OUT
        ! for a single node model run
        if( nNodes .GT. 1) then
