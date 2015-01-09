@@ -924,6 +924,7 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Sa. Ku.         Jan 2015 - corrected initialization of nLinkSink
   ! ------------------------------------------------------------------
 
   subroutine L11_routing_order(iBasin)
@@ -972,9 +973,10 @@ CONTAINS
     ! initialize
     nLinkFromN(:)         = nodata_i4
     nLinkToN(:)           = nodata_i4
-    nLinkROrder(1:nLinks) = 1_i4
+    nLinkROrder(1:nLinks) = 1
     nLinkROrder(nNodes)   = nodata_i4
-    nLinkLabel            = nodata_i4
+    nLinkLabel(1:nLinks) =  0           
+    nLinkLabel(nNodes)    = nodata_i4
     nLinkSink(:)          = .FALSE.
     netPerm(:)            = nodata_i4
 
@@ -994,7 +996,7 @@ CONTAINS
          end do loop2
       end do loop1
 
-      nLinkLabel(:) = 0  ! ''
+   !   nLinkLabel(:) = 0  ! ''
 
       ! counting headwaters
       kk = 0
