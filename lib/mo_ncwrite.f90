@@ -371,6 +371,8 @@ contains
   !              Matthias Cuntz  Mar 2013 - netcdf4, deflate_level
   !              Stephan Thober  Mar 2013 - buffersize
   !              Matthias Cuntz  Mar 2013 - removed Info
+  !              Stephan Thober  &
+  !              David Schaefer  Jan 2014 - netcdf4 is default
 
   subroutine create_netcdf(Filename, ncid, lfs, netcdf4, deflate_level)
 
@@ -396,7 +398,7 @@ contains
 
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
-    inetcdf4 = .false.
+    inetcdf4 = .true.
     if (present(netcdf4)) inetcdf4 = netcdf4
     deflate = 1
     if (present(deflate_level)) deflate = deflate_level

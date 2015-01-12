@@ -996,8 +996,6 @@ CONTAINS
          end do loop2
       end do loop1
 
-   !   nLinkLabel(:) = 0  ! ''
-
       ! counting headwaters
       kk = 0
       do ii = 1, nLinks
