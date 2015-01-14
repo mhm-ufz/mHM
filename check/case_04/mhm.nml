@@ -218,7 +218,7 @@ resolution_Hydrology(6) = 24000
 !> level-1 hydrological simulations resolution \n
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 24000 
-resolution_Routing(2)   = 12000
+resolution_Routing(2)   = 24000
 resolution_Routing(3)   = 24000
 resolution_Routing(4)   = 24000
 resolution_Routing(5)   = 12000

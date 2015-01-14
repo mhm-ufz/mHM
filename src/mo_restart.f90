@@ -220,6 +220,7 @@ CONTAINS
     character(256), dimension(2)             :: dims_L0     ! dimension names for L0 states
     character(256), dimension(4)             :: dims_L1     ! dimension names for L1 states
     character(256), dimension(3)             :: dims_L11    ! dimension names for L11 states
+    character(256), dimension(1)             :: dims_Links  ! dimension names for L11 links
     character(256), dimension(1)             :: dims_outlet ! dimension name  for outlet Coordinates
     character(256), dimension(1)             :: dims_gauges ! dimension name  for number of gauges
     character(256), dimension(1)             :: dims_inflow ! dimension name  for inflow gauge
@@ -237,6 +238,7 @@ CONTAINS
     dims_outlet(1) = 'NoutletCoord'
     dims_gauges(1) = 'Ngauges'
     dims_inflow(1) = 'nInflowGauges'
+    dims_Links     = 'nLinks'
 
     basin_loop: do iBasin = 1, size(OutPath)
 
@@ -601,56 +603,56 @@ CONTAINS
                dims_L11(1:2), 'L11_rightBound_L0', &
                long_name = 'Col end at finer level-0 scale of Level 11 cell',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_fromN(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_fromN', &
+          call var2nc( Fname, L11_fromN(s11:e11), &
+               dims_Links(1:1), 'L11_fromN', &
                long_name = 'From Node',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_toN(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_toN', &
+          call var2nc( Fname, L11_toN(s11:e11), &
+               dims_Links(1:1), 'L11_toN', &
                long_name = 'To Node',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_rOrder(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_rOrder', &
+          call var2nc( Fname, L11_rOrder(s11:e11), &
+               dims_Links(1:1), 'L11_rOrder', &
                long_name = 'Network routing order at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_label(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_label', &
+          call var2nc( Fname, L11_label(s11:e11), &
+               dims_Links(1:1), 'L11_label', &
                long_name = 'Label Id [0='', 1=HeadWater, 2=Sink] at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( merge( 1_i4, 0_i4, L11_sink(s11:e11)), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_sink', &
+          call var2nc( Fname, merge( 1_i4, 0_i4, L11_sink(s11:e11)), &
+               dims_Links(1:1), 'L11_sink', &
                long_name = '.true. if sink node reached at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_netPerm(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_netPerm', &
+          call var2nc( Fname, L11_netPerm(s11:e11), &
+               dims_Links(1:1), 'L11_netPerm', &
                long_name = 'Routing sequence (permutation of L11_rOrder) at Level 11',missing_value=nodata_i4)
       
-          call var2nc( Fname, unpack( L11_fRow(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_fRow', &
+          call var2nc( Fname, L11_fRow(s11:e11), &
+               dims_Links(1:1), 'L11_fRow', &
                long_name = 'From row in L0 grid at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_fCol(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_fCol', &
+          call var2nc( Fname, L11_fCol(s11:e11), &
+               dims_Links(1:1), 'L11_fCol', &
                long_name = 'From col in L0 grid at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_tRow(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_tRow', &
+          call var2nc( Fname, L11_tRow(s11:e11), &
+               dims_Links(1:1), 'L11_tRow', &
                long_name = 'To row in L0 grid at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_tCol(s11:e11), mask11, nodata_i4 ), &
-               dims_L11(1:2), 'L11_tCol', &
+          call var2nc( Fname, L11_tCol(s11:e11), &
+               dims_Links(1:1), 'L11_tCol', &
                long_name = 'To Col in L0 grid at Level 11',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_length(s11:e11), mask11, nodata_dp ), &
-               dims_L11(1:2), 'L11_length', &
+          call var2nc( Fname, L11_length(s11:e11), &
+               dims_Links(1:1), 'L11_length', &
                long_name = 'Total length of river link [m]',missing_value=nodata_dp)
 
-          call var2nc( Fname, unpack( L11_aFloodPlain(s11:e11), mask11, nodata_dp ), &
-               dims_L11(1:2), 'L11_aFloodPlain', &
+          call var2nc( Fname, L11_aFloodPlain(s11:e11), &
+               dims_Links(1:1), 'L11_aFloodPlain', &
                long_name = 'Area of the flood plain [m2]',missing_value=nodata_dp)
 
-          call var2nc( Fname, unpack( L11_slope(s11:e11), mask11, nodata_dp ), &
-               dims_L11(1:2), 'L11_slope', &
+          call var2nc( Fname, L11_slope(s11:e11), &
+               dims_Links(1:1), 'L11_slope', &
                long_name = 'Average slope of river link',missing_value=nodata_dp)
 
           call var2nc( Fname, unpack( L0_draCell(s110:e110), mask0, nodata_i4 ), &
@@ -909,6 +911,7 @@ CONTAINS
     integer(i4), dimension(:),     allocatable           :: dummyI1  ! dummy, 1 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
+    real(dp),    dimension(:),     allocatable           :: dummyD1  ! dummy, 1 dimension DP
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP
 
     ! set file name
@@ -1080,48 +1083,48 @@ CONTAINS
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! From Node
-    allocate( dummyI2( nrows11, ncols11 ) )
-    call Get_NcVar( Fname, 'L11_fromN', dummyI2)
-    call append( L11_fromN, pack( dummyI2, mask11) )
+    allocate( dummyI1( ncells11 ) )
+    call Get_NcVar( Fname, 'L11_fromN', dummyI1)
+    call append( L11_fromN, dummyI1 )
 
     ! To Node
-    call Get_NcVar( Fname, 'L11_toN', dummyI2 )
-    call append( L11_toN, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_toN', dummyI1 )
+    call append( L11_toN, dummyI1 )
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Network routing order
-    call Get_NcVar( Fname, 'L11_rOrder', dummyI2 )
-    call append( L11_rOrder, pack(dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_rOrder', dummyI1 )
+    call append( L11_rOrder, dummyI1 )
 
     ! Label Id [0='', 1=HeadWater, 2=Sink]
-    call Get_NcVar( Fname, 'L11_label', dummyI2 )
-    call append( L11_label, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_label', dummyI1 )
+    call append( L11_label, dummyI1 )
 
     ! .true. if sink node reached
-    call Get_NcVar( Fname, 'L11_sink', dummyI2 )
-    call append( L11_sink, (pack(dummyI2,mask11) .eq. 1_i4) )
+    call Get_NcVar( Fname, 'L11_sink', dummyI1 )
+    call append( L11_sink, (dummyI1 .eq. 1_i4) )
 
     ! Routing sequence (permutation of L11_rOrder)
-    call Get_NcVar( Fname, 'L11_netPerm', dummyI2 )
-    call append( L11_netPerm, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_netPerm', dummyI1 )
+    call append( L11_netPerm, dummyI1 )
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! From row in L0 grid
-    call Get_NcVar( Fname, 'L11_fRow', dummyI2 )
-    call append( L11_fRow, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_fRow', dummyI1 )
+    call append( L11_fRow, dummyI1 )
 
     ! From col in L0 grid
-    call Get_NcVar( Fname, 'L11_fCol', dummyI2 )
-    call append( L11_fCol, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_fCol', dummyI1 )
+    call append( L11_fCol, dummyI1 )
 
     ! To row in L0 grid
-    call Get_NcVar( Fname, 'L11_tRow', dummyI2 )
-    call append( L11_tRow, pack( dummyI2, mask11) )
+    call Get_NcVar( Fname, 'L11_tRow', dummyI1 )
+    call append( L11_tRow, dummyI1 )
 
     ! To col in L0 grid
-    call Get_NcVar( Fname, 'L11_tCol', dummyI2 )
-    call append( L11_tCol, pack( dummyI2, mask11) )
-    deallocate( dummyI2 )
+    call Get_NcVar( Fname, 'L11_tCol', dummyI1 )
+    call append( L11_tCol, dummyI1 )
+    deallocate( dummyI1 )
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     allocate( dummyI2( nrows0, ncols0 ) )
@@ -1155,18 +1158,18 @@ CONTAINS
 
     ! L11 network data sets
     ! [m]     Total length of river link
-    allocate( dummyD2( nrows11, ncols11 ) )
-    call Get_NcVar( Fname, 'L11_length', dummyD2 )
-    call append( L11_length, pack( dummyD2, mask11 ) )
+    allocate ( dummyD1( nCells11 ) )
+    call Get_NcVar( Fname, 'L11_length', dummyD1 )
+    call append( L11_length, dummyD1 )
 
     ! [m2]    Area of the flood plain
-    call Get_NcVar( Fname, 'L11_aFloodPlain', dummyD2 )
-    call append( L11_aFloodPlain, pack( dummyD2, mask11) )
+    call Get_NcVar( Fname, 'L11_aFloodPlain', dummyD1 )
+    call append( L11_aFloodPlain, dummyD1  )
 
     ! Average slope of river link
-    call Get_NcVar( Fname, 'L11_slope', dummyD2 )
-    call append( L11_slope, pack( dummyD2, mask11 ) )
-    deallocate( dummyD2 )
+    call Get_NcVar( Fname, 'L11_slope', dummyD1 )
+    call append( L11_slope, dummyD1 )
+    deallocate( dummyD1 )
 
   end subroutine read_restart_L11_config
 
