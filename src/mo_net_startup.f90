@@ -414,10 +414,10 @@ CONTAINS
     allocate ( leftBound0  (nNodes) )
     allocate ( rightBound0 (nNodes) )
 
-    allocate ( upBound1    (nCells1) )
-    allocate ( downBound1  (nCells1) )
-    allocate ( leftBound1  (nCells1) )
-    allocate ( rightBound1 (nCells1) )
+    allocate ( upBound1    (nNodes) )
+    allocate ( downBound1  (nNodes) )
+    allocate ( leftBound1  (nNodes) )
+    allocate ( rightBound1 (nNodes) )
 
     allocate ( L11Id_on_L0  (nrows0, ncols0 ) )
     allocate ( L11Id_on_L1  (nrows1, ncols1 ) )

@@ -139,7 +139,7 @@ CONTAINS
                                      resolutionHydrology                    ! hydrology resolution (L1 scale)
     USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
-
+    
     implicit none
 
     ! local variables
@@ -183,7 +183,7 @@ CONTAINS
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
-    !
+
     ! allocate necessary variables at Level0
     allocate(level0%nrows       (nBasins))
     allocate(level0%ncols       (nBasins))

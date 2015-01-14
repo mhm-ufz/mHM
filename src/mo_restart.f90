@@ -677,20 +677,20 @@ CONTAINS
                dims_L1(1:2), 'L1_L11_Id', &
                long_name = 'Mapping of L11 Id on L1',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_upBound_L1(s1:e1), mask1, nodata_i4 ), &
-               dims_L1(1:2), 'L11_upBound_L1', &
+          call var2nc( Fname, unpack( L11_upBound_L1(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_upBound_L1', &
                long_name = 'Row start at finer level-1 scale',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_downBound_L1(s1:e1), mask1, nodata_i4 ), &
-               dims_L1(1:2), 'L11_downBound_L1', &
+          call var2nc( Fname, unpack( L11_downBound_L1(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_downBound_L1', &
                long_name = 'Row end at finer level-1 scale',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_leftBound_L1(s1:e1), mask1, nodata_i4 ), &
-               dims_L1(1:2), 'L11_leftBound_L1', &
+          call var2nc( Fname, unpack( L11_leftBound_L1(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_leftBound_L1', &
                long_name = 'Col start at finer level-1 scale',missing_value=nodata_i4)
 
-          call var2nc( Fname, unpack( L11_rightBound_L1(s1:e1), mask1, nodata_i4 ), &
-               dims_L1(1:2), 'L11_rightBound_L1', &
+          call var2nc( Fname, unpack( L11_rightBound_L1(s11:e11), mask11, nodata_i4 ), &
+               dims_L11(1:2), 'L11_rightBound_L1', &
                long_name = 'Col start at finer level-1 scale',missing_value=nodata_i4)
 
           call var2nc( Fname, (/ basin%L0_rowOutlet(iBasin), basin%L0_colOutlet(iBasin) /), &
@@ -1058,24 +1058,24 @@ CONTAINS
     ! Col end at finer level-0 scale 
     call Get_NcVar( Fname, 'L11_rightBound_L0', dummyI2 )
     call append( L11_rightBound_L0, pack( dummyI2, mask11) )
-    deallocate( dummyI2 )
+!    deallocate( dummyI2 )
 
-    ! Row start at finer level-1 scale
-    allocate( dummyI2( nrows1, ncols1 ) )
+    ! Row start at finer level-11 scale
+!    allocate( dummyI2( nrows1, ncols1 ) )
     call Get_NcVar( Fname, 'L11_upBound_L1', dummyI2 )
-    call append( L11_upBound_L1, pack( dummyI2, mask1) )
+    call append( L11_upBound_L1, pack( dummyI2, mask11) )
 
-    ! Row end at finer level-1 scale
+    ! Row end at finer level-11 scale
     call Get_NcVar( Fname, 'L11_downBound_L1', dummyI2 )
-    call append( L11_downBound_L1, pack( dummyI2, mask1) )
+    call append( L11_downBound_L1, pack( dummyI2, mask11) )
 
-    ! Col start at finer level-1 scale
+    ! Col start at finer level-11 scale
     call Get_NcVar( Fname, 'L11_leftBound_L1', dummyI2 )
-    call append( L11_leftBound_L1, pack( dummyI2, mask1) )
+    call append( L11_leftBound_L1, pack( dummyI2, mask11) )
 
-    ! Col end at finer level-1 scale 
+    ! Col end at finer level-11 scale 
     call Get_NcVar( Fname, 'L11_rightBound_L1', dummyI2 )
-    call append( L11_rightBound_L1, pack(dummyI2, mask1) ) 
+    call append( L11_rightBound_L1, pack(dummyI2, mask11) ) 
     deallocate( dummyI2 )
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
