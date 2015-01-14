@@ -1,5 +1,5 @@
 /**
-\page output Visualising Output
+\page output Visualizing Model Output
 
 mHM usually writes two files into the output directory specified in mhm.nml:
 \code
@@ -7,14 +7,24 @@ mHM usually writes two files into the output directory specified in mhm.nml:
     mHM_Fluxes_States.nc
 \endcode
 
+In addition to these, three restart files are saved into the restart directory also specified in mhm.nml:
+\code
+    xxx_config.out
+    xxx_L11_config.nc
+    001_states.nc
+\endcode
+
 The first file  daily_discharge.out is ASCII type and can be read by any standard editor or ASCII interpreting scripts.
 In mHM_Fluxes_States.nc all the spatial and temporal output is written.
 This is a binary NETCDF file which can be visualised with NCVIEW (part of the NETCDF library), VISIT (LLNL Software) or analysis scripts based on Python (PyNGL).
+
+The restarting files are mainly intended for improving model performance (i.e,. to avoid spin-up time) rather than for visualization purposes. The xxx prefix indicate the basin number. Since these files are also written into a binary NETCDF file, some remarks will be make below for the right interpretation of their content.  
 
 For a quick analysis we recommend NCVIEW since it quickly visualises those files via command-line and X-forwarding. Make sure to load the NC module before starting.
 \code
     ncview FILE.nc
 \endcode
+
 In order to hide unnecessary output messages, you may pipe them to a log file:
 \code
     ncview FILE.nc 1> ~/log/ncview.out 2> ~/log/ncview.err
@@ -39,5 +49,14 @@ In some cases it has proven to be necessary to add the following line to /etc/pr
 \code
     export DISPLAY=:0
 \endcode
+
+<b>Exploring the contents of the Restarting files</b>
+
+Restarting files are simple binary dumps of arrays and vectors of all constants, parameters, state variables (1D, 2D) and fluxes at a given point in time of a simulation that are needed for executing the subsequent mHM time step in a new instance of this model without performing spin-out simulations and additional run time up to the previos time point. The stored information is divided into three categories: 1) Configuration variables at L0 and L1 levels (xxx_config.nc), 2) configuration variables at L11 level (i.e., routing) (xxx_L11_config.nc),  and  3) and effective parameters, state variables and fluxes at L1 and L11 levels  (xxx_states.nc).
+
+The first remark that should be made is that the results may appear inverted in NCVIEW with respect to the geographical coordinates used to describe the basin domain. This is due to the lack of geographical coordinates in this NetCDF visualizer and the fact that it simply dumps the content of a 2D array in C convection (row first, DIM2).
+
+All 2D variables, if plotted with appropriate routines (e.g., Python or NCL) will produce consistent maps as that shown in (\ref fig_moselle_dem "Moselle Basin"). Caution should be taken to interpret flow direction variables (i.e., L11_fDir in xxx_L11_config.nc) if visualized with NCVIEW because of the implicit 90°counter-clockwise rotation  
+
 
 */

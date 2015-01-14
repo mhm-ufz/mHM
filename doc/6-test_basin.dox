@@ -3,11 +3,12 @@
 
 The test data coming with the mHM source code are for the Moselle
 River basin upstream of Perl, a place, where the Moselle River leaves
-France and enters Luxembourg and Germany. The catchment area is
-approximately 11,500&nbsp;km\f$^2\f$, altitude ranges between 150 and
-1300 m. a.m.s.l. The Moselle River originates from the Vosges
-Mountains and is a tributary of the Rhine River. The origin of data
-used in the test example is listed below. \n
+France and enters Luxembourg and Germany (\ref fig_moselle_dem
+"Moselle Basin"). The catchment area is approximately
+11,500&nbsp;km\f$^2\f$, altitude ranges between 150 and 1300
+m. a.m.s.l. The Moselle River originates from the Vosges Mountains and
+is a tributary of the Rhine River. The origin of data used in the test
+example is listed below. \n
 
 <b>Meteorological forcings (temperature and precipitation):</b> \n We
 acknowledge the E-OBS dataset from the EU-FP6 project ENSEMBLES
