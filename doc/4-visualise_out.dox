@@ -56,7 +56,7 @@ Restarting files are simple binary dumps of arrays and vectors of all constants,
 
 The first remark that should be made is that the results may appear inverted in NCVIEW with respect to the geographical coordinates used to describe the basin domain. This is due to the lack of geographical coordinates in this NetCDF visualizer and the fact that it simply dumps the content of a 2D array in C convection (row first, DIM2).
 
-All 2D variables, if plotted with appropriate routines (e.g., Python or NCL) will produce consistent maps as that shown in (\ref fig_moselle_dem "Moselle Basin"). Caution should be taken to interpret flow direction variables (i.e., L11_fDir in xxx_L11_config.nc) if visualized with NCVIEW because of the implicit 90°counter-clockwise rotation  
+All 2D variables, if plotted with appropriate routines (e.g., Python or NCL) will produce consistent maps as that shown in (\ref fig_moselle_dem "Moselle Basin"). Caution should be taken to interpret flow direction variables (i.e., L11_fDir in xxx_L11_config.nc) if visualized with NCVIEW because of the implicit 90\f$ ^{\circ} \f$ counter-clockwise rotation.
 
 
 */

@@ -3,8 +3,8 @@
 
 The test data coming with the mHM source code are for the Moselle
 River basin upstream of Perl, a place, where the Moselle River leaves
-France and enters Luxembourg and Germany (\ref fig_moselle_dem
-"Moselle Basin"). The catchment area is approximately
+France and enters Luxembourg and Germany (\ref fig_moselle_dem "Moselle Basin").
+ The catchment area is approximately
 11,500&nbsp;km\f$^2\f$, altitude ranges between 150 and 1300
 m. a.m.s.l. The Moselle River originates from the Vosges Mountains and
 is a tributary of the Rhine River. The origin of data used in the test
@@ -50,17 +50,11 @@ Commission for providing the European soil database. \n
 for providing the CORINE land cover dataset. \n
 (http://www.eea.europa.eu/publications/COR0-landcover -- 15.04.2014)
 
-\image html moselle_eu_location.png "Location of the Moselle River
-basin upstream of Perl within the European domain" \anchor
-fig_moselle_eu_location \image latex moselle_eu_location.pdf "Location
-of the Moselle River basin upstream of Perl within the European
-domain" width=10cm
+\image html moselle_eu_location.png "Location of the Moselle River basin upstream of Perl within the European domain"
+\anchor fig_moselle_eu_location \image latex moselle_eu_location.pdf "Location of the Moselle River basin upstream of Perl within the European domain" width=10cm
 
-\image html moselle_dem.png "Digital elevation model for the the
-Moselle River basin upstrem of Perl" \anchor fig_moselle_dem \image
-latex moselle_dem.pdf "Digital elevation model for the the Moselle
-River basin upstream of Perl" width=10cm
-
-
+\image html moselle_dem.png "Digital elevation model for the Moselle River basin upstream of Perl"
+\anchor fig_moselle_dem \image latex moselle_dem.pdf "Digital elevation model for the Moselle River basin upstream of Perl" width=10cm 
 
 */
+
