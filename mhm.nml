@@ -185,7 +185,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 3
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
@@ -240,6 +240,9 @@ opti_function = 3
 read_restart  = .FALSE.
 write_restart = .TRUE.
 perform_mpr   = .TRUE.
+/
+
+&time_periods
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
 !> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
@@ -256,19 +259,33 @@ perform_mpr   = .TRUE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warmingDays    = 0
+warming_Days(1)    = 0
+warming_Days(2)    = 0
+warming_Days(3)    = 0
 !> first year of wanted simulation period
-evalPer%yStart = 1990
+eval_Per(1)%yStart = 1990
+eval_Per(2)%yStart = 1990
+eval_Per(3)%yStart = 1990
 !> first month of wanted simulation period
-evalPer%mStart = 01
+eval_Per(1)%mStart = 01
+eval_Per(2)%mStart = 01
+eval_Per(3)%mStart = 01
 !> first day   of wanted simulation period
-evalPer%dStart = 01
+eval_Per(1)%dStart = 01
+eval_Per(2)%dStart = 01
+eval_Per(3)%dStart = 01
 !> last year   of wanted simulation period
-evalPer%yEnd   = 1993
+eval_Per(1)%yEnd   = 1993
+eval_Per(2)%yEnd   = 1993
+eval_Per(3)%yEnd   = 1993
 !> last month  of wanted simulation period
-evalPer%mEnd   = 12
+eval_Per(1)%mEnd   = 12
+eval_Per(2)%mEnd   = 12
+eval_Per(3)%mEnd   = 12
 !> last day    of wanted simulation period
-evalPer%dEnd   = 31
+eval_Per(1)%dEnd   = 31
+eval_Per(2)%dEnd   = 31
+eval_Per(3)%dEnd   = 31
 !> switch to control read input frequency of the gridded meteo input, 
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -276,7 +293,11 @@ evalPer%dEnd   = 31
 !>      -1: daily\n
 !>      -2: monthly\n
 !>      -3: yearly\n
-timestep_model_inputs = 0
+!> if timestep_model_inputs is non-zero, than it has to be non-zero\n
+!> for all basins\n
+time_step_model_inputs(1) = 0
+time_step_model_inputs(2) = 0
+time_step_model_inputs(3) = 0
 /
 
 !******************************************************************************************

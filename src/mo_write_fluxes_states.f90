@@ -321,7 +321,7 @@ CONTAINS
     ! ---------
     ! 2. Fluxes
     ! ---------
-    nTimeSteps = ( simPer%julEnd - simPer%julStart + 1 ) * NTSTEPDAY
+    nTimeSteps = ( simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1 ) * NTSTEPDAY
     if (output_timeStep > 0) then
        if ( (timestep*output_timeStep)     .EQ. 1 ) then
           unit = 'mm h-1'
@@ -512,7 +512,7 @@ CONTAINS
     ! set unit for dimension time 
     ! (e.g. hours since 2008-01-01 00:00:00)
     !*******************************************************
-    jday_frac = real( (evalPer%julStart), dp )
+    jday_frac = real( (evalPer(iBasin)%julStart), dp )
     call dec2date(jday_frac, dd=day, mm=month, yy=year)
     write(dummy,"('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
     V(3)%att(1)%values = trim(dummy)

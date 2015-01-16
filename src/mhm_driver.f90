@@ -9,7 +9,7 @@
 !>            \brief Distributed precipitation-runoff model mHM
 
 !>            \details This is the main driver of mHM, which calls
-!>             one instance of mHM for a single basin and a given period.
+!>             one instance of mHM for a multiple basins and a given period.
 
 !>              \image html  mhm5-logo.png "Typical mHM cell"
 !>              \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
@@ -320,7 +320,7 @@ PROGRAM mhm_driver
 
      ! read meteorology now, if optimization is switched on
      ! meteorological forcings (reading, upscaling or downscaling)
-     if ( timestep_model_inputs .eq. 0_i4 ) then
+     if ( timestep_model_inputs(ii) .eq. 0_i4 ) then
         call prepare_meteo_forcings_data(ii, 1)
      end if
 
@@ -541,7 +541,7 @@ PROGRAM mhm_driver
  ! call timer_stop(itimer)
  ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
-  nTimeSteps = ( simPer%julEnd - simPer%julStart + 1 ) * NTSTEPDAY
+  nTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
   call date_and_time(values=datetime)
   call message()
   message_text = 'Done '//trim(num2str(nTimeSteps,'(I10)'))//" time steps."

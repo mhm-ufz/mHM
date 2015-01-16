@@ -1291,7 +1291,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(INOUT)   :: mask
     REAL(dp)                                          :: LNNSE_dp_1d
 
-    INTEGER(i4)                            :: n
+    INTEGER(i4)                            :: n, ii
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     REAL(dp)                               :: xmean
     REAL(dp), DIMENSION(size(x))           :: v1, v2
@@ -1319,7 +1319,13 @@ CONTAINS
     if (n .LE. 1_i4) stop 'LNNSE_dp_1d: number of arguments must be at least 2'
 
     ! mean of x
-    xmean = average(log(x), mask=maske)
+    ! xmean = average( log(x), mask = maske) 
+    xmean = 0.0_dp
+    do ii = 1, size( x, dim = 1 )
+       if ( maske(ii) ) xmean = xmean + log( x( ii ) )
+    end do
+    xmean = xmean / real( n, dp )
+
     !
     v1 = merge(log(y) - log(x), 0.0_dp, maske)
     v2 = merge(log(x) -  xmean, 0.0_dp, maske)

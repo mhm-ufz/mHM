@@ -42,7 +42,7 @@ MODULE mo_global_variables
   ! INPUT variables for configuration of mHM
   ! -------------------------------------------------------------------
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
-  integer(i4),   public                              :: timeStep_model_inputs      ! frequency for reading meteo input
+  integer(i4),   dimension(:), allocatable, public   :: timeStep_model_inputs      ! frequency for reading meteo input
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
   real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
@@ -228,8 +228,8 @@ MODULE mo_global_variables
   real(dp), public                                    :: fracSealed_cityArea ! fraction of area within city assumed to be
                                                                              ! perfectly sealed [0-1] 
   integer(i4),    public                              :: nLCover_scene       ! Number of land cover scene
-  character(256), public, dimension(:), allocatable   :: LCfilename          ! file names for the different land cover scenes
-  integer(i4),    public, dimension(:), allocatable   :: LCyearId            ! Mapping of landcover scenes (1, 2, ...)
+  character(256), public, dimension(:),   allocatable :: LCfilename          ! file names for the different land cover scenes
+  integer(i4),    public, dimension(:,:), allocatable :: LCyearId            ! Mapping of landcover scenes (1, 2, ...) for each basin
                                                                              ! to the actual year(1960, 1961, ...)
   ! LAI data
   ! variables used when timeStep_LAI_input == 0
@@ -275,11 +275,11 @@ MODULE mo_global_variables
       integer(i4)      :: nObs        ! total number of observations
   end type period
 
-  type(period), public :: warmPer     ! time period for warming
-  type(period), public :: evalPer     ! time period for model evaluation
-  type(period), public :: simPer      ! warmPer + evalPer
-  type(period), public :: readPer     ! start and end dates of read period
-  integer(i4), public  :: warmingDays ! number of days for warm up period
+  type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
+  type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
+  type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
+  type(period),                            public :: readPer     ! start and end dates of read period
+  integer(i4),  dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
 
   ! -------------------------------------------------------------------
   ! BASIN general description

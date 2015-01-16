@@ -114,6 +114,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -130,6 +131,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -143,19 +146,19 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp) .and. ge(runoff_model_agg(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -282,6 +285,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -300,6 +304,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -313,19 +319,19 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp) .and. ge(runoff_model_agg(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -454,6 +460,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -470,6 +477,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -483,19 +492,19 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp) .and. ge(runoff_model_agg(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -703,6 +712,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -714,6 +724,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -727,18 +739,18 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_lnnse = 0.0_dp
@@ -832,6 +844,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -843,6 +856,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -856,18 +871,18 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_sse = 0.0_dp
@@ -963,6 +978,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -974,6 +990,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -987,18 +1005,18 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_nse = 0.0_dp
@@ -1078,7 +1096,7 @@ CONTAINS
     
     use mo_mhm_eval,         only: mhm_eval
     use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: gauge,     evalPer
     use mo_errormeasures,    only: nse, lnnse
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
@@ -1097,8 +1115,11 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nn                       ! length of evaluation period
+    integer(i4)                           :: iBasin
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
     logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
 
@@ -1117,32 +1138,47 @@ CONTAINS
        stop
     end if
 
-    ! total number of simulated timesteps
+    ! remove warming days from simulated runoff
+    print *, shape(runoff)
+    !call delete_warmingdays( runoff, gauge%basinid, warmingDays, timestepsPerDay_modelled )
+    print *, shape(runoff)
+
+    ! total number of evaluation ( = simulation - warmup ) timesteps
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg(nTimeSteps/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask(nTimeSteps/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:nTimeSteps/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+1: &
+         tt*multiple,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:nTimeSteps/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_equal_nse_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
+       ! 
+       iBasin = gauge%BasinId(gg)
+       nn = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * timestepsPerDay_measured
+       Nwarmdays = warmingDays( iBasin ) / multiple
        ! NSE
+       print *, 'gauge number', gg
+       print *, 'length of period', nn
+       print *, gauge%Q(1461,2)
+       print *, 'shape gauge                 ', shape( gauge%Q(:,gg))
+       print *, 'shape runoff_model_agg      ', shape( runoff_model_agg(:,gg) )
+       print *, 'shape runoff_model_agg_mask ', shape( runoff_model_agg_mask(:,gg))
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            nse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+          nse(gauge%Q(1:nn,gg), runoff_model_agg(NwarmDays + 1:NwarmDays + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
        ! lnNSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            lnnse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+          lnnse(gauge%Q(1:nn,gg), runoff_model_agg(NwarmDays + 1:NwarmDays + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
     end do
     ! objective function value which will be minimized
     objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal,dp)
@@ -1237,6 +1273,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -1249,6 +1286,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -1262,18 +1301,18 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_power6_nse_lnnse = 0.0_dp
@@ -1381,6 +1420,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
+    integer(i4)                           :: NwarmDays                ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
@@ -1393,6 +1433,8 @@ CONTAINS
     timestepsPerDay_modelled = nTstepDay
     ! measured timesteps per day 
     timestepsPerDay_measured = nMeasPerDay
+    ! copy Number of warming days
+    NwarmDays                = warmingDays(1)
 
     ! check if modelled timestep is an integer multiple of measured timesteps
     if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
@@ -1406,18 +1448,18 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
+         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
 
     objective_kge = 0.0_dp
@@ -1436,5 +1478,61 @@ CONTAINS
     deallocate( runoff_model_agg_mask )
     
   END FUNCTION objective_kge
+
+! private routine
+
+! subroutine delete_warmingdays
+
+! removes period of warming days for each gauge because warming days are different
+! for the different basins
+
+! author: Stephan Thober
+! created: Jan 2015
+subroutine delete_warmingdays( runoff, basinids, warmingdays, timestepsPerDay_modelled )
+
+  use mo_kind,          only: i4, dp
+  use mo_mhm_constants, only: nodata_dp
+  
+  implicit none
+
+  ! input / output variables
+  real(dp), allocatable, dimension(:,:), intent(inout) :: runoff
+  integer(i4), dimension(:), intent(in) :: basinids
+  integer(i4), dimension(:), intent(in) :: warmingdays
+  integer(i4),               intent(in) :: timestepsPerDay_modelled
+
+  ! local variables
+  real(dp), dimension(:,:), allocatable :: dummy
+  integer(i4)                           :: ii
+  integer(i4)                           :: min_warm
+  integer(i4)                           :: NwarmSteps
+
+  ! get minimum of used warming days
+  min_warm = maxval( warmingdays )
+  do ii = 1, size( basinids, dim = 1 )
+     if ( warmingdays( basinids( ii ) ) .lt. min_warm ) min_warm = warmingdays(basinids(ii))
+  end do
+  print *, 'minimum warming: ', min_warm
+
+  ! create shape of dummy
+  allocate ( dummy( size( runoff, dim = 1 ) - min_warm * timestepsPerDay_modelled, &
+             size(runoff, dim = 2 ) ) )
+  dummy = nodata_dp
+  
+  ! copy data neglecting warming days
+  do ii = 1, size( basinids, dim = 1 )
+     NwarmSteps = warmingdays(basinids(ii)) * timestepsPerDay_modelled
+     print *, 'NwarmSteps: ', NwarmSteps
+     dummy( 1: size( runoff, dim = 1 ) - NwarmSteps , ii ) = &
+          runoff( NwarmSteps + 1 : size(runoff, dim = 1), ii )
+  end do
+
+  ! copy data to output variable
+  deallocate( runoff )
+  allocate( runoff( size( dummy, 1), size( dummy, 2 ) ) )
+  runoff = dummy
+  deallocate( dummy )
+
+end subroutine delete_warmingdays
   
 END MODULE mo_objective_function

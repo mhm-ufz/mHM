@@ -104,11 +104,11 @@ CONTAINS
 
        ! netcdf file input option
        CASE('nc')
-          CALL read_meteo_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer, &
+          CALL read_meteo_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
                'lai', LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp, nctimestep=timeStep_LAI_input)
        ! bin file input option
        CASE('bin')
-          CALL read_meteo_bin( dirgridded_LAI(iBasin), nRows0, nCols0, simPer, &
+          CALL read_meteo_bin( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
                LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp)
        CASE DEFAULT
            stop '***ERROR: Not recognized input format'
