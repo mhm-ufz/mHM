@@ -91,8 +91,9 @@ CONTAINS
   !>        \authors Matthias Zink, Juliane Mai
   !>        \date Jan 2013
   !          Modified, 
-  !                    Stephan Thober, Mar 2014 read data even if shorter than model period
-  !                    MatthiasZink,   Mar 2014 enable read in of nodata periods, e.g. forecast mode
+  !                    Stephan Thober,             Mar 2014: read data even if shorter than model period
+  !                    MatthiasZink,               Mar 2014: enable    read in of nodata periods, e.g. forecast mode
+  !                    Matthias Zink, Juliane Mai  Jan 2015: corrected read in of nodata periods, e.g. forecast mode
 
   subroutine read_timeseries(filename, fileunit, periodStart, periodEnd, optimize, data, mask, nMeasPerDay)
 
@@ -128,6 +129,8 @@ CONTAINS
     integer(i4)                                                   :: endJul_file      ! end   julian day of available data
     integer(i4)                                                   :: startJul_period  ! start julian day of needed data
     integer(i4)                                                   :: endJul_period    ! end   julian day of needed data
+    integer(i4)                                                   :: length_file      ! number of days in file
+    integer(i4)                                                   :: length_period    ! number of days in period
     real(dp),    dimension(:), allocatable                        :: data_file        ! time series output (fileStart:fileEnd)
     !                                                                                 ! points --> 0.25 [d-1]
     character(256)                                                :: dummy            ! dummy for char read in
@@ -175,26 +178,43 @@ CONTAINS
       end do
       time_file(1) = time_file(2) + 1   ! only to avoid warning
 
-      ! put data in final array
-      ! period in file smaller than modelling period
-      idx_en_period = (endJul_file     - startJul_period + 1) * timestep_file
-      !
-      idx_en_file = (endJul_period   - startJul_file + 1) * timestep_file
-      !     
-      if   ( startJul_period .gt. startJul_file ) then
+      length_file   = (endJul_file   - startJul_file   + 1 )
+      length_period = (endJul_period - startJul_period + 1 )
+
+      !       |---------------------------------|    FILE
+      !                  |--------------|            PERIOD
+      if (( startJul_period .ge. startJul_file ) .and. ( endJul_period .le. endJul_file )) then
          idx_st_period = 1
-         idx_st_file   = (startJul_period - startJul_file      ) * timestep_file + 1
-      else ! ( startJul_period .le. startJul_file )
-         idx_st_period = (startJul_file   - startJul_period    ) * timestep_file + 1
-         idx_st_file   = 1
+         idx_en_period = length_period * timestep_file
+         idx_st_file   = (startJul_period - startJul_file + 1 ) * timestep_file
+         idx_en_file   = (idx_st_file + length_period     - 1 ) * timestep_file
       end if
 
-      if   ( endJul_period .lt. endJul_file ) then
-         idx_en_period = size(data, dim=1)
-         idx_en_file   = (endJul_period   - startJul_file + 1  ) * timestep_file
-      else ! ( endJul_period .ge. endJul_file )
-         idx_en_period = (endJul_file     - startJul_period + 1) * timestep_file
-         idx_en_file   = size(data, dim=1)
+      !                  |--------------|            FILE
+      !       |---------------------------------|    PERIOD
+      if (( startJul_period .lt. startJul_file ) .and. ( endJul_period .gt. endJul_file )) then
+         idx_st_period = (startJul_file - startJul_period + 1 ) * timestep_file
+         idx_en_period = (idx_st_period + length_file     - 1 ) * timestep_file
+         idx_st_file   = 1
+         idx_en_file   = length_file                            * timestep_file
+      end if
+
+      !  |--------------|                            FILE
+      !       |---------------------------------|    PERIOD
+      if (( startJul_period .ge. startJul_file ) .and. ( endJul_period .gt. endJul_file )) then
+         idx_st_period = 1
+         idx_en_period = ( endJul_file     - startJul_period + 1 ) * timestep_file
+         idx_st_file   = ( startJul_period - startJul_file   + 1 ) * timestep_file
+         idx_en_file   = length_file                               * timestep_file
+      end if
+
+      !                          |--------------|    FILE
+      !  |---------------------------------|         PERIOD
+      if (( startJul_period .lt. startJul_file ) .and. ( endJul_period .le. endJul_file )) then
+         idx_st_period = ( startJul_file - startJul_period + 1 ) * timestep_file
+         idx_en_period = ( length_period                       ) * timestep_file
+         idx_st_file   = 1
+         idx_en_file   = ( endJul_period - startJul_file   + 1 ) * timestep_file
       end if
 
       data(idx_st_period:idx_en_period) = data_file(idx_st_file:idx_en_file)

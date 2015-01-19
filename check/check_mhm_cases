@@ -330,7 +330,7 @@ for irelease in ${release} ; do
             echo '   using System:   '${system}
             echo '         Compiler: '${compiler}
             echo '         Release:  '${irelease}
-            make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= clean > /dev/null
+            make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
             if [[ ${thread} -eq 0 ]] ; then
 		echo '         OpenMP:   False'
 		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
