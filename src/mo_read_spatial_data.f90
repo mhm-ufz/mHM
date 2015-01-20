@@ -176,7 +176,7 @@ CONTAINS
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
-    open (unit=fileunit, file=filename, action='read', status='old',recl=12*file_ncols)
+    open (unit=fileunit, file=filename, action='read', status='old',recl=48*file_ncols)
     ! (a) skip header
     do i = 1, 6
        read(fileunit, *)
@@ -264,7 +264,7 @@ CONTAINS
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
-    open (unit=fileunit, file=filename, action='read', status='old',recl=12*file_ncols)
+    open (unit=fileunit, file=filename, action='read', status='old',recl=48*file_ncols)
     ! (a) skip header
     do i=1,6
        read(fileunit, *)

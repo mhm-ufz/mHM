@@ -93,7 +93,7 @@ CONTAINS
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
     use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: gauge,     evalPer
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
     use mo_utils,            only: ge
@@ -114,9 +114,11 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: NwarmDays                ! Number of warming days
+    integer(i4)                           :: Nwd                      ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nn                       ! length of evaluation period
+    integer(i4)                           :: iBasin
     real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
     logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
     integer(i4)                           :: nmeas
@@ -146,19 +148,19 @@ CONTAINS
     ntimeSteps = size(runoff,1)
     
     ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg(nTimeSteps/multiple, nGaugesTotal) )
+    allocate( runoff_model_agg_mask(nTimeSteps/multiple, nGaugesTotal) )
     runoff_model_agg      = nodata_dp
     runoff_model_agg_mask = .false. ! take mask of observation
 
     ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
+    forall(tt=1:nTimeSteps/multiple,gg=1:nGaugesTotal) &
          runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*NwarmDays+1: &
-         tt*multiple+timestepsPerDay_modelled*NwarmDays,gg))/real(multiple,dp)
+         sum(runoff((tt-1)*multiple+1: &
+         tt*multiple,gg))/real(multiple,dp)
     ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*NwarmDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp) .and. ge(runoff_model_agg(tt,gg),0.0_dp))    
+    forall(tt=1:nTimeSteps/multiple,gg=1:nGaugesTotal) &
+         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
 
     ! ----------------------------------------
 
@@ -1115,7 +1117,7 @@ CONTAINS
     integer(i4)                           :: timestepsPerDay_measured !
     integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
     !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: NwarmDays                ! Number of warming days
+    integer(i4)                           :: Nwd                      ! Number of warming days
     integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
     integer(i4)                           :: nn                       ! length of evaluation period
@@ -1137,11 +1139,6 @@ CONTAINS
        call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
        stop
     end if
-
-    ! remove warming days from simulated runoff
-    print *, shape(runoff)
-    !call delete_warmingdays( runoff, gauge%basinid, warmingDays, timestepsPerDay_modelled )
-    print *, shape(runoff)
 
     ! total number of evaluation ( = simulation - warmup ) timesteps
     ntimeSteps = size(runoff,1)
@@ -1165,20 +1162,14 @@ CONTAINS
     do gg=1,nGaugesTotal
        ! 
        iBasin = gauge%BasinId(gg)
-       nn = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * timestepsPerDay_measured
-       Nwarmdays = warmingDays( iBasin ) / multiple
+       nn     = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * timestepsPerDay_measured
+       Nwd    = warmingDays( iBasin ) / multiple
        ! NSE
-       print *, 'gauge number', gg
-       print *, 'length of period', nn
-       print *, gauge%Q(1461,2)
-       print *, 'shape gauge                 ', shape( gauge%Q(:,gg))
-       print *, 'shape runoff_model_agg      ', shape( runoff_model_agg(:,gg) )
-       print *, 'shape runoff_model_agg_mask ', shape( runoff_model_agg_mask(:,gg))
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-          nse(gauge%Q(1:nn,gg), runoff_model_agg(NwarmDays + 1:NwarmDays + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
+          nse(gauge%Q(1:nn,gg), runoff_model_agg(Nwd + 1:Nwd + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
        ! lnNSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-          lnnse(gauge%Q(1:nn,gg), runoff_model_agg(NwarmDays + 1:NwarmDays + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
+          lnnse(gauge%Q(1:nn,gg), runoff_model_agg(Nwd + 1:Nwd + nn,gg), mask=runoff_model_agg_mask(1:nn,gg))
     end do
     ! objective function value which will be minimized
     objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal,dp)
