@@ -122,6 +122,7 @@ CONTAINS
          file_geolut, ugeolut                                 ! file specifying geological formations
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
+         period,                                            & ! data structure for period
          timestep_model_inputs,                             & ! read input frequency
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
          L0_Basin,                                          & ! L0_Basin ID
@@ -245,7 +246,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious    
     real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope    
     !
-    integer(i4)                                     :: ii, n_true_pars
+    integer(i4)                                     :: ii, iBasin, n_true_pars
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
     !
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
@@ -276,6 +277,9 @@ CONTAINS
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
     real(dp)                                        :: jday_frac
+    integer(i4),    dimension(maxNoBasins)          :: warming_Days
+    type(period),   dimension(maxNoBasins)          :: eval_Per
+    integer(i4),    dimension(maxNoBasins)          :: time_step_model_inputs
     !
     real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
     real(dp),    dimension(maxNoBasins)             :: resolution_Routing
@@ -301,8 +305,10 @@ CONTAINS
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
-                 write_restart, perform_mpr, warmingDays, evalPer, timestep_model_inputs
-    ! namelsit soil layering
+                 write_restart, perform_mpr
+    ! namelist for time settings
+    namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
+    ! namelist soil layering
     namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
     namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
@@ -394,48 +400,76 @@ CONTAINS
        call message('***ERROR: coordinate system for the model run should be 0 or 1')
        stop
     end if
-    ! check for optimzation and timestep_model_inputs options
-    if ( optimize .and. ( timestep_model_inputs .ne. 0 ) ) then
-       call message()
-       call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
-       stop
-    end if
     ! check for perform_mpr
     if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
        call message()
        call message('***ERROR: cannot omit mpr when read_restart is set to .false.')
        stop
     end if
-    
+
+    ! allocate time periods
+    allocate(simPer                (nBasins))
+    allocate(evalPer               (nBasins))
+    allocate(warmingDays           (nBasins))
+    allocate(warmPer               (nBasins))
+    allocate(timestep_model_inputs (nBasins))
+
     !===============================================================
-    !  determine simulation time period incl. warming days
+    !  read simulation time periods incl. warming days
     !===============================================================
-    ! julain days for evaluation period
-    jday_frac = date2dec(dd=evalPer%dStart, mm=evalPer%mStart, yy=evalPer%yStart)
-    evalPer%julStart = nint(jday_frac) 
+    call position_nml('time_periods', unamelist)
+    read(unamelist, nml=time_periods)
+    warmingDays           = warming_Days(           1:nBasins )
+    evalPer               = eval_Per(               1:nBasins )
+    timestep_model_inputs = time_step_model_inputs( 1:nBasins )
 
-    jday_frac = date2dec(dd=evalPer%dEnd, mm=evalPer%mEnd, yy=evalPer%yEnd)
-    evalPer%julEnd  = nint(jday_frac, i4 ) 
+    ! consistency check for timestep_model_inputs
+    if (       any( timestep_model_inputs .ne. 0 ) .and. &
+         .not. all( timestep_model_inputs .ne. 0 ) ) then
+       call message()
+       call message('***ERROR: timestep_model_inputs either have to be all zero or all non-zero')
+       stop
+    end if
+    ! check for optimzation and timestep_model_inputs options
+    if ( optimize .and. ( any(timestep_model_inputs .ne. 0) ) ) then
+       call message()
+       call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
+       stop
+    end if
+        
+    !===============================================================
+    !  determine simulation time period incl. warming days for each
+    !  basin
+    !===============================================================
+    do ii = 1, nBasins
+       ! julain days for evaluation period
+       jday_frac = date2dec(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
+       evalPer(ii)%julStart = nint(jday_frac) 
+       
+       jday_frac = date2dec(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
+       evalPer(ii)%julEnd  = nint(jday_frac, i4 ) 
+       
+       ! determine warming period
+       warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays(ii)
+       warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1 
 
-    ! determine warming period
-    warmPer%julStart = evalPer%julStart - warmingDays 
-    warmPer%julEnd   = evalPer%julStart - 1 
+       jday_frac = real(warmPer(ii)%julStart,dp)
+       call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
+       
+       jday_frac = real(warmPer(ii)%julEnd,dp)
+       call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd  )
 
-    jday_frac = real(warmPer%julStart,dp)
-    call dec2date(jday_frac, dd=warmPer%dStart, mm=warmPer%mStart, yy=warmPer%yStart)
+       ! sumulation Period = warming Period + evaluation Period
+       simPer(ii)%dStart   = warmPer(ii)%dStart
+       simPer(ii)%mStart   = warmPer(ii)%mStart
+       simPer(ii)%yStart   = warmPer(ii)%yStart
+       simPer(ii)%julStart = warmPer(ii)%julStart
+       simPer(ii)%dEnd     = evalPer(ii)%dEnd
+       simPer(ii)%mEnd     = evalPer(ii)%mEnd
+       simPer(ii)%yEnd     = evalPer(ii)%yEnd
+       simPer(ii)%julEnd   = evalPer(ii)%julEnd
 
-    jday_frac = real(warmPer%julEnd,dp)
-    call dec2date(jday_frac, dd=warmPer%dEnd,   mm=warmPer%mEnd,   yy=warmPer%yEnd  )
-
-    ! sumulation Period = warming Period + evaluation Period
-    simPer%dStart   = warmPer%dStart
-    simPer%mStart   = warmPer%mStart
-    simPer%yStart   = warmPer%yStart
-    simPer%julStart = warmPer%julStart
-    simPer%dEnd     = evalPer%dEnd
-    simPer%mEnd     = evalPer%mEnd
-    simPer%yEnd     = evalPer%yEnd
-    simPer%julEnd   = evalPer%julEnd
+    end do
 
     !===============================================================
     !  Read namelist for mainpaths
@@ -687,54 +721,69 @@ CONTAINS
     !  determine land cover periods
     !===============================================================
     ! countercheck if land cover covers simulation period
-    if (LCoverYearStart(1) .GT. evalPer%yStart) then
+    if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
        call message()
        call message('***ERROR: Land cover for warming period is missing!')
        call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimStart   : ', trim(num2str(simPer%yStart)))
+       call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
        call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
        stop       
     end if
-    if (LCoverYearEnd(nLcover_scene) .LT. evalPer%yEnd) then
+    if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
        call message()
        call message('***ERROR: Land cover period shorter than modelling period!')
        call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimEnd   : ', trim(num2str(simPer%yEnd)))
+       call message('   SimEnd   : ', trim(num2str(maxval(evalPer(1:nBasins)%yEnd))))
        call message('   LCoverEnd: ', trim(num2str(LCoverYearEnd(nLcover_scene))))
        stop
     end if
     !
-    allocate(LcYearId(simPer%yStart:simPer%yEnd))
-    do ii = 1, nLcover_scene
-       ! land cover before model period                        ! land cover after model period
-       if ((LCoverYearEnd(ii) .LT. evalPer%yStart)        .OR.  (LCoverYearStart(ii) .GT. evalPer%yEnd)) then
-          cycle
-       else if ((LCoverYearStart(ii) .LE. evalPer%yStart) .AND. (LCoverYearEnd(ii) .GE. evalPer%yEnd)) then
-          LCyearId(simPer%yStart:simPer%yEnd)          = ii
-          exit
-       else if ((LCoverYearStart(ii) .LE. evalPer%yStart) .AND. (LCoverYearEnd(ii) .LT. evalPer%yEnd)) then
-          LCyearId(simPer%yStart:LCoverYearEnd(ii))      = ii
-       else if ((LCoverYearStart(ii) .GT. evalPer%yStart) .AND. (LCoverYearEnd(ii) .GE. evalPer%yEnd)) then
-          LCyearId(LCoverYearStart(ii):simPer%yEnd) = ii
-       else
-          LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii)) = ii
-       end if
+    allocate(LCYearId(minval(simPer(1:nBasins)%yStart):maxval(simPer(1:nBasins)%yEnd),nBasins))
+    LCYearId = nodata_i4
+    do iBasin = 1, nBasins
+       do ii = 1, nLcover_scene
+          ! land cover before model period                        ! land cover after model period
+          if ((LCoverYearEnd(ii)        .LT. evalPer(iBasin)%yStart) .OR. &
+              (LCoverYearStart(ii)      .GT. evalPer(iBasin)%yEnd)) then
+             cycle
+          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                   (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
+             LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
+             exit
+          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                   (LCoverYearEnd(ii)   .LT. evalPer(iBasin)%yEnd)) then
+             LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
+          else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
+                   (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
+             LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
+          else
+             LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
+          end if
+       end do
     end do
     !
     ! correct number of input land cover scenes to number of needed scenes
-    nLcover_scene = maxval(LCyearId) - minval(LCyearId) + 1
+    nLcover_scene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
+                    minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
     ! put land cover scenes to corresponding file name and LuT
     allocate(LCfilename(nLcover_scene))
-    LCfilename(:) = LCoverfName(minval(LCyearId):maxval(LCyearId))
+    LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
+         maxval(LCyearId))
     ! update the ID's
     ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
-    LCyearId(:) = LCyearId(:) - minval(LCyearId) + 1
+    LCyearId(:,:) = LCyearId(:,:) - minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) + 1
     !
-    if (any(LCyearId .EQ. nodata_i4)) then 
+    if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
+         maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
+       if (any(LCyearId .EQ. nodata_i4)) then 
+          call message()
+          call message('***ERROR: Intermidiate land cover period is missing!')
+          call message('   FILE: mhm.nml, namelist: LCover')
+          stop
+       end if
+    else
        call message()
-       call message('***ERROR: Intermidiate land cover period is missing!')
-       call message('   FILE: mhm.nml, namelist: LCover')
-       stop
+       call message('***WARNING: No check on missing land cover period is performed!')
     end if
     !
     !===============================================================

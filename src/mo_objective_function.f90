@@ -86,17 +86,14 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date Dec 2012
-  !         Modified, 
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION loglikelihood( parameterset, stddev, stddev_new, likeli_new)
     use mo_moment,           only: mean, correlation
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
+    use mo_global_variables, only: nGaugesTotal
+    use mo_append,           only: append
 
     implicit none
 
@@ -109,15 +106,10 @@ CONTAINS
     ! local
     real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
     integer(i4)                           :: nmeas
     real(dp), dimension(:),   allocatable :: errors
     real(dp), dimension(:),   allocatable :: obs, calc, out
@@ -126,45 +118,20 @@ CONTAINS
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
-
+    ! extract runoff and append it to obs and calc
+    do gg = 1, nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       ! append it to variables
+       call append( obs,  runoff_obs )
+       call append( calc, runoff_agg )
+       
+    end do
     ! ----------------------------------------
 
-    nmeas     = size(runoff_model_agg,1) * nGaugesTotal
+    nmeas     = size(obs, dim = 1)
     
-    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
-
-    obs       = reshape(gauge%Q, (/nmeas/))
-    calc      = reshape(runoff_model_agg, (/nmeas/))
+    allocate(out(nmeas), errors(nmeas))
     errors(:) = abs( calc(:) - obs(:) )
 
     ! remove linear trend of errors - must be model NOT obs
@@ -194,7 +161,7 @@ CONTAINS
        likeli_new = -0.5_dp * likeli_new
     end if
 
-    deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
+    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors)
     
   END FUNCTION loglikelihood
@@ -254,17 +221,14 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date Mar 2014
-  !         Modified, 
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
     use mo_constants,        only: pi_dp
     use mo_moment,           only: stddev, correlation
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
+    use mo_global_variables, only: nGaugesTotal
+    use mo_append,           only: append
 
     implicit none
 
@@ -277,15 +241,10 @@ CONTAINS
     ! local
     real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     integer(i4)                           :: nmeas
     real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
     real(dp), dimension(:),   allocatable :: obs, calc, out
@@ -296,45 +255,22 @@ CONTAINS
     npara = size(parameterset)
     call mhm_eval(parameterset(1:npara-2), runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
+  
+    ! extract runoff and append it to obs and calc
+    do gg = 1, nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       ! append it to variables
+       call append( obs,  runoff_obs )
+       call append( calc, runoff_agg )
 
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+    end do
 
     ! ----------------------------------------
 
-    nmeas     = size(runoff_model_agg,1) * nGaugesTotal
+    nmeas     = size(obs, dim = 1 )
     
-    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
-
-    obs       = reshape(gauge%Q, (/nmeas/))
-    calc      = reshape(runoff_model_agg, (/nmeas/))
+    allocate( out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
     ! residual errors
     errors(:) = calc(:) - obs(:)
 
@@ -373,7 +309,7 @@ CONTAINS
        likeli_new = -0.5_dp * likeli_new
     end if
 
-    deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
+    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
     
   END FUNCTION loglikelihood_kavetski
@@ -432,11 +368,8 @@ CONTAINS
     use mo_moment,           only: stddev
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
+    use mo_global_variables, only: nGaugesTotal
+    use mo_append,           only: append
 
     implicit none
 
@@ -447,17 +380,12 @@ CONTAINS
     real(dp)                                      :: loglikelihood_trend_no_autocorr
 
     ! local
-    real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
-    integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:,:), allocatable :: runoff          ! modelled runoff for a given parameter set
+    !                                                        ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: gg              ! gauges counter
+    real(dp), dimension(:),   allocatable :: runoff_agg      ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs      ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask ! mask for aggregated measured runoff
     integer(i4)                           :: nmeas
     real(dp), dimension(:),   allocatable :: errors
     real(dp), dimension(:),   allocatable :: obs, calc, out
@@ -466,45 +394,21 @@ CONTAINS
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
+    ! extract runoff and append it to obs and calc
+    do gg = 1, nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       ! append it to variables
+       call append( obs,  runoff_obs )
+       call append( calc, runoff_agg )
 
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg),0.0_dp))    
+    end do
 
     ! ----------------------------------------
+    nmeas     = size(obs, dim = 1)
 
-    nmeas     = size(runoff_model_agg,1) * nGaugesTotal
-    
-    allocate(obs(nmeas), calc(nmeas), out(nmeas), errors(nmeas))
-
-    obs       = reshape(gauge%Q, (/nmeas/))
-    calc      = reshape(runoff_model_agg, (/nmeas/))
+    ! allocate output variables
+    allocate(out(nmeas), errors(nmeas))
     errors(:) = abs( calc(:) - obs(:) )
 
     ! remove linear trend of errors - must be model NOT obs
@@ -530,7 +434,7 @@ CONTAINS
        likeli_new = -0.5_dp * likeli_new
     end if
 
-    deallocate(runoff, runoff_model_agg, runoff_model_agg_mask)
+    deallocate(runoff, runoff_agg, runoff_obs, runoff_obs_mask)
     deallocate(obs, calc, out, errors)
     
   END FUNCTION loglikelihood_trend_no_autocorr
@@ -678,17 +582,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date May 2013
-  !         Modified, 
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION objective_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: lnnse
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -698,54 +598,20 @@ CONTAINS
     ! local
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! lnNSE
        objective_lnnse = objective_lnnse + &
-            lnnse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
     end do
     ! objective function value which will be minimized
     objective_lnnse = 1.0_dp - objective_lnnse / real(nGaugesTotal,dp)
@@ -753,8 +619,7 @@ CONTAINS
     write(*,*) 'objective_lnnse = ',objective_lnnse
     ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_lnnse
 
@@ -808,16 +673,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date March 2014
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION objective_sse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: sse
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -827,53 +689,20 @@ CONTAINS
     ! local
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_sse = 0.0_dp
     do gg=1,nGaugesTotal
+       !
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
        objective_sse = objective_sse + &
-            sse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+            sse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
     end do
     ! objective_sse = objective_sse + sse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_sse = objective_sse / real(nGaugesTotal,dp)
@@ -881,8 +710,7 @@ CONTAINS
     write(*,*) 'objective_sse = ', objective_sse
     ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_sse
 
@@ -938,17 +766,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date May 2013
-  !         Modified, 
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract runoff
 
   FUNCTION objective_nse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -958,53 +782,20 @@ CONTAINS
     ! local
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_nse = 0.0_dp
     do gg=1,nGaugesTotal
+       !
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
        objective_nse = objective_nse + &
-            nse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+            nse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
     end do
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal,dp)
@@ -1012,8 +803,7 @@ CONTAINS
     write(*,*) 'objective_nse = ',objective_nse
     ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_nse
 
@@ -1072,17 +862,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date May 2013
-  !         Modified, 
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION objective_equal_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -1090,71 +876,37 @@ CONTAINS
     real(dp)                           :: objective_equal_nse_lnnse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
-    integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), allocatable, dimension(:,:) :: runoff             ! modelled runoff for a given parameter set
+    !                                                           ! dim2=nGauges
+    integer(i4)                           :: gg                 ! gauges counter
+    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_equal_nse_lnnse = 0.0_dp
     do gg=1,nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
        ! NSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            nse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+          nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask )
        ! lnNSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            lnnse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+          lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask )
     end do
     ! objective function value which will be minimized
     objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal,dp)
 
     write(*,*) 'objective_equal_nse_lnnse = ',objective_equal_nse_lnnse
-    ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    ! clean up
+    deallocate( runoff_agg, runoff_obs )
+    deallocate( runoff_obs_mask )
     
   END FUNCTION objective_equal_nse_lnnse
-
 
   ! ------------------------------------------------------------------
 
@@ -1213,16 +965,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date March 2014
+  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
 
   FUNCTION objective_power6_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -1232,56 +981,22 @@ CONTAINS
     ! local
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     real(dp), parameter :: onesixth = 1.0_dp/6.0_dp
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_power6_nse_lnnse = 0.0_dp
     do gg=1, nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! NSE + lnNSE
        objective_power6_nse_lnnse = objective_power6_nse_lnnse + &
-            ((1.0_dp-nse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg)))**6 + &
-            (1.0_dp-lnnse(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg)))**6)**onesixth
+            ( (1.0_dp-nse(  runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 + &
+              (1.0_dp-lnnse(runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 )**onesixth
     end do
     ! objective function value which will be minimized
     objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal,dp)
@@ -1289,8 +1004,7 @@ CONTAINS
     write(*,*) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
     ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_power6_nse_lnnse
   ! ------------------------------------------------------------------
@@ -1357,16 +1071,13 @@ CONTAINS
   !>        \author Rohini Kumar
   !>        \date August 2014
   !         Modified, R. Kumar & O. Rakovec, Sep. 2014
+  !                   Stephan Thober,        Jan  2015 - introduced extract_runoff
 
   FUNCTION objective_kge(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nTstepDay, nMeasPerDay, nGaugesTotal, warmingDays
-    use mo_global_variables, only: gauge
+    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: kge
-    use mo_mhm_constants,    only: nodata_dp
-    use mo_message,          only: message
-    use mo_utils,            only: ge
 
     implicit none
 
@@ -1376,55 +1087,21 @@ CONTAINS
     ! local
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: nTimeSteps               ! number of modelled timesteps in total
-    integer(i4)                           :: timestepsPerDay_modelled !
-    integer(i4)                           :: timestepsPerDay_measured !
-    integer(i4)                           :: multiple                 ! timestepsPerDay_modelled = 
-    !                                                                 !     multiple * timestepsPerDay_measured
-    integer(i4)                           :: tt                       ! timestep counter
     integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:,:), allocatable :: runoff_model_agg         ! aggregated measured runoff
-    logical,  dimension(:,:), allocatable :: runoff_model_agg_mask    ! mask for aggregated measured runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     !
 
     call mhm_eval(parameterset, runoff=runoff)
 
-    ! simulated timesteps per day 
-    timestepsPerDay_modelled = nTstepDay
-    ! measured timesteps per day 
-    timestepsPerDay_measured = nMeasPerDay
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo(timestepsPerDay_modelled,timestepsPerDay_measured) .eq. 0 ) then
-       multiple = timestepsPerDay_modelled/timestepsPerDay_measured
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! total number of simulated timesteps
-    ntimeSteps = size(runoff,1)
-    
-    ! allocation and initialization
-    allocate( runoff_model_agg((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    allocate( runoff_model_agg_mask((nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple, nGaugesTotal) )
-    runoff_model_agg      = nodata_dp
-    runoff_model_agg_mask = .false. ! take mask of observation
-
-    ! average <multiple> datapoints
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg(tt,gg) = &
-         sum(runoff((tt-1)*multiple+timestepsPerDay_modelled*warmingDays+1: &
-         tt*multiple+timestepsPerDay_modelled*warmingDays,gg))/real(multiple,dp)
-    ! set mask
-    forall(tt=1:(nTimeSteps-timestepsPerDay_modelled*warmingDays)/multiple,gg=1:nGaugesTotal) &
-         runoff_model_agg_mask(tt,gg) = (ge(gauge%Q(tt,gg), 0.0_dp))    
-
     objective_kge = 0.0_dp
     do gg=1,nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! KGE
        objective_kge = objective_kge + &
-            kge(gauge%Q(:,gg), runoff_model_agg(:,gg), mask=runoff_model_agg_mask(:,gg))
+            kge( runoff_obs, runoff_agg, mask=runoff_obs_mask)
     end do
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
     objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal,dp)
@@ -1432,9 +1109,139 @@ CONTAINS
     write(*,*) 'objective_kge = ', objective_kge
     ! pause
 
-    deallocate( runoff_model_agg )
-    deallocate( runoff_model_agg_mask )
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_kge
+
+! private routine
+
+! ------------------------------------------------------------------
+
+! NAME
+!         extract_runoff
+
+!>        \brief extracts runoff data from global variables
+
+!>        \details extracts simulated and measured runoff from global variables,
+!>              such that they overlay exactly. For measured runoff, only the runoff
+!>              during the evaluation period are cut, not succeeding nodata values.
+!>              For simulated runoff, warming days as well as succeeding nodata values
+!>              are neglected and the simulated runoff is aggregated to the resolution
+!>              of the observed runoff.\n
+
+!     INTENT(IN)
+!>        \param[in] "integer(i4) :: gaugeID"   - ID of the current gauge to process
+!>        \param[in] "real(dp)    :: runoff(:)" - simulated runoff at this gauge
+
+!     INTENT(INOUT)
+!         None
+
+!     INTENT(OUT)
+!>        \param[out] "real(dp)   :: runoff_agg(:)"      - aggregated simulated runoff at this gauge\n
+!>        \param[out] "real(dp)   :: runoff_obs(:)"      - extracted observed runoff\n
+!>        \param[out] "logical    :: runoff_obs_mask(:)" - masking non-negative values in runoff_obs\n
+
+!     INTENT(IN), OPTIONAL
+!         None
+
+!     INTENT(INOUT), OPTIONAL
+!         None
+
+!     INTENT(OUT), OPTIONAL
+!         None
+
+!     RETURN
+!         None
+
+!     RESTRICTIONS
+!         None
+
+!     EXAMPLE
+!         see use in this module above
+
+!     LITERATURE
+!         None
+
+
+!     HISTORY
+!>        \author Stephan Thober
+!>        \date Jan 2015
+
+! ------------------------------------------------------------------
+subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+  
+  use mo_global_variables, only: gauge, evalPer, warmingDays, nTstepDay, nMeasPerDay
+  use mo_message,          only: message
+  use mo_utils,            only: ge
+  
+  implicit none
+
+  ! input variables
+  integer(i4),               intent(in) :: gaugeId      ! current gauge Id
+  real(dp),  dimension(:,:), intent(in) :: runoff       ! simulated runoff
+
+  ! output variables
+  real(dp), dimension(:), allocatable, intent(out) :: runoff_agg      ! aggregated simulated
+                                                                      ! runoff to the resolution
+                                                                      ! of the measurement
+  real(dp), dimension(:), allocatable, intent(out) :: runoff_obs      ! extracted measured 
+                                                                      ! runoff to exactly the
+                                                                      ! evaluation period
+  logical,  dimension(:), allocatable, intent(out) :: runoff_obs_mask ! mask of no data values
+                                                                      ! in runoff_obs
+
+  ! local variables
+  integer(i4)                         :: iBasin  ! basin id
+  integer(i4)                         :: tt      ! timestep counter
+  integer(i4)                         :: length  ! length of extracted time series
+  integer(i4)                         :: factor  ! between simulated and measured time scale
+  integer(i4)                         :: TPD_sim ! simulated Timesteps per Day
+  integer(i4)                         :: TPD_obs ! observed Timesteps per Day
+  real(dp), dimension(:), allocatable :: dummy
+
+  ! copy time resolution to local variables
+  TPD_sim = nTstepDay
+  TPD_obs = nMeasPerDay
+
+  ! check if modelled timestep is an integer multiple of measured timesteps
+  if ( modulo( TPD_sim, TPD_obs) .eq. 0 ) then
+     factor = TPD_sim / TPD_obs
+  else
+     call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+     stop
+  end if
+
+  ! extract basin Id from gauge Id
+  iBasin = gauge%basinId( gaugeId )
+
+  ! get length of evaluation period times TPD_obs
+  length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
+
+  ! extract measurements
+  if ( allocated( runoff_obs ) ) deallocate( runoff_obs )
+  allocate( runoff_obs( length ) )
+  runoff_obs = gauge%Q( 1 : length, gaugeId )
+
+  ! create mask of observed runoff
+  if ( allocated( runoff_obs_mask ) ) deallocate( runoff_obs_mask )
+  allocate( runoff_obs_mask( length ) )
+  runoff_obs_mask = .false.
+  forall(tt=1:length) runoff_obs_mask(tt) = ge( runoff_obs(tt), 0.0_dp)    
+
+  ! extract and aggregate simulated runoff
+  if ( allocated( runoff_agg ) ) deallocate( runoff_agg )
+  allocate( runoff_agg( length ) )
+  ! remove warming days
+  length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_sim
+  allocate( dummy( length ) )
+  dummy = runoff( warmingDays(iBasin)*TPD_sim + 1:warmingDays(iBasin)*TPD_sim + length, gaugeId )
+  ! aggregate runoff
+  length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
+  forall(tt=1:length) runoff_agg(tt) = sum( dummy( (tt-1)*factor+1: tt*factor ) ) / &
+       real(factor,dp)
+  ! clean up
+  deallocate( dummy )
+
+end subroutine extract_runoff
   
 END MODULE mo_objective_function

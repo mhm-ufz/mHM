@@ -105,12 +105,12 @@ CONTAINS
     logical                                    :: read_flag     ! indicate whether data should be read
 
     ! configuration of chunk_read
-    call chunk_config( tt, read_flag, readPer )
+    call chunk_config( iBasin, tt, read_flag, readPer )
  
     ! only read, if read_flag is true
     if ( read_flag ) then
        ! free L1 variables if chunk read is activated
-       if ( timeStep_model_inputs .ne. 0 ) then
+       if ( timeStep_model_inputs(iBasin) .ne. 0 ) then
           if ( allocated( L1_pre         )) deallocate( L1_pre         )
           if ( allocated( L1_temp        )) deallocate( L1_temp        )
           if ( allocated( L1_pet         )) deallocate( L1_pet         )
@@ -121,19 +121,19 @@ CONTAINS
           if ( allocated( L1_windspeed   )) deallocate( L1_windspeed   )
        end if
        
-       ! basic basin characteristics and read meteo header
-       if ( timeStep_model_inputs .eq. 0 ) then
+       !  basin characteristics and read meteo header
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) then
           call message( '  Reading meteorological forcings for basin: ', trim(adjustl(num2str(iBasin))),' ...')
           call timer_start(1)
        end if
 
        ! precipitation
-       if ( timeStep_model_inputs .eq. 0 ) call message( '    read precipitation ...' )
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read precipitation ...' )
        call meteo_forcings_wrapper( iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
             L1_pre, lower=0.0_dp, upper=1000._dp, ncvarName='pre' )
 
        ! temperature
-       if ( timeStep_model_inputs .eq. 0 ) call message( '    read temperature   ...' )
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read temperature   ...' )
        call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
             L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
 
@@ -141,57 +141,57 @@ CONTAINS
        select case (processMatrix(5,1))    
 
        case(0) ! pet is input
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read pet                  ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read pet                  ...' )
           call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
                L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
           ! allocate PET and dummies for mhm_call
-          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+          if ((iBasin.eq.nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) ); allocate( L1_netrad(1,1) )
              allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
           end if
 
        case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read max. temperature     ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read max. temperature     ...' )
           call meteo_forcings_wrapper( iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
                L1_tmin, lower=-100.0_dp, upper = 100._dp, ncvarName='tmin' )
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read min. temperature     ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read min. temperature     ...' )
           call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
                L1_tmax, lower=-100.0_dp, upper = 100._dp, ncvarName='tmax' )
           ! allocate PET and dummies for mhm_call
-          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+          if ((iBasin .eq. nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
              allocate( L1_pet    (size(L1_tmax, dim=1), size(L1_tmax, dim=2)))
              allocate( L1_netrad(1,1) ); allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
           end if
 
        case(2) ! Priestley-Taylor formulation (input: net radiation)
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read net radiation        ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read net radiation        ...' )
           call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
                L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
           ! allocate PET and dummies for mhm_call
-          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+          if ((iBasin .eq. nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
              allocate( L1_pet    (size(L1_netrad, dim=1), size(L1_netrad, dim=2)))
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
              allocate( L1_absvappress(1,1)); allocate( L1_windspeed(1,1) )
           end if
 
        case(3) ! Penman-Monteith formulation (input: net radiationm absulute vapour pressure, windspeed)
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read net radiation        ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read net radiation        ...' )
           call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
                L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read abs. vapour pressue  ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read abs. vapour pressue  ...' )
           call meteo_forcings_wrapper( iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
                L1_absvappress, lower=0.0_dp, upper = 2500.0_dp, ncvarName='eabs' )
-          if ( timeStep_model_inputs .eq. 0 ) call message( '    read windspeed            ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read windspeed            ...' )
           call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
                L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
           ! allocate PET and dummies for mhm_call
-          if ((iBasin==nBasins) .OR. (timeStep_model_inputs .NE. 0)) then
+          if ((iBasin.eq.nBasins) .OR. (timeStep_model_inputs(iBasin) .NE. 0)) then
              allocate( L1_pet    (size(L1_absvappress, dim=1), size(L1_absvappress, dim=2)))
              allocate( L1_tmin(1,1)); allocate( L1_tmax(1,1) )
           end if
        end select
 
-       if ( timeStep_model_inputs .eq. 0 ) then
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) then
           call timer_stop(1)
           call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
           call timer_clear(1)
@@ -260,6 +260,7 @@ end subroutine prepare_meteo_forcings_data
   subroutine meteo_forcings_wrapper(iBasin, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
   
     use mo_global_variables,           only: readPer, level1, level2
+    use mo_mhm_constants,              only: nodata_dp
     use mo_init_states,                only: get_basin_info
     use mo_read_meteo,                 only: read_meteo_bin, read_meteo_nc
     use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
@@ -361,7 +362,7 @@ end subroutine prepare_meteo_forcings_data
     end do
     
     ! append
-    call append( dataOut1, L1_data_packed(:,:) )
+    call append( dataOut1, L1_data_packed(:,:), nodata_dp )
 
     !free space
     deallocate(L1_data, L2_data, L1_data_packed) 
@@ -379,7 +380,7 @@ end subroutine prepare_meteo_forcings_data
   !
   ! created: June 2014
   ! ------------------------------------------------------------------
-  subroutine chunk_config( tt, read_flag, readPer )
+  subroutine chunk_config( iBasin, tt, read_flag, readPer )
     !
     use mo_kind,             only: i4
     use mo_global_variables, only: period
@@ -388,7 +389,8 @@ end subroutine prepare_meteo_forcings_data
     implicit none
     !
     ! input variables
-    integer(i4), intent(in)  :: tt  ! current timestep
+    integer(i4), intent(in)  :: iBasin ! current Basin
+    integer(i4), intent(in)  :: tt     ! current timestep
     !
     ! output variables
     logical,     intent(out) :: read_flag  ! indicate whether reading data should be read
@@ -409,10 +411,10 @@ end subroutine prepare_meteo_forcings_data
     end if
 
     ! evaluate date and timeStep_model_inputs to get read_flag -------
-    read_flag = is_read( tt )
+    read_flag = is_read( iBasin, tt )
     !
     ! determine start and end date of chunk to read
-    if ( read_flag ) call chunk_size( tt, readPer )
+    if ( read_flag ) call chunk_size( iBasin, tt, readPer )
     !
   end subroutine chunk_config
   ! ------------------------------------------------------------------
@@ -424,9 +426,10 @@ end subroutine prepare_meteo_forcings_data
   !>        \brief evaluate whether new chunk should be read at this timestep
 
   !     CALLING SEQUENCE
-  !         flag = is_read( tt )
+  !         flag = is_read( iBasin, tt )
 
   !     INTENT(IN)
+  !>        \param[in] "integer(i4)              :: iBasin"    current Basin
   !>        \param[in] "integer(i4)              :: tt"        current time step
 
   !     INTENT(INOUT)
@@ -459,7 +462,7 @@ end subroutine prepare_meteo_forcings_data
   !>        \author Stephan Thober
   !>        \date Jun 2014
   ! ------------------------------------------------------------------
-  function is_read( tt )
+  function is_read( iBasin, tt )
     
     use mo_kind,             only: i4
     use mo_global_variables, only: simPer, timeStep_model_inputs, timestep, nTstepDay
@@ -467,7 +470,8 @@ end subroutine prepare_meteo_forcings_data
     use mo_julian,           only: caldat
 
     ! input variables
-    integer(i4), intent(in) :: tt ! timestep
+    integer(i4), intent(in) :: iBasin ! Basin ID
+    integer(i4), intent(in) :: tt     ! timestep
     
     ! return variable
     logical :: is_read
@@ -496,27 +500,27 @@ end subroutine prepare_meteo_forcings_data
        Ndays_before = ( ( tt - 2_i4 ) * timestep ) / nTstepDay     
        
        ! evaluate cases of given timeStep_model_inputs
-       select case( timeStep_model_inputs )
+       select case( timeStep_model_inputs(iBasin) )
        case(0)  ! only at the beginning of the period
           if ( tt .eq. 1_i4 ) is_read = .true.
        case(1:) ! every timestep with frequency timeStep_model_inputs
           if ( mod( tt - 1_i4, 24 ) .eq. 0_i4 ) then
-             if ( mod( (tt - 1_i4) / 24_i4 , timeStep_model_inputs ) .eq. 0_i4 ) is_read = .true.
+             if ( mod( (tt - 1_i4) / 24_i4 , timeStep_model_inputs(iBasin) ) .eq. 0_i4 ) is_read = .true.
           end if
        case(-1) ! every day
           if ( Ndays .ne. Ndays_before ) is_read = .true.
        case(-2) ! every month
           if ( Ndays .ne. Ndays_before ) then
              ! calculate months
-             call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
-             call caldat( simPer%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+             call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
+             call caldat( simPer(iBasin)%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
              if ( month .ne. month_before ) is_read = .true.
           end if
        case(-3) ! every year
           if ( Ndays .ne. Ndays_before ) then
              ! calculate months
-             call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
-             call caldat( simPer%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+             call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
+             call caldat( simPer(iBasin)%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
              if ( year .ne. year_before ) is_read = .true.
           end if
        case default ! not specified correctly
@@ -536,9 +540,10 @@ end subroutine prepare_meteo_forcings_data
   !>               is length of current chunk to read
 
   !     CALLING SEQUENCE
-  !         call chunk_size( tt, readPer )
+  !         call chunk_size( iBasin, tt, readPer )
 
   !     INTENT(IN)
+  !>        \param[in] "integer(i4)              :: iBasin"    current Basin to process
   !>        \param[in] "integer(i4)              :: tt"        current time step
   !>        \param[in] "type(period)             :: readPer"   start and end dates of read Period
 
@@ -571,8 +576,9 @@ end subroutine prepare_meteo_forcings_data
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Jun 2014
+  !         modified Stephan Thober - Jan 2015 added iBasin
   ! ------------------------------------------------------------------
-  subroutine chunk_size( tt, readPer )
+  subroutine chunk_size( iBasin, tt, readPer )
     
     use mo_kind,             only: i4
     use mo_global_variables, only: simPer, timeStep_model_inputs, timestep, period, nTstepDay
@@ -582,7 +588,8 @@ end subroutine prepare_meteo_forcings_data
     implicit none
     
     ! input variables
-    integer(i4), intent(in)  :: tt
+    integer(i4), intent(in)  :: tt         ! current time step
+    integer(i4), intent(in)  :: iBasin     ! Basin ID
     
     ! output variables
     type(period),intent(out) :: readPer    ! start and end dates of reading Period
@@ -597,19 +604,19 @@ end subroutine prepare_meteo_forcings_data
     Ndays        = ( tt * timestep ) / nTstepDay 
 
     ! get start date
-    readPer%julStart = simPer%julStart + Ndays
+    readPer%julStart = simPer(iBasin)%julStart + Ndays
     
     ! calculate end date according to specified frequency
-    select case ( timeStep_model_inputs )
+    select case ( timeStep_model_inputs(iBasin) )
     case(0)  ! length of chunk has to cover whole period
-       readPer%julEnd = simPer%julEnd 
+       readPer%julEnd = simPer(iBasin)%julEnd 
     case(1:) ! every timestep with frequency timeStep_model_inputs
-       readPer%julEnd= readPer%julStart + timeStep_model_inputs - 1
+       readPer%julEnd= readPer%julStart + timeStep_model_inputs(iBasin) - 1
     case(-1) ! every day
        readPer%julEnd = readPer%julStart
     case(-2) ! every month
        ! calculate date
-       call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+       call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
        ! increment month
        if ( month .eq. 12 ) then
           month = 1
@@ -620,7 +627,7 @@ end subroutine prepare_meteo_forcings_data
        readPer%julEnd = julday( dd = 1, mm = month, yy = year ) - 1
     case(-3) ! every year
        ! calculate date
-       call caldat( simPer%julStart + Ndays, dd = day, mm = month, yy = year )
+       call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
        readPer%julEnd = julday( dd = 31, mm = 12, yy = year )
     case default ! not specified correctly
        call message('ERROR*** mo_meteo_forcings: chunk_size: timStep_model_inputs not specified correctly!')
@@ -628,7 +635,7 @@ end subroutine prepare_meteo_forcings_data
     end select
 
     ! end date should not be greater than end of simulation period
-    readPer%julEnd = min( readPer%julEnd, simPer%julEnd )
+    readPer%julEnd = min( readPer%julEnd, simPer(iBasin)%julEnd )
     
     ! calculate the dates of the start and end dates
     call caldat( readPer%julStart, dd = readPer%dstart, mm = readPer%mstart, yy = readPer%ystart )

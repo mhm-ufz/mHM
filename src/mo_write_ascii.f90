@@ -180,28 +180,33 @@ CONTAINS
     !******************
     ! Model Run period 
     !******************
-    write(uconfig, 115) '                      Model Run Periods                      '
-    write(uconfig, 116) &
-         'From                To', &
-         '   Day Month  Year   Day Month  Year'
-    write(uconfig,117)  &
-         'Warming Period (1)            ',&
-         warmPer%dStart, warmPer%mStart, warmPer%yStart  ,& 
-         warmPer%dEnd  , warmPer%mEnd  , warmPer%yEnd    ,&
-         'Evaluation Period (2)         ',&
-         evalPer%dStart   ,evalPer%mStart   , evalPer%yStart      ,& 
-         evalPer%dEnd     ,evalPer%mEnd     , evalPer%yEnd        ,&
-         'Simulation Period (1)+(2)     ',&
-         SimPer%dStart  , SimPer%mStart  , SimPer%yStart  ,&
-         SimPer%dEnd    , SimPer%mEnd    , SimPer%yEnd
+    do j = 1, nBasins
+       write(uconfig, 115) '                      Model Run Periods for Basin ', num2str(j)
+       write(uconfig, 116) &
+            'From                To', &
+            '   Day Month  Year   Day Month  Year'
+       write(uconfig,117)  &
+            'Warming Period (1)            ',&
+            warmPer(j)%dStart, warmPer(j)%mStart, warmPer(j)%yStart  ,& 
+            warmPer(j)%dEnd  , warmPer(j)%mEnd  , warmPer(j)%yEnd    ,&
+            'Evaluation Period (2)         ',&
+            evalPer(j)%dStart   ,evalPer(j)%mStart   , evalPer(j)%yStart      ,& 
+            evalPer(j)%dEnd     ,evalPer(j)%mEnd     , evalPer(j)%yEnd        ,&
+            'Simulation Period (1)+(2)     ',&
+            SimPer(j)%dStart  , SimPer(j)%mStart  , SimPer(j)%yStart  ,&
+            SimPer(j)%dEnd    , SimPer(j)%mEnd    , SimPer(j)%yEnd
+    end do
 
     !*********************************
     ! Model Land Cover Observations 
     !*********************************
-    write(uconfig,118) '            Land Cover Observations              '
-    write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
-    do i=1,SimPer%yEnd-SimPer%yStart+1
-       write(uconfig,120) i+SimPer%yStart-1, LCyearId(i+SimPer%yStart-1), trim(LCfilename(LCyearId(i+SimPer%yStart-1)))
+    do j = 1, nBasins
+       write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
+       write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
+       do i=1,SimPer(j)%yEnd-SimPer(j)%yStart+1
+          write(uconfig,120) i+SimPer(j)%yStart-1, LCyearId(i+SimPer(j)%yStart-1, j), &
+               trim(LCfilename(LCyearId(i+SimPer(j)%yStart-1, j)))
+       end do
     end do
     !*********************************
     ! Initial Parameter Ranges
@@ -338,11 +343,11 @@ CONTAINS
 113 format (            2i10,   1f10.3         )
 114 format (30('-') / a15, 5x,  1f10.3 /       )
     !
-115 format (/61('-')/ a61 /61('-'))
+115 format (/61('-')/ a50, a10 /61('-'))
 116 format (39x,a22 / 25x, a36)
 117 format ( 3(a25,6(i6) /) )
     !
-118 format (/50('-')/ a35  /50('-'))
+118 format (/50('-')/ a40, a10  /50('-'))
 119 format (a10,      a20, a20/)
 120 format (i10, 10x, i10, a20)
     !
@@ -748,9 +753,9 @@ CONTAINS
        write(formData, *) '( 4I8, ' , basin%nGauges(bb),'(2X,   f15.7 , 2X,  f15.7  ) )' 
 
        ! write data
-       newTime  = real(evalPer%julStart,dp) - 0.5_dp
+       newTime  = real(evalPer(bb)%julStart,dp) - 0.5_dp
 
-       do tt = 1, (evalPer%julEnd - evalPer%julStart + 1)          
+       do tt = 1, (evalPer(bb)%julEnd - evalPer(bb)%julStart + 1)          
           call dec2date(newTime, yy=year, mm=month, dd=day)
           write(udaily_discharge, formData) tt, day, month, year, ( Qobs(tt,gg), Qsim(tt,gg) , gg=igauge_start, igauge_end )
           newTime = newTime + 1.0_dp

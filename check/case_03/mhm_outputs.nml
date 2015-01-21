@@ -14,7 +14,7 @@
 ! -1: daily
 ! -2: monthly
 ! -3: yearly
-timeStep_model_outputs = 0
+timeStep_model_outputs = -2
 !
 !----------------
 ! 1. states

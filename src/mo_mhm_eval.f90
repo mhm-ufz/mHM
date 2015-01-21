@@ -170,6 +170,7 @@ CONTAINS
 
     ! local variables
     integer(i4)                               :: nTimeSteps
+    integer(i4)                               :: maxTimeSteps
     integer(i4)                               :: ii, tt, gg, ll   ! Counters
     integer(i4)                               :: nCells 
     integer(i4)                               :: nNodes
@@ -210,11 +211,6 @@ CONTAINS
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
 
     !----------------------------------------------------------
-    ! estimate total modeling timesteps including warming days
-    !----------------------------------------------------------
-    nTimeSteps = ( simPer%julEnd - simPer%julStart + 1 ) * NTSTEPDAY
-
-    !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
     if ( present(runoff) ) then
@@ -222,7 +218,11 @@ CONTAINS
           call message("ERROR: runoff can not be produced, since routing process is off in Process Matrix")
           stop
        else 
-          allocate( runoff(nTimeSteps, nGaugesTotal) )
+          !----------------------------------------------------------
+          ! estimate maximum modeling timesteps including warming days
+          !----------------------------------------------------------
+          maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
+          allocate( runoff(maxTimeSteps, nGaugesTotal) )
           runoff = nodata_dp
        end if
     else 
@@ -257,11 +257,14 @@ CONTAINS
     !----------------------------------------
     do ii = 1, nBasins
 
+       ! calculate NtimeSteps for this basin
+       nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
+
        ! reinitialize time counter for LCover and MPR
        ! -0.5 is due to the fact that dec2date routine 
        !   changes the day at 12:00 in NOON
        ! Whereas mHM needs day change at 00:00 h
-       newTime = real(simPer%julStart,dp)
+       newTime = real(simPer(ii)%julStart,dp)
        yId     = 0
 
        ! get basin information
@@ -289,7 +292,7 @@ CONTAINS
        iGridLAI_TS = 0
        do tt = 1, nTimeSteps
 
-          if ( timeStep_model_inputs .eq. 0_i4 ) then
+          if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
              ! set start and end of meteo position
@@ -298,14 +301,14 @@ CONTAINS
              ! time step for meteorological variable (daily values)
              iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )             
           else
-             ! read chunk of meteorological forcings data (reading, upscaling or downscaling) 
+             ! read chunk of meteorological forcings data (reading, upscaling/downscaling) 
              call prepare_meteo_forcings_data(ii, tt)
              ! set start and end of meteo position
              s_meteo = 1
              e_meteo = e1 - s1 + 1
              ! time step for meteorological variable (daily values)
              iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
-                  - ( readPer%julStart - simPer%julStart )             
+                  - ( readPer%julStart - simPer(ii)%julStart )             
           end if
 
           hour = mod(hour+timestep, 24)
@@ -406,9 +409,9 @@ CONTAINS
                basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
                basin%InflowGaugeHeadwater(ii,:), basin%InflowGaugeNodeList(ii,:),           & ! IN C
                parameterset,                                                                & ! IN P
-               LCyearId(year), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                & ! IN L0
+               LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
-               L0_LCover(s0:e0, LCyearId(year)), L0_asp(s0:e0), LAI(s0:e0),                 & ! IN L0
+               L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
@@ -463,7 +466,7 @@ CONTAINS
           if (.not. optimize) then
 
              ! output only for evaluation period
-             tIndex_out = (tt-warmingDays*NTSTEPDAY) ! tt if write out of warming period
+             tIndex_out = (tt-warmingDays(ii)*NTSTEPDAY) ! tt if write out of warming period
 
              if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
 
@@ -685,7 +688,7 @@ CONTAINS
     ! --------------------------------------------------------------------------
     if( (.not. optimize) .AND. present(runoff) .AND. (nMeasPerDay .eq. 1) ) then
        !
-       ii = evalPer%julEnd - evalPer%julStart + 1
+       ii = maxval( evalPer(1:nBasins)%julEnd - evalPer(1:nBasins)%julStart + 1 )
        allocate( d_Qmod(ii, nGaugesTotal) ) 
        d_Qmod = 0.0_dp
 
@@ -693,7 +696,7 @@ CONTAINS
        do ii = 1, nBasins
           iDay = 0
           ! loop over timesteps
-          do tt = warmingDays*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
+          do tt = warmingDays(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
              iS = tt
              iE = tt + NTSTEPDAY - 1
              iDay = iDay + 1

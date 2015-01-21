@@ -450,7 +450,7 @@ CONTAINS
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-          call paste(dataMatrix_i4, pack(data_i4_2d, mask_global))
+          call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
           !
           deallocate(data_i4_2d)
        end do
@@ -474,19 +474,22 @@ CONTAINS
     ! READ DISCHARGE TIME SERIES
     ! ************************************************
     !
-    ! evaluation gauge
-    start_tmp = (/evalPer%yStart, evalPer%mStart, evalPer%dStart/)
-    end_tmp   = (/evalPer%yEnd,   evalPer%mEnd,   evalPer%dEnd  /)
     ! processMatrix(8,1) - process(8)=discharge
     if( processMatrix(8,1) .GE. 1 ) then
        !
        do iGauge = 1, nGaugesTotal
+          ! get basin id
+          iBasin = gauge%basinId(iGauge)
+          ! get start and end dates
+          start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
+          end_tmp   = (/evalPer(iBasin)%yEnd,   evalPer(iBasin)%mEnd,   evalPer(iBasin)%dEnd  /)
+          ! evaluation gauge
           fName = trim(adjustl(gauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
                start_tmp, end_tmp, optimize, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
           data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-          call paste(gauge%Q, data_dp_1d)
+          call paste(gauge%Q, data_dp_1d, nodata_dp )
           deallocate (data_dp_1d)
        end do
        !
@@ -495,17 +498,20 @@ CONTAINS
 
     ! inflow gauge
     !
-    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation and initialization
+    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of basin 1 and initialization
     if (nInflowGaugesTotal .EQ. 0) then
-       allocate(data_dp_1d( julday(simPer%dEnd,   simPer%mEnd,   simPer%yEnd)   -    &
-                            julday(simPer%dStart, simPer%mStart, simPer%yStart) + 1) )
+       allocate( data_dp_1d( maxval( simPer(:)%julEnd  - simPer(:)%julStart + 1 ) ) )
        data_dp_1d = nodata_dp
-       call paste(InflowGauge%Q, data_dp_1d)
+       call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
     else
-       start_tmp = (/simPer%yStart, simPer%mStart, simPer%dStart/)
-       end_tmp   = (/simPer%yEnd,   simPer%mEnd,   simPer%dEnd  /)
 
        do iGauge = 1, nInflowGaugesTotal
+          ! get basin id
+          iBasin = InflowGauge%basinId(iGauge)
+          ! get start and end dates
+          start_tmp = (/simPer(iBasin)%yStart, simPer(iBasin)%mStart, simPer(iBasin)%dStart/)
+          end_tmp   = (/simPer(iBasin)%yEnd,   simPer(iBasin)%mEnd,   simPer(iBasin)%dEnd  /)
+          ! inflow gauge
           fName = trim(adjustl(InflowGauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
                start_tmp, end_tmp, optimize, &
@@ -513,11 +519,12 @@ CONTAINS
           if ( .NOT. (all(mask_1d)) ) then
              call message()
              call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
-             call message('          During simulation period from ', num2str(simPer%yStart) ,' to ', num2str(simPer%yEnd))
+             call message('          During simulation period from ', num2str(simPer(iBasin)%yStart) &
+                  ,' to ', num2str(simPer(iBasin)%yEnd))
              stop
           end if
           data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-          call paste(InflowGauge%Q, data_dp_1d)
+          call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
           deallocate (data_dp_1d)
        end do
     end if
