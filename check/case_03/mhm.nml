@@ -219,8 +219,8 @@ perform_mpr   = .TRUE.
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warming_Days(1)       = 100
-warming_Days(2)       = 101
+warming_Days(1)       = 360
+warming_Days(2)       = 360
 !> first year of wanted simulation period
 eval_Per(1)%yStart    = 1990
 eval_Per(2)%yStart    = 1990
@@ -229,7 +229,7 @@ eval_Per(1)%mStart    = 01
 eval_Per(2)%mStart    = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart    = 01
-eval_Per(2)%dStart    = 02
+eval_Per(2)%dStart    = 01
 !> last year   of wanted simulation period
 eval_Per(1)%yEnd      = 1993
 eval_Per(2)%yEnd      = 1993
