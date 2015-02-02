@@ -3,6 +3,15 @@
 ------------------------------------------------------------
 
 ----------------------------------------
+     New Features of mHM v5.3
+     (released at Jun 1st, 2015)
+----------------------------------------
+
+New Features:
+- basin-wise simulation and warm-up periods can be given in mhm.nml
+- L11 variables in restart files are now written as prpoper maps and not only dumped
+
+----------------------------------------
      New Features of mHM v5.2
      (released at Dec 1st, 2014)
 ----------------------------------------
