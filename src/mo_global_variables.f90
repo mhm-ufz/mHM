@@ -56,6 +56,7 @@ MODULE mo_global_variables
   ! LAI information
   character(256), public                             :: inputFormat_gridded_LAI    ! format of gridded LAI data(bin or nc)
   integer(i4),    public                             :: timeStep_LAI_input         ! time step of gridded LAI input
+  integer(i4),    public                             :: timeStep_sm_input          ! time step of optional data: soil moisture sm 
   integer(i4),    public                             :: iFlag_cordinate_sys        ! options model for the run cordinate system
   ! -------------------------------------------------------------------
   ! OPTIMIZATION
@@ -412,9 +413,9 @@ MODULE mo_global_variables
   ! optional data
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:,:), allocatable    :: L1_sm            ! [-]     soil moisture
-  logical,  public, dimension(:,:), allocatable    :: L1_sm_mask       ! [-]     soil moisture
-  
+  real(dp), public, dimension(:,:), allocatable    :: L1_sm            ! [-] soil moisture input for optimization
+  logical,  public, dimension(:,:), allocatable    :: L1_sm_mask       ! [-] mask for valid data in L1_sm 
+  integer(i4)                                      :: nTimeSteps_L1_sm ! [-] number of time steps in L1_sm_mask
   ! Land cover
   ! dim1 = number grid cells L1
   real(dp), public, dimension(:), allocatable      :: L1_fSealed       ! [1]  Fraction of sealed area

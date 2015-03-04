@@ -176,7 +176,7 @@ PROGRAM mhm_driver
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_objective_function,  ONLY : objective, loglikelihood       ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
-  USE mo_read_optional_data,  ONLY: read_soil_moisture
+  USE mo_read_optional_data,  ONLY : read_soil_moisture             ! optional soil moisture reader
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
@@ -248,11 +248,12 @@ PROGRAM mhm_driver
   call read_config()
 
   call message()
+  call message('  # of basins:         ', trim(num2str(nbasins)))
+  call message()
   call message('  Input data directories:')
-  call message('    # of basins  :          ', trim(num2str(nbasins)))
   do ii = 1, nbasins
      call message( '  --------------' )
-     call message( '      BASIN                    ', num2str(ii,'(I3)') )
+     call message( '      BASIN                   ', num2str(ii,'(I3)') )
      call message( '  --------------' )
      call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
      call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
@@ -278,9 +279,9 @@ PROGRAM mhm_driver
      end if
 
      if (processMatrix(8,1) .GT. 0) then
-        call message('    Evaluation gauge          ', 'ID')
+        call message('    Evaluation gauge            ', 'ID')
         do jj = 1 , basin%nGauges(ii)
-           call message('    ',trim(adjustl(num2str(jj))),'                         ', &
+           call message('    ',trim(adjustl(num2str(jj))),'                           ', &
                 trim(adjustl(num2str(basin%gaugeIdList(ii,jj)))))
         end do
      end if

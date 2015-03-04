@@ -144,7 +144,7 @@ CONTAINS
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
-         dirSoil_moisture,                                  & ! directory of soil moisture data
+         dirSoil_moisture, timeStep_sm_input,               & ! directory anf time stepping of soil moisture data
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -308,7 +308,7 @@ CONTAINS
                            dir_NetRadiation, dir_Out, dir_RestartOut,                          &
                            dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! optional data used for optimization
-    namelist /optional_data/ dir_soil_moisture
+    namelist /optional_data/ dir_soil_moisture,timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
@@ -514,7 +514,6 @@ CONTAINS
     !===============================================================
     call position_nml('optional_data', unamelist)
     read(unamelist, nml=optional_data)
-
     dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
     ! MZMZMZM check readin with opti flag
     

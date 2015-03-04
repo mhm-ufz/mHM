@@ -80,14 +80,14 @@ CONTAINS
     use mo_global_variables, only:                         &
          dirSoil_moisture,                                 & ! directory of meteo input
          simPer,                                           & ! chunk read in config                           
-         L1_sm, L1_sm_mask                                     ! soil mositure data and mask
-
+         L1_sm, L1_sm_mask,                                & ! soil mositure data and mask
+         timeStep_sm_input, nTimeSteps_L1_sm                 ! input time step (d,m,y), number of time steps
     implicit none
 
-    integer(i4), intent(in)  :: iBasin                         ! Basin Id ! MZMZMZMZ data packing
+    integer(i4), intent(in)  :: iBasin                         ! Basin Id
 
     ! local variables
-    integer(i4)                             :: nTimeSteps,t    ! loop  vars packing L1_data to L1_data_packed
+    integer(i4)                             :: t               ! loop  vars packing L1_data to L1_data_packed
     integer(i4)                             :: nrows1, ncols1  ! level 1 number of culomns and rows
     logical, dimension(:,:), allocatable    :: mask1           ! mask of level 1 for packing
     integer(i4)                             :: ncells1         ! ncells1 of level 1
@@ -100,17 +100,16 @@ CONTAINS
     call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 ) 
        
     !  basin characteristics and read meteo header
-    call message( '  Reading optional data for basin:           ', trim(adjustl(num2str(iBasin))),' ...')
+    call message('  Reading soil mositure for basin:            ', trim(adjustl(num2str(iBasin))),' ...')
     call timer_start(1)
-
     call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, simPer(iBasin), trim('sm'), L1_data, mask1, &
-         nctimestep=-2, nocheck=.TRUE., maskout=L1_mask) !MZMZMZMZ
+         nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask) !MZMZMZMZ
 
     ! pack variables
-    nTimeSteps = size(L1_data, 3)
-    allocate( L1_data_packed(nCells1, nTimeSteps))
-    allocate( L1_mask_packed(nCells1, nTimeSteps))
-    do t = 1, nTimeSteps
+    nTimeSteps_L1_sm = size(L1_data, 3)
+    allocate( L1_data_packed(nCells1, nTimeSteps_L1_sm))
+    allocate( L1_mask_packed(nCells1, nTimeSteps_L1_sm))
+    do t = 1, nTimeSteps_L1_sm
        L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) ) 
        L1_mask_packed(:,t) = pack( L1_mask(:,:,t), MASK=mask1(:,:) ) 
     end do

@@ -81,7 +81,7 @@ CONTAINS
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
 
-  SUBROUTINE mhm_eval(parameterset, runoff)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
     use mo_init_states,         only : get_basin_info
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
@@ -99,7 +99,7 @@ CONTAINS
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
-         timeStep, nBasins, basin, simPer, readPer,          & 
+         timeStep, nBasins, basin, simPer, readPer,          & ! [h] simulation time step, No. of basins
          nGaugesTotal,                                       &
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
@@ -137,12 +137,14 @@ CONTAINS
          warmingDays, evalPer, gauge, InflowGauge,           &  
          optimize,  nMeasPerDay,                             &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
-         L0_gridded_LAI, dirRestartIn                            ! restart directory location
-
+         L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
+         nTimeSteps_L1_sm                                      ! number of timesteps in soil moisture input
+    
     implicit none
 
     real(dp), dimension(:),                          intent(in)  :: parameterset
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
 
     ! FOR WRITING GRIDDED STATES AND FLUXES 
     integer(i4)                           :: hh                  ! Counter
@@ -172,10 +174,10 @@ CONTAINS
     integer(i4)                               :: nTimeSteps
     integer(i4)                               :: maxTimeSteps
     integer(i4)                               :: ii, tt, gg, ll   ! Counters
-    integer(i4)                               :: nCells 
-    integer(i4)                               :: nNodes
-    integer(i4)                               :: s0, e0
-    integer(i4)                               :: s1, e1
+    integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
+    integer(i4)                               :: nNodes           !
+    integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
+    integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
     ! process case dependent length specefiers of vectors to pass to mHM
     integer(i4), dimension(6)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
     integer(i4), dimension(6)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
@@ -230,6 +232,13 @@ CONTAINS
           call message("ERROR: runoff can not be produced, since runoff variable is not present")
           stop
        end if
+    end if
+    ! soil mosiure optimization
+    if ( present(sm_opti) ) then
+       !                ! total No of cells, No of timesteps
+       !                ! of all basins    , in soil moist input
+       allocate(sm_opti(size(L1_pre, dim=1), nTimeSteps_L1_sm))
+       sm_opti(:,:) = nodata_dp
     end if
     ! add other optionals...
 
@@ -519,7 +528,7 @@ CONTAINS
 
                 ! Fluxes L1  --> AGGREGATED
                 if (outputFlxState(9) ) &
-                     L1_pet_out(:)          = L1_pet(s1:e1, iMeteoTS)         !+ L1_pet_out(:)
+                     L1_pet_out(:)          = L1_pet(s1:e1, iMeteoTS)
                 if (outputFlxState(10)      ) then
                    do hh = 1, nSoilHorizons_mHM
                       L1_aETSoil_out(:,hh)  = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))
@@ -655,7 +664,7 @@ CONTAINS
                 end if
                 !
              end if
-          end if
+          end if ! <-- if (.not. optimize)
 
           !----------------------------------------------------------------------
           ! FOR STORING the optional arguments
@@ -671,6 +680,29 @@ CONTAINS
              end do
           end if
 
+          !----------------------------------------------------------------------
+          ! FOR SOIL MOISTURE
+          ! NOTE:: modeled soil moisture is averaged according to input time step
+          !        soil moisture (timeStep_sm_input)
+          !----------------------------------------------------------------------
+          if (present(sm_opti)) then
+             ! only for evaluation period - ignore warming days
+             if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then 
+                select case(timeStep_sm_input)
+                case(-1) ! daily
+                   if (day .NE. day_counter) oder so aehnlich
+                   timesteptodefine = 
+                case(-2) ! monthly
+
+                case(-3) ! yearly
+
+                case default
+                   sm_opti(s1:e1,timesteptodefine) = 
+                   stop
+                end select
+                average_counter = 0   
+             end if
+          end if
        end do !<< TIME STEPS LOOP
 
        ! deallocate space for temprory LAI fields

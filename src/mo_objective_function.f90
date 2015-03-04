@@ -524,6 +524,9 @@ CONTAINS
     case (9)
        ! KGE
        objective = objective_kge(parameterset)
+    case (13)
+       ! soil moisture correlation
+       objective = objective_sm_corr(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -1007,6 +1010,7 @@ CONTAINS
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_power6_nse_lnnse
+
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -1113,6 +1117,132 @@ CONTAINS
     
   END FUNCTION objective_kge
 
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_kge
+
+  !>        \brief Objective function of KGE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>                 The model will be called with that parameter vector and 
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>                 where
+  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
+  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 is calculated and the objective function is
+  !>                       \f[ obj\_value = 1.0 - KGE \f]
+  !>                 (1-KGE) is the objective since we always apply minimization methods. 
+  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
+  !>
+  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge(para)
+
+  !     LITERATURE
+  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date August 2014
+  !         Modified, R. Kumar & O. Rakovec, Sep. 2014
+  !                   Stephan Thober,        Jan  2015 - introduced extract_runoff
+
+  FUNCTION objective_sm_corr(parameterset)
+    
+    use mo_mhm_eval,         only : mhm_eval
+    use mo_init_states,      only : get_basin_info
+    use mo_message,          only : message
+    use mo_moment,           only : correlation
+    use mo_string_utils,     only : num2str
+    !
+    use mo_global_variables, only: nBasins,             & ! number of basins
+                                   L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
+
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)      :: parameterset
+    real(dp)                                :: objective_sm_corr
+
+    ! local
+    integer(i4)                             :: iBasin             ! basin loop counter
+    integer(i4)                             :: iCell              ! cell loop counter
+    integer(i4)                             :: nrows1, ncols1     ! level 1 number of culomns and rows
+    integer(i4)                             :: s1, e1             ! start and end index for the current basin
+    logical, dimension(:,:), allocatable    :: mask1              ! mask of level 1 for packing
+    integer(i4)                             :: ncells1                 ! ncells1 of level 1
+    real(dp), dimension(:),   allocatable   :: objective_sm_corr_basin ! basins wise objectives
+    real(dp), dimension(:,:), allocatable   :: sm_opti                 ! simulated soil moisture
+    !                                                                  ! (dim1=ncells, dim2=time)
+
+    call mhm_eval(parameterset, sm_opti=sm_opti)
+
+    ! initialize some variables
+    allocate(objective_sm_corr_basin(nBasins))
+    objective_sm_corr_basin(:) = 0.0_dp
+    objective_sm_corr          = 0.0_dp
+
+    ! loop over basin - for applying power law later on
+    do iBasin=1, nBasins
+       ! get basin information
+       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1, mask=mask1 ) 
+
+       ! temporal correlation is calculated on individual gridd cells
+       do iCell = s1, e1
+          ! check for enough data points in time for correlation ! MZMZMZMZ sufficient criteria to be forund
+          if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
+             call message('WARNING: ignored currrent cell since less than 10 time steps')
+             call message('         avaiable in soil moisture observation')
+             cycle
+          end if
+          objective_sm_corr_basin(iBasin) = objective_sm_corr_basin(iBasin) + &
+               correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
+       end do
+       ! calculate average soil moisture correlation over all basins ! MZMZMZMZ power law is still missing
+       objective_sm_corr = objective_sm_corr + 1.0_dp - objective_sm_corr_basin(iBasin)/nCells1 
+    end do
+
+    call message('objective_sm_corr = ', num2str(objective_sm_corr,'(F9.5)'))
+    pause
+    
+  END FUNCTION objective_sm_corr
+  
 ! private routine
 
 ! ------------------------------------------------------------------

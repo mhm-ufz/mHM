@@ -167,7 +167,12 @@ dir_Out(3)           = "test_basin/output_b3/"
 &optional_data
 ! monthly soil moisture data
 dir_soil_moisture(1)   = "test_basin/input/optional_data/"
-
+!> time stepping of the soil moisture input
+!>     -1: daily   SM values\n
+!>     -2: monthly SM values\n
+!>     -3: yearly  SM values\n
+!-----------------------------------------------------------------------------------
+timeStep_sm_input = -2
 /
      
 !
