@@ -880,13 +880,14 @@ CONTAINS
 
   END SUBROUTINE append_lgt_v_v
 
-  SUBROUTINE append_lgt_m_m(mat1, mat2)
+  SUBROUTINE append_lgt_m_m(mat1, mat2, fill_value)
 
     implicit none
 
     logical, dimension(:,:), allocatable, intent(inout)   :: mat1
     logical, dimension(:,:), intent(in)                   :: mat2
-
+    logical, optional,       intent(in)                   :: fill_value
+    
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
     integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
@@ -909,9 +910,26 @@ CONTAINS
        tmp=mat1
        deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1))
-       mat1(1:m1,:)          = tmp(1:m1,:)
-       mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
+       if ( n1 .eq. n2 ) then
+          allocate(mat1(m1+m2,n1))
+          mat1(1:m1,:)          = tmp(1:m1,:)
+          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
+       end if
+
+       if ( n1 .gt. n2 ) then
+          allocate(mat1(m1+m2,n1))
+          mat1(1:m1,:)                = tmp(1:m1,:)
+          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
+          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
+       end if
+       
+       if ( n1 .lt. n2 ) then
+          allocate(mat1(m1+m2,n2))
+          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
+          mat1(      1:m1,   n1+1:n2) = fill_value
+          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
+       end if
+       
     else
        n1 = 0_i4
 

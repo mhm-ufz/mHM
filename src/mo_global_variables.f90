@@ -25,7 +25,9 @@ MODULE mo_global_variables
   !           Stephan Thober, Jun 2014  - added perform_mpr, updated restart flags
   !           Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !           Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !           Matthias Zink,  Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
 
+  
   USE mo_kind,          ONLY: i4, i8, dp
   USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
 
@@ -125,10 +127,12 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirOut             ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut      ! Directory where output of restart is written to
   character(256), dimension(:), allocatable, public :: dirRestartIn       ! Directory where input of restart is read from
-  character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! directory where gridded LAI is located
+  character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! Directory where gridded LAI is located
                                                                           ! used when timeStep_LAI_input < 0
   character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
 
+  character(256), dimension(:), allocatable, public :: dirSoil_moisture   ! File of monthly soil moisture
+  
   ! directory common to all basins 
   character(256),                            public :: dirConfigOut       ! Directory where config run output is written to
   character(256),                            public :: dirCommonFiles     ! directory where common input files should be located
@@ -405,6 +409,12 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable    :: L1_absvappress   ! [hPa]   absolute vapour pressure
   real(dp), public, dimension(:,:), allocatable    :: L1_windspeed     ! [m s-1] windspeed
 
+  ! optional data
+  ! dim1 = number grid cells L1
+  ! dim2 = number of meteorological time steps
+  real(dp), public, dimension(:,:), allocatable    :: L1_sm            ! [-]     soil moisture
+  logical,  public, dimension(:,:), allocatable    :: L1_sm_mask       ! [-]     soil moisture
+  
   ! Land cover
   ! dim1 = number grid cells L1
   real(dp), public, dimension(:), allocatable      :: L1_fSealed       ! [1]  Fraction of sealed area

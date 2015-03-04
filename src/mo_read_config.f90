@@ -98,7 +98,9 @@ CONTAINS
   !                  Stephan Thober, May  2014 - added switch for chunk read in
   !                  Stephan Thober, Jun  2014 - added option for switching off mpr
   !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
+  !                  Matthias Zink,  Mar  2015 - added optional soil mositure read in for calibration
+  
 
   subroutine read_config()
 
@@ -141,7 +143,8 @@ CONTAINS
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
-         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
+         dirgridded_LAI,                                    & ! directory where gridded LAI is located
+         dirSoil_moisture,                                  & ! directory of soil moisture data
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -271,6 +274,8 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_LatLon
     character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data 
     !                                                                            ! used when timeStep_LAI_input<0
+    character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
+    !
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
     character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
@@ -302,6 +307,8 @@ CONTAINS
                            dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
                            dir_NetRadiation, dir_Out, dir_RestartOut,                          &
                            dir_RestartIn, dir_LatLon, dir_gridded_LAI
+    ! optional data used for optimization
+    namelist /optional_data/ dir_soil_moisture
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
@@ -388,9 +395,10 @@ CONTAINS
     allocate(dirRestartOut       (nBasins))
     allocate(dirRestartIn        (nBasins))
     allocate(dirLatLon           (nBasins))
-    allocate(dirgridded_LAI(nBasins))
+    allocate(dirgridded_LAI      (nBasins))
+    allocate(dirSoil_Moisture    (nBasins))
     !
-    resolutionHydrology = resolution_Hydrology(1:nBasins)
+    Resolutionhydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
     L0_Basin            = L0Basin(1:nBasins)
     !
@@ -501,6 +509,15 @@ CONTAINS
        stop 
     end if
 
+    !===============================================================
+    !  Read namelist of optional input data files
+    !===============================================================
+    call position_nml('optional_data', unamelist)
+    read(unamelist, nml=optional_data)
+
+    dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
+    ! MZMZMZM check readin with opti flag
+    
     !===============================================================
     ! Read soil layering information
     !===============================================================

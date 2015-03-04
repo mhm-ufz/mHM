@@ -313,8 +313,9 @@ CONTAINS
   !               modified Stephan Thober     Nov 2013 - only read required
   !                                                      chunk from nc file
   !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
+  !                        Matthias Zink      Mar 2014 - added optional nocheck flag
 
-  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep)
+  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, nocheck, maskout)
 
     use mo_global_variables, only: period
     use mo_julian,           only: caldat, julday
@@ -338,6 +339,10 @@ CONTAINS
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
     integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly
+    logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
+    !                                                                            ! default = .FALSE. - check is done
+    logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout    ! mask of data to read
+
     !
     ! local variables
     character(256)            :: fName        ! name of NetCDF file
@@ -351,6 +356,7 @@ CONTAINS
     integer(i4)               :: dim3         ! time dim of input data
     integer(i4)               :: ncdim3start  ! start of reading in nc file
     integer(i4)               :: inctimestep  ! local nctimestep
+    logical                   :: checking     ! check if model domain is covered by data
     ! time helpers
     integer(i4)               :: julStart1, julEnd1, ncJulSta1, ncJulEnd1, dd
     integer(i4)               :: mmcalstart, mmcalend, yycalstart, yycalend
@@ -360,6 +366,9 @@ CONTAINS
     inctimestep = -1
     if (present(nctimestep)) inctimestep = nctimestep
 
+    checking = .TRUE.
+    if (present(nocheck)) checking = .NOT. nocheck
+    
     fName = trim(folder) // trim(varName) // '.nc'
     ! get dimensions
     dimen = Get_NcDim(trim(fName), trim(varName))
@@ -426,15 +435,23 @@ CONTAINS
          start = (/ 1_i4, 1_i4, ncdim3start /), &
          a_count = (/ dimen(1), dimen(2), dim3 /) )
 
+    ! save output mask if optional maskout is given
+    if (present(maskout)) then
+       allocate(maskout(dimen(1), dimen(2), dim3))
+       maskout = eq(data(:,:,:),nodata_value)
+    end if
+       
     ! start checking values
     do i = 1, dim3
-       if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
-          call message('***ERROR: read_meteo_nc: nodata value within basin ')
-          call message('          boundary in variable: ', trim(varName))
-          call message('          at timestep         : ', trim(num2str(i)))
-          stop
+       ! neglect checking for naodata values if optional nocheck is given
+       if (checking) then
+          if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
+             call message('***ERROR: read_meteo_nc: nodata value within basin ')
+             call message('          boundary in variable: ', trim(varName))
+             call message('          at timestep         : ', trim(num2str(i)))
+             stop
+          end if
        end if
-
        ! optional check
        if (present(lower)) then
           if ( any( (data(:,:,i) .lt. lower) .AND. mask(:,:) )  ) then

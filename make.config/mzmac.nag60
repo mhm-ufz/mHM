@@ -1,0 +1,109 @@
+# -*- Makefile -*-
+
+#
+# Setup file for NAG compiler 6.0 at Matthias' MacBook Air
+#
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subdirectories if another structure
+
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012-2014 Matthias Cuntz
+
+# Paths
+NAGDIR := /usr/local
+NAGLIB := $(NAGDIR)/lib/NAG_Fortran
+NAGBIN := /usr/bin
+
+GNUDIR := /usr/local
+GNULIB := $(GNUDIR)/lib
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(NAGBIN)/nagfor
+FC  := $(F90)
+CC  := /usr/bin/gcc
+CPP := /usr/bin/cpp
+ifeq ($(release),debug)
+    # The compiler switch "-w=ques" turns off the message:
+    #   Comment begins with the OpenMP sentinel but the -openmp option was not used
+    # but it also turns of 
+    #   Intrinsic function CMPLX with double precision argument and no KIND argument returns single precision result
+    #   KIND argument to intrinsic LBOUND specifies a small integer kind
+    #   KIND argument to intrinsic LEN specifies a small integer kind
+    #   Expression in OpenMP clause is always .TRUE.
+    #   Ordinary assignment of pointer function fname reference to pointer variable vname
+    #   Last statement of DO loop body is an unconditional jump
+    #   Array constructor has a polymorphic element but the constructor value will not be polymorphic
+    F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 # -w=ques -g90
+    ifneq ($(openmp),true)
+        F90FLAGS += -gline
+    endif
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -pedantic -Wall -W -O -g
+    LDFLAGS  += #-g90
+else
+    F90FLAGS += -O4
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -O3
+endif
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free # -ieee=stop -mismatch-all
+MODFLAG  := -mdir # space significant
+FCFLAGS  += -fixed
+CFLAGS   +=
+LDFLAGS  += -ideclient -unsharedrts
+DEFINES  += -DNAG -DgFortran
+
+# Linking
+LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
+RPATH += -Wl,-rpath,$(NAGLIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+MKLDIR :=
+MKL95DIR :=
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR := /usr/local/netcdf-3.6.3-nagfor
+else
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-nagfor
+    CURLLIB := /usr/lib
+    SZLIB   := /usr/local/lib
+    HDF5LIB := /usr/local/lib
+endif
+
+# PROJ
+PROJ4DIR := /usr/local
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   :=
+GFORTRANDIR := /usr/local
+
+# Documentation
+DOXYGENDIR := /usr/local/bin
+DOTDIR     := /usr/local/bin
+TEXDIR     := /usr/texbin
+PERLDIR    := /usr/bin

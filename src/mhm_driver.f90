@@ -135,6 +135,7 @@
 !                                                on a regular X-Y coordinate system
 !                      Stephan Thober May 2014 - moved read meteo forcings to mo_mhm_eval
 !       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+!                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
 !
 ! --------------------------------------------------------------------------
 
@@ -175,6 +176,7 @@ PROGRAM mhm_driver
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_objective_function,  ONLY : objective, loglikelihood       ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
+  USE mo_read_optional_data,  ONLY: read_soil_moisture
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
@@ -340,6 +342,12 @@ PROGRAM mhm_driver
         call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
      endif
 
+     ! optional data
+     if (opti_function .EQ. 13) then ! MZMZMZ right place - add checks?
+        call message('  Reading soil mositure for basin: ', trim(adjustl(num2str(ii))),' ...')
+        call read_soil_moisture(ii)
+     endif
+     
   end do
 
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<

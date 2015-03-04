@@ -21,6 +21,8 @@
 ! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
 ! Matthias Zink, Dec 2014 - adopted inflow gauges to ignore headwater cells
+! Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
+  
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -160,6 +162,14 @@ dir_RestartOut(3)    = "test_basin/restart/"
 dir_Out(3)           = "test_basin/output_b3/"
 /
 
+
+!> data which are optionally needed for optimization
+&optional_data
+! monthly soil moisture data
+dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+
+/
+     
 !
 !******************************************************************************************
 ! MAIN  
@@ -185,7 +195,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 3
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
@@ -232,8 +242,9 @@ opti_method = 1
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
+!> (13) correlation of monthly soil moisture  \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 3
+opti_function = 13
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -431,7 +442,7 @@ processCase(8) = 1
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 3
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
