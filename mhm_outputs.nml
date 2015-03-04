@@ -51,6 +51,7 @@ outputFlxState(7)=.TRUE.
 ! --> level of GW reservoir
 outputFlxState(8)=.TRUE.
 ! Ground albedo neutrons related to soil moisture
+! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 outputFlxState(18)=.TRUE.
 !
 !----------------
