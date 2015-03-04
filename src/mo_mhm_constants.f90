@@ -44,7 +44,7 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: C1_InitStateSM     =    0.25_dp
 
   ! maximum number of outputs (fluxes states) for mHM
-  integer(i4), public, parameter :: nOutFlxState       = 17_i4     ! max. number of outputs to write into a netcdf file
+  integer(i4), public, parameter :: nOutFlxState       = 18_i4     ! max. number of outputs to write into a netcdf file
 
    ! Time constants
   real(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day

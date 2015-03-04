@@ -1324,6 +1324,9 @@ CONTAINS
     if (outputFlxState(8)) then
       call message( '    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
     end if
+	if (outputFlxState(18)) then
+      call message( '    ground albedo neutrons (L1_neutrons)                       [cph]')
+    end if
 
     call message( '  FLUXES:' )
     if (outputFlxState(9)) then

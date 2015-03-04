@@ -91,7 +91,7 @@ CONTAINS
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp
+         L11_FracFPimp, L1_neutrons
 
     use mo_mhm_constants,    only: nRoutingStates, YearMonths_i4    
     use mo_append,           only: append                      ! append vector
@@ -153,6 +153,10 @@ CONTAINS
     ! groundwater storage
     dummy_Vector(:) = 0.0_dp
     call append( L1_satSTW,  dummy_Vector )
+	
+	! ground albedo neutrons
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_neutrons,  dummy_Vector )
 
     !-------------------------------------------
     ! FLUXES
@@ -444,7 +448,7 @@ CONTAINS
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp
+         L11_FracFPimp, L1_neutrons
 
     use mo_mhm_constants,    only:               &
          P1_InitStateFluxes, P2_InitStateFluxes, &
@@ -491,6 +495,9 @@ CONTAINS
 
     ! groundwater storage
     L1_satSTW = P4_InitStateFluxes
+	
+	! ground albedo neutrons, initially zero
+	L1_neutrons = P1_InitStateFluxes
 
     !-------------------------------------------
     ! FLUXES

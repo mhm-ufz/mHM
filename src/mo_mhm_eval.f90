@@ -133,7 +133,7 @@ CONTAINS
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
-         L1_wiltingPoint, L11_C1, L11_C2,                    &
+         L1_wiltingPoint, L11_C1, L11_C2, L1_neutrons,       &
          warmingDays, evalPer, gauge, InflowGauge,           &  
          optimize,  nMeasPerDay,                             &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
@@ -155,6 +155,7 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: L1_sealSTW_out      ! Retention storage of impervious areas
     real(dp), dimension(:),   allocatable :: L1_unsatSTW_out     ! Upper soil storage
     real(dp), dimension(:),   allocatable :: L1_satSTW_out       ! Groundwater storage
+	real(dp), dimension(:),   allocatable :: L1_neutrons_out     ! Ground albedo neutrons
     ! Fluxes L1
     real(dp), dimension(:),   allocatable :: L1_pet_out          ! potential evapotranpiration (PET)
     real(dp), dimension(:,:), allocatable :: L1_aETSoil_out      ! actual ET of each horizon
@@ -487,6 +488,7 @@ CONTAINS
                         L1_sealSTW_out         , & ! Retention storage of impervious areas
                         L1_unsatSTW_out        , & ! Upper soil storage
                         L1_satSTW_out          , & ! Groundwater storage
+						L1_neutrons_out        , & ! ground albedo neutrons
                         ! Inout: Fluxes L1
                         L1_pet_out             , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out         , & ! actual ET
@@ -516,6 +518,7 @@ CONTAINS
                 if (outputFlxState(6) ) L1_sealSTW_out  (:)   = L1_sealSTW_out  (:)   + L1_sealSTW  (s1:e1)
                 if (outputFlxState(7) ) L1_unsatSTW_out (:)   = L1_unsatSTW_out (:)   + L1_unsatSTW (s1:e1)
                 if (outputFlxState(8) ) L1_satSTW_out   (:)   = L1_satSTW_out   (:)   + L1_satSTW   (s1:e1)
+				if (outputFlxState(18) ) L1_neutrons_out(:)   = L1_neutrons_out (:) + 42 !L1_neutrons   (s1:e1)
 
                 ! Fluxes L1  --> AGGREGATED
                 if (outputFlxState(9) ) &
@@ -569,13 +572,14 @@ CONTAINS
                 if (writeout) then
                    ! Average States
                    multiplier = 1.0_dp/real(average_counter,dp)
-                   if (outputFlxState(1)) L1_inter_out(:)    = L1_inter_out(:) * multiplier
+                   if (outputFlxState(1)) L1_inter_out(:)    = L1_inter_out(:)    * multiplier
                    if (outputFlxState(2)) L1_snowPack_out(:) = L1_snowPack_out(:) * multiplier
                    if (outputFlxState(3) .OR. outputFlxState(4) .OR. outputFlxState(5)) &
                         L1_soilMoist_out(:,:) = L1_soilMoist_out(:,:) * multiplier
-                   if (outputFlxState(6)) L1_sealSTW_out(:)  = L1_sealSTW_out(:) * multiplier
+                   if (outputFlxState(6)) L1_sealSTW_out(:)  = L1_sealSTW_out(:)  * multiplier
                    if (outputFlxState(7)) L1_unsatSTW_out(:) = L1_unsatSTW_out(:) * multiplier
-                   if (outputFlxState(8)) L1_satSTW_out(:)   = L1_satSTW_out(:) * multiplier
+                   if (outputFlxState(8)) L1_satSTW_out(:)   = L1_satSTW_out(:)   * multiplier
+				   if (outputFlxState(18)) L1_neutrons_out(:)= L1_neutrons_out(:) * multiplier
 
                    average_counter = 0
 
@@ -589,6 +593,7 @@ CONTAINS
                         L1_sealSTW_out           , & ! Retention storage of impervious areas
                         L1_unsatSTW_out          , & ! Upper soil storage
                         L1_satSTW_out            , & ! Groundwater storage
+						L1_neutrons_out          , & ! ground albedo neutrons
                         ! Fluxes L1
                         L1_pet_out               , & ! potential evapotranspiration (PET)
                         L1_aETSoil_out           , & ! actual ET
@@ -613,6 +618,7 @@ CONTAINS
                    if (outputFlxState(6)  ) L1_sealSTW_out(:)      = 0.0_dp      
                    if (outputFlxState(7)  ) L1_unsatSTW_out(:)     = 0.0_dp      
                    if (outputFlxState(8)  ) L1_satSTW_out(:)       = 0.0_dp      
+				   if (outputFlxState(18)  ) L1_neutrons_out(:)    = 0.0_dp      
                    ! Fluxes L1
                    if (outputFlxState(9)  ) L1_pet_out(:)          = 0.0_dp     
                    if (outputFlxState(10) ) L1_aETSoil_out(:,:)    = 0.0_dp     
@@ -639,6 +645,7 @@ CONTAINS
                    if (outputFlxState(6)  ) deallocate( L1_sealSTW_out     )        
                    if (outputFlxState(7)  ) deallocate( L1_unsatSTW_out    )        
                    if (outputFlxState(8)  ) deallocate( L1_satSTW_out      )        
+				   if (outputFlxState(18)  ) deallocate( L1_neutrons_out   )        
                    ! Fluxes L1
                    if (outputFlxState(9)   ) deallocate( L1_pet_out        )    
                    if (outputFlxState(10)  ) deallocate( L1_aETSoil_out    )    

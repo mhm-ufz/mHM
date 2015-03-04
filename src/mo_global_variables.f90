@@ -420,6 +420,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable :: L1_soilMoist    ! [mm]  Soil moisture of each horizon
   real(dp), public, dimension(:), allocatable   :: L1_unsatSTW     ! [mm]  upper soil storage
   real(dp), public, dimension(:), allocatable   :: L1_satSTW       ! [mm]  groundwater storage
+  real(dp), public, dimension(:), allocatable   :: L1_neutrons     ! [cph] ground albedo neutrons
 
   ! Fluxes
   ! dim1 = number grid cells L1
