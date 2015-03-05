@@ -138,7 +138,10 @@ CONTAINS
          optimize,  nMeasPerDay,                             &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
-         nTimeSteps_L1_sm                                      ! number of timesteps in soil moisture input
+         timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
+         nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
+         nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+    use mo_ncwrite, only: var2nc !MZMZMZMZ
     
     implicit none
 
@@ -211,13 +214,14 @@ CONTAINS
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
+    real(dp), dimension(:,:,:), allocatable       :: sm_tmp_out            ! MZMZMZMZ
 
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
     if ( present(runoff) ) then
        if ( processMatrix(8, 1) .eq. 0 ) then
-          call message("ERROR: runoff can not be produced, since routing process is off in Process Matrix")
+          call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
           stop
        else 
           !----------------------------------------------------------
@@ -228,17 +232,18 @@ CONTAINS
           runoff = nodata_dp
        end if
     else 
-       if ( processMatrix(8,1) .gt. 0 ) then
-          call message("ERROR: runoff can not be produced, since runoff variable is not present")
+       if ( (processMatrix(8,1) .gt. 0) .AND. (.NOT. optimize)) then
+          call message("***ERROR: runoff can not be produced, since runoff variable is not present")
           stop
        end if
     end if
     ! soil mosiure optimization
+    !--------------------------
     if ( present(sm_opti) ) then
        !                ! total No of cells, No of timesteps
        !                ! of all basins    , in soil moist input
        allocate(sm_opti(size(L1_pre, dim=1), nTimeSteps_L1_sm))
-       sm_opti(:,:) = nodata_dp
+       sm_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
     end if
     ! add other optionals...
 
@@ -686,30 +691,53 @@ CONTAINS
           !        soil moisture (timeStep_sm_input)
           !----------------------------------------------------------------------
           if (present(sm_opti)) then
+             if ( tt .EQ. 1 ) writeout_counter = 1
              ! only for evaluation period - ignore warming days
-             if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then 
+             if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
+                ! decide for daily, monthly or yearly aggregation
                 select case(timeStep_sm_input)
                 case(-1) ! daily
-                   if (day .NE. day_counter) oder so aehnlich
-                   timesteptodefine = 
+                   if (day   .NE. day_counter)   then
+                      sm_opti(s1:e1,writeout_counter) = sm_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                      writeout_counter = writeout_counter + 1
+                      average_counter = 0
+                   end if
                 case(-2) ! monthly
-
+                   if (month .NE. month_counter) then
+                      sm_opti(s1:e1,writeout_counter) = sm_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                      writeout_counter = writeout_counter + 1
+                      average_counter = 0
+                   end if
                 case(-3) ! yearly
-
-                case default
-                   sm_opti(s1:e1,timesteptodefine) = 
-                   stop
+                   if (year  .NE. year_counter)  then
+                      sm_opti(s1:e1,writeout_counter) = sm_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                      writeout_counter = writeout_counter + 1
+                      average_counter = 0
+                   end if
                 end select
-                average_counter = 0   
+
+                ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
+                if (.not. (tt .eq. nTimeSteps) ) then
+                   ! aggregate soil moisture to needed time step for optimization
+                   sm_opti(s1:e1,writeout_counter) = sm_opti(s1:e1,writeout_counter) + &
+                        sum(L1_soilMoist   (:    , 1:nSoilHorizons_sm_input), dim=2) / &
+                        sum(L1_soilMoistSat(s1:e1, 1:nSoilHorizons_sm_input), dim=2)
+                end if
+                average_counter = average_counter + 1
              end if
           end if
+
        end do !<< TIME STEPS LOOP
 
        ! deallocate space for temprory LAI fields
        deallocate(LAI)
 
     end do !<< BASIN LOOP
-
+    allocate(sm_tmp_out(size(mask1,1),size(mask1,2),48)) ! MZMZMZMZ
+    do ii = 1, 48
+       sm_tmp_out(:,:,ii) = unpack(sm_opti(:,ii), mask1, nodata_dp)
+    end do
+    call var2nc("sm_opti", sm_tmp_out, (/'x','y','t'/), 'sm', missing_value=nodata_dp, create=.True.) ! MZMZMZMZ
     ! --------------------------------------------------------------------------
     ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
     ! FOR SIMULATIONS DURING THE EVALUATION PERIOD

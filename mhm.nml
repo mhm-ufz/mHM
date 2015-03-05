@@ -165,8 +165,17 @@ dir_Out(3)           = "test_basin/output_b3/"
 
 !> data which are optionally needed for optimization
 &optional_data
-! monthly soil moisture data
+!> soil moisture data
+!> currently mhm can be calibrated against the fraction of moisture
+!> down to a specific mhm soil layer (integral over the layers)
+!> here soil moisture is defined as the fraction of water within the soil
+!> column from the water amount in the saturated soil column (porosity). \n
+!
+!> directory to soil moisture data
 dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+!> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
+!> input is representative for
+nSoilHorizons_sm_input = 1
 !> time stepping of the soil moisture input
 !>     -1: daily   SM values\n
 !>     -2: monthly SM values\n
@@ -231,13 +240,13 @@ L0Basin(3) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize = .false.
+optimize = .TRUE.
 !> (0) MCMC                \n
 !> (1) DDS                 \n
 !> (2) Simulated Annealing \n
 !> (3) SCE                 \n
 !> additional settings for the different methods can be provided below in namelist Optimization
-opti_method = 1
+opti_method = 3
 !> (1) 1.0 - NSE  \n
 !> (2) 1.0 - lnNSE  \n
 !> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
@@ -247,7 +256,7 @@ opti_method = 1
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (13) correlation of monthly soil moisture  \n
+!> (13) correlation of soil moisture  \n
 !> further functions can be implemented in mo_objective_function
 opti_function = 13
 !-----------------------------------------------------------------------------

@@ -323,7 +323,7 @@ CONTAINS
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
 
     use mo_string_utils,     only: num2str
-    use mo_utils,            only: eq
+    use mo_utils,            only: eq, ne
 
     implicit none
 
@@ -438,7 +438,7 @@ CONTAINS
     ! save output mask if optional maskout is given
     if (present(maskout)) then
        allocate(maskout(dimen(1), dimen(2), dim3))
-       maskout = eq(data(:,:,:),nodata_value)
+       maskout = ne(data(:,:,:),nodata_value)
     end if
        
     ! start checking values

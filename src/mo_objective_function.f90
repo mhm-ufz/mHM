@@ -1224,17 +1224,19 @@ CONTAINS
        call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
        ! temporal correlation is calculated on individual gridd cells
-       do iCell = s1, e1
+       do iCell = s1+1, e1
           ! check for enough data points in time for correlation ! MZMZMZMZ sufficient criteria to be forund
           if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
              call message('WARNING: ignored currrent cell since less than 10 time steps')
              call message('         avaiable in soil moisture observation')
-             cycle
+             ! cycle
           end if
           objective_sm_corr_basin(iBasin) = objective_sm_corr_basin(iBasin) + &
                correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
+          print*,  correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
        end do
        ! calculate average soil moisture correlation over all basins ! MZMZMZMZ power law is still missing
+       print*, "partial of ", iBasin,  objective_sm_corr_basin(iBasin)/nCells1 
        objective_sm_corr = objective_sm_corr + 1.0_dp - objective_sm_corr_basin(iBasin)/nCells1 
     end do
 

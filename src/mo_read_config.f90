@@ -144,7 +144,8 @@ CONTAINS
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
-         dirSoil_moisture, timeStep_sm_input,               & ! directory anf time stepping of soil moisture data
+         dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
+         nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -308,7 +309,7 @@ CONTAINS
                            dir_NetRadiation, dir_Out, dir_RestartOut,                          &
                            dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! optional data used for optimization
-    namelist /optional_data/ dir_soil_moisture,timeStep_sm_input
+    namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
@@ -508,15 +509,7 @@ CONTAINS
        call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)),'!')
        stop 
     end if
-
-    !===============================================================
-    !  Read namelist of optional input data files
-    !===============================================================
-    call position_nml('optional_data', unamelist)
-    read(unamelist, nml=optional_data)
-    dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
-    ! MZMZMZM check readin with opti flag
-    
+   
     !===============================================================
     ! Read soil layering information
     !===============================================================
@@ -527,6 +520,19 @@ CONTAINS
     HorizonDepth_mHM = 0.0_dp
     HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soil_Depth(1:nSoilHorizons_mHM-1)
 
+    !===============================================================
+    !  Read namelist of optional input data
+    !===============================================================
+    call position_nml('optional_data', unamelist)
+    read(unamelist, nml=optional_data)
+    dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
+    if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
+       call message()
+       call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
+       call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
+       stop
+    end if
+    
     !===============================================================
     ! Read process selection list
     !===============================================================

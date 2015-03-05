@@ -413,9 +413,13 @@ MODULE mo_global_variables
   ! optional data
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
-  real(dp), public, dimension(:,:), allocatable    :: L1_sm            ! [-] soil moisture input for optimization
-  logical,  public, dimension(:,:), allocatable    :: L1_sm_mask       ! [-] mask for valid data in L1_sm 
-  integer(i4)                                      :: nTimeSteps_L1_sm ! [-] number of time steps in L1_sm_mask
+  ! soil moisture
+  real(dp), public, dimension(:,:), allocatable    :: L1_sm                  ! [-] soil moisture input for optimization
+  logical,  public, dimension(:,:), allocatable    :: L1_sm_mask             ! [-] mask for valid data in L1_sm 
+  integer(i4)                                      :: nTimeSteps_L1_sm       ! [-] number of time steps in L1_sm_mask
+  integer(i4)                                      :: nSoilHorizons_sm_input ! No. of mhm soil horizons equivalent to
+  !                                                                          ! soil moisture input
+
   ! Land cover
   ! dim1 = number grid cells L1
   real(dp), public, dimension(:), allocatable      :: L1_fSealed       ! [1]  Fraction of sealed area
