@@ -95,6 +95,7 @@ CONTAINS
     use mo_write_fluxes_states, only : CloseFluxState_file
     use mo_write_fluxes_states, only : WriteFluxState
     use mo_write_fluxes_states, only : WriteFluxStateInit
+	use mo_neutrons,            only : DesiletsN0, COSMIC
     use mo_global_variables,    only : &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          read_restart, perform_mpr, fracSealed_CityArea,     &
@@ -455,6 +456,18 @@ CONTAINS
                L1_wiltingPoint(s1:e1,:),                                                    & ! INOUT E1
                L11_C1(s11:e11), L11_C2(s11:e11)                                             ) ! INOUT E11
 
+          ! Neutrons are calculated by the nested mo_neutrons instead of mo_mhm
+		  ! based on L1_soilMoist as a result of mhm()
+		  ! TODO devide by HorizonDepth
+		  if ( processMatrix(10, 1) .eq. 1 ) &
+		      call DesiletsN0( L1_soilMoist(s1:e1,:), &
+			                   parameterset(processMatrix(10,3)-processMatrix(10,2)+1), &
+							   L1_neutrons(s1:e1))
+		  if ( processMatrix(10, 1) .eq. 2 ) &
+		      call COSMIC( L1_soilMoist(s1:e1,:), HorizonDepth_mHM(:), &
+			               parameterset(processMatrix(10,3)-processMatrix(10,2)+2:processMatrix(10,3)), &
+						   L1_neutrons(s1:e1))
+
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day
           if (month_counter .NE. month) month_counter = month
@@ -518,7 +531,7 @@ CONTAINS
                 if (outputFlxState(6) ) L1_sealSTW_out  (:)   = L1_sealSTW_out  (:)   + L1_sealSTW  (s1:e1)
                 if (outputFlxState(7) ) L1_unsatSTW_out (:)   = L1_unsatSTW_out (:)   + L1_unsatSTW (s1:e1)
                 if (outputFlxState(8) ) L1_satSTW_out   (:)   = L1_satSTW_out   (:)   + L1_satSTW   (s1:e1)
-				if (outputFlxState(18) ) L1_neutrons_out(:)   = L1_neutrons_out (:) + 42 !L1_neutrons   (s1:e1)
+				if (outputFlxState(18) ) L1_neutrons_out(:)   = L1_neutrons_out (:)   + L1_neutrons (s1:e1)
 
                 ! Fluxes L1  --> AGGREGATED
                 if (outputFlxState(9) ) &

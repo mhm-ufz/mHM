@@ -15,6 +15,8 @@ MODULE mo_mhm_constants
 
   PRIVATE
 
+  real(dp),    public, parameter :: fourtytwo          = 42_i4     ! constant for universal results
+
   real(dp),    public, parameter :: deltaH             = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
   integer(i4), public, parameter :: nLCover_class      = 3_i4      ! [-]     Number of land cover class
 
@@ -115,5 +117,13 @@ MODULE mo_mhm_constants
   real(dp),   public, parameter  :: tetens_c3            = 237.30_dp
   !> constant for calculating the slope of the saturation vapour pressure curve following Tetens
   real(dp),   public, parameter  :: satpressureslope1    = 4098.0_dp
+  
+  !> Neutrons and moisture: N0 formula, Desilets et al. 2010
+  real(dp),    public, parameter :: a0 = 0.0808_dp
+  real(dp),    public, parameter :: a1 = 0.372_dp
+  real(dp),    public, parameter :: a2 = 0.115_dp
+  
+  !> Neutrons and moisture: COSMIC, Shuttleworth et al. 2013
+  real(dp),    public, parameter :: H2Odens      = 1000.0_dp   ! Density of water (kg/m3)
 
 END MODULE mo_mhm_constants
