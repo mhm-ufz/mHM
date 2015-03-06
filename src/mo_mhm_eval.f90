@@ -458,9 +458,8 @@ CONTAINS
 
           ! Neutrons are calculated by the nested mo_neutrons instead of mo_mhm
 		  ! based on L1_soilMoist as a result of mhm()
-		  ! TODO devide by HorizonDepth
 		  if ( processMatrix(10, 1) .eq. 1 ) &
-		      call DesiletsN0( L1_soilMoist(s1:e1,:), &
+		      call DesiletsN0( L1_soilMoist(s1:e1,:), HorizonDepth_mHM(:), &
 			                   parameterset(processMatrix(10,3)-processMatrix(10,2)+1), &
 							   L1_neutrons(s1:e1))
 		  if ( processMatrix(10, 1) .eq. 2 ) &
