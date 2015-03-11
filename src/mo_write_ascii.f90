@@ -553,8 +553,8 @@ CONTAINS
     Process_descr(6) = 'interflow'
     Process_descr(7) = 'percolation'
     Process_descr(8) = 'routing'
-	Process_descr(9) = 'geology'
-	Process_descr(10) = 'neutrons'
+    Process_descr(9) = 'geology'
+    Process_descr(10) = 'neutrons'
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
@@ -617,7 +617,7 @@ CONTAINS
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&geoparameter'
           end if
-	   case(10)
+       case(10)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&neutrons1'
           end if

@@ -14,15 +14,19 @@ MODULE mo_mhm_constants
   IMPLICIT NONE
 
   PRIVATE
+   
+  ! natural 
+  integer(i4), public, parameter :: fourtytwo          = 42_i4     ! constant for universal results
+  real(dp),    public, parameter :: pi                 = 3.14159265359_dp
+  real(dp),    public, parameter :: H2Odens            = 1000.0_dp   ! Density of water (kg/m3)
 
-  real(dp),    public, parameter :: fourtytwo          = 42_i4     ! constant for universal results
-
-  real(dp),    public, parameter :: deltaH             = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
-  integer(i4), public, parameter :: nLCover_class      = 3_i4      ! [-]     Number of land cover class
-
-
+  ! computational
   integer(i4), public, parameter :: nodata_i4          = -9999_i4  ! [-]     global no data value
   real(dp),    public, parameter :: nodata_dp          = -9999._dp ! [-]     global no data value
+
+  ! hydrologic modeling
+  real(dp),    public, parameter :: deltaH             = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
+  integer(i4), public, parameter :: nLCover_class      = 3_i4      ! [-]     Number of land cover class
 
   integer(i4), public, parameter :: nRoutingStates     = 2         ! Dimension of the auxiliary vectors
   !                                                                ! which store current and past states of
@@ -48,7 +52,7 @@ MODULE mo_mhm_constants
   ! maximum number of outputs (fluxes states) for mHM
   integer(i4), public, parameter :: nOutFlxState       = 18_i4     ! max. number of outputs to write into a netcdf file
 
-   ! Time constants
+  ! temporal
   real(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day
   real(dp),    public, parameter :: HourSecs           =   3600.0_dp  ! seconds per hour
   real(dp),    public, parameter :: YearMonths         =     12.0_dp  ! months per year
@@ -56,7 +60,7 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: YearDays           =    365.0_dp  ! days in a year
   real(dp),    public, parameter :: DaySecs            =  86400.0_dp  ! sec in a day
  
-  ! constant connected to soil paramterization (mo_mpr_soilmoist)
+  ! soil paramterization (mo_mpr_soilmoist)
   ! organic matter constant for calculation of mineral bulk density following RAWL  
   real(dp),   public, parameter :: BulkDens_OrgMatter  = 0.224_dp     ! [g/cm3] from W.R. RAWLS
   ! constants for determinination of the field capacity following Twarakavi
@@ -82,16 +86,16 @@ MODULE mo_mhm_constants
   real(dp),   public, parameter :: vGenuchtenN_c16      =  0.013_dp
   real(dp),   public, parameter :: vGenuchtenN_c17      =  0.076_dp
   real(dp),   public, parameter :: vGenuchtenN_c18      =  0.276_dp
-  ! constants for determinination Ks
+  ! determinination Ks
   real(dp),   public, parameter :: Ks_c                 = 10.0_dp
-  ! constant for permanent wiltung point (PWP)
+  ! permanent wiltung point (PWP)
   real(dp),   public, parameter :: PWP_c                = 1.0_dp
   real(dp),   public, parameter :: PWP_matPot_ThetaR    = 15000.0_dp ! [hPa] matrix potential of -1500 kPa, assumed as thetaR=0
 
 
   !> Stefan-Boltzmann constant [W m^-2 K^-4] 
   real(dp),   public, parameter  :: StBoltzmann          = 5.67e-08_dp                
-  !> Constant for Hargreaves-Samani ref. ET formula [deg C]
+  !> Hargreaves-Samani ref. ET formula [deg C]
   real(dp),   public, parameter  :: HarSamConst          = 17.800_dp             
   !> assumed meteorol. measurement hight for estimation of aeroResist and surfResist
   real(dp),    public, parameter :: WindMeasHeight       = 10.0_dp 
@@ -106,24 +110,31 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: max_surfResist       = 250.0_dp
 
 
-  ! constants in the Duffie formula for computing extraterrestrial radiation
+  ! Duffie formula for computing extraterrestrial radiation
   real(dp),    public, parameter :: DuffieDr             =   0.0330_dp
   real(dp),    public, parameter :: DuffieDelta1         =   0.4090_dp
   real(dp),    public, parameter :: DuffieDelta2         =   1.3900_dp
 
-  !> constants for Tetens's formula to calculate saturated vapour pressure
+  !> Tetens's formula to calculate saturated vapour pressure
   real(dp),   public, parameter  :: tetens_c1            = 0.6108_dp
   real(dp),   public, parameter  :: tetens_c2            = 17.270_dp
   real(dp),   public, parameter  :: tetens_c3            = 237.30_dp
-  !> constant for calculating the slope of the saturation vapour pressure curve following Tetens
+  !> calculation of the slope of the saturation vapour pressure curve following Tetens
   real(dp),   public, parameter  :: satpressureslope1    = 4098.0_dp
   
   !> Neutrons and moisture: N0 formula, Desilets et al. 2010
-  real(dp),    public, parameter :: a0 = 0.0808_dp
-  real(dp),    public, parameter :: a1 = 0.372_dp
-  real(dp),    public, parameter :: a2 = 0.115_dp
+  real(dp),    public, parameter :: Desilets_a0   = 0.0808_dp
+  real(dp),    public, parameter :: Desilets_a1   = 0.372_dp
+  real(dp),    public, parameter :: Desilets_a2   = 0.115_dp
   
   !> Neutrons and moisture: COSMIC, Shuttleworth et al. 2013
-  real(dp),    public, parameter :: H2Odens      = 1000.0_dp   ! Density of water (kg/m3)
+  real(dp),    public, parameter :: COSMIC_bd     =   1.4020_dp       ! Dry soil bulk density (g/m3)
+  real(dp),    public, parameter :: COSMIC_vwclat =   0.0753_dp       ! Volumetric "lattice" water content (m3/m3)
+  real(dp),    public, parameter :: COSMIC_N      = 510.51737902_dp   ! High energy neutron flux (-)
+  real(dp),    public, parameter :: COSMIC_alpha  =   0.2392421548_dp ! Ratio of Fast Neutron Creation Factor (Soil to Water), alpha (-)
+  real(dp),    public, parameter :: COSMIC_L1     = 161.98621864_dp   ! High Energy Soil Attenuation Length (g/cm2)
+  real(dp),    public, parameter :: COSMIC_L2     = 129.14558985_dp   ! High Energy Water Attenuation Length (g/cm2)
+  real(dp),    public, parameter :: COSMIC_L3     = 107.82204562_dp   ! Fast Neutron Soil Attenuation Length (g/cm2)
+  real(dp),    public, parameter :: COSMIC_L4     =   3.1627190566_dp ! Fast Neutron Water Attenuation Length (g/cm2)
 
 END MODULE mo_mhm_constants

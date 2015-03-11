@@ -104,7 +104,7 @@ CONTAINS
        L1_sealSTW_out         , & ! Retention storage of impervious areas
        L1_unsatSTW_out        , & ! Upper soil storage
        L1_satSTW_out          , & ! Groundwater storage
-	   L1_neutrons_out        , & ! Ground albedo neutrons
+       L1_neutrons_out        , & ! Ground albedo neutrons
        ! Inout: Fluxes L1
        L1_pet_out             , & ! potential evapotranspiration (PET)
        L1_aETSoil_out         , & ! actual ET
@@ -155,7 +155,7 @@ CONTAINS
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_sealSTW_out      ! Retention storage of impervious areas
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_unsatSTW_out     ! Upper soil storage
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_satSTW_out       ! Groundwater storage
-	real(dp), dimension(:),   allocatable, intent(inout) :: L1_neutrons_out     ! ground albedo neutrons
+    real(dp), dimension(:),   allocatable, intent(inout) :: L1_neutrons_out     ! ground albedo neutrons
     ! Fluxes L1
     real(dp), dimension(:),   allocatable, intent(inout) :: L1_pet_out          ! potential evapotranspiration (PET)
     real(dp), dimension(:,:), allocatable, intent(inout) :: L1_aETSoil_out      ! actual ET of each horizon
@@ -320,8 +320,8 @@ CONTAINS
        V(VarNo+5)%att(2)%values = "water level in groundwater reservoir"
        VarNo = VarNo + 1
     end if
-	
-	if (outputFlxState(18)) then
+    
+    if (outputFlxState(18)) then
 
        allocate( L1_neutrons_out(nCells) )
        L1_neutrons_out = 0.0_dp
@@ -658,7 +658,7 @@ CONTAINS
        L1_sealSTW_out      , & ! Retention storage of impervious areas
        L1_unsatSTW_out     , & ! Upper soil storage
        L1_satSTW_out       , & ! Groundwater storage
-	   L1_neutrons_out     , & ! Ground albedo neutrons
+       L1_neutrons_out     , & ! Ground albedo neutrons
        ! input: Fluxes L1
        L1_pet_out             , & ! potential evapotranspiration (PET)
        L1_aETSoil_out      , & ! actual ET
@@ -701,7 +701,7 @@ CONTAINS
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_sealSTW_out      ! Retention storage of impervious areas
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_unsatSTW_out     ! Upper soil storage
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_satSTW_out       ! Groundwater storage
-	real(dp), dimension(:),   allocatable, intent(in)    :: L1_neutrons_out     ! Ground albedo neutrons
+    real(dp), dimension(:),   allocatable, intent(in)    :: L1_neutrons_out     ! Ground albedo neutrons
     ! Fluxes L1
     real(dp), dimension(:),   allocatable, intent(in)    :: L1_pet_out          ! potential evapotranspiration (PET)
     real(dp), dimension(:,:), allocatable, intent(in)    :: L1_aETSoil_out      ! actual ET of each horizon
@@ -815,7 +815,7 @@ CONTAINS
        V(VarNo+5)%G2_d =>  OutPut(:,:,VarNo)
        VarNo = VarNo + 1
     end if
-	!
+    !
     if (outputFlxState(18)) then
 
        OutPut(:,:,VarNo)  = unpack(L1_neutrons_out(:), mask, nodata_dp)

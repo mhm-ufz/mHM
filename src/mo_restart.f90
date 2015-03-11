@@ -93,7 +93,6 @@ CONTAINS
          L1_soilMoist, &
          L1_unsatSTW, &
          L1_satSTW, &
-		 L1_neutrons, &
          L1_aETSoil, &
          L1_aETCanopy, &
          L1_aETSealed, &
@@ -295,10 +294,6 @@ CONTAINS
        call var2nc( Fname, unpack( L1_satSTW(s1:e1), mask1, nodata_dp ), &
             dims_L1(1:2), 'L1_satSTW', &
             long_name = 'groundwater storage at level 1', missing_value = nodata_dp)
-			
-		call var2nc( Fname, unpack( L1_neutrons(s1:e1), mask1, nodata_dp ), &
-            dims_L1(1:2), 'L1_neutrons', &
-            long_name = 'ground albedo neutrons', missing_value = nodata_dp)	
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_aETSoil(s1:e1,ii), mask1, nodata_dp )
@@ -1524,7 +1519,6 @@ CONTAINS
          L1_soilMoist, &
          L1_unsatSTW, &
          L1_satSTW, &
-		 L1_neutrons, &
          L1_aETSoil, &
          L1_aETCanopy, &
          L1_aETSealed, &
@@ -1642,11 +1636,7 @@ CONTAINS
     ! groundwater storage
     call Get_NcVar( Fname,  'L1_satSTW', dummyD2 )
     L1_satSTW(s1:e1) = pack( dummyD2, mask1 )
-	
-	! ground albedo neutrons
-    call Get_NcVar( Fname,  'L1_neutrons', dummyD2 )
-    L1_neutrons(s1:e1) = pack( dummyD2, mask1 )
-
+    
     ! Soil moisture of each horizon
     deallocate( dummyD2 )
     allocate( dummyD3( nrows1, ncols1, nSoilHorizons_mHM ) )

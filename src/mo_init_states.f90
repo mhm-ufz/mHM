@@ -153,8 +153,8 @@ CONTAINS
     ! groundwater storage
     dummy_Vector(:) = 0.0_dp
     call append( L1_satSTW,  dummy_Vector )
-	
-	! ground albedo neutrons
+    
+    ! ground albedo neutrons
     dummy_Vector(:) = 0.0_dp
     call append( L1_neutrons,  dummy_Vector )
 
@@ -495,9 +495,9 @@ CONTAINS
 
     ! groundwater storage
     L1_satSTW = P4_InitStateFluxes
-	
-	! ground albedo neutrons, initially zero
-	L1_neutrons = P1_InitStateFluxes
+    
+    ! ground albedo neutrons, initially zero
+    L1_neutrons = P1_InitStateFluxes
 
     !-------------------------------------------
     ! FLUXES
@@ -842,8 +842,8 @@ CONTAINS
   !         None
 
   !     INTENT(OUT)
-  !>        \param[out] "integer(i4)             :: nrowsOut"	      no. of rows at an output level
-  !>        \param[out] "integer(i4)             :: ncolsOut"	      no. of cols at an output level
+  !>        \param[out] "integer(i4)             :: nrowsOut"         no. of rows at an output level
+  !>        \param[out] "integer(i4)             :: ncolsOut"         no. of cols at an output level
   !>        \param[out] "real(dp)                :: xllcornerOut"      xllcorner at an output level
   !>        \param[out] "real(dp)                :: yllcornerOut"      yllcorner at an output level
   !>        \param[out] "real(dp)                :: cellsizeOut"       cell size at an output level

@@ -1222,11 +1222,11 @@ CONTAINS
        call message('***ERROR: Process description for process "routing" does not exist!')
        stop
     end select
-	
-	! Process 10 - neutrons 
+    
+    ! Process 10 - neutrons 
        ! 0 - deactivated
-	   ! 1 - inverse N0 based on Desilets et al. 2010 
-	   ! 2 - COSMIC forward operator by Shuttlworth et al. 2013
+       ! 1 - inverse N0 based on Desilets et al. 2010 
+       ! 2 - COSMIC forward operator by Shuttlworth et al. 2013
     if (processCase(10) .gt. 0) then
 
        call position_nml('neutrons1', unamelist_param)
@@ -1260,9 +1260,9 @@ CONTAINS
                trim(adjustl(file_namelist_param)))
           stop
        end if
-	 else
+     else
        call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
-	   ! this is done below, where nml_output is read
+       ! this is done below, where nml_output is read
      end if
 
     !===============================================================
@@ -1377,8 +1377,8 @@ CONTAINS
     if (outputFlxState(8)) then
       call message( '    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
     end if
-	if (processCase(10) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
-	if (outputFlxState(18)) then
+    if (processCase(10) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
+    if (outputFlxState(18)) then
       call message( '    ground albedo neutrons                      (L1_neutrons)  [cph]')
     end if
 
