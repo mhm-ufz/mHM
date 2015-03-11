@@ -103,7 +103,7 @@ MODULE mo_read_spatial_data
   !>        \author Juliane Mai
   !>        \date Jan 2013
   !         Modified, Matthias Zink, Feb 2013, added interface and routine for datatype i4
-
+  !         Modified, David Schaefer, Mar 2015, removed double allocation of temporary data
 
   INTERFACE  read_spatial_data_ascii
      MODULE PROCEDURE read_spatial_data_ascii_i4, read_spatial_data_ascii_dp
@@ -168,10 +168,10 @@ CONTAINS
          stop 'read_spatial_data_ascii: header not matching with reference header: cellsize'  
 
     ! allocation and initialization of matrices
-    allocate(data(file_nrows, file_ncols))
-    data = file_nodata
-    allocate(mask(file_nrows, file_ncols))
-    mask = .true.
+    allocate(tmp_data(file_nrows, file_ncols))
+    tmp_data = file_nodata
+    allocate(tmp_mask(file_nrows, file_ncols))
+    tmp_mask = .true.
     
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
@@ -183,27 +183,23 @@ CONTAINS
     end do
     ! (b) read data
     do i = 1, file_nrows
-       read(fileunit, *) (data(i,j), j=1,file_ncols)
+       read(fileunit, *) (tmp_data(i,j), j=1,file_ncols)
     end do
     close(fileunit)
 
     ! set mask .false. if nodata value appeared
-    where ( abs(data-file_nodata) .lt. tiny(1.0_dp) )
-       mask = .false.
+    where ( abs(tmp_data-file_nodata) .lt. tiny(1.0_dp) )
+       tmp_mask = .false.
     end where
 
     ! transpose of data due to longitude-latitude ordering
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = data
-    deallocate(data)
     allocate(data(file_ncols, file_nrows))
     data = transpose(tmp_data)
+    deallocate(tmp_data)
 
-    allocate(tmp_mask(file_nrows, file_ncols))
-    tmp_mask = mask
-    deallocate(mask)
     allocate(mask(file_ncols, file_nrows))
     mask = transpose(tmp_mask)
+    deallocate(tmp_mask)
 
   end subroutine read_spatial_data_ascii_dp
 
@@ -256,42 +252,38 @@ CONTAINS
          stop 'read_spatial_data_ascii: header not matching with reference header: cellsize'  
 
     ! allocation and initialization of matrices
-    allocate(data(file_nrows, file_ncols))
-    data = int(file_nodata, i4)
-    allocate(mask(file_nrows, file_ncols))
-    mask = .true.
+    allocate(tmp_data(file_nrows, file_ncols))
+    tmp_data = file_nodata
+    allocate(tmp_mask(file_nrows, file_ncols))
+    tmp_mask = .true.
     
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (unit=fileunit, file=filename, action='read', status='old',recl=48*file_ncols)
     ! (a) skip header
-    do i=1,6
+    do i = 1, 6
        read(fileunit, *)
     end do
     ! (b) read data
-    do i=1,file_nrows
-       read(fileunit, *) (data(i,j), j=1,file_ncols)
+    do i = 1, file_nrows
+       read(fileunit, *) (tmp_data(i,j), j=1,file_ncols)
     end do
     close(fileunit)
 
     ! set mask .false. if nodata value appeared
-    where ( data .EQ. int(file_nodata, i4))
-       mask = .false.
+    where ( abs(tmp_data-file_nodata) .lt. tiny(1.0_dp) )
+       tmp_mask = .false.
     end where
 
     ! transpose of data due to longitude-latitude ordering
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = data
-    deallocate(data)
     allocate(data(file_ncols, file_nrows))
     data = transpose(tmp_data)
+    deallocate(tmp_data)
 
-    allocate(tmp_mask(file_nrows, file_ncols))
-    tmp_mask = mask
-    deallocate(mask)
     allocate(mask(file_ncols, file_nrows))
     mask = transpose(tmp_mask)
+    deallocate(tmp_mask)
 
   end subroutine read_spatial_data_ascii_i4
 
