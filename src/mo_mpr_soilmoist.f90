@@ -97,7 +97,9 @@ contains
   !                                              moved constants to mhm_constants
   !         Modified, Stephan Thober, Mar 2014 - separated cell loop from soil loop for better
   !                                              scaling in parallelization
-
+  !         Modified, David Schaefer, Mar 2015 - Added dummy variable to avoid redundant computations
+  !                                              -> Total number of instruction is reduced by ~25%
+  !                                                 (tested on packaged example/gnu48/{release,debug})
   subroutine mpr_sm( &
                                 ! Input -----------------------------------------------------------------
        param        , & ! global parameter set
@@ -174,6 +176,7 @@ contains
     integer(i4)                               :: j               ! loop index
     integer(i4)                               :: l               ! loop index
     integer(i4)                               :: s               ! dummy variable for storing soil class
+    integer(i4)                               :: tmp_minSoilHorizon
     real(dp)                                  :: pM
     real(dp)                                  :: pOM
     real(dp)                                  :: Ks_tmp          ! temporal saturated hydr. cond
@@ -186,6 +189,7 @@ contains
     tmp_orgMatterContent_forest     = param(3) + param(1)
     tmp_orgMatterContent_impervious = param(2)
     tmp_orgMatterContent_pervious   = param(3)
+    tmp_minSoilHorizon = minval(nTillHorizons(:))
 
     ! initializing soil hydraulic properties
     KsVar_H0 = merge( 0.0_dp, nodata, ID0 /= int(nodata,i4) )
@@ -261,16 +265,16 @@ contains
           else
 
              ! estimate SMs & van Genuchten's shape parameter (n)
-             call Genuchten( thetaS(i, j-minval(nTillHorizons(:))), Genu_Mual_n, Genu_Mual_alpha, &
+             call Genuchten( thetaS(i, j-tmp_minSoilHorizon), Genu_Mual_n, Genu_Mual_alpha, &
                   param(4:9), sand(i,j), clay(i,j), DbM(i,j) )
 
              ! estimate field capacity
-             call field_cap( thetaFC(i,j-minval(nTillHorizons(:))), &
-                  Ks_tmp, thetaS(i,j-minval(nTillHorizons(:))), Genu_Mual_n )
+             call field_cap( thetaFC(i,j-tmp_minSoilHorizon), &
+                  Ks_tmp, thetaS(i,j-tmp_minSoilHorizon), Genu_Mual_n )
 
              ! estimate permanent wilting point
-             call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j-minval(nTillHorizons(:))), &
-                  thetaPW(i, j-minval(nTillHorizons(:))) )
+             call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j-tmp_minSoilHorizon), &
+                  thetaPW(i, j-tmp_minSoilHorizon) )
 
           end if
 
@@ -292,10 +296,10 @@ contains
              SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s, j, LCover0(i) )
           else
              ! soil_properties over the whole soil column
-             KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-minval(nTillHorizons(:)))*Ks(s,j,1)
-             KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-minval(nTillHorizons(:)))/Ks(s,j,1)
-             SMs_FC0(i)  = SMs_FC0(i) +thetaFC(s,j-minval(nTillHorizons(:)))
-             SMs_tot0(i) = SMs_tot0(i)+thetaS (s,j-minval(nTillHorizons(:)))
+             KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-tmp_minSoilHorizon)*Ks(s,j,1)
+             KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-tmp_minSoilHorizon)/Ks(s,j,1)
+             SMs_FC0(i)  = SMs_FC0(i) +thetaFC(s,j-tmp_minSoilHorizon)
+             SMs_tot0(i) = SMs_tot0(i)+thetaS (s,j-tmp_minSoilHorizon)
           end if
        end do
 
