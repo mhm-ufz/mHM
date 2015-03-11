@@ -50,6 +50,9 @@ outputFlxState(7)=.FALSE.
 ! waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]    -- case  8
 ! --> level of GW reservoir
 outputFlxState(8)=.FALSE.
+! Ground albedo neutrons related to soil moisture
+! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
+outputFlxState(18)=.FALSE.
 !
 !----------------
 ! 2. fluxes
