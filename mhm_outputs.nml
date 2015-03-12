@@ -52,7 +52,7 @@ outputFlxState(7)=.TRUE.
 outputFlxState(8)=.TRUE.
 ! Ground albedo neutrons related to soil moisture
 ! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
-outputFlxState(18)=.TRUE.
+outputFlxState(18)=.FALSE.
 !
 !----------------
 ! 2. fluxes

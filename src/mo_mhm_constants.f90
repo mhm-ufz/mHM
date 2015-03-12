@@ -17,8 +17,7 @@ MODULE mo_mhm_constants
    
   ! natural 
   integer(i4), public, parameter :: fourtytwo          = 42_i4     ! constant for universal results
-  real(dp),    public, parameter :: pi                 = 3.14159265359_dp
-  real(dp),    public, parameter :: H2Odens            = 1000.0_dp   ! Density of water (kg/m3)
+  real(dp),    public, parameter :: H2Odens            = 1000.0_dp ! Density of water (kg/m3)
 
   ! computational
   integer(i4), public, parameter :: nodata_i4          = -9999_i4  ! [-]     global no data value
@@ -131,7 +130,7 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: COSMIC_bd     =   1.4020_dp       ! Dry soil bulk density (g/m3)
   real(dp),    public, parameter :: COSMIC_vwclat =   0.0753_dp       ! Volumetric "lattice" water content (m3/m3)
   real(dp),    public, parameter :: COSMIC_N      = 510.51737902_dp   ! High energy neutron flux (-)
-  real(dp),    public, parameter :: COSMIC_alpha  =   0.2392421548_dp ! Ratio of Fast Neutron Creation Factor (Soil to Water), alpha (-)
+  real(dp),    public, parameter :: COSMIC_alpha  =   0.2392421548_dp ! Ratio of Fast Neutron Creation Factor (Soil to Water)
   real(dp),    public, parameter :: COSMIC_L1     = 161.98621864_dp   ! High Energy Soil Attenuation Length (g/cm2)
   real(dp),    public, parameter :: COSMIC_L2     = 129.14558985_dp   ! High Energy Water Attenuation Length (g/cm2)
   real(dp),    public, parameter :: COSMIC_L3     = 107.82204562_dp   ! Fast Neutron Soil Attenuation Length (g/cm2)

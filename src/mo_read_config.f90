@@ -1222,6 +1222,41 @@ CONTAINS
        call message('***ERROR: Process description for process "routing" does not exist!')
        stop
     end select
+
+    !===============================================================
+    ! Geological formations
+    !===============================================================
+
+    ! read in of number of geological formations
+    fName = trim(adjustl(dirMorpho(1))) // trim(adjustl(file_geolut))
+    open( unit=ugeolut, file=fname, action='read', status='old')
+    read(ugeolut, *) dummy, nGeoUnits
+    close(ugeolut)
+    dummy = dummy//''   ! only to avoid warning
+
+    ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
+    call position_nml('geoparameter', unamelist_param)
+    GeoParam = nodata_dp
+    read(unamelist_param, nml=geoparameter)
+
+    call append(global_parameters, GeoParam(1:nGeoUnits,:))
+
+    do ii=1, nGeoUnits
+       dummy = 'GeoParam('//trim(adjustl(num2str(ii)))//',:)'
+       call append(global_parameters_name, (/ trim(adjustl(dummy)) /)) 
+    end do
+
+    ! check if parameter are in range
+    if ( .not. in_bound(global_parameters) ) then
+       call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
+            trim(adjustl(file_namelist_param)))
+       stop
+    end if
+
+    ! for baseflow parameters
+    processMatrix(9,1) = 1
+    processMatrix(9,2) = nGeoUnits
+    processMatrix(9,3) = sum(processMatrix(1:9, 2))
     
     ! Process 10 - neutrons 
        ! 0 - deactivated
@@ -1264,41 +1299,6 @@ CONTAINS
        call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
        ! this is done below, where nml_output is read
      end if
-
-    !===============================================================
-    ! Geological formations
-    !===============================================================
-
-    ! read in of number of geological formations
-    fName = trim(adjustl(dirMorpho(1))) // trim(adjustl(file_geolut))
-    open( unit=ugeolut, file=fname, action='read', status='old')
-    read(ugeolut, *) dummy, nGeoUnits
-    close(ugeolut)
-    dummy = dummy//''   ! only to avoid warning
-
-    ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
-    call position_nml('geoparameter', unamelist_param)
-    GeoParam = nodata_dp
-    read(unamelist_param, nml=geoparameter)
-
-    call append(global_parameters, GeoParam(1:nGeoUnits,:))
-
-    do ii=1, nGeoUnits
-       dummy = 'GeoParam('//trim(adjustl(num2str(ii)))//',:)'
-       call append(global_parameters_name, (/ trim(adjustl(dummy)) /)) 
-    end do
-
-    ! check if parameter are in range
-    if ( .not. in_bound(global_parameters) ) then
-       call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
-            trim(adjustl(file_namelist_param)))
-       stop
-    end if
-
-    ! for baseflow parameters
-    processMatrix(9,1) = 1
-    processMatrix(9,2) = nGeoUnits
-    processMatrix(9,3) = sum(processMatrix(1:9, 2))
 
     call close_nml(unamelist_param)
 

@@ -18,7 +18,7 @@ MODULE mo_neutrons
   ! Written  Martin Schroen, Mar 2015
   ! Modified 
   
-  USE mo_kind, ONLY: i4, sp, dp
+  USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
 
   ! Neutron forward model using particle transport physics, see Shuttleworth et al. 2013
@@ -34,9 +34,6 @@ CONTAINS
 ! ------------------------------------------------------------------
 ! N0 formula based on Desilets et al. 2010                          
 ! ------------------------------------------------------------------
-
-  subroutine DesiletsN0(sm, Horizons, N0, neutrons)
-  
   !     NAME
   !         DesiletsN0
   !     PURPOSE
@@ -79,6 +76,8 @@ CONTAINS
   !>        \author Martin Schroen
   !>        \date Mar 2015
 
+  subroutine DesiletsN0(sm, Horizons, N0, neutrons)
+
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
     implicit none
     real(dp), dimension(:,:), intent(in)       :: sm
@@ -94,9 +93,6 @@ CONTAINS
 ! ------------------------------------------------------------------
 ! COSMIC model based on Shuttleworth et al. 2013                    
 ! ------------------------------------------------------------------
-
-  subroutine COSMIC(sm, Horizons, params, neutrons)
-  
   !     NAME
   !         COSMIC
   !     PURPOSE
@@ -139,10 +135,12 @@ CONTAINS
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
   
-    use mo_mhm_constants, only: H2Odens, pi, &
+  subroutine COSMIC(sm, Horizons, params, neutrons)
+    
+    use mo_mhm_constants, only: H2Odens, &
         COSMIC_bd, COSMIC_vwclat, COSMIC_N, COSMIC_alpha, &
         COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4
-    !use mo_constants, only: pi_dp
+    use mo_constants, only: PI_dp
     implicit none
     real(dp), dimension(:,:), intent(in)         :: sm
     real(dp), dimension(:), intent(in)           :: Horizons
@@ -220,7 +218,7 @@ CONTAINS
     ideg     = 0.5_dp                   ! ideg ultimately controls the number of trips through
     angledz  = nint(ideg*10.0_dp)       ! the ANGLE loop. Make sure the 10.0 is enough
     maxangle = 900_i4 - angledz         ! to create integers with no remainder
-    dtheta   = ideg*(pi/180.0_dp)
+    dtheta   = ideg*(PI_dp/180.0_dp)
 
     !
     do pp = 1,profiles
@@ -250,7 +248,7 @@ CONTAINS
 
           do angle=0,maxangle,angledz
              zdeg     = real(angle)/10.0_dp   ! 0.0  0.5  1.0  1.5 ...
-             zrad     = (zdeg*pi)/180.0_dp
+             zrad     = (zdeg*PI_dp)/180.0_dp
              costheta = cos(zrad)
 
              ! Angle-dependent low energy (fast) neutron upward flux
@@ -260,7 +258,7 @@ CONTAINS
 
           ! After contribution from all directions are taken into account,
           ! need to multiply fastflux by 2/pi
-          fastflux(ll,pp) = (2.0_dp/pi)*fastflux(ll,pp)
+          fastflux(ll,pp) = (2.0_dp/PI_dp)*fastflux(ll,pp)
 
           ! Low energy (fast) neutron upward flux
           totflux(pp) = totflux(pp) + fastflux(ll,pp)
