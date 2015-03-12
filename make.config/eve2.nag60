@@ -40,6 +40,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
     # -gline not supported in NAG v5.3 under OpenMP 
@@ -57,10 +58,10 @@ else
     CFLAGS   += -O3
 endif
 # -mismatch-all
-#F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
+#F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=stop
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free
 MODFLAG  := -mdir # space significant
-FCFLAGS  +=
+FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
 DEFINES  += -DNAG -DgFortran
@@ -96,8 +97,7 @@ else
     SZLIB   := /usr/local/szip/2.1_gcc_4.8.1_CentOS6/lib
     HDF5LIB := /usr/local/hdf5/1.8.12-1_gcc_4.8.1_CentOS6/lib
     NCDIR   := /usr/local/netcdf/4.3.2_gcc_4.8.1_CentOS6
-    # NCFDIR  := /usr/local/netcdf-fortran/???
-    NCFDIR  := /usr/local/netcdf-fortran/4.2_gcc_4.8.1_nagfor_5.3.2_CentOS6
+    NCFDIR  := /usr/local/netcdf-fortran/4.4.1-1_gcc_4.8.1_nagfor_6.0
 endif
 
 # PROJ

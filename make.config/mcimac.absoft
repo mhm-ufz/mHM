@@ -41,6 +41,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(ABSOFTBIN)/f90
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     # -s for initialize to 0;
     # -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end interface
