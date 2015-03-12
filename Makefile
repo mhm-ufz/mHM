@@ -258,6 +258,19 @@ endif
 MAKEDSCRIPT  := make.d.sh
 MAKEDEPSPROG := $(MAKEDPATH)/$(MAKEDSCRIPT)
 
+# some targets should not compiler the code first, e.g. producing documentation
+# but some targets should not recompile but be aware of the source files, e.g. clean
+iphony    := False
+iphonyall := False
+ifneq (,$(strip $(MAKECMDGOALS)))
+    ifneq (,$(findstring /$(strip $(MAKECMDGOALS))/,/check/ /test/ /html/ /latex/ /pdf/ /doxygen/))
+        iphony := True
+    endif
+    ifneq (,$(findstring $(strip $(MAKECMDGOALS))/,/check/ /test/ /html/ /latex/ /pdf/ /doxygen/ /cleancheck/ /cleantest/ /checkclean/ /testclean/ /info/ /clean/ /cleanclean/))
+        iphonyall := True
+    endif
+endif
+
 #
 # --- CHECK 1 ---------------------------------------------------
 #
@@ -281,6 +294,7 @@ endif
 #
 # --- CHECK 2 ---------------------------------------------------
 #
+
 compilers := $(shell ls -1 $(CONFIGPATH) | sed -e "/$(MAKEDSCRIPT)/d" -e '/f2html/d' -e '/alias/d' -e '/~$$/d' | grep $(system) | cut -d '.' -f 2 | sort | uniq)
 gnucompilers := $(filter gnu%, $(compilers))
 nagcompilers := $(filter nag%, $(compilers))
@@ -288,6 +302,63 @@ intelcompilers := $(filter intel%, $(compilers))
 ifeq (,$(findstring $(icompiler),$(compilers)))
     $(error Error: compiler '$(icompiler)' not found: configured compilers for system $(system) are $(compilers))
 endif
+
+#
+# --- SOURCE FILES ---------------------------------------------------
+#
+
+# ASRCS contain Fortran 90 source dir informations
+ifeq (False,$(iphony))
+    SRCS1 := $(foreach suff,$(F90SUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
+endif
+# exclude files from compilation
+SRCS  := $(foreach f,$(SRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+# source files but all with .o
+OSRCS := $(foreach suff, $(F90SUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(SRCS))))
+# object files
+OBJS  := $(join $(dir $(OSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(OSRCS))))
+# dependency files
+DOBJS := $(OBJS:.o=.d)
+# g90 debug files of NAG compiler are in current directory or in source directory
+GOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(OBJS)))) $(patsubst %.o,%.g90,$(OSRCS))
+
+
+# Same for Fortran77 files
+ifeq (False,$(iphony))
+    FSRCS1 := $(foreach suff,$(F77SUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
+endif
+# exclude files from compilation
+FSRCS  := $(foreach f,$(FSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+# source files but all with .o
+FOSRCS := $(foreach suff, $(F77SUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(FSRCS))))
+# object files
+FOBJS  := $(join $(dir $(FOSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(FOSRCS))))
+# dependency files
+FDOBJS := $(FOBJS:.o=.d)
+# g90 debug files of NAG compiler are in current directory or in source directory
+FGOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(FOBJS)))) $(patsubst %.o,%.g90,$(FOSRCS))
+
+
+# Same for C files with ending .c
+ifeq (False,$(iphony))
+    CSRCS1 := $(foreach suff,$(CSUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
+endif
+# exclude files from compilation
+CSRCS  := $(foreach f,$(CSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+# source files but all with .o
+COSRCS := $(foreach suff, $(CSUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(CSRCS))))
+# object files
+COBJS  := $(join $(dir $(COSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(COSRCS))))
+# dependency files
+CDOBJS := $(COBJS:.o=.d)
+
+# Libraries in source path
+ifeq (False,$(iphony))
+    LSRCS1 := $(foreach suff,$(LIBSUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
+endif
+LSRCS  := $(foreach f,$(LSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
+LOSRCS := $(foreach suff, $(LIBSUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(LSRCS))))
+LOBJS  := $(addprefix -L,$(dir $(SRCPATH))) $(addprefix -l, $(patsubst lib%, %, $(notdir $(LOSRCS))))
 
 #
 # --- DEFAULTS ---------------------------------------------------
@@ -330,7 +401,7 @@ include $(MAKEINC)
 DEFINES  += -DCFORTRAN
 
 # Mac OS X is special, there is (almost) no static linking.
-# MAC OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
+# Mac OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
 iOS := $(shell uname -s)
 istatic := $(static)
 ifneq (,$(findstring $(iOS),Darwin))
@@ -357,6 +428,14 @@ ifneq (,$(findstring $(icompiler),$(gnucompilers)))
     GFORTRANLIB ?= $(GFORTRANDIR)/lib
     iLIBS       += -L$(GFORTRANLIB) -lgfortran
     RPATH       += -Wl,-rpath,$(GFORTRANLIB)
+endif
+
+# --- LINKER ---------------------------------------------------
+# Link with the fortran compiler if fortran code
+ifneq ($(SRCS)$(FSRCS),)
+    LD := $(F90)
+else
+    LD := $(CC)
 endif
 
 # --- IMSL ---------------------------------------------------
@@ -393,12 +472,12 @@ ifneq (,$(findstring $(imsl),vendor imsl))
 endif
 
 # --- OPENMP ---------------------------------------------------
-iopenmp=
+iopenmp :=
 ifeq ($(openmp),true)
     ifneq (,$(findstring $(icompiler),$(gnucompilers)))
-        iopenmp := -fopenmp
+        iopenmp += -fopenmp
     else
-        iopenmp := -openmp
+        iopenmp += -openmp
     endif
     DEFINES += -DOPENMP
 endif
@@ -578,13 +657,26 @@ ifeq ($(lapack),true)
 endif
 
 # --- MPI ---------------------------------------------------
+MPI_F90FLAGS :=
+MPI_FCFLAGS  :=
+MPI_CFLAGS   :=
+MPI_LDFLAGS  :=
 ifeq ($(mpi),true)
     ifeq ("$(wildcard $(MPIDIR)*)","")
         $(error Error: MPI path '$(MPIDIR)' not found.)
     endif
     MPIINC   ?= $(MPIDIR)/include
     MPILIB   ?= $(MPIDIR)/lib
-    iLIBS    += -L$(MPILIB) # -lproj
+    MPIBIN   ?= $(MPIDIR)/bin
+    MPI_F90FLAGS += $(shell $(MPIBIN)/mpifort --showme:compile)
+    MPI_FCFLAGS  += $(shell $(MPIBIN)/mpif77 --showme:compile)
+    MPI_CFLAGS   += $(shell $(MPIBIN)/mpicc --showme:compile)
+    ifeq ($(LD),$(F90))
+        MPI_LDFLAGS += $(shell $(MPIBIN)/mpifort --showme:link)
+    else
+        MPI_LDFLAGS += $(shell $(MPIBIN)/mpicc --showme:link)
+    endif
+    # iLIBS    += -L$(MPILIB) # -lproj
     RPATH    += -Wl,-rpath=$(MPILIB)
     INCLUDES += -I$(MPIINC) -I$(MPILIB) # mpi.h in lib and not include <- strange
     DEFINES  += -DMPI
@@ -693,73 +785,6 @@ ifeq (,$(findstring $(iOS),Darwin))
     LIBS += $(iRPATH)
 endif
 
-# some targets should not compiler the code first, e.g. producing documentation
-# but some targets should not recompile but be aware of the source files, e.g. clean
-iphony    := False
-iphonyall := False
-ifneq (,$(strip $(MAKECMDGOALS)))
-    ifneq (,$(findstring /$(strip $(MAKECMDGOALS))/,/check/ /test/ /html/ /latex/ /pdf/ /doxygen/))
-        iphony := True
-    endif
-    ifneq (,$(findstring $(strip $(MAKECMDGOALS))/,/check/ /test/ /html/ /latex/ /pdf/ /doxygen/ /cleancheck/ /cleantest/ /checkclean/ /testclean/ /info/ /clean/ /cleanclean/))
-        iphonyall := True
-    endif
-endif
-
-
-# ASRCS contain Fortran 90 source dir informations
-ifeq (False,$(iphony))
-    SRCS1 := $(foreach suff,$(F90SUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
-endif
-# exclude files from compilation
-SRCS  := $(foreach f,$(SRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
-# source files but all with .o
-OSRCS := $(foreach suff, $(F90SUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(SRCS))))
-# object files
-OBJS  := $(join $(dir $(OSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(OSRCS))))
-# dependency files
-DOBJS := $(OBJS:.o=.d)
-# g90 debug files of NAG compiler are in current directory or in source directory
-GOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(OBJS)))) $(patsubst %.o,%.g90,$(OSRCS))
-
-
-# Same for Fortran77 files
-ifeq (False,$(iphony))
-    FSRCS1 := $(foreach suff,$(F77SUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
-endif
-# exclude files from compilation
-FSRCS  := $(foreach f,$(FSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
-# source files but all with .o
-FOSRCS := $(foreach suff, $(F77SUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(FSRCS))))
-# object files
-FOBJS  := $(join $(dir $(FOSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(FOSRCS))))
-# dependency files
-FDOBJS := $(FOBJS:.o=.d)
-# g90 debug files of NAG compiler are in current directory or in source directory
-FGOBJS := $(addprefix $(CURDIR)/,$(patsubst %.o,%.g90,$(notdir $(FOBJS)))) $(patsubst %.o,%.g90,$(FOSRCS))
-
-
-# Same for C files with ending .c
-ifeq (False,$(iphony))
-    CSRCS1 := $(foreach suff,$(CSUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
-endif
-# exclude files from compilation
-CSRCS  := $(foreach f,$(CSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
-# source files but all with .o
-COSRCS := $(foreach suff, $(CSUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(CSRCS))))
-# object files
-COBJS  := $(join $(dir $(COSRCS)), $(addprefix .$(strip $(icompiler)).$(strip $(release))/,$(notdir $(COSRCS))))
-# dependency files
-CDOBJS := $(COBJS:.o=.d)
-
-# Libraries in source path
-ifeq (False,$(iphony))
-    LSRCS1 := $(foreach suff,$(LIBSUFFIXES),$(wildcard $(addsuffix /*$(suff), $(SRCPATH))))
-endif
-LSRCS  := $(foreach f,$(LSRCS1),$(if $(findstring $(f),$(abspath $(EXCLUDE_FILES))),,$(f)))
-LOSRCS := $(foreach suff, $(LIBSUFFIXES), $(patsubst %$(suff), %.o, $(filter %$(suff), $(LSRCS))))
-LOBJS  := $(addprefix -L,$(dir $(SRCPATH))) $(addprefix -l, $(patsubst lib%, %, $(notdir $(LOSRCS))))
-
 # The Absoft compiler needs that ABSOFT is set to the Absoft base path
 ifneq ($(ABSOFT),)
     export ABSOFT
@@ -768,13 +793,6 @@ ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)
     export LD_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
-endif
-
-# Link with the fortran compiler if fortran code
-ifneq ($(SRCS)$(FSRCS),)
-    LD := $(F90)
-else
-    LD := $(CC)
 endif
 
 INCLUDES += $(addprefix -I,$(OBJPATH))
@@ -793,7 +811,7 @@ all: $(PROGNAME) $(LIBNAME)
 # Link program
 $(PROGNAME): $(OBJS) $(FOBJS) $(COBJS)
 	@echo "Linking program"
-	$(LD) $(LDFLAGS) -o $(PROGNAME) $(OBJS) $(FOBJS) $(COBJS) $(LIBS) $(LOBJS)
+	$(LD) $(MPI_LDFLAGS) $(LDFLAGS) -o $(PROGNAME) $(OBJS) $(FOBJS) $(COBJS) $(LIBS) $(LOBJS)
 
 # Link library
 $(LIBNAME): $(DOBJS) $(FDOBJS) $(CDOBJS) $(OBJS) $(FOBJS) $(COBJS)
@@ -836,8 +854,8 @@ ifneq (,$(findstring $(icompiler),gnu41 gnu42))
 	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
 	echo "$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
 	$(F90) -E $(DEFINES) $(INCLUDES) $${f90flag} $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
-	echo "$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@" ; \
-	$(F90) $(DEFINES) $(INCLUDES) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@ ; \
+	echo "$(F90) $(DEFINES) $(INCLUDES) $(MPI_F90FLAGS) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@" ; \
+	$(F90) $(DEFINES) $(INCLUDES) $(MPI_F90FLAGS) $(F90FLAGS) $(MODFLAG)$(dir $@) -c $${tmp} -o $@ ; \
 	rm $${tmp}
 else
 	@nobj=$$(echo $(OBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
@@ -845,8 +863,8 @@ else
 	ssrc=$$(basename $$(echo $(SRCS) | tr ' ' '\n' | sed -n $${nobj}p)) ; \
 	doex=$$(echo $(INTEL_EXCLUDE) | grep -i "$${ssrc}" -) ; \
 	f90flag=$$(if [[ "$${doex}" == "" ]] ; then echo "$(F90FLAGS)"; else echo "$(F90FLAGS1)" ; fi) ; \
-	echo $(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
-	$(F90) $(DEFINES) $(INCLUDES) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@
+	echo $(F90) $(DEFINES) $(INCLUDES) $(MPI_F90FLAGS) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@ ; \
+	$(F90) $(DEFINES) $(INCLUDES) $(MPI_F90FLAGS) $${f90flag} $(MODFLAG)$(dir $@) -c $${src} -o $@
 endif
 
 $(FOBJS):
@@ -856,21 +874,21 @@ ifneq (,$(findstring $(icompiler),gnu41 gnu42))
 	tmp=$@.$$(echo $${src} | sed 's/.*\.//') ; \
 	echo "$(FC) -E $(DEFINES) $(INCLUDES) $(FCFLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp}" ; \
 	$(FC) -E $(DEFINES) $(INCLUDES) $(FCFLAGS) $${src} | sed 's/^#[[:blank:]]\{1,\}[[:digit:]]\{1,\}.*$$//' > $${tmp} ; \
-	echo "$(FC) $(DEFINES) $(INCLUDES) $(FCFLAGS) -c $${tmp} -o $@" ; \
-	$(FC) $(DEFINES) $(INCLUDES) $(FCFLAGS) -c $${tmp} -o $@ ; \
+	echo "$(FC) $(DEFINES) $(INCLUDES) $(MPI_FCFLAGS) $(FCFLAGS) -c $${tmp} -o $@" ; \
+	$(FC) $(DEFINES) $(INCLUDES) $(MPI_FCFLAGS) $(FCFLAGS) -c $${tmp} -o $@ ; \
 	rm $${tmp}
 else
 	@nobj=$$(echo $(FOBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(FSRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
-	echo $(FC) $(DEFINES) $(INCLUDES) $(FCFLAGS) -c $$src -o $@ ; \
-	$(FC) $(DEFINES) $(INCLUDES) $(FCFLAGS) -c $$src -o $@
+	echo $(FC) $(DEFINES) $(INCLUDES) $(MPI_FCFLAGS) $(FCFLAGS) -c $$src -o $@ ; \
+	$(FC) $(DEFINES) $(INCLUDES) $(MPI_FCFLAGS) $(FCFLAGS) -c $$src -o $@
 endif
 
 $(COBJS):
 	@nobj=$$(echo $(COBJS) | tr ' ' '\n' | grep -n -w -F $@ | sed 's/:.*//') ; \
 	src=$$(echo $(CSRCS) | tr ' ' '\n' | sed -n $${nobj}p) ; \
-	echo $(CC) $(DEFINES) $(INCLUDES) $(CFLAGS) -c $${src} -o $@ ; \
-	$(CC) $(DEFINES) $(INCLUDES) $(CFLAGS) -c $${src} -o $@
+	echo $(CC) $(DEFINES) $(INCLUDES) $(MPI_CFLAGS) $(CFLAGS) -c $${src} -o $@ ; \
+	$(CC) $(DEFINES) $(INCLUDES) $(MPI_CFLAGS) $(CFLAGS) -c $${src} -o $@
 
 # Helper Targets
 clean:
