@@ -36,6 +36,7 @@ INTELBIN := $(INTELDIR)/bin/intel64
 F90 := $(INTELBIN)/ifort
 FC  := $(F90)
 CC  := $(INTELBIN)/icc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     F90FLAGS += -check all -warn all -g -debug -traceback -fp-stack-check -O0 -debug
     FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
@@ -46,7 +47,7 @@ else
     FCFLAGS  += -O3 -vec-report0 -override-limits
     CFLAGS   += -O3
 endif
-F90FLAGS += -assume byterecl -cpp -fp-model precise -m64
+F90FLAGS += -nofixed -assume byterecl -cpp -fp-model precise -m64
 FCFLAGS  += -assume byterecl -cpp -fp-model precise -m64 -fixed
 MODFLAG  := -module # space significant
 CFLAGS   += -m64 -std=c99

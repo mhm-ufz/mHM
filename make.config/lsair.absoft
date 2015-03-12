@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 5.3 at Matthias' PowerBook G4
+# Setup file for Absoft compiler at Luis' Macbook Air
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -28,68 +28,70 @@
 # Define subirectories if another structure
 
 # Paths
-NAGDIR := /usr/local
-NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := $(NAGDIR)/bin
+ABSOFT := /Applications/Absoft11.1
+ABSOFTBIN := $(ABSOFT)/bin
+ABSOFTINC := $(ABSOFT)/f90includes64
+ABSOFTLIB := $(ABSOFT)/lib64
 
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(NAGBIN)/nagfor
+F90 := $(ABSOFTBIN)/f90
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
 CPP := /usr/bin/cpp
 ifeq ($(release),debug)
-    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
-    F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
-    FCFLAGS  += $(F90FLAGS)
+    # -s for initialize to 0;
+    # -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end interface
+    # Vectorisation: -YLOOP_ANALYZER -LNO:simd_verbose=on -LNO:simd=2 (1: default; 2: aggressive)
+    F90FLAGS += -g -en -Ra -Rb -Rc -Rn -Rp -Rs -YNDFP=1 -O0 -z0
+    #F90FLAGS += -g -en     -Rb -Rc     -Rp -Rs -YNDFP=1 -O0 -z0
     CFLAGS   += -pedantic -Wall -W -O -g
-    #CFLAGS   += -Wall -W -O -g
-    LDFLAGS  += -g90
 else
     F90FLAGS += -O3
-    FCFLAGS  += $(F90FLAGS)
     CFLAGS   += -O3
 endif
-# -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
-MODFLAG  := -mdir # space significant
-FCFLAGS  += -fixed
-CFLAGS   +=
-LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
-
-# Linking
-LIBS += -L$(NAGLIB) $(NAGLIB)/thsafe.o
-RPATH += -Wl,-rpath,$(NAGLIB)
+#F90FLAGS += -m64 -cpp -f free -safefp -OPT:roundoff=0 #-stack:1f40000
+F90FLAGS += -m64 -cpp -safefp -OPT:roundoff=0 -p $(OBJPATH) #-stack:1f40000
+# -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end F90FLAGS += -Z399
+FCFLAGS += $(F90FLAGS)
+MODFLAG := -YMOD_OUT_DIR=# space significant
+CFLAGS  +=
+DEFINES += -DABSOFT -DgFortran
+LDFLAGS += -m64
 
 # IMSL
-IMSLDIR :=
+IMSLDIR := /opt/imsl/fnl600/macab110e64
 
 # MKL
-MKLDIR :=
+MKLDIR := 
+MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR :=
+    NCDIR := $(ABSOFT)
+    NCINC := $(ABSOFTINC)
+    NCLIB := $(ABSOFTLIB)
 else
-    NCDIR   :=
-    SZLIB   :=
-    HDF5LIB :=
+    NCDIR   := $(ABSOFT)
+    NCINC   := $(ABSOFTINC)
+    NCLIB   := $(ABSOFTLIB)
+    SZLIB   := /usr/local
+    HDF5LIB := $(ABSOFTLIB)
 endif
 
 # PROJ
-PROJ4DIR :=
-FPROJDIR :=
+PROJ4DIR := /usr/local
+FPROJDIR := 
 
 # LAPACK
 LAPACKDIR   :=
 GFORTRANDIR := /usr/local
 
 # Documentation
-DOXYGENDIR :=
-DOTDIR     :=
-TEXDIR     :=
+DOXYGENDIR := /usr/local/bin
+DOTDIR     := /usr/local/bin
+TEXDIR     := /usr/texbin
 PERLDIR    := /usr/bin

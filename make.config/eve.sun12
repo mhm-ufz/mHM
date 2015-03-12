@@ -36,6 +36,7 @@ SUNBIN := $(SUNDIR)/bin
 F90 := $(SUNBIN)/sunf90
 FC  := $(SUNBIN)/sunf77
 CC  := $(SUNBIN)/suncc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     F90FLAGS += -g -xcheck=%all -C -u -traceback
     FCFLAGS  += -g -xcheck=%all -C -u -traceback
