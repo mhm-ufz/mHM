@@ -387,7 +387,7 @@ inputFormat_gridded_LAI = "nc"
 !******************************************************************************************
 !> This matrix manages which processes and process descriptions are used for simulation.
 !> The number of processes and its corresponding numbering are fixed. The process description can be 
-!> chosen from the options listed undeneath the name of the particular process case. This number has to be
+!> chosen from the options listed above the name of the particular process case. This number has to be
 !> given for processCase(*).
 !
 &processSelection
@@ -397,7 +397,7 @@ processCase(1) = 1
 !> snow
 !> 1 - degree-day approach
 processCase(2) = 1
-!> soilmoisture
+!> soil moisture
 !> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
 processCase(3) = 1
 !> directRunoff
@@ -419,6 +419,12 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 processCase(8) = 1
+!> ground albedo of cosmic-ray neutrons
+!> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
+!> 0 - deactivated
+!> 1 - inverse N0 based on Desilets et al. 2010 
+!> 2 - COSMIC forward operator by Shuttlworth et al. 2013
+processCase(10) = 0
 /
 
 !******************************************************************************************
