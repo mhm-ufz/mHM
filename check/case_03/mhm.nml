@@ -123,6 +123,27 @@ dir_RestartOut(2)    = "output_b2/"
 dir_Out(2)           = "output_b2/"
 /
 
+!> data which are optionally needed for optimization
+&optional_data
+!> soil moisture data
+!> currently mhm can be calibrated against the fraction of moisture
+!> down to a specific mhm soil layer (integral over the layers)
+!> here soil moisture is defined as fraction between water content within the
+!> soil column and saturated water content (porosity). \n
+!
+!> directory to soil moisture data
+dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+!> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
+!> input is representative for (counted top to down)
+nSoilHorizons_sm_input = 1
+!> time stepping of the soil moisture input
+!>     -1: daily   SM values\n
+!>     -2: monthly SM values\n
+!>     -3: yearly  SM values\n
+!-----------------------------
+timeStep_sm_input = -2
+/
+
 !
 !******************************************************************************************
 ! MAIN  

@@ -141,7 +141,6 @@ CONTAINS
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
-    use mo_ncwrite, only: var2nc !MZMZMZMZ
     
     implicit none
 
@@ -214,7 +213,6 @@ CONTAINS
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-    real(dp), dimension(:,:,:), allocatable       :: sm_tmp_out            ! MZMZMZMZ
 
     !----------------------------------------------------------
     ! Check optionals and initialize
@@ -733,11 +731,7 @@ CONTAINS
        deallocate(LAI)
 
     end do !<< BASIN LOOP
-    allocate(sm_tmp_out(size(mask1,1),size(mask1,2),48)) ! MZMZMZMZ
-    do ii = 1, 48
-       sm_tmp_out(:,:,ii) = unpack(sm_opti(:,ii), mask1, nodata_dp)
-    end do
-    call var2nc("sm_opti", sm_tmp_out, (/'x','y','t'/), 'sm', missing_value=nodata_dp, create=.True.) ! MZMZMZMZ
+
     ! --------------------------------------------------------------------------
     ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
     ! FOR SIMULATIONS DURING THE EVALUATION PERIOD

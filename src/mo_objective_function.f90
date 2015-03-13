@@ -1120,7 +1120,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          objective_kge
+  !          objective_kge !MZMZMZ
 
   !>        \brief Objective function of KGE.
 
@@ -1170,18 +1170,14 @@ CONTAINS
 
   !     EXAMPLE
   !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge(para)
+  !         obj_value = objective_sm_corr(para)
 
   !     LITERATURE
-  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
-  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
-
+  !         none
 
   !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date August 2014
-  !         Modified, R. Kumar & O. Rakovec, Sep. 2014
-  !                   Stephan Thober,        Jan  2015 - introduced extract_runoff
+  !>        \author  Matthias Zink
+  !>        \date    March 2015
 
   FUNCTION objective_sm_corr(parameterset)
     
@@ -1224,24 +1220,21 @@ CONTAINS
        call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
        ! temporal correlation is calculated on individual gridd cells
-       do iCell = s1+1, e1
+       do iCell = s1, e1
           ! check for enough data points in time for correlation ! MZMZMZMZ sufficient criteria to be forund
           if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
              call message('WARNING: ignored currrent cell since less than 10 time steps')
              call message('         avaiable in soil moisture observation')
-             ! cycle
+             cycle
           end if
           objective_sm_corr_basin(iBasin) = objective_sm_corr_basin(iBasin) + &
                correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
-          print*,  correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
        end do
        ! calculate average soil moisture correlation over all basins ! MZMZMZMZ power law is still missing
-       print*, "partial of ", iBasin,  objective_sm_corr_basin(iBasin)/nCells1 
        objective_sm_corr = objective_sm_corr + 1.0_dp - objective_sm_corr_basin(iBasin)/nCells1 
     end do
 
     call message('objective_sm_corr = ', num2str(objective_sm_corr,'(F9.5)'))
-    pause
     
   END FUNCTION objective_sm_corr
   

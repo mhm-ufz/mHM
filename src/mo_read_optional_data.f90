@@ -79,7 +79,7 @@ CONTAINS
     use mo_mhm_constants,    only: nodata_dp
     use mo_global_variables, only:                         &
          dirSoil_moisture,                                 & ! directory of meteo input
-         simPer,                                           & ! chunk read in config                           
+         evalPer,                                          & ! evaluation period                          
          L1_sm, L1_sm_mask,                                & ! soil mositure data and mask
          timeStep_sm_input, nTimeSteps_L1_sm                 ! input time step (d,m,y), number of time steps
     implicit none
@@ -102,7 +102,7 @@ CONTAINS
     !  basin characteristics and read meteo header
     call message('  Reading soil mositure for basin:            ', trim(adjustl(num2str(iBasin))),' ...')
     call timer_start(1)
-    call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, simPer(iBasin), trim('sm'), L1_data, mask1, &
+    call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, evalPer(iBasin), trim('sm'), L1_data, mask1, &
          nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask) !MZMZMZMZ
 
     ! pack variables
