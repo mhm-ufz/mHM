@@ -344,7 +344,7 @@ PROGRAM mhm_driver
      endif
 
      ! optional data
-     if (opti_function .EQ. 13) then ! MZMZMZ right place - add checks?
+     if (opti_function .EQ. 13) then
         call message('  Reading soil mositure for basin: ', trim(adjustl(num2str(ii))),' ...')
         call read_soil_moisture(ii)
      endif

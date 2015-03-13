@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.8 at Matthias' iMac
+# Setup file for Absoft compiler at Matthias' iMac
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -28,66 +28,75 @@
 # Define subirectories if another structure
 
 # Paths
+ABSOFT := /Applications/Absoft11.1
+ABSOFTBIN := $(ABSOFT)/bin
+ABSOFTINC := $(ABSOFT)/f90includes64
+ABSOFTLIB := $(ABSOFT)/lib64
+
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(GNUBIN)/gfortran
+F90 := $(ABSOFTBIN)/f90
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
-CPP := /usr/bin/cpp
-# GNU Fortran version >= 4.4
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
-    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
-    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
+    # -s for initialize to 0;
+    # -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end interface
+    # Vectorisation: -YLOOP_ANALYZER -LNO:simd_verbose=on -LNO:simd=2 (1: default; 2: aggressive)
+    F90FLAGS += -g -en -Ra -Rb -Rc -Rn -Rp -Rs -YNDFP=1 -O0 -z0
+    #F90FLAGS += -g -en     -Rb -Rc     -Rp -Rs -YNDFP=1 -O0 -z0
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -pedantic -Wall -W -O -g
 else
     F90FLAGS += -O3
-    FCFLAGS  += -O3
+    FCFLAGS  += $(F90FLAGS)
     CFLAGS   += -O3
 endif
-F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
-FCFLAGS  += -ffixed-form -ffixed-line-length-132
-CFLAGS   +=
-MODFLAG  := -J# space significant
-DEFINES  += -DGFORTRAN -DgFortran
-
-# Linking
-LIBS += -L$(GNULIB)
-RPATH += -Wl,-rpath,$(GNULIB)
+#F90FLAGS += -m64 -cpp -f free -safefp -OPT:roundoff=0 #-stack:1f40000
+F90FLAGS += -m64 -cpp -safefp -OPT:roundoff=0 -p $(OBJPATH) #-stack:1f40000
+# -Znnn suppress message number: 399 - Generic subroutine; 938 - real division in int; 1610 - generic-spec end F90FLAGS += -Z399
+MODFLAG := -YMOD_OUT_DIR=# space significant
+FCFLAGS += $(F90FLAGS)
+CFLAGS  +=
+DEFINES += -DABSOFT -DgFortran
+LDFLAGS += -m64
 
 # IMSL
-IMSLDIR :=
+IMSLDIR := /opt/imsl/fnl600/macab110e64
 
 # MKL
 MKLDIR := /opt/intel/composerxe-2011.4.184/mkl
 MKLINC := $(MKLDIR)/include/intel64/lp64
 MKLLIB := $(MKLDIR)/lib
-MKL95DIR := /opt/lib/mkl95_lapack/gnu47
+MKL95DIR := /opt/lib/mkl95_lapack/absoft
 MKL95INC := $(MKL95DIR)/include/intel64/lp64
 MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR   :=
+    NCDIR := $(ABSOFT)
+    NCINC := $(ABSOFTINC)
+    NCLIB := $(ABSOFTLIB)
 else
-    NCDIR   := /usr/local/netcdf_4.2_gnu47
-    CURLLIB :=
-    SZLIB   := /usr/local/lib
-    HDF5LIB := /usr/local/lib
+    NCDIR   := $(ABSOFT)
+    NCINC   := $(ABSOFTINC)
+    NCLIB   := $(ABSOFTLIB)
+    SZLIB   := /opt/local/lib/
+    HDF5LIB := $(ABSOFTLIB)
 endif
 
 # PROJ
-PROJ4DIR := /usr/local/
+PROJ4DIR := /usr/local
 FPROJDIR := 
 
 # LAPACK
-LAPACKDIR   := 
+LAPACKDIR   :=
 GFORTRANDIR := /usr/local
 
 # Documentation
-DOXYGENDIR := /Applications/Program/Doxygen.app/Contents/Resources
+DOXYGENDIR := /usr/local/bin
 DOTDIR     := /usr/local/bin
 TEXDIR     := /usr/texbin
 PERLDIR    := /usr/bin

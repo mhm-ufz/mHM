@@ -246,9 +246,10 @@ CONTAINS
   !>        \details Reads netCDF meteorological files.  \n
   !>        First, the dimensions given are cross-checked with header.txt information. Second, the data of the
   !>        specified period are read from the specified directory.
-  !>        The names of files in this directory have to be always "YYYY.nc".\n
   !>        If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-  !>        The program is stopped if any value lies out of range.
+  !>        The program is stopped if any value lies out of range.\n
+  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
 
   !     CALLING SEQUENCE
   !         periode%dStart   = 2_i4                                                     ! day
@@ -273,7 +274,6 @@ CONTAINS
   !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
   !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
   !>        \param[in] "type(period)     :: periode"       Period the data are needed for
-  !>        \param[in] "type(period), optional :: readPer" Period the data should be read for
 
   !     INTENT(INOUT)
   !         None
@@ -283,15 +283,17 @@ CONTAINS
   !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(:,:),optional :: mask"     mask of valid field for checking bounds
-  !>        \param[in] "real(dp), optional               :: lower"    Lower bound for check of validity of data values
-  !>        \param[in] "real(dp), optional               :: upper"    Upper bound for check of validity of data values
-
+  !>        \param[in] "real(dp), optional, intent(in)  :: lower"    Lower bound for check of validity of data values
+  !>        \param[in] "real(dp), optional, intent(in)  :: upper"    Upper bound for check of validity of data values
+  !>        \param[in] "logical,  optional, intent(in)  :: nocheck"  .TRUE. if check for nodata values deactivated
+  !>                                                                  default = .FALSE. - check is done
+  
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
+  !>                                                                                                  data points 
 
   !     RETURN
   !         None
@@ -313,7 +315,7 @@ CONTAINS
   !               modified Stephan Thober     Nov 2013 - only read required
   !                                                      chunk from nc file
   !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
-  !                        Matthias Zink      Mar 2014 - added optional nocheck flag
+  !                        Matthias Zink      Mar 2014 - added optional nocheck flag and optional maskout
 
   subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, nocheck, maskout)
 

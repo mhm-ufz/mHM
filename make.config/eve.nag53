@@ -32,7 +32,7 @@ NAGDIR := /opt/nag/5.3.2-963
 NAGLIB := $(NAGDIR)/lib
 NAGBIN := $(NAGDIR)/bin
 
-GNUDIR := /usr/local/gcc/4.6.1
+GNUDIR := /usr/local/gcc/4.8.1-3_CentOS6/
 GNULIB := $(GNUDIR)/lib64
 GNUBIN := $(GNUDIR)/bin
 
@@ -40,6 +40,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
     # -gline not supported in NAG v5.3 under OpenMP 
@@ -49,7 +50,7 @@ ifeq ($(release),debug)
         F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90 
     endif 
     FCFLAGS  += $(F90FLAGS)
-    CFLAGS   += -pedantic -Wall -W -O -g
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
     LDFLAGS  += -g90
 else
     F90FLAGS += -O3
@@ -58,9 +59,9 @@ else
 endif
 # -mismatch-all
 #F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient -free
 MODFLAG  := -mdir # space significant
-FCFLAGS  +=
+FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
 DEFINES  += -DNAG -DgFortran
@@ -68,10 +69,11 @@ DEFINES  += -DNAG -DgFortran
 # Linking
 LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
 RPATH += -Wl,-rpath,$(NAGLIB)
+iLDPATH = $(GNUDIR)/lib/gcc/x86_64-unknown-linux-gnu/4.8.1:/usr/local/cloog/0.18.0-2/lib:/usr/local/isl/0.11.1-2/lib:/usr/local/mpc/1.0.1-3/lib:/usr/local/mpfr/3.1.2-2/lib:/usr/local/gmp/5.1.2-1/lib
 ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+    LDPATH += :$(iLDPATH)
 else
-    LDPATH := /usr/local/gmp/5.0.2/lib:/usr/local/mpfr/3.0.1/lib:/usr/local/mpc/0.9/lib
+    LDPATH := $(iLDPATH)
 endif
 
 # IMSL
@@ -91,11 +93,12 @@ MKL95LIB := $(MKL95DIR)/lib/intel64
 ifeq ($(netcdf),netcdf3)
     NCDIR := /usr/local/netcdf/3.6.3_nag53
 else
-    #NCDIR   := /usr/local/netcdf/4.1.3_nagfor
-    NCDIR   := /usr/local/netcdf/4.1.1_nagfor
-    CURLLIB := /usr/lib64
-    SZLIB   := /usr/local/szip/2.1/lib
-    HDF5LIB := /usr/local/hdf5/1.8.6/lib
+    ZLIB    := /usr/local/zlib/1.2.8-2_gcc_4.8.1_CentOS6/lib
+    SZLIB   := /usr/local/szip/2.1_gcc_4.8.1_CentOS6/lib
+    HDF5LIB := /usr/local/hdf5/1.8.12-1_gcc_4.8.1_CentOS6/lib
+    NCDIR   := /usr/local/netcdf/4.3.2_gcc_4.8.1_CentOS6
+    # NCFDIR  := /usr/local/netcdf-fortran/???
+    NCFDIR  := /usr/local/netcdf-fortran/4.2_gcc_4.8.1_nagfor_5.3.2_CentOS6
 endif
 
 # PROJ
@@ -103,28 +106,21 @@ PROJ4DIR := /usr/local/proj/4.7.0
 FPROJDIR := /usr/local/fproj/4.7.0-1_nag53
 
 # LAPACK
-LAPACKDIR   :=
-LAPACKLIB   :=
-#GFORTRANDIR :=
-GFORTRANDIR := /usr
-GFORTRANLIB := $(GFORTRANDIR)/lib64
+LAPACKDIR   := /usr/local/lapack/3.5.0-1_gcc_4.8.1_CentOS6
+GFORTRANDIR := $(GNUDIR)
+GFORTRANLIB := $(GNULIB)
 
 # Documentation
-DOXYGENDIR := /usr/local/doxygen/1.8.2-1/bin
-DOTDIR     := /usr/local/graphviz/2.28.0-2/bin
+DOXYGENDIR := /usr/local/doxygen/1.8.7-1_gcc_4.8.1_CentOS6/bin
+DOTDIR     := /usr/bin
 TEXDIR     := /usr/local/texlive/2011/bin/x86_64-linux
 PERLDIR    := /usr/bin
+iiLDPATH := /usr/local/flex/2.5.39-1_gcc_4.8.1_CentOS6/lib:/usr/local/bison/3.0.2-1_gcc_4.8.1_CentOS6/lib
 ifneq ($(LDPATH),)
-    LDPATH += :/usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH += :$(iiLDPATH)
 else
-    LDPATH := /usr/local/graphviz/2.28.0-2/lib:/usr/local/librsvg/2.36.4-1/lib
+    LDPATH := $(iiLDPATH)
 endif
-LDPATH     += :/usr/local/libcroco/0.6.8-1/lib:/usr/local/pango/1.32.4-1/lib
-LDPATH     += :/usr/local/harfbuzz/0.9.9-1/lib:/usr/local/cairo/1.12.8-2/lib
-LDPATH     += :/usr/local/fontconfig/2.10.2-1/lib:/usr/local/freetype/2.4.10-1/lib
-LDPATH     += :/usr/local/expat/2.1.0-1/lib:/usr/local/pixman/0.28.0-1/lib
-LDPATH     += :/usr/local/libxml2/2.8.0/lib:/usr/local/gdk-pixbuf/2.26.5-1/lib
-LDPATH     += :/usr/local/glib/2.34.3-1/lib:/usr/local/libffi/3.0.11-1/lib
 
 # Check some dependices, e.g. IMSL needs intel11 on eve
 ifneq (,$(findstring $(system),eve))
@@ -140,12 +136,12 @@ ifneq (,$(findstring $(system),eve))
     endif
 endif
 
-# Lapack on Eve needs libgfortran
+# Lapack on eve needs libgfortran
 ifeq ($(lapack),true)
     ifneq (exists, $(shell if [ -d "$(GFORTRANDIR)" ] ; then echo 'exists' ; fi))
         $(error Error: GFORTRAN path '$(GFORTRANDIR)' not found.)
     endif
     GFORTRANLIB ?= $(GFORTRANDIR)/lib
-    iLIBS        += -L$(GFORTRANLIB) -lgfortran
+    iLIBS       += -L$(GFORTRANLIB) -lgfortran
     RPATH       += -Wl,-rpath,$(GFORTRANLIB)
 endif

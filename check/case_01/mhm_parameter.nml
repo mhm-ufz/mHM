@@ -94,6 +94,18 @@ muskingumTravelTime_riverSlope     =  1.9500,      2.1000,     1.964E+00,     1,
 muskingumTravelTime_impervious     =  0.0900,      0.1100,     9.216E-02,     1,       1
 muskingumAttenuation_riverSlope    =  0.0100,      0.5000,     9.539E-02,     1,       1
 /
+! ground albedo neutrons                                  
+! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
+&neutrons1                                                 
+Desilets_N0                        =  300.0,       2000.0,        1500.0,     0,       1
+COSMIC_N0                          =  300.0,       2000.0,        1500.0,     0,       1
+COSMIC_N1                          =    0.01,        10.0,           1.0,     0,       1
+COSMIC_N2                          =    0.01,        10.0,           1.0,     0,       1
+COSMIC_alpha0                      =    0.01,        10.0,           1.0,     0,       1
+COSMIC_alpha1                      =    0.01,        10.0,           1.0,     0,       1
+COSMIC_L30                         =    0.01,        10.0,           1.0,     0,       1
+COSMIC_L31                         =    0.01,        10.0,           1.0,     0,       1
+/
 
 ! geological parameters (ordering according to file 'geology_classdefinition.txt')
 ! this parameters are NOT REGIONALIZED yet, i.e. these are <beta> and not <gamma>

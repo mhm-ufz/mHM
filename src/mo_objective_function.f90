@@ -1035,7 +1035,6 @@ CONTAINS
   !>
   !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
 
-
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
 
@@ -1120,27 +1119,22 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          objective_kge !MZMZMZ
+  !          objective_sm_corr
 
-  !>        \brief Objective function of KGE.
+  !>        \brief Objective function for soil moisture.
 
   !>        \details The objective function only depends on a parameter vector. 
   !>                 The model will be called with that parameter vector and 
   !>                 the model output is subsequently compared to observed data.\n
   !>
-  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>                 Therefore the Pearson correlation between observed and modeled soil 
+  !>                 moisture is compared
+  !>                       \f[ obj\_value = 1.0 - r^2(SM_{obs}, SM_{sim}) \f]
   !>                 where
-  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
-  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
-  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
-  !>                 is calculated and the objective function is
-  !>                       \f[ obj\_value = 1.0 - KGE \f]
-  !>                 (1-KGE) is the objective since we always apply minimization methods. 
-  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
-  !>
-  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
-
+  !>                       \f[ r^2\f]        = Pearson correlation coefficient
+  !>                       \f[ SM_{obs} \f]  = observed soil moisture 
+  !>                       \f[ SM_{sim}  \f] = simulated soil moisture
+  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.   
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -1161,12 +1155,11 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       \return     real(dp) :: objective_sm_corr &mdash; objective function value 
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
   !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
 
   !     EXAMPLE
   !         para = (/ 1., 2, 3., -999., 5., 6. /)

@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 5.3 at Matthias' PowerBook G4
+# Setup file for Gnu compiler 4.8 at Sebastians Laptop
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2012 Matthias Cuntz
+#    Copyright 2012 Stephan Thober
 
 # The Makefile assumes the standard bin, include and lib directories
 # i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
@@ -28,68 +28,62 @@
 # Define subirectories if another structure
 
 # Paths
-NAGDIR := /usr/local
-NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := $(NAGDIR)/bin
-
-GNUDIR := /usr/local
+GNUDIR := /usr
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(NAGBIN)/nagfor
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
-CPP := /usr/bin/cpp
+# GNU Fortran version >= 4.4
 ifeq ($(release),debug)
-    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
-    F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
-    FCFLAGS  += $(F90FLAGS)
-    CFLAGS   += -pedantic -Wall -W -O -g
-    #CFLAGS   += -Wall -W -O -g
-    LDFLAGS  += -g90
+    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
+    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
+    CFLAGS   += -pedantic-errors -Wall -W -O -g
 else
     F90FLAGS += -O3
-    FCFLAGS  += $(F90FLAGS)
+    FCFLAGS  += -ffixed-form -O3
     CFLAGS   += -O3
 endif
-# -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
-MODFLAG  := -mdir # space significant
-FCFLAGS  += -fixed
+F90FLAGS += -cpp
+MODFLAG  := -J# space significant
+FCFLAGS  +=
 CFLAGS   +=
-LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
+DEFINES  += -DGFORTRAN -DgFortran
 
 # Linking
-LIBS += -L$(NAGLIB) $(NAGLIB)/thsafe.o
-RPATH += -Wl,-rpath,$(NAGLIB)
+LIBS  += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
 
 # IMSL
 IMSLDIR :=
 
 # MKL
 MKLDIR :=
+MKLINC :=
+MKLLIB :=
+MKL95DIR :=
+MKL95INC :=
+MKL95LIB :=
 
 # NETCDF
-ifeq ($(netcdf),netcdf3)
-    NCDIR :=
-else
-    NCDIR   :=
-    SZLIB   :=
-    HDF5LIB :=
-endif
+NCDIR   :=
+SZLIB   :=
+HDF5LIB :=
 
 # PROJ
 PROJ4DIR :=
 FPROJDIR :=
 
 # LAPACK
-LAPACKDIR   :=
-GFORTRANDIR := /usr/local
+LAPACKDIR   := $(GNUDIR)
+LAPACKLIB   := $(GNULIB)
+GFORTRANDIR := $(GNUDIR)
+GFORTRANLIB := $(GNULIB)
 
 # Documentation
 DOXYGENDIR :=
 DOTDIR     :=
 TEXDIR     :=
-PERLDIR    := /usr/bin
+PERLDIR    :=

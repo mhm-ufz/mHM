@@ -15,7 +15,7 @@ MODULE mo_read_optional_data
 
   PRIVATE
 
-  PUBLIC :: read_soil_moisture ! MZMZMZ
+  PUBLIC :: read_soil_moisture
  
   ! ------------------------------------------------------------------
 
@@ -24,14 +24,16 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         read_soil_moisture ! MZMZMZMZ edit docu
+  !         read_soil_moisture
   
   !     PURPOSE
-  !>        \brief read soil moisture data for calibration
+  !>        \brief Read soil moisture data from NetCDF file for calibration
 
-  !>        \details Prepare meteorological forcings data for a given variable.
-  !>                 Internally this subroutine calls another routine meteo_wrapper   
-  !>                 for different meterological variables
+  !>        \details This routine reads oberved soil moisture fields which are used for model
+  !>                 calibration. The soil moisture file is expected to be called "sm.nc" with
+  !>                 a variable "sm" inside. The data are read only for the evaluation period
+  !>                 they are intended to be used for calibration. Soil moisture data are only
+  !>                 read if one of the corresponding objective functions is chosen.
 
   !     CALLING SEQUENCE
 
@@ -103,7 +105,7 @@ CONTAINS
     call message('  Reading soil mositure for basin:            ', trim(adjustl(num2str(iBasin))),' ...')
     call timer_start(1)
     call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, evalPer(iBasin), trim('sm'), L1_data, mask1, &
-         nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask) !MZMZMZMZ
+         nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask)
 
     ! pack variables
     nTimeSteps_L1_sm = size(L1_data, 3)
