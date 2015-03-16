@@ -36,6 +36,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
     FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g

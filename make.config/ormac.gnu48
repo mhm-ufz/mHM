@@ -36,20 +36,20 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -ffree-form -ffixed-line-length-132 -Wall -W -O -g
-    FCFLAGS  += -pedantic-errors -ffixed-form -ffixed-line-length-132 -Wall -W -O -g
-    CFLAGS   += -pedantic-errors -Wall -W -O -g
+    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
 else
     F90FLAGS += -O3
-    FCFLAGS  += -ffixed-form -O3
+    FCFLAGS  += -O3
     CFLAGS   += -O3
 endif
-F90FLAGS += -cpp
-#F90FLAGS += -ffpe-summary=none
-MODFLAG  := -J# space significant
-FCFLAGS  +=
+F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
+FCFLAGS  += -ffixed-form -ffixed-line-length-132
 CFLAGS   +=
+MODFLAG  := -J# space significant
 DEFINES  += -DGFORTRAN -DgFortran
 
 # Linking

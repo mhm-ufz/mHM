@@ -40,6 +40,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
     # -gline not supported in NAG v5.3 under OpenMP 
@@ -58,9 +59,9 @@ else
 endif
 # -mismatch-all
 #F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient -free
 MODFLAG  := -mdir # space significant
-FCFLAGS  +=
+FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
 DEFINES  += -DNAG -DgFortran

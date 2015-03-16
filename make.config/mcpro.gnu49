@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 5.3 at Matthias' PowerBook G4
+# Setup file for Gnu compiler 4.9 at Matthias' Macbook Pro
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -28,68 +28,65 @@
 # Define subirectories if another structure
 
 # Paths
-NAGDIR := /usr/local
-NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := $(NAGDIR)/bin
-
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(NAGBIN)/nagfor
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc
-CPP := /usr/bin/cpp
+CC  := /usr/bin/gcc
+CPP := /usr/bin/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
 ifeq ($(release),debug)
-    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
-    F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
-    FCFLAGS  += $(F90FLAGS)
-    CFLAGS   += -pedantic -Wall -W -O -g
-    #CFLAGS   += -Wall -W -O -g
-    LDFLAGS  += -g90
+    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
 else
     F90FLAGS += -O3
-    FCFLAGS  += $(F90FLAGS)
+    FCFLAGS  += -O3
     CFLAGS   += -O3
 endif
-# -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
-MODFLAG  := -mdir # space significant
-FCFLAGS  += -fixed
+F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
+FCFLAGS  += -ffixed-form -ffixed-line-length-132
 CFLAGS   +=
-LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
+MODFLAG  := -J# space significant
+DEFINES  += -DGFORTRAN -DgFortran
 
 # Linking
-LIBS += -L$(NAGLIB) $(NAGLIB)/thsafe.o
-RPATH += -Wl,-rpath,$(NAGLIB)
+LIBS += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
 
 # IMSL
 IMSLDIR :=
 
 # MKL
 MKLDIR :=
+MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR :=
+    NCDIR := /usr/local/netcdf-3.6.3-gfortran
 else
-    NCDIR   :=
-    SZLIB   :=
-    HDF5LIB :=
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-gfortran
+    CURLLIB := /usr/lib
+    SZLIB   := /usr/local/lib
+    HDF5LIB := /usr/local/lib
 endif
 
 # PROJ
-PROJ4DIR :=
-FPROJDIR :=
+PROJ4DIR := /usr/local/
+FPROJDIR := 
 
 # LAPACK
-LAPACKDIR   :=
-GFORTRANDIR := /usr/local
+LAPACKDIR   := 
+GFORTRANDIR := $(GNUDIR)
+
+# MPI
+MPIDIR := /usr/local/openmpi-1.8.3-gfortran
 
 # Documentation
-DOXYGENDIR :=
-DOTDIR     :=
-TEXDIR     :=
+DOXYGENDIR := /usr/local/bin
+DOTDIR     := /usr/local/bin
+TEXDIR     := /usr/texbin
 PERLDIR    := /usr/bin

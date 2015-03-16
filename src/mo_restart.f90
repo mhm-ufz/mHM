@@ -1636,7 +1636,7 @@ CONTAINS
     ! groundwater storage
     call Get_NcVar( Fname,  'L1_satSTW', dummyD2 )
     L1_satSTW(s1:e1) = pack( dummyD2, mask1 )
-
+    
     ! Soil moisture of each horizon
     deallocate( dummyD2 )
     allocate( dummyD3( nrows1, ncols1, nSoilHorizons_mHM ) )

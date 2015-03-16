@@ -40,6 +40,7 @@ GNUBIN := $(GNUDIR)/bin
 F90 := $(NAGBIN)/nagfor
 FC  := $(F90)
 CC  := $(GNUBIN)/gcc
+CPP := /usr/bin/cpp
 ifeq ($(release),debug)
     ifeq ($(openmp),true)
         F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90
@@ -56,9 +57,9 @@ else
     CFLAGS   += -O3
 endif
 # -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
 MODFLAG  := -mdir # space significant
-FCFLAGS  +=
+FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
 DEFINES  += -DNAG -DgFortran

@@ -244,7 +244,16 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverLength   
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverSlope    
     real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious    
-    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope    
+    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope   
+    ! neutrons
+    real(dp), dimension(nColPars)                   :: Desilets_N0  
+    real(dp), dimension(nColPars)                   :: COSMIC_N0       
+    real(dp), dimension(nColPars)                   :: COSMIC_N1       
+    real(dp), dimension(nColPars)                   :: COSMIC_N2       
+    real(dp), dimension(nColPars)                   :: COSMIC_alpha0   
+    real(dp), dimension(nColPars)                   :: COSMIC_alpha1   
+    real(dp), dimension(nColPars)                   :: COSMIC_L30      
+    real(dp), dimension(nColPars)                   :: COSMIC_L31   
     !
     integer(i4)                                     :: ii, iBasin, n_true_pars
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
@@ -347,6 +356,8 @@ CONTAINS
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic     
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, muskingumTravelTime_riverSlope, &
          muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
+    namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31   
+    !
     namelist /geoparameter/ GeoParam
     ! name list regarding output
     namelist/NLoutputResults/timeStep_model_outputs, outputFlxState
@@ -1246,6 +1257,48 @@ CONTAINS
     processMatrix(9,1) = 1
     processMatrix(9,2) = nGeoUnits
     processMatrix(9,3) = sum(processMatrix(1:9, 2))
+    
+    ! Process 10 - neutrons 
+       ! 0 - deactivated
+       ! 1 - inverse N0 based on Desilets et al. 2010 
+       ! 2 - COSMIC forward operator by Shuttlworth et al. 2013
+    if (processCase(10) .gt. 0) then
+
+       call position_nml('neutrons1', unamelist_param)
+       read(unamelist_param, nml=neutrons1)
+
+       processMatrix(10, 1) = processCase(10)
+       processMatrix(10, 2) = 8_i4
+       processMatrix(10, 3) = sum(processMatrix(1:10, 2))
+       call append(global_parameters, reshape(Desilets_N0,   (/1, nColPars/))) 
+       call append(global_parameters, reshape(COSMIC_N0,     (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_N1,     (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_N2,     (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_alpha0, (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_alpha1, (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_L30,    (/1, nColPars/)))
+       call append(global_parameters, reshape(COSMIC_L31,    (/1, nColPars/)))
+
+       call append(global_parameters_name, (/  &
+            'Desilets_N0   ', &
+            'COSMIC_N0     ', &
+            'COSMIC_N1     ', &
+            'COSMIC_N2     ', &
+            'COSMIC_alpha0 ', &
+            'COSMIC_alpha1 ', &
+            'COSMIC_L30    ', &
+            'COSMIC_L31    '/))
+
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "neutrons1" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
+     else
+       call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
+       ! this is done below, where nml_output is read
+     end if
 
     call close_nml(unamelist_param)
 
@@ -1323,6 +1376,10 @@ CONTAINS
     end if
     if (outputFlxState(8)) then
       call message( '    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
+    end if
+    if (processCase(10) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
+    if (outputFlxState(18)) then
+      call message( '    ground albedo neutrons                      (L1_neutrons)  [cph]')
     end if
 
     call message( '  FLUXES:' )

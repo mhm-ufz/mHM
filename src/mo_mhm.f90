@@ -213,6 +213,7 @@ CONTAINS
       soilMoisture        , & ! Soil moisture of each horizon
       unsatStorage        , & ! Upper soil storage
       satStorage          , & ! Groundwater storage
+      neutrons            , & ! Ground albedo neutrons
       ! Fluxes L1
       aet_soil            , & ! actual ET
       aet_canopy          , & ! Real evaporation intensity from canopy
@@ -272,6 +273,7 @@ CONTAINS
     use mo_canopy_interc ,          only: canopy_interc
     use mo_snow_accum_melt,         only: snow_accum_melt
     use mo_soil_moisture,           only: soil_moisture
+    use mo_neutrons,                only: DesiletsN0, COSMIC
     use mo_runoff,                  only: runoff_unsat_zone
     use mo_runoff,                  only: runoff_sat_zone
     use mo_runoff,                  only: L1_total_runoff 
@@ -391,6 +393,7 @@ CONTAINS
     real(dp),  dimension(:,:),     intent(inout) :: soilMoisture
     real(dp),  dimension(:),       intent(inout) :: unsatStorage
     real(dp),  dimension(:),       intent(inout) :: satStorage
+    real(dp),  dimension(:),       intent(inout) :: neutrons
 
     ! Fluxes L1
     real(dp),  dimension(:,:),     intent(inout) :: aet_soil
@@ -717,6 +720,21 @@ CONTAINS
        end if
        !
     end if
+    
+    !-------------------------------------------------------------------
+    ! Nested model: Neutrons state variable, related to soil moisture   
+    !-------------------------------------------------------------------
+    
+    ! based on soilMoisture 
+    ! TODO they again loop over all cells. Maybe move this to line 680 in the loop used above?
+    if ( processMatrix(10, 1) .eq. 1 ) &
+        call DesiletsN0( soilMoisture(:,:), horizon_depth(:), &
+                        global_parameters(processMatrix(10,3)-processMatrix(10,2)+1), &
+                        neutrons(:))
+    if ( processMatrix(10, 1) .eq. 2 ) &
+        call COSMIC( soilMoisture(:,:), horizon_depth(:), &
+                    global_parameters(processMatrix(10,3)-processMatrix(10,2)+2:processMatrix(10,3)), &
+                    neutrons(:))
     
   end subroutine mHM
 
