@@ -90,7 +90,6 @@ CONTAINS
     USE mo_read_spatial_data,  ONLY: read_header_ascii,                   &
                                      read_spatial_data_ascii
     USE mo_read_timeseries ,   ONLY: read_timeseries
-    USE mo_julian,             ONLY: julday
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
     USE mo_message,            ONLY: message
@@ -176,7 +175,6 @@ CONTAINS
     call read_geoformation_lut(trim(fName), ugeolut, nGeoUnits, GeoUnitList, GeoUnitKar)
 
     ! LAI LUT
-    ! if (timeStep_LAI_input .EQ. 0) then ! MZMZMZ
     fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
     call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     ! end if
@@ -426,7 +424,6 @@ CONTAINS
           call append( L0_gaugeLoc, dummy_i4 )
           call append( L0_InflowGaugeLoc, dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
-          ! if (timeStep_LAI_input .EQ. 0) then ! MZMZMZ
           ! read L0_LCover_LAI
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
           nunit = ulaiclass

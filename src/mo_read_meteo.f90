@@ -246,9 +246,10 @@ CONTAINS
   !>        \details Reads netCDF meteorological files.  \n
   !>        First, the dimensions given are cross-checked with header.txt information. Second, the data of the
   !>        specified period are read from the specified directory.
-  !>        The names of files in this directory have to be always "YYYY.nc".\n
   !>        If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-  !>        The program is stopped if any value lies out of range.
+  !>        The program is stopped if any value lies out of range.\n
+  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
 
   !     CALLING SEQUENCE
   !         periode%dStart   = 2_i4                                                     ! day
@@ -273,7 +274,6 @@ CONTAINS
   !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
   !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
   !>        \param[in] "type(period)     :: periode"       Period the data are needed for
-  !>        \param[in] "type(period), optional :: readPer" Period the data should be read for
 
   !     INTENT(INOUT)
   !         None
@@ -283,15 +283,17 @@ CONTAINS
   !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(:,:),optional :: mask"     mask of valid field for checking bounds
-  !>        \param[in] "real(dp), optional               :: lower"    Lower bound for check of validity of data values
-  !>        \param[in] "real(dp), optional               :: upper"    Upper bound for check of validity of data values
-
+  !>        \param[in] "real(dp), optional, intent(in)  :: lower"    Lower bound for check of validity of data values
+  !>        \param[in] "real(dp), optional, intent(in)  :: upper"    Upper bound for check of validity of data values
+  !>        \param[in] "logical,  optional, intent(in)  :: nocheck"  .TRUE. if check for nodata values deactivated
+  !>                                                                  default = .FALSE. - check is done
+  
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
+  !>                                                                                                  data points 
 
   !     RETURN
   !         None
@@ -313,8 +315,9 @@ CONTAINS
   !               modified Stephan Thober     Nov 2013 - only read required
   !                                                      chunk from nc file
   !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
+  !                        Matthias Zink      Mar 2014 - added optional nocheck flag and optional maskout
 
-  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep)
+  subroutine read_meteo_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, nocheck, maskout)
 
     use mo_global_variables, only: period
     use mo_julian,           only: caldat, julday
@@ -322,7 +325,7 @@ CONTAINS
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
 
     use mo_string_utils,     only: num2str
-    use mo_utils,            only: eq
+    use mo_utils,            only: eq, ne
 
     implicit none
 
@@ -338,6 +341,10 @@ CONTAINS
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
     integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly
+    logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
+    !                                                                            ! default = .FALSE. - check is done
+    logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout    ! mask of data to read
+
     !
     ! local variables
     character(256)            :: fName        ! name of NetCDF file
@@ -351,6 +358,7 @@ CONTAINS
     integer(i4)               :: dim3         ! time dim of input data
     integer(i4)               :: ncdim3start  ! start of reading in nc file
     integer(i4)               :: inctimestep  ! local nctimestep
+    logical                   :: checking     ! check if model domain is covered by data
     ! time helpers
     integer(i4)               :: julStart1, julEnd1, ncJulSta1, ncJulEnd1, dd
     integer(i4)               :: mmcalstart, mmcalend, yycalstart, yycalend
@@ -360,6 +368,9 @@ CONTAINS
     inctimestep = -1
     if (present(nctimestep)) inctimestep = nctimestep
 
+    checking = .TRUE.
+    if (present(nocheck)) checking = .NOT. nocheck
+    
     fName = trim(folder) // trim(varName) // '.nc'
     ! get dimensions
     dimen = Get_NcDim(trim(fName), trim(varName))
@@ -426,15 +437,23 @@ CONTAINS
          start = (/ 1_i4, 1_i4, ncdim3start /), &
          a_count = (/ dimen(1), dimen(2), dim3 /) )
 
+    ! save output mask if optional maskout is given
+    if (present(maskout)) then
+       allocate(maskout(dimen(1), dimen(2), dim3))
+       maskout = ne(data(:,:,:),nodata_value)
+    end if
+       
     ! start checking values
     do i = 1, dim3
-       if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
-          call message('***ERROR: read_meteo_nc: nodata value within basin ')
-          call message('          boundary in variable: ', trim(varName))
-          call message('          at timestep         : ', trim(num2str(i)))
-          stop
+       ! neglect checking for naodata values if optional nocheck is given
+       if (checking) then
+          if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
+             call message('***ERROR: read_meteo_nc: nodata value within basin ')
+             call message('          boundary in variable: ', trim(varName))
+             call message('          at timestep         : ', trim(num2str(i)))
+             stop
+          end if
        end if
-
        ! optional check
        if (present(lower)) then
           if ( any( (data(:,:,i) .lt. lower) .AND. mask(:,:) )  ) then

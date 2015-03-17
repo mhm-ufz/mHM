@@ -72,87 +72,8 @@ set -e
 # by using the optional arguments of check_mhm_cases, i.e. "-c", "-r", "-s".
 
 # All tests will be performed first in sequential mode and repeated with
-# openmp parallelization. The test cases specified so far are:
-
-#    case 0 :: DEFAULT
-
-#    case 1 :: RESTART READING AND WRITING
-#       restart_flag_states_read   = .TRUE.          (default: .FALSE.)
-#       restart_flag_states_write  = .TRUE.          (default: .TRUE. )
-#       restart_flag_config_read   = .TRUE.          (default: .FALSE.)
-#       restart_flag_config_write  = .TRUE.          (default: .TRUE. )
-
-#    case 2 :: ROUTING DEACTIVATED
-#       processCase(8) = 0                           (default: 1)
-
-#    case 3 :: OPTIMIZATION ACTIVATED
-#       optimize       = .TRUE.                      (default: .FALSE.)
-#       opti_method    = 1                           (default: 3      )
-#       nIterations    = 6                           (default: 400    )
-
-#    case 4 :: MULTISCALE  
-#       nBasins                    = 6	             (default: nBasins                 = 2)
-#       resolution_Hydrology(1)    = 24000 	     (default: resolution_Hydrology(1) = 24000 )
-#       resolution_Hydrology(2)    = 12000	     (default: resolution_Hydrology(1) = 24000 )
-#       resolution_Hydrology(3)    = 24000 	     (default: )
-#       resolution_Hydrology(4)    = 24000	     (default: )
-#       resolution_Hydrology(5)    = 12000 	     (default: )
-#       resolution_Hydrology(6)    = 24000	     (default: )
-#       resolution_Routing(1)      = 24000 	     (default: resolution_Routing(1)   = 24000)
-#       resolution_Routing(2)      = 12000	     (default: resolution_Routing(2)   = 24000)
-#       resolution_Routing(3)      = 24000	     (default: )
-#       resolution_Routing(4)      = 24000	     (default: )
-#       resolution_Routing(5)      = 12000	     (default: )
-#       resolution_Routing(6)      = 24000	     (default: )
-#       L0Basin(1)                 = 1	             (default: )
-#       L0Basin(2)                 = 1	             (default: )
-#       L0Basin(3)                 = 2	             (default: )
-#       L0Basin(4)                 = 3	             (default: )
-#       L0Basin(5)                 = 4	             (default: )
-#       L0Basin(6)                 = 5	             (default: )
-#       nGaugesTotal               = 6	             (default: nGaugesTotal            = 2)
-#       NoGauges_basin(3)          = 1 	             (default: )
-#       Gauge_id(3,1)              = 45 	     (default: )
-#       Gauge_filename(3,1)        = "45.txt"        (default: )
-#       NoGauges_basin(4)          = 1	             (default: )
-#       Gauge_id(4,1)              = 398 	     (default: )
-#       Gauge_filename(4,1)        = "00398.txt"     (default: )
-#       NoGauges_basin(5)          = 1	             (default: )
-#       Gauge_id(5,1)              = 398 	     (default: )
-#       Gauge_filename(5,1)        = "00398.txt"     (default: )
-#       NoGauges_basin(6)          = 1	             (default: )
-#       Gauge_id(6,1)              = 45 	     (default: )
-#       Gauge_filename(6,1)        = "45.txt"        (default: )
-#       + adjust basin wise directory paths according to the multiscale setup:
-#       dir_Out(1)          	   = "output_b1/b1_" (default: "output_b1/")
-#       dir_RestartOut(1)          = "output_b1/b1_" (default: "output_b1/")
-#       dir_LatLon(2)              = "../../test_basin/input/latlon/latlon_2.nc" (default: latlon_1.nc )
-#       dir_Out(2)                 = "output_b1/b2_" (default: "output_b1/")
-#       dir_RestartOut(2)          = "output_b1/b2_" (default: "output_b1/")
-#       dir_LatLon(3)              = "../../test_basin_2/input/latlon/latlon.nc" (default: )
-#       dir_Out(3)                 = "output_b1/b3_" (default: )
-#       dir_RestartOut(3)          = "output_b1/b3_" (default: )
-#       dir_LatLon(4)              = "../../test_basin/input/latlon/latlon_1.nc" (default: )
-#       dir_Out(4)                 = "output_b1/b4_" (default: )
-#       dir_RestartOut(4)          = "output_b1/b4_" (default: )
-#       dir_LatLon(5)              = "../../test_basin/input/latlon/latlon_2.nc" (default: )
-#       dir_Out(5)                 = "output_b1/b5_" (default: )
-#       dir_RestartOut(5)          = "output_b1/b5_" (default: )
-#       dir_LatLon(6)              = "../../test_basin_2/input/latlon/latlon.nc" (default: )
-#       dir_Out(6)                 = "output_b1/b6_" (default: )
-#       dir_RestartOut(6)          = "output_b1/b6_" (default: )
-
-#    case 5 :: INFLOW GAUGE and GRIDDED LAI
-#        nInflowGaugesTotal	   = 1               (default: nInflowGaugesTotal            = 0)
-#        NoInflowGauges_basin(1)   = 1               (default: NoInflowGauges_basin(1)       = 0)
-#        InflowGauge_id(1,1)       = 333             (default: InflowGauge_id(1,1)           = 398)
-#        InflowGauge_filename(1,1) = "00333.txt"     (default: InflowGauge_filename(1,1)     = "00398.txt")
-#        dir_Out(1)          	   = "output_b1/b1_" (default: "output_b1/")
-#        dir_RestartOut(1)         = "output_b1/b1_" (default: "output_b1/")
-#        dir_Out(2)                = "output_b1/b2_" (default: "output_b1/")
-#        dir_RestartOut(2)         = "output_b1/b2_" (default: "output_b1/")
-#        timeStep_LAI_input = -2                     (default: timeStep_LAI_input = 0)        ! monthly gridded LAI input
-#        outputFlxState(9)=.TRUE.                    (default: outputFlxState(9)=.FALSE.)     ! actual evapotranspiration aET [mm/T]
+# openmp parallelization. The test cases specified so far are described
+# in the README.
 
 # -------------------------------------------------------------------------------------------
 # Written  Feb 2014 Juliane Mai
@@ -160,6 +81,7 @@ set -e
 #          Mar 2014 Stephan Thober, Matthias Cuntz - added OpenMP test
 #          May 2014 Matthias Cuntz                 - specify compiler during clean
 #          Jul 2014 Juliane Mai                    - checking daily_discharge files added
+#          Mar 2015 Matthias Zink                  - added soil moisture calibration test
 
 # -------------------------------------------------------------------------------------------
 #

@@ -152,6 +152,15 @@ case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
    dir_RestartOut(1)          = "output_b1/b1_"                                 (default: "output_b1/")
    dir_Out(2)                 = "output_b1/b2_"                                 (default: "output_b1/")
    dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
+
+case 3 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 13                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   
 # -------------------------------------------------------------------------------------------
 #
 # Copyright 2014 Juliane Mai
