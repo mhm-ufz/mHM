@@ -214,7 +214,7 @@ CONTAINS
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-
+    
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -726,9 +726,11 @@ CONTAINS
                 if (.not. (tt .eq. nTimeSteps) ) then
                    ! aggregate soil moisture to needed time step for optimization
                    sm_opti(s1:e1,writeout_counter) = sm_opti(s1:e1,writeout_counter) + &
-                        sum(L1_soilMoist   (:    , 1:nSoilHorizons_sm_input), dim=2) / &
+                        sum(L1_soilMoist   (s1:e1, 1:nSoilHorizons_sm_input), dim=2) / &
                         sum(L1_soilMoistSat(s1:e1, 1:nSoilHorizons_sm_input), dim=2)
                 end if
+
+                ! increase average counter by one
                 average_counter = average_counter + 1
              end if
           end if

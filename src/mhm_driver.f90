@@ -343,9 +343,9 @@ PROGRAM mhm_driver
         call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
      endif
 
-     ! optional data
+     ! read optional optional data
+     ! e.g. for optimization against soil mopisture, soil moisture is read
      if (opti_function .EQ. 13) then
-        call message('  Reading soil mositure for basin: ', trim(adjustl(num2str(ii))),' ...')
         call read_soil_moisture(ii)
      endif
      

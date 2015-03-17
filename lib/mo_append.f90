@@ -109,7 +109,9 @@ MODULE mo_append
   !>       \date Aug 2012
   !        Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
   !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
+  !        Modified Matthias Zink,  Feb 2015 - added optional 'fill_value' for logical append
 
+  
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
           append_i8_v_s, append_i8_v_v, append_i8_m_m, &
@@ -900,7 +902,7 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
 
-       if (n1 .ne. n2) then
+       if ( (n1 .ne. n2) .and. .not. present(fill_value) ) then
           print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
           STOP
        end if

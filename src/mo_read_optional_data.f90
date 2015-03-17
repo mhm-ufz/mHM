@@ -102,7 +102,7 @@ CONTAINS
     call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 ) 
        
     !  basin characteristics and read meteo header
-    call message('  Reading soil mositure for basin:            ', trim(adjustl(num2str(iBasin))),' ...')
+    call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(iBasin))),' ...')
     call timer_start(1)
     call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, evalPer(iBasin), trim('sm'), L1_data, mask1, &
          nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask)
@@ -120,6 +120,9 @@ CONTAINS
     call append( L1_sm,      L1_data_packed(:,:), fill_value=nodata_dp )
     call append( L1_sm_mask, L1_mask_packed(:,:), fill_value=.FALSE. )
 
+    ! for multi basin calibration number of time steps may vary for different basins
+    if (iBasin .GT. 1) nTimeSteps_L1_sm = size(L1_sm, 2)
+    
     !free space
     deallocate(L1_data, L1_data_packed) 
 

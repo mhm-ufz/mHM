@@ -255,7 +255,7 @@ opti_method = 3
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (13) correlation of soil moisture  \n
+!> (13) 1.0 - average temporal correlation of soil moisture  \n
 !> further functions can be implemented in mo_objective_function
 opti_function = 13
 !-----------------------------------------------------------------------------
