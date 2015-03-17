@@ -1131,10 +1131,10 @@ CONTAINS
   !>                 moisture is compared
   !>                       \f[ obj\_value = 1.0 - r^2(SM_{obs}, SM_{sim}) \f]
   !>                 where
-  !>                       \f[ r^2\f]        = Pearson correlation coefficient
-  !>                       \f[ SM_{obs} \f]  = observed soil moisture 
-  !>                       \f[ SM_{sim}  \f] = simulated soil moisture
-  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.   
+  !>                       \f$ r^2\f$        = Pearson correlation coefficient,
+  !>                       \f$ SM_{obs} \f$  = observed soil moisture,
+  !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.
+  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.\n
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with

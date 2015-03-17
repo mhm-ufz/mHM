@@ -155,7 +155,7 @@ case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
 
 case 3 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
    nBasins                    = 2                                               (default:       1)
-   nGaugesTotal               = 0                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
    optimize                   = .TRUE.                                          (default: .FALSE.)
    opti_method                = 1                                               (default:       3)
    opti_function              = 13                                              (default:       3)
