@@ -131,10 +131,11 @@ case 4 :: MULTISCALE
    dir_RestartOut(6)          = "output_b1/b6_"                                 (default: )
 
 case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
-   nBasins                    = 2                                               (default:       1)
-   nGaugesTotal               = 4                                               (default:       1)
+   nBasins                    = 3                                               (default:       1)
+   nGaugesTotal               = 6                                               (default:       1)
    NoGauges_basin(1)          = 2                                               (default:       1)
    NoGauges_basin(2)          = 2                                               (default:       1)
+   NoGauges_basin(3)          = 2                                               (default:       0)
    timeStep_LAI_input         = -2                                              (default:       0)
    Gauge_id(1,2)              = 333                                             (default: n.a.)
    gauge_filename(1,2)        = "00333.txt"                                     (default: n.a.)
@@ -152,6 +153,18 @@ case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
    dir_RestartOut(1)          = "output_b1/b1_"                                 (default: "output_b1/")
    dir_Out(2)                 = "output_b1/b2_"                                 (default: "output_b1/")
    dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
+   dir_Out(3)                 = "output_b1/b3_"                                 (default: "output_b1/")
+   dir_RestartOut(3)          = "output_b1/b3_"                                 (default: "output_b1/")
+
+
+case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 13                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   
 # -------------------------------------------------------------------------------------------
 #
 # Copyright 2014 Juliane Mai

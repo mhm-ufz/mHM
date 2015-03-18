@@ -98,7 +98,9 @@ CONTAINS
   !                  Stephan Thober, May  2014 - added switch for chunk read in
   !                  Stephan Thober, Jun  2014 - added option for switching off mpr
   !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
+  !                  Matthias Zink,  Mar  2015 - added optional soil mositure read in for calibration
+  
 
   subroutine read_config()
 
@@ -141,7 +143,9 @@ CONTAINS
          dirOut,                                            & ! output directory basin wise 
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
-         dirgridded_LAI,                                    & ! Directory where gridded LAI is located
+         dirgridded_LAI,                                    & ! directory where gridded LAI is located
+         dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
+         nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
          optimize,                                          & ! if mhm runs in optimization mode or not
          opti_method,                                       & ! optimization algorithm used    
          opti_function,                                     & ! objective function to be optimized
@@ -280,6 +284,8 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_LatLon
     character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data 
     !                                                                            ! used when timeStep_LAI_input<0
+    character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
+    !
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
     integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
     character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
@@ -311,6 +317,8 @@ CONTAINS
                            dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
                            dir_NetRadiation, dir_Out, dir_RestartOut,                          &
                            dir_RestartIn, dir_LatLon, dir_gridded_LAI
+    ! optional data used for optimization
+    namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
                  L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
@@ -399,9 +407,10 @@ CONTAINS
     allocate(dirRestartOut       (nBasins))
     allocate(dirRestartIn        (nBasins))
     allocate(dirLatLon           (nBasins))
-    allocate(dirgridded_LAI(nBasins))
+    allocate(dirgridded_LAI      (nBasins))
+    allocate(dirSoil_Moisture    (nBasins))
     !
-    resolutionHydrology = resolution_Hydrology(1:nBasins)
+    Resolutionhydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
     L0_Basin            = L0Basin(1:nBasins)
     !
@@ -511,7 +520,7 @@ CONTAINS
        call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)),'!')
        stop 
     end if
-
+   
     !===============================================================
     ! Read soil layering information
     !===============================================================
@@ -522,6 +531,19 @@ CONTAINS
     HorizonDepth_mHM = 0.0_dp
     HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soil_Depth(1:nSoilHorizons_mHM-1)
 
+    !===============================================================
+    !  Read namelist of optional input data
+    !===============================================================
+    call position_nml('optional_data', unamelist)
+    read(unamelist, nml=optional_data)
+    dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
+    if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
+       call message()
+       call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
+       call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
+       stop
+    end if
+    
     !===============================================================
     ! Read process selection list
     !===============================================================

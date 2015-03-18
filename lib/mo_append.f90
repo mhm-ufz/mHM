@@ -109,7 +109,9 @@ MODULE mo_append
   !>       \date Aug 2012
   !        Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
   !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
+  !        Modified Matthias Zink,  Feb 2015 - added optional 'fill_value' for logical append
 
+  
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
           append_i8_v_s, append_i8_v_v, append_i8_m_m, &
@@ -880,13 +882,14 @@ CONTAINS
 
   END SUBROUTINE append_lgt_v_v
 
-  SUBROUTINE append_lgt_m_m(mat1, mat2)
+  SUBROUTINE append_lgt_m_m(mat1, mat2, fill_value)
 
     implicit none
 
     logical, dimension(:,:), allocatable, intent(inout)   :: mat1
     logical, dimension(:,:), intent(in)                   :: mat2
-
+    logical, optional,       intent(in)                   :: fill_value
+    
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
     integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
@@ -899,7 +902,7 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
 
-       if (n1 .ne. n2) then
+       if ( (n1 .ne. n2) .and. .not. present(fill_value) ) then
           print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
           STOP
        end if
@@ -909,9 +912,26 @@ CONTAINS
        tmp=mat1
        deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1))
-       mat1(1:m1,:)          = tmp(1:m1,:)
-       mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
+       if ( n1 .eq. n2 ) then
+          allocate(mat1(m1+m2,n1))
+          mat1(1:m1,:)          = tmp(1:m1,:)
+          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
+       end if
+
+       if ( n1 .gt. n2 ) then
+          allocate(mat1(m1+m2,n1))
+          mat1(1:m1,:)                = tmp(1:m1,:)
+          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
+          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
+       end if
+       
+       if ( n1 .lt. n2 ) then
+          allocate(mat1(m1+m2,n2))
+          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
+          mat1(      1:m1,   n1+1:n2) = fill_value
+          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
+       end if
+       
     else
        n1 = 0_i4
 

@@ -253,7 +253,7 @@ CONTAINS
 
     ! allocation and initialization of matrices
     allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = file_nodata
+    tmp_data = int(file_nodata, i4)
     allocate(tmp_mask(file_nrows, file_ncols))
     tmp_mask = .true.
     
@@ -272,7 +272,7 @@ CONTAINS
     close(fileunit)
 
     ! set mask .false. if nodata value appeared
-    where ( abs(tmp_data-file_nodata) .lt. tiny(1.0_dp) )
+    where ( tmp_data .EQ. int(file_nodata, i4)) 
        tmp_mask = .false.
     end where
 

@@ -117,29 +117,34 @@ CONTAINS
   !                  Luis Samaniego   Jan 2013 - modularization, documentation
   ! ------------------------------------------------------------------
   subroutine L11_routing( &
-       nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, & 
-       netLink_C1, netLink_C2, netNode_qOUT, netNode_qTIN, netNode_qTR, netNode_Qmod )
+       nNodes, nLinks, netPerm, netLink_fromN, netLink_toN,                                                   & 
+       netLink_C1, netLink_C2, netNode_qOUT, nInflowGauges, InflowHeadwater, InflowNodeList, &
+       netNode_qTIN, netNode_qTR, netNode_Qmod )
 
     implicit none
 
     ! Input
-    integer(i4),                      intent(in)    :: nNodes        ! number of network nodes = nCells1
-    integer(i4),                      intent(in)    :: nLinks        ! number of stream segment (reaches)
+    integer(i4),                    intent(in)    :: nNodes        ! number of network nodes = nCells1
+    integer(i4),                    intent(in)    :: nLinks        ! number of stream segment (reaches)
     ! Stream link description   network topology  ==>    netLink
-    integer(i4), dimension(:),        intent(in)    :: netPerm       ! basin routing order (permutation)
-    integer(i4), dimension(:),        intent(in)    :: netLink_fromN ! from node 
-    integer(i4), dimension(:),        intent(in)    :: netLink_toN   ! to node
-    real(dp),    dimension(:),        intent(in)    :: netLink_C1    ! [1]   routing parameter  C1 (Chow, 25-41)
-    real(dp),    dimension(:),        intent(in)    :: netLink_C2    ! [1]   routing parameters C2 (")
+    integer(i4), dimension(:),      intent(in)    :: netPerm       ! basin routing order (permutation)
+    integer(i4), dimension(:),      intent(in)    :: netLink_fromN ! from node 
+    integer(i4), dimension(:),      intent(in)    :: netLink_toN   ! to node
+    real(dp),    dimension(:),      intent(in)    :: netLink_C1    ! [1]   routing parameter  C1 (Chow, 25-41)
+    real(dp),    dimension(:),      intent(in)    :: netLink_C2    ! [1]   routing parameters C2 (")
     ! State variables
-    real(dp),    dimension(:),        intent(in)    :: netNode_qOUT  ! [m3 s-1] Total outflow, all cells, basin, 
-    !                                                                !          level L11 at time tt 
+    real(dp),    dimension(:),      intent(in)    :: netNode_qOUT  ! [m3 s-1] Total outflow, all cells, basin, 
+    !                                                                !          level L11 at time tt
+    integer(i4),                    intent(in)    :: nInflowGauges   ! [-]      number of inflow points
+    logical,     dimension(:),      intent(in)    :: InflowHeadwater ! [-]      if to consider headwater cells of inflow gauge
+    integer(i4), dimension(:),      intent(in)    :: InflowNodeList  ! [-]      L11 ID of inflow points
+
     ! Input - Output
-    real(dp),    dimension(:,:), intent(inout)      :: netNode_qTIN  ! [m3 s-1] Total inputs at t-1 and t
-    real(dp),    dimension(:,:), intent(inout)      :: netNode_qTR   ! [m3 s-1] Transformed outflow leaving 
+    real(dp),    dimension(:,:),    intent(inout) :: netNode_qTIN  ! [m3 s-1] Total inputs at t-1 and t
+    real(dp),    dimension(:,:),    intent(inout) :: netNode_qTR   ! [m3 s-1] Transformed outflow leaving 
     !                                                                !          node I (Muskingum)
     ! Output
-    real(dp),    dimension(nNodes),   intent(out)   :: netNode_Qmod  ! [m3 s-1] Simulated routed discharge  
+    real(dp),    dimension(nNodes), intent(out)   :: netNode_Qmod  ! [m3 s-1] Simulated routed discharge  
 
 
     ! local
@@ -180,7 +185,18 @@ CONTAINS
             + netLink_C1(i) * ( netNode_qTIN(iNode,IT1) - netNode_qTR (iNode,IT1) ) &
             + netLink_C2(i) * ( netNode_qTIN(iNode,IT)  - netNode_qTIN(iNode,IT1) )
 
-       ! add routing to tNode
+       ! add routed water to downstream node
+       ! netNode_qTIN(tNode,IT) = netNode_qTIN(tNode,IT) + netNode_qTR(iNode,IT) 
+       
+       ! check if the inflow from upstream cells should be deactivated
+       if (nInflowGauges .GT. 0) then
+          do i = 1, nInflowGauges
+             ! check if downstream Node (tNode) is inflow gauge and headwaters should be ignored
+             if ( (tNode == InflowNodeList(i)) .AND. (.NOT. InflowHeadwater(i))) netNode_qTR(iNode,IT) = 0.0_dp
+          end do
+       end if
+       
+       ! add routed water to downstream node
        netNode_qTIN(tNode,IT) = netNode_qTIN(tNode,IT) + netNode_qTR(iNode,IT)
     end do
     !!$OMP end do

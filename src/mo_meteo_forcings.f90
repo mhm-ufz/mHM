@@ -75,8 +75,8 @@ CONTAINS
   !           Matthias Zink,   Jun  2013 - addded NetCDf reader
   !           Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
   !           Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
-  !           Stephan Thober, Jun  2014 - add chunk_config for chunk read, 
-  !                                       copied L2 initialization to mo_startup
+  !           Stephan Thober,  Jun  2014 - add chunk_config for chunk read, 
+  !                                        copied L2 initialization to mo_startup
   !
   subroutine prepare_meteo_forcings_data(iBasin, tt)
     use mo_message,          only: message
@@ -128,12 +128,12 @@ CONTAINS
        end if
 
        ! precipitation
-       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read precipitation ...' )
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read precipitation        ...' )
        call meteo_forcings_wrapper( iBasin, dirPrecipitation(iBasin), inputFormat_meteo_forcings, &
             L1_pre, lower=0.0_dp, upper=1000._dp, ncvarName='pre' )
 
        ! temperature
-       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read temperature   ...' )
+       if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read temperature          ...' )
        call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
             L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
 

@@ -33,7 +33,7 @@ MODULE mo_mhm_constants
   !                                                                ! a given node 
   !                                                                ! (1 - past)
   !                                                                ! (2 - current)
-  integer(i4), public, parameter :: maxNoGauges        = 100_i4    ! maximal number of gauges allowed
+  integer(i4), public, parameter :: maxNoGauges        = 200_i4    ! maximal number of gauges allowed
   integer(i4), public, parameter :: nColPars           = 5_i4      ! number of properties of the global variables
   integer(i4), public, parameter :: maxNoSoilHorizons  = 10_i4     ! maximum number of allowed soil layers
   integer(i4), public, parameter :: maxNoBasins        = 50_i4     ! maximum number of allowed basins

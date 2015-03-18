@@ -82,9 +82,9 @@ dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
 !> directory where restart input is located
 dir_RestartIn(1)     = "restart/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "output_b1/"
+dir_RestartOut(1)    = "output_b1/b1_"
 !> directory where output should be written
-dir_Out(1)           = "output_b1/"
+dir_Out(1)           = "output_b1/b1_"
 !
 !**** for Basin 2
 !> directory where morphological files are located
@@ -118,9 +118,9 @@ dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 !> directory where restart input is located
 dir_RestartIn(2)     = "restart/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "output_b2/"
+dir_RestartOut(2)    = "output_b1/b2_"
 !> directory where output should be written
-dir_Out(2)           = "output_b2/"
+dir_Out(2)           = "output_b1/b2_"
 /
 
 !> data which are optionally needed for optimization
@@ -132,7 +132,8 @@ dir_Out(2)           = "output_b2/"
 !> soil column and saturated water content (porosity). \n
 !
 !> directory to soil moisture data
-dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+dir_soil_moisture(1)   = "../../test_basin/input/optional_data/"
+dir_soil_moisture(2)   = "../../test_basin/input/optional_data/"
 !> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
 !> input is representative for (counted top to down)
 nSoilHorizons_sm_input = 1
@@ -215,7 +216,7 @@ opti_method = 1
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> (13) 1.0 - average temporal correlation of soil moisture  \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 3
+opti_function = 13
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -382,7 +383,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 3
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1
@@ -432,14 +433,6 @@ NoGauges_basin(2)       = 1
 Gauge_id(2,1)           = 398
 !> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
 Gauge_filename(2,1)     = "00398.txt"
-!
-!> basin 3
-!> number of gauges for subbasin (2)
-NoGauges_basin(3)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(3,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(3,1)     = "00398.txt"
 /
 
 &inflow_gauges

@@ -122,6 +122,63 @@ dir_RestartIn(2)     = "restart/"
 dir_RestartOut(2)    = "output_b1/b2_"
 !> directory where output should be written
 dir_Out(2)           = "output_b1/b2_"
+!
+!**** for Basin 3
+!> directory where morphological files are located
+dir_Morpho(3)        = "../../test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(3)        = "../../test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(3)        = "../../test_basin/input/gauge/"
+!> directory where meteorological input is located
+dir_Precipitation(3) = "../../test_basin/input/meteo/pre/"
+dir_Temperature(3)   = "../../test_basin/input/meteo/tavg/"
+!> paths depending on PET process (processCase(5))
+!> 0 - PET is input 
+!> 1 - Hargreaves-Sammani method
+!> 2 - Priestley-Taylor mehtod
+!> 3 - Penman-Monteith method
+!> if processCase(5) == 0  input directory of pet has to be specified
+dir_ReferenceET(3)     = "../../test_basin/input/meteo/pet/"
+!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
+dir_MinTemperature(3)  = "../../test_basin/input/meteo/"
+dir_MaxTemperature(3)  = "../../test_basin/input/meteo/"
+!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
+dir_NetRadiation(3)    = "../../test_basin/input/meteo/"
+!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
+dir_absVapPressure(3)  = "../../test_basin/input/meteo/"
+dir_windspeed(3)       = "../../test_basin/input/meteo/"
+!> directory where latitude and longitude file is located
+dir_LatLon(3)        = "../../test_basin/input/latlon/latlon_1.nc"
+!> directory where gridded LAI files are located
+dir_gridded_LAI(3)   = "../../test_basin/input/lai/"
+!> directory where restart input is located
+dir_RestartIn(3)     = "restart/"
+!> directory where restart output should be written
+dir_RestartOut(3)    = "output_b1/b3_"
+!> directory where output should be written
+dir_Out(3)           = "output_b1/b3_"
+/
+
+!> data which are optionally needed for optimization
+&optional_data
+!> soil moisture data
+!> currently mhm can be calibrated against the fraction of moisture
+!> down to a specific mhm soil layer (integral over the layers)
+!> here soil moisture is defined as fraction between water content within the
+!> soil column and saturated water content (porosity). \n
+!
+!> directory to soil moisture data
+dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+!> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
+!> input is representative for (counted top to down)
+nSoilHorizons_sm_input = 1
+!> time stepping of the soil moisture input
+!>     -1: daily   SM values\n
+!>     -2: monthly SM values\n
+!>     -3: yearly  SM values\n
+!-----------------------------
+timeStep_sm_input = -2
 /
 
 !
@@ -149,14 +206,15 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 3
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
-resolution_Hydrology(2) = 24000 
+resolution_Hydrology(2) = 24000
+resolution_Hydrology(3) = 24000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -166,6 +224,7 @@ resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 24000 
 resolution_Routing(2)   = 24000
+resolution_Routing(3)   = 24000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
@@ -173,6 +232,7 @@ resolution_Routing(2)   = 24000
 !-----------------------------------------------------------------------------
 L0Basin(1)            = 1
 L0Basin(2)            = 1
+L0Basin(3)            = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -193,6 +253,7 @@ opti_method = 1
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
+!> (13) 1.0 - average temporal correlation of soil moisture  \n
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
@@ -222,24 +283,31 @@ perform_mpr   = .TRUE.
 !-----------------------------------------------------------------------------
 warming_Days(1)       = 360
 warming_Days(2)       = 360
+warming_Days(3)       = 360
 !> first year of wanted simulation period
 eval_Per(1)%yStart    = 1990
 eval_Per(2)%yStart    = 1990
+eval_Per(3)%yStart    = 1990
 !> first month of wanted simulation period
 eval_Per(1)%mStart    = 01
 eval_Per(2)%mStart    = 01
+eval_Per(3)%mStart    = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart    = 01
 eval_Per(2)%dStart    = 01
+eval_Per(3)%dStart    = 01
 !> last year   of wanted simulation period
 eval_Per(1)%yEnd      = 1993
 eval_Per(2)%yEnd      = 1993
+eval_Per(3)%yEnd      = 1993
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd      = 12
 eval_Per(2)%mEnd      = 12
+eval_Per(3)%mEnd      = 12
 !> last day    of wanted simulation period
 eval_Per(1)%dEnd      = 31
 eval_Per(2)%dEnd      = 31
+eval_Per(3)%dEnd      = 31
 !> switch to control read input frequency of the gridded meteo input, 
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -251,6 +319,7 @@ eval_Per(2)%dEnd      = 31
 !> for all basins\n
 time_step_model_inputs(1) = 0
 time_step_model_inputs(2) = 0
+time_step_model_inputs(3) = 0
 /
 
 !******************************************************************************************
@@ -390,7 +459,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal           = 4
+nGaugesTotal           = 6
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -419,6 +488,18 @@ Gauge_filename(2,1)     = "00398.txt"
 Gauge_id(2,2)           = 333
 !> name of file with timeseries of gauge(2) for subbasin(2) --> (2,2) 
 gauge_filename(2,2)     = "00333.txt"
+!
+!> basin 3
+!> number of gauges for subbasin (3)
+NoGauges_basin(3)       = 2
+!> id of gauge(1) for subbasin(2) --> (3,1) 
+Gauge_id(3,1)           = 398
+!> name of file with timeseries of gauge(1) for subbasin(3) --> (3,1) 
+Gauge_filename(3,1)     = "00398.txt"
+!> id of gauge(2) for subbasin(2) --> (2,2) 
+Gauge_id(3,2)           = 333
+!> name of file with timeseries of gauge(2) for subbasin(3) --> (3,2) 
+gauge_filename(3,2)     = "00333.txt"
 /
 
 &inflow_gauges
@@ -452,6 +533,10 @@ InflowGauge_id(2,1)           = 333
 InflowGauge_filename(2,1)     = "00333.txt"
 !> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(2) --> (2,1) 
 InflowGauge_Headwater(2,1) = .TRUE.
+!
+!> basin 3
+!> number of gauges for subbasin (3)
+NoInflowGauges_basin(3)       = 0
 /
 
 !******************************************************************************************

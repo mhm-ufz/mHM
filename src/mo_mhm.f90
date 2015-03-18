@@ -711,10 +711,11 @@ CONTAINS
        ! for a single node model run
        if( nNodes .GT. 1) then
          ! routing of water within river reaches
-         call L11_routing( nNodes, nNodes-1, netPerm, nLink_fromN,                               & ! Intent IN
-              nLink_toN, nLink_C1, nLink_C2, nNode_qOUT,                                         & ! Intent IN
-              nNode_qTIN, nNode_qTR,                                                             & ! Intent INOUT
-              nNode_Qmod )                                                                         ! Intent OUT
+         call L11_routing( nNodes, nNodes-1, netPerm, nLink_fromN,                             & ! Intent IN
+              nLink_toN, nLink_C1, nLink_C2, nNode_qOUT,                                       & ! Intent IN
+              nInflowGauges, InflowHeadwater, InflowNodeList,                                  & ! Intent IN
+              nNode_qTIN, nNode_qTR,                                                           & ! Intent INOUT
+              nNode_Qmod )                                                                       ! Intent OUT
        else
          nNode_Qmod(:) = nNode_qOUT(:) 
        end if
