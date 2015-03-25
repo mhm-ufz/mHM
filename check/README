@@ -62,6 +62,8 @@ case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    processCase(5)             = 1                                               (default:       0)
    flag: read_restart         = .TRUE.                                          (default: .FALSE.)
    flag: perform_mpr          = .FALSE.                                         (default: .TRUE. )
+  mhm|_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
 
 case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly
    nBasins                    = 2                                               (default:       1)

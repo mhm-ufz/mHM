@@ -528,7 +528,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
-  if ( write_restart ) then
+  if ( write_restart  .AND. (.NOT. optimize)) then
      itimer = itimer + 1
      call message()
      call message( '  Write restart file')

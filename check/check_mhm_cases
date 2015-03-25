@@ -254,16 +254,16 @@ for irelease in ${release} ; do
             echo '         Release:  '${irelease}
             make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
             if [[ ${thread} -eq 0 ]] ; then
-		echo '         OpenMP:   False'
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
+		          echo '         OpenMP:   False'
+		          make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
             else
-		echo '         OpenMP:   True'
-		echo '         Threads:  '${thread}
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
-		export OMP_NUM_THREADS=${thread}
+		          echo '         OpenMP:   True'
+		          echo '         Threads:  '${thread}
+		          make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+		          export OMP_NUM_THREADS=${thread}
             fi
 
-	    # run checks
+	          # run checks
             cd check
             case_dirs=$(\ls -d case_*)
             #case_dirs=$(\ls -d case_02)
@@ -291,15 +291,18 @@ for irelease in ${release} ; do
                   
                     nRecordsDiffer=0
                     cd output_save
-                    nc_files=$(\ls *.nc)
-		    set +e
-		    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
-		    set -e
-		    if [[ -z ${discharge_files} ]] ; then
-			echo '   No discharge files written!'
-		    fi
+		                set +e
+                    nc_files=$(\ls *.nc 2> /dev/null) # causes failure if no such file exists
+		                discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
+		                set -e
+		                if [[ -z ${nc_files} ]] ; then
+			                echo '   No NetCDF files written!'
+		                fi
+		                if [[ -z ${discharge_files} ]] ; then
+			                echo '   No discharge files written!'
+		                fi
                     cd ..
-		    echo ''
+		                echo ''
 
                     # compare NetCDF outputs in output_b1/ with reference in output_save/
                     for nc_file in ${nc_files} ; do

@@ -121,7 +121,8 @@ CONTAINS
          L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
          L11_aFloodPlain, L1_inter,                          & 
          L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, & 
-         L1_satSTW, L1_aETSoil, L1_aETCanopy, L1_aETSealed,  & 
+         L1_satSTW, L1_pet_calc,                             &
+         L1_aETSoil, L1_aETCanopy, L1_aETSealed,             &
          L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,  & 
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal,    & 
          L1_slowRunoff, L1_snow, L1_Throughfall,             & 
@@ -450,6 +451,7 @@ CONTAINS
                L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
                L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S 
                L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1), L1_neutrons,    & ! INOUT S 
+               L1_pet_calc(s1:e1),                                                          & ! INOUT X
                L1_aETSoil(s1:e1,:), L1_aETCanopy(s1:e1), L1_aETSealed(s1:e1),               & ! INOUT X
                L1_baseflow(s1:e1), L1_infilSoil(s1:e1,:), L1_fastRunoff(s1:e1),             & ! INOUT X
                L1_melt(s1:e1), L1_percol(s1:e1), L1_preEffect(s1:e1), L1_rain(s1:e1),       & ! INOUT X
@@ -535,7 +537,7 @@ CONTAINS
 
                 ! Fluxes L1  --> AGGREGATED
                 if (outputFlxState(9) ) &
-                     L1_pet_out(:)          = L1_pet(s1:e1, iMeteoTS)
+                     L1_pet_out(:)          = L1_pet_out(:)        + L1_pet_calc(s1:e1)
                 if (outputFlxState(10)      ) then
                    do hh = 1, nSoilHorizons_mHM
                       L1_aETSoil_out(:,hh)  = L1_aETSoil_out(:,hh) + L1_aETSoil(s1:e1,hh)*(1.0_dp - L1_fSealed(s1:e1))

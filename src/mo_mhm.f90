@@ -187,7 +187,7 @@ CONTAINS
       fnight_pet          , & ! [-] night ratio PET  < 1
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
-      pet_in              , & ! [mm d-1] Daily potential evapotranspiration (INOUT)
+      pet_in              , & ! [mm d-1] Daily potential evapotranspiration (input)
       tmin_in             , & ! [degc]   Daily minimum temperature
       tmax_in             , & ! [degc]   Daily maxumum temperature
       netrad_in           , & ! [w m2]   Daily average net radiation
@@ -215,6 +215,7 @@ CONTAINS
       satStorage          , & ! Groundwater storage
       neutrons            , & ! Ground albedo neutrons
       ! Fluxes L1
+      pet_calc            , & ! [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
       aet_soil            , & ! actual ET
       aet_canopy          , & ! Real evaporation intensity from canopy
       aet_sealed          , & ! Actual ET from free-water surfaces
@@ -364,7 +365,7 @@ CONTAINS
     real(dp),    dimension(:),     intent(in)    :: fnight_pet
     real(dp),    dimension(:),     intent(in)    :: fday_temp
     real(dp),    dimension(:),     intent(in)    :: fnight_temp
-    real(dp),    dimension(:),     intent(inout) :: pet_in
+    real(dp),    dimension(:),     intent(in)    :: pet_in
     real(dp),    dimension(:),     intent(in)    :: tmin_in
     real(dp),    dimension(:),     intent(in)    :: tmax_in
     real(dp),    dimension(:),     intent(in)    :: netrad_in
@@ -396,6 +397,7 @@ CONTAINS
     real(dp),  dimension(:),       intent(inout) :: neutrons
 
     ! Fluxes L1
+    real(dp),  dimension(:),       intent(inout) :: pet_calc
     real(dp),  dimension(:,:),     intent(inout) :: aet_soil
     real(dp),  dimension(:),       intent(inout) :: aet_canopy
     real(dp),  dimension(:),       intent(inout) :: aet_sealed
@@ -455,9 +457,9 @@ CONTAINS
     integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
 
-    real(dp)               :: pet
-    real(dp)               :: prec
-    real(dp)               :: temp
+    real(dp)               :: pet         ! 
+    real(dp)               :: prec        ! 
+    real(dp)               :: temp        !
 
     ! temporary arrays so that inout of routines is contiguous array
     real(dp), dimension(size(infiltration,2)) :: tmp_infiltration
@@ -632,7 +634,7 @@ CONTAINS
        ! PET calculation
        select case (processMatrix(5,1))
        case(0) ! PET is input ! correct pet for every day only once at the first time step
-          if (hour .EQ. 0) pet_in(k) =  fAsp(k) * pet_in(k)
+          pet =  fAsp(k) * pet_in(k)
 
        case(1) ! HarSam
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
@@ -640,27 +642,26 @@ CONTAINS
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-          pet_in(k) = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   & 
+          
+          pet = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   &
                tmin_in(k), latitude(k), doy)                                                
 
        case(2) ! Priestley-Taylor
            ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet_in(k) = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))  
+          pet = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))  
 
        case(3) ! Penman-Monteith
-          pet_in(k) = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
-                                   ! 100.0_dp, 100.0_dp) 
-                                   ! aeroResist(k,month) / windspeed_in(k), 100.0_dp)
-                                   aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
+          pet = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
+               aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
        end select
        
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
-            pet_in(k), temp_in(k), fday_prec(month), fday_pet(month),                          & ! Intent IN
+            pet, temp_in(k), fday_prec(month), fday_pet(month),                                & ! Intent IN
             fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month),       & ! Intent IN
-            prec, pet, temp )                                                                    ! Intent OUT
+            prec, pet_calc(k), temp )                                                            ! Intent OUT
 
-       call canopy_interc( pet, interc_max(k), prec,                                           & ! Intent IN
+       call canopy_interc( pet_calc(k), interc_max(k), prec,                                   & ! Intent IN
             interc(k),                                                                         & ! Intent INOUT
             throughfall(k), aet_canopy(k) )                                                      ! Intent OUT
 
@@ -673,8 +674,8 @@ CONTAINS
        tmp_soilMoisture(:) = soilMoisture(k,:)
        tmp_infiltration(:) = infiltration(k,:)
        call soil_moisture( fSealed1(k), water_thresh_sealed(k),                                & ! Intent IN
-            pet,  evap_coeff(month), soil_moist_sat(k,:), frac_roots(k,:), soil_moist_FC(k,:), & ! Intent IN
-            wilting_point(k,:),  soil_moist_exponen(k,:), aet_canopy(k),                       & ! Intent IN
+            pet_calc(k), evap_coeff(month), soil_moist_sat(k,:), frac_roots(k,:),              & ! Intent IN
+            soil_moist_FC(k,:), wilting_point(k,:),  soil_moist_exponen(k,:), aet_canopy(k),   & ! Intent IN
             prec_effect(k), runoff_sealed(k), sealedStorage(k),                                & ! Intent INOUT
             tmp_infiltration(:), tmp_soilMoisture(:),                                          & ! Intent INOUT
             tmp_aet_soil(:), aet_sealed(k) )                                                     ! Intent OUT
