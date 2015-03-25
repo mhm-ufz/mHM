@@ -31,11 +31,10 @@ MODULE mo_neutrons
 
 CONTAINS
   
-! ------------------------------------------------------------------
-! N0 formula based on Desilets et al. 2010                          
-! ------------------------------------------------------------------
+  ! -----------------------------------------------------------------------------------
   !     NAME
   !         DesiletsN0
+  !
   !     PURPOSE
   !>        \brief Calculate neutrons from soil moisture in the first layer.
   !>        \details Using the N0-relation derived by Desilets, neutron
@@ -43,35 +42,50 @@ CONTAINS
   !>        derived by a semi-empirical, semi-physical relation. 
   !>        The result depends on N0, the neutron counts for 0% soil mositure.
   !>        This variable is site-specific and is a global parameter in mHM.
+  !         ------------------------------------------------------------------
+  !         N0 formula based on Desilets et al. 2010                          
+  !         ------------------------------------------------------------------
+  !
   !     CALLING SEQUENCE
   !         call DesiletsN0( Moisture(cells,layers), Depths(layers), &
   !                          N0-parameter, output(cells) )
+  !
   !     INTENT(IN)
   !>        \param[in] "real(dp), dimension(:,:) :: sm" Soil Moisture
   !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
   !>        \param[in] "real(dp)                 :: N0" dry neutron counts
+  !
   !     INTENT(INOUT)
   !         None
+  !
   !     INTENT(OUT)
   !>        \param[out] "real(dp), dimension(size(sm,1)) :: neutrons" Neutron counts
+  !
   !     INTENT(IN), OPTIONAL
   !         None
+  !
   !     INTENT(INOUT), OPTIONAL
   !         None
+  !
   !     INTENT(OUT), OPTIONAL
   !         None
+  !
   !     RETURN
   !         None
+  !
   !     RESTRICTIONS
   !         Horizons(1) must not be zero.
+  !
   !     EXAMPLE
   !         N0=1500cph, sm(1,1)=700mm, Horizons(1)=200mm
   !         1500*(0.372+0.0808/ (70mm/200mm + 0.115))
   !         DesiletsN0 = 819cph
+  !
   !     LITERATURE
   !         Desilets, D., M. Zreda, and T. P. A. Ferre (2010),
   !         Nature's neutron probe: Land surface hydrology at an elusive scale
   !         with cosmic rays, WRR, 46, W11505, doi:10.1029/2009WR008726.
+  !
   !     HISTORY
   !>        \author Martin Schroen
   !>        \date Mar 2015
@@ -80,9 +94,10 @@ CONTAINS
 
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
     implicit none
-    real(dp), dimension(:,:), intent(in)       :: sm
-    real(dp), dimension(:), intent(in)         :: Horizons
-    real(dp), intent(in)                       :: N0 ! from global parameters
+    
+    real(dp), dimension(:,:),        intent(in)  :: sm
+    real(dp), dimension(:),          intent(in)  :: Horizons
+    real(dp),                        intent(in)  :: N0          ! from global parameters
     real(dp), dimension(size(sm,1)), intent(out) :: neutrons
     
     ! only use first soil layer
@@ -90,11 +105,10 @@ CONTAINS
   
   end subroutine DesiletsN0
 
-! ------------------------------------------------------------------
-! COSMIC model based on Shuttleworth et al. 2013                    
-! ------------------------------------------------------------------
+  ! -----------------------------------------------------------------------------------
   !     NAME
   !         COSMIC
+  !
   !     PURPOSE
   !>        \brief Calculate neutrons from soil moisture in all layers.
   !>        \details Neutron counts above the ground (one value per cell in mHM)
@@ -103,34 +117,49 @@ CONTAINS
   !>        differently in water and soil. The remaining neutrons that reached 
   !>        the surface relate to the profile of soil water content below.
   !>        Variables like N, alpha and L3 are site-specific and need to be calibrated.
+  !         ------------------------------------------------------------------
+  !         COSMIC model based on Shuttleworth et al. 2013                    
+  !         ------------------------------------------------------------------
+  !
   !     CALLING SEQUENCE
   !         call COSMIC( Moisture(cells,layers), Depths(layers), &
   !                          COSMIC-parameterset, output(cells) )
+  !
   !     INTENT(IN)
   !>        \param[in] "real(dp), dimension(:,:) :: sm" Soil Moisture
   !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
   !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
+  !
   !     INTENT(INOUT)
   !         None
+  !
   !     INTENT(OUT)
   !>        \param[out] "real(dp), dimension(size(sm,1)) :: neutrons" Neutron counts
+  !
   !     INTENT(IN), OPTIONAL
   !         None
+  !
   !     INTENT(INOUT), OPTIONAL
   !         None
+  !
   !     INTENT(OUT), OPTIONAL
   !         None
+  !
   !     RETURN
   !         None
+  !
   !     RESTRICTIONS
   !         Horizons(:) must not be zero.
+  !
   !     EXAMPLE
   !         see supplementaries in literature
+  !
   !     LITERATURE
   !         J. Shuttleworth, R. Rosolem, M. Zreda, and T. Franz,
   !         The COsmic-ray Soil Moisture Interaction Code (COSMIC) for use in data assimilation,
   !         HESS, 17, 3205–3217, 2013, doi:10.5194/hess-17-3205-2013
   !         Support and Code: http://cosmos.hwr.arizona.edu/Software/cosmic.html
+  !
   !     HISTORY
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
@@ -142,11 +171,13 @@ CONTAINS
         COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4
     use mo_constants, only: PI_dp
     implicit none
-    real(dp), dimension(:,:), intent(in)         :: sm
-    real(dp), dimension(:), intent(in)           :: Horizons
-    real(dp), dimension(:), intent(in)           :: params ! 1: N0, 2: N1, 3: N2, 4: alpha0, 5: alpha1, 6: L30, 7. L31
+    
+    real(dp), dimension(:,:),        intent(in)  :: sm
+    real(dp), dimension(:),          intent(in)  :: Horizons
+    real(dp), dimension(:),          intent(in)  :: params ! 1: N0, 2: N1, 3: N2, 4: alpha0, 5: alpha1, 6: L30, 7. L31
     real(dp), dimension(size(sm,1)), intent(out) :: neutrons
- 
+
+    ! local variables
     real(dp) :: zdeg         
     real(dp) :: zrad         
     real(dp) :: ideg         
@@ -171,10 +202,10 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: normfast    ! Normalized contribution to neutron flux (-) [weighting factors]
     real(dp), dimension(:,:), allocatable :: inormfast   ! Cumulative fraction of neutrons (-)
     !
-    integer(i4)            :: layers=1                 ! Total number of soil layers
-    integer(i4)            :: profiles=1                   ! Total number of soil moisture profiles
-    integer(i4)            :: ll=1,pp=0
-    integer(i4)            :: angle, angledz, maxangle  ! loop indices for an integration interval
+    integer(i4) :: layers=1                 ! Total number of soil layers
+    integer(i4) :: profiles=1               ! Total number of soil moisture profiles
+    integer(i4) :: ll=1,pp=0
+    integer(i4) :: angle, angledz, maxangle ! loop indices for an integration interval
     !
     layers   = size(sm,2) ! 2
     profiles = size(sm,1) ! 34
@@ -186,7 +217,8 @@ CONTAINS
              idegrad(layers,profiles),fastflux(layers,profiles),normfast(layers,profiles),&
              inormfast(layers,profiles),isoimass(layers,profiles),iwatmass(layers,profiles))
 
-    dz(:)            = 0.0_dp
+    dz(:)            = 0.0_dp * params(1) ! <-- this multiplication with params(1) is not needed, only to make params USED
+    !                                     !     PLEASE remove when possible 
     zthick(:)        = 0.0_dp
     wetsoidens(:,:)  = 0.0_dp
     wetsoimass(:,:)  = 0.0_dp
@@ -213,10 +245,10 @@ CONTAINS
     
     !
     ! Angle distribution parameters (HARDWIRED)
-    !rr: Using 0.5 deg angle intervals appears to be sufficient
-    !rr: (smaller angles increase the computing time for COSMIC)
+    ! rr: Using 0.5 deg angle intervals appears to be sufficient
+    ! rr: (smaller angles increase the computing time for COSMIC)
     ideg     = 0.5_dp                   ! ideg ultimately controls the number of trips through
-    angledz  = nint(ideg*10.0_dp)       ! the ANGLE loop. Make sure the 10.0 is enough
+    angledz  = nint(ideg*10.0_dp,i4)    ! the ANGLE loop. Make sure the 10.0 is enough
     maxangle = 900_i4 - angledz         ! to create integers with no remainder
     dtheta   = ideg*(PI_dp/180.0_dp)
 
@@ -247,7 +279,7 @@ CONTAINS
           ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.  
 
           do angle=0,maxangle,angledz
-             zdeg     = real(angle)/10.0_dp   ! 0.0  0.5  1.0  1.5 ...
+             zdeg     = real(angle,dp)/10.0_dp   ! 0.0  0.5  1.0  1.5 ...
              zrad     = (zdeg*PI_dp)/180.0_dp
              costheta = cos(zrad)
 
