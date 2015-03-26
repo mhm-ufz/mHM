@@ -1234,7 +1234,7 @@ CONTAINS
 
   FUNCTION LNNSE_sp_1d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1242,7 +1242,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(INOUT)   :: mask
     REAL(sp)                                          :: LNNSE_sp_1d
 
-    INTEGER(i4)                            :: n
+    INTEGER(i4)                            :: n, ii
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     REAL(sp)                               :: xmean
     REAL(sp), DIMENSION(size(x))           :: v1, v2
@@ -1263,14 +1263,21 @@ CONTAINS
     endif
 
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
+   where ( le(x, 0.0_sp) .or. le(y, 0.0_sp))
        maske = .false.
     end where
     n = count(maske)
     if (n .LE. 1_i4) stop 'LNNSE_sp_1d: number of arguments must be at least 2'
 
     ! mean of x
-    xmean = average(log(x), mask=maske)
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    ! xmean = average( log(x), mask = maske)
+    ! (2) --> this is more save
+    xmean = 0.0_sp
+    do ii = 1, size( x, dim = 1 )
+       if ( maske(ii) ) xmean = xmean + log( x( ii ) )
+    end do
+    xmean = xmean / real( n, sp )
     !
     v1 = merge(log(y) - log(x), 0.0_sp, maske)
     v2 = merge(log(x) - xmean,  0.0_sp, maske)
@@ -1283,7 +1290,7 @@ CONTAINS
 
   FUNCTION LNNSE_dp_1d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1312,23 +1319,24 @@ CONTAINS
     endif
 
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
+    where ( le(x, 0.0_dp) .or. le(y, 0.0_dp))
        maske = .false.
     end where
     n = count(maske)
     if (n .LE. 1_i4) stop 'LNNSE_dp_1d: number of arguments must be at least 2'
 
     ! mean of x
-    ! xmean = average( log(x), mask = maske) 
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    ! xmean = average( log(x), mask = maske)
+    ! (2) --> this is more save
     xmean = 0.0_dp
     do ii = 1, size( x, dim = 1 )
        if ( maske(ii) ) xmean = xmean + log( x( ii ) )
     end do
     xmean = xmean / real( n, dp )
-
     !
     v1 = merge(log(y) - log(x), 0.0_dp, maske)
-    v2 = merge(log(x) -  xmean, 0.0_dp, maske)
+    v2 = merge(log(x) - xmean, 0.0_dp, maske)
     !
     LNNSE_dp_1d = 1.0_dp - dot_product(v1,v1) / dot_product(v2,v2)
 
@@ -1338,7 +1346,7 @@ CONTAINS
 
   FUNCTION LNNSE_sp_2d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1346,7 +1354,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(INOUT) :: mask
     REAL(sp)                                          :: LNNSE_sp_2d
 
-    INTEGER(i4)                                       :: n
+    INTEGER(i4)                                       :: n, ii, jj
     INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
     REAL(sp)                                          :: xmean
     LOGICAL, DIMENSION(size(x, dim=1), size(x, dim=2)):: maske
@@ -1366,15 +1374,24 @@ CONTAINS
     endif
     !
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
+    where ( le(x, 0.0_sp) .or. le(y, 0.0_sp))
        maske = .false.
     end where
     n = count(maske)
     if (n .LE. 1_i4) stop 'LNNSE_sp_2d: number of arguments must be at least 2'
-    !
+    
     ! mean of x
-    xmean = average(reshape(log(x(:,:)), (/size(x, dim=1)*size(x, dim=2)/)), &
-               mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    !     xmean = average(reshape(log(x(:,:)), (/size(x, dim=1)*size(x, dim=2)/)), &
+    !                     mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    ! (2) --> this is more save
+    xmean = 0.0_sp
+    do ii = 1, size( x, dim = 1 )
+       do jj = 1, size( x, dim = 2 ) 
+          if ( maske(ii,jj) ) xmean = xmean + log( x( ii,jj ) )
+       end do
+    end do
+    xmean = xmean / real( n, sp )
     !
     LNNSE_sp_2d = 1.0_sp - &
          sum((log(y)-log(x))*(log(y)-log(x)), mask=maske) / &
@@ -1386,7 +1403,7 @@ CONTAINS
 
   FUNCTION LNNSE_dp_2d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1394,7 +1411,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(INOUT) :: mask
     REAL(dp)                                          :: LNNSE_dp_2d
 
-    INTEGER(i4)                                       :: n
+    INTEGER(i4)                                       :: n, ii, jj
     INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
     REAL(dp)                                          :: xmean
     LOGICAL, DIMENSION(size(x, dim=1), size(x, dim=2)):: maske
@@ -1414,15 +1431,24 @@ CONTAINS
     endif
     !
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
+    where ( le(x, 0.0_dp) .or. le(y, 0.0_dp) )
        maske = .false.
     end where
     n = count(maske)
     if (n .LE. 1_i4) stop 'LNNSE_dp_2d: number of arguments must be at least 2'
     !
     ! mean of x
-    xmean = average(reshape( log(x(:,:)), (/size(x, dim=1)*size(x, dim=2)/)), &
-                 mask=reshape(maske(:,:), (/size(x, dim=1)*size(x, dim=2)/)))
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    !     xmean = average(reshape(log(x(:,:)), (/size(x, dim=1)*size(x, dim=2)/)), &
+    !                     mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    ! (2) --> this is more save
+    xmean = 0.0_dp
+    do ii = 1, size( x, dim = 1 )
+       do jj = 1, size( x, dim = 2 ) 
+          if ( maske(ii,jj) ) xmean = xmean + log( x( ii,jj ) )
+       end do
+    end do
+    xmean = xmean / real( n, dp )
     !
     LNNSE_dp_2d = 1.0_dp - &
          sum((log(y)-log(x))*(log(y)-log(x)), mask=maske) / &
@@ -1434,7 +1460,7 @@ CONTAINS
 
   FUNCTION LNNSE_sp_3d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1442,7 +1468,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)  :: mask
     REAL(sp)                                          :: LNNSE_sp_3d
 
-    INTEGER(i4)                                       :: n
+    INTEGER(i4)                                       :: n, ii, jj, kk
     INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
     REAL(sp)                                          :: xmean
     LOGICAL,  DIMENSION(size(x, dim=1), &
@@ -1463,15 +1489,26 @@ CONTAINS
     endif
     !
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
+    where ( le(x, 0.0_sp) .or. le(y, 0.0_sp) )
        maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) stop 'LNNSE_sp_3d: number of arguments must be at least 2'
     !
     ! mean of x
-    xmean = average(reshape(log(x(:,:,:)), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
-                mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    !     xmean = average(reshape(log(x(:,:,:)), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+    !                     mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    ! (2) --> this is more save
+    xmean = 0.0_sp
+    do ii = 1, size( x, dim = 1 )
+       do jj = 1, size( x, dim = 2 )
+          do kk = 1, size( x, dim = 3 ) 
+             if ( maske(ii,jj,kk) ) xmean = xmean + log( x( ii,jj,kk ) )
+          end do
+       end do
+    end do
+    xmean = xmean / real( n, sp )
     !
     LNNSE_sp_3d = 1.0_sp - &
          sum((log(y)-log(x))*(log(y)-log(x)), mask=maske) / &
@@ -1483,7 +1520,7 @@ CONTAINS
 
   FUNCTION LNNSE_dp_3d(x, y, mask)
 
-    USE mo_moment, ONLY: average
+    USE mo_utils, ONLY: le
 
     IMPLICIT NONE
 
@@ -1491,7 +1528,7 @@ CONTAINS
     LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)  :: mask
     REAL(dp)                                          :: LNNSE_dp_3d
 
-    INTEGER(i4)                                       :: n
+    INTEGER(i4)                                       :: n, ii, jj, kk
     INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
     REAL(dp)                                          :: xmean
     LOGICAL,  DIMENSION(size(x, dim=1), &
@@ -1512,15 +1549,26 @@ CONTAINS
     endif
     !
     ! mask all negative and zero entries
-    where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
+    where ( le(x, 0.0_dp) .or. le(y, 0.0_dp) )
        maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) stop 'LNNSE_dp_3d: number of arguments must be at least 2'
     !
     ! mean of x
-    xmean = average(reshape(log(x(:,:,:)), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
-         mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    ! (1) --> causes "Floating invalid operations" since log will be calculated also for masked values
+    !     xmean = average(reshape(log(x(:,:,:)), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+    !                     mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    ! (2) --> this is more save
+    xmean = 0.0_dp
+    do ii = 1, size( x, dim = 1 )
+       do jj = 1, size( x, dim = 2 )
+          do kk = 1, size( x, dim = 3 ) 
+             if ( maske(ii,jj,kk) ) xmean = xmean + log( x( ii,jj,kk ) )
+          end do
+       end do
+    end do
+    xmean = xmean / real( n, dp )
     !
     LNNSE_dp_3d = 1.0_dp - &
          sum((log(y)-log(x))*(log(y)-log(x)), mask=maske) / &
