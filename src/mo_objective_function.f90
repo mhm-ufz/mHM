@@ -13,6 +13,8 @@
 !>          (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !>          (8) -1.0 * loglikelihood with linear error model and lag(1)-autocorrelation of the relative errors \n
 !>          (9) 1.0 - KGE \n
+!>         (13) 1.0 - average temporal correlation of soil moisture  \n
+!>         (14) objective_multiple_gauges_kge_power6 = sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)   \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -527,6 +529,10 @@ CONTAINS
     case (13)
        ! soil moisture correlation
        objective = objective_sm_corr(parameterset)
+    case (14)
+       ! combination of KGE of every gauging station based on a power-6 norm \n
+       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) 
+       objective = objective_multiple_gauges_kge_power6(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -1115,6 +1121,112 @@ CONTAINS
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
   END FUNCTION objective_kge
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_multiple_gauges_kge_power6
+
+  !>        \brief combined objective function based on KGE raised to the power 6
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>                 The model will be called with that parameter vector and 
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a give gauging station
+  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>                 where
+  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
+  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
+  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 is calculated and the objective function for a given gauging station is
+  !>                       \f[ obj\_value = 1.0 - KGE \f]
+  !>                 (1-KGE) is the objective since we always apply minimization methods. 
+  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
+  !>                 Finally, the overall OF is estimated based on the power-6 norm to 
+  !>                 otimally combine the (1-KGE) from all basins 
+  !>                 
+  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_multiple_gauges_kge_power6(para)
+
+  !     LITERATURE
+  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date March 2015
+
+  FUNCTION objective_multiple_gauges_kge_power6(parameterset)
+    
+    use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: nGaugesTotal
+    use mo_errormeasures,    only: kge
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_multiple_gauges_kge_power6
+    real(dp), parameter                :: onesixth = 1.0_dp/6.0_dp
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: gg                       ! gauges counter
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    !
+
+    call mhm_eval(parameterset, runoff=runoff)
+
+    objective_multiple_gauges_kge_power6 = 0.0_dp
+    do gg=1,nGaugesTotal
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       ! KGE
+       objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
+           ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6 
+    end do
+    ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
+    objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth 
+
+    write(*,*) 'objective_kge = ', objective_multiple_gauges_kge_power6
+    ! pause
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    
+  END FUNCTION objective_multiple_gauges_kge_power6
 
   ! ------------------------------------------------------------------
 
