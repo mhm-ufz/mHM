@@ -239,7 +239,7 @@ L0Basin(3) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize = .true.
+optimize = .false.
 !> (0) MCMC                \n
 !> (1) DDS                 \n
 !> (2) Simulated Annealing \n
@@ -258,12 +258,12 @@ opti_method = 1
 !> (13) 1.0 - average temporal correlation of soil moisture  \n
 !> (14) sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 14
+opti_function = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
-read_restart  = .TRUE.
-write_restart = .FALSE.
+read_restart  = .FALSE.
+write_restart = .TRUE.
 perform_mpr   = .TRUE.
 /
 
