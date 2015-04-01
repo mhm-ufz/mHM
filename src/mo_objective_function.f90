@@ -1133,7 +1133,7 @@ CONTAINS
   !>                 The model will be called with that parameter vector and 
   !>                 the model output is subsequently compared to observed data.\n
   !>
-  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a give gauging station
+  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a given gauging station
   !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
   !>                 where
   !>                       \f[ r \f] = Pearson product-moment correlation coefficient
@@ -1144,7 +1144,7 @@ CONTAINS
   !>                 (1-KGE) is the objective since we always apply minimization methods. 
   !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
   !>                 Finally, the overall OF is estimated based on the power-6 norm to 
-  !>                 otimally combine the (1-KGE) from all basins 
+  !>                 optimally combine the (1-KGE) from all basins 
   !>                 
   !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
 
