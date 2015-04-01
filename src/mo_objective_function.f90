@@ -1139,12 +1139,14 @@ CONTAINS
   !>                       \f[ r \f] = Pearson product-moment correlation coefficient
   !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
   !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
-  !>                 is calculated and the objective function for a given gauging station is
-  !>                       \f[ obj\_value = 1.0 - KGE \f]
-  !>                 (1-KGE) is the objective since we always apply minimization methods. 
-  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
-  !>                 Finally, the overall OF is estimated based on the power-6 norm to 
-  !>                 optimally combine the (1-KGE) from all basins 
+  !>                 is calculated and the objective function for a given gauging station (\f$ i \f$) is
+  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods. 
+  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
+  !>
+  !>                 Finally, the overall \f$ OF \f$ is estimated based on the power-6 norm to 
+  !>                 combine the \f$ \phi_{i} \f$ from all gauging stations (\f$ N \f$). 
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f]
   !>                 
   !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
 
@@ -1167,12 +1169,12 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !>       \return     real(dp) :: objective_multiple_gauges_kge_power6 &mdash; objective function value 
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
   !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+  !>             Actually, \f$ OF \f$ will be returned such that it can be minimized.
 
   !     EXAMPLE
   !         para = (/ 1., 2, 3., -999., 5., 6. /)
@@ -1218,11 +1220,8 @@ CONTAINS
        objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6 
     end do
-    ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
     objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth 
-
-    write(*,*) 'objective_kge = ', objective_multiple_gauges_kge_power6
-    ! pause
+    write(*,*) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
     
