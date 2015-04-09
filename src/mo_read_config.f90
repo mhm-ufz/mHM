@@ -100,7 +100,7 @@ CONTAINS
   !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
   !                  Matthias Zink,  Mar  2015 - added optional soil mositure read in for calibration
-  
+
 
   subroutine read_config()
 
@@ -154,7 +154,7 @@ CONTAINS
          dds_r,                                             & ! DDS: perturbation rate
          sa_temp,                                           & ! SA: initial temperature
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
-         !                                                    !      # points per subcomplex
+                                !                                                    !      # points per subcomplex
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcover_scene,                & ! land cover information
          LCfilename, LCyearId,                              & ! 
@@ -164,7 +164,7 @@ CONTAINS
          perform_mpr,                                       & ! switch for performing mpr
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods  
-         !                                                    ! (sim. = wrm. + eval.)
+                                !                                                    ! (sim. = wrm. + eval.)
          nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
          nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
          basin,                                             & ! evaluation and inflow gauge information
@@ -173,7 +173,7 @@ CONTAINS
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
          nProcesses, processMatrix,                         & ! process configuration
          nGeoUnits,                                         & ! number of geological classes
-         !                                                    ! for parameter read-in
+                                !                                                    ! for parameter read-in
          global_parameters,                                 & ! global parameters
          global_parameters_name,                            & ! clear names of global parameters
          timeStep_model_outputs,                            & ! timestep for writing model outputs
@@ -312,17 +312,17 @@ CONTAINS
     ! define namelists
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,          &
-                           dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                &
-                           dir_Temperature, dir_ReferenceET, dir_MinTemperature,              &
-                           dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
-                           dir_NetRadiation, dir_Out, dir_RestartOut,                          &
-                           dir_RestartIn, dir_LatLon, dir_gridded_LAI
+         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                &
+         dir_Temperature, dir_ReferenceET, dir_MinTemperature,              &
+         dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
+         dir_NetRadiation, dir_Out, dir_RestartOut,                          &
+         dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! optional data used for optimization
     namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
-                 L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
-                 write_restart, perform_mpr
+         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
+         write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
     ! namelist soil layering
@@ -456,7 +456,7 @@ CONTAINS
        call message('***ERROR: optimize and chunk read is switched on! (set timestep_model_inputs to zero)')
        stop
     end if
-        
+
     !===============================================================
     !  determine simulation time period incl. warming days for each
     !  basin
@@ -465,17 +465,17 @@ CONTAINS
        ! julain days for evaluation period
        jday_frac = date2dec(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
        evalPer(ii)%julStart = nint(jday_frac) 
-       
+
        jday_frac = date2dec(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
        evalPer(ii)%julEnd  = nint(jday_frac, i4 ) 
-       
+
        ! determine warming period
        warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays(ii)
        warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1 
 
        jday_frac = real(warmPer(ii)%julStart,dp)
        call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
-       
+
        jday_frac = real(warmPer(ii)%julEnd,dp)
        call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd  )
 
@@ -520,7 +520,7 @@ CONTAINS
        call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)),'!')
        stop 
     end if
-   
+
     !===============================================================
     ! Read soil layering information
     !===============================================================
@@ -543,7 +543,7 @@ CONTAINS
        call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
        stop
     end if
-    
+
     !===============================================================
     ! Read process selection list
     !===============================================================
@@ -608,7 +608,7 @@ CONTAINS
           if ( NoGauges_basin(i_basin) .EQ. nodata_i4 ) then
              call message()
              call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
-                                     trim(adjustl(num2str(i_basin))),' is not defined!')
+                  trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: evaluation_gauges')
              stop
           end if
@@ -627,8 +627,8 @@ CONTAINS
              else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
                 call message()
                 call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
-                                 trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
-                                 trim(adjustl(num2str(i_basin))),' is not defined!')
+                     trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
+                     trim(adjustl(num2str(i_basin))),' is not defined!')
                 call message('          Error occured in namlist: evaluation_gauges')
                 stop
              end if
@@ -725,7 +725,7 @@ CONTAINS
           basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
           basin%InflowGaugeHeadwater(i_basin,i_gauge) = InflowGauge_Headwater(i_basin,i_gauge)
           basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
-     end do
+       end do
     end do
 
     if ( nInflowGaugesTotal .NE. idx) then 
@@ -777,17 +777,17 @@ CONTAINS
        do ii = 1, nLcover_scene
           ! land cover before model period                        ! land cover after model period
           if ((LCoverYearEnd(ii)        .LT. evalPer(iBasin)%yStart) .OR. &
-              (LCoverYearStart(ii)      .GT. evalPer(iBasin)%yEnd)) then
+               (LCoverYearStart(ii)      .GT. evalPer(iBasin)%yEnd)) then
              cycle
           else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-                   (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
+               (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
              LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
              exit
           else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-                   (LCoverYearEnd(ii)   .LT. evalPer(iBasin)%yEnd)) then
+               (LCoverYearEnd(ii)   .LT. evalPer(iBasin)%yEnd)) then
              LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
           else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
-                   (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
+               (LCoverYearEnd(ii)   .GE. evalPer(iBasin)%yEnd)) then
              LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
           else
              LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
@@ -797,7 +797,7 @@ CONTAINS
     !
     ! correct number of input land cover scenes to number of needed scenes
     nLcover_scene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
-                    minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
+         minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
     ! put land cover scenes to corresponding file name and LuT
     allocate(LCfilename(nLcover_scene))
     LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
@@ -835,13 +835,13 @@ CONTAINS
        if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
           call message()
           call message('Resolution of routing and hydrological modeling are equal!')
-    
+
        else if ( nint(cellFactorRbyH * 100.0_dp) .lt. 100) then
           call message()
           call message('***ERROR: Resolution of routing is smaller than hydrological model resolution!')
           call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
           STOP
-    
+
        else if ( nint(cellFactorRbyH * 100.0_dp) .gt. 100) then
           if( nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
              call message()
@@ -865,7 +865,7 @@ CONTAINS
 
     ! Process 1 - interception
     select case (processCase(1))
-    ! 1 - maximum Interception 
+       ! 1 - maximum Interception 
     case(1)
        call position_nml('interception1', unamelist_param)
        read(unamelist_param, nml=interception1)
@@ -893,7 +893,7 @@ CONTAINS
 
     ! Process 2 - snow
     select case (processCase(2))
-    ! 1 - degree-day approach
+       ! 1 - degree-day approach
     case(1)
        call position_nml('snow1', unamelist_param)
        read(unamelist_param, nml=snow1)
@@ -932,10 +932,10 @@ CONTAINS
        call message('***ERROR: Process description for process "snow" does not exist!')
        stop
     end select
-  
+
     ! Process 3 - soilmoisture
     select case (processCase(3))
-    ! 1 - bucket approach, Brooks-Corey like
+       ! 1 - bucket approach, Brooks-Corey like
     case(1)
        call position_nml('soilmoisture1', unamelist_param)
        read(unamelist_param, nml=soilmoisture1)
@@ -994,7 +994,7 @@ CONTAINS
 
     ! Process 4 - sealed area directRunoff
     select case (processCase(4))
-    ! 1 - bucket exceedance approach
+       ! 1 - bucket exceedance approach
     case(1)
        call position_nml('directRunoff1', unamelist_param)
        read(unamelist_param, nml=directRunoff1)
@@ -1020,7 +1020,7 @@ CONTAINS
 
     ! Process 5 - potential evapotranspiration (PET)
     select case (processCase(5))
-    ! 0 - PET is input, correct PET by aspect
+       ! 0 - PET is input, correct PET by aspect
     case(0)
        call position_nml('PET0', unamelist_param)
        read(unamelist_param, nml=PET0)
@@ -1043,7 +1043,7 @@ CONTAINS
           stop
        end if
 
-    ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
+       ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
     case(1)
        call position_nml('PET1', unamelist_param)
        read(unamelist_param, nml=PET1)
@@ -1067,7 +1067,7 @@ CONTAINS
           stop
        end if
 
-    ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
+       ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
     case(2)
        ! check which LAI input is specified
        if (timeStep_LAI_input .NE. 0) then
@@ -1094,7 +1094,7 @@ CONTAINS
           stop
        end if
 
-    ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
+       ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
     case(3)
        ! check which LAI input is specified
        if (timeStep_LAI_input .NE. 0) then
@@ -1142,7 +1142,7 @@ CONTAINS
 
     ! Process 6 - interflow
     select case (processCase(6))
-    ! 1 - parallel soil reservoir approach
+       ! 1 - parallel soil reservoir approach
     case(1)
        call position_nml('interflow1', unamelist_param)
        read(unamelist_param, nml=interflow1)
@@ -1177,7 +1177,7 @@ CONTAINS
 
     ! Process 7 - percolation
     select case (processCase(7))
-    ! 1 - GW layer is assumed as bucket
+       ! 1 - GW layer is assumed as bucket
     case(1)
        call position_nml('percolation1', unamelist_param)
        read(unamelist_param, nml=percolation1)
@@ -1279,11 +1279,11 @@ CONTAINS
     processMatrix(9,1) = 1
     processMatrix(9,2) = nGeoUnits
     processMatrix(9,3) = sum(processMatrix(1:9, 2))
-    
+
     ! Process 10 - neutrons 
-       ! 0 - deactivated
-       ! 1 - inverse N0 based on Desilets et al. 2010 
-       ! 2 - COSMIC forward operator by Shuttlworth et al. 2013
+    !   0 - deactivated
+    !   1 - inverse N0 based on Desilets et al. 2010 
+    !   2 - COSMIC forward operator by Shuttlworth et al. 2013
     if (processCase(10) .gt. 0) then
 
        call position_nml('neutrons1', unamelist_param)
@@ -1317,10 +1317,13 @@ CONTAINS
                trim(adjustl(file_namelist_param)))
           stop
        end if
-     else
-       call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
+    else
+        call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
        ! this is done below, where nml_output is read
-     end if
+       processMatrix(10, 1) = processCase(10)
+       processMatrix(10, 2) = 0_i4
+       processMatrix(10, 3) = sum(processMatrix(1:10, 2))
+    end if
 
     call close_nml(unamelist_param)
 
@@ -1376,52 +1379,52 @@ CONTAINS
     call message( 'Following output will be written:' )
     call message( '  STATES:' )
     if (outputFlxState(1)) then
-      call message( '    interceptional storage                      (L1_inter)     [mm]')
+       call message( '    interceptional storage                      (L1_inter)     [mm]')
     end if
     if (outputFlxState(2)) then
-      call message( '    height of snowpack                          (L1_snowpack)  [mm]')
+       call message( '    height of snowpack                          (L1_snowpack)  [mm]')
     end if
     if (outputFlxState(3)) then
-      call message( '    soil water content in the single layers     (L1_soilMoist) [mm]')
+       call message( '    soil water content in the single layers     (L1_soilMoist) [mm]')
     end if
     if (outputFlxState(4)) then 
-      call message( '    volumetric soil moisture in the single layers              [mm/mm]')
+       call message( '    volumetric soil moisture in the single layers              [mm/mm]')
     end if
     if (outputFlxState(5)) then 
-      call message( '    mean volum. soil moisture averaged over all soil layers    [mm/mm]')
+       call message( '    mean volum. soil moisture averaged over all soil layers    [mm/mm]')
     end if
     if (outputFlxState(6)) then 
-      call message( '    waterdepth in reservoir of sealed areas     (L1_sealSTW)   [mm]')
+       call message( '    waterdepth in reservoir of sealed areas     (L1_sealSTW)   [mm]')
     end if
     if (outputFlxState(7)) then
-      call message( '    waterdepth in reservoir of unsat. soil zone (L1_unsatSTW)  [mm]')
+       call message( '    waterdepth in reservoir of unsat. soil zone (L1_unsatSTW)  [mm]')
     end if
     if (outputFlxState(8)) then
-      call message( '    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
+       call message( '    waterdepth in reservoir of sat. soil zone   (L1_satSTW)    [mm]')
     end if
     if (processCase(10) .eq. 0) outputFlxState(18) = .false. ! suppress output if process is off
     if (outputFlxState(18)) then
-      call message( '    ground albedo neutrons                      (L1_neutrons)  [cph]')
+       call message( '    ground albedo neutrons                      (L1_neutrons)  [cph]')
     end if
 
     call message( '  FLUXES:' )
     if (outputFlxState(9)) then
-      call message( '    actual evapotranspiration aET      (L1_pet)                [mm/T]')
+       call message( '    actual evapotranspiration aET      (L1_pet)                [mm/T]')
     end if
     if (outputFlxState(10)) then
-      call message( '    total discharge generated per cell (L1_total_runoff)       [mm/T]')
+       call message( '    total discharge generated per cell (L1_total_runoff)       [mm/T]')
     end if
     if (outputFlxState(11)) then
-      call message( '    direct runoff generated per cell   (L1_runoffSeal)         [mm/T]')
+       call message( '    direct runoff generated per cell   (L1_runoffSeal)         [mm/T]')
     end if
     if (outputFlxState(12)) then
-      call message( '    fast interflow generated per cell  (L1_fastRunoff)         [mm/T]')
+       call message( '    fast interflow generated per cell  (L1_fastRunoff)         [mm/T]')
     end if
     if (outputFlxState(13)) then
-      call message( '    slow interflow generated per cell  (L1_slowRunoff)         [mm/T]')
+       call message( '    slow interflow generated per cell  (L1_slowRunoff)         [mm/T]')
     end if
     if (outputFlxState(14)) then
-      call message( '    baseflow generated per cell        (L1_baseflow)           [mm/T]')
+       call message( '    baseflow generated per cell        (L1_baseflow)           [mm/T]')
     end if
     if (outputFlxState(15)) then
        call message( '    groundwater recharge               (L1_percol)             [mm/T]')
