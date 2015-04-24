@@ -2,7 +2,7 @@
 !PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING
 !interception
 &interception1
-canopyInterceptionFactor           =  0.1500,      0.4000,     1.824E-01,     1,       1
+canopyInterceptionFactor           =  0.1500,      0.4000,     3.824E-01,     1,       1
 /
 
 ! snow
