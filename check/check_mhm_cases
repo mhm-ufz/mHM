@@ -153,7 +153,7 @@ function cleanup ()
 
     # everything in case_?? dirs
     case_dirs=$(\ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff*.*.terminal"
+    rmfiles="dds_results.out ${mhm_exe} ${mhm_exe_omp} cdo.*.terminal mhm_terminal.*.out diff*.*.terminal"
     rmdirs="output_b1 output_b2"
 
     # using brace expansion
@@ -175,6 +175,7 @@ function cleanup ()
 
 # name of the mhm executable
 mhm_exe='mhm_for_check'
+mhm_exe_omp='mhm_for_check_omp'
 
 # switches
 compilers='all'
@@ -260,8 +261,8 @@ for irelease in ${release} ; do
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe_omp} openmp=true cleanclean > /dev/null
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe_omp} openmp=true > /dev/null
                 export OMP_NUM_THREADS=${thread}
             fi
 
@@ -280,16 +281,26 @@ for irelease in ${release} ; do
                 cd ${case_dir}
 
                 # remove old exe and link recently compiled
-                if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
-		ln -s ../../${mhm_exe} . 
+		if [[ ${thread} -eq 0 ]] ; then
+                    if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
+		    ln -s ../../${mhm_exe} . 
+		else
+		    if [ -f ${mhm_exe_omp} ] ; then rm ${mhm_exe_omp} ; fi
+		    ln -s ../../${mhm_exe_omp} . 
+		fi
 
 		# remove old files
 		if [ -f mhm_terminal.${pid}.out ] ; then rm mhm_terminal.${pid}.out ; fi
 		if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
-                echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
-                ./${mhm_exe} > mhm_terminal.${pid}.out
+		if [[ ${thread} -eq 0 ]] ; then
+                    echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
+                    ./${mhm_exe} > mhm_terminal.${pid}.out
+		else
+		    echo '   mhm is running ...    ./'${mhm_exe_omp}' > mhm_terminal.'${pid}'.out' 
+                    ./${mhm_exe_omp} > mhm_terminal.${pid}.out
+		fi
 
                 # mhm was running till the end?
 		set +e
