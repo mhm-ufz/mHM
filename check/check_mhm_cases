@@ -217,7 +217,7 @@ if [[ "${icdo}z" == "z" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
         if [[ $(hostname) == 'frontend1' ]]; then
-            module load cdo/1.6.0-1 
+            module load cdo
         fi
         if [[ $(hostname) == 'frontend2' ]]; then
             module load cdo
