@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 #
 # -------------------------------------------------------------------------------------------
 # BRIEF
@@ -252,21 +252,23 @@ for irelease in ${release} ; do
             echo '   using System:   '${system}
             echo '         Compiler: '${compiler}
             echo '         Release:  '${irelease}
-            make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
+            
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
+		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
                 make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
+		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
                 make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
                 export OMP_NUM_THREADS=${thread}
             fi
 
             # run checks
             cd check
-            case_dirs=$(\ls -d case_*)
-            #case_dirs=$(\ls -d case_02)
+            #case_dirs=$(\ls -d case_*)
+            case_dirs=$(\ls -d case_02)
 
             nRecordsDiffer_allCases=0
             for case_dir in ${case_dirs} ; do
@@ -283,7 +285,7 @@ for irelease in ${release} ; do
 
                 # run mhm
                 echo '   mhm is running ...'
-                ./${mhm_exe} > mhm_terminal.${pid}.out
+                ./${mhm_exe} #> mhm_terminal.${pid}.out
 
                 # mhm was running till the end?
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
