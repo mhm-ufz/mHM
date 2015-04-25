@@ -175,7 +175,6 @@ function cleanup ()
 
 # name of the mhm executable
 mhm_exe='mhm_for_check'
-mhm_exe_omp='mhm_for_check_omp'
 
 # switches
 compilers='all'
@@ -256,20 +255,20 @@ for irelease in ${release} ; do
             
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
                 make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe_omp} openmp=true cleanclean > /dev/null
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe_omp} openmp=true > /dev/null
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
                 export OMP_NUM_THREADS=${thread}
             fi
 
             # run checks
             cd check
-            #case_dirs=$(\ls -d case_*)
-            case_dirs=$(\ls -d case_02)
+            case_dirs=$(\ls -d case_*)
+            #case_dirs=$(\ls -d case_02)
 
             nRecordsDiffer_allCases=0
             for case_dir in ${case_dirs} ; do
@@ -281,31 +280,21 @@ for irelease in ${release} ; do
                 cd ${case_dir}
 
                 # remove old exe and link recently compiled
-		if [[ ${thread} -eq 0 ]] ; then
-                    if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
-		    ln -s ../../${mhm_exe} . 
-		else
-		    if [ -f ${mhm_exe_omp} ] ; then rm ${mhm_exe_omp} ; fi
-		    ln -s ../../${mhm_exe_omp} . 
-		fi
+                if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
+                ln -s ../../${mhm_exe} . 
 
-		# remove old files
-		if [ -f mhm_terminal.${pid}.out ] ; then rm mhm_terminal.${pid}.out ; fi
-		if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
+                # remove old files
+                if [ -f mhm_terminal.${pid}.out ] ; then rm mhm_terminal.${pid}.out ; fi
+                if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
-		if [[ ${thread} -eq 0 ]] ; then
-                    echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
-                    ./${mhm_exe} > mhm_terminal.${pid}.out
-		else
-		    echo '   mhm is running ...    ./'${mhm_exe_omp}' > mhm_terminal.'${pid}'.out' 
-                    ./${mhm_exe_omp} > mhm_terminal.${pid}.out
-		fi
+                echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
+                ./${mhm_exe} > mhm_terminal.${pid}.out
 
                 # mhm was running till the end?
-		set +e
+                set +e
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
-		set -e
+                set -e
 
                 if [[ ${found} == 'mHM: Finished!' ]] ; then
                     
