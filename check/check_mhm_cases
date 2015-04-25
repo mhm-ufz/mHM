@@ -288,8 +288,7 @@ for irelease in ${release} ; do
 		if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
-                echo '   mhm is running ...'
-		echo './'${mhm_exe}' > mhm_terminal.'${pid}'.out'
+                echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
                 ./${mhm_exe} > mhm_terminal.${pid}.out
 
                 # mhm was running till the end?
