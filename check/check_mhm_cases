@@ -285,7 +285,7 @@ for irelease in ${release} ; do
 
                 # run mhm
                 echo '   mhm is running ...'
-                ./${mhm_exe} #> mhm_terminal.${pid}.out
+                ./${mhm_exe} > mhm_terminal.${pid}.out
 
                 # mhm was running till the end?
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
