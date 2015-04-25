@@ -279,20 +279,21 @@ for irelease in ${release} ; do
                 echo ''
                 cd ${case_dir}
 
-		set +e
                 # remove old exe and link recently compiled
                 if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
 		ln -s ../../${mhm_exe} . 
 
 		# remove old files
-		if [ -f mhm_terminal.*.out ] ; then rm mhm_terminal.*.out ; fi
-		if [ -f cdo.*.terminal ] ; then rm cdo.*.terminal ; fi
+		if [ -f mhm_terminal.${pid}.out ] ; then rm mhm_terminal.${pid}.out ; fi
+		if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
                 echo '   mhm is running ...'
+		echo './'${mhm_exe}' > mhm_terminal.'${pid}'.out'
                 ./${mhm_exe} > mhm_terminal.${pid}.out
 
                 # mhm was running till the end?
+		set +e
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
 		set -e
 
