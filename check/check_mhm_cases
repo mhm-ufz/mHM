@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 #
 # -------------------------------------------------------------------------------------------
 # BRIEF
@@ -252,8 +252,6 @@ for irelease in ${release} ; do
             echo '   using System:   '${system}
             echo '         Compiler: '${compiler}
             echo '         Release:  '${irelease}
-
-	    echo $PWD
 	    
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
