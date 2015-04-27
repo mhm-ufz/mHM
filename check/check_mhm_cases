@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 #
 # -------------------------------------------------------------------------------------------
 # BRIEF
@@ -136,12 +136,12 @@ function usage () {
     printf "           (Default: all)\n"
     printf "    -s     System on which mHM will be compiled, e.g. 'eve2'\n"
     printf "           (Default: eve2).\n"
-    printf "    -t     Number of threads for OpenMP, e.g. 6\n"
-    printf "           Set to '' for deactivation of parallel test\n"
-    printf "           (Default: 2).\n"
+    printf "    -t     Number of threads for OpenMP, e.g. '6'\n"
+    printf "           Set to '0' for deactivation of parallel test\n"
+    printf "           (Default: '0 2').\n"
     printf "\n"
     printf "Example\n"
-    printf "    ${pprog} -c gnu45 -s eve2 -r debug -t 1\n"
+    printf "    ${pprog} -c gnu45 -s eve2 -r debug -t '0 2'\n"
 }
 
 # cleanup at end and when interupted
@@ -180,7 +180,7 @@ mhm_exe='mhm_for_check'
 compilers='all'
 system='eve2'
 release='all'
-threads=2
+threads='0 2'
 while getopts "c:hr:s:t:" Option ; do
     case ${Option} in
         h) usage 1>&2; exit 0;;
@@ -244,7 +244,7 @@ system=$(echo ${system} | tr [A-Z] [a-z])
 # Do Tests
 #
 for irelease in ${release} ; do
-    for thread in 0 ${threads} ; do
+    for thread in ${threads} ; do
         for compiler in ${compilers} ; do
             # Compile mHM
             cd ..
