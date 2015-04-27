@@ -173,6 +173,8 @@ function cleanup ()
 # Checks and Switches
 #
 
+source /home/mai/.bash_profile
+
 # name of the mhm executable
 mhm_exe='mhm_for_check'
 
