@@ -170,7 +170,7 @@ PROGRAM mhm_driver
        basin, processMatrix                                         ! basin information,  processMatrix
   USE mo_global_variables, ONLY: opti_function
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
-  USE mo_mcmc,                ONLY : mcmc                           ! Monte Carlo Markov Chain method
+  USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
@@ -417,13 +417,13 @@ PROGRAM mhm_driver
 
         if (seed .gt. 0_i8) then
            ! use fixed user-defined seed
-           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
                 ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
                 maskpara_in=local_maskpara,                                                                           &
                 seed_in=seed, loglike_in=.true., printflag_in=.true.)
         else
            ! use flexible clock-time seed
-           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
                 ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
                 maskpara_in=local_maskpara,                                                                           &
                 loglike_in=.true., printflag_in=.true.)
