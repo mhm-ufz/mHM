@@ -170,7 +170,7 @@ PROGRAM mhm_driver
        basin, processMatrix                                         ! basin information,  processMatrix
   USE mo_global_variables, ONLY: opti_function
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
-  USE mo_mcmc,                ONLY : mcmc                           ! Monte Carlo Markov Chain method
+  USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
@@ -195,19 +195,19 @@ PROGRAM mhm_driver
   IMPLICIT NONE
 
   ! local
-  integer, dimension(8)                 :: datetime        ! Date and time
-  !$ integer(i4)                        :: n_threads       ! OpenMP number of parallel threads
+  integer, dimension(8)                 :: datetime         ! Date and time
+  !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4)                           :: ii, jj           ! Counters
-  integer(i4)                           :: iTimer          ! Current timer number
+  integer(i4)                           :: iTimer           ! Current timer number
   integer(i4)                           :: nTimeSteps
-  real(dp)                              :: funcbest        ! best objective function achivied during optimization
+  real(dp)                              :: funcbest         ! best objective function achivied during optimization
   ! model output
-  real(dp), allocatable, dimension(:,:) :: riverrun        ! simulated river runoff at all gauges, timepoints
+  real(dp), allocatable, dimension(:,:) :: riverrun         ! simulated river runoff at all gauges, timepoints
   ! mcmc
-  real(dp), dimension(:,:), allocatable :: burnin_paras    ! parameter sets sampled during burnin
-  real(dp), dimension(:,:), allocatable :: mcmc_paras      ! parameter sets sampled during proper mcmc
-  logical,  dimension(:),   allocatable :: maskpara        ! true  = parameter will be optimized     = parameter(i,4) = 1
-  !                                                        ! false = parameter will not be optimized = parameter(i,4) = 0
+  real(dp), dimension(:,:), allocatable :: burnin_paras     ! parameter sets sampled during burnin
+  real(dp), dimension(:,:), allocatable :: mcmc_paras       ! parameter sets sampled during proper mcmc
+  logical,  dimension(:),   allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
+  !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
   integer(i4)                           :: npara
   real(dp), dimension(:,:), allocatable :: local_parameters ! global_parameters but includes a and b for likelihood
   logical,  dimension(:),   allocatable :: local_maskpara   ! maskpara but includes a and b for likelihood
@@ -262,16 +262,16 @@ PROGRAM mhm_driver
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
      case(0)
-       call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
+        call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
      case(1)
-       call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
-       call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
+        call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
+        call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
      case(2)
-       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
+        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
      case(3)
-       call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-       call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
-       call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
+        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
+        call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
+        call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
      end select
      call message('    Output directory:           ',   trim(dirOut(ii) ))
      if (timeStep_LAI_input < 0) then
@@ -327,7 +327,7 @@ PROGRAM mhm_driver
         call prepare_meteo_forcings_data(ii, 1)
      end if
 
-    ! read lat lon coordinates of each basin
+     ! read lat lon coordinates of each basin
      call message('  Reading lat-lon for basin: ', trim(adjustl(num2str(ii))),' ...')
      call timer_start(itimer)
      call read_latlon(ii)
@@ -348,7 +348,7 @@ PROGRAM mhm_driver
      if ((opti_function .EQ. 13) .AND. optimize) then
         call read_soil_moisture(ii)
      endif
-     
+
   end do
 
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -417,13 +417,13 @@ PROGRAM mhm_driver
 
         if (seed .gt. 0_i8) then
            ! use fixed user-defined seed
-           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
                 ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
                 maskpara_in=local_maskpara,                                                                           &
                 seed_in=seed, loglike_in=.true., printflag_in=.true.)
         else
            ! use flexible clock-time seed
-           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
                 ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
                 maskpara_in=local_maskpara,                                                                           &
                 loglike_in=.true., printflag_in=.true.)
@@ -506,23 +506,23 @@ PROGRAM mhm_driver
      deallocate(local_maskpara)
 
   else
-    ! --------------------------------------------------------------------------
-    ! call mHM
-    ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
-    ! get other model outputs  (i.e. gridded fields of model output)
-    ! --------------------------------------------------------------------------
-    call message('  Run mHM')
-    call timer_start(iTimer)
-    if ( processMatrix(8,1) .eq. 0 ) then
-       ! call mhm without routing
-       call mhm_eval(global_parameters(:,3))
-    else
-       ! call mhm with routing
-       call mhm_eval(global_parameters(:,3), runoff=riverrun)
-    end if
-    call timer_stop(itimer)
-    call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
-    !
+     ! --------------------------------------------------------------------------
+     ! call mHM
+     ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+     ! get other model outputs  (i.e. gridded fields of model output)
+     ! --------------------------------------------------------------------------
+     call message('  Run mHM')
+     call timer_start(iTimer)
+     if ( processMatrix(8,1) .eq. 0 ) then
+        ! call mhm without routing
+        call mhm_eval(global_parameters(:,3))
+     else
+        ! call mhm with routing
+        call mhm_eval(global_parameters(:,3), runoff=riverrun)
+     end if
+     call timer_stop(itimer)
+     call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
+     !
   end if
 
   ! --------------------------------------------------------------------------
@@ -543,12 +543,12 @@ PROGRAM mhm_driver
   ! FINISH UP
   ! --------------------------------------------------------------------------
   itimer = itimer + 1
- ! call message()
- ! call message('  Write ouput data')
- ! call timer_start(itimer)
- ! ! call write_data()
- ! call timer_stop(itimer)
- ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  ! call message()
+  ! call message('  Write ouput data')
+  ! call timer_start(itimer)
+  ! ! call write_data()
+  ! call timer_stop(itimer)
+  ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
   nTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
   call date_and_time(values=datetime)

@@ -378,7 +378,7 @@ CONTAINS
        ii = ii + 1
        var = nc%createVariable("PET", dtype, dims1)
        call writeVariableAttributes(var, "potential Evapotranspiration", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_pet, avg=.true.)       
+       tmpvars(ii) = OutputVariable(var, L1_pet)       
     end if
 
     if (outputFlxState(10)) then

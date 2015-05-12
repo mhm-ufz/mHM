@@ -457,7 +457,7 @@ CONTAINS
     write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii)(1:39))), ii=1, n_params)
 
     ! output
-    write(formParams, *) '( es40.15, ', n_params,'(es40.15) )' 
+    write(formParams, *) '( es40.14, ', n_params,'(es40.14) )' 
     write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1, n_params)
 
     ! close file
