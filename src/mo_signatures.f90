@@ -651,17 +651,17 @@ CONTAINS
   !         None
 
   !     INTENT(OUT)  
-  !>        \param[out] real(dp), allocatable, dimension(:,:) :: FDC_serie !serie (ordened discharge)
+  !>        \param[out] "real(dp), allocatable, dimension(:,:) :: FDC_serie" !serie (ordened discharge)
 
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(dp), dimension(:) :: Quantiles    ! Percentages of occurrence
+  !>        \param[in] "real(dp), dimension(:) :: Quantiles"    ! Percentages of occurrence
 
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] real(dp), allocatable, dimension(:)   :: Q_quantiles  !Q with p=10% and 50%   
+  !>        \param[out] "real(dp), allocatable, dimension(:)   :: Q_quantiles"  !Q with p=10% and 50%   
 
   !     RETURN
   !         None
@@ -687,7 +687,7 @@ CONTAINS
 
     real(dp), dimension(:),                        intent(in)  :: Q_serie      ! River flow,
     real(dp), allocatable, dimension(:,:),         intent(out) :: FDC_serie    ! ordened Q
-    real(dp), dimension(:),              optional, intent(out) :: Quantiles    ! Percentages of occurrence,
+    real(dp),              dimension(:), optional, intent(in)  :: Quantiles    ! Percentages of occurrence,
     real(dp), allocatable, dimension(:), optional, intent(out) :: Q_quantiles  ! Q with p=10% and 50%
 
     !local variables
@@ -707,7 +707,7 @@ CONTAINS
     n=size(Q_sort,1)
     Q_sort=Q_sort(n:1:-1)
 
-    if(present( Quantiles ))  call Quantile(Q_sort,Quantiles,Q_quantiles)
+    if ( present( Quantiles ) .and. present(Q_quantiles) )  call Quantile(Q_sort, Quantiles, Q_quantiles)
 
     allocate( FDC_serie(n, 2) )
 

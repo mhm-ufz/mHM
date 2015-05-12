@@ -153,7 +153,7 @@ function cleanup ()
 
     # everything in case_?? dirs
     case_dirs=$(\ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff.*.terminal"
+    rmfiles="dds_results.out ${mhm_exe} cdo.*.terminal mhm_terminal.*.out diff*.*.terminal"
     rmdirs="output_b1 output_b2"
 
     # using brace expansion
@@ -216,12 +216,12 @@ if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
-	if [[ $(hostname) == 'frontend1' ]]; then
+        if [[ $(hostname) == 'frontend1' ]]; then
             module load cdo/1.6.0-1 
-	fi
-	if [[ $(hostname) == 'frontend2' ]]; then
-	    module load cdo
-	fi
+        fi
+        if [[ $(hostname) == 'frontend2' ]]; then
+            module load cdo
+        fi
         icdo=$(which cdo)
     fi
 fi
@@ -254,16 +254,16 @@ for irelease in ${release} ; do
             echo '         Release:  '${irelease}
             make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
             if [[ ${thread} -eq 0 ]] ; then
-		echo '         OpenMP:   False'
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
+                echo '         OpenMP:   False'
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
             else
-		echo '         OpenMP:   True'
-		echo '         Threads:  '${thread}
-		make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
-		export OMP_NUM_THREADS=${thread}
+                echo '         OpenMP:   True'
+                echo '         Threads:  '${thread}
+                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+                export OMP_NUM_THREADS=${thread}
             fi
 
-	    # run checks
+            # run checks
             cd check
             case_dirs=$(\ls -d case_*)
             #case_dirs=$(\ls -d case_02)
@@ -288,21 +288,25 @@ for irelease in ${release} ; do
                 # mhm was running till the end?
                 found=$(grep 'mHM: Finished!' mhm_terminal.${pid}.out)
                 if [[ ${found} == 'mHM: Finished!' ]] ; then
-                  
+                    
                     nRecordsDiffer=0
                     cd output_save
-                    nc_files=$(\ls *.nc)
-		    echo ${nc_files}
-		    set +e
-		    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
-		    set -e
-		    echo ${discharge_files}
-
-		    if [[ -z ${discharge_files} ]] ; then
-			echo '   No discharge files written!'
-		    fi
+                    set +e
+                    nc_files=$(\ls *.nc 2> /dev/null)                        # causes failure if no such file exists
+                    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
+                    finalpara_files=$(\ls *FinalParam.out 2> /dev/null)      # causes failure if no such file exists
+                    set -e
+                    if [[ -z ${nc_files} ]] ; then
+                        echo '   No NetCDF     files written!'
+                    fi
+                    if [[ -z ${discharge_files} ]] ; then
+                        echo '   No discharge  files written!'
+                    fi
+                    if [[ -z ${finalpara_files} ]] ; then
+                        echo '   No FinalParam files written!'
+                    fi
                     cd ..
-		    echo ''
+                    echo ''
                     # compare NetCDF outputs in output_b1/ with reference in output_save/
                     for nc_file in ${nc_files} ; do
                         # cdo -b 16 :: precision=double=16bit
@@ -322,32 +326,57 @@ for irelease in ${release} ; do
                         echo ''
                     done
 
-		    # compare daily_discharge outputs in output_b1/ with reference in output_save/
-		    # if [[ -e output_save/daily_discharge.out ]] ; then
-		    for discharge_file in ${discharge_files} ; do
-			echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
-			set +e
-			diff output_save/${discharge_file} output_b1/${discharge_file} > diff.${pid}.terminal
-			set -e
-			iRecordsDiffer=$(echo $(wc -l diff.${pid}.terminal) | cut -d ' ' -f 1)
-			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-			    iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
-			fi
-			nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
-			nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
-			echo '      Number of records that differ: '${iRecordsDiffer}
-			if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                    # compare daily_discharge outputs in output_b1/ with reference in output_save/
+                    for discharge_file in ${discharge_files} ; do
+                        echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
+                        set +e
+                        diff output_save/${discharge_file} output_b1/${discharge_file} > diff1.${pid}.terminal
+                        set -e
+                        iRecordsDiffer=$(echo $(wc -l diff1.${pid}.terminal) | cut -d ' ' -f 1)
+                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
+                        fi
+                        nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
+                        nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
+                        echo '      Number of records that differ: '${iRecordsDiffer}
+                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
                             echo '            --------------------------------------'
                             echo '                  Details                         '
                             echo '            --------------------------------------'
                             set +e
-			    diff output_save/${discharge_file} output_b1/${discharge_file}
-			    set -e
+                            diff output_save/${discharge_file} output_b1/${discharge_file}
+                            set -e
                             echo '            --------------------------------------'
-			fi
-			echo ''
-		    done
-			
+                        fi
+                        echo ''
+                    done
+
+                    # compare FinalParam.out outputs in output_b1/ with reference in output_save/
+                    # --> only for optimization cases
+                    for finalpara_file in ${finalpara_files} ; do
+                        echo '   *  diff output_save/'${finalpara_file}' output_b1/'${finalpara_file}
+                        set +e
+                        diff output_save/${finalpara_file} output_b1/${finalpara_file} > diff2.${pid}.terminal
+                        set -e
+                        iRecordsDiffer=$(echo $(wc -l diff2.${pid}.terminal) | cut -d ' ' -f 1)
+                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
+                        fi
+                        nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
+                        nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
+                        echo '      Number of records that differ: '${iRecordsDiffer}
+                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
+                            echo '            --------------------------------------'
+                            echo '                  Details                         '
+                            echo '            --------------------------------------'
+                            set +e
+                            diff output_save/${finalpara_file} output_b1/${finalpara_file}
+                            set -e
+                            echo '            --------------------------------------'
+                        fi
+                        echo ''
+                    done
+                    
                     echo '   Total Number of records that differ: '${nRecordsDiffer}
 
                     if [[ ${nRecordsDiffer} -eq 0 ]] ; then

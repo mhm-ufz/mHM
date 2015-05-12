@@ -81,8 +81,9 @@ CONTAINS
 
     use mo_global_variables, only: processMatrix, nSoilHorizons_mHM,            &
          L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &  
-         L1_soilMoist, L1_unsatSTW, L1_satSTW, L1_aETSoil, L1_aETCanopy,        &
-         L1_aETSealed, L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,       &        
+         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
+         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &        
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
@@ -162,6 +163,10 @@ CONTAINS
     ! FLUXES
     !-------------------------------------------
 
+    ! calculated / corrected potential evapotranspiration
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_pet_calc,  dummy_Vector )
+    
     !  soil actual ET
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_aETSoil,  dummy_Matrix )
@@ -438,8 +443,9 @@ CONTAINS
     use mo_global_variables, only:                                              &
          nSoilHorizons_mHM, HorizonDepth_mHM,                                   &
          L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &  
-         L1_soilMoist, L1_unsatSTW, L1_satSTW, L1_aETSoil, L1_aETCanopy,        &
-         L1_aETSealed, L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,       &        
+         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
+         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
          L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
@@ -503,6 +509,9 @@ CONTAINS
     ! FLUXES
     !-------------------------------------------
 
+    ! corrected / calculated potential ET
+    L1_pet_calc = P1_InitStateFluxes
+    
     !  soil actual ET
     L1_aETSoil = P1_InitStateFluxes
 

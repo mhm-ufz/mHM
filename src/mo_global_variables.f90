@@ -404,7 +404,7 @@ MODULE mo_global_variables
   ! dim2 = number of meteorological time steps
   real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]    Precipitation
   real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC]  Air temperature
-  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm]    Potential evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm TST-1] Potential evapotranspiration
   real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC]  minimum daily air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC]  maximum daily air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_netrad        ! [W m2]  net radiation
@@ -441,21 +441,22 @@ MODULE mo_global_variables
   ! Fluxes
   ! dim1 = number grid cells L1
   ! dim2 = number model soil horizons
-  real(dp), public, dimension(:,:), allocatable :: L1_aETSoil      ! [mm]       Actual ET from soil layers
-  real(dp), public, dimension(:), allocatable   :: L1_aETCanopy    ! [mm d-1]   Real evaporation intensity from canopy
-  real(dp), public, dimension(:), allocatable   :: L1_aETSealed    ! [mm d-1]   Real evap. from free water surfaces
-  real(dp), public, dimension(:), allocatable   :: L1_baseflow     ! [mm d-1]   Baseflow
-  real(dp), public, dimension(:,:), allocatable :: L1_infilSoil    ! [mm d-1]   Infiltration intensity each soil horizon 
-  real(dp), public, dimension(:), allocatable   :: L1_fastRunoff   ! [mm d-1]   Fast runoff component
-  real(dp), public, dimension(:), allocatable   :: L1_melt         ! [mm d-1]   Melting snow depth.
-  real(dp), public, dimension(:), allocatable   :: L1_percol       ! [mm d-1]   Percolation.
-  real(dp), public, dimension(:), allocatable   :: L1_preEffect    ! [mm d-1]   Effective precip. depth (snow melt + rain)
-  real(dp), public, dimension(:), allocatable   :: L1_rain         ! [mm]       Rain precipitation depth
-  real(dp), public, dimension(:), allocatable   :: L1_runoffSeal   ! [mm d-1]   Direct runoff from impervious areas
-  real(dp), public, dimension(:), allocatable   :: L1_slowRunoff   ! [mm d-1]   Slow runoff component
-  real(dp), public, dimension(:), allocatable   :: L1_snow         ! [mm d-1]   Snow precipitation depth
-  real(dp), public, dimension(:), allocatable   :: L1_Throughfall  ! [mm d-1]   Throughfall.             
-  real(dp), public, dimension(:), allocatable   :: L1_total_runoff ! [m3 s-1]   Generated runoff
+  real(dp), public, dimension(:),   allocatable :: L1_pet_calc     ! [mm TS-1] estimated/corrected potential evapotranspiration  
+  real(dp), public, dimension(:,:), allocatable :: L1_aETSoil      ! [mm TS-1] Actual ET from soil layers
+  real(dp), public, dimension(:),   allocatable :: L1_aETCanopy    ! [mm TS-1] Real evaporation intensity from canopy
+  real(dp), public, dimension(:),   allocatable :: L1_aETSealed    ! [mm TS-1] Real evap. from free water surfaces
+  real(dp), public, dimension(:),   allocatable :: L1_baseflow     ! [mm TS-1] Baseflow
+  real(dp), public, dimension(:,:), allocatable :: L1_infilSoil    ! [mm TS-1] Infiltration intensity each soil horizon 
+  real(dp), public, dimension(:),   allocatable :: L1_fastRunoff   ! [mm TS-1] Fast runoff component
+  real(dp), public, dimension(:),   allocatable :: L1_melt         ! [mm TS-1] Melting snow depth.
+  real(dp), public, dimension(:),   allocatable :: L1_percol       ! [mm TS-1] Percolation.
+  real(dp), public, dimension(:),   allocatable :: L1_preEffect    ! [mm TS-1] Effective precip. depth (snow melt + rain)
+  real(dp), public, dimension(:),   allocatable :: L1_rain         ! [mm TS-1] Rain precipitation depth
+  real(dp), public, dimension(:),   allocatable :: L1_runoffSeal   ! [mm TS-1] Direct runoff from impervious areas
+  real(dp), public, dimension(:),   allocatable :: L1_slowRunoff   ! [mm TS-1] Slow runoff component
+  real(dp), public, dimension(:),   allocatable :: L1_snow         ! [mm TS-1] Snow precipitation depth
+  real(dp), public, dimension(:),   allocatable :: L1_Throughfall  ! [mm TS-1] Throughfall.             
+  real(dp), public, dimension(:),   allocatable :: L1_total_runoff ! [m3 TS-1] Generated runoff
 
   ! Effective parameters
   ! dim1 = number grid cells L1
@@ -576,27 +577,34 @@ MODULE mo_global_variables
   logical, dimension(nOutFlxState) :: outputFlxState         ! Define model outputs see "mhm_outputs.nml"
   !                                                            dim1 = number of output variables to be written 
   !
-  type outputVariables
-     !! States L1
-     real(dp), dimension(:),   allocatable :: L1_inter        ! Interception
-     real(dp), dimension(:),   allocatable :: L1_snowPack     ! Snowpack
-     real(dp), dimension(:,:), allocatable :: L1_soilMoist    ! Soil moisture of each horizon
-     real(dp), dimension(:),   allocatable :: L1_sealSTW      ! Retention storage of impervious areas
-     real(dp), dimension(:),   allocatable :: L1_unsatSTW     ! Upper soil storage
-     real(dp), dimension(:),   allocatable :: L1_satSTW       ! Groundwater storage
-     real(dp), dimension(:),   allocatable :: L1_neutrons     ! Ground albedo neutrons
-     !! Fluxes L1
-     real(dp), dimension(:),   allocatable :: L1_pet          ! potential evapotranpiration (PET)
-     real(dp), dimension(:,:), allocatable :: L1_aETSoil      ! actual ET of each horizon
-     real(dp), dimension(:),   allocatable :: L1_aETCanopy    ! Real evaporation intensity from canopy
-     real(dp), dimension(:),   allocatable :: L1_aETSealed    ! Actual ET from free-water surfaces
-     real(dp), dimension(:),   allocatable :: L1_total_runoff ! Generated runoff
-     real(dp), dimension(:),   allocatable :: L1_runoffSeal   ! Direct runoff from impervious areas
-     real(dp), dimension(:),   allocatable :: L1_fastRunoff   ! Fast runoff component
-     real(dp), dimension(:),   allocatable :: L1_slowRunoff   ! Slow runoff component
-     real(dp), dimension(:),   allocatable :: L1_baseflow     ! Baseflow
-     real(dp), dimension(:),   allocatable :: L1_percol       ! Percolation
-     real(dp), dimension(:,:), allocatable :: L1_infilSoil    ! Infiltration 
-  end type outputVariables
+  ! type outputVariables
+  !    !! States L1
+  !    real(dp), dimension(:),   allocatable :: L1_inter        ! Interception
+  !    real(dp), dimension(:),   allocatable :: L1_snowPack     ! Snowpack
+  !    real(dp), dimension(:,:), allocatable :: L1_soilMoist    ! Soil moisture of each horizon
+  !    real(dp), dimension(:),   allocatable :: L1_sealSTW      ! Retention storage of impervious areas
+  !    real(dp), dimension(:),   allocatable :: L1_unsatSTW     ! Upper soil storage
+  !    real(dp), dimension(:),   allocatable :: L1_satSTW       ! Groundwater storage
+  !    real(dp), dimension(:),   allocatable :: L1_neutrons     ! Ground albedo neutrons
+  !    !! Fluxes L1
+  !    real(dp), dimension(:),   allocatable :: L1_pet          ! potential evapotranpiration (PET)
+  !    real(dp), dimension(:,:), allocatable :: L1_aETSoil      ! actual ET of each horizon
+  !    real(dp), dimension(:),   allocatable :: L1_aETCanopy    ! Real evaporation intensity from canopy
+  !    real(dp), dimension(:),   allocatable :: L1_aETSealed    ! Actual ET from free-water surfaces
+  !    real(dp), dimension(:),   allocatable :: L1_total_runoff ! Generated runoff
+  !    real(dp), dimension(:),   allocatable :: L1_runoffSeal   ! Direct runoff from impervious areas
+  !    real(dp), dimension(:),   allocatable :: L1_fastRunoff   ! Fast runoff component
+  !    real(dp), dimension(:),   allocatable :: L1_slowRunoff   ! Slow runoff component
+  !    real(dp), dimension(:),   allocatable :: L1_baseflow     ! Baseflow
+  !    real(dp), dimension(:),   allocatable :: L1_percol       ! Percolation
+  !    real(dp), dimension(:,:), allocatable :: L1_infilSoil    ! Infiltration 
+  ! end type outputVariables
+
+  ! type outputVariable
+  !    character(32)                    :: name                   ! variable name in netcdf
+  !    logical                          :: towrite                ! write variable ?
+  !    integer(i4)                      :: varid                  ! store netcdf variable id
+  !    real(dp),dimension(:), pointer   :: data                   ! point to data
+  ! end type outputVariable
 
 END MODULE mo_global_variables

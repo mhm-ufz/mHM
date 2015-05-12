@@ -912,7 +912,6 @@ CONTAINS
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:),     allocatable           :: dummyD1  ! dummy, 1 dimension DP
-    real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP
 
     ! set file name
     Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_L11_config.nc' ! '_restart.nc'

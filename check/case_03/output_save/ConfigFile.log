@@ -21,7 +21,7 @@ Flag READ  restart                     F
 Flag WRITE restart                     T
 
 -------------------------------------------------------------
-                      Model Run Periods                      
+                      Model Run Periods for Basin          1
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
@@ -30,13 +30,34 @@ Evaluation Period (2)         1     1  1990    31    12  1993
 Simulation Period (1)+(2)     6     1  1989    31    12  1993
 
 
+-------------------------------------------------------------
+                      Model Run Periods for Basin          2
+-------------------------------------------------------------
+                                       From                To
+                            Day Month  Year   Day Month  Year
+Warming Period (1)           10     7  1989    31    12  1990
+Evaluation Period (2)         1     1  1991    31    12  1993
+Simulation Period (1)+(2)    10     7  1989    31    12  1993
+
+
 --------------------------------------------------
-            Land Cover Observations
+       Land Cover Observations for Basin         3
 --------------------------------------------------
       Year    Land cover scene     Land Cover File
 
       1989                   1         lc_1990.asc
       1990                   1         lc_1990.asc
+      1991                   2         lc_1990.asc
+      1992                   2         lc_1990.asc
+      1993                   2         lc_1990.asc
+
+--------------------------------------------------
+       Land Cover Observations for Basin         6
+--------------------------------------------------
+      Year    Land cover scene     Land Cover File
+
+      1989                   2         lc_1990.asc
+      1990                   2         lc_1990.asc
       1991                   2         lc_1990.asc
       1992                   2         lc_1990.asc
       1993                   2         lc_1990.asc
@@ -108,7 +129,7 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
 --------------------------------------------------
  Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
          1         1       1600.000         11.000
-         2         2       1600.000         11.000
+         2         2      -9999.000      -9999.000
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
@@ -461,4 +482,4 @@ Node Index   Node Id
 ------------------------------
      Total[km2]      23272.500
 
- 
+
