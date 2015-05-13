@@ -8,7 +8,7 @@ module mo_netcdf
        NF90_DOUBLE, nf90_def_var, NF90_CHUNKED, NF90_CONTIGUOUS,             &
        NF90_ENDIAN_NATIVE, nf90_put_var,nf90_inquire, nf90_put_att,          &
        NF90_GLOBAL, nf90_strerror, nf90_inquire_dimension, nf90_inq_dimid,   &
-       nf90_inquire_variable
+       nf90_inquire_variable, nf90_inq_varid
 
   implicit none 
 
@@ -26,25 +26,50 @@ module mo_netcdf
      procedure, private :: createVariableAttributeI4
      procedure, private :: createVariableAttributeI8
 
+     procedure, private :: putDataScalarI4
      procedure, private :: putData1dI4
      procedure, private :: putData2dI4
      procedure, private :: putData3dI4
+     procedure, private :: putDataScalarDp
      procedure, private :: putData1dDp
      procedure, private :: putData2dDp
      procedure, private :: putData3dDp
 
+     procedure, private :: putDataDirectScalarI4
+     procedure, private :: putDataDirect1dI4
+     procedure, private :: putDataDirect2dI4
+     procedure, private :: putDataDirect3dI4
+     procedure, private :: putDataDirectScalarDp
+     procedure, private :: putDataDirect1dDp
+     procedure, private :: putDataDirect2dDp
+     procedure, private :: putDataDirect3dDp
+
+     
      procedure, private :: preparePutArguments
 
      procedure, public  :: getNoDimensions
      
      generic, public :: putData => &
+          putDataScalarI4, &
           putData1dI4, &
           putData2dI4, &
           putData3dI4, &
+          putDataScalarDp, &
           putData1dDp, &
           putData2dDp, &
           putData3dDp
-          
+
+     generic, public :: putDataDirect => &
+          putDataDirectScalarI4, &
+          putDataDirect1dI4, &
+          putDataDirect2dI4, &
+          putDataDirect3dI4, &
+          putDataDirectScalarDp, &
+          putDataDirect1dDp, &
+          putDataDirect2dDp, &
+          putDataDirect3dDp
+
+     
      generic, public :: createAttribute => &
           createVariableAttributeChar, &
           createVariableAttributeDp,   &
@@ -76,6 +101,8 @@ module mo_netcdf
      procedure, private :: getDimensionByName
      procedure, private :: getDimensionById
 
+     procedure, private  :: getVariableByName
+     
      procedure, private :: createVariableWithTypes
      procedure, private :: createVariableWithNames
      procedure, private :: createVariableWithIds
@@ -98,6 +125,9 @@ module mo_netcdf
           createVariableWithNames, &
           createVariableWithTypes, &
           createVariableWithIds
+
+     generic,  public  :: getVariable => &
+          getVariableByName
      
   end type NcDataset
 
@@ -107,7 +137,7 @@ module mo_netcdf
     
 contains
 
-  type(NcDataset)  function initDataset(fname,mode)
+  type(NcDataset) function initDataset(fname,mode)
      ! mode:  
      !       r: read
      !       w: write/create
@@ -292,6 +322,17 @@ contains
      getDimensionByName = self%getDimensionById(id)
    end function getDimensionByName
 
+   function getVariableByName(self,name)
+     class(NcDataset), intent(in) :: self
+     character(*), intent(in)     :: name
+     type(NcVariable)             :: getVariableByName 
+     integer(i4)                  :: id
+     
+     call check(nf90_inq_varid(self%id,name,id), &
+          "Could not inquire variable: " // name)
+     getVariableByName = NcVariable(id,self%id,name)
+   end function getVariableByName
+   
    function getNoDimensions(self)
      class(NcVariable), intent(in) :: self
      integer(i4)                   :: getNoDimensions
@@ -396,6 +437,15 @@ contains
 
       
    ! putData i4
+   subroutine putDataScalarI4(self,values,start)
+     class(NcVariable), intent(in)                   :: self
+     integer(i4), intent(in)                         :: values
+     integer(i4), dimension(:), optional, intent(in) :: start
+
+     call check(nf90_put_var(self%pid, self%id, values, start), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataScalarI4
+
    subroutine putData1dI4(self,values,start,count,stride)
      class(NcVariable), intent(in)                   :: self
      integer(i4), dimension(:), intent(in)           :: values
@@ -430,6 +480,15 @@ contains
    end subroutine putData3dI4
 
    ! putData dp
+   subroutine putDataScalarDp(self,values,start)
+     class(NcVariable), intent(in)                   :: self
+     real(dp), intent(in)                            :: values
+     integer(i4), dimension(:), optional, intent(in) :: start
+
+     call check(nf90_put_var(self%pid, self%id, values, start), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataScalarDp
+
    subroutine putData1dDp(self,values,start,count,stride)
      class(NcVariable), intent(in)                   :: self
      real(dp), dimension(:), intent(in)           :: values
@@ -443,7 +502,7 @@ contains
 
    subroutine putData2dDp(self,values,start,count,stride)
      class(NcVariable), intent(in)                   :: self
-     real(dp), dimension(:,:), intent(in)            :: values
+     real(dp), dimension(:,:), intent(in)         :: values
      integer(i4), dimension(:), optional, intent(in) :: start, count, stride
      integer(i4), dimension(:),allocatable           :: pstart, pcount, pstride, pmap
 
@@ -463,6 +522,83 @@ contains
           "Failed to write data into variable: " // trim(self%name))          
    end subroutine putData3dDp
 
+
+   
+   ! putData i4
+   subroutine putDataDirectScalarI4(self,values,start)
+     class(NcVariable), intent(in)                   :: self
+     integer(i4), intent(in)                         :: values
+     integer(i4), dimension(:), optional, intent(in) :: start
+
+     call check(nf90_put_var(self%pid, self%id, values, start), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataDirectScalarI4
+
+   subroutine putDataDirect1dI4(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     integer(i4), dimension(:), intent(in)           :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataDirect1dI4
+
+   subroutine putDataDirect2dI4(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     integer(i4), dimension(:,:), intent(in)         :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))          
+   end subroutine putDataDirect2dI4
+
+   subroutine putDataDirect3dI4(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     integer(i4), dimension(:,:,:), intent(in)       :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))          
+   end subroutine putDataDirect3dI4
+
+   ! putDataDirect dp
+   subroutine putDataDirectScalarDp(self,values,start)
+     class(NcVariable), intent(in)                   :: self
+     real(dp), intent(in)                            :: values
+     integer(i4), dimension(:), optional, intent(in) :: start
+
+     call check(nf90_put_var(self%pid, self%id, values, start), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataDirectScalarDp
+
+   subroutine putDataDirect1dDp(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     real(dp), dimension(:), intent(in)              :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))     
+   end subroutine putDataDirect1dDp
+
+   subroutine putDataDirect2dDp(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     real(dp), dimension(:,:), intent(in)            :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))          
+   end subroutine putDataDirect2dDp
+
+   subroutine putDataDirect3dDp(self,values,start,count,stride,map)
+     class(NcVariable), intent(in)                   :: self
+     real(dp), dimension(:,:,:), intent(in)          :: values
+     integer(i4), dimension(:), optional, intent(in) :: start, count, stride, map
+
+     call check(nf90_put_var(self%pid, self%id, values, start, count, stride, map), &
+          "Failed to write data into variable: " // trim(self%name))          
+   end subroutine putDataDirect3dDp
+
+   
    
    subroutine preparePutArguments(self,inshape,&
         instart,incount,instride, &

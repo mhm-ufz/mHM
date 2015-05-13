@@ -158,8 +158,6 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
 
     ! FOR WRITING GRIDDED STATES AND FLUXES 
-    integer(i4)                           :: hh                  ! Counter
-    ! integer(i4)                           :: ncid                ! netcdf fileID
     integer(i4)                           :: tIndex_out          ! for writing netcdf file
 
     ! local variables
@@ -191,7 +189,6 @@ CONTAINS
     real(dp)                                  :: newTime
     integer(i4)                               :: year_counter     ! for yearly output
     integer(i4)                               :: average_counter  ! for averaging output
-    real(dp)                                  :: multiplier       ! for averaging output
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
 
@@ -210,7 +207,6 @@ CONTAINS
     real(dp),dimension(size(L1_fSealed,1))                            :: L1_fNotSealed
     real(dp),dimension(size(L1_aETSoil,1))                            :: L1_aet
     type(OutputDataset)                                   :: nc
-    type(OutputVariable), dimension(:), allocatable  :: outvars
     
     !----------------------------------------------------------
     ! Check optionals and initialize
@@ -485,9 +481,10 @@ CONTAINS
              if ((any(outputFlxState)) .and. (tIndex_out .gt. 0_i4)) then
 
                 ! indirect output variables
+                L1_fNotSealed = 1.0_dp - L1_fSealed
+                
                 L1_soilMoistVol = L1_soilMoist / L1_soilMoistSat
                 L1_soilMoistVolAvg = sum(L1_soilMoist(:,:), dim=2) / sum(L1_soilMoistSat(:,:), dim=2)
-                L1_fNotSealed = 1.0_dp - L1_fSealed
                 L1_aet = sum(L1_aETSoil, dim=2)*L1_fNotSealed + L1_aETCanopy + L1_aETSealed*L1_fSealed
 
                 if ( tIndex_out .EQ. 1 ) then
@@ -504,7 +501,7 @@ CONTAINS
                         L1_satSTW                 , &
                         L1_neutrons(s1:e1)        , &
                         ! fluxes
-                        L1_pet_calc(s1:e1)   , &    ! potential evapotranspiration (PET)
+                        L1_pet_calc(s1:e1)        , &    ! potential evapotranspiration (PET)
                         L1_aet(s1:e1)             , &    ! actual ET 
                         L1_total_runoff(s1:e1)    , &    ! Generated runoff
                         L1_runoffSeal(s1:e1)      , &    ! Direct runoff from impervious areas
@@ -520,7 +517,7 @@ CONTAINS
 
                 call nc%updateDataset()
 
-                !! move to function
+                !! 
                 writeout = .false.
                 if (timeStep_model_outputs .gt. 0) then
                    if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
@@ -538,17 +535,15 @@ CONTAINS
                       continue
                    end select
                 end if                
-
-                if (writeout) then
-                   
-                   call nc%writeDataset()
+                
+                if (writeout) then                   
+                   call nc%writeTimestep(tIndex_out*timestep-1)
                 end if
                 
                 if( tt .eq. nTimeSteps ) then
                    call nc%close()
                 end if
-    
-          !       !
+
              end if
           end if ! <-- if (.not. optimize)
 
