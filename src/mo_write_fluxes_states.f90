@@ -269,7 +269,8 @@ CONTAINS
        L1_neutrons        , &
        ! fluxes
        L1_pet          , &    ! potential evapotranspiration (PET)
-       L1_aet          , &    ! actual ET 
+       L1_aet          , &    ! actual ET
+       L1_aETSoil      , &
        L1_total_runoff , &    ! Generated runoff
        L1_runoffSeal   , &    ! Direct runoff from impervious areas
        L1_fastRunoff   , &    ! Fast runoff component
@@ -299,6 +300,8 @@ CONTAINS
     ! fluxes
     real(dp), dimension(:),   intent(inout), target :: L1_pet          ! potential evapotranspiration (PET)
     real(dp), dimension(:),   intent(inout), target :: L1_aet
+    real(dp), dimension(:,:), intent(inout), target :: L1_aETSoil
+
     real(dp), dimension(:),   intent(inout), target :: L1_total_runoff ! Generated runoff
     real(dp), dimension(:),   intent(inout), target :: L1_runoffSeal   ! Direct runoff from impervious areas
     real(dp), dimension(:),   intent(inout), target :: L1_fastRunoff   ! Fast runoff component
@@ -417,6 +420,16 @@ CONTAINS
        tmpvars(ii) = OutputVariable(var, L1_aet)       
     end if
 
+    if (outputFlxState(19)) then
+       do nn = 1, nSoilHorizons_mHM
+          ii = ii + 1
+          var = nc%createVariable("aET_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
+          call writeVariableAttributes(&
+               var,'actual Evapotranspiration from soil layer'//trim(num2str(nn)), "mm "//trim(unit))
+          tmpvars(ii) = OutputVariable(var, L1_aETSoil(:,nn), multip=L1_fNotSealed)
+       end do
+    end if
+    
     if (outputFlxState(11)) then
        ii = ii + 1
        var = nc%createVariable("Q", dtype, dims1)

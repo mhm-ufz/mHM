@@ -502,7 +502,8 @@ CONTAINS
                         L1_neutrons(s1:e1)        , &
                         ! fluxes
                         L1_pet_calc(s1:e1)        , &    ! potential evapotranspiration (PET)
-                        L1_aet(s1:e1)             , &    ! actual ET 
+                        L1_aet(s1:e1)             , &    ! actual ET
+                        L1_aETSoil(s1:e1,:)       , &
                         L1_total_runoff(s1:e1)    , &    ! Generated runoff
                         L1_runoffSeal(s1:e1)      , &    ! Direct runoff from impervious areas
                         L1_fastRunoff(s1:e1)      , &    ! Fast runoff component
