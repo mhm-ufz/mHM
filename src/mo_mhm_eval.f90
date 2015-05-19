@@ -511,6 +511,7 @@ CONTAINS
                         L1_baseflow(s1:e1)        , &    ! Baseflow
                         L1_percol(s1:e1)          , &    ! Percolation
                         L1_infilSoil(s1:e1,:)     , &    ! Infiltration
+                        L1_preEffect(s1:e1)       , &    ! Effective Precipition
                         L1_fSealed(s1:e1)         , &
                         L1_fNotSealed(s1:e1)        &                   
                         )

@@ -278,6 +278,7 @@ CONTAINS
        L1_baseflow     , &    ! Baseflow
        L1_percol       , &    ! Percolation
        L1_infilSoil    , &    ! Infiltration
+       L1_preEffect    , &    ! Effective Precipitation
        ! helper
        L1_fSealed      , &
        L1_fNotSealed    &                   
@@ -309,6 +310,7 @@ CONTAINS
     real(dp), dimension(:),   intent(inout), target :: L1_baseflow     ! Baseflow
     real(dp), dimension(:),   intent(inout), target :: L1_percol       ! Percolation
     real(dp), dimension(:,:), intent(inout), target :: L1_infilSoil    ! Infiltration
+    real(dp), dimension(:),   intent(inout), target :: L1_preEffect       ! Percolation
     ! helper
     real(dp), dimension(:),   intent(inout), target :: L1_fSealed      ! 
     real(dp), dimension(:),   intent(inout), target :: L1_fNotSealed      ! 
@@ -485,6 +487,14 @@ CONTAINS
                var,"infiltration flux from soil layer"//trim(num2str(nn)), unit)
           tmpvars(ii) = OutputVariable(var, L1_infilSoil(:,nn), multip=L1_fNotSealed)
        end do
+    end if
+
+    if (outputFlxState(20)) then
+       ii = ii + 1
+       var = nc%createVariable("preEffect", dtype, dims1)
+       call writeVariableAttributes(&
+            var, "effective precipitation", trim(unit))
+       tmpvars(ii) = OutputVariable(var, L1_preEffect)       
     end if
     
     initOutput = OutputDataset(nc,tmpvars(1:ii),mask1)

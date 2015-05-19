@@ -86,6 +86,9 @@ outputFlxState(15)=.TRUE.
 outputFlxState(16)=.TRUE.
 !
 ! infiltration                       (L1_infilSoil)    [mm/T]         -- case 17
-outputFlxState(17)=.FALSE.
+outputFlxState(17)=.TRUE.
+!
+! effective precipitation            (L1_preEffect)    [mm/T]         -- case 20
+outputFlxState(20)=.TRUE.
 /
 
