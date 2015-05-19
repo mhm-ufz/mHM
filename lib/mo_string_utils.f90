@@ -29,7 +29,7 @@ MODULE mo_string_utils
   ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
   ! If not, see <http://www.gnu.org/licenses/>.
 
-  ! Copyright 2011-2012 Matthias Cuntz
+  ! Copyright 2011-2015 Matthias Cuntz
 
   USE mo_kind, ONLY: i4, i8, sp, dp
 
@@ -39,11 +39,16 @@ MODULE mo_string_utils
 #ifndef ABSOFT
   PUBLIC :: divide_string ! split string in substring with the help of delimiter
 #endif
+  PUBLIC :: equalStrings  ! compares two strings
   PUBLIC :: nonull        ! Check if string is still NULL
   PUBLIC :: num2str       ! Convert a number to a string
   PUBLIC :: separator     ! Format string: '-----...-----'
+  PUBLIC :: splitString   ! splits string at given delimiter
+  PUBLIC :: startsWith    ! checks if string starts with a certain string
   PUBLIC :: tolower       ! Conversion   : 'ABCXYZ' -> 'abcxyz'
   PUBLIC :: toupper       ! Conversion   : 'abcxyz' -> 'ABCXYZ'
+  
+  ! public :: numarray2str
 
   ! ------------------------------------------------------------------
 
@@ -113,6 +118,59 @@ MODULE mo_string_utils
   INTERFACE num2str
      MODULE PROCEDURE i42str, i82str, sp2str, dp2str, log2str
   END INTERFACE num2str
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         numarray2str
+
+  !     PURPOSE
+  !>        \brief Convert to string.
+
+  !>        \details Convert a array of numbers or logicals to a string.
+
+  !     CALLING SEQUENCE
+  !         str = numarray2str(num)
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/logical :: num(:)"    Array of numbers or logicals
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+  
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>        \return character(len=X) :: str &mdash; String of formatted input number or logical\n
+  !
+
+  !     RESTRICTIONS
+  !        Unknown
+
+  !     EXAMPLE
+  !        None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \date Dec 2011
+
+  INTERFACE numarray2str
+     MODULE PROCEDURE i4array2str
+  END INTERFACE numarray2str
 
   ! ------------------------------------------------------------------
 
@@ -316,6 +374,78 @@ CONTAINS
   END SUBROUTINE divide_string
 #endif
 
+    ! ------------------------------------------------------------------
+
+  !     NAME
+  !         equalStrings
+
+  !     PURPOSE
+  !         \brief Checks if two string are equal
+
+  !         \details Returns true if the given string arguments are equal
+
+  !     CALLING SEQUENCE
+  !         isequal = equalString(string1,string2)
+
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: string1"    String
+  !         \param[in] "character(len=*) :: string2"    String
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         \return logical
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author David Schaefer
+  !         \date Mar 2015
+
+  function equalStrings(string1,string2)
+    implicit none
+
+    character(len=*), intent(in)     :: string1, string2
+    integer(i4),      allocatable    :: array1(:), array2(:)
+    integer(i4)                      :: i
+    logical                          :: equalStrings
+
+    array1 = str2num(trim(string1))
+    array2 = str2num(trim(string2))
+    equalStrings = .false.
+
+    if (size(array1) .eq. size(array2)) then
+       equalStrings = .true.
+       do i=1,size(array1)
+          if (array1(i) .ne. array2(i)) then
+             equalStrings = .false.
+             exit 
+          end if
+       end do
+    end if
+
+  end function equalStrings
+
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -381,89 +511,141 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  PURE FUNCTION i42str(nn,form)
-    ! returns integer nn as a string (often needed in printing messages)
-    IMPLICIT NONE
-    INTEGER(i4),      INTENT(IN)           :: nn
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=10) :: i42str
+  !     NAME
+  !         splitString
 
-    if (present(form)) then
-       write(i42str,form) nn
-    else
-       write(i42str,'(I10)') nn
+  !     PURPOSE
+  !         \brief split string at delimiter
+
+  !         \details Split string at delimiter an return an array of strings
+
+  !     CALLING SEQUENCE
+  !         string_parts = splitString(string,delim)
+
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: string"    String
+  !         \param[in] "character(len=*) :: delim"     String
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         \return character(len=245) :: out(:)
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author David Schaefer
+  !         \date Mar 2015
+
+  function splitString(string,delim) result(out)
+    
+    use mo_append, only : append    
+    implicit none
+    
+    character(len=*),   intent(in)        :: string
+    character(len=*),   intent(in)        :: delim
+    character(len=256), allocatable       :: out(:)
+    integer(i4),        allocatable       :: string_array(:), delim_array(:)
+    integer(i4)                           :: i, start
+    !
+    if (allocated(out)) deallocate(out)
+    string_array = str2num(string//delim)
+    delim_array = str2num(delim)
+    start = 1
+
+    do i=1, size(string_array) - size(delim_array) + 1
+       if (all(string_array(i:i+size(delim_array)-1) .eq. delim_array)) then
+          call append(out, numarray2str(string_array(start:i-1)))
+          start = i + size(delim_array)
+       end if
+    end do
+    !
+  end function splitString
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         startsWith
+
+  !     PURPOSE
+  !         \brief Checks if string starts with character(s)
+
+  !         \details Returns true if string starts with characters, flase otherwise
+
+  !     CALLING SEQUENCE
+  !         starts_with = startsWith(string,start)
+
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: string"    String
+  !         \param[in] "character(len=*) :: start"    String
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         \return logical
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author David Schaefer
+  !         \date Mar 2015
+
+  function startsWith(string,start)
+    
+    implicit none
+
+    character(len=*), intent(in)     :: string, start
+    integer(i4), allocatable         :: string_array(:), start_array(:)
+    logical                          :: startsWith
+
+    string_array = str2num(string)
+    start_array = str2num(start) 
+
+    startsWith = .false.
+    if (all(string_array(1:1+size(start_array)-1) .eq. start_array)) then 
+       startsWith = .true.
     end if
-    !i42str = adjustl(i42str)
-
-  END FUNCTION i42str
-
-
-  PURE FUNCTION i82str(nn,form)
-    ! returns integer nn as a string (often needed in printing messages)
-    IMPLICIT NONE
-    INTEGER(i8),      INTENT(IN)           :: nn
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=20) :: i82str
-
-    if (present(form)) then
-       write(i82str,form) nn
-    else
-       write(i82str,'(I20)') nn
-    end if
-    !i82str = adjustl(i82str)
-
-  END FUNCTION i82str
-
-
-  PURE FUNCTION sp2str(rr,form)
-    ! returns real rr as a string (often needed in printing messages)
-    IMPLICIT NONE
-    REAL(sp),         INTENT(IN)           :: rr
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=32) :: sp2str
-
-    if (present(form)) then
-       write(sp2str,form) rr
-    else
-       write(sp2str,'(G32.5)') rr
-    end if
-    !sp2str = adjustl(sp2str)
-
-  END FUNCTION sp2str
-
-
-  PURE FUNCTION dp2str(rr,form)
-    ! returns real rr as a string (often needed in printing messages)
-    IMPLICIT NONE
-    REAL(dp),         INTENT(IN)           :: rr
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=32) :: dp2str
-
-    if (present(form)) then
-       write(dp2str,form) rr
-    else
-       write(dp2str,'(G32.5)') rr
-    end if
-    !dp2str = adjustl(dp2str)
-
-  END FUNCTION dp2str
-
-
-  PURE FUNCTION log2str(ll,form)
-    ! returns logical ll as a string (often needed in printing messages)
-    IMPLICIT NONE
-    LOGICAL,          INTENT(in)           :: ll
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=10) :: log2str
-
-    if (present(form)) then
-       write(log2str,form) ll
-    else
-       write(log2str,'(L10)') ll
-    end if
-    !log2str = adjustl(log2str)
-
-  END FUNCTION log2str
+  end function startsWith
 
   ! ------------------------------------------------------------------
 
@@ -604,5 +786,173 @@ CONTAINS
     END DO
 
   END FUNCTION toupper
+
+
+  ! -----------------------------------------------------------
+  ! PRIVATE ROUTINES
+  ! (no "template" documentation required)
+  ! -----------------------------------------------------------
+
+  PURE FUNCTION i42str(nn,form)
+    ! returns integer nn as a string (often needed in printing messages)
+    IMPLICIT NONE
+    INTEGER(i4),      INTENT(IN)           :: nn
+    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len=10) :: i42str
+
+    if (present(form)) then
+       write(i42str,form) nn
+    else
+       write(i42str,'(I10)') nn
+    end if
+    !i42str = adjustl(i42str)
+
+  END FUNCTION i42str
+
+
+  PURE FUNCTION i82str(nn,form)
+    ! returns integer nn as a string (often needed in printing messages)
+    IMPLICIT NONE
+    INTEGER(i8),      INTENT(IN)           :: nn
+    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len=20) :: i82str
+
+    if (present(form)) then
+       write(i82str,form) nn
+    else
+       write(i82str,'(I20)') nn
+    end if
+    !i82str = adjustl(i82str)
+
+  END FUNCTION i82str
+
+
+  PURE FUNCTION sp2str(rr,form)
+    ! returns real rr as a string (often needed in printing messages)
+    IMPLICIT NONE
+    REAL(sp),         INTENT(IN)           :: rr
+    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len=32) :: sp2str
+
+    if (present(form)) then
+       write(sp2str,form) rr
+    else
+       write(sp2str,'(G32.5)') rr
+    end if
+    !sp2str = adjustl(sp2str)
+
+  END FUNCTION sp2str
+
+
+  PURE FUNCTION dp2str(rr,form)
+    ! returns real rr as a string (often needed in printing messages)
+    IMPLICIT NONE
+    REAL(dp),         INTENT(IN)           :: rr
+    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len=32) :: dp2str
+
+    if (present(form)) then
+       write(dp2str,form) rr
+    else
+       write(dp2str,'(G32.5)') rr
+    end if
+    !dp2str = adjustl(dp2str)
+
+  END FUNCTION dp2str
+
+
+  PURE FUNCTION log2str(ll,form)
+    ! returns logical ll as a string (often needed in printing messages)
+    IMPLICIT NONE
+    LOGICAL,          INTENT(in)           :: ll
+    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len=10) :: log2str
+
+    if (present(form)) then
+       write(log2str,form) ll
+    else
+       write(log2str,'(L10)') ll
+    end if
+    !log2str = adjustl(log2str)
+
+  END FUNCTION log2str
+
+  function i4array2str(arr) result(out)
+
+    integer(i4), intent(in)     :: arr(:)
+    integer(i4)                 :: ii
+    character(len=size(arr))    :: out
+
+    out = " "
+    do ii=1,size(arr)
+       out(ii:ii) = char(arr(ii))
+    end do
+
+  end function i4array2str
+
+    ! ------------------------------------------------------------------
+
+  !     NAME
+  !         str2num
+
+  !     PURPOSE
+  !         \brief Converts string into an array of its numerical representation
+
+  !         \details Converts string into an integer array of the numerical values of the letters
+
+  !     CALLING SEQUENCE
+  !         str2num = startsWith(string)
+
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: string"    String
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         \return integer  :: out(:)
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author David Schaefer
+  !         \date Mar 2015
+
+  function str2num(string) result(out)
+  
+    implicit none
+
+    character(len=*), intent(in)       :: string
+    integer(i4), allocatable           :: out(:)
+    integer(i4)                        :: i  
+
+    if (allocated(out)) deallocate(out)
+    allocate(out(len(string)))
+
+    do i=1,len(string)
+       out(i) = ichar(string(i:i))
+    end do
+
+  end function str2num
+
 
 END MODULE mo_string_utils

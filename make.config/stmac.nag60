@@ -1,0 +1,100 @@
+# -*- Makefile -*-
+
+#
+# Setup file for NAG compiler 5.3 at Eve
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subdirectories if another structure
+
+# Paths
+NAGDIR := /usr
+NAGLIB := $(NAGDIR)/local/lib
+NAGBIN := $(NAGDIR)/bin
+
+GNUDIR := /usr
+GNULIB := $(GNUDIR)/lib
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(NAGBIN)/nagfor
+FC  := $(F90)
+CC  := $(GNUBIN)/gcc
+ifeq ($(release),debug)
+    ifeq ($(openmp),true)
+        F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90
+    else
+        F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
+    endif
+    FCFLAGS  += $(F90FLAGS)
+    #FCFLAGS  += -C -C=dangling -g -nan -O0 -fixed
+    CFLAGS   += -pedantic -Wall -W -O -g
+    LDFLAGS  += -g90
+else
+    F90FLAGS += -O3
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -O3
+endif
+# -mismatch-all
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
+MODFLAG  := -mdir # space significant
+FCFLAGS  +=
+CFLAGS   +=
+LDFLAGS  += -ideclient -unsharedrts
+DEFINES  += -DNAG -DgFortran
+
+# Linking
+#LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
+RPATH += -Wl,-rpath,$(NAGLIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+# MKLDIR := /usr/local/intel/composer_xe_2011_sp1.9.293/mkl
+# MKLINC := $(MKLDIR)/include/intel64/lp64
+# MKLLIB := $(MKLDIR)/lib/intel64
+# MKL95DIR := $(MKLDIR)
+# MKL95INC := $(MKL95DIR)/include/intel64/lp64
+# MKL95LIB := $(MKL95DIR)/lib/intel64
+
+# NETCDF
+NCDIR   := /usr/local/netcdf-fortran-4.4.1-nagfor
+SZLIB   := /usr/local
+HDF5LIB := /usr/local
+
+# PROJ
+PROJ4DIR :=
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   := /usr/lib
+LAPACKLIB   := $(LAPACKDIR)/lapack
+GFORTRANDIR := $(GNUDIR)
+GFORTRANLIB := $(GNULIB)
+
+# Documentation
+DOXYGENDIR :=
+DOTDIR     :=
+TEXDIR     :=
+PERLDIR    :=

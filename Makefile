@@ -82,7 +82,7 @@
 #    along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
 #    If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2011-2014 Matthias Cuntz
+#    Copyright 2011-2015 Matthias Cuntz
 #
 # Written Matthias Cuntz, Nov. 2011 - mc (at) macu.de
 # Modified Matthias Cuntz, Juliane Mai, Stephan Thober, UFZ Leipzig, Germany
@@ -389,6 +389,14 @@ RANLIB   := ranlib
 # Set path where all the .mod, .o, etc. files will be written, set before include $(MAKEINC)
 OBJPATH := $(addsuffix /.$(strip $(icompiler)).$(strip $(release)), $(SRCPATH))
 
+# Mac OS X is special, there is (almost) no static linking.
+# Mac OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
+iOS := $(shell uname -s)
+istatic := $(static)
+ifneq (,$(findstring $(iOS),Darwin))
+    istatic := dynamic
+endif
+
 # Include the individual configuration files
 MAKEINC := $(addsuffix /$(system).$(icompiler), $(abspath $(CONFIGPATH:~%=${HOME}%)))
 #$(info "MAKEINC: "$(MAKEINC))
@@ -399,14 +407,6 @@ include $(MAKEINC)
 
 # Always use -DCFORTRAN for mixed C and Fortran compilations
 DEFINES  += -DCFORTRAN
-
-# Mac OS X is special, there is (almost) no static linking.
-# Mac OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
-iOS := $(shell uname -s)
-istatic := $(static)
-ifneq (,$(findstring $(iOS),Darwin))
-    istatic := dynamic
-endif
 
 # Start group for cyclic search in static linking
 iLIBS :=

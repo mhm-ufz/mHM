@@ -321,6 +321,7 @@ contains
 
   !     HISTORY
   !         Written,  Matthias Zink, Oct 2012
+  !         Modified, Matthias Cuntz & Juliane Mai, Nov 2014 - correct data type detection
 
   subroutine Get_NcVarAtt(FileName, VarName, AttName, AttValues, fid, dtype)
     !
