@@ -255,10 +255,13 @@ opti_method = 1
 !> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
 !> (9)  1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (13) 1.0 - average temporal correlation of soil moisture  \n
+!> (10) 1.0 - NSE of catchment average soilmoisture
+!!!> (11) Pattern dissimilarity of spatially distributed soil moisture \n
+!!!> (12) sum of squarred errors (SSE) of spatially distributed normalized soil moisture \n
+!> (13) 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 3
+opti_function = 10
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------

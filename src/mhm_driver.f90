@@ -345,7 +345,7 @@ PROGRAM mhm_driver
 
      ! read optional optional data
      ! e.g. for optimization against soil mopisture, soil moisture is read
-     if ((opti_function .EQ. 13) .AND. optimize) then
+     if ((opti_function .GE. 10) .AND. (opti_function .LE. 13) .AND. optimize) then
         call read_soil_moisture(ii)
      endif
 

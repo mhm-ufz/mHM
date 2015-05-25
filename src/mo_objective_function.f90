@@ -526,6 +526,9 @@ CONTAINS
     case (9)
        ! KGE
        objective = objective_kge(parameterset)
+    case (10)
+       ! soil moisture correlation
+       objective = objective_sm_nse_catchment_avg(parameterset)
     case (13)
        ! soil moisture correlation
        objective = objective_sm_corr(parameterset)
@@ -1227,6 +1230,140 @@ CONTAINS
     
   END FUNCTION objective_multiple_gauges_kge_power6
 
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_sm_nse_catchment_avg
+
+  !>        \brief Objective function for soil moisture.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>                 The model will be called with that parameter vector and 
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore the Nash Sutcliffe Efficiency of observed and modeled soil 
+  !>                 moisture is calculated
+  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (SM_{obs}(i) - SM_{model}(i))^2}
+  !>                           {\sum_{i=1}^N (SM_{obs}(i) - \bar{SM_{obs}})^2} \f]
+  !>        and added up equally for each basin n
+  !>        \f[ obj\_value = \sqrt[6]{\sum{(1-NSE_n)^6 \cdot \frac{1}{n}}} \f]
+  !>        The observed data \f$ SM_{obs} \f$ are global in this module.\n
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_sm_nse_catchment_avg &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_sm_corr(para)
+
+  !     LITERATURE
+  !         none
+
+  !     HISTORY
+  !>        \author  Matthias Zink
+  !>        \date    May 2015
+
+  FUNCTION objective_sm_nse_catchment_avg(parameterset)
+    
+    use mo_mhm_eval,         only : mhm_eval
+    use mo_init_states,      only : get_basin_info
+    use mo_message,          only : message
+    use mo_moment,           only : average
+    use mo_errormeasures,    only : NSE
+    use mo_string_utils,     only : num2str
+    !
+    use mo_global_variables, only: nBasins,             & ! number of basins
+                                   L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
+    use mo_mhm_constants,    only: nodata_dp              ! global nodata value
+    
+    implicit none
+
+    real(dp), dimension(:), intent(in)      :: parameterset
+    real(dp)                                :: objective_sm_nse_catchment_avg
+
+    ! local
+    integer(i4)                             :: iBasin                   ! basin loop counter
+    integer(i4)                             :: iTime                    ! time loop counter
+    integer(i4)                             :: nrows1, ncols1           ! level 1 number of culomns and rows
+    integer(i4)                             :: s1, e1                   ! start and end index for the current basin
+    integer(i4)                             :: ncells1                  ! ncells1 of level 1
+    real(dp), parameter                     :: onesixth = 1.0_dp/6.0_dp ! for sixth root
+    real(dp), dimension(:),   allocatable   :: sm_catch_avg_basin       ! spatial average of observed soil moisture
+    real(dp), dimension(:),   allocatable   :: sm_opti_catch_avg_basin  ! spatial avergae of modeled  soil moisture
+    real(dp), dimension(:,:), allocatable   :: sm_opti                  ! simulated soil moisture
+    !                                                                   ! (dim1=ncells, dim2=time)
+    logical,  dimension(:),   allocatable   :: mask_times               ! mask for valid sm catchment avg time steps
+
+    call mhm_eval(parameterset, sm_opti=sm_opti)
+
+    ! initialize some variables
+    objective_sm_nse_catchment_avg = nodata_dp
+
+    ! loop over basin - for applying power law later on
+    do iBasin=1, nBasins
+
+       ! get basin information
+       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 ) 
+
+       ! allocate
+       allocate(mask_times             (size(sm_opti, dim=2)))
+       allocate(sm_catch_avg_basin     (size(sm_opti, dim=2)))
+       allocate(sm_opti_catch_avg_basin(size(sm_opti, dim=2)))
+
+       ! initalize
+       mask_times              = .TRUE.
+       sm_catch_avg_basin      = nodata_dp
+       sm_opti_catch_avg_basin = nodata_dp
+
+       ! calculate catchment average soil moisture
+       do iTime = 1, size(sm_opti, dim=2)
+
+          ! check for enough data points in time for correlation
+          if ( all(.NOT. L1_sm_mask(:,iTime)) .OR. (count(L1_sm_mask(:,iTime)) .LE. 10) ) then
+             call message('WARNING: objective_sm_nse_catchment_avg: ignored currrent time step since less than')
+             call message('         10 valid cells available in soil moisture observation')
+             mask_times(iTime) = .FALSE. 
+             cycle
+          end if
+          sm_catch_avg_basin(iTime)      = average(  L1_sm(s1:e1,iTime), mask=L1_sm_mask(s1:e1,iTime))
+          sm_opti_catch_avg_basin(iTime) = average(sm_opti(s1:e1,iTime), mask=L1_sm_mask(s1:e1,iTime))
+       end do
+
+       ! calculate average soil moisture NSE over all basins with power law
+       ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+       print*, 'NSE(SM)', NSE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask=mask_times) ! MZMZMZMZ
+       objective_sm_nse_catchment_avg = objective_sm_nse_catchment_avg + &
+            ( (1.0_dp-NSE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask=mask_times)) / real(nBasins,dp) )**6
+    end do
+
+    objective_sm_nse_catchment_avg = objective_sm_nse_catchment_avg**onesixth
+    
+    call message('    objective_sm_nse_catchment_avg = ', num2str(objective_sm_nse_catchment_avg,'(F9.5)'))
+    
+  END FUNCTION objective_sm_nse_catchment_avg
+  
   ! ------------------------------------------------------------------
 
   !      NAME
