@@ -47,7 +47,8 @@ CONTAINS
   !>        \brief Logarithmic likelihood function with removed linear trend and Lag(1)-autocorrelation.
 
   !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
-  !>        It can also be used for optimization when selecting the likelihood in the namelist as \e opti\_function.\n
+  !>                 It can also be used for optimization when selecting the likelihood in the
+  !>                 namelist as \e opti\_function.\n
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -324,7 +325,8 @@ CONTAINS
   !>        \brief Logarithmic likelihood function with linear trend removed.
 
   !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
-  !>        It can also be used for optimization when selecting the likelihood in the namelist as \e opti\_function.\n
+  !>                 It can also be used for optimization when selecting the likelihood in the
+  !>                 namelist as \e opti\_function.\n
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -973,6 +975,7 @@ CONTAINS
   !         obj_value = objective_power6_nse_lnnse(para)
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author Juliane Mai and Matthias Cuntz
@@ -1033,14 +1036,14 @@ CONTAINS
   !>
   !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
   !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where
-  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
-  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
-  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 where \n
+  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
+  !>                       \f$ \alpha \f$ = ratio of similated mean to observed mean \n
+  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
   !>                 is calculated and the objective function is
   !>                       \f[ obj\_value = 1.0 - KGE \f]
-  !>                 (1-KGE) is the objective since we always apply minimization methods. 
-  !>                 The minimal value of (1-KGE) is 0 for the optimal KGE of 1.0.\n
+  !>                 \f$(1-KGE)\f$ is the objective since we always apply minimization methods. 
+  !>                 The minimal value of \f$(1-KGE)\f$ is 0 for the optimal KGE of 1.0. \n
   !>
   !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
 
@@ -1075,8 +1078,8 @@ CONTAINS
   !         obj_value = objective_kge(para)
 
   !     LITERATURE
-  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
-  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
+  !>        Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
+  !>        Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
 
 
   !     HISTORY
@@ -1138,10 +1141,10 @@ CONTAINS
   !>
   !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a given gauging station
   !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where
-  !>                       \f[ r \f] = Pearson product-moment correlation coefficient
-  !>                       \f[ \alpha \f] = ratio of similated mean to observed mean 
-  !>                       \f[ \beta  \f] = ratio of similated standard deviation to observed standard deviation
+  !>                 where \n
+  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
+  !>                       \f$ \alpha \f$ = ratio of similated mean to observed mean \n
+  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
   !>                 is calculated and the objective function for a given gauging station (\f$ i \f$) is
   !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
   !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods. 
@@ -1149,7 +1152,7 @@ CONTAINS
   !>
   !>                 Finally, the overall \f$ OF \f$ is estimated based on the power-6 norm to 
   !>                 combine the \f$ \phi_{i} \f$ from all gauging stations (\f$ N \f$). 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f]
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f]. \n
   !>                 
   !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
 
@@ -1496,11 +1499,11 @@ CONTAINS
 !>        \brief extracts runoff data from global variables
 
 !>        \details extracts simulated and measured runoff from global variables,
-!>              such that they overlay exactly. For measured runoff, only the runoff
-!>              during the evaluation period are cut, not succeeding nodata values.
-!>              For simulated runoff, warming days as well as succeeding nodata values
-!>              are neglected and the simulated runoff is aggregated to the resolution
-!>              of the observed runoff.\n
+!>                 such that they overlay exactly. For measured runoff, only the runoff
+!>                 during the evaluation period are cut, not succeeding nodata values.
+!>                 For simulated runoff, warming days as well as succeeding nodata values
+!>                 are neglected and the simulated runoff is aggregated to the resolution
+!>                 of the observed runoff.\n
 
 !     INTENT(IN)
 !>        \param[in] "integer(i4) :: gaugeID"   - ID of the current gauge to process
@@ -1534,7 +1537,6 @@ CONTAINS
 
 !     LITERATURE
 !         None
-
 
 !     HISTORY
 !>        \author Stephan Thober

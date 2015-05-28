@@ -3,12 +3,12 @@
 !> \brief Startup drainage network for mHM.
 
 !> \details This module initializes the drainage network at L11 in mHM.\n
-!>  - Delineation of drainage network at level 11.    \n
-!>  - Setting network topology (i.e. nodes and link). \n
-!>  - Determining routing order.                      \n
-!>  - Determining cell locations for network links.   \n
-!>  - Find drainage outlet.                           \n
-!>  - Determine stream (links) features.              \n
+!>          - Delineation of drainage network at level 11.    \n
+!>          - Setting network topology (i.e. nodes and link). \n
+!>          - Determining routing order.                      \n
+!>          - Determining cell locations for network links.   \n
+!>          - Find drainage outlet.                           \n
+!>          - Determine stream (links) features.              \n
 
 !> \authors Luis Samaniego
 !> \date Dec 2012
@@ -48,15 +48,16 @@ CONTAINS
 
   !     NAME
   !         L11_variable_init
+  
   !     PURPOSE
   !>        \brief Cell numbering at ROUTING LEVEL-11
 
   !>        \details Cell numbering at ROUTING LEVEL-11  \n
-  !>        List of Level- 0 and 1 cells contained within a given Level-11 cell.\n
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>                 List of Level- 0 and 1 cells contained within a given Level-11 cell.\n
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)    ::  iBasin"        Basin Id
@@ -86,7 +87,8 @@ CONTAINS
   !         call L11_variable_init(1)
 
   !     LITERATURE
-
+  !         None
+  
   !     HISTORY
   !>        \author  Luis Samaniego
   !>        \date    Dec 2005
@@ -259,40 +261,40 @@ CONTAINS
   !>    network at level L11.
 
   !>       \details The hydrographs generated at each cell are routed
-  !>    through the drainage network at level-11 towards the basin's
-  !>    outlet. The drainage network at level-11 is conceptualized as a
-  !>    graph whose nodes are hypothetically located at the center of
-  !>    each grid cell connected by links that represent the river
-  !>    reaches. The flow direction of a link correspond to the
-  !>    direction towards a neighboring cell in which the net flow
-  !>    accumulation (outflows minus inflows) attains its maximum
-  !>    value. The net flow accumulation across a cell's boundary at
-  !>    level-11 is estimated based on flow direction and flow
-  !>    accumulation obtained at level-0 (\ref fig_routing "Routing
-  !>    Network"). Note: level-1 denotes the modeling level, whereas
-  !>    level-L11 is at least as coarse as level-1. Experience has
-  !>    shown that routing can be done at a coarser resolution as
-  !>    level-1, hence the level-11 was introduced.
+  !>                through the drainage network at level-11 towards the basin's
+  !>                outlet. The drainage network at level-11 is conceptualized as a
+  !>                graph whose nodes are hypothetically located at the center of
+  !>                each grid cell connected by links that represent the river
+  !>                reaches. The flow direction of a link correspond to the
+  !>                direction towards a neighboring cell in which the net flow
+  !>                accumulation (outflows minus inflows) attains its maximum
+  !>                value. The net flow accumulation across a cell's boundary at
+  !>                level-11 is estimated based on flow direction and flow
+  !>                accumulation obtained at level-0 (\ref fig_routing "Routing
+  !>                Network"). Note: level-1 denotes the modeling level, whereas
+  !>                level-L11 is at least as coarse as level-1. Experience has
+  !>                shown that routing can be done at a coarser resolution as
+  !>                level-1, hence the level-11 was introduced.
 
-  !>     \image html  routing.png "Upscaling routing network from L0 to L1 (or L11)"
-  !>    \anchor fig_routing \image latex routing.pdf "Upscaling routing network from L0 to L1 (or L11)" width=14cm
+  !>                 \image html  routing.png "Upscaling routing network from L0 to L1 (or L11)"
+  !>                \anchor fig_routing \image latex routing.pdf "Upscaling routing network from L0 to L1 (or L11)" width=14cm
 
-  !>    The left panel depicts a schematic derivation of a drainage
-  !>    network at the level-11 based on level-0 flow direction and
-  !>    flow accumulation. The dotted line circle denotes the point
-  !>    with the highest flow accumulation within a grid cell. The
-  !>    topology of a tipical drainage routing network at level-11 is
-  !>    shown in the right panel. Gray color areas denote the flood
-  !>    plains estimated in mo_net_startup, where the network
-  !>    upscaling is also carried out.
+  !>                The left panel depicts a schematic derivation of a drainage
+  !>                network at the level-11 based on level-0 flow direction and
+  !>                flow accumulation. The dotted line circle denotes the point
+  !>                with the highest flow accumulation within a grid cell. The
+  !>                topology of a tipical drainage routing network at level-11 is
+  !>                shown in the right panel. Gray color areas denote the flood
+  !>                plains estimated in mo_net_startup, where the network
+  !>                upscaling is also carried out.
 
-  !>    For the sake of simplicity, it is assumed that all runoff leaving
-  !>    a given cell would exit through a major direction.
+  !>                For the sake of simplicity, it is assumed that all runoff leaving
+  !>                a given cell would exit through a major direction.
 
-  !>    If a variable is added or removed here, then it also has to 
-  !>    be added or removed in the subroutine L11_config_set in
-  !>    module mo_restart and in the subroutine set_L11_config in module
-  !>    mo_set_netcdf_restart
+  !>                If a variable is added or removed here, then it also has to 
+  !>                be added or removed in the subroutine L11_config_set in
+  !>                module mo_restart and in the subroutine set_L11_config in module
+  !>                mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
@@ -319,9 +321,11 @@ CONTAINS
   !         None
 
   !     EXAMPLE
-
+  !         None
+  
   !     LITERATURE
-
+  !         None
+  
   !     HISTORY
   !>        \author  Luis Samaniego
   !>        \date    Dec 2005
@@ -753,12 +757,12 @@ CONTAINS
   !>        \brief Set network topology
 
   !>        \details Set network topology from and to node for all links
-  !>        at level-11 (\ref fig_routing "Routing Network") \n
+  !>                 at level-11 (\ref fig_routing "Routing Network"). \n
 
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart.
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart.
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
@@ -785,9 +789,11 @@ CONTAINS
   !         None
 
   !     EXAMPLE
-
+  !         None
+  
   !     LITERATURE
-
+  !         None
+  
   !     HISTORY
   !>        \author  Luis Samaniego
   !>        \date    Dec 2005
@@ -886,11 +892,10 @@ CONTAINS
   !>        \brief Find routing order, headwater cells and sink
 
   !>        \details Find routing order, headwater cells and sink. \n
-
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"             Basin Id         
@@ -914,11 +919,14 @@ CONTAINS
   !         None
 
   !     RESTRICTIONS
-
+  !         None
+  
   !     EXAMPLE
-
+  !         None
+  
   !     LITERATURE
-
+  !         None
+  
   !     HISTORY
   !>        \author  Luis Samaniego
   !>        \date    Dec 2005
@@ -1063,11 +1071,10 @@ CONTAINS
   !     PURPOSE
   !>        \brief Estimate the LO (row,col) location for each routing link at level L11
 
-  !>        \details
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>        \details If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"        Basin Id 
@@ -1254,17 +1261,17 @@ CONTAINS
 
   !     NAME
   !         L11_set_drain_outlet_gauges
+  
   !     PURPOSE
-  !>        \brief
+  !>        \brief Draining cell identification and Set gauging node
 
   !>        \details Perform the following tasks: \n
-  !>        - Draining cell identification (cell at L0 to draining cell outlet at L11). 
-  !>        - Set gauging nodes
-
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>                 - Draining cell identification (cell at L0 to draining cell outlet at L11). \n
+  !>                 - Set gauging nodes \n
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"        Basin Id 
@@ -1304,7 +1311,6 @@ CONTAINS
   !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
   !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
   ! ------------------------------------------------------------------
-
   subroutine L11_set_drain_outlet_gauges(iBasin)
 
     use mo_global_variables, only: &
@@ -1428,15 +1434,15 @@ CONTAINS
 
   !     NAME
   !         L11_stream_features
+  
   !     PURPOSE
-  !>        \brief
+  !>        \brief Stream features (stream network and floodplain)
 
   !>        \details Stream features (stream network and floodplain)\n
-
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"        Basin Id
@@ -1697,17 +1703,17 @@ CONTAINS
   !         L11_fraction_sealed_floodplain
 
   !     PURPOSE
-  !         \brief
+  !         \brief Fraction of the flood plain with impervious cover
 
   !>        \details Fraction of the flood plain with impervious cover (\ref fig_routing "Routing
-  !>        Network"). This proportion is used to regionalize the Muskingum parameters.
-  !>        Samaniego et al. \cite SB05 found out that this fraction is one of the statistically
-  !>        significant predictor variables of peak discharge in mesoscale basins.\n
+  !>                 Network"). This proportion is used to regionalize the Muskingum parameters.
+  !>                 Samaniego et al. \cite SB05 found out that this fraction is one of the statistically
+  !>                 significant predictor variables of peak discharge in mesoscale basins.\n
 
-  !>        If a variable is added or removed here, then it also has to 
-  !>        be added or removed in the subroutine L11_config_set in
-  !>        module mo_restart and in the subroutine set_L11_config in module
-  !>        mo_set_netcdf_restart
+  !>                 If a variable is added or removed here, then it also has to 
+  !>                 be added or removed in the subroutine L11_config_set in
+  !>                 module mo_restart and in the subroutine set_L11_config in module
+  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: nLinks"           number of links for a given basin
@@ -1793,11 +1799,11 @@ CONTAINS
   !>        \brief routing_dummy_alloc related to routing
 
   !>        \details Allocate L0 variable that are initialized
-  !>        for routing, when routing is switched off. This is a dummy
-  !>        allocation required for the mhm call. No initialization is
-  !>        performed. These variables are all the variables that would
-  !>        would have been initialized by the net startup or restart
-  !>        L11 config, if routing would be switched on.
+  !>                 for routing, when routing is switched off. This is a dummy
+  !>                 allocation required for the mhm call. No initialization is
+  !>                 performed. These variables are all the variables that would
+  !>                 would have been initialized by the net startup or restart
+  !>                 L11 config, if routing would be switched on.
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
@@ -2198,6 +2204,7 @@ CONTAINS
 
   !     NAME
   !         get_distance_two_lat_lon_points
+  
   !     PURPOSE
   !>        \brief estimate distance in [m] between two points in a lat-lon
   
@@ -2234,7 +2241,7 @@ CONTAINS
   !         call L11_variable_init(1)
 
   !     LITERATURE
-  !      Code is based on one that is implemented in the VIC-3L model 
+  !         Code is based on one that is implemented in the VIC-3L model 
 
   !     HISTORY
   !>        \author Rohini Kumar
