@@ -2,8 +2,8 @@
 ! --------------------------------------------------------------------------
 !> \authors   Luis Samaniego & Rohini Kumar (UFZ)
 !  CONTACT    luis.samaniego@ufz.de / rohini.kumar@ufz.de
-!> \version   5.0
-!> \date      Dec 2012
+!> \version   5.3
+!> \date      Jun 2015
 
 !  PURPOSE
 !>            \brief Distributed precipitation-runoff model mHM
@@ -14,7 +14,7 @@
 !>              \image html  mhm5-logo.png "Typical mHM cell"
 !>              \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
-!>  \copyright (c)2005-2014, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!>  \copyright (c)2005-2015, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
 !>             All rights reserved.
 !>
 !>             This code is a property of:
@@ -219,9 +219,9 @@ PROGRAM mhm_driver
   call message('              mHM-UFZ')
   call message()
   call message('    MULTISCALE HYDROLOGIC MODEL')
-  call message('           Revision ', trim(version))
+  call message('           Version ', trim(version))
   call message('Originally by L. Samaniego & R. Kumar')
-  call message('          June 2014')
+  call message('             June 2015')
   call message(separator)
 
   call message()
