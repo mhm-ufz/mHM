@@ -1,15 +1,14 @@
 !> \file mo_mpr_soilmoist.f90
 
-!> \brief multiscale parameter regionalization for soil moisture
+!> \brief   Multiscale parameter regionalization (MPR) for soil moisture
 
 !> \details This module contains all routines required for parametrizing
-!> soil moisture processes.
+!>          soil moisture processes.
 
 !> \author Stephan Thober, Rohini Kumar
 !> \date Dec 2012
 
 module mo_mpr_soilmoist
-
 
   use mo_kind, only: i4, dp
 
@@ -28,23 +27,23 @@ contains
   !>        \brief multiscale parameter regionalization for soil moisture
 
   !>        \details This subroutine is a wrapper around all soil moisture
-  !>        parameter routines. This subroutine requires 13 parameters. These
-  !>        parameters have to correspond to the parameters in the original
-  !>        parameter array at the following locations: 10-12, 13-18, 27-30.\n
-  !>        Global parameters needed (see mhm_parameter.nml):\n
-  !>           - param( 1) = orgMatterContent_forest     \n
-  !>           - param( 2) = orgMatterContent_impervious \n
-  !>           - param( 3) = orgMatterContent_pervious   \n
-  !>           - param( 4) = PTF_lower66_5_constant      \n
-  !>           - param( 5) = PTF_lower66_5_clay          \n
-  !>           - param( 6) = PTF_lower66_5_Db            \n
-  !>           - param( 7) = PTF_higher66_5_constant     \n
-  !>           - param( 8) = PTF_higher66_5_clay         \n
-  !>           - param( 9) = PTF_higher66_5_Db           \n
-  !>           - param(10) = PTF_Ks_constant             \n
-  !>           - param(11) = PTF_Ks_sand                 \n
-  !>           - param(12) = PTF_Ks_clay                 \n
-  !>           - param(13) = PTF_Ks_curveSlope           \n
+  !>                 parameter routines. This subroutine requires 13 parameters. These
+  !>                 parameters have to correspond to the parameters in the original
+  !>                 parameter array at the following locations: 10-12, 13-18, 27-30.\n
+  !>                 Global parameters needed (see mhm_parameter.nml):\n
+  !>                    - param( 1) = orgMatterContent_forest     \n
+  !>                    - param( 2) = orgMatterContent_impervious \n
+  !>                    - param( 3) = orgMatterContent_pervious   \n
+  !>                    - param( 4) = PTF_lower66_5_constant      \n
+  !>                    - param( 5) = PTF_lower66_5_clay          \n
+  !>                    - param( 6) = PTF_lower66_5_Db            \n
+  !>                    - param( 7) = PTF_higher66_5_constant     \n
+  !>                    - param( 8) = PTF_higher66_5_clay         \n
+  !>                    - param( 9) = PTF_higher66_5_Db           \n
+  !>                    - param(10) = PTF_Ks_constant             \n
+  !>                    - param(11) = PTF_Ks_sand                 \n
+  !>                    - param(12) = PTF_Ks_clay                 \n
+  !>                    - param(13) = PTF_Ks_curveSlope           \n
 
   !      INTENT(IN)
   !>        \param[in] "real(dp)    :: param(13)"        - global parameters
@@ -58,6 +57,9 @@ contains
   !>        \param[in] "integer(i4) :: L0_ID(:,:)"       - cell ids at level 0
   !>        \param[in] "integer(i4) :: L0_soilId(:,:)"   - soil ids at level 0
   !>        \param[in] "integer(i4) :: L0_LUC(:,:)"      - land cover ids at level 0
+
+  !     INTENT(INOUT)
+  !         None
 
   !      INTENT(OUT)
   !>        \param[out] "real(dp)   :: thetaS_till(:,:,:)" - saturated soil moisture tillage layer
@@ -76,7 +78,28 @@ contains
   !>        \param[out] "real(dp)   :: L0_SMs_FC(:,:)"  - soil mositure deficit from field
   !>                                                      capacity w.r.t to saturation
 
-  !      HISTORY
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012
   !         Written,  Stephan Thober, Dec 2012
@@ -100,35 +123,33 @@ contains
   !         Modified, David Schaefer, Mar 2015 - Added dummy variable to avoid redundant computations
   !                                              -> Total number of instruction is reduced by ~25%
   !                                                 (tested on packaged example/gnu48/{release,debug})
-  subroutine mpr_sm( &
-                                ! Input -----------------------------------------------------------------
-       param        , & ! global parameter set
-       nodata       , & ! nodata value
-       is_present   , & ! flag indicating presence of soil
-       nHorizons    , & ! Number of Horizons of Soiltype
-       nTillHorizons, & ! Number of tillage Horizons
-       sand         , & ! sand content
-       clay         , & ! clay content
-       DbM          , & ! mineral Bulk density
-       ID0          , & ! cell ids at level 0
-       soilId0      , & ! soil ids at level 0
-       LCover0      , & ! land cover ids at level 0
-                                ! Output ----------------------------------------------------------------
-       thetaS_till  , & ! saturated soil moisture tillage layer
-       thetaFC_till , & ! field capacity tillage layer
-       thetaPW_till , & ! permanent wilting point tillage layer
-       thetaS       , & ! saturated soil moisture
-       thetaFC      , & ! field capacity
-       thetaPW      , & ! permanent wilting point
-       Ks           , & ! saturated hydraulic conductivity
-       Db           , & ! Bulk density
-       KsVar_H0     , & ! relative variability of saturated
-                                ! hydraulic counductivity for Horizantal flow
-       KsVar_V0     , & ! relative variability of saturated
-                                ! hydraulic counductivity for Horizantal flow
-       SMs_tot0     , & ! total saturated soil mositure content
-       SMs_FC0    )     ! soil mositure deficit from field capacity
-    ! w.r.t to saturation
+  subroutine mpr_sm( param , & ! IN:  global parameter set
+       nodata              , & ! IN:  nodata value
+       is_present          , & ! IN:  flag indicating presence of soil
+       nHorizons           , & ! IN:  Number of Horizons of Soiltype
+       nTillHorizons       , & ! IN:  Number of tillage Horizons
+       sand                , & ! IN:  sand content
+       clay                , & ! IN:  clay content
+       DbM                 , & ! IN:  mineral Bulk density
+       ID0                 , & ! IN:  cell ids at level 0
+       soilId0             , & ! IN:  soil ids at level 0
+       LCover0             , & ! IN:  land cover ids at level 0
+       thetaS_till         , & ! OUT: saturated soil moisture tillage layer
+       thetaFC_till        , & ! OUT: field capacity tillage layer
+       thetaPW_till        , & ! OUT: permanent wilting point tillage layer
+       thetaS              , & ! OUT: saturated soil moisture
+       thetaFC             , & ! OUT: field capacity
+       thetaPW             , & ! OUT: permanent wilting point
+       Ks                  , & ! OUT: saturated hydraulic conductivity
+       Db                  , & ! OUT: Bulk density
+       KsVar_H0            , & ! OUT: relative variability of saturated
+       !                       !      hydraulic counductivity for Horizantal flow
+       KsVar_V0            , & ! OUT: relative variability of saturated
+       !                       !      hydraulic counductivity for Horizantal flow
+       SMs_tot0            , & ! OUT: total saturated soil mositure content
+       SMs_FC0               & ! OUT: soil moisture deficit from field capacity
+       !                       !      w.r.t to saturation
+       )
 
     use mo_mhm_constants, only: BulkDens_OrgMatter
     !$  use omp_lib
@@ -339,8 +360,29 @@ contains
   !>        \param[in] "real(dp) :: Genu_Mual_alpha" - Genuchten shape parameter
   !>        \param[in] "real(dp) :: thetaS"          - saturated water content
 
+  !     INTENT(INOUT)
+  !         None
+
   !      INTENT(OUT)
   !>        \param[out] "real(dp) :: thetaPWP"       - Permanent Wilting point
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
 
   !      LITERATURE
   !         Zacharias et al. 2007, Soil Phy.
@@ -352,16 +394,10 @@ contains
   !         Modified, Matthias Zink, Nov 2013 - documentation, moved constants to mhm_constants
   ! ------------------------------------------------------------------
 
-  elemental pure subroutine PWP( &
-                                ! Input variables
-       Genu_Mual_n     , & ! Genuchten shape parameters
-       Genu_Mual_alpha , & ! Genuchten shape parameters
-       thetaS          , & ! saturated water content
-                                ! Output
-       thetaPWP )          ! Permanent wilting point
+  elemental pure subroutine PWP( Genu_Mual_n, Genu_Mual_alpha , thetaS, thetaPWP ) 
 
-    use mo_mhm_constants , only: PWP_c, PWP_matPot_ThetaR ! constant for m,
-    !                                                      ! matrix potential of 1500 kPa, assumed as thetaR = 0
+    use mo_mhm_constants , only: PWP_c              ! constant for m,
+    use mo_mhm_constants , only: PWP_matPot_ThetaR  ! matrix potential of 1500 kPa, assumed as thetaR = 0
 
     implicit none
 
@@ -381,7 +417,7 @@ contains
     x = PWP_c + exp(Genu_Mual_n * log(Genu_Mual_alpha * PWP_matPot_ThetaR))
     x = exp(Genu_Mual_m * log(x))
     ! constrain
-    if( x < 1.0_dp) x = 1.0_dp
+    if ( x < 1.0_dp) x = 1.0_dp
     thetaPWP = thetaS / x
 
   end subroutine PWP
@@ -409,8 +445,29 @@ contains
   !>        \param[in] "real(dp) :: thetaS"      - saturated water content
   !>        \param[in] "real(dp) :: Genu_Mual_n" - Genuchten shape parameter
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: thetaFC" - Field capacity
+  !      INTENT(INOUT)
+  !          None
+
+  !       INTENT(OUT)
+  !>         \param[out] "real(dp) :: thetaFC" - Field capacity
+
+  !      INTENT(IN), OPTIONAL
+  !          None
+
+  !      INTENT(INOUT), OPTIONAL
+  !          None
+
+  !      INTENT(OUT), OPTIONAL
+  !          None
+
+  !      RETURN
+  !          None
+
+  !      RESTRICTIONS
+  !          None
+
+  !      EXAMPLE
+  !         None
 
   !      LITERATURE
   !         Twarakavi, et. al. 2009, WRR
@@ -468,11 +525,32 @@ contains
   !>        \param[in] "real(dp) :: clay"             - [%] clay content
   !>        \param[in] "real(dp) :: Db"               - [10^3 kg/m3] bulk density
 
+  !      INTENT(INOUT)
+  !          None
+  
   !      INTENT(OUT)
   !>        \param[out] "real(dp) :: thetaS"          - saturated water content
   !>        \param[out] "real(dp) :: Genu_Mual_n"     - van Genuchten shape parameter
   !>        \param[out] "real(dp) :: Genu_Mual_alpha" - van Genuchten shape parameter
+  
+  !      INTENT(IN), OPTIONAL
+  !          None
 
+  !      INTENT(INOUT), OPTIONAL
+  !          None
+
+  !      INTENT(OUT), OPTIONAL
+  !          None
+
+  !      RETURN
+  !          None
+
+  !      RESTRICTIONS
+  !          None
+
+  !      EXAMPLE
+  !          None
+  
   !      LITERATURE
   !         Zacharias et al, 2007, soil Phy.
 
@@ -580,9 +658,33 @@ contains
   !>        \param[in] "real(dp) :: sand"     - [%] sand content
   !>        \param[in] "real(dp) :: clay"     - [%] clay content
 
+  !      INTENT(INOUT), OPTIONAL
+  !          None
+
   !      INTENT(OUT)
   !>        \param[out] "real(dp) :: Ks"      - hydraulic conductivity
 
+  !      INTENT(IN), OPTIONAL
+  !          None
+
+  !      INTENT(INOUT), OPTIONAL
+  !          None
+
+  !      INTENT(OUT), OPTIONAL
+  !          None
+
+  !      RETURN
+  !          None
+
+  !      RESTRICTIONS
+  !          None
+
+  !      EXAMPLE
+  !          None
+  
+  !      LITERATURE
+  !          None
+  
   !      HISTORY
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012

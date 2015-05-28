@@ -3,27 +3,31 @@
 !> \brief Call all main processes of mHM.
 
 !> \details This module calls all processes of mHM for a given configuration.
-!>          The configuration of the model is stored in the a process matrix
-!>          (this configuration is specified in the namelist mhm.nml.
-
+!>          The configuration of the model is stored in the a process matrix.
+!>          This configuration is specified in the namelist mhm.nml.
+!>
+!>          The processes are executed in ascending order. At the moment only
+!>          process 5 and 8 have options.\n
+!>          The MPR technique is only called either if the land cover has been
+!>          changed or for very first time step.\n 
+!>
 !>          Currently the following processes are implemented: \n
-
-!>          Process   | Name                      | Flag  | Description
-!>          --------- | ------------------------- | ----- | ------------------------------------------
-!>          1         | interception              | 1     | Maximum interception     
-!>          2         | snow and melting          | 1     | Degree-day
-!>          3         | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
-!>          4         | direct runoff             | 1     | Linear reservoir exceedance 
-!>          5         | PET                       | 0     | PET is read as input 
-!>                                                | 1     | Hargreaves-Samani
-!>                                                | 2     | Priestley-Taylor
-!>                                                | 3     | Penman-Monteith
-!>          6         | interflow                 | 1     | Nonlinear reservoir with saturation excess
-!>          7         | percolation and base flow | 1     | GW linear reservoir     
-!>          8         | routing                   | 1     | Muskingum
-
-!>          These processes are executed in ascending order. At the moment only process 5 and 8 have options.\n
-!>          The MPR technique is only called either if the land cover has been changed or for very first time step.\n 
+!>
+!>          Process    | Name                      | Flag  | Description                         
+!>          ---------- | ------------------------- | ----- | ------------------------------------------
+!>          1          | interception              | 1     | Maximum interception     
+!>          2          | snow and melting          | 1     | Degree-day
+!>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
+!>          4          | direct runoff             | 1     | Linear reservoir exceedance 
+!>          5          | PET                       | 0     | PET is read as input 
+!>          5          |         ''                | 1     | Hargreaves-Samani
+!>          5          |         ''                | 2     | Priestley-Taylor
+!>          5          |         ''                | 3     | Penman-Monteith
+!>          6          | interflow                 | 1     | Nonlinear reservoir with saturation excess
+!>          7          | percolation and base flow | 1     | GW linear reservoir     
+!>          8          | routing                   | 0     | no routing
+!>          8          |         ''                | 1     | Muskingum
+!>
   
 !> \author Luis Samaniego
 !> \date Dec 2012

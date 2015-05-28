@@ -49,17 +49,20 @@ CONTAINS
   !     INTENT(OUT), OPTIONAL
   !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff" 
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti" 
+  !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
 
   !     RETURN
   !         None
 
   !     RESTRICTIONS
-  !
+  !         None
 
   !     EXAMPLE
-  !        
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author Juliane Mai, Rohini Kumar
@@ -149,6 +152,9 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
 
+    ! -------------------------------------
+    ! local variables
+    !
     ! FOR WRITING GRIDDED STATES AND FLUXES 
     integer(i4)                           :: hh                  ! Counter
     integer(i4)                           :: ncid                ! netcdf fileID
@@ -173,8 +179,8 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: L1_baseflow_out     ! Baseflow
     real(dp), dimension(:),   allocatable :: L1_percol_out       ! Percolation
     real(dp), dimension(:,:), allocatable :: L1_infilSoil_out    ! Infiltration 
-
-    ! local variables
+    !
+    ! counters and indexes
     integer(i4)                               :: nTimeSteps
     integer(i4)                               :: maxTimeSteps
     integer(i4)                               :: ii, tt, gg, ll   ! Counters
@@ -182,8 +188,9 @@ CONTAINS
     integer(i4)                               :: nNodes           !
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
-    ! process case dependent length specefiers of vectors to pass to mHM
-    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
+    !
+    ! process case dependent length specifiers of vectors to pass to mHM
+    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteorological time step for process 5 (PET)
     integer(i4), dimension(6)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
     !                                                             ! index 1: pet
     !                                                             ! index 2: tmin
@@ -206,11 +213,11 @@ CONTAINS
     real(dp)                                  :: multiplier       ! for averaging output
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
-
+    !
     ! for discharge timeseries
     integer(i4)                               :: iday, iS, iE
     real(dp), dimension(:,:), allocatable     :: d_Qmod
-
+    !
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
