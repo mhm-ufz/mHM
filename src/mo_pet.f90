@@ -1,11 +1,11 @@
-!> \file mo_refer_et.f90
+!> \file mo_pet.f90
 
 !> \brief Module for calculating reference/potential evapotranspiration  [mm s-1]
 
-!> \details This module calculates PET [mm/s] based on one of the methods
-!>  - Hargreaves-Samani (1982)
-!>  - Priestly-Taylor   (1972)
-!>  - Penman-Monteith FAO (1998)
+!> \details This module calculates PET [mm/s] based on one of the methods \n
+!>          - Hargreaves-Samani (1982) \n
+!>          - Priestly-Taylor   (1972) \n
+!>          - Penman-Monteith FAO (1998) \n
 
 !> \author Matthias Zink, Christoph Schneider, Matthias Cuntz
 !> \date   Apr 2014
@@ -36,11 +36,11 @@ CONTAINS
   !>        \brief Reference Evapotranspiration after Hargreaves
 
   !>        \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the Hargreaves-Samani (1982) 
-  !>         model for a given cell by applying the equation
-  !>         \f[ PET = HarSamCoeff * R_a * (T_{avg} +  HarSamConst) * \sqrt{ T_{max} - T_{min}} \f]
-  !>         where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and 
-  !>         \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
-  !>         and minimum daily temperatures at the given day, respectively.
+  !>                 model for a given cell by applying the equation
+  !>                 \f[ PET = HarSamCoeff * R_a * (T_{avg} +  HarSamConst) * \sqrt{ T_{max} - T_{min}} \f]
+  !>                 where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and 
+  !>                 \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
+  !>                 and minimum daily temperatures at the given day, respectively.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp),    intent(in) :: HarSamCoeff" coefficient of Hargreaves-Samani equation [-]
@@ -126,10 +126,10 @@ CONTAINS
   !>        \brief Reference Evapotranspiration after Priestly-Taylor
 
   !>        \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
-  !>        Priestly-Taylor (1972) model for every given cell by applying the equation
-  !>        \f[ PET = \alpha * \frac{\Delta}{(\gamma + \Delta)} * R_n \f]
-  !>        where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope 
-  !>        of the saturation-vapour pressure curve and \f$\alpha\f$ is a emperical coefficient.
+  !>                 Priestly-Taylor (1972) model for every given cell by applying the equation
+  !>                 \f[ PET = \alpha * \frac{\Delta}{(\gamma + \Delta)} * R_n \f]
+  !>                 where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope 
+  !>                 of the saturation-vapour pressure curve and \f$\alpha\f$ is a emperical coefficient.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: PrieTayParam" Priestley-Taylor coefficient \f$ \alpha [-] \f$
@@ -200,17 +200,19 @@ CONTAINS
   !>        \brief Reference Evapotranspiration after Penman-Monteith
 
   !>        \details Calculates the reference evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
-  !>        Penman-Monteith model for every given cell by applying the equation
-  !>        \f[ PET = \frac{1}{\lambda}  \cdot
-  !>                  \frac{\Delta \cdot R_n + \frac{\rho \cdot c_p \cdot (e_s-e)}{r_a}}
-  !>                  {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
-  !>        where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation, \f$\Delta\;[kPa\;K^{-1}]\f$ is the slope 
-  !>        of the saturation-vapour pressure curve, 
-  !>        \f$ \lambda\;[MJ\;kg^{-1}] \f$ is the latent heat of vaporization, \f$ (e_s-e)\;[kPa] \f$ is the vapour pressure
-  !>        deficit of the air, \f$ \rho\;[kg\;m^{-3}] \f$ is the mean atmospheric density, 
-  !>        \f$ c_p=1005.0\;J\;kg^{-1}\;K^{-1} \f$ is the specific heat of the air, 
-  !>        \f$ \gamma [kPa\;K^{-1}] \f$ is the psychrometric constant, \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance and
-  !>        \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance.
+  !>                 Penman-Monteith model for every given cell by applying the equation
+  !>                 \f[ PET = \frac{1}{\lambda}  \cdot
+  !>                           \frac{\Delta \cdot R_n + \frac{\rho \cdot c_p \cdot (e_s-e)}{r_a}}
+  !>                           {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
+  !>                 where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation,
+  !>                 \f$\Delta\;[kPa\;K^{-1}]\f$ is the slope of the saturation-vapour pressure curve, 
+  !>                 \f$ \lambda\;[MJ\;kg^{-1}] \f$ is the latent heat of vaporization, 
+  !>                 \f$ (e_s-e)\;[kPa] \f$ is the vapour pressure deficit of the air, 
+  !>                 \f$ \rho\;[kg\;m^{-3}] \f$ is the mean atmospheric density, 
+  !>                 \f$ c_p=1005.0\;J\;kg^{-1}\;K^{-1} \f$ is the specific heat of the air, 
+  !>                 \f$ \gamma [kPa\;K^{-1}] \f$ is the psychrometric constant,
+  !>                 \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance and
+  !>                 \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: net_rad"                net radiation \f$[W m^{-2}]\f$
@@ -281,21 +283,21 @@ CONTAINS
   !>        \brief Approximation of extraterrestrial radiation 
 
   !>        \details Approximation of extraterrestrial radiation at the top of the atmosphere \f$ R_a \f$
-  !>            after Duffie and Beckman (1980). 
-  !>            \f$ R_a \f$ is converted from \f$ [J\;m^{-2}\;d^{-1}] \f$ in \f$ [mm\;d^{-1}]\f$ . 
-  !>            \f[ R_a   = \frac{86400}{ \pi \cdot \lambda} \cdot E_0 \cdot  
-  !>             d_r \cdot (\omega \cdot \sin(latitude) \cdot \sin(\delta) + \cos(latitude) \cdot \cos(\delta) \cdot
-  !>            \sin(\omega) \f] 
-  !>            where \f$ E_0=1367\;J\;m^{-2}\;s^{-1} \f$ is the solar constant and 
-  !<            \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization. \n
-  !>            It is dependent on the following sub equations:\n 
-  !>            The relative distance Earth-Sun:
-  !>            \f[ d_r =  1 + 0.033 \cdot \cos \left( \frac{2 \cdot \pi \cdot doy}{365} \right) \f]            
-  !>            in which doy is the day of the year.\n 
-  !>            The solar declination [radians] defined by
-  !>            \f[ \delta  = 0.4093 \cdot \sin\left( \frac{2 \cdot \pi \cdot doy}{365} - 1.405 \right) \f]
-  !>            The sunset hour angle [radians]:
-  !>            \f[ \omega  = \arccos( - \tan(latitude) * \tan(\delta) )  \f]                 
+  !>                 after Duffie and Beckman (1980). 
+  !>                 \f$ R_a \f$ is converted from \f$ [J\;m^{-2}\;d^{-1}] \f$ in \f$ [mm\;d^{-1}]\f$ . 
+  !>                 \f[ R_a   = \frac{86400}{ \pi \cdot \lambda} \cdot E_0 \cdot  
+  !>                  d_r \cdot (\omega \cdot \sin(latitude) \cdot \sin(\delta) + \cos(latitude) \cdot \cos(\delta) \cdot
+  !>                 \sin(\omega) \f] 
+  !>                 where \f$ E_0=1367\;J\;m^{-2}\;s^{-1} \f$ is the solar constant and 
+  !<                 \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization. \n
+  !>                 It is dependent on the following sub equations:\n 
+  !>                 The relative distance Earth-Sun:
+  !>                 \f[ d_r =  1 + 0.033 \cdot \cos \left( \frac{2 \cdot \pi \cdot doy}{365} \right) \f]            
+  !>                 in which doy is the day of the year.\n 
+  !>                 The solar declination [radians] defined by
+  !>                 \f[ \delta  = 0.4093 \cdot \sin\left( \frac{2 \cdot \pi \cdot doy}{365} - 1.405 \right) \f]
+  !>                 The sunset hour angle [radians]:
+  !>                 \f[ \omega  = \arccos( - \tan(latitude) * \tan(\delta) )  \f]                 
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4), intent(in) :: doy" day of year [-]
@@ -368,7 +370,7 @@ CONTAINS
   !>        \brief slope of saturation vapour pressure curve
 
   !>        \details slope of saturation vapour pressure curve after Tetens
-  !>           \f[ \Delta = \frac{0.6108 * e_s(T_a)}{e^(2 \cdot \log(T_a + 237.3))} \f]
+  !>                 \f[ \Delta = \frac{0.6108 * e_s(T_a)}{e^(2 \cdot \log(T_a + 237.3))} \f]
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: tavg" average daily temperature \f$[^{\circ}C]\f$ 
@@ -431,7 +433,7 @@ CONTAINS
   !>        \brief calculation of the saturation vapour pressure
 
   !>        \details Calculation of the saturation vapour pressure
-  !>          \f[ e_s(T_a) = 0.6108 \cdot \exp \left( \frac{17.27 \cdot T_a}{T_a + 237.3} \right)  \f]
+  !>                 \f[ e_s(T_a) = 0.6108 \cdot \exp \left( \frac{17.27 \cdot T_a}{T_a + 237.3} \right)  \f]
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: tavg" temperature [degC]
