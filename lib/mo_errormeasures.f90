@@ -112,11 +112,11 @@ MODULE mo_errormeasures
 
   !>        \details The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
   !>                     \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where
-  !>                     \f[ r \f]      = Pearson product-moment correlation coefficient
-  !>                     \f[ \alpha \f] = ratio of simulated mean to observed mean 
-  !>                     \f[ \beta  \f] = ratio of simulated standard deviation to 
-  !>                                      observed standard deviation
+  !>                 where \n
+  !>                     \f$ r \f$      = Pearson product-moment correlation coefficient \n
+  !>                     \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
+  !>                     \f$ \beta  \f$ = ratio of simulated standard deviation to 
+  !>                                      observed standard deviation \n
   !>                 This three measures are calculated between two arrays (1d, 2d, or 3d). 
   !>                 Usually, one is an observation and the second is a modelled variable.\n
   !>
