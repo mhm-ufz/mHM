@@ -13,6 +13,8 @@ MODULE mo_file
   
   !> Current mHM model version
   CHARACTER(len=*), PARAMETER :: version                = '5.3'                         ! Version
+  !> Time of current mHM model version release
+  CHARACTER(len=*), PARAMETER :: version_date           = 'June 2015'                   ! Release date
   !> Driver file
   CHARACTER(len=*), PARAMETER :: file_main              = 'mhm_driver.f90'              ! Driver
   !> Namelist file name

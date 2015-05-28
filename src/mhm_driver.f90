@@ -144,7 +144,7 @@ PROGRAM mhm_driver
   USE mo_anneal,              ONLY : anneal                         ! Optimise with Simulated Annealing SA
   USE mo_dds,                 ONLY : dds                            ! Optimise with Dynam. Dimens. Search DDS
   USE mo_file,                ONLY :                         &
-       version, file_main,                                   &      ! main info
+       version, version_date, file_main,                     &      ! main info
        file_namelist,                                        &      ! filename of namelist: main setup
        file_namelist_param,                                  &      ! filename of namelist: mhm model parameter
        file_defOutput                                               ! filename of namelist: output setup
@@ -220,8 +220,10 @@ PROGRAM mhm_driver
   call message()
   call message('    MULTISCALE HYDROLOGIC MODEL')
   call message('           Version ', trim(version))
+  call message('           ', trim(version_date))
+  call message()
   call message('Originally by L. Samaniego & R. Kumar')
-  call message('             June 2015')
+  
   call message(separator)
 
   call message()
