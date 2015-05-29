@@ -1,6 +1,6 @@
                     ====================================
-                               TODO for mHM v5.3
-                     NEXT RELEASE :: June 1st, 2014
+                               TODO for mHM v5.4
+                     NEXT RELEASE :: Dec 1st, 2015
                     ====================================
 
 
@@ -17,53 +17,11 @@ Transfer mo_file to a namelist to allow for more flexible filenames
                         -- Scientific --
 =================================================================================================
 
-Read and write of spatial data used for calibration (NetCDF format)
-(Resp.: Matthias Z., Olda, Martin)
-
-Multi-data-calibration, i.e. Q and TWS
-(Resp.: Olda)
-
-Objective function for soil moisture calibration
-(Resp.: Matthias Z.)
-
-Groundwater (Process #7)
-(Resp.: Jude, Rohini)
--- implementation of mo_groundwater which computes every n-th timestep exchange flux 
-   between stream and groundwater reservoir
-   (no regionalization)
--- following cases should be addressed:
-   case 0 :: off
-   case 1 :: bucket model (status quo)
-   case 2 :: modflow 
-
-Water Quality Process (Process #10)
-(Resp.: Sumit Sinha)
--- Implementation of equations and comparison to HYPE results
--- following cases should be addressed:
-   case 0 :: off
-   case 1 :: passive tracer
-   case 2 :: nitrate
-   case 3 :: phosphorus
-
-Neutrons
-(Resp.: Martin)
--- calculate amount of neutrons from soil moisture
-
-Optimization 
-(Resp.: Olda, Diana, Martin) 
--- implementation of objective functions for additional (multiple) variables 
-   like soil moisture only or both soil moisture and discharge
--- implementation of objective functions for variables on multiple scales
-
 
 =================================================================================================
                       UNDER CONSTRUCTION
 =================================================================================================
 
-Stephan Thober
-mo_multi_param_reg
--- old parts of documentation should be converted to doxygen style
--- pet_correct: constant hard-coded, not documented  
 
 =================================================================================================
                           SOLVED
