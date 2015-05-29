@@ -34,10 +34,6 @@
 
 MODULE mo_mHM
 
-  ! This module provides the startup routines for mHM.
-
-  ! Written Luis Samaniego & Rohini Kumar, Dec 2012
-
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
   use mo_message,       only: message 
@@ -45,9 +41,9 @@ MODULE mo_mHM
  
   IMPLICIT NONE
 
-  PRIVATE
-
   PUBLIC :: mHM      ! initialization sequence
+
+  PRIVATE
 
 CONTAINS
   ! ------------------------------------------------------------------
@@ -56,21 +52,20 @@ CONTAINS
   !         mHM
 
   !     PURPOSE
-  !>        \brief run mHM.
+  !>        \brief Pure mHM calculations.
 
-  !>        \details
-  !>
-  !>        mHM.\n
+  !>        \details Pure mHM calculations. All variables are allocated and initialized. \n
+  !>                 They will be local variables within this call. \n
   !>
 
   !     INTENT(IN)
-  !>        None
+  !         Has to be updated...
 
   !     INTENT(INOUT)
-  !         None
+  !         Has to be updated...
 
   !     INTENT(OUT)
-  !         None
+  !         Has to be updated...
 
   !     INTENT(IN), OPTIONAL
   !         None
@@ -82,15 +77,16 @@ CONTAINS
   !         None
 
   !     RETURN
-
+  !         None
 
   !     RESTRICTIONS
   !>       \note Fields must be consistent to DEM.
 
   !     EXAMPLE
-  !        none
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author  Luis Samaniego & Rohini Kumar
@@ -292,8 +288,8 @@ CONTAINS
     implicit none
 
     ! Intent
-    logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
-    logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
+    logical,                     intent(in) :: perform_mpr          ! flag for reading restart files for state variables
+    logical,                     intent(in) :: read_states          ! indicated whether states have been read from file
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: timeStep_LAI_input   ! time step of gridded LAI input
     integer(i4),                 intent(in) :: counter_year         ! counter to tackle the change of year
