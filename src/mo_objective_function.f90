@@ -13,9 +13,9 @@
 !> (7)  Q:  -1.0 * loglikelihood with trend removed from absolute errors  \n
 !> (8)  Q:  -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed \n
 !> (9)  Q:  1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (10) SM: 1.0 - KGE of catchment average soilmoisture
-!> (11) SM: Pattern dissimilarity (PD) of spatially distributed soil moisture \n
-!> (12) SM: sum of squared errors (SSE) of spatially distributed standard score (normalized) soil moisture \n
+!> (10) SM: 1.0 - KGE of catchment average soilmoisture \n
+!> (11) SM: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture \n
+!> (12) SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture \n
 !> (13) SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm\n
 
