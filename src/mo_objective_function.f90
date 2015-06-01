@@ -1267,7 +1267,7 @@ CONTAINS
   !>
   !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6 
   !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$. 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f]. \n              
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f] \n              
   !>                 The observed data L1_sm, L1_sm_mask are global in this module. 
 
   !     INTENT(IN)
@@ -1397,7 +1397,7 @@ CONTAINS
   !>
   !>                 Therefore the Pearson correlation between observed and modeled soil 
   !>                 moisture on each grid cell \f$ j \f$ is compared
-  !>                       \f[ r_j = 1.0 - r^2(SM_{obs}^j, SM_{sim}^j) \f]
+  !>                       \f[ r_j = r^2(SM_{obs}^j, SM_{sim}^j) \f]
   !>                 where \n
   !>                       \f$ r^2\f$        = Pearson correlation coefficient,\n
   !>                       \f$ SM_{obs} \f$  = observed soil moisture,\n
@@ -1411,7 +1411,7 @@ CONTAINS
   !
   !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6 
   !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$. 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }  \f]. \n              
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }. \f] \n              
   !>                 The observed data L1_sm, L1_sm_mask are global in this module. 
 
   
@@ -1537,8 +1537,6 @@ CONTAINS
   !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.\n
   !>                       \f$ E(t)  \f$     = pattern dissimilarity at timestep \f$ t \f$.\n
   !
-  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.\n
-  !
   !>                 The the pattern dissimilaity (E) is spatially averaged as 
   !>                 \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f] 
   !
@@ -1546,11 +1544,11 @@ CONTAINS
   !
   !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6 
   !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$. 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }  \f]. \n              
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f] \n              
   !>                 The observed data L1_sm, L1_sm_mask are global in this module.
   
   !
-  !>                  The observed data \f$ SM_{obs} \f$ are global in this module.\n
+  !>                  The observed data L1_sm, L1_sm_mask are global in this module.\n
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -1670,7 +1668,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          objective_sm_sse_standard_score ! MZMZMZMZ - docu missing
+  !          objective_sm_sse_standard_score
 
   !>        \brief Objective function for soil moisture.
 
@@ -1678,29 +1676,21 @@ CONTAINS
   !>                 The model will be called with that parameter vector and 
   !>                 the model output is subsequently compared to observed data.\n
   !>
-  !>                 Therefore the Pattern Dissimilarity (PD) of observed and modeled soil 
-  !>                 moisture fields is calculated - aim: matching spatial patters
-  !>                  \f[ E(j) = PD\left( SM_{obs}(j) - \mu, SM_{sim}(j) \right) \f]
+  !>                 Therefore the sum of squared errors (SSE) of the standard score of observed and 
+  !>                 modeled soil moisture is calculated. The standard score or normalization (anomaly)
+  !>                 make the objctive function bias insensitive and basically the dynamics of the soil moisture
+  !>                 is tried to capture by this obejective function.
+  !>                  \f[ phi_i = \sum_{j=1}^K \{ standard\_score( SM_{obs}(j) )- standard\_score(SM_{sim}(j)) \}^2 \f]
   !>                 where \n
-  !>                       \f$ PD \f$        = pattern dissimilarity function,\n
+  !>                       \f$  standard\_score \f$ = standard score function,\n
   !>                       \f$ SM_{obs} \f$  = observed soil moisture,\n
   !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.\n
-  !>                       \f$ E(t)  \f$     = pattern dissimilarity at timestep \f$ t \f$.\n
-  !
-  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.\n
-  !
-  !>                 The the pattern dissimilaity (E) is spatially averaged as 
-  !>                 \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f] 
-  !
-  !>                 where \f$ T \f$ denotes the number of time steps.\n
+  !>                       \f$ K  \f$ = valid elements in study domain.\n
   !
   !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6 
   !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$. 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }  \f]. \n              
+  !>                 \f[ OF = \sqrt[6]{\sum(\phi_{i}/N)^6 }.  \f] \n              
   !>                 The observed data L1_sm, L1_sm_mask are global in this module.
-  
-  !
-  !>                  The observed data \f$ SM_{obs} \f$ are global in this module.\n
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with

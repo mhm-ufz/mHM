@@ -83,7 +83,7 @@ MODULE mo_spatialsimilarity
   !>            </pre>
   !>
   !>           If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !>           x and y can be single or double precision. The result will have the same numerical precision.
+  !>           mat1 and mat2 can be single or double precision. The result will have the same numerical precision.
 
   !     CALLING SEQUENCE
   !         out = NNDV(mat1, mat2, mask=mask, valid=valid)
@@ -99,8 +99,8 @@ MODULE mo_spatialsimilarity
   !        None
 
   !     INDENT(IN), OPTIONAL
-  !>        \param[out] "logical               :: mask(:,:)" 2D-array of logical values with size(mat1/mat2)
-  !>           If present, only those locations in mask having true values in mask are evaluated.
+  !>        \param[in] "logical,dimension(:,:),optinal :: mask" 2D-array of logical values with size(mat1/mat2).
+  !>           If present, only those locations in mat1/mat2 having true values in mask are evaluated.
 
   !     INDENT(INOUT), OPTIONAL
   !         None
@@ -111,7 +111,7 @@ MODULE mo_spatialsimilarity
   !>                                                      in this case PatternDissim is set to 0 (worst case)
   
   !     RETURN
-  !>        \return real(sp/dp) :: NNDV &mdash; Number of neighboring 
+  !>        \return real(sp/dp) :: NNDV &mdash; Number of neighboring dominating values
   
   !     RESTRICTIONS
   !         Input values must be floating points.
@@ -123,7 +123,7 @@ MODULE mo_spatialsimilarity
   !         -> see also example in test directory
   
   !     LITERATURE
-  !>         routine based on algorithm by Luis Samaniego 2009
+  !>         \note routine based on algorithm by Luis Samaniego 2009
 
   !     HISTORY
   !>         \author Matthias Zink
@@ -183,7 +183,7 @@ MODULE mo_spatialsimilarity
   !>            </pre>
   !>
   !>           If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !>           x and y can be single or double precision. The result will have the same numerical precision.
+  !>           mat1 and mat2 can be single or double precision. The result will have the same numerical precision.
 
   !     CALLING SEQUENCE
   !         out = PD(mat1, mat2, mask=mask, valid=valid)
@@ -199,14 +199,14 @@ MODULE mo_spatialsimilarity
   !         None
 
   !     INDENT(IN), OPTIONAL
-  !>        \param[out] "logical               :: mask(:,:)" 2D-array of logical values with size(mat1/mat2)
-  !>           If present, only those locations in mask having true values in mask are evaluated.
+  !>        \param[in] "logical,dimension(:,:),optinal :: mask" 2D-array of logical values with size(mat1/mat2)
+  !>           If present, only those locations in mat1/mat2 having true values in mask are evaluated.
 
   !     INDENT(INOUT), OPTIONAL
   !         None
 
   !     INDENT(OUT), OPTIONAL
-  !>        \param[out] "logical              :: valid"   indicates if the function could determine a valid value
+  !>        \param[out] "logical,optinal :: valid"   indicates if the function could determine a valid value
   !>                                                      result can be unvalid if entire mask is .false. for ex.
   !>                                                      in this case PD is set to 0 (worst case)
 

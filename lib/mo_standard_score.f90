@@ -68,7 +68,7 @@ MODULE mo_standard_score
   !>           where \f$ \mu_x \f$ is the mean of a population \f$ x \f$ and \f$ \sigma_x \f$ its standard deviation.
   !>
   !>           If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !>           x and y can be single or double precision. The result will have the same numerical precision.
+  !>           data can be single or double precision. The result will have the same numerical precision.
 
   !     CALLING SEQUENCE
   !         out = standard_score(data, mask=mask)
@@ -83,7 +83,7 @@ MODULE mo_standard_score
   !        None
 
   !     INDENT(IN), OPTIONAL
-  !>        \param[out] "logical, dimension(:)    :: mask(:,:)" indication which cells to use for calculation
+  !>        \param[in] "logical, dimension(:),optinal :: mask" indication which cells to use for calculation
   !>           If present, only those locations in mask having true values in mask are evaluated.
 
   !     INDENT(INOUT), OPTIONAL
@@ -109,7 +109,7 @@ MODULE mo_standard_score
 
   !     HISTORY
   !>         \author Matthias Zink
-  !>         \date   May 2012
+  !>         \date   May 2015
 
   INTERFACE standard_score
      MODULE PROCEDURE standard_score_sp, standard_score_dp
@@ -142,7 +142,7 @@ MODULE mo_standard_score
   !>           is the mean of all members of a class \f$ c_{x_i} \f$ and \f$ \sigma_{c_{x_i}} \f$ its standard deviation.
   !>
   !>           If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !>           x and y can be single or double precision. The result will have the same numerical precision.
+  !>           data can be single or double precision. The result will have the same numerical precision.
 
   !     CALLING SEQUENCE
   !         out = classified_standard_score(data, mask=mask)
@@ -159,7 +159,7 @@ MODULE mo_standard_score
   !        None
 
   !     INDENT(IN), OPTIONAL
-  !>        \param[out] "logical, dimension(:)    :: mask(:,:)" indication which cells to use for calculation
+  !>        \param[in] "logical, dimension(:), optional :: mask" indication which cells to use for calculation
   !>           If present, only those locations in mask having true values in mask are evaluated.
 
   !     INDENT(INOUT), OPTIONAL
@@ -186,7 +186,7 @@ MODULE mo_standard_score
 
   !     HISTORY
   !>         \author Matthias Zink
-  !>         \date   May 2012
+  !>         \date   May 2015
 
   INTERFACE classified_standard_score
      MODULE PROCEDURE classified_standard_score_sp, classified_standard_score_dp
