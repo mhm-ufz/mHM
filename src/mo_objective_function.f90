@@ -1340,7 +1340,7 @@ CONTAINS
     call mhm_eval(parameterset, sm_opti=sm_opti)
 
     ! initialize some variables
-    objective_sm_kge_catchment_avg = nodata_dp
+    objective_sm_kge_catchment_avg = 0.0_dp
 
     ! loop over basin - for applying power law later on
     do iBasin=1, nBasins
