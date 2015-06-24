@@ -635,7 +635,8 @@ CONTAINS
        else
           large = 0.5_dp*huge(1.0_dp)
        endif
-       criter(:) = large
+       history_tmp(:) = large
+       criter(:)      = large
        !
        !  initialize variables
        do ii=1,nn
