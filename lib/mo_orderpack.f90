@@ -445,11 +445,13 @@ CONTAINS
     Integer(kind=i4), Dimension (Size(XDONT)) :: JWRKT
     Real(kind=dp) :: PWRK
     Integer(kind=i4) :: I
+    Real(kind=dp), Dimension (Size(XDONT)) :: II
     !
     Call Random_number (XINDT(:))
     PWRK = Min (Max (0.0_dp, PCLS), 1.0_dp)
     XINDT = Real(Size(XDONT),dp) * XINDT
-    XINDT = PWRK*XINDT + (1.0_dp-PWRK)*(/ (Real(I,dp), I=1,size(XDONT)) /)
+    forall(I=1:size(XDONT)) II(I) = real(I,dp) ! for gnu compiler to be initialised
+    XINDT = PWRK*XINDT + (1.0_dp-PWRK)*II
     Call MRGRNK (XINDT, JWRKT)
     XDONT = XDONT (JWRKT)
     !
@@ -477,11 +479,13 @@ CONTAINS
     Integer(kind=i4), Dimension (Size(XDONT)) :: JWRKT
     Real(kind=sp) :: PWRK
     Integer(kind=i4) :: I
+    Real(kind=sp), Dimension (Size(XDONT)) :: II
     !
     Call Random_number (XINDT(:))
     PWRK = Min (Max (0.0, PCLS), 1.0)
     XINDT = Real(Size(XDONT),sp) * XINDT
-    XINDT = PWRK*XINDT + (1.0-PWRK)*(/ (Real(I,sp), I=1,size(XDONT)) /)
+    forall(I=1:size(XDONT)) II(I) = real(I,sp) ! for gnu compiler to be initialised
+    XINDT = PWRK*XINDT + (1.0-PWRK)*II
     Call MRGRNK (XINDT, JWRKT)
     XDONT = XDONT (JWRKT)
     !
@@ -509,11 +513,13 @@ CONTAINS
     Integer(kind=i4), Dimension (Size(XDONT)) :: JWRKT
     Real(kind=sp) :: PWRK
     Integer(kind=i4) :: I
+    Real(kind=sp), Dimension (Size(XDONT)) :: II
     !
     Call Random_number (XINDT(:))
     PWRK = Min (Max (0.0, PCLS), 1.0)
     XINDT = Real(Size(XDONT),sp) * XINDT
-    XINDT = PWRK*XINDT + (1.0-PWRK)*(/ (Real(I,sp), I=1, size(XDONT)) /)
+    forall(I=1:size(XDONT)) II(I) = real(I,sp) ! for gnu compiler to be initialised
+    XINDT = PWRK*XINDT + (1.0-PWRK)*II
     Call MRGRNK(XINDT, JWRKT)
     XDONT = XDONT(JWRKT)
     !
@@ -5683,7 +5689,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -5732,7 +5738,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -5883,7 +5889,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -5932,7 +5938,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -6083,7 +6089,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -6132,7 +6138,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -10304,7 +10310,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -10353,7 +10359,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -10551,7 +10557,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -10600,7 +10606,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -10798,7 +10804,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -10847,7 +10853,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -11050,7 +11056,7 @@ CONTAINS
           ILOWT (1) = 1
           IHIGT (1) = ICRS
        End If
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     If (NDON <= ICRS) Then
@@ -11651,7 +11657,7 @@ CONTAINS
           ILOWT (1) = 1
           IHIGT (1) = ICRS
        End If
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     If (NDON <= ICRS) Then
@@ -12252,7 +12258,7 @@ CONTAINS
           ILOWT (1) = 1
           IHIGT (1) = ICRS
        End If
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     If (NDON <= ICRS) Then
@@ -12883,7 +12889,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -12932,7 +12938,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -13131,7 +13137,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -13180,7 +13186,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets
@@ -13379,7 +13385,7 @@ CONTAINS
                 IRNGT (IWRKD+3) = IRNGT (IWRKD+2)
                 IRNGT (IWRKD+2) = IRNG1
              End If
-             Exit
+             If (.true.) Exit   ! Exit ! JM
           End If
           !
           !   1 2 3 4
@@ -13428,7 +13434,7 @@ CONTAINS
        !  The Cs become As and Bs
        !
        LMTNA = 4
-       Exit
+       If (.true.) Exit   ! Exit ! JM
     End Do
     !
     !  Iteration loop. Each time, the length of the ordered subsets

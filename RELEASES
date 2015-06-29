@@ -8,8 +8,31 @@
 ----------------------------------------
 
 New Features:
-- basin-wise simulation and warm-up periods can be given in mhm.nml
+- simulation period and warming days can be now given per basin (see time_periods in mhm.nml)
+- enabling use of MPI (set "mpi=true" in Makefile and use "#ifdef MPI" for MPI specific code)
+- optional input data can be loaded for example to calibrate against soil moisture (see optional_data in mhm.nml)
+- generation of ground albedo cosmic-ray neutrons (see processCase(10) in mhm.nml);
+  please contact Martin Schrön (martin.schroen@ufz.de), if you like to use this new feature.
+- several new objective functions, e.g. calibrating the Kling-Gupta efficiency of catchment's average
+  soil moisture (opti_function=10) or calibrating multiple basins regarding Kling-Gupta efficiency of
+  discharge (opti_function=14) among others
 - L11 variables in restart files are now written as prpoper maps and not only dumped
+
+Bugs resolved:
+- calibration using potential evapotranspiration from input file (i.e. processCase(4)=0) was not working
+
+Known bugs:
+None.
+
+Restrictions:
+- If you wish to use a special process description of evapotranspiration (i.e. Hargreaves-samani, Priestley-Taylor,
+  or Penman-Monteith) please contact Matthias Zink (matthias.zink@ufz.de).
+  The special cases are set in mhm.nml (see processCase(4) ).
+- If you wish to use the new feature of calculating neutron counts please contact Martin Schrön
+  (martin.schroen@ufz.de).
+  The feature can be enabled in mhm.nml (see processCase(8) ).
+- The calibration against soil moisture is still purpose to research. The interested user may contact
+  Matthias Zink (matthias.zink@ufz.de) for further details.
 
 ----------------------------------------
      New Features of mHM v5.2

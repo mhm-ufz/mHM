@@ -95,7 +95,8 @@ GFORTRANDIR := $(GNUDIR)
 GFORTRANLIB := $(GNULIB)
 
 # MPI
-MPIDIR := /usr/local/openmpi/1.8.2-1_gcc_4.8.1_CentOS6
+MPIDIR := /usr/local/openmpi/gcc/1.8.4-2
+#/usr/local/openmpi/1.8.2-1_gcc_4.8.1_CentOS6
 
 # Documentation
 DOXYGENDIR := /usr/local/doxygen/1.8.7-1_gcc_4.8.1_CentOS6/bin

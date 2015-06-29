@@ -49,17 +49,20 @@ CONTAINS
   !     INTENT(OUT), OPTIONAL
   !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff" 
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti" 
+  !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
 
   !     RETURN
   !         None
 
   !     RESTRICTIONS
-  !
+  !         None
 
   !     EXAMPLE
-  !        
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author Juliane Mai, Rohini Kumar
@@ -157,19 +160,23 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
 
+    ! -------------------------------------
+    ! local variables
+    !
     ! FOR WRITING GRIDDED STATES AND FLUXES 
     integer(i4)                           :: tIndex_out          ! for writing netcdf file
-
-    ! local variables
+    !
+    ! counters and indexes
     integer(i4)                               :: nTimeSteps
     integer(i4)                               :: maxTimeSteps
-    integer(i4)                               :: ii, tt, gg, ll   ! Counters
+    integer(i4)                               :: ii, tt, gg, ll, nn ! Counters
     integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
     integer(i4)                               :: nNodes           !
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
-    ! process case dependent length specefiers of vectors to pass to mHM
-    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteolrological time step for process 5 (PET)
+    !
+    ! process case dependent length specifiers of vectors to pass to mHM
+    integer(i4), dimension(6)                 :: iMeteo_p5        ! meteorological time step for process 5 (PET)
     integer(i4), dimension(6)                 :: s_p5, e_p5       ! process 5: start and end index of vectors
     !                                                             ! index 1: pet
     !                                                             ! index 2: tmin
@@ -191,21 +198,30 @@ CONTAINS
     integer(i4)                               :: average_counter  ! for averaging output
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
-
+    !
     ! for discharge timeseries
     integer(i4)                               :: iday, iS, iE
     real(dp), dimension(:,:), allocatable     :: d_Qmod
-
+    !
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
     
     ! outputVariable data structure
-    real(dp),dimension(size(L1_soilMoist,1),size(L1_soilMoist,2))     :: L1_soilMoistVol
-    real(dp),dimension(size(L1_soilMoist,1))                          :: L1_soilMoistVolAvg
-    real(dp),dimension(size(L1_fSealed,1))                            :: L1_fNotSealed
-    real(dp),dimension(size(L1_aETSoil,1))                            :: L1_aet
+    real(dp), dimension(size(L1_fSealed,1),nSoilHorizons_mHM) :: L1_soilMoistVol
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_soilMoistVolAvg
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_fNotSealed
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_aet
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_runoffSeal_out 
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_fastRunoff_out 
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_slowRunoff_out 
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_baseflow_out 
+    real(dp), dimension(size(L1_fSealed,1))                   :: L1_percol_out 
+    real(dp), dimension(size(L1_fSealed,1),nSoilHorizons_mHM) :: L1_aETSoil_out 
+    real(dp), dimension(size(L1_fSealed,1),nSoilHorizons_mHM) :: L1_infilSoil_out
+
+    
     type(OutputDataset)                                   :: nc
     
     !----------------------------------------------------------
@@ -485,35 +501,43 @@ CONTAINS
                 
                 L1_soilMoistVol = L1_soilMoist / L1_soilMoistSat
                 L1_soilMoistVolAvg = sum(L1_soilMoist(:,:), dim=2) / sum(L1_soilMoistSat(:,:), dim=2)
-                L1_aet = sum(L1_aETSoil, dim=2)*L1_fNotSealed + L1_aETCanopy + L1_aETSealed*L1_fSealed
+                L1_aet = sum(L1_aETSoil, dim=2) * L1_fNotSealed + L1_aETCanopy + L1_aETSealed*L1_fSealed
+                L1_runoffSeal_out = L1_runoffSeal * L1_fSealed 
+                L1_fastRunoff_out = L1_fastRunoff * L1_fNotSealed
+                L1_slowRunoff_out = L1_slowRunoff * L1_fNotSealed
+                L1_baseflow_out = L1_baseflow * L1_fNotSealed
+                L1_percol_out = L1_percol * L1_fNotSealed
+
+                do nn=1,nSoilHorizons_mHM 
+                   L1_aETSoil_out(:,nn) = L1_aETSoil(:,nn) * L1_fNotSealed
+                   L1_infilSoil_out(:,nn) = L1_infilSoil(:,nn) * L1_fNotSealed
+                end do
 
                 if ( tIndex_out .EQ. 1 ) then
-                   nc = initOutput(&
-                        ii                        , & ! basin
+                   nc = initOutput(                     &
+                        ii                        ,     & ! basin
                         ! states
-                        L1_inter(s1:e1)           , & ! Interception
-                        L1_snowPack(s1:e1)        , & ! Snowpack
-                        L1_soilMoist(s1:e1,:)     , & ! Soil moisture of each horizon
-                        L1_soilMoistVol(s1:e1,:)  , &
-                        L1_soilMoistVolAvg(s1:e1) , &
-                        L1_sealSTW(s1:e1)         , &
-                        L1_unsatSTW               , &
-                        L1_satSTW                 , &
-                        L1_neutrons(s1:e1)        , &
+                        L1_inter(s1:e1)           ,     & ! Interception
+                        L1_snowPack(s1:e1)        ,     & ! Snowpack
+                        L1_soilMoist(s1:e1,:)     ,     & ! Soil moisture of each horizon
+                        L1_soilMoistVol(s1:e1,:)  ,     &
+                        L1_soilMoistVolAvg(s1:e1) ,     &
+                        L1_sealSTW(s1:e1)         ,     &
+                        L1_unsatSTW               ,     &
+                        L1_satSTW                 ,     &
+                        L1_neutrons(s1:e1)        ,     &
                         ! fluxes
-                        L1_pet_calc(s1:e1)        , &    ! potential evapotranspiration (PET)
-                        L1_aet(s1:e1)             , &    ! actual ET
-                        L1_aETSoil(s1:e1,:)       , &
-                        L1_total_runoff(s1:e1)    , &    ! Generated runoff
-                        L1_runoffSeal(s1:e1)      , &    ! Direct runoff from impervious areas
-                        L1_fastRunoff(s1:e1)      , &    ! Fast runoff component
-                        L1_slowRunoff(s1:e1)      , &    ! Slow runoff component
-                        L1_baseflow(s1:e1)        , &    ! Baseflow
-                        L1_percol(s1:e1)          , &    ! Percolation
-                        L1_infilSoil(s1:e1,:)     , &    ! Infiltration
-                        L1_preEffect(s1:e1)       , &    ! Effective Precipition
-                        L1_fSealed(s1:e1)         , &
-                        L1_fNotSealed(s1:e1)        &                   
+                        L1_pet_calc(s1:e1)        ,     &    ! potential evapotranspiration (PET)
+                        L1_aet(s1:e1)             ,     &    ! actual ET
+                        L1_aETSoil_out(s1:e1,:)       , &
+                        L1_total_runoff(s1:e1)    ,     &    ! Generated runoff
+                        L1_runoffSeal_out(s1:e1)      , &    ! Direct runoff from impervious areas
+                        L1_fastRunoff_out(s1:e1)      , &    ! Fast runoff component
+                        L1_slowRunoff_out(s1:e1)      , &    ! Slow runoff component
+                        L1_baseflow_out(s1:e1)        , &    ! Baseflow
+                        L1_percol_out(s1:e1)          , &    ! Percolation
+                        L1_infilSoil_out(s1:e1,:)     , &    ! Infiltration
+                        L1_preEffect(s1:e1)             &    ! Effective Precipition
                         )
                 end if
 
@@ -531,10 +555,14 @@ CONTAINS
                       if (((tIndex_out .gt. 1) .and. (day_counter .ne. day)) .or. (tt .eq. nTimeSteps))     writeout = .true.
                    case(-2) ! monthly
                       if (((tIndex_out .gt. 1) .and. (month_counter .ne. month)) .or. (tt .eq. nTimeSteps)) writeout = .true.
+                      
                    case(-3) ! yearly
+                      
                       if (((tIndex_out .gt. 1) .and. (year_counter .ne. year)) .or. (tt .eq. nTimeSteps))   writeout = .true.
+                      
                    case default ! no output at all
-                      continue
+                      
+                     continue
                    end select
                 end if                
                 

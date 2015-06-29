@@ -246,7 +246,8 @@ CONTAINS
   !>        \brief total runoff accumulation at level 1
 
   !>        \details Accumulates runoff.
-  !>        \f[ q_{T} = q_0 + q_1 + q_2 + q_{D} \f]
+  !>        \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
+  !>        where fSealed is the fraction of sealed area.
 
   !     CALLING SEQUENCE
   !         runoff_accum(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow,  direct_runoff, total_runoff)
@@ -289,7 +290,8 @@ CONTAINS
   !>        \author Vladyslav Prykhodko
   !>        \date Dec 2012
   !         Modified  RK, Jul 2013  - A Mosiac approach is implemented for processes accounted
-  !                                   within the permeamble & impervious area. 
+  !                                   within the permeamble & impervious area.
+  !                   ST, May 2015  - updated equation in the documentation
 
   SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, &
                              baseflow, direct_runoff, total_runoff)

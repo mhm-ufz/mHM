@@ -376,7 +376,7 @@ CONTAINS
     !                                                               !      1, parameter convergence satisfied
     integer(i4)                                      :: nloop
     integer(i4)                                      :: loop
-    integer(i4)                                      :: ii, jj, kk, ll
+    integer(i4)                                      :: ii, jj, kk
     integer(i4)                                      :: lpos
     logical                                          :: lpos_ok            ! for selction of points based on triangular 
     !                                                                      ! probability distribution
@@ -635,7 +635,8 @@ CONTAINS
        else
           large = 0.5_dp*huge(1.0_dp)
        endif
-       criter(:) = large
+       history_tmp(:) = large
+       criter(:)      = large
        !
        !  initialize variables
        do ii=1,nn

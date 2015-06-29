@@ -36,6 +36,7 @@ MODULE mo_anneal
   ! Copyright 2012-13 Juliane Mai
 
   USE mo_kind,    ONLY: i4, i8, dp
+  USE mo_utils,   ONLY: le, ge
   USE mo_xor4096, ONLY: get_timeseed, xor4096, xor4096g, n_save_state
 
   IMPLICIT NONE
@@ -577,7 +578,7 @@ CONTAINS
     iPos_iNeg_history = 0_i4
 
     if (present(eps)) then
-       if (eps .le. 0.0_dp) then
+       if ( le(eps, 0.0_dp) ) then
           stop 'Input argument eps must be greater than 0'
        else
           eps_in = eps
@@ -587,7 +588,7 @@ CONTAINS
     endif
 
     if (present(acc)) then
-       if ((acc .le. 0.0_dp) .or. (acc .ge. 1.0_dp)) then
+       if ( le(acc, 0.0_dp)  .or. ge(acc, 1.0_dp) ) then
           stop 'Input argument acc must lie between 0.0 and 1.0'
        else
           acc_in = acc
@@ -803,7 +804,7 @@ CONTAINS
           ! Generate a random subsequent state and evaluate its objective function
           ! (1) Generate new parameter set
           dR=(1.0_DP - real(iTotalCounterR,dp) / real(nITERmax_in,dp))**2.0_DP
-          if (  .not. (dR >= 0.05_DP ) .and. &
+          if (  .not. ( ge(dR , 0.05_DP) ) .and. &
                (iTotalCounterR <= int(real(nIterMax_in,dp)/3._dp*4_dp,i4))) then
              dR = 0.05_DP
           end if
@@ -1390,7 +1391,7 @@ CONTAINS
     ! scaling (new)
     dMaxScal = dMax * ABS(oMax - oMin)
 
-    if(oi >= ox) then
+    if( ge(oi , ox) ) then
        parGen_anneal_dp = (oi+ox)/2.0_DP
     else
        if ( (old - dMaxScal) > oi)  oi = old - dMaxScal

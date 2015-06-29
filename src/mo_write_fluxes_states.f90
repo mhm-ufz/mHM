@@ -15,7 +15,6 @@ module mo_write_fluxes_states
   type OutputVariable
      type(NcVariable)                           :: ncvar
      real(dp), dimension(:), pointer            :: data       => null()       ! point to data
-     real(dp), dimension(:), pointer            :: multiplier => null()       ! point to data
      real(dp), dimension(:), allocatable        :: accum                      ! the data accumulator
      integer(i4)                                :: counter = 0
      logical                                    :: avg = .false.
@@ -55,10 +54,9 @@ module mo_write_fluxes_states
   
 CONTAINS
   
-  function initOutputVariable(ncvar, data, multip, avg) result(out)
+  function initOutputVariable(ncvar, data, avg) result(out)
     type(NcVariable), intent(in)                                  :: ncvar
     real(dp), dimension(:), target, intent(in)                    :: data
-    real(dp), dimension(size(data)), target, intent(in), optional :: multip
     logical, intent(in),optional                                  :: avg
     type(OutputVariable)                                          :: out
     
@@ -66,9 +64,6 @@ CONTAINS
     out%ncvar = ncvar
     out%data  => data
     out%accum = 0
-    if (present(multip)) then
-       out%multiplier => multip
-    end if
     if (present(avg)) then
        out%avg = avg
     end if    
@@ -83,29 +78,20 @@ CONTAINS
     allocate(initOutputDataset%vars(size(vars)),source=vars)
     allocate(initOutputDataset%mask1(size(mask1,1),size(mask1,2)),&
          source=mask1)
-    ! allocate(initOutputDataset%mask11(size(mask11,1),size(mask11,2)),&
-    !      source=mask11)
   end function initOutputDataset
   
   subroutine updateVariable(self)
     class(OutputVariable), intent(inout) :: self
-    if (associated(self%multiplier)) then
-       self%accum = self%accum + self%data * self%multiplier
-    else
-       self%accum = self%accum + self%data
-    end if
+    self%accum = self%accum + self%data
     self%counter = self%counter + 1
   end subroutine updateVariable
 
   subroutine updateDataset(self)
-
     class(OutputDataset), intent(inout) :: self
     integer(i4)                         :: ii
-
     do ii=1,size(self%vars)
        call self%vars(ii)%updateVariable()
     end do
-    
   end subroutine updateDataset
 
   subroutine writeTimestep(self,timestep)
@@ -117,7 +103,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: tmpdata1
 
     tvar = self%nc%getVariable("time")
-    call tvar%putDataDirect(timestep, (/self%counter/))
+    call tvar%setData(timestep, (/self%counter/))
     
     do ii = 1,size(self%vars)
        var = self%vars(ii)
@@ -125,7 +111,7 @@ CONTAINS
           var%accum = var%accum / real(var%counter, dp)
        end if
        tmpdata1 = unpack(var%accum, self%mask1, nodata_dp)
-       call var%ncvar%putDataDirect(tmpdata1,(/1,1,self%counter/))
+       call var%ncvar%setData(tmpdata1,(/1,1,self%counter/))
        self%vars(ii)%accum = 0
        self%vars(ii)%counter = 0
     end do
@@ -160,9 +146,9 @@ CONTAINS
     nc = NcDataset(trim(fname),"w")
     
     dimids1 = (/&
-         nc%createDimension("time",     0), &
-         nc%createDimension("northing", size(northing)), &
-         nc%createDimension("easting",  size(easting)) &
+         nc%setDimension("easting",  size(easting)), &
+         nc%setDimension("northing", size(northing)), &
+         nc%setDimension("time",     0) &
          /)
 
     ! time units
@@ -170,42 +156,42 @@ CONTAINS
     write(unit,"('hours since ', i4, '-' ,i2.2, '-', i2.2, 1x, '00:00:00')") year, month, day
 
     ! time 
-    var = nc%createVariable("time", "i32", (/ dimids1(1) /))
-    call var%createAttribute("units", unit)
-    call var%createAttribute("long_name","time")
+    var = nc%setVariable("time", "i32", (/ dimids1(3) /))
+    call var%setAttribute("units", unit)
+    call var%setAttribute("long_name","time")
     
     ! northing
-    var = nc%createVariable("northing", "f64", (/ dimids1(2) /))
-    call var%putDataDirect(northing)
-    call var%createAttribute("units","m")
-    call var%createAttribute("long_name","y-coordinate in cartesian coordinates GK4")
+    var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
+    call var%setData(northing)
+    call var%setAttribute("units","m")
+    call var%setAttribute("long_name","y-coordinate in cartesian coordinates GK4")
     
     ! easting
-    var = nc%createVariable("easting", "f64", (/ dimids1(3) /))
-    call var%putDataDirect(easting)
-    call var%createAttribute("units","m")
-    call var%createAttribute("long_name","x-coordinate in cartesian coordinates GK4")
+    var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
+    call var%setData(easting)
+    call var%setAttribute("units","m")
+    call var%setAttribute("long_name","x-coordinate in cartesian coordinates GK4")
 
     ! lon
-    var = nc%createVariable("lon","f64",dimids1(2:3))
-    call var%putDataDirect(lon)
-    call var%createAttribute("units","degerees_east")
-    call var%createAttribute("long_name","longitude")
+    var = nc%setVariable("lon","f64",dimids1(1:2))
+    call var%setData(lon)
+    call var%setAttribute("units","degerees_east")
+    call var%setAttribute("long_name","longitude")
 
-    !lat
-    var = nc%createVariable("lat","f64",dimids1(2:3))
-    call var%putDataDirect(lat)
-    call var%createAttribute("units","degerees_north")
-    call var%createAttribute("long_name","latitude")
+    ! lat
+    var = nc%setVariable("lat","f64",dimids1(1:2))
+    call var%setData(lat)
+    call var%setAttribute("units","degerees_north")
+    call var%setAttribute("long_name","latitude")
         
     ! global attributes
     call date_and_time(date=date, time=time)
     write(datetime,"(a4,'-',a2,'-',a2,1x,a2,':',a2,':',a2)") date(1:4), &
          date(5:6), date(7:8), time(1:2), time(3:4), time(5:6)
 
-    call nc%createAttribute("title","mHMv5 simulation outputs")
-    call nc%createAttribute("creation_date",datetime)
-    call nc%createAttribute("institution",&
+    call nc%setAttribute("title","mHMv5 simulation outputs")
+    call nc%setAttribute("creation_date",datetime)
+    call nc%setAttribute("institution",&
          "Helmholtz Centre for Environmental Research - UFZ, "// &
          "Department Computational Hydrosystems, Stochastic Hydrology Group")
     
@@ -218,12 +204,13 @@ CONTAINS
     type(NcVariable), intent(in) :: var
     character(*),intent(in)      :: long_name, unit
     
-    call var%createAttribute("_FillValue",nodata_dp)    
-    call var%createAttribute("long_name",long_name)
-    call var%createAttribute("unit",unit)       
-    call var%createAttribute("scale_factor",1.0_dp)
-    call var%createAttribute("missing_value", "-9999.")
-    call var%createAttribute("coordinates","lat lon")   
+    call var%setAttribute("_FillValue",nodata_dp)    
+    call var%setAttribute("long_name",long_name)
+    call var%setAttribute("unit",unit)       
+    call var%setAttribute("scale_factor",1.0_dp)
+    call var%setAttribute("missing_value", "-9999.")
+    call var%setAttribute("coordinates","lat lon")   
+
     
   end subroutine writeVariableAttributes
 
@@ -278,10 +265,7 @@ CONTAINS
        L1_baseflow     , &    ! Baseflow
        L1_percol       , &    ! Percolation
        L1_infilSoil    , &    ! Infiltration
-       L1_preEffect    , &    ! Effective Precipitation
-       ! helper
-       L1_fSealed      , &
-       L1_fNotSealed    &                   
+       L1_preEffect      &    ! Effective Precipitation
        )
     
     use mo_global_variables,  only : outputFlxState, nSoilHorizons_mHM
@@ -311,9 +295,6 @@ CONTAINS
     real(dp), dimension(:),   intent(inout), target :: L1_percol       ! Percolation
     real(dp), dimension(:,:), intent(inout), target :: L1_infilSoil    ! Infiltration
     real(dp), dimension(:),   intent(inout), target :: L1_preEffect       ! Percolation
-    ! helper
-    real(dp), dimension(:),   intent(inout), target :: L1_fSealed      ! 
-    real(dp), dimension(:),   intent(inout), target :: L1_fNotSealed      ! 
     ! output
     type(OutputDataset)                             :: initOutput
 
@@ -328,7 +309,7 @@ CONTAINS
     logical,dimension(:,:),allocatable                                     :: mask1 
 
     dtype = "f64"
-    dims1 = (/"time    ","northing","easting "/)
+    dims1 = (/"easting ", "northing","time    "/)
     nc = initOutputFile(ibasin)    
 
     call get_basin_info (ibasin,  1,  ncols, nrows, mask=mask1)
@@ -338,14 +319,14 @@ CONTAINS
     ! interception
     if (outputFlxState(1)) then
        ii = ii + 1
-       var = nc%createVariable("interception",dtype,dims1)
+       var = nc%setVariable("interception",dtype,dims1)
        call writeVariableAttributes(var,"canopy interception storage", "mm")
        tmpvars(ii) = OutputVariable(var,L1_inter,avg=.true.)
     end if
 
     if (outputFlxState(2)) then       
        ii = ii + 1
-       var = nc%createVariable("snowpack",dtype,dims1)
+       var = nc%setVariable("snowpack",dtype,dims1)
        call writeVariableAttributes(var,"depth of snowpack", "mm")
        tmpvars(ii) =  OutputVariable(var,L1_snowPack,avg=.true.)
     end if
@@ -353,7 +334,7 @@ CONTAINS
     if (outputFlxState(3)) then       
        do nn = 1, nSoilHorizons_mHM
           ii = ii + 1
-          var = nc%createVariable("SWC_L"//trim(num2str(nn,'(i2.2)')),dtype,dims1)
+          var = nc%setVariable("SWC_L"//trim(num2str(nn,'(i2.2)')),dtype,dims1)
           call writeVariableAttributes(&
                var,'soil water content of soil layer'//trim(num2str(nn)), "mm")
           tmpvars(ii) = OutputVariable(var, L1_soilMoist(:,nn),avg=.true.)
@@ -363,7 +344,7 @@ CONTAINS
     if (outputFlxState(4)) then       
        do nn = 1, nSoilHorizons_mHM
           ii = ii + 1
-          var = nc%createVariable("SM_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
+          var = nc%setVariable("SM_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
           call writeVariableAttributes(&
                var,'volumetric soil moisture of soil layer'//trim(num2str(nn)), "mm mm-1")
           tmpvars(ii) = OutputVariable(var, L1_soilMoistVol(:,nn), avg=.true.)
@@ -372,35 +353,34 @@ CONTAINS
 
     if (outputFlxState(5)) then
        ii = ii + 1
-       var = nc%createVariable("SM_Lall", dtype, dims1)
+       var = nc%setVariable("SM_Lall", dtype, dims1)
        call writeVariableAttributes(var,"average soil moisture over all layers", "mm mm-1")
        tmpvars(ii) = OutputVariable(var,L1_soilMoistVolAvg, avg=.true.)       
     end if
 
     if (outputFlxState(6)) then
        ii = ii + 1
-       var = nc%createVariable("sealedSTW", dtype, dims1)
+       var = nc%setVariable("sealedSTW", dtype, dims1)
        call writeVariableAttributes(var,"reservoir of sealed areas (sealedSTW)", "mm")
        tmpvars(ii) = OutputVariable(var,L1_sealSTW, avg=.true.)       
     end if
-
     if (outputFlxState(7)) then
        ii = ii + 1
-       var = nc%createVariable("unsatSTW", dtype, dims1)
+       var = nc%setVariable("unsatSTW", dtype, dims1)
        call writeVariableAttributes(var, "reservoir of unsaturated zone", "mm")
        tmpvars(ii) = OutputVariable(var,L1_unsatSTW, avg=.true.)       
     end if
 
     if (outputFlxState(8)) then
        ii = ii + 1
-       var = nc%createVariable("satSTW", dtype, dims1)
+       var = nc%setVariable("satSTW", dtype, dims1)
        call writeVariableAttributes(var, "water level in groundwater reservoir", "mm")
        tmpvars(ii) = OutputVariable(var,L1_satSTW, avg=.true.)       
     end if
 
     if (outputFlxState(18)) then
        ii = ii + 1
-       var = nc%createVariable("Neutrons", dtype, dims1)
+       var = nc%setVariable("Neutrons", dtype, dims1)
        call writeVariableAttributes(var, "ground albedo neutrons", "cph")
        tmpvars(ii) = OutputVariable(var,L1_neutrons, avg=.true.)       
     end if
@@ -410,14 +390,14 @@ CONTAINS
 
     if (outputFlxState(9)) then
        ii = ii + 1
-       var = nc%createVariable("PET", dtype, dims1)
+       var = nc%setVariable("PET", dtype, dims1)
        call writeVariableAttributes(var, "potential Evapotranspiration", trim(unit))
        tmpvars(ii) = OutputVariable(var, L1_pet)       
     end if
 
     if (outputFlxState(10)) then
        ii = ii + 1
-       var = nc%createVariable("aET", dtype, dims1)
+       var = nc%setVariable("aET", dtype, dims1)
        call writeVariableAttributes(var, "actual Evapotranspiration", trim(unit))
        tmpvars(ii) = OutputVariable(var, L1_aet)       
     end if
@@ -425,73 +405,73 @@ CONTAINS
     if (outputFlxState(19)) then
        do nn = 1, nSoilHorizons_mHM
           ii = ii + 1
-          var = nc%createVariable("aET_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
+          var = nc%setVariable("aET_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
           call writeVariableAttributes(&
                var,'actual Evapotranspiration from soil layer'//trim(num2str(nn)), "mm "//trim(unit))
-          tmpvars(ii) = OutputVariable(var, L1_aETSoil(:,nn), multip=L1_fNotSealed)
+          tmpvars(ii) = OutputVariable(var, L1_aETSoil(:,nn))
        end do
     end if
     
     if (outputFlxState(11)) then
        ii = ii + 1
-       var = nc%createVariable("Q", dtype, dims1)
+       var = nc%setVariable("Q", dtype, dims1)
        call writeVariableAttributes(var, "total runoff generated by every cell", trim(unit))
        tmpvars(ii) = OutputVariable(var, L1_total_runoff)       
     end if
 
     if (outputFlxState(12)) then
        ii = ii + 1
-       var = nc%createVariable("QD", dtype, dims1)
+       var = nc%setVariable("QD", dtype, dims1)
        call writeVariableAttributes(&
             var, "direct runoff generated by every cell (runoffSeal)", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_runoffSeal, multip=L1_fSealed )       
+       tmpvars(ii) = OutputVariable(var, L1_runoffSeal )       
     end if
 
     if (outputFlxState(13)) then
        ii = ii + 1
-       var = nc%createVariable("QIf", dtype, dims1)
+       var = nc%setVariable("QIf", dtype, dims1)
        call writeVariableAttributes(&
             var, "fast interflow generated by every cell (fastRunoff)", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_fastRunoff, multip=L1_fNotSealed)       
+       tmpvars(ii) = OutputVariable(var, L1_fastRunoff)
     end if
 
     if (outputFlxState(14)) then
        ii = ii + 1
-       var = nc%createVariable("QIs", dtype, dims1)
+       var = nc%setVariable("QIs", dtype, dims1)
        call writeVariableAttributes(&
             var, "slow interflow generated by every cell (slowRunoff)", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_slowRunoff, multip=L1_fNotSealed)       
+       tmpvars(ii) = OutputVariable(var, L1_slowRunoff)
     end if
 
     if (outputFlxState(15)) then
        ii = ii + 1
-       var = nc%createVariable("QB", dtype, dims1)
+       var = nc%setVariable("QB", dtype, dims1)
        call writeVariableAttributes(&
             var, "baseflow generated by every cell", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_baseflow, multip=L1_fNotSealed)       
+       tmpvars(ii) = OutputVariable(var, L1_baseflow)
     end if
 
     if (outputFlxState(16)) then
        ii = ii + 1
-       var = nc%createVariable("recharge", dtype, dims1)
+       var = nc%setVariable("recharge", dtype, dims1)
        call writeVariableAttributes(&
             var, "groundwater recharge", trim(unit))
-       tmpvars(ii) = OutputVariable(var, L1_percol, multip=L1_fNotSealed)       
+       tmpvars(ii) = OutputVariable(var, L1_percol)
     end if
 
     if (outputFlxState(17)) then
        do nn = 1, nSoilHorizons_mHM
           ii = ii + 1
-          var = nc%createVariable("soil_infil_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
+          var = nc%setVariable("soil_infil_L"//trim(num2str(nn,'(i2.2)')), dtype,dims1)
           call writeVariableAttributes(&
                var,"infiltration flux from soil layer"//trim(num2str(nn)), unit)
-          tmpvars(ii) = OutputVariable(var, L1_infilSoil(:,nn), multip=L1_fNotSealed)
+          tmpvars(ii) = OutputVariable(var, L1_infilSoil(:,nn))
        end do
     end if
 
     if (outputFlxState(20)) then
        ii = ii + 1
-       var = nc%createVariable("preEffect", dtype, dims1)
+       var = nc%setVariable("preEffect", dtype, dims1)
        call writeVariableAttributes(&
             var, "effective precipitation", trim(unit))
        tmpvars(ii) = OutputVariable(var, L1_preEffect)       

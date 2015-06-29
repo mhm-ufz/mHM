@@ -3,36 +3,36 @@
 !> \brief Call all main processes of mHM.
 
 !> \details This module calls all processes of mHM for a given configuration.
-!>          The configuration of the model is stored in the a process matrix
-!>          (this configuration is specified in the namelist mhm.nml.
-
+!>          The configuration of the model is stored in the a process matrix.
+!>          This configuration is specified in the namelist mhm.nml.
+!>
+!>          The processes are executed in ascending order. At the moment only
+!>          process 5 and 8 have options.\n
+!>          The MPR technique is only called either if the land cover has been
+!>          changed or for very first time step.\n 
+!>
 !>          Currently the following processes are implemented: \n
-
-!>          Process   | Name                      | Flag  | Description
-!>          --------- | ------------------------- | ----- | ------------------------------------------
-!>          1         | interception              | 1     | Maximum interception     
-!>          2         | snow and melting          | 1     | Degree-day
-!>          3         | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
-!>          4         | direct runoff             | 1     | Linear reservoir exceedance 
-!>          5         | PET                       | 0     | PET is read as input 
-!>                                                | 1     | Hargreaves-Samani
-!>                                                | 2     | Priestley-Taylor
-!>                                                | 3     | Penman-Monteith
-!>          6         | interflow                 | 1     | Nonlinear reservoir with saturation excess
-!>          7         | percolation and base flow | 1     | GW linear reservoir     
-!>          8         | routing                   | 1     | Muskingum
-
-!>          These processes are executed in ascending order. At the moment only process 5 and 8 have options.\n
-!>          The MPR technique is only called either if the land cover has been changed or for very first time step.\n 
+!>
+!>          Process    | Name                      | Flag  | Description                         
+!>          ---------- | ------------------------- | ----- | ------------------------------------------
+!>          1          | interception              | 1     | Maximum interception     
+!>          2          | snow and melting          | 1     | Degree-day
+!>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
+!>          4          | direct runoff             | 1     | Linear reservoir exceedance 
+!>          5          | PET                       | 0     | PET is read as input 
+!>          5          |         ''                | 1     | Hargreaves-Samani
+!>          5          |         ''                | 2     | Priestley-Taylor
+!>          5          |         ''                | 3     | Penman-Monteith
+!>          6          | interflow                 | 1     | Nonlinear reservoir with saturation excess
+!>          7          | percolation and base flow | 1     | GW linear reservoir     
+!>          8          | routing                   | 0     | no routing
+!>          8          |         ''                | 1     | Muskingum
+!>
   
 !> \author Luis Samaniego
 !> \date Dec 2012
 
 MODULE mo_mHM
-
-  ! This module provides the startup routines for mHM.
-
-  ! Written Luis Samaniego & Rohini Kumar, Dec 2012
 
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
@@ -41,9 +41,9 @@ MODULE mo_mHM
  
   IMPLICIT NONE
 
-  PRIVATE
-
   PUBLIC :: mHM      ! initialization sequence
+
+  PRIVATE
 
 CONTAINS
   ! ------------------------------------------------------------------
@@ -52,21 +52,20 @@ CONTAINS
   !         mHM
 
   !     PURPOSE
-  !>        \brief run mHM.
+  !>        \brief Pure mHM calculations.
 
-  !>        \details
-  !>
-  !>        mHM.\n
+  !>        \details Pure mHM calculations. All variables are allocated and initialized. \n
+  !>                 They will be local variables within this call. \n
   !>
 
   !     INTENT(IN)
-  !>        None
+  !         Has to be updated...
 
   !     INTENT(INOUT)
-  !         None
+  !         Has to be updated...
 
   !     INTENT(OUT)
-  !         None
+  !         Has to be updated...
 
   !     INTENT(IN), OPTIONAL
   !         None
@@ -78,15 +77,16 @@ CONTAINS
   !         None
 
   !     RETURN
-
+  !         None
 
   !     RESTRICTIONS
   !>       \note Fields must be consistent to DEM.
 
   !     EXAMPLE
-  !        none
+  !         None
 
   !     LITERATURE
+  !         None
 
   !     HISTORY
   !>        \author  Luis Samaniego & Rohini Kumar
@@ -288,8 +288,8 @@ CONTAINS
     implicit none
 
     ! Intent
-    logical,                     intent(in) :: perform_mpr   ! flag for reading restart files for state variables
-    logical,                     intent(in) :: read_states   ! indicated whether states have been read from file
+    logical,                     intent(in) :: perform_mpr          ! flag for reading restart files for state variables
+    logical,                     intent(in) :: read_states          ! indicated whether states have been read from file
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: timeStep_LAI_input   ! time step of gridded LAI input
     integer(i4),                 intent(in) :: counter_year         ! counter to tackle the change of year

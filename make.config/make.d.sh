@@ -3,7 +3,7 @@
 #
 # Produces makefile dependencies of Fortran files
 #
-# Copyright 2013 Matthias Cuntz - mc (at) macu.de
+# Copyright 2013-2015 Matthias Cuntz - mc (at) macu.de
 #
 # License
 # This file is part of the makefile library.
@@ -104,18 +104,19 @@ dict="${firstdir}/${src2obj}/${pprog}.dict"
 if [[ ! -f ${dict} ]] ; then # new dict only if it does not exist in directory yet
     if [[ ! -d $(dirname ${dict}) ]] ; then mkdir -p $(dirname ${dict}) ; fi
     for i in ${srcfiles} ; do # all files in all input dirs
+	# 0. cariage returns to newlines,
 	# 1. all blanks to one space, 2. rm f90 comments, 3. rm f77 comments,
 	# 4. rm leading blank, 5. rm trailing blank, 6. rm blank lines,
 	# 7. lowercase, 8. squeeze blanks (redundant),
 	# 9. lines with word 'module', 10. lines with only 'module name', i.e. not module procedure,
 	# 11. rm word 'module'
-	ismod=$(echo "${i}:$(sed -e 's/[[:blank:]]\{1,\}/ /g' -e 's/ *\!.*//' -e '/^[Cc]/d' -e 's/^ //' -e 's/ $//' -e 's/^$//' ${i} | tr [A-Z] [a-z] | sed -n -e '/^module /p' | sed -n -e '/^module [[:alnum:]_]\{1,\}$/p' | sed -e 's/^module //')")
+	ismod=$(echo "${i}:$(tr '\r' '\n' < ${i} | sed -e 's/[[:blank:]]\{1,\}/ /g' -e 's/ *\!.*//' -e '/^[Cc]/d' -e 's/^ //' -e 's/ $//' -e 's/^$//' | tr [A-Z] [a-z] | sed -n -e '/^module /p' | sed -n -e '/^module [[:alnum:]_]\{1,\}$/p' | sed -e 's/^module //')")
 	if [[ "${ismod}z" != "${i}:z" ]] ; then echo ${ismod} >> ${dict} ; fi
     done
 fi
 
 # Modules used in the input file
-molist=$(sed -e 's/\!.*//' -e '/^[Cc]/d' ${thisfilename} | tr [A-Z] [a-z] | tr -s ' ' | grep -E '^[[:blank:]]*use[[:blank:]]+' | sed 's/,.*//' | sed 's/.*use //' | sort | uniq)
+molist=$(sed -e 's/\!.*//' -e '/^[Cc]/d' ${thisfile} | tr [A-Z] [a-z] | tr -s ' ' | grep -E '^[[:blank:]]*use[[:blank:]]+' | sed 's/,.*//' | sed 's/.*use //' | sort | uniq)
 is=$(echo ${molist} | tr ' ' '|')
 
 # Query dictionary for filenames of modules used in input file

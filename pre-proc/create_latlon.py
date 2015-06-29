@@ -6,10 +6,14 @@
 # created by Matthias Zink 04.04.2012
 # modified Stephan Thober, Nov 2013 - mHM confirmative
 # modified Matthias Zink , Feb 2014 - BugFix for wrong latitudes, added command line arguments
+#          Stephan Thober, Jun 2015 - added option for performing no coordinate transformation,
+#                                     updated import to new ufz module, cs can be float,
+#                                     create 1 dimensional xx array now with linspace, which is cleaner and solves a bug in the creation of the y direction
 #
 #############################################
 #
 # COORDINATE SYSTEM
+#   if empty string is given, no coordinate transformation will be transformed
 #   code 31463 defines GK (DHDN3 Zone 3)
 #   [website: http://www.spatialreference.org/ref/epsg/31463/]
 #   equal +proj=tmerc +ellps=bessel +lon_0=12 +x_0=3,500,000 +y_0=0
@@ -57,8 +61,8 @@ coord_sys          = opts.coord_sys
 import numpy as np                       # array manipulation
 import netCDF4 as nc                     # netCDF interphase
 import time, os, sys                     # call current time for timestamp
-from pyproj      import Proj
-from writenetcdf import writenetcdf      # from ufz
+from pyproj import Proj
+from ufz    import writenetcdf      # from ufz
 
 # check input files
 
@@ -71,18 +75,22 @@ ncols       = np.int(header_info[0,1])
 nrows       = np.int(header_info[1,1])
 xllcorner   = np.float(header_info[2,1])
 yllcorner   = np.float(header_info[3,1])
-cs          = np.int(header_info[4,1])
+cs          = np.float(header_info[4,1])
 missVal     = header_info[5,1]
 
 # create x and y grid
-xx          = np.arange( xllcorner + cs/2,            xllcorner + cs/2 + ncols*cs, cs)
-yy          = np.arange( yllcorner + cs/2 + nrows*cs, yllcorner + cs/2,-cs)
+xx          = np.linspace( xllcorner + cs/2,                xllcorner + cs/2 + (ncols-1)*cs, ncols)
+yy          = np.linspace( yllcorner + cs/2 + (nrows-1)*cs, yllcorner + cs/2,                nrows)
 xx, yy      = np.meshgrid(xx,yy)
 
 #
 # determine latitude and longitude of the Aimgrid
-projAim    = Proj(init=coord_sys)
-lons, lats = projAim(xx, yy, inverse=True)
+if coord_sys == '':
+    lons = xx
+    lats = yy
+else:
+    projAim    = Proj(init=coord_sys)
+    lons, lats = projAim(xx, yy, inverse=True)
 #
 # write netCDF
 fName   = outfile

@@ -105,6 +105,9 @@ LAPACKDIR   := /usr/local/lapack/3.5.0-1_gcc_4.8.1_CentOS6
 GFORTRANDIR := /usr/local/gcc/4.8.1-3_CentOS6/
 GFORTRANLIB := $(GFORTRANDIR)/lib64
 
+# MPI
+MPIDIR := /usr/local/openmpi/intel/1.8.4-2
+
 # Documentation
 DOXYGENDIR := /usr/local/doxygen/1.8.7-1_gcc_4.8.1_CentOS6/bin
 DOTDIR     := /usr/bin

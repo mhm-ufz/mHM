@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 6.0 at Matthias' MacBook Air
+# Setup file for NAG compiler 6.0 at Luis' iMac
 #
 
 # The Makefile assumes the standard bin, include and lib directories
@@ -85,10 +85,10 @@ MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := /usr/local/netcdf-3.6.3-nagfor
+    NCDIR := 
 else
     NCDIR   := /usr/local
-    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-nagfor
+    NCFDIR  := /usr/local/netcdf_4.2_nag53
     CURLLIB := /usr/lib
     SZLIB   := /usr/local/lib
     HDF5LIB := /usr/local/lib
@@ -101,9 +101,6 @@ FPROJDIR :=
 # LAPACK
 LAPACKDIR   :=
 GFORTRANDIR := /usr/local
-
-# MPI
-MPIDIR := /usr/local/openmpi-1.8.4-nagfor
 
 # Documentation
 DOXYGENDIR := /usr/local/bin

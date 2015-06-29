@@ -83,7 +83,7 @@ LAPACKDIR   :=
 GFORTRANDIR := $(GNUDIR)
 
 # MPI
-MPIDIR := /usr/local/openmpi_1.8.1_gfortran
+MPIDIR := /usr/local/openmpi-1.8.4-gfortran
 
 # Documentation
 DOXYGENDIR := /usr/local/bin
