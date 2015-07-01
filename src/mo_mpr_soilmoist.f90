@@ -614,29 +614,25 @@ contains
             vGenuchtenN_c18 * Db
     end if
 
-    ! Maulaum alpha
+    ! Mualem alpha
     Genu_Mual_alpha = exp(x)
 
-    ! hard coded limits
-    if (thetaS < 0.001_dp) then
-       write(*,*) 'JMJMJM-thetaS-BAD'
+    ! hard coded limits, according to (Zacharias et al, 2007, soil Phy.)
+    if (thetaS < 0.01_dp) then
+       write(*,*) 'thetaS below threshold limit 1e-2, reset.'
+       ! Put constrains on theta_S 
+       thetaS = 0.01_dp
     end if
     if (Genu_Mual_n < 1.01000_dp) then
-       write(*,*) 'JMJMJM-Genu_Mual_n-BAD'
+       write(*,*) 'Genu_Mual_n below threshold limit 1.01, reset.'
+       Genu_Mual_n = 1.01000_dp
     end if
     if (Genu_Mual_alpha < 0.00001_dp) then
-       write(*,*) 'JMJMJM-Genu_Mual_alpha-BAD'
+       write(*,*) 'Genu_Mual_alpha below threshold limit 1e-5, reset.'
+       Genu_Mual_alpha = 0.00001_dp
     end if
 
-    ! Put constrains on theta_S
-    if (thetaS < 0.0_dp) thetaS = 0.001_dp
-
-    ! Put constrains on  Genu_Mual_n
-    ! according to (Zacharias et al, 2007, soil Phy.)
-    if(Genu_Mual_n     < 1.01000_dp) Genu_Mual_n     = 1.01000_dp
-    if(Genu_Mual_alpha < 0.00001_dp) Genu_Mual_alpha = 0.00001_dp
-
-  end subroutine Genuchten
+    end subroutine Genuchten
 
   ! ----------------------------------------------------------------------------
 
