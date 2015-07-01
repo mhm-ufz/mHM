@@ -1250,7 +1250,7 @@ CONTAINS
     !===============================================================
 
     ! read in of number of geological formations
-    fName = trim(adjustl(dirMorpho(1))) // trim(adjustl(file_geolut))
+    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))
     open( unit=ugeolut, file=fname, action='read', status='old')
     read(ugeolut, *) dummy, nGeoUnits
     close(ugeolut)
