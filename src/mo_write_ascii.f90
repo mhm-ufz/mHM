@@ -77,6 +77,7 @@ MODULE mo_write_ascii
   !         Modified, Juliane Mai,    May 2013 - module version and documentation
   !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
   !                   Stephan Thober, Jun 2014 - updated read_restart
+  !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
 
   PRIVATE
 
@@ -90,13 +91,14 @@ CONTAINS
     use mo_mhm_constants,    only: nodata_dp
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
-    USE mo_file,             only: file_config, uconfig
+    USE mo_file,             only: file_config, uconfig, version
     use mo_global_variables, only:                     &
          processMatrix,             &
          nBasins,                   &
          basin,                     &
          gauge,                     &
          InflowGauge,               &
+         iFlag_cordinate_sys,       &
          L0_nCells,                 &
          L1_nCells,                 &
          L11_nCells,                &
@@ -152,7 +154,7 @@ CONTAINS
        stop
     end if
     write(uconfig, 200) 
-    write(uconfig, 100) 'mHM-UFZ v-5.0'
+    write(uconfig, 100) 'mHM-UFZ v-'//trim(version)
     write(uconfig, 100) 'L. Samaniego & R. Kumar, UFZ'
     write(uconfig, 200) 
     write(uconfig, 100)
@@ -169,10 +171,19 @@ CONTAINS
     end if
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do i=1, nBasins
-       write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
-       if ( processMatrix(8,1) .ne. 0 ) then
-          write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
-       end if
+       select case (iFlag_cordinate_sys)
+       case (0)
+          write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
+          if ( processMatrix(8,1) .ne. 0 ) then
+             write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
+          end if
+       case(1)
+         write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
+          if ( processMatrix(8,1) .ne. 0 ) then
+             write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
+          end if
+  
+       end select
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
     write(uconfig, 126)    'Flag WRITE restart            ', write_restart
@@ -227,9 +238,9 @@ CONTAINS
        write(uconfig, 202) '                Basin Runoff Data                '
        write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
        do i=1, nGaugesTotal
-          if( all(gauge%Q(:,i) > nodata_dp) ) then
+          if( any(gauge%Q(:,i) > nodata_dp) ) then
              write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
-                                                    minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
+                  minval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp)
           else
              write(uconfig,108) i, gauge%basinId(i), nodata_dp, nodata_dp
           end if
@@ -242,7 +253,7 @@ CONTAINS
        do i=1, nInflowGaugesTotal
           if( all(InflowGauge%Q(:,i) > nodata_dp) ) then
              write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
-                                                           minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
+                  minval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp)
           else
              write(uconfig,108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
           end if
@@ -270,54 +281,56 @@ CONTAINS
        write(uconfig, 224) 'Directory to write output when restarted ',  dirRestartOut(n)
 
        if ( processMatrix(8,1) .ne. 0 ) then
-          write(uconfig, 102) 'River Network       '
+          write(uconfig, 102) 'River Network  (Routing level)'
           write(uconfig, 100) 'Label 0 = intermediate draining cell '
           write(uconfig, 100) 'Label 1 = headwater cell             '
           write(uconfig, 100) 'Label 2 = sink cell                  '
 
-          write(uconfig, 104)  '      Link', &
+          write(uconfig, 104) '   Overall', &
                '      From', &
                '        To', &
                '   Routing', &
                '     Label', &
                '    Length', &
-               '      mean', &
-               '        Id', &
-               '      Node', &
-               '      Node', &
+               '      Mean', &
+               '      Link', &
+               '   Routing', &
+               '   Routing', &
                '  Sequence', &
                '          ', &
                '          ', &
                '     Slope'
           !
-          write(uconfig, 105)  '', &
-               '',           &
-               '',           &
-               '',           &
+          write(uconfig, 105) '        Id', &
+               '      Node', &
+               '      Node', &
+               '', &
                '',           &
                '      [km]', &
-               '       [-]'
+               '    [o/oo]'
           !
           do j=basin%L11_iStart(n), basin%L11_iEnd(n)-1
              i=L11_netPerm(j) + basin%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
              write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
-                  L11_length(i)/1000.0_dp, L11_slope(i)
+                  L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
           end do
-          !        
-          !
           ! draining node at L11
-          write(uconfig, 109)  'Node Index', '   Node Id'
+          write(uconfig, 109)  '   Overall', '     Basin', &
+               '      Cell', '   Routing', &
+               '        Id', '   Node Id'
           do i=basin%L11_iStart(n), basin%L11_iEnd(n)
              write(uconfig, 110) i, L11_Id(i)
           end do
-          !
-          write(uconfig, 111)  '      Cell', '    L11-Id', '  efecArea'
-          write(uconfig, 112)  '       No.', '       [-]', '     [km2]'
 
-          do i=1,L1_nCells
-             write(uconfig,113) i,  L1_L11_Id(i), L1_areaCell(i)
+          ! L1 level information
+          write(uconfig, 111)  '  Modeling', '   Routing', ' Effective', &
+               '      Cell', '   Cell Id', '      Area', &
+               '        Id', '       [-]', '     [km2]'
+
+          do i=basin%L1_iStart(n), basin%L1_iEnd(n)
+             write(uconfig,113) i, L1_L11_Id(i), L1_areaCell(i)
           end do
-          write(uconfig,114)  ' Total[km2]', sum(L1_areaCell)
+          write(uconfig,114)  ' Total[km2]', sum(L1_areaCell(basin%L1_iStart(n): basin%L1_iEnd(n)))
        end if
        !
     end do
@@ -327,7 +340,7 @@ CONTAINS
 
     !! Formats
 100 format (a80)
-102 format (/ 30('-') / a20 / 30('-') )
+102 format (/ 30('-') / a30 / 30('-') )
 103 format (a20, 10x, i10)
 104 format (/ 75('-') / 5a10, 5x, 2a10 / 5a10, 5x, 2a10)
 105 format (5a10, 5x, 2a10 / 75('-'))
@@ -335,11 +348,10 @@ CONTAINS
 107 format (2a10, 2a15)
 108 format (2i10, 2f15.3)
     !
-109 format (/ 20('-') / 2a10  / 20('-') )
-110 format (             i10,  i10      )
+109 format (/ 20('-') / 2a10 / 2a10 / 2a10 / 20('-') )
+110 format (            2i10 )
     !
-111 format (/ 30('-') / 3a10                   )
-112 format (            3a10         / 30('-') )
+111 format (/ 30('-') / 3a10 / 3a10 / 3a10 /  30('-') )
 113 format (            2i10,   1f10.3         )
 114 format (30('-') / a15, 5x,  1f10.3 /       )
     !
@@ -365,7 +377,8 @@ CONTAINS
 222 format (/80('-')/ 26x,a21 /80('-'))
 224 format (a40, 5x, a256)
 
-301 format (a7, i2, a33,f10.0)
+301 format (a7, i2, a32,f15.0)
+302 format (a7, i2, a32,es20.8)
   end Subroutine write_configfile
 
 
@@ -592,14 +605,14 @@ CONTAINS
           end if
        case(5)
           select case (processMatrix(iProc,1))
-             case(0)
-                write(uopti_nml,*) '&PET0'
-             case(1)
-                write(uopti_nml,*) '&PET1'
-             case(2)
-                write(uopti_nml,*) '&PET2'
-             case(3)
-                write(uopti_nml,*) '&PET3'
+          case(0)
+             write(uopti_nml,*) '&PET0'
+          case(1)
+             write(uopti_nml,*) '&PET1'
+          case(2)
+             write(uopti_nml,*) '&PET2'
+          case(3)
+             write(uopti_nml,*) '&PET3'
           end select
        case(6)
           if (processMatrix(iProc,1) .eq. 1) then
@@ -727,7 +740,7 @@ CONTAINS
     integer(i4)                              :: igauge_start, igauge_end
     integer(i4)                              :: day, month, year
     real(dp)                                 :: newTime
-    
+
 
     ! initalize igauge_start
     igauge_start = 1
