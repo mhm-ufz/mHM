@@ -1212,6 +1212,10 @@ CONTAINS
        ! 0 - deactivated
        call message()          
        call message('***CAUTION: Routing is deativated! ')
+
+       processMatrix(8, 1) = processCase(8)
+       processMatrix(8, 2) = 0_i4
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2)) 
     case(1)
        ! 1 - Muskingum approach
        call position_nml('routing1', unamelist_param)
@@ -1256,30 +1260,40 @@ CONTAINS
     close(ugeolut)
     dummy = dummy//''   ! only to avoid warning
 
-    ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
-    call position_nml('geoparameter', unamelist_param)
-    GeoParam = nodata_dp
-    read(unamelist_param, nml=geoparameter)
+    ! Process 9 - geoparameter
+    select case (processCase(9))
+    case(1)
+       ! read in global parameters (NOT REGIONALIZED, i.e. these are <beta> and not <gamma>) for each geological formation used
+       call position_nml('geoparameter', unamelist_param)
+       GeoParam = nodata_dp
+       read(unamelist_param, nml=geoparameter)
 
-    call append(global_parameters, GeoParam(1:nGeoUnits,:))
+       ! for geology parameters
+       processMatrix(9,1) = 1 !processCase(9)
+       processMatrix(9,2) = nGeoUnits
+       processMatrix(9,3) = sum(processMatrix(1:9, 2))
+       
+       call append(global_parameters, GeoParam(1:nGeoUnits,:))
 
-    do ii=1, nGeoUnits
-       dummy = 'GeoParam('//trim(adjustl(num2str(ii)))//',:)'
-       call append(global_parameters_name, (/ trim(adjustl(dummy)) /)) 
-    end do
+       ! create names
+       do ii=1, nGeoUnits
+          dummy = 'GeoParam('//trim(adjustl(num2str(ii)))//',:)'
+          call append(global_parameters_name, (/ trim(adjustl(dummy)) /)) 
+       end do
+       
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
 
-    ! check if parameter are in range
-    if ( .not. in_bound(global_parameters) ) then
-       call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
-            trim(adjustl(file_namelist_param)))
+    case DEFAULT
+       call message()          
+       call message('***ERROR: Process description for process "geoparameter" does not exist!')
        stop
-    end if
-
-    ! for baseflow parameters
-    processMatrix(9,1) = 1
-    processMatrix(9,2) = nGeoUnits
-    processMatrix(9,3) = sum(processMatrix(1:9, 2))
-
+    end select
+  
     ! Process 10 - neutrons 
     !   0 - deactivated
     !   1 - inverse N0 based on Desilets et al. 2010 
@@ -1326,7 +1340,7 @@ CONTAINS
     end if
 
     call close_nml(unamelist_param)
-
+    
     !===============================================================
     ! Settings for Optimization
     !===============================================================

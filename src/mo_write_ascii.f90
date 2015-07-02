@@ -558,15 +558,15 @@ CONTAINS
     integer(i4)                              :: err
     integer(i4)                              :: iProc, iPar, iPar_start
 
-    Process_descr(1) = 'interception'
-    Process_descr(2) = 'snow'
-    Process_descr(3) = 'soilmoisture'
-    Process_descr(4) = 'directSealedAreaRunoff'
-    Process_descr(5) = 'potential evapotranspiration'
-    Process_descr(6) = 'interflow'
-    Process_descr(7) = 'percolation'
-    Process_descr(8) = 'routing'
-    Process_descr(9) = 'geology'
+    Process_descr(1)  = 'interception'
+    Process_descr(2)  = 'snow'
+    Process_descr(3)  = 'soilmoisture'
+    Process_descr(4)  = 'directSealedAreaRunoff'
+    Process_descr(5)  = 'potential evapotranspiration'
+    Process_descr(6)  = 'interflow'
+    Process_descr(7)  = 'percolation'
+    Process_descr(8)  = 'routing'
+    Process_descr(9)  = 'geology'
     Process_descr(10) = 'neutrons'
 
     ! open file
