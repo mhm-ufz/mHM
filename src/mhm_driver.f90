@@ -136,6 +136,8 @@
 !                      Stephan Thober May 2014 - moved read meteo forcings to mo_mhm_eval
 !       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 !                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
+!                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
+
 !
 ! --------------------------------------------------------------------------
 
@@ -168,7 +170,7 @@ PROGRAM mhm_driver
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
        basin, processMatrix                                         ! basin information,  processMatrix
-  USE mo_global_variables, ONLY: opti_function
+  USE mo_global_variables,    ONLY : opti_function, dirConfigOut
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
@@ -211,7 +213,10 @@ PROGRAM mhm_driver
   integer(i4)                           :: npara
   real(dp), dimension(:,:), allocatable :: local_parameters ! global_parameters but includes a and b for likelihood
   logical,  dimension(:),   allocatable :: local_maskpara   ! maskpara but includes a and b for likelihood
-
+  character(256)                        :: tFile            ! file for temporal optimization outputs
+  character(256)                        :: pFile            ! file for temporal SCE optimization outputs
+  
+  
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -416,77 +421,89 @@ PROGRAM mhm_driver
      select case (opti_method)
      case (0)
         call message('    Use MCMC')
+        
+        tFile = trim(adjustl(dirConfigOut)) // 'mcmc_tmp_parasets.nc'
 
         if (seed .gt. 0_i8) then
            ! use fixed user-defined seed
-           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-                ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
-                maskpara_in=local_maskpara,                                                                           &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras,&
+                burnin_paras, ParaSelectMode_in=2_i4, tmp_file=tFile, &
+                maskpara_in=local_maskpara,                           &
                 seed_in=seed, loglike_in=.true., printflag_in=.true.)
         else
            ! use flexible clock-time seed
-           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-                ParaSelectMode_in=2_i4,tmp_file='mcmc_tmp_parasets.nc',                                         &
-                maskpara_in=local_maskpara,                                                                           &
+           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras,&
+                burnin_paras, ParaSelectMode_in=2_i4,tmp_file=tFile,                                  &
+                maskpara_in=local_maskpara,                                                           &
                 loglike_in=.true., printflag_in=.true.)
         end if
      case (1)
         call message('    Use DDS')
+
+        tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
+        
         if (seed .gt. 0_i8) then
            ! use fixed user-defined seed
-           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),            &
-                maxiter=int(nIterations,i8), r=dds_r, seed=seed,                                                &
-                tmp_file='dds_results.out', mask=local_maskpara,                                                      &
+           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+                maxiter=int(nIterations,i8), r=dds_r, seed=seed,                                      &
+                tmp_file=tFile, mask=local_maskpara,                                                  &
                 funcbest=funcbest)
         else
            ! use flexible clock-time seed
-           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),            &
-                maxiter=int(nIterations,i8), r=dds_r,                                                           &
-                tmp_file='dds_results.out', mask=local_maskpara,                                                      &
+           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+                maxiter=int(nIterations,i8), r=dds_r,                                                 &
+                tmp_file=tFile, mask=local_maskpara,                                                  &
                 funcbest=funcbest)
         end if
      case (2)
         call message('    Use Simulated Annealing')
+
+        tFile = trim(adjustl(dirConfigOut)) // 'anneal_results.out'
+        
         if (seed .gt. 0_i8 .and. sa_temp .gt. 0.0_dp) then
            ! use fixed user-defined seed and user-defined initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),         &
-                temp=sa_temp, seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,                 &
-                tmp_file='anneal_results.out', maskpara=local_maskpara,                                               &
+           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
+                temp=sa_temp, seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,       &
+                tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         else if (seed .gt. 0_i8) then
            ! use fixed user-defined seed and adaptive initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),         &
-                seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,                               &
-                tmp_file='anneal_results.out', maskpara=local_maskpara,                                               &
+           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
+                seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,                     &
+                tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         else if (sa_temp .gt. 0.0_dp) then
            ! use flexible clock-time seed and user-defined initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),         &
-                temp=sa_temp, nITERmax=nIterations,                                                             &
-                tmp_file='anneal_results.out', maskpara=local_maskpara,                                               &
+           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
+                temp=sa_temp, nITERmax=nIterations,                                                   &
+                tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         else
            ! use flexible clock-time seed and adaptive initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),         &
-                nITERmax=nIterations,                                                                           &
-                tmp_file='anneal_results.out', maskpara=local_maskpara,                                               &
+           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
+                nITERmax=nIterations,                                                                 &
+                tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         end if
      case (3)
         call message('    Use SCE')
+
+        tFile = trim(adjustl(dirConfigOut)) // 'sce_results.out'
+        pFile =  trim(adjustl(dirConfigOut)) // 'sce_population.out'
+        
         if (seed .gt. 0_i8) then
            ! use fixed user-defined seed
-           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),            &
-                mymaxn=int(nIterations,i8), myseed=seed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps,           &
-                parallel=.false., mymask=local_maskpara,                                                              &
-                tmp_file='sce_results.out', popul_file='sce_population.out',                                    &
+           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+                mymaxn=int(nIterations,i8), myseed=seed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps, &
+                parallel=.false., mymask=local_maskpara,                                              &
+                tmp_file=tFile, popul_file=pFile,                                                     &
                 bestf=funcbest)
         else
            ! use flexible clock-time seed
-           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),            &
-                mymaxn=int(nIterations,i8), myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps,                        &
-                parallel=.false., mymask=local_maskpara,                                                              &
-                tmp_file='sce_results.out', popul_file='sce_population.out',                                    &
+           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+                mymaxn=int(nIterations,i8), myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps,              &
+                parallel=.false., mymask=local_maskpara,                                              &
+                tmp_file=tFile, popul_file=pFile,                                                     &
                 bestf=funcbest)
         end if
      case default
