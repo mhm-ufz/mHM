@@ -1269,7 +1269,7 @@ CONTAINS
        read(unamelist_param, nml=geoparameter)
 
        ! for geology parameters
-       processMatrix(9,1) = 1 !processCase(9)
+       processMatrix(9,1) = processCase(9)
        processMatrix(9,2) = nGeoUnits
        processMatrix(9,3) = sum(processMatrix(1:9, 2))
        
