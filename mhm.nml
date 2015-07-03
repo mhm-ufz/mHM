@@ -448,7 +448,7 @@ processCase(7) = 1
 !> 1 - Muskingum approach
 processCase(8) = 1
 !> baseflow
-!> 1 - geological parameters (not regionalized yet)
+!> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
 !> ground albedo of cosmic-ray neutrons
 !> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
