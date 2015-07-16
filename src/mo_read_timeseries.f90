@@ -44,7 +44,7 @@ CONTAINS
   !     CALLING SEQUENCE
   !         call read_timeseries(filename, fileunit, &
   !                              (/start_YYYY, start_MM, start_DD/), &
-  !                              (/end_YYYY,   end_MM,   end_DD/),   &
+  !                              (/end_YYYY,   end_MM,   end_DD/), optimize, opti_function,  &
   !                              data, mask=mask, nMeasPerDay=nMeasPerDay)
 
   !     INTENT(IN)
@@ -81,7 +81,7 @@ CONTAINS
   !     EXAMPLE
   !         call read_timeseries('old_code/sub_00020/input/gauge/0000411.txt', 127, &
   !                              (/1901, 01, 03/), &
-  !                              (/1901, 01, 08/), &
+  !                              (/1901, 01, 08/), optimize, opti_function, &
   !                              data, mask=maske, nMeasPerDay=nMeasPerDay) 
 
   !     LITERATURE
@@ -95,7 +95,7 @@ CONTAINS
   !                    MatthiasZink,               Mar 2014: enable    read in of nodata periods, e.g. forecast mode
   !                    Matthias Zink, Juliane Mai  Jan 2015: corrected read in of nodata periods, e.g. forecast mode
 
-  subroutine read_timeseries(filename, fileunit, periodStart, periodEnd, optimize, data, mask, nMeasPerDay)
+  subroutine read_timeseries(filename, fileunit, periodStart, periodEnd, optimize, opti_function, data, mask, nMeasPerDay)
 
     use mo_julian,        only: julday
     use mo_message,       only: message
@@ -107,6 +107,7 @@ CONTAINS
     integer(i4), dimension(3),                        intent(in)  :: periodStart      ! format (/YYYY, MM, DD/)
     integer(i4), dimension(3),                        intent(in)  :: periodEnd        ! format (/YYYY, MM, DD/)
     logical,                                          intent(in)  :: optimize         ! optimization on or off (.TRUE. or .FALSE.)
+    integer(i4),                                      intent(in)  :: opti_function    ! number of opti function that determines type of data
     real(dp),    dimension(:), allocatable,           intent(out) :: data             ! time series output (periodStart:periodEnd)
     logical,     dimension(:), allocatable, optional, intent(out) :: mask             ! indicating valid data (false
     !                                                                                 ! at no data value points)
@@ -155,7 +156,9 @@ CONTAINS
       startJul_file   = julday(periodStart_file(3), periodStart_file(2), periodStart_file(1) )
       endJul_file     = julday(periodEnd_file(3),   periodEnd_file(2),   periodEnd_file(1) )
 
-      if (((startJul_period < startJul_file) .OR. (endJul_period > endJul_file )) .AND. optimize) then
+      if (((startJul_period < startJul_file) .OR. (endJul_period > endJul_file )) &
+         .AND. optimize .and. (opti_function .le. 9_i4 .or. opti_function .eq. 14_i4)) then
+         ! adjust this whenever a new opti function on discharge is added to mhm!
          call message('***ERROR: Simulation period is not covered by observations! ', trim(filename))
          stop
       end if

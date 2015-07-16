@@ -126,6 +126,7 @@ CONTAINS
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      optimize,                            & ! optimizeation flag for some error checks
+                                     opti_function,                       & ! opti_function that determines to what data to calibrate
                                      nGaugesTotal, gauge, nMeasPerDay,    & ! evaluaton gauging station information
                                      nInflowGaugesTotal, InflowGauge,     & ! inflow stations information
                                      nBasins,                             & ! number of basins
@@ -483,7 +484,7 @@ CONTAINS
           ! evaluation gauge
           fName = trim(adjustl(gauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, optimize, &
+               start_tmp, end_tmp, optimize, opti_function, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
           data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
           call paste(gauge%Q, data_dp_1d, nodata_dp )
@@ -511,7 +512,7 @@ CONTAINS
           ! inflow gauge
           fName = trim(adjustl(InflowGauge%fname(iGauge)))
           call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, optimize, &
+               start_tmp, end_tmp, optimize, opti_function, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
           if ( .NOT. (all(mask_1d)) ) then
              call message()
