@@ -4,7 +4,7 @@
 
 !> \details This module provides string conversion and checking utilities.
 
-!> \authors Matthias Cuntz
+!> \authors Matthias Cuntz, Matthias Zink, Giovanni Dalmasso, David Schaefer
 !> \date Dec 2011
 
 MODULE mo_string_utils
@@ -333,8 +333,7 @@ CONTAINS
 
     CHARACTER(len=*)             , INTENT(IN)        :: string
     CHARACTER(len=*)             , INTENT(IN)        :: delim
-    CHARACTER(len=*), DIMENSION(:), ALLOCATABLE, &
-         INTENT(OUT)      :: strArr
+    CHARACTER(len=*), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: strArr
 
     CHARACTER(256)                                   :: stringDummy   ! string in fisrt place but cutted in pieces
     CHARACTER(256), DIMENSION(:) , ALLOCATABLE       :: strDummyArr   ! Dummy arr until number of substrings is known
@@ -430,13 +429,17 @@ CONTAINS
     integer(i4)                      :: i
     logical                          :: equalStrings
 
+#ifdef pgiFortran
+    allocate(array1(len(string1)))
+    allocate(array2(len(string2)))
+#endif
     array1 = str2num(trim(string1))
     array2 = str2num(trim(string2))
     equalStrings = .false.
 
     if (size(array1) .eq. size(array2)) then
        equalStrings = .true.
-       do i=1,size(array1)
+       do i=1, size(array1)
           if (array1(i) .ne. array2(i)) then
              equalStrings = .false.
              exit 
@@ -569,6 +572,10 @@ CONTAINS
     integer(i4)                           :: i, start
     !
     if (allocated(out)) deallocate(out)
+#ifdef pgiFortran
+    allocate(string_array(len(string//delim)))
+    allocate(delim_array(len(delim)))
+#endif
     string_array = str2num(string//delim)
     delim_array = str2num(delim)
     start = 1
@@ -630,7 +637,7 @@ CONTAINS
   !         \author David Schaefer
   !         \date Mar 2015
 
-  function startsWith(string,start)
+  function startsWith(string, start)
     
     implicit none
 
@@ -638,8 +645,12 @@ CONTAINS
     integer(i4), allocatable         :: string_array(:), start_array(:)
     logical                          :: startsWith
 
+#ifdef pgiFortran
+    allocate(string_array(len(string)))
+    allocate(start_array(len(start)))
+#endif
     string_array = str2num(string)
-    start_array = str2num(start) 
+    start_array = str2num(start)
 
     startsWith = .false.
     if (all(string_array(1:1+size(start_array)-1) .eq. start_array)) then 

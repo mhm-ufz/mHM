@@ -11,9 +11,10 @@
 
 MODULE mo_orderpack
 
-  ! Written, Matthias Cuntz, Apr 2014 - adapted to UFZ library
-  !                                   - one module, cleaned all warnings
-  ! Modified, Juliane Mai,   Nov 2014 - replaced floating comparison by ne(), eq(), etc. from mo_utils
+  ! Written,  Matthias Cuntz, Apr 2014 - adapted to UFZ library
+  !                                    - one module, cleaned all warnings
+  ! Modified, Juliane Mai,    Nov 2014 - replaced floating comparison by ne(), eq(), etc. from mo_utils
+  ! Modified, Matthias Cuntz, Jul 2015 - median -> omedian
 
   ! License
   ! -------
@@ -50,7 +51,7 @@ MODULE mo_orderpack
   public :: indnth
   public :: inspar
   public :: inssor
-  public :: median
+  public :: omedian
   public :: mrgref
   public :: mrgrnk
   public :: mulcnt
@@ -268,7 +269,7 @@ MODULE mo_orderpack
   !> also has better worst case behavior than VALNTH/INDNTH, and is about
   !> 20% faster in average for random uniformly distributed values.
   !> 
-  !> Function MEDIAN (XVALT) It is a modified version of VALMED that
+  !> Function OMEDIAN (XVALT) It is a modified version of VALMED that
   !> provides the average between the two middle values in the case
   !> Size(XVALT) is even.
   !> 
@@ -305,9 +306,9 @@ MODULE mo_orderpack
   interface inssor
      module procedure d_inssor, r_inssor, i_inssor
   end interface inssor
-  interface median
+  interface omedian
      module procedure d_median, r_median, i_median
-  end interface median
+  end interface omedian
   interface mrgref
      module procedure d_mrgref, r_mrgref, i_mrgref
   end interface mrgref

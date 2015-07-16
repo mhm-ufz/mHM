@@ -2,7 +2,7 @@
 
 !> \brief Reading of main model configurations.
 
-!> \details This routine reads the configurations of mHM including, input and 
+!> \details This routine reads the configurations of mHM including, input and
 !>          output directories, module usage specification, simulation time periods,
 !>          global parameters, ...
 
@@ -11,7 +11,7 @@
 
 MODULE mo_read_config
 
-  USE mo_kind, ONLY: i4, dp 
+  USE mo_kind, ONLY: i4, dp
 
   IMPLICIT NONE
 
@@ -33,9 +33,9 @@ CONTAINS
 
   !>        \details The main configurations in mHM are read from three files:
   !>                 <ol>
-  !>                   <li> mhm.nml             
-  !>                   <li> mhm_parameters.nml  
-  !>                   <li> mhm_outputs.nml                     
+  !>                   <li> mhm.nml
+  !>                   <li> mhm_parameters.nml
+  !>                   <li> mhm_outputs.nml
   !>                 </ol>
   !>                 For details please refer to the above mentioned namelist files.
 
@@ -80,7 +80,7 @@ CONTAINS
   !                  Matthias Cuntz, Jan  2013 - namelist consolidation and positioning
   !                  Matthias Zink,  Jan  2013 - bug fix, added gaugeinfo reading
   !                  Rohini Kumar,   Jun  2013 - added restart flags
-  !                  R. Kumar & 
+  !                  R. Kumar &
   !                  S. Thober,      Aug. 2013 - code change to incorporate output timestep
   !                                              during writing of the netcdf file
   !                  Rohini Kumar,   Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
@@ -88,7 +88,7 @@ CONTAINS
   !                                              namelist made accordingly
   !                  Rohini Kumar,   Aug  2013 - added new namelist for LAI related datasets, and changed in
   !                                              within the code made accordingly
-  !                  Matthias Zink,  Aug  2013 - changed read in for land cover period 
+  !                  Matthias Zink,  Aug  2013 - changed read in for land cover period
   !                  Juliane Mai,    Oct  2013 - adding global_parameters_name
   !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
   !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
@@ -99,14 +99,15 @@ CONTAINS
   !                  Stephan Thober, Jun  2014 - added option for switching off mpr
   !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
-  !                  Matthias Zink,  Mar  2015 - added optional soil mositure read in for calibration
+  !                  Matthias Zink,  Mar  2015 - added optional soil moisture read in for calibration
+  !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
 
 
   subroutine read_config()
 
     use mo_julian,           only: date2dec, dec2date
     use mo_append,           only: append
-    use mo_message,          only: message 
+    use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_nml,              only: open_nml, close_nml, position_nml
     use mo_mhm_constants,    only:                          &
@@ -114,7 +115,7 @@ CONTAINS
          nColPars,                                          & ! number of properties of the global variables
          maxNoSoilHorizons,                                 & ! maximum number of allowed soil layers
          maxNoBasins,                                       & ! maximum number of allowed basins
-         maxNLcovers,                                       & ! maximum number of allowed LCover scenes                 
+         maxNLcovers,                                       & ! maximum number of allowed LCover scenes
          maxGeoUnit,                                        & ! maximum number of allowed geological classes
          maxNoGauges                                          ! maximum number of allowed gauges
     use mo_file,             only:                          &
@@ -126,7 +127,7 @@ CONTAINS
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
          timestep_model_inputs,                             & ! read input frequency
-         resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing 
+         resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirGauges,                                         & ! and discharge files
@@ -140,14 +141,14 @@ CONTAINS
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles,                                    & ! directory where common files are located
          dirGauges,                                         & ! directory of gauge files
-         dirOut,                                            & ! output directory basin wise 
+         dirOut,                                            & ! output directory basin wise
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
          dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
          optimize,                                          & ! if mhm runs in optimization mode or not
-         opti_method,                                       & ! optimization algorithm used    
+         opti_method,                                       & ! optimization algorithm used
          opti_function,                                     & ! objective function to be optimized
          nIterations,                                       & ! number of iterations in optimization
          seed,                                              & ! seed used for optimization
@@ -157,13 +158,13 @@ CONTAINS
                                 !                                                    !      # points per subcomplex
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcover_scene,                & ! land cover information
-         LCfilename, LCyearId,                              & ! 
+         LCfilename, LCyearId,                              & !
          nBasins,                                           & ! number of basins
          read_restart,                                      & ! flag reading restart
          write_restart,                                     & ! flag writing restart
          perform_mpr,                                       & ! switch for performing mpr
          warmingDays, warmPer,                              & ! warming days and warming period
-         evalPer, simPer,                                   & ! model eval. & sim. periods  
+         evalPer, simPer,                                   & ! model eval. & sim. periods
                                 !                                                    ! (sim. = wrm. + eval.)
          nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
          nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
@@ -189,81 +190,81 @@ CONTAINS
     integer(i4), dimension(nProcesses)              :: processCase               ! Choosen process description number
 
     ! interception
-    real(dp), dimension(nColPars)                   :: canopyInterceptionFactor 
+    real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
-    real(dp), dimension(nColPars)                   :: snowTreshholdTemperature 
-    real(dp), dimension(nColPars)                   :: degreeDayFactor_forest            
-    real(dp), dimension(nColPars)                   :: degreeDayFactor_impervious        
-    real(dp), dimension(nColPars)                   :: degreeDayFactor_pervious          
-    real(dp), dimension(nColPars)                   :: increaseDegreeDayFactorByPrecip   
-    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_forest         
-    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_impervious     
-    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_pervious       
+    real(dp), dimension(nColPars)                   :: snowTreshholdTemperature
+    real(dp), dimension(nColPars)                   :: degreeDayFactor_forest
+    real(dp), dimension(nColPars)                   :: degreeDayFactor_impervious
+    real(dp), dimension(nColPars)                   :: degreeDayFactor_pervious
+    real(dp), dimension(nColPars)                   :: increaseDegreeDayFactorByPrecip
+    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_forest
+    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_impervious
+    real(dp), dimension(nColPars)                   :: maxDegreeDayFactor_pervious
     ! soilmoisture
-    real(dp), dimension(nColPars)                   :: orgMatterContent_forest           
-    real(dp), dimension(nColPars)                   :: orgMatterContent_impervious       
-    real(dp), dimension(nColPars)                   :: orgMatterContent_pervious         
-    real(dp), dimension(nColPars)                   :: PTF_lower66_5_constant            
-    real(dp), dimension(nColPars)                   :: PTF_lower66_5_clay                
-    real(dp), dimension(nColPars)                   :: PTF_lower66_5_Db                  
-    real(dp), dimension(nColPars)                   :: PTF_higher66_5_constant           
-    real(dp), dimension(nColPars)                   :: PTF_higher66_5_clay               
-    real(dp), dimension(nColPars)                   :: PTF_higher66_5_Db                 
-    real(dp), dimension(nColPars)                   :: infiltrationShapeFactor           
-    real(dp), dimension(nColPars)                   :: PTF_Ks_constant                   
-    real(dp), dimension(nColPars)                   :: PTF_Ks_sand                       
-    real(dp), dimension(nColPars)                   :: PTF_Ks_clay                       
-    real(dp), dimension(nColPars)                   :: PTF_Ks_curveSlope                 
-    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_forest    
+    real(dp), dimension(nColPars)                   :: orgMatterContent_forest
+    real(dp), dimension(nColPars)                   :: orgMatterContent_impervious
+    real(dp), dimension(nColPars)                   :: orgMatterContent_pervious
+    real(dp), dimension(nColPars)                   :: PTF_lower66_5_constant
+    real(dp), dimension(nColPars)                   :: PTF_lower66_5_clay
+    real(dp), dimension(nColPars)                   :: PTF_lower66_5_Db
+    real(dp), dimension(nColPars)                   :: PTF_higher66_5_constant
+    real(dp), dimension(nColPars)                   :: PTF_higher66_5_clay
+    real(dp), dimension(nColPars)                   :: PTF_higher66_5_Db
+    real(dp), dimension(nColPars)                   :: infiltrationShapeFactor
+    real(dp), dimension(nColPars)                   :: PTF_Ks_constant
+    real(dp), dimension(nColPars)                   :: PTF_Ks_sand
+    real(dp), dimension(nColPars)                   :: PTF_Ks_clay
+    real(dp), dimension(nColPars)                   :: PTF_Ks_curveSlope
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_forest
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_impervious
-    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious  
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious
     ! directRunoff
-    real(dp), dimension(nColPars)                   :: imperviousStorageCapacity         
+    real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
     ! PET0
-    real(dp), dimension(nColPars)                   :: minCorrectionFactorPET            
-    real(dp), dimension(nColPars)                   :: maxCorrectionFactorPET            
-    real(dp), dimension(nColPars)                   :: aspectTresholdPET                 
+    real(dp), dimension(nColPars)                   :: minCorrectionFactorPET
+    real(dp), dimension(nColPars)                   :: maxCorrectionFactorPET
+    real(dp), dimension(nColPars)                   :: aspectTresholdPET
     real(dp), dimension(nColPars)                   :: HargreavesSamaniCoeff
     real(dp), dimension(nColPars)                   :: PriestleyTaylorCoeff
     real(dp), dimension(nColPars)                   :: PriestleyTaylorLAIcorr
-    real(dp), dimension(nColPars)                   :: canopyheigth_forest               
-    real(dp), dimension(nColPars)                   :: canopyheigth_impervious           
-    real(dp), dimension(nColPars)                   :: canopyheigth_pervious             
-    real(dp), dimension(nColPars)                   :: displacementheight_coeff          
-    real(dp), dimension(nColPars)                   :: roughnesslength_momentum_coeff    
-    real(dp), dimension(nColPars)                   :: roughnesslength_heat_coeff        
+    real(dp), dimension(nColPars)                   :: canopyheigth_forest
+    real(dp), dimension(nColPars)                   :: canopyheigth_impervious
+    real(dp), dimension(nColPars)                   :: canopyheigth_pervious
+    real(dp), dimension(nColPars)                   :: displacementheight_coeff
+    real(dp), dimension(nColPars)                   :: roughnesslength_momentum_coeff
+    real(dp), dimension(nColPars)                   :: roughnesslength_heat_coeff
     real(dp), dimension(nColPars)                   :: stomatal_resistance
-    ! interflow                                        
-    real(dp), dimension(nColPars)                   :: interflowStorageCapacityFactor    
-    real(dp), dimension(nColPars)                   :: interflowRecession_slope          
-    real(dp), dimension(nColPars)                   :: fastInterflowRecession_forest     
-    real(dp), dimension(nColPars)                   :: slowInterflowRecession_Ks         
-    real(dp), dimension(nColPars)                   :: exponentSlowInterflow             
+    ! interflow
+    real(dp), dimension(nColPars)                   :: interflowStorageCapacityFactor
+    real(dp), dimension(nColPars)                   :: interflowRecession_slope
+    real(dp), dimension(nColPars)                   :: fastInterflowRecession_forest
+    real(dp), dimension(nColPars)                   :: slowInterflowRecession_Ks
+    real(dp), dimension(nColPars)                   :: exponentSlowInterflow
     ! percolation
-    real(dp), dimension(nColPars)                   :: rechargeCoefficient               
-    real(dp), dimension(nColPars)                   :: rechargeFactor_karstic            
-    real(dp), dimension(nColPars)                   :: gain_loss_GWreservoir_karstic     
+    real(dp), dimension(nColPars)                   :: rechargeCoefficient
+    real(dp), dimension(nColPars)                   :: rechargeFactor_karstic
+    real(dp), dimension(nColPars)                   :: gain_loss_GWreservoir_karstic
     ! routing
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_constant      
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverLength   
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverSlope    
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious    
-    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope   
+    real(dp), dimension(nColPars)                   :: muskingumTravelTime_constant
+    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverLength
+    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverSlope
+    real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious
+    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope
     ! neutrons
-    real(dp), dimension(nColPars)                   :: Desilets_N0  
-    real(dp), dimension(nColPars)                   :: COSMIC_N0       
-    real(dp), dimension(nColPars)                   :: COSMIC_N1       
-    real(dp), dimension(nColPars)                   :: COSMIC_N2       
-    real(dp), dimension(nColPars)                   :: COSMIC_alpha0   
-    real(dp), dimension(nColPars)                   :: COSMIC_alpha1   
-    real(dp), dimension(nColPars)                   :: COSMIC_L30      
-    real(dp), dimension(nColPars)                   :: COSMIC_L31   
+    real(dp), dimension(nColPars)                   :: Desilets_N0
+    real(dp), dimension(nColPars)                   :: COSMIC_N0
+    real(dp), dimension(nColPars)                   :: COSMIC_N1
+    real(dp), dimension(nColPars)                   :: COSMIC_N2
+    real(dp), dimension(nColPars)                   :: COSMIC_alpha0
+    real(dp), dimension(nColPars)                   :: COSMIC_alpha1
+    real(dp), dimension(nColPars)                   :: COSMIC_L30
+    real(dp), dimension(nColPars)                   :: COSMIC_L31
     !
     integer(i4)                                     :: ii, iBasin, n_true_pars
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
     !
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
-    character(256)                                  :: dummy 
+    character(256)                                  :: dummy
     character(256)                                  :: fname
 
     integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
@@ -282,7 +283,7 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
     character(256), dimension(maxNoBasins)          :: dir_LatLon
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data 
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
     !
@@ -311,17 +312,17 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings,          &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                &
-         dir_Temperature, dir_ReferenceET, dir_MinTemperature,              &
-         dir_MaxTemperature, dir_absVapPressure, dir_windspeed,             &
-         dir_NetRadiation, dir_Out, dir_RestartOut,                          &
+    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings, &
+         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                         &
+         dir_Temperature, dir_ReferenceET, dir_MinTemperature,                       &
+         dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
+         dir_NetRadiation, dir_Out, dir_RestartOut,                                  &
          dir_RestartIn, dir_LatLon, dir_gridded_LAI
     ! optional data used for optimization
     namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
-         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,             &
+         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
          write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
@@ -340,31 +341,31 @@ CONTAINS
     ! namelist for evaluation gauges
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id,                    &
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
          InflowGauge_filename, InflowGauge_Headwater
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
-    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious,         &
-         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,            &
-         maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious       
-    namelist/soilmoisture1/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &         
-         PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,      &           
-         PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant,                                    &
-         PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                &
-         rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                         &
+    namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious, &
+         degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,    &
+         maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious
+    namelist/soilmoisture1/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &
+         PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,              &
+         PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant,                                            &
+         PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
+         rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
          rootFractionCoefficient_pervious, infiltrationShapeFactor
     namelist /directRunoff1/ imperviousStorageCapacity
-    namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET 
+    namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
     namelist /PET2/  PriestleyTaylorCoeff, PriestleyTaylorLAIcorr
-    namelist /PET3/  canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff,    & 
+    namelist /PET3/  canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff, &
          roughnesslength_momentum_coeff, roughnesslength_heat_coeff, stomatal_resistance
-    namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest,     &     
-         slowInterflowRecession_Ks, exponentSlowInterflow    
-    namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic     
+    namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
+         slowInterflowRecession_Ks, exponentSlowInterflow
+    namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, muskingumTravelTime_riverSlope, &
          muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
-    namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31   
+    namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31
     !
     namelist /geoparameter/ GeoParam
     ! name list regarding output
@@ -410,7 +411,7 @@ CONTAINS
     allocate(dirgridded_LAI      (nBasins))
     allocate(dirSoil_Moisture    (nBasins))
     !
-    Resolutionhydrology = resolution_Hydrology(1:nBasins)
+    resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
     L0_Basin            = L0Basin(1:nBasins)
     !
@@ -464,14 +465,14 @@ CONTAINS
     do ii = 1, nBasins
        ! julain days for evaluation period
        jday_frac = date2dec(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
-       evalPer(ii)%julStart = nint(jday_frac) 
+       evalPer(ii)%julStart = nint(jday_frac)
 
        jday_frac = date2dec(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
-       evalPer(ii)%julEnd  = nint(jday_frac, i4 ) 
+       evalPer(ii)%julEnd  = nint(jday_frac, i4 )
 
        ! determine warming period
        warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays(ii)
-       warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1 
+       warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1
 
        jday_frac = real(warmPer(ii)%julStart,dp)
        call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
@@ -499,7 +500,7 @@ CONTAINS
 
     dirMorpho                 = dir_Morpho         (1:nBasins)
     dirLCover                 = dir_LCover         (1:nBasins)
-    dirGauges                 = dir_Gauges         (1:nBasins)      
+    dirGauges                 = dir_Gauges         (1:nBasins)
     dirPrecipitation          = dir_Precipitation  (1:nBasins)
     dirTemperature            = dir_Temperature    (1:nBasins)
     dirReferenceET            = dir_ReferenceET    (1:nBasins)
@@ -518,7 +519,7 @@ CONTAINS
     if (nSoilHorizons_mHM .GT. maxNoSoilHorizons) then
        call message()
        call message('***ERROR: Number of soil horizons is resticted to ', trim(num2str(maxNoSoilHorizons)),'!')
-       stop 
+       stop
     end if
 
     !===============================================================
@@ -529,14 +530,14 @@ CONTAINS
 
     allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
     HorizonDepth_mHM = 0.0_dp
-    HorizonDepth_mHM(1:nSoilHorizons_mHM-1)  = soil_Depth(1:nSoilHorizons_mHM-1)
+    HorizonDepth_mHM(1:nSoilHorizons_mHM-1) = soil_Depth(1:nSoilHorizons_mHM-1)
 
     !===============================================================
     !  Read namelist of optional input data
     !===============================================================
     call position_nml('optional_data', unamelist)
     read(unamelist, nml=optional_data)
-    dirSoil_moisture          = dir_Soil_moisture (1:nBasins)
+    dirSoil_moisture = dir_Soil_moisture (1:nBasins)
     if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
        call message()
        call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
@@ -589,7 +590,7 @@ CONTAINS
 
        if (nGaugesTotal .GT. maxNoGauges) then
           call message()
-          call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))         
+          call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))
           call message('          Error occured in namlist: evaluation_gauges')
           stop
        end if
@@ -617,14 +618,14 @@ CONTAINS
 
           do i_gauge = 1, NoGauges_basin(i_basin)
              ! check if NoGauges_basin has a valid value
-             if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
+             if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
                 call message()
                 call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
                      trim(adjustl(num2str(i_gauge))),' for subbasin ', &
                      trim(adjustl(num2str(i_basin))),' is not defined!')
                 call message('          Error occured in namlist: evaluation_gauges')
                 stop
-             else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
+             else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
                 call message()
                 call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
                      trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
@@ -636,13 +637,13 @@ CONTAINS
              idx = idx + 1
              gauge%basinId(idx)                    = i_basin
              gauge%gaugeId(idx)                    = Gauge_id(i_basin,i_gauge)
-             gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge)) 
+             gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge))
              basin%gaugeIdList(i_basin,i_gauge)    = Gauge_id(i_basin,i_gauge)
              basin%gaugeIndexList(i_basin,i_gauge) = idx
           end do
        end do
 
-       if ( nGaugesTotal .NE. idx) then 
+       if ( nGaugesTotal .NE. idx) then
           call message()
           call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
                ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
@@ -666,16 +667,16 @@ CONTAINS
 
     if (nInflowGaugesTotal .GT. maxNoGauges) then
        call message()
-       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))         
+       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))
        call message('          Error occured in namlist: inflow_gauges')
        stop
     end if
 
     ! allocation - max() to avoid allocation with zero, needed for mhm call
-    allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))                       
-    allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))                       
-    allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))                       
-    allocate(basin%nInflowGauges        (nBasins                                 )) 
+    allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))
+    allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))
+    allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))
+    allocate(basin%nInflowGauges        (nBasins                                 ))
     allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
     allocate(basin%InflowGaugeHeadwater (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
     allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
@@ -695,21 +696,21 @@ CONTAINS
 
        ! no inflow gauge for subbasin i
        if (NoInflowGauges_basin(i_basin) .EQ. nodata_i4) then
-          NoInflowGauges_basin(i_basin)       = 0  
+          NoInflowGauges_basin(i_basin)       = 0
        end if
 
        basin%nInflowGauges(i_basin) = NoInflowGauges_basin(i_basin)
 
        do i_gauge = 1, NoInflowGauges_basin(i_basin)
           ! check if NoInflowGauges_basin has a valid value
-          if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then 
+          if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
              call message()
              call message('***ERROR: mhm.nml:ID of inflow gauge ',        &
                   trim(adjustl(num2str(i_gauge))),' for subbasin ', &
                   trim(adjustl(num2str(i_basin))),' is not defined!')
              call message('          Error occured in namlist: inflow_gauges')
              stop
-          else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then 
+          else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
              call message()
              call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
                   trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
@@ -721,14 +722,14 @@ CONTAINS
           idx = idx + 1
           InflowGauge%basinId(idx)                    = i_basin
           InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
-          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge)) 
+          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge))
           basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
           basin%InflowGaugeHeadwater(i_basin,i_gauge) = InflowGauge_Headwater(i_basin,i_gauge)
           basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
        end do
     end do
 
-    if ( nInflowGaugesTotal .NE. idx) then 
+    if ( nInflowGaugesTotal .NE. idx) then
        call message()
        call message('***ERROR: mhm.nml: Total number of inflow gauges (', trim(adjustl(num2str(nInflowGaugesTotal))), &
             ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
@@ -746,9 +747,9 @@ CONTAINS
     call position_nml('nightDayRatio', unamelist)
     read(unamelist, nml=nightDayRatio)
     !
-    fday_prec =  1.0_dp - fnight_prec 
-    fday_pet  =  1.0_dp - fnight_pet 
-    fday_temp = -1.0_dp * fnight_temp 
+    fday_prec =  1.0_dp - fnight_prec
+    fday_pet  =  1.0_dp - fnight_pet
+    fday_temp = -1.0_dp * fnight_temp
 
     !===============================================================
     !  determine land cover periods
@@ -760,7 +761,7 @@ CONTAINS
        call message('   FILE: mhm.nml, namelist: LCover')
        call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
        call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
-       stop       
+       stop
     end if
     if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
        call message()
@@ -808,7 +809,7 @@ CONTAINS
     !
     if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
          maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
-       if (any(LCyearId .EQ. nodata_i4)) then 
+       if (any(LCyearId .EQ. nodata_i4)) then
           call message()
           call message('***ERROR: Intermidiate land cover period is missing!')
           call message('   FILE: mhm.nml, namelist: LCover')
@@ -824,13 +825,13 @@ CONTAINS
     !===============================================================
     !
     do ii = 1, nBasins
-       cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii) 
+       cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii)
        call message()
        call message('Basin ', trim(adjustl(num2str(ii))), ': ')
        call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
-            trim(adjustl(num2str(resolutionHydrology(ii))))) 
+            trim(adjustl(num2str(resolutionHydrology(ii)))))
        call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
-            trim(adjustl(num2str(resolutionRouting(ii))))) 
+            trim(adjustl(num2str(resolutionRouting(ii)))))
        !
        if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
           call message()
@@ -865,7 +866,7 @@ CONTAINS
 
     ! Process 1 - interception
     select case (processCase(1))
-       ! 1 - maximum Interception 
+       ! 1 - maximum Interception
     case(1)
        call position_nml('interception1', unamelist_param)
        read(unamelist_param, nml=interception1)
@@ -901,7 +902,7 @@ CONTAINS
        processMatrix(2, 1) = processCase(2)
        processMatrix(2, 2) = 8_i4
        processMatrix(2, 3) = sum(processMatrix(1:2, 2))
-       call append(global_parameters, reshape(snowTreshholdTemperature,        (/1, nColPars/))) 
+       call append(global_parameters, reshape(snowTreshholdTemperature,        (/1, nColPars/)))
        call append(global_parameters, reshape(degreeDayFactor_forest,          (/1, nColPars/)))
        call append(global_parameters, reshape(degreeDayFactor_impervious,      (/1, nColPars/)))
        call append(global_parameters, reshape(degreeDayFactor_pervious,        (/1, nColPars/)))
@@ -1124,7 +1125,7 @@ CONTAINS
             'displacementheight_coeff      ', &
             'roughnesslength_momentum_coeff', &
             'roughnesslength_heat_coeff    ', &
-            'stomatal_resistance           '/))   
+            'stomatal_resistance           '/))
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
@@ -1135,7 +1136,7 @@ CONTAINS
 
     case DEFAULT
        call message()
-       call message('***ERROR: Process description for process "actualET" does not exist!')          
+       call message('***ERROR: Process description for process "actualET" does not exist!')
        stop
     end select
 
@@ -1210,12 +1211,12 @@ CONTAINS
     select case (processCase(8))
     case(0)
        ! 0 - deactivated
-       call message()          
+       call message()
        call message('***CAUTION: Routing is deativated! ')
 
        processMatrix(8, 1) = processCase(8)
        processMatrix(8, 2) = 0_i4
-       processMatrix(8, 3) = sum(processMatrix(1:8, 2)) 
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
     case(1)
        ! 1 - Muskingum approach
        call position_nml('routing1', unamelist_param)
@@ -1244,7 +1245,7 @@ CONTAINS
        end if
 
     case DEFAULT
-       call message()          
+       call message()
        call message('***ERROR: Process description for process "routing" does not exist!')
        stop
     end select
@@ -1272,15 +1273,15 @@ CONTAINS
        processMatrix(9,1) = processCase(9)
        processMatrix(9,2) = nGeoUnits
        processMatrix(9,3) = sum(processMatrix(1:9, 2))
-       
+
        call append(global_parameters, GeoParam(1:nGeoUnits,:))
 
        ! create names
        do ii=1, nGeoUnits
           dummy = 'GeoParam('//trim(adjustl(num2str(ii)))//',:)'
-          call append(global_parameters_name, (/ trim(adjustl(dummy)) /)) 
+          call append(global_parameters_name, (/ trim(dummy) /))
        end do
-       
+
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
           call message('***ERROR: parameter in namelist "geoparameter" out of bound in ', &
@@ -1289,14 +1290,14 @@ CONTAINS
        end if
 
     case DEFAULT
-       call message()          
+       call message()
        call message('***ERROR: Process description for process "geoparameter" does not exist!')
        stop
     end select
-  
-    ! Process 10 - neutrons 
+
+    ! Process 10 - neutrons
     !   0 - deactivated
-    !   1 - inverse N0 based on Desilets et al. 2010 
+    !   1 - inverse N0 based on Desilets et al. 2010
     !   2 - COSMIC forward operator by Shuttlworth et al. 2013
     if (processCase(10) .gt. 0) then
 
@@ -1306,7 +1307,7 @@ CONTAINS
        processMatrix(10, 1) = processCase(10)
        processMatrix(10, 2) = 8_i4
        processMatrix(10, 3) = sum(processMatrix(1:10, 2))
-       call append(global_parameters, reshape(Desilets_N0,   (/1, nColPars/))) 
+       call append(global_parameters, reshape(Desilets_N0,   (/1, nColPars/)))
        call append(global_parameters, reshape(COSMIC_N0,     (/1, nColPars/)))
        call append(global_parameters, reshape(COSMIC_N1,     (/1, nColPars/)))
        call append(global_parameters, reshape(COSMIC_N2,     (/1, nColPars/)))
@@ -1332,7 +1333,7 @@ CONTAINS
           stop
        end if
     else
-        call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
+       call message(' INFO: Process (10, neutrons) is deactivated, so output will be suppressed.')
        ! this is done below, where nml_output is read
        processMatrix(10, 1) = processCase(10)
        processMatrix(10, 2) = 0_i4
@@ -1340,7 +1341,7 @@ CONTAINS
     end if
 
     call close_nml(unamelist_param)
-    
+
     !===============================================================
     ! Settings for Optimization
     !===============================================================
@@ -1401,13 +1402,13 @@ CONTAINS
     if (outputFlxState(3)) then
        call message( '    soil water content in the single layers     (L1_soilMoist) [mm]')
     end if
-    if (outputFlxState(4)) then 
+    if (outputFlxState(4)) then
        call message( '    volumetric soil moisture in the single layers              [mm/mm]')
     end if
-    if (outputFlxState(5)) then 
+    if (outputFlxState(5)) then
        call message( '    mean volum. soil moisture averaged over all soil layers    [mm/mm]')
     end if
-    if (outputFlxState(6)) then 
+    if (outputFlxState(6)) then
        call message( '    waterdepth in reservoir of sealed areas     (L1_sealSTW)   [mm]')
     end if
     if (outputFlxState(7)) then
@@ -1443,14 +1444,14 @@ CONTAINS
     if (outputFlxState(15)) then
        call message( '    groundwater recharge               (L1_percol)             [mm/T]')
     end if
-    if (outputFlxState(16)) then 
-       call message( '    infiltration                       (L1_infilSoil)          [mm/T]') 
+    if (outputFlxState(16)) then
+       call message( '    infiltration                       (L1_infilSoil)          [mm/T]')
     end if
     call message( '' )
-    call message( 'FINISHED readin config' )
+    call message( 'FINISHED reading config' )
 
-    ! warning message  
-    if( any(outputFlxState) .and. optimize ) then
+    ! warning message
+    if ( any(outputFlxState) .and. optimize ) then
        call message( 'WARNING: FLUXES and STATES netCDF will be not written since optimization flag is TRUE ' )
     end if
 
@@ -1461,8 +1462,8 @@ CONTAINS
   ! --------------------------------------------------------------------------------
 
   function in_bound(params)
-    real(dp), dimension(:,:), intent(in) :: params ! parameter: 
-    !                                              !   col_1=Lower bound, 
+    real(dp), dimension(:,:), intent(in) :: params ! parameter:
+    !                                              !   col_1=Lower bound,
     !                                              !   col_2=Upper bound
     !                                              !   col_3=initial
     logical :: in_bound

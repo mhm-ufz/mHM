@@ -542,7 +542,11 @@ CONTAINS
     LOGICAL                                  :: loglike              ! if loglikelihood is given
     LOGICAL                                  :: skip_burnin          ! if stepsize is given --> burnin is skipped
     logical                                  :: itmp_file            ! if temporal results wanted
+#ifdef pgiFortran
+    character(len=299)                       :: istmp_file           ! local copy of file for temporal results output
+#else
     character(len=1024)                      :: istmp_file           ! local copy of file for temporal results output
+#endif
     logical                                  :: irestart             ! if restart wanted
     character(len=1024)                      :: isrestart_file       ! local copy of restart file name
 

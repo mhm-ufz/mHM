@@ -2,7 +2,7 @@
 
 !> \brief Shuffled Complex Evolution optimization algorithm.
 
-!> \details Optimization algorithm using Shuffled Complex Evolution strategy. 
+!> \details Optimization algorithm using Shuffled Complex Evolution strategy.
 !>          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
 
 !> \authors Juliane Mai
@@ -95,7 +95,7 @@ MODULE mo_sce
   !>        \param[in] "real(dp),    optional :: mypcento"  percentage by which the criterion value must change in
   !>                                                             given number of shuffling loops\n
   !>                                                             DEFAULT: 0.0001_dp
-  !>        \param[in] "real(dp),    optional :: mypeps"    optimization is terminated if volume of complex has 
+  !>        \param[in] "real(dp),    optional :: mypeps"    optimization is terminated if volume of complex has
   !>                                                             converged to given percentage of feasible space\n
   !>                                                             DEFAULT: 0.001_dp
   !>        \param[in] "integer(i8), optional :: myseed"    initial random seed\n
@@ -109,8 +109,8 @@ MODULE mo_sce
   !>        \param[in] "integer(i4), optional :: mynspl"    number of evolution steps allowed for each complex before
   !>                                                             complex shuffling\n
   !>                                                             DEFAULT: 2*n+1
-  !>        \param[in] "integer(i4), optional :: mymings"   minimum number of complexes required, if the number of 
-  !>                                                             complexes is allowed to reduce as the 
+  !>        \param[in] "integer(i4), optional :: mymings"   minimum number of complexes required, if the number of
+  !>                                                             complexes is allowed to reduce as the
   !>                                                             optimization proceeds\n
   !>                                                             DEFAULT: ngs = number of complexes in initial population
   !>        \param[in] "integer(i4), optional :: myiniflg"  flag on whether to include the initial point in population\n
@@ -137,7 +137,7 @@ MODULE mo_sce
   !>                                                                total number of lines written <= neval <= mymaxn\n
   !>        \param[in]  "logical, optional  :: popul_file_append"   if true, append to existing population file (default: false)\n
   !>        \param[in]  "logical, optional  :: parallel"    sce runs in parallel (true) or not (false)
-  !>                                                             parallel sce should only be used if model/ objective 
+  !>                                                             parallel sce should only be used if model/ objective
   !>                                                             is not parallel
   !>                                                             DEFAULT: .false.
   !>        \param[in]  "logical, optional  :: restart"                  if .true.: restart former sce run from restart_file
@@ -154,7 +154,7 @@ MODULE mo_sce
   !>                                                                        history(neval)=bestf
   !
   !     RETURN
-  !>        \return real(dp) :: bestx(size(pini))  &mdash;  The parameters of the point which is estimated 
+  !>        \return real(dp) :: bestx(size(pini))  &mdash;  The parameters of the point which is estimated
   !>                                                        to minimize/maximize the function.
   !
   !     RESTRICTIONS
@@ -174,8 +174,8 @@ MODULE mo_sce
   !
   !         -> see also example in test directory
 
-  !     LITERATURE  
-  !         Duan, Q., S. Sorooshian, and V.K. Gupta - 
+  !     LITERATURE
+  !         Duan, Q., S. Sorooshian, and V.K. Gupta -
   !             Effective and Efficient Global Optimization for Conceptual Rainfall-runoff Models
   !             Water Resources Research, Vol 28(4), pp.1015-1031, 1992.
 
@@ -232,7 +232,7 @@ CONTAINS
     use mo_utils,        only: is_finite, special_value
 
     implicit none
-    ! 
+    !
     interface
        function functn(paraset)
          ! calculates the cost function at a certain parameter set paraset
@@ -244,7 +244,7 @@ CONTAINS
     real(dp), dimension(:),   intent(in)             :: pini        ! initial parameter set
     real(dp), dimension(:,:), intent(in)             :: prange      ! lower and upper bound on parameters
     !
-    ! algorithmic control & convergence parameter 
+    ! algorithmic control & convergence parameter
     integer(i8), optional,               intent(in)  :: mymaxn      ! max no. of trials allowed before optimization is terminated
     !                                                               !     DEFAULT: 1000_i8
     logical,     optional,               intent(in)  :: mymaxit     ! maximization (.true.) or minimization (.false.) of function
@@ -255,7 +255,7 @@ CONTAINS
     real(dp),    optional,               intent(in)  :: mypcento    ! percentage by which the criterion value must change in
     !                                                               !     given number of shuffling loops
     !                                                               !     DEFAULT: 0.0001_dp
-    real(dp),    optional,               intent(in)  :: mypeps      ! optimization is terminated if volume of complex has 
+    real(dp),    optional,               intent(in)  :: mypeps      ! optimization is terminated if volume of complex has
     !                                                               ! converged to given percentage of feasible space
     !                                                               !     DEFAULT: 0.001_dp
     integer(i8), optional,               intent(in)  :: myseed      ! initial random seed
@@ -269,8 +269,8 @@ CONTAINS
     integer(i4), optional,               intent(in)  :: mynspl      ! number of evolution steps allowed for each complex before
     !                                                               !     complex shuffling
     !                                                               !     DEFAULT: 2*n+1
-    integer(i4), optional,               intent(in)  :: mymings     ! minimum number of complexes required, if the number of 
-    !                                                               !     complexes is allowed to reduce as the 
+    integer(i4), optional,               intent(in)  :: mymings     ! minimum number of complexes required, if the number of
+    !                                                               !     complexes is allowed to reduce as the
     !                                                               !     optimization proceeds
     !                                                               !     DEFAULT: ngs = number of complexes in initial population
     integer(i4), optional,               intent(in)  :: myiniflg    ! flag on whether to include the initial point in population
@@ -297,7 +297,7 @@ CONTAINS
     !                                                               !     total number of lines written <= neval <= mymaxn
     logical,     optional,               intent(in)  :: popul_file_append ! if true, append to popul_file
     logical,     optional,               intent(in)  :: parallel    ! sce runs in parallel (true) or not (false)
-    !                                                               !     parallel sce should only be used if model/ objective 
+    !                                                               !     parallel sce should only be used if model/ objective
     !                                                               !     is not parallel
     !                                                               !     DEAFULT: .false.
     logical,     optional,               intent(in)  :: restart     ! if .true., start from restart file
@@ -318,26 +318,34 @@ CONTAINS
     integer(i4)                                      :: kstop       ! number of shuffling loops in which the criterion value
     !                                                               !     must change
     real(dp)                                         :: pcento      ! percentage by which the criterion value must change
-    real(dp)                                         :: peps        ! optimization is terminated if volume of complex has 
+    real(dp)                                         :: peps        ! optimization is terminated if volume of complex has
     !                                                               ! converged to given percentage of feasible space
     integer(i4)                                      :: ngs         ! number of complexes in the initial population
     integer(i4)                                      :: npg         ! number of points in each complex
     integer(i4)                                      :: nps         ! number of points in a sub-complex
-    integer(i4)                                      :: nspl        ! number of evolution steps allowed for each complex before 
+    integer(i4)                                      :: nspl        ! number of evolution steps allowed for each complex before
     !                                                               !     complex shuffling
     integer(i4)                                      :: mings       ! minimum number of complexes required
     integer(i4)                                      :: iniflg      ! flag on whether to include the initial point in population
     integer(i4)                                      :: iprint      ! flag for controlling print-out after each shuffling loop
     logical                                          :: idot        ! controls progress report .
-    logical, dimension(size(pini,1))                 :: maskpara    ! mask(i) = .true.  --> parameter i will be optimized 
+    logical, dimension(size(pini,1))                 :: maskpara    ! mask(i) = .true.  --> parameter i will be optimized
     !                                                               ! mask(i) = .false. --> parameter i will not be optimized
     logical, dimension(1000)                         :: dummy_maskpara    ! dummy maskpara (only for namelist)
     real(dp)                                         :: alpha       ! parameter for reflection  of points in complex
     real(dp)                                         :: beta        ! parameter for contraction of points in complex
     logical                                          :: itmp_file   ! if temporal results wanted
+#ifdef pgiFortran
+    character(len=299)                               :: istmp_file  ! local copy of file for temporal results output
+#else
     character(len=1024)                              :: istmp_file  ! local copy of file for temporal results output
+#endif
     logical                                          :: ipopul_file  ! if temporal population wanted
+#ifdef pgiFortran
+    character(len=299)                               :: ispopul_file ! local copy of file for temporal population output
+#else
     character(len=1024)                              :: ispopul_file ! local copy of file for temporal population output
+#endif
 
     real(dp), dimension(:), allocatable              :: history_tmp ! history of best function values after each iteration
     real(dp), dimension(:), allocatable              :: ihistory_tmp ! local history for OpenMP
@@ -348,14 +356,14 @@ CONTAINS
     !
     ! local variables
     integer(i4)                                      :: nopt        ! number of parameters to be optimized
-    integer(i4)                                      :: nn          ! total number of parameters 
+    integer(i4)                                      :: nn          ! total number of parameters
     integer(i4)                                      :: npt         ! total number of points in initial population (npt=ngs*npg)
     real(dp)                                         :: fpini       ! function value at initial point
-    real(dp),    dimension(:,:), allocatable         :: x           ! coordinates of points in the population 
-    real(dp),    dimension(:),   allocatable         :: xf          ! function values of x                    
+    real(dp),    dimension(:,:), allocatable         :: x           ! coordinates of points in the population
+    real(dp),    dimension(:),   allocatable         :: xf          ! function values of x
     real(dp),    dimension(size(pini,1))             :: xx          ! coordinates of a single point in x
     real(dp),    dimension(1000)                     :: dummy_xx    ! dummy xx (only for namelist)
-    real(dp),    dimension(:,:), allocatable         :: cx          ! coordinates of points in a complex      
+    real(dp),    dimension(:,:), allocatable         :: cx          ! coordinates of points in a complex
     real(dp),    dimension(:),   allocatable         :: cf          ! function values of cx
     real(dp),    dimension(:,:), allocatable         :: s           ! coordinates of points in the current sub-complex !simplex
     real(dp),    dimension(:),   allocatable         :: sf          ! function values of s
@@ -363,7 +371,7 @@ CONTAINS
     real(dp)                                         :: worstf      ! function value of worstx(.)
     real(dp),    dimension(:),   allocatable         :: xnstd       ! standard deviation of parameters in the population
     real(dp)                                         :: gnrng       ! normalized geometric mean of parameter ranges
-    integer(i4), dimension(:),   allocatable         :: lcs         ! indices locating position of s(.,.) in x(.,.)  
+    integer(i4), dimension(:),   allocatable         :: lcs         ! indices locating position of s(.,.) in x(.,.)
     real(dp),    dimension(:),   allocatable         :: bound       ! length of range of ith variable being optimized
     real(dp),    dimension(:),   allocatable         :: unit        ! standard deviation of initial parameter distributions
     integer(i4)                                      :: ngs1        ! number of complexes in current population
@@ -378,7 +386,7 @@ CONTAINS
     integer(i4)                                      :: loop
     integer(i4)                                      :: ii, jj, kk
     integer(i4)                                      :: lpos
-    logical                                          :: lpos_ok            ! for selction of points based on triangular 
+    logical                                          :: lpos_ok            ! for selction of points based on triangular
     !                                                                      ! probability distribution
     integer(i4)                                      :: npt1
     integer(i8)                                      :: icall              ! counter for function evaluations
@@ -392,7 +400,7 @@ CONTAINS
     character(512)                                   :: format_str2        ! format string
                                                                            ! for random numbers
     real(dp)                                         :: rand               ! random number
-    integer(i8), dimension(:),   allocatable         :: iseed              ! initial random seed  
+    integer(i8), dimension(:),   allocatable         :: iseed              ! initial random seed
     integer(i8), dimension(:,:), allocatable         :: save_state_unif    ! save state of uniform stream
     integer(i8), dimension(:,:), allocatable         :: save_state_gauss   ! save state of gaussian stream
     real(dp),    dimension(:),   allocatable         :: rand_tmp           ! random number
@@ -404,7 +412,7 @@ CONTAINS
     logical                                          :: ipopul_file_append
     integer(i4)                                      :: nonan              ! # of non-NaN in history_tmp
     real(dp),    dimension(:), allocatable           :: htmp               ! tmp storage for history_tmp
-    
+
     namelist /restartnml1/ &
          bestx, dummy_bl, dummy_bu, maxn, maxit, kstop, pcento, peps, ngs, npg, nps, nspl, &
          mings, iniflg, iprint, idot, dummy_maskpara, alpha, beta, bestf_tmp, &
@@ -457,7 +465,7 @@ CONTAINS
        allocate(save_state_gauss(n_threads,n_save_state))
 
        if (present(mymask)) then
-          if (.not. any(mymask)) stop 'mo_sce: all parameters are masked --> none will be optimized' 
+          if (.not. any(mymask)) stop 'mo_sce: all parameters are masked --> none will be optimized'
           maskpara = mymask
        else
           maskpara = .true.
@@ -587,7 +595,7 @@ CONTAINS
           ipopul_file_append = .false.
        endif
 
-       if (present(tmp_file)) then          
+       if (present(tmp_file)) then
           itmp_file  = .true.
           istmp_file = tmp_file
           open(999, file=trim(adjustl(istmp_file)), action='write', status = 'unknown')
@@ -600,7 +608,7 @@ CONTAINS
           write(999,*) '# nloop   icall   ngs1   bestf   worstf   gnrng   (bestx(j),j=1,nn)'
           close(999)
        else
-          itmp_file  = .false.          
+          itmp_file  = .false.
           istmp_file = ''
        end if
 
@@ -625,10 +633,10 @@ CONTAINS
        allocate(xnstd(nn))
        allocate(bound(nn))
        allocate(unit(nn))
-       allocate(criter(kstop+1))  
+       allocate(criter(kstop+1))
        allocate(xname(nn))
        allocate(history_tmp(maxn+3*ngs*nspl))
-       allocate(xtmp(npg,nn)) 
+       allocate(xtmp(npg,nn))
        allocate(ftmp(npg))
        if (maxit) then
           large = -0.5_dp*huge(1.0_dp)
@@ -733,7 +741,7 @@ CONTAINS
        !
        ! count function evaluation of the first point
        icall = 1_i8
-       ! if (icall .ge. maxn) return 
+       ! if (icall .ge. maxn) return
        !
        if (parall) then
 
@@ -857,7 +865,7 @@ CONTAINS
        end if print
        !
        ! Maximum number of function evaluations reached?
-       if (icall .ge. maxn) then 
+       if (icall .ge. maxn) then
           if (iprint .lt. 2) then
              ! maximum trials reached
              call write_termination_case(1)
@@ -871,7 +879,7 @@ CONTAINS
        end if
        !
        ! Feasible parameter space converged?
-       if (ipcnvg .eq. 1) then 
+       if (ipcnvg .eq. 1) then
           if (iprint .lt. 2) then
              ! converged because feasible parameter space small
              call write_termination_case(3)
@@ -895,7 +903,7 @@ CONTAINS
        dummy_xx(1:size(pini,1))       = xx
        !
        ! write restart
-       open(999, file=isrestart_file, status='unknown', action='write', delim='QUOTE')
+       open(999, file=isrestart_file, status='unknown', action='write', delim='quote')
        write(999, restartnml1)
        write(999, restartnml2)
        close(999)
@@ -903,7 +911,7 @@ CONTAINS
 
     if (irestart) then
        ! read 1st namelist with allocated/scalar variables
-       open(999, file=isrestart_file, status='old', action='read', delim='QUOTE')
+       open(999, file=isrestart_file, status='old', action='read', delim='quote')
        read(999, nml=restartnml1)
        close(999)
 
@@ -924,7 +932,7 @@ CONTAINS
        allocate(xnstd(nn))
        allocate(bound(nn))
        allocate(unit(nn))
-       allocate(criter(kstop+1))  
+       allocate(criter(kstop+1))
        allocate(xname(nn))
        allocate(history_tmp(maxn+3*ngs*nspl))
        allocate(xtmp(npg,nn))
@@ -932,10 +940,10 @@ CONTAINS
     endif
 
     !
-    !  begin the main loop 
+    !  begin the main loop
     mainloop:do while (icall .lt. maxn)
        ! read variables from restart files
-       open(999, file=isrestart_file, status='old', action='read', delim='QUOTE')
+       open(999, file=isrestart_file, status='old', action='read', delim='quote')
        read(999, nml=restartnml1)
        read(999, nml=restartnml2)
        close(999)
@@ -966,7 +974,7 @@ CONTAINS
           !$OMP parallel default(shared) &
           !$OMP private(igs, loop, ithread, kk, k1, k2, jj, lpos_ok, lpos, rand, cx, cf, lcs, s, sf) &
           !$OMP private(icall_merk, iicall, ihistory_tmp, large)
-          allocate(cx(npg,nn)) 
+          allocate(cx(npg,nn))
           allocate(cf(npg))
           allocate(lcs(nps))
           allocate(s(nps,nn))
@@ -985,7 +993,7 @@ CONTAINS
                 cf(k1) = xf(k2)
              end do
              !
-             !  begin inner loop - random selection of sub-complexes 
+             !  begin inner loop - random selection of sub-complexes
              !     <alpha> loop from duan(1993)
              subcomploop_omp: do loop = 1, nspl
                 !
@@ -1076,7 +1084,7 @@ CONTAINS
              ! if (icall .ge. maxn) exit
              !
              !  end loop on complexes
-          end do comploop_omp  ! <beta loop> 
+          end do comploop_omp  ! <beta loop>
           !$OMP end do
           deallocate(cx)
           deallocate(cf)
@@ -1092,7 +1100,7 @@ CONTAINS
           ! Non-parallel version of complex-loop
           ! -----------------------------------------------------------------------
 
-          allocate(cx(npg,nn)) 
+          allocate(cx(npg,nn))
           allocate(cf(npg))
           allocate(lcs(nps))
           allocate(s(nps,nn))
@@ -1111,7 +1119,7 @@ CONTAINS
                 cf(k1) = xf(k2)
              end do
              !
-             !  begin inner loop - random selection of sub-complexes 
+             !  begin inner loop - random selection of sub-complexes
              !     <alpha> loop from duan(1993)
              subcomploop: do loop = 1, nspl
                 !
@@ -1197,7 +1205,7 @@ CONTAINS
              if (icall .ge. maxn) exit
              !
              !  end loop on complexes
-          end do comploop  ! <beta loop> 
+          end do comploop  ! <beta loop>
 
           deallocate(cx)
           deallocate(cf)
@@ -1278,7 +1286,7 @@ CONTAINS
        criter(1:kstop) = criter(2:kstop+1)
        !
        !  if population is converged into a sufficiently small space
-       if (ipcnvg .eq. 1) then 
+       if (ipcnvg .eq. 1) then
           if (iprint .lt. 2) then
              ! converged because feasible parameter space small
              call write_termination_case(3)
@@ -1312,7 +1320,7 @@ CONTAINS
        dummy_xx(1:size(pini,1))       = xx
        !
        ! write restart
-       open(999, file=isrestart_file, status='unknown', action='write', delim='QUOTE')
+       open(999, file=isrestart_file, status='unknown', action='write', delim='quote')
        write(999, restartnml1)
        write(999, restartnml2)
        close(999)
@@ -1458,17 +1466,17 @@ CONTAINS
   end function sce
 
 
-  subroutine parstt(x,bound,peps,mask,xnstd,gnrng,ipcnvg)   
+  subroutine parstt(x,bound,peps,mask,xnstd,gnrng,ipcnvg)
     !
     !  subroutine checking for parameter convergence
     !
     use mo_kind, only: i4, dp
 
-    implicit none  
+    implicit none
 
     real(dp),    dimension(:,:),           intent(in)  :: x      ! points in population, cols=nn, rows=npt1 (!)
     real(dp),    dimension(:),             intent(in)  :: bound  ! difference of upper and lower limit per parameter
-    real(dp),                              intent(in)  :: peps   ! optimization is terminated if volume of complex has 
+    real(dp),                              intent(in)  :: peps   ! optimization is terminated if volume of complex has
     !                                                            ! converged to given percentage of feasible space
     logical,     dimension(:),            intent(in)   :: mask   ! mask of parameters
     real(dp),    dimension(size(bound,1)), intent(out) :: xnstd  ! std. deviation of points in population per parameter
@@ -1482,7 +1490,7 @@ CONTAINS
     integer(i4)                         :: ii, kk
     real(dp)                            :: xsum1   ! sum           of all values per parameter
     real(dp)                            :: xsum2   ! sum of square of all values per parameter
-    real(dp)                            :: gsum    ! sum of all (range scaled) currently covered parameter ranges: 
+    real(dp)                            :: gsum    ! sum of all (range scaled) currently covered parameter ranges:
     !                                              !    (max-min)/bound
     real(dp), dimension(size(bound,1))  :: xmin    ! minimal value per parameter
     real(dp), dimension(size(bound,1))  :: xmax    ! maximal value per parameter
@@ -1526,25 +1534,25 @@ CONTAINS
 
   end subroutine parstt
 
-  subroutine comp(ngs2,npg,a,af,b,bf)   
+  subroutine comp(ngs2,npg,a,af,b,bf)
     !
-    !  This subroutine reduce 
-    !  input matrix a(n,ngs2*npg) to matrix b(n,ngs1*npg) and 
+    !  This subroutine reduce
+    !  input matrix a(n,ngs2*npg) to matrix b(n,ngs1*npg) and
     !  input vector af(ngs2*npg)  to vector bf(ngs1*npg)
     !
-    !  Needed for complex reduction: 
+    !  Needed for complex reduction:
     !     Number of complexes decreases from ngs2 to ngs1
     !     Therefore, number of points in population decreases (npt+npg) to npt
     !
     use mo_kind, only: i4, dp
 
-    implicit none  
+    implicit none
 
     integer(i4),                              intent(in)    :: ngs2  ! OLD number of complexes = ngs1+1
     integer(i4),                              intent(in)    :: npg   ! number of points in each complex
     real(dp), dimension(:,:),                 intent(inout) :: a     ! OLD points,          ncols=n, nrows=ngs2*npg
     real(dp), dimension(:),                   intent(inout) :: af    ! OLD function values,          nrows=ngs2*npg
-    real(dp), dimension(size(a,1),size(a,2)), intent(out)   :: b     ! NEW points,          ncols=n, nrows=ngs1*npg=npt 
+    real(dp), dimension(size(a,1),size(a,2)), intent(out)   :: b     ! NEW points,          ncols=n, nrows=ngs1*npg=npt
     real(dp), dimension(size(af)),            intent(out)   :: bf    ! NEW function values,          nrows=ngs1*npg=npt
     !
     ! local variables
@@ -1587,7 +1595,7 @@ CONTAINS
     use mo_kind,      only: i4, dp
     use mo_orderpack, only: sort_index
 
-    implicit none    
+    implicit none
 
     real(dp), dimension(:),   intent(inout) :: ra    ! rows: number of points in population --> npt1
     real(dp), dimension(:,:), intent(inout) :: rb    ! rows: number of points in population --> npt1
@@ -1646,7 +1654,7 @@ CONTAINS
     do ii=1, nn
        if (mask(ii)) then
           if ( (x(ii) .lt. bl(ii)) .or. (x(ii) .gt. bu(ii)) ) then
-             ! This constraint is violated   
+             ! This constraint is violated
              ibound = 1_i4
              return
           end if
@@ -1664,7 +1672,7 @@ CONTAINS
     use mo_kind, only: i4, i8, dp
     use mo_xor4096, only: n_save_state, xor4096, xor4096g
 
-    implicit none 
+    implicit none
 
     integer(i4),                          intent(in)    :: idist            ! idist = probability flag
     !                                                                       !       = 1 - uniform distribution
@@ -1677,7 +1685,7 @@ CONTAINS
     integer(i8), dimension(n_save_state), intent(inout) :: save_state       ! save state of random number stream
     !                                                                       ! --> stream has to be according to idist
     real(dp),    dimension(size(xi,1)),   intent(out)   :: x                ! new point
-    ! 
+    !
     ! local variables
     integer(i4) :: nn    ! number of parameters
     integer(i4) :: jj
@@ -1694,12 +1702,12 @@ CONTAINS
                 x(jj) = bl(jj) + std(jj) * rand * (bu(jj) - bl(jj))
              end if
              if (idist .eq. 2) then
-                call xor4096g(0_i8, rand, save_state=save_state)  
+                call xor4096g(0_i8, rand, save_state=save_state)
                 x(jj) = xi(jj) + std(jj) * rand * (bu(jj) - bl(jj))
              end if
              !
              !     Check explicit constraints
-             !      
+             !
              call chkcst((/x(jj)/),(/bl(jj)/),(/bu(jj)/),(/mask(jj)/),ibound)
           end do
        else
@@ -1722,15 +1730,15 @@ CONTAINS
     use iso_fortran_env, only: output_unit
     use mo_utils,        only: is_finite
 
-    implicit none    
+    implicit none
 
     real(dp),    dimension(:,:),          intent(inout) :: s                ! points in sub-complex, cols=nn, rows=nps
-    real(dp),    dimension(:),            intent(inout) :: sf               ! objective function value of points in 
+    real(dp),    dimension(:),            intent(inout) :: sf               ! objective function value of points in
     !                                                                       ! sub-complex, rows=nps
     real(dp),    dimension(:),            intent(in)    :: bl               ! lower bound per parameter
     real(dp),    dimension(:),            intent(in)    :: bu               ! upper bound per parameter
     logical,     dimension(:),            intent(in)    :: maskpara         ! mask of parameters
-    real(dp),    dimension(:),            intent(in)    :: xnstd            ! standard deviation of points in 
+    real(dp),    dimension(:),            intent(in)    :: xnstd            ! standard deviation of points in
     !                                                                       ! sub-complex per parameter
     integer(i8),                          intent(inout) :: icall            ! number of function evaluations
     integer(i8),                          intent(in)    :: maxn             ! maximal number of function evaluations allowed
@@ -1753,7 +1761,7 @@ CONTAINS
     integer(i4)                                :: nn      ! number of parameters
     integer(i4)                                :: nps     ! number of points in a sub-complex
     integer(i4)                                :: i, j
-    integer(i4)                                :: n       ! nps  = number of points in sub-complex 
+    integer(i4)                                :: n       ! nps  = number of points in sub-complex
     integer(i4)                                :: m       ! nn = number of parameters
     integer(i4)                                :: ibound  ! ibound = flag indicating if constraints are violated
     !                                                     !        = 1   yes

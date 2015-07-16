@@ -5,3 +5,6 @@ endif
 ifneq (,$(findstring $(compiler),nag nag52 nag53 nagfor))
     icompiler := nag60
 endif
+ifneq (,$(findstring $(compiler),pgi pgi15 pgi154 pgfortran pgfortran15))
+    icompiler := pgfortran154
+endif

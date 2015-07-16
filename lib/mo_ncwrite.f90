@@ -196,19 +196,24 @@ module mo_ncwrite
   !>        \param[in] "character(*) :: v_name"                             variable name
   !
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "integer(i4),             optional :: dim_unlimited"   index of unlimited dimension
-  !>        \param[in] "character(*),            optional :: long_name"      attribute
-  !>        \param[in] "character(*),            optional :: units"         attribute
-  !>        \param[in] "integer(i4)/real(sp,dp), optional :: missing_value"    attribute
+  !>        \param[in] "integer(i4),             optional :: dim_unlimited"     index of unlimited dimension
+  !>        \param[in] "character(*),            optional :: long_name"         attribute
+  !>        \param[in] "character(*),            optional :: units"             attribute
+  !>        \param[in] "integer(i4)/real(sp,dp), optional :: missing_value"     attribute
   !>        \param[in] "character(256), dimension(:,:), optional :: attributes" two dimensional array of attributes
   !>           size of first dimension equals number of attributes
   !>           first entry of second dimension equals attribute name (e.g. long_name)
   !>           second entry of second dimension equals attribute value (e.g. precipitation)
   !>           every attribute is written as string with the exception of missing_value
-  !>        \param[in] "logical,                 optional :: create"        flag - specify whether a
-  !>                                                                        output file should be
-  !>                                                                        created, default
-  !>                                                                        is false
+  !>        \param[in] "logical,                 optional :: create"            flag - specify whether a
+  !>                                                                            output file should be
+  !>                                                                            created, default
+  !>        \param[inout] "integer(i4)/real(sp,dp), optional :: ncid"   if not given filename will be opened and closed
+  !>                                                                    if given and <0 then file will be opened
+  !>                                                                    and ncid will return the file unit.
+  !>                                                                    if given and >0 then file is assumed open and
+  !>                                                                    ncid is used as file unit.
+  !>        \param[in] "integer(i4),                optional :: nrec"   if given: start point on unlimited dimension.
   !
   !     RESTRICTIONS
   !>        \note It is not allowed to write the folloing numbers for the indicated type\n
@@ -256,6 +261,20 @@ module mo_ncwrite
   !         You can also write another variable sharing the same dimensions
   !           call var2nc('test.nc', field_2, dnames(1:2), 'h_2')
   !
+  !         The netcdf file can stay open after the first call and subsequent calls can use the file unit
+  !           ncid = -1_i4
+  !           call var2nc('test.nc', field_1, dnames(1:1), 'h_1', ncid=ncid) ! opens file
+  !           call var2nc('test.nc', field_2, dnames(1:2), 'h_2', ncid=ncid) ! uses ncid from last call
+  !           call close_netcdf(ncid)
+  !
+  !         One can also give the start record number (on the unlimited dimension)
+  !           ncid = -1_i4
+  !           call var2nc('test.nc', time1, dnames(3:3), 'time', dim_unlimited=1_i4, ncid=ncid, create=.true.)
+  !           do i=1, n
+  !               call var2nc('test.nc', field_2(:,:,i), dnames(1:3), 'h_2', dim_unlimited=3_i4, ncid=ncid, nrec=i)
+  !           end do
+  !           call close_netcdf(ncid)
+  !
   !         That's it, enjoy!
   !           -> see also example in test program
   !
@@ -276,6 +295,8 @@ module mo_ncwrite
   !                 Matthias Cuntz - Feb 2015 d_unlimit was not set in 5d cases
   !                                           use ne from mo_utils for fill value comparisons
   !                                           dummy(1) was sp instead of i4 in var2nc_1d_i4
+  !                 Matthias Cuntz - May 2015 ncid for opening the file only once
+  !                                           nrec for writing a specific record
 
   interface var2nc
      module procedure var2nc_1d_i4, var2nc_1d_sp, var2nc_1d_dp, &
@@ -2736,7 +2757,7 @@ contains
 
 
   subroutine var2nc_1d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -2754,6 +2775,8 @@ contains
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     integer(i4),                      optional, intent(in) :: missing_value
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -2772,6 +2795,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     integer(i4), dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
@@ -2807,9 +2831,21 @@ contains
     dummy        = nf90_fill_int
     dummy_count  = 1
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -2820,15 +2856,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_1d_i4: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_i4: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! addapt start and counter
-       do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_int ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start( d_unlimit ) = start( d_unlimit ) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( dummy(1) /= nf90_fill_int ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimension
        do i = 1, ndim
@@ -2879,12 +2919,16 @@ contains
     ! write time and variable
     call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_1d_i4
 
   subroutine var2nc_1d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -2902,6 +2946,8 @@ contains
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     real(sp),                         optional, intent(in) :: missing_value
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -2920,6 +2966,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(sp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
@@ -2955,9 +3002,21 @@ contains
     dummy_count  = 1
     dummy        = nf90_fill_float
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -2968,15 +3027,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_1d_sp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, find first chunk that was written
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_float) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start( d_unlimit ) = start( d_unlimit ) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_float) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimension
        do i = 1, ndim
@@ -3026,12 +3089,16 @@ contains
     ! write time and variable
     call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_1d_sp
 
   subroutine var2nc_1d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3049,6 +3116,8 @@ contains
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     real(dp),                         optional, intent(in) :: missing_value
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3067,6 +3136,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(dp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
@@ -3102,9 +3172,21 @@ contains
     dummy_count  = 1
     dummy        = nf90_fill_double
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3115,15 +3197,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_1d_dp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_dp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_double) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start( d_unlimit ) = start( d_unlimit ) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_double) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimension
        do i = 1, ndim
@@ -3173,12 +3259,16 @@ contains
     ! write time and variable
     call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_1d_dp
 
   subroutine var2nc_2d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3196,6 +3286,8 @@ contains
     integer(i4),                      optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3214,6 +3306,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     integer(i4), dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -3257,9 +3350,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_int
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3271,15 +3376,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_2d_i4: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_i4: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_int ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( dummy(1) /= nf90_fill_int ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -3330,12 +3439,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_2d_i4
 
   subroutine var2nc_2d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3353,6 +3466,8 @@ contains
     real(sp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3371,6 +3486,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(sp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -3414,9 +3530,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_float
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3428,15 +3556,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_2d_sp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_float) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_float) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -3487,12 +3619,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_2d_sp
 
   subroutine var2nc_2d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3510,6 +3646,8 @@ contains
     real(dp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3528,6 +3666,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(dp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -3571,9 +3710,21 @@ contains
     dummy_count  = 1
     dummy        = nf90_fill_double
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3585,15 +3736,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_2d_dp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_dp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_double) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_double) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -3644,12 +3799,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_2d_dp
 
   subroutine var2nc_3d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3667,6 +3826,8 @@ contains
     integer(i4),                      optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3685,6 +3846,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     integer(i4), dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -3728,9 +3890,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_int
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3742,15 +3916,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_3d_i4: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_i4: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_int ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( dummy(1) /= nf90_fill_int ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -3801,12 +3979,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_3d_i4
 
   subroutine var2nc_3d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3824,6 +4006,8 @@ contains
     real(sp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -3842,6 +4026,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(sp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -3886,9 +4071,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_float
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3900,15 +4097,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_3d_sp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_float) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_float) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -3959,12 +4160,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_3d_sp
 
   subroutine var2nc_3d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -3982,6 +4187,8 @@ contains
     real(dp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4000,6 +4207,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(dp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -4043,9 +4251,21 @@ contains
     dummy_count  = 1
     dummy        = nf90_fill_double
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4057,15 +4277,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_3d_dp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_dp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_double) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_double) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4116,12 +4340,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_3d_dp
 
   subroutine var2nc_4d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4139,6 +4367,8 @@ contains
     integer(i4),                      optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4157,6 +4387,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     integer(i4), dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -4202,9 +4433,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_int
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4216,15 +4459,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_4d_i4: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_int ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( dummy(1) /= nf90_fill_int ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4275,12 +4522,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_4d_i4
 
   subroutine var2nc_4d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4298,6 +4549,8 @@ contains
     real(sp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4316,6 +4569,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(sp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -4361,9 +4615,21 @@ contains
     dummy_count  = 1_i4
     dummy        = nf90_fill_float
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4375,15 +4641,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_4d_sp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_float) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_float) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4434,12 +4704,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_4d_sp
 
   subroutine var2nc_4d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4457,6 +4731,8 @@ contains
     real(dp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4475,6 +4751,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(dp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     ! consistency checks
@@ -4520,9 +4797,21 @@ contains
     dummy_count  = 1
     dummy        = nf90_fill_double
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4534,15 +4823,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_4d_dp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_dp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_double) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_double) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4593,12 +4886,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_4d_dp
 
   subroutine var2nc_5d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4616,6 +4913,8 @@ contains
     integer(i4),                      optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4634,6 +4933,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     integer(i4), dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     d_unlimit = 0_i4
@@ -4669,9 +4969,21 @@ contains
     d_unlimit    = 0_i4
     if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4683,15 +4995,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_5d_i4: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( dummy(1) .ne. nf90_fill_int ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( dummy(1) /= nf90_fill_int ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4742,12 +5058,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_5d_i4
 
   subroutine var2nc_5d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4765,6 +5085,8 @@ contains
     real(sp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4783,6 +5105,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(sp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     d_unlimit = 0_i4
@@ -4818,9 +5141,21 @@ contains
     d_unlimit    = 0_i4
     if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4832,15 +5167,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_5d_sp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_float) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_float) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -4891,12 +5230,16 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_5d_sp
 
   subroutine var2nc_5d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create )
+       long_name, units, missing_value, attributes, create, ncid, nrec )
     !
     implicit none
     !
@@ -4914,6 +5257,8 @@ contains
     real(dp),                         optional, intent(in) :: missing_value
     character(256),   dimension(:,:), optional, intent(in) :: attributes
     logical,                          optional, intent(in) :: create
+    integer(i4),                      optional, intent(inout) :: ncid
+    integer(i4),                      optional, intent(in) :: nrec
     ! local variables
     logical                                :: create_loc
     character(256)                         :: dummy_name
@@ -4932,6 +5277,7 @@ contains
     integer(i4)                            :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
     real(dp),    dimension(1)              :: dummy     ! dummy read
+    logical                                :: openfile  ! tmp logical
     !
     ndim = size( dnames, 1 )
     d_unlimit = 0_i4
@@ -4967,9 +5313,21 @@ contains
     d_unlimit    = 0_i4
     if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
     ! open the netcdf file
-    create_loc = .false.
-    if ( present( create ) ) create_loc = create
-    f_handle = open_netcdf( f_name, create = create_loc )
+    if (present(ncid)) then
+       if (ncid < 0_i4) then
+          openfile = .true.
+       else
+          openfile = .false.
+          f_handle = ncid
+       endif
+    else
+       openfile = .true.
+    endif
+    if (openfile) then
+       create_loc = .false.
+       if (present(create)) create_loc = create
+       f_handle = open_netcdf(f_name, create=create_loc)
+    endif
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4981,15 +5339,19 @@ contains
        if ( u_dimid .eq. -1 ) stop 'var2nc_5d_dp: cannot append, no unlimited dimension defined'
        ! check for unlimited dimension
        if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_dp: unlimited dimension not specified correctly'
-       ! get length of un_limited dimension
-       call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-       ! adapt start, that is find last written chunk
-       do i = u_len, 1, -1
-          if ( ne(dummy(1),nf90_fill_double) ) exit
-          start(d_unlimit) = i
-          call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-       end do
-       start(d_unlimit)   = start(d_unlimit) + 1
+       if (present(nrec)) then
+          start(d_unlimit) = nrec
+       else
+          ! get length of unlimited dimension
+          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
+          ! adapt start, that is find last written chunk
+          do i = u_len, 1, -1
+             if ( ne(dummy(1),nf90_fill_double) ) exit
+             start(d_unlimit) = i
+             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
+          end do
+          start(d_unlimit) = start(d_unlimit) + 1
+       endif
     else
        ! define dimensions
        do i = 1, ndim
@@ -5040,7 +5402,11 @@ contains
     ! write variable
     call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
     ! close netcdf_dataset
-    call close_netcdf( f_handle )
+    if (present(ncid)) then
+       if (ncid < 0_i4) ncid = f_handle
+    else
+       call close_netcdf( f_handle )
+    endif
     !
   end subroutine var2nc_5d_dp
 
