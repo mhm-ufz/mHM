@@ -767,6 +767,9 @@ CONTAINS
 
        ! loop over basins
        do ii = 1, nBasins
+          ! calculate NtimeSteps for this basin
+          nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
+          !
           iDay = 0
           ! loop over timesteps
           do tt = warmingDays(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
