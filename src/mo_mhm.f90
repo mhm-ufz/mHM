@@ -278,8 +278,7 @@ CONTAINS
     use mo_runoff,                  only: runoff_unsat_zone
     use mo_runoff,                  only: runoff_sat_zone
     use mo_runoff,                  only: L1_total_runoff 
-    use mo_runoff,                  only: L11_runoff_acc
-    use mo_routing,                 only: L11_routing
+    use mo_routing,                 only: L11_routing, L11_runoff_acc
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
 

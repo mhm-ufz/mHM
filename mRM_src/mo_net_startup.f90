@@ -15,6 +15,7 @@
 !         Modified
 !         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
 !                                     on a regular X-Y coordinate system
+!         Stephan Thober, Aug 2015 - creating routing_init routine for mRM
 
 MODULE mo_net_startup
 
@@ -31,24 +32,51 @@ MODULE mo_net_startup
 
   PRIVATE
 
-  PUBLIC :: L11_variable_init
-  PUBLIC :: L11_flow_direction
-  PUBLIC :: L11_set_network_topology
-  PUBLIC :: L11_routing_order
-  PUBLIC :: L11_link_location
-  PUBLIC :: L11_set_drain_outlet_gauges
-  PUBLIC :: L11_stream_features
+  public :: routing_init
+
+  ! PUBLIC :: L11_variable_init
+  ! PUBLIC :: L11_flow_direction
+  ! PUBLIC :: L11_set_network_topology
+  ! PUBLIC :: L11_routing_order
+  ! PUBLIC :: L11_link_location
+  ! PUBLIC :: L11_set_drain_outlet_gauges
+  ! PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: routing_dummy_alloc
   PUBLIC :: get_distance_two_lat_lon_points
 
 CONTAINS
 
+  subroutine routing_init(iBasin)
+
+    use mo_restart, only : read_restart_L11_config
+    !ST following dependency has to be removed
+    use mo_global_variables, only : read_restart, dirRestartIn
+    
+    implicit none
+
+    integer(i4), intent(in) :: iBasin
+
+    ! check if variables should be read from restart
+    if ( .not. read_restart ) then
+       call L11_variable_init(iBasin)
+       call L11_flow_direction(iBasin)
+       call L11_set_network_topology(iBasin)
+       call L11_routing_order(iBasin)
+       call L11_link_location(iBasin)
+       call L11_set_drain_outlet_gauges(iBasin)
+       ! stream characteristics
+       call L11_stream_features(iBasin)
+    else
+       call read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
+    end if
+
+  end subroutine routing_init
+
   ! --------------------------------------------------------------------------
 
   !     NAME
   !         L11_variable_init
-  
   !     PURPOSE
   !>        \brief Cell numbering at ROUTING LEVEL-11
 
