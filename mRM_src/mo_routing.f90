@@ -185,9 +185,6 @@ CONTAINS
             + netLink_C1(i) * ( netNode_qTIN(iNode,IT1) - netNode_qTR (iNode,IT1) ) &
             + netLink_C2(i) * ( netNode_qTIN(iNode,IT)  - netNode_qTIN(iNode,IT1) )
 
-       ! add routed water to downstream node
-       ! netNode_qTIN(tNode,IT) = netNode_qTIN(tNode,IT) + netNode_qTR(iNode,IT) 
-       
        ! check if the inflow from upstream cells should be deactivated
        if (nInflowGauges .GT. 0) then
           do i = 1, nInflowGauges

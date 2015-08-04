@@ -83,6 +83,7 @@ CONTAINS
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
@@ -94,7 +95,7 @@ CONTAINS
     use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
-    use mo_write_ascii,         only : write_daily_obs_sim_discharge
+    use mo_write_routing,       only : write_routing
     use mo_write_fluxes_states, only : CloseFluxState_file
     use mo_write_fluxes_states, only : WriteFluxState
     use mo_write_fluxes_states, only : WriteFluxStateInit
@@ -138,7 +139,7 @@ CONTAINS
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
          L1_wiltingPoint, L11_C1, L11_C2, L1_neutrons,       &
-         warmingDays, evalPer, gauge, InflowGauge,           &  
+         warmingDays, InflowGauge,                           &  
          optimize,  nMeasPerDay,                             &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
@@ -215,7 +216,7 @@ CONTAINS
     integer(i4)                               :: writeout_counter ! write out time step
     !
     ! for discharge timeseries
-    integer(i4)                               :: iday, iS, iE
+    integer(i4)                               :: iDay, iS, iE
     real(dp), dimension(:,:), allocatable     :: d_Qmod
     !
     ! LAI options
@@ -280,7 +281,7 @@ CONTAINS
 
        ! calculate NtimeSteps for this basin
        nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
-
+       
        ! reinitialize time counter for LCover and MPR
        ! -0.5 is due to the fact that dec2date routine 
        !   changes the day at 12:00 in NOON
@@ -752,40 +753,10 @@ CONTAINS
     end do !<< BASIN LOOP
 
     ! --------------------------------------------------------------------------
-    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
-    ! FOR SIMULATIONS DURING THE EVALUATION PERIOD
-    !
-    !  **** AT DAILY TIME STEPS ****
-    ! Note:: Observed Q are stored only for the evaluation period and not for
-    !        the warming days
+    ! WRITE RUNOFF TO ASCII FILE
     ! --------------------------------------------------------------------------
     if( (.not. optimize) .AND. present(runoff) .AND. (nMeasPerDay .eq. 1) ) then
-       !
-       ii = maxval( evalPer(1:nBasins)%julEnd - evalPer(1:nBasins)%julStart + 1 )
-       allocate( d_Qmod(ii, nGaugesTotal) ) 
-       d_Qmod = 0.0_dp
-
-       ! loop over basins
-       do ii = 1, nBasins
-          iDay = 0
-          ! loop over timesteps
-          do tt = warmingDays(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
-             iS = tt
-             iE = tt + NTSTEPDAY - 1
-             iDay = iDay + 1
-             ! over gauges
-             do gg = 1, basin%nGauges(ii)
-                d_Qmod(iDay, basin%gaugeIndexList(ii,gg) ) = &
-                     sum( runoff(iS:iE, basin%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
-             end do
-             !
-          end do
-       end do
-       ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total] 
-       call write_daily_obs_sim_discharge( gauge%Q(:,:), d_Qmod(:,:) )
-       ! free space
-       deallocate(d_Qmod)        
-       !
+       call write_routing(runoff)
     end if
 
 
