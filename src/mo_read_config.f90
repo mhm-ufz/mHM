@@ -130,7 +130,6 @@ CONTAINS
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
-         dirGauges,                                         & ! and discharge files
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
