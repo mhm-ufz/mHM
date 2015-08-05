@@ -19,7 +19,6 @@ MODULE mo_read_wrapper
   IMPLICIT NONE
 
   PUBLIC  :: read_data            ! reads all available data
-  PRIVATE :: rotate_fdir_variable ! rotate flow direction to the new coordinate system
 
 CONTAINS
 
@@ -136,9 +135,10 @@ CONTAINS
                                      processMatrix,                       & ! identify activated processes
                                      perform_mpr,                         & ! flag indicating whether L0 is read
                                      !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
-                                     resolutionHydrology                    ! hydrology resolution (L1 scale)
-    USE mo_global_variables,   ONLY: nLAIclass, LAIUnitList, LAILUT,soilDB
+                                     resolutionHydrology,                 & ! hydrology resolution (L1 scale)
+                                     nLAIclass, LAIUnitList, LAILUT,soilDB
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
+    USE mo_read_data_routing,  only: read_discharge_data, read_L0_data_routing
     
     implicit none
 
@@ -243,7 +243,7 @@ CONTAINS
              basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 )
              basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
              !
-             ! DONT read L0 data
+             ! DO NOT read L0 data
              cycle
              !
           end if
@@ -311,33 +311,20 @@ CONTAINS
              !
           end do nVars_real
           !
-          ! read fAcc, fDir, soilID, geoUnit, gaugeLoc, LAI, LCover - datatype integer
+          ! read soilID, geoUnit, LAI - datatype integer
           nVars_integer: do iVar = 1, 6
-
-             ! handle routing related input data
-             if( ( (iVar .EQ. 1) .or. (iVar .EQ. 2) .or. (iVar .EQ. 5) ) .and. &
-                  (processMatrix(8, 1) .EQ. 0)  ) CYCLE
 
              ! handle LAI options
              ! if( (iVar .EQ. 6)  .AND. (timeStep_LAI_input < 0) ) CYCLE
 
              select case (iVar)
-             case(1) ! flow accumulation
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_facc))
-                nunit = ufacc
-             case(2) ! flow direction
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_fdir))
-                nunit = ufdir
-             case(3) ! soil ID
+             case(1) ! soil ID
                 fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
                 nunit = usoilclass
-             case(4) ! geological ID
+             case(2) ! geological ID
                 fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
                 nunit = uhydrogeoclass
-             case(5) ! location of gauging stations
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc))
-                nunit = ugaugeloc
-             case(6) ! LAI classes
+             case(3) ! LAI classes
                 fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
                 nunit = ulaiclass
              end select
@@ -353,56 +340,11 @@ CONTAINS
 
              ! put data into global L0 variable
              select case (iVar)
-             case(1) ! flow accumulation
-                call append( L0_fAcc,    pack(data_i4_2d, mask_global) )
-             case(2) ! flow direction
-                ! rotate flow direction and any other variable with directions
-                ! NOTE: ONLY when ASCII files are read
-                call rotate_fdir_variable(data_i4_2d)
-                ! append
-                call append( L0_fDir,    pack(data_i4_2d, mask_global) )
-             case(3) ! soil class ID
+             case(1) ! soil class ID
                 call append( L0_soilId,  pack(data_i4_2d, mask_global) )
-             case(4) ! hydrogeological class ID
+             case(2) ! hydrogeological class ID
                 call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-             case(5) ! location of evaluation and inflow gauging stations
-                ! evaluation gauges
-                ! Input data check
-                do iGauge = 1, basin%nGauges(iBasin)
-                   ! If gaugeId is found in gauging location file?
-                   if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
-                      call message()
-                      call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
-                           '" not found in ' )
-                      call message('          Gauge location input file: ', &
-                           trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
-                      stop
-                   end if
-                end do
-
-                call append( L0_gaugeLoc, pack(data_i4_2d, mask_global) )
-
-                ! inflow gauges
-                ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
-                if (basin%nInflowGauges(iBasin) .GT. 0_i4) then
-                   ! Input data check
-                   do iGauge = 1, basin%nInflowGauges(iBasin)
-                      ! If InflowGaugeId is found in gauging location file?
-                      if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
-                         call message()
-                         call message('***ERROR: Inflow Gauge ID "', &
-                              trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
-                              '" not found in ' )
-                         call message('          Gauge location input file: ', &
-                              trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
-                         stop
-                      end if
-                   end do
-                end if
-
-                call append( L0_InflowGaugeLoc, pack(data_i4_2d, mask_global) )
-
-             case(6) ! Land cover related to LAI classes
+             case(3) ! Land cover related to LAI classes
                 call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
              end select
              !
@@ -410,6 +352,9 @@ CONTAINS
              deallocate(data_i4_2d, mask_2d)
              !
           end do nVars_integer
+          !
+          ! read fAcc, fDir, gaugeLoc
+          if (processMatrix(8, 1) .EQ. 1) call read_L0_data_routing(iBasin, mask_global)
           !
        else
           ! if restart is switched on, perform dummy allocation of
@@ -471,138 +416,7 @@ CONTAINS
     ! ************************************************
     ! READ DISCHARGE TIME SERIES
     ! ************************************************
-    !
-    ! processMatrix(8,1) - process(8)=discharge
-    if( processMatrix(8,1) .GE. 1 ) then
-       !
-       do iGauge = 1, nGaugesTotal
-          ! get basin id
-          iBasin = gauge%basinId(iGauge)
-          ! get start and end dates
-          start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
-          end_tmp   = (/evalPer(iBasin)%yEnd,   evalPer(iBasin)%mEnd,   evalPer(iBasin)%dEnd  /)
-          ! evaluation gauge
-          fName = trim(adjustl(gauge%fname(iGauge)))
-          call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, optimize, opti_function, &
-               data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
-          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-          call paste(gauge%Q, data_dp_1d, nodata_dp )
-          deallocate (data_dp_1d)
-       end do
-       !
-    end if
-
-
-    ! inflow gauge
-    !
-    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of basin 1 and initialization
-    if (nInflowGaugesTotal .EQ. 0) then
-       allocate( data_dp_1d( maxval( simPer(:)%julEnd  - simPer(:)%julStart + 1 ) ) )
-       data_dp_1d = nodata_dp
-       call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
-    else
-
-       do iGauge = 1, nInflowGaugesTotal
-          ! get basin id
-          iBasin = InflowGauge%basinId(iGauge)
-          ! get start and end dates
-          start_tmp = (/simPer(iBasin)%yStart, simPer(iBasin)%mStart, simPer(iBasin)%dStart/)
-          end_tmp   = (/simPer(iBasin)%yEnd,   simPer(iBasin)%mEnd,   simPer(iBasin)%dEnd  /)
-          ! inflow gauge
-          fName = trim(adjustl(InflowGauge%fname(iGauge)))
-          call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, optimize, opti_function, &
-               data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
-          if ( .NOT. (all(mask_1d)) ) then
-             call message()
-             call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
-             call message('          During simulation period from ', num2str(simPer(iBasin)%yStart) &
-                  ,' to ', num2str(simPer(iBasin)%yEnd))
-             stop
-          end if
-          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-          call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
-          deallocate (data_dp_1d)
-       end do
-    end if
-
+    call read_discharge_data(( processMatrix(8,1) .GE. 1 ))
+    
   end subroutine read_data
-
-  ! ------------------------------------------------------------------
-  ! Rotate fdir variable to the new coordinate system
-  ! L. Samaniego & R. Kumar
-  ! ------------------------------------------------------------------
-  subroutine rotate_fdir_variable( x )
-    USE mo_mhm_constants,      ONLY: nodata_i4    ! mHM's global nodata vales
-
-    implicit none
-
-    integer(i4), dimension(:,:), intent(INOUT) :: x
-    ! local
-    integer(i4)                                :: i, j
-
-    !-------------------------------------------------------------------
-    ! NOTE:
-    !
-    !     Since the DEM was transposed from (lat,lon) to (lon,lat), i.e.
-    !     new DEM = transpose(DEM_old), then
-    !
-    !     the flow direction X (which was read) for every i, j cell needs
-    !     to be rotated as follows
-    !
-    !                 X(i,j) = [R] * {uVector}
-    !
-    !     with
-    !     {uVector} denoting the fDir_old (read) in vector form, and
-    !               e.g. dir 8 => {-1, -1, 0 }
-    !     [R]       denting a full rotation matrix to transform the flow
-    !               direction into the new coordinate system (lon,lat).
-    !
-    !     [R] = [rx][rz]
-    !
-    !     with
-    !           |      1       0      0 |
-    !     [rx] =|      0   cos T  sin T | = elemental rotation along x axis
-    !           |      0  -sin T  cos T |
-    !
-    !           |  cos F   sin F      0 |
-    !     [rz] =| -sin F   cos F      0 | = elemental rotation along z axis
-    !           |      0       0      1 |
-    !
-    !     and T = pi, F = - pi/2
-    !     thus
-    !          !  0  -1   0 |
-    !     [R] =| -1   0   0 |
-    !          |  0   0  -1 |
-    !     making all 8 directions the following transformation were
-    !     obtained.
-    !-------------------------------------------------------------------
-
-    do i = 1, size(x,1)
-       do j = 1, size(x,2)
-          if ( x(i,j)  .eq. nodata_i4 ) cycle
-          select case ( x(i,j) )
-          case(1)
-             x(i,j) =   4
-          case(2)
-             x(i,j) =   2
-          case(4)
-             x(i,j) =   1
-          case(8)
-             x(i,j) = 128
-          case(16)
-             x(i,j) =  64
-          case(32)
-             x(i,j) =  32
-          case(64)
-             x(i,j) =  16
-          case(128)
-             x(i,j) =   8
-          end select
-       end do
-    end do
-
-end subroutine rotate_fdir_variable
-
 END MODULE mo_read_wrapper

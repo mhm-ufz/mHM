@@ -100,9 +100,6 @@ CONTAINS
     USE mo_restart,          ONLY: read_restart_config
 
     use mo_net_startup,      only: routing_init, routing_dummy_alloc
-                                   ! L11_stream_features, &
-                                   ! L11_variable_init, L11_flow_direction, L11_set_network_topology,  &
-                                   ! L11_routing_order, L11_link_location, L11_set_drain_outlet_gauges,&
     implicit none
 
     integer(i4), intent(in) :: iBasin
@@ -141,19 +138,6 @@ CONTAINS
     ! L11: network initialization
     if ( processMatrix(8, 1) .ne. 0 ) then
        call routing_init(iBasin)
-    !    ! check if variables should be read from restart
-    !    if ( .not. read_restart ) then
-    !       call L11_variable_init(iBasin)
-    !       call L11_flow_direction(iBasin)
-    !       call L11_set_network_topology(iBasin)
-    !       call L11_routing_order(iBasin)
-    !       call L11_link_location(iBasin)
-    !       call L11_set_drain_outlet_gauges(iBasin)
-    !       ! stream characteristics
-    !       call L11_stream_features(iBasin)
-    !    else
-    !       call read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
-    !    end if
     else
        ! allocate dummy space for L0 variables related to routing process
        call routing_dummy_alloc(iBasin)

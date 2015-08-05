@@ -3,15 +3,17 @@ README for mRM
 order in which routines are to be called
 
 some read function
+
 read_config_routing -> mo_read_config_routing
+read_routing_params -> mo_read_config_routing
+read_L0_data_routing -> mo_read_data_routing
+read_discharge_data -> mo_read_data_routing
 routing_init -> mo_net_startup
 L11_fraction_sealed_floodplain -> mo_net_startup
 reg_rout -> mo_mpr_routing
 L11_runoff_acc -> mo_routing
 L11_routing -> mo_routing
 write_routing -> mo_write_routing
-
-
 
 ------------------------------------------------------------
                          README

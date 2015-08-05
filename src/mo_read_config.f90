@@ -110,6 +110,7 @@ CONTAINS
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_nml,              only: open_nml, close_nml, position_nml
+    use mo_read_config_routing, only: read_config_routing, read_routing_params
     use mo_mhm_constants,    only:                          &
          nodata_i4, nodata_dp,                              & ! nodata values
          nColPars,                                          & ! number of properties of the global variables
@@ -130,7 +131,6 @@ CONTAINS
          resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
-         dirGauges,                                         & ! and discharge files
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
@@ -358,8 +358,6 @@ CONTAINS
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
          slowInterflowRecession_Ks, exponentSlowInterflow
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic
-    namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, muskingumTravelTime_riverSlope, &
-         muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
     namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31
     !
     namelist /geoparameter/ GeoParam
@@ -385,26 +383,26 @@ CONTAINS
        stop
     end if
     ! allocate patharray sizes
-    allocate(resolutionHydrology (nBasins))
-    allocate(resolutionRouting   (nBasins))
-    allocate(L0_Basin            (nBasins))
-    allocate(dirMorpho           (nBasins))
-    allocate(dirLCover           (nBasins))
-    allocate(dirGauges           (nBasins))
-    allocate(dirPrecipitation    (nBasins))
-    allocate(dirTemperature      (nBasins))
-    allocate(dirwindspeed        (nBasins))
-    allocate(dirabsVapPressure   (nBasins))
-    allocate(dirReferenceET      (nBasins))
-    allocate(dirMinTemperature   (nBasins))
-    allocate(dirMaxTemperature   (nBasins))
-    allocate(dirNetRadiation     (nBasins))
-    allocate(dirOut              (nBasins))
-    allocate(dirRestartOut       (nBasins))
-    allocate(dirRestartIn        (nBasins))
-    allocate(dirLatLon           (nBasins))
-    allocate(dirgridded_LAI      (nBasins))
-    allocate(dirSoil_Moisture    (nBasins))
+    allocate(resolutionHydrology(nBasins))
+    allocate(resolutionRouting  (nBasins))
+    allocate(L0_Basin           (nBasins))
+    allocate(dirMorpho          (nBasins))
+    allocate(dirLCover          (nBasins))
+    allocate(dirGauges          (nBasins))
+    allocate(dirPrecipitation   (nBasins))
+    allocate(dirTemperature     (nBasins))
+    allocate(dirwindspeed       (nBasins))
+    allocate(dirabsVapPressure  (nBasins))
+    allocate(dirReferenceET     (nBasins))
+    allocate(dirMinTemperature  (nBasins))
+    allocate(dirMaxTemperature  (nBasins))
+    allocate(dirNetRadiation    (nBasins))
+    allocate(dirOut             (nBasins))
+    allocate(dirRestartOut      (nBasins))
+    allocate(dirRestartIn       (nBasins))
+    allocate(dirLatLon          (nBasins))
+    allocate(dirgridded_LAI     (nBasins))
+    allocate(dirSoil_Moisture   (nBasins))
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -435,9 +433,9 @@ CONTAINS
     !===============================================================
     call position_nml('time_periods', unamelist)
     read(unamelist, nml=time_periods)
-    warmingDays           = warming_Days(           1:nBasins )
-    evalPer               = eval_Per(               1:nBasins )
-    timestep_model_inputs = time_step_model_inputs( 1:nBasins )
+    warmingDays           = warming_Days(          1:nBasins)
+    evalPer               = eval_Per(              1:nBasins)
+    timestep_model_inputs = time_step_model_inputs(1:nBasins)
 
     ! consistency check for timestep_model_inputs
     if (       any( timestep_model_inputs .ne. 0 ) .and. &
@@ -574,168 +572,6 @@ CONTAINS
     ! Read evaluation gauge information
     !===============================================================
     call read_config_routing(( processCase(8) .GT. 0 ))
-    ! routing_activated: if( processCase(8) .GT. 0 ) then
-    ! end if routing_activated
-    !    nGaugesTotal   = nodata_i4
-    !    NoGauges_basin = nodata_i4
-    !    Gauge_id       = nodata_i4
-    !    gauge_filename = num2str(nodata_i4)
-
-    !    call position_nml('evaluation_gauges', unamelist)
-    !    read(unamelist, nml=evaluation_gauges)
-
-    !    if (nGaugesTotal .GT. maxNoGauges) then
-    !       call message()
-    !       call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))
-    !       call message('          Error occured in namlist: evaluation_gauges')
-    !       stop
-    !    end if
-
-    !    allocate(gauge%gaugeId        (nGaugesTotal))                       ; gauge%gaugeId        = nodata_i4
-    !    allocate(gauge%basinId        (nGaugesTotal))                       ; gauge%basinId        = nodata_i4
-    !    allocate(gauge%fName          (nGaugesTotal))                       ; gauge%fName(1)       = num2str(nodata_i4)
-    !    allocate(basin%nGauges        (nBasins                           )) ; basin%nGauges        = nodata_i4
-    !    allocate(basin%gaugeIdList    (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIdList    = nodata_i4
-    !    allocate(basin%gaugeIndexList (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIndexList = nodata_i4
-    !    allocate(basin%gaugeNodeList  (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeNodeList  = nodata_i4
-
-    !    idx = 0
-    !    do i_basin = 1, nBasins
-    !       ! check if NoGauges_basin has a valid value
-    !       if ( NoGauges_basin(i_basin) .EQ. nodata_i4 ) then
-    !          call message()
-    !          call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
-    !               trim(adjustl(num2str(i_basin))),' is not defined!')
-    !          call message('          Error occured in namlist: evaluation_gauges')
-    !          stop
-    !       end if
-
-    !       basin%nGauges(i_basin)          = NoGauges_basin(i_basin)
-
-    !       do i_gauge = 1, NoGauges_basin(i_basin)
-    !          ! check if NoGauges_basin has a valid value
-    !          if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
-    !             call message()
-    !             call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
-    !                  trim(adjustl(num2str(i_gauge))),' for subbasin ', &
-    !                  trim(adjustl(num2str(i_basin))),' is not defined!')
-    !             call message('          Error occured in namlist: evaluation_gauges')
-    !             stop
-    !          else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
-    !             call message()
-    !             call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
-    !                  trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
-    !                  trim(adjustl(num2str(i_basin))),' is not defined!')
-    !             call message('          Error occured in namlist: evaluation_gauges')
-    !             stop
-    !          end if
-    !          !
-    !          idx = idx + 1
-    !          gauge%basinId(idx)                    = i_basin
-    !          gauge%gaugeId(idx)                    = Gauge_id(i_basin,i_gauge)
-    !          gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge))
-    !          basin%gaugeIdList(i_basin,i_gauge)    = Gauge_id(i_basin,i_gauge)
-    !          basin%gaugeIndexList(i_basin,i_gauge) = idx
-    !       end do
-    !    end do
-
-    !    if ( nGaugesTotal .NE. idx) then
-    !       call message()
-    !       call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
-    !            ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
-    !       call message('          Error occured in namlist: evaluation_gauges')
-    !       stop
-    !    end if
-
-    ! end if routing_activated
-
-    ! !===============================================================
-    ! ! Read inflow gauge information
-    ! !===============================================================
-
-    ! nInflowGaugesTotal   = 0
-    ! NoInflowGauges_basin = 0
-    ! InflowGauge_id       = nodata_i4
-    ! InflowGauge_filename = num2str(nodata_i4)
-
-    ! if( processCase(8) .GT. 0 ) then
-    !    call position_nml('inflow_gauges', unamelist)
-    !    read(unamelist, nml=inflow_gauges)
-
-    !    if (nInflowGaugesTotal .GT. maxNoGauges) then
-    !       call message()
-    !       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))
-    !       call message('          Error occured in namlist: inflow_gauges')
-    !       stop
-    !    end if
-    ! end if
-       
-    ! ! allocation - max() to avoid allocation with zero, needed for mhm call
-    ! allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))
-    ! allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))
-    ! allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))
-    ! allocate(basin%nInflowGauges        (nBasins                                 ))
-    ! allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    ! allocate(basin%InflowGaugeHeadwater (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    ! allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    ! allocate(basin%InflowGaugeNodeList  (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    ! ! dummy initialization
-    ! InflowGauge%gaugeId        = nodata_i4
-    ! InflowGauge%basinId        = nodata_i4
-    ! InflowGauge%fName          = num2str(nodata_i4)
-    ! basin%nInflowGauges        = 0
-    ! basin%InflowGaugeIdList    = nodata_i4
-    ! basin%InflowGaugeHeadwater = .FALSE.
-    ! basin%InflowGaugeIndexList = nodata_i4
-    ! basin%InflowGaugeNodeList  = nodata_i4
-
-    ! if( processCase(8) .GT. 0 ) then
-    ! idx = 0
-    ! do i_basin = 1, nBasins
-
-    !    ! no inflow gauge for subbasin i
-    !    if (NoInflowGauges_basin(i_basin) .EQ. nodata_i4) then
-    !       NoInflowGauges_basin(i_basin)       = 0
-    !    end if
-
-    !    basin%nInflowGauges(i_basin) = NoInflowGauges_basin(i_basin)
-
-    !    do i_gauge = 1, NoInflowGauges_basin(i_basin)
-    !       ! check if NoInflowGauges_basin has a valid value
-    !       if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
-    !          call message()
-    !          call message('***ERROR: mhm.nml:ID of inflow gauge ',        &
-    !               trim(adjustl(num2str(i_gauge))),' for subbasin ', &
-    !               trim(adjustl(num2str(i_basin))),' is not defined!')
-    !          call message('          Error occured in namlist: inflow_gauges')
-    !          stop
-    !       else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
-    !          call message()
-    !          call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
-    !               trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
-    !               trim(adjustl(num2str(i_basin))),' is not defined!')
-    !          call message('          Error occured in namlist: inflow_gauges')
-    !          stop
-    !       end if
-    !       !
-    !       idx = idx + 1
-    !       InflowGauge%basinId(idx)                    = i_basin
-    !       InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
-    !       InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge))
-    !       basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
-    !       basin%InflowGaugeHeadwater(i_basin,i_gauge) = InflowGauge_Headwater(i_basin,i_gauge)
-    !       basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
-    !    end do
-    ! end do
-
-    ! if ( nInflowGaugesTotal .NE. idx) then
-    !    call message()
-    !    call message('***ERROR: mhm.nml: Total number of inflow gauges (', trim(adjustl(num2str(nInflowGaugesTotal))), &
-    !         ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
-    !    call message('          Error occured in namlist: inflow_gauges')
-    !    stop
-    ! end if
-    ! end if
 
     !===============================================================
     ! Read night-day ratios and pan evaporation
@@ -1219,31 +1055,7 @@ CONTAINS
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
     case(1)
        ! 1 - Muskingum approach
-       call position_nml('routing1', unamelist_param)
-       read(unamelist_param, nml=routing1)
-       processMatrix(8, 1) = processCase(8)
-       processMatrix(8, 2) = 5_i4
-       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
-       call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
-
-       call append(global_parameters_name, (/ &
-            'muskingumTravelTime_constant   ', &
-            'muskingumTravelTime_riverLength', &
-            'muskingumTravelTime_riverSlope ', &
-            'muskingumTravelTime_impervious ', &
-            'muskingumAttenuation_riverSlope'/))
-
-       ! check if parameter are in range
-       if ( .not. in_bound(global_parameters) ) then
-          call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
-               trim(adjustl(file_namelist_param)))
-          stop
-       end if
-
+       call read_routing_params(processCase(8))
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')
