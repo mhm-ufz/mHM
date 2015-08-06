@@ -101,6 +101,7 @@ CONTAINS
   !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
   !                  Matthias Zink,  Mar  2015 - added optional soil moisture read in for calibration
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
+  !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
 
 
   subroutine read_config()
@@ -117,18 +118,20 @@ CONTAINS
          maxNoSoilHorizons,                                 & ! maximum number of allowed soil layers
          maxNoBasins,                                       & ! maximum number of allowed basins
          maxNLcovers,                                       & ! maximum number of allowed LCover scenes
-         maxGeoUnit,                                        & ! maximum number of allowed geological classes
-         maxNoGauges                                          ! maximum number of allowed gauges
+         maxGeoUnit                                           ! maximum number of allowed geological classes
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
          file_defOutput, udefOutput,                        & ! file specifying which output to write
          file_geolut, ugeolut                                 ! file specifying geological formations
+    use mo_global_variables_routing, only:                  &
+         resolutionRouting,                                 & ! resolution of routing
+         dirGauges                                            ! directory of gauge files
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
          timestep_model_inputs,                             & ! read input frequency
-         resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing
+         resolutionHydrology,                               & ! resolutions of hydrology
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
@@ -140,7 +143,6 @@ CONTAINS
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles,                                    & ! directory where common files are located
-         dirGauges,                                         & ! directory of gauge files
          dirOut,                                            & ! output directory basin wise
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
@@ -166,9 +168,6 @@ CONTAINS
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods
                                 !                                                    ! (sim. = wrm. + eval.)
-         nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
-         nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
-         basin,                                             & ! evaluation and inflow gauge information
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
@@ -244,12 +243,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rechargeCoefficient
     real(dp), dimension(nColPars)                   :: rechargeFactor_karstic
     real(dp), dimension(nColPars)                   :: gain_loss_GWreservoir_karstic
-    ! routing
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_constant
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverLength
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverSlope
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious
-    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope
+    ! routing moved to mRM
     ! neutrons
     real(dp), dimension(nColPars)                   :: Desilets_N0
     real(dp), dimension(nColPars)                   :: COSMIC_N0
@@ -300,15 +294,6 @@ CONTAINS
     real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
     real(dp),    dimension(maxNoBasins)             :: resolution_Routing
     integer(i4),    dimension(maxNoBasins)          :: L0Basin
-    ! for gauge read in
-    integer(i4)                                        :: i_basin, i_gauge, idx
-    integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
-    integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
-    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
-    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
-    logical,        dimension(maxNoBasins,maxNoGauges) :: InflowGauge_Headwater
-    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
-    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
 
     ! define namelists
     ! namelist directories

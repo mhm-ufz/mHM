@@ -1,8 +1,6 @@
 README for mRM
 
-order in which routines are to be called
-
-some read function
+SUBROUTINES that have been moved for creation of mRM:
 
 read_config_routing -> mo_read_config_routing
 read_routing_params -> mo_read_config_routing
@@ -14,6 +12,10 @@ reg_rout -> mo_mpr_routing
 L11_runoff_acc -> mo_routing
 L11_routing -> mo_routing
 write_routing -> mo_write_routing
+
+VARIABLES that have to be added for mRM (see mo_global_variables_routing for moved variables):
+dirMorpho -> dirRouting
+evalPer -> evalPerRouting
 
 ------------------------------------------------------------
                          README

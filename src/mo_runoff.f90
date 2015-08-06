@@ -11,7 +11,7 @@
 
 MODULE mo_runoff
   
-  USE mo_kind, ONLY: i4, dp
+  USE mo_kind, ONLY: dp
   USE mo_constants, ONLY: eps_dp
 
   IMPLICIT NONE

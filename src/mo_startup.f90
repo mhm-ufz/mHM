@@ -264,12 +264,12 @@ CONTAINS
 
     use mo_global_variables, only: basin                    , &
                                    L0_elev, L0_slope, L0_asp, &
-                                   L0_fDir, L0_fAcc         , &
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
                                    nLCover_scene            , &
                                    L0_LCover, timeStep_LAI_input, &
                                    processMatrix
+    use mo_global_variables_routing, only: L0_fDir, L0_fAcc         
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str

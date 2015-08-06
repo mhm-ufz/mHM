@@ -6,18 +6,18 @@ module mo_read_config_routing
 contains
   subroutine read_config_routing(do_routing)
     use mo_message,          only: message
-    use mo_nml,              only: open_nml, close_nml, position_nml
-    use mo_mhm_constants, only : nodata_i4, &
-         maxNoBasins, & ! maximum number of allowed basins
+    use mo_nml,              only: position_nml
+    use mo_mrm_constants, only : nodata_i4, &
          maxNoGauges    ! maximum number of allowed gauges
     use mo_file,          only : unamelist
     use mo_string_utils,  only : num2str
-    !ST The following dependency has to be changed
-    use mo_global_variables, only : nGaugesTotal, gauge, & ! number of evaluation gauges and gauge informations 
+    use mo_global_variables_routing, only : nGaugesTotal, gauge, & ! number of evaluation gauges and gauge informations 
          nInflowGaugesTotal, InflowGauge, & ! number of inflow gauges and gauge informations
-         dirGauges, & ! directory of gauge files
-         basin, nbasins
-         
+         dirGauges ! directory of gauge files
+    !ST The following dependency has to be changed
+    use mo_global_variables, only: basin, nbasins
+    use mo_mhm_constants, only: maxNoBasins ! maximum number of allowed basins
+
     
     implicit none
     ! input variables

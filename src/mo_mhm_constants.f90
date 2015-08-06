@@ -27,13 +27,6 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: deltaH             = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
   integer(i4), public, parameter :: nLCover_class      = 3_i4      ! [-]     Number of land cover class
 
-  integer(i4), public, parameter :: nRoutingStates     = 2         ! Dimension of the auxiliary vectors
-  !                                                                ! which store current and past states of
-  !                                                                ! incoming and outgoing of discharge at
-  !                                                                ! a given node 
-  !                                                                ! (1 - past)
-  !                                                                ! (2 - current)
-  integer(i4), public, parameter :: maxNoGauges        = 200_i4    ! maximal number of gauges allowed
   integer(i4), public, parameter :: nColPars           = 5_i4      ! number of properties of the global variables
   integer(i4), public, parameter :: maxNoSoilHorizons  = 10_i4     ! maximum number of allowed soil layers
   integer(i4), public, parameter :: maxNoBasins        = 50_i4     ! maximum number of allowed basins

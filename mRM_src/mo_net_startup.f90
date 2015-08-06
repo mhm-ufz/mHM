@@ -49,7 +49,7 @@ CONTAINS
 
   subroutine routing_init(iBasin)
 
-    use mo_restart, only : read_restart_L11_config
+    use mo_restart_routing, only : read_restart_L11_config
     !ST following dependency has to be removed
     use mo_global_variables, only : read_restart, dirRestartIn
     
@@ -125,13 +125,14 @@ CONTAINS
   ! --------------------------------------------------------------------------
 
   subroutine L11_variable_init(iBasin)
-
-    use mo_global_variables, only :          &
-         nBasins, basin,                     &
-         level1, level11, resolutionRouting, &
+    use mo_global_variables_routing, only: &
+         level11, resolutionRouting, &
          L11_cellCoor,                       & ! cell coordinates (row,col)
          L11_nCells,                         & ! Total No. of routing cells  (= nNodes)
          L11_Id                                ! ids of grid at level-11    
+    !ST The following dependency has to be removed
+    use mo_global_variables, only :          &
+         level1, nBasins, basin
     use  mo_init_states,  only : calculate_grid_properties
 
     implicit none
@@ -362,12 +363,10 @@ CONTAINS
   !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
-
-    use mo_global_variables, only : &
-         nBasins, basin, level0, level1, level11,   &
-         L0_fAcc, L0_fDir, L0_id, &
+    use mo_global_variables_routing, only: &
+         level11,   &
+         L0_fAcc, L0_fDir,  &
          L0_draSC,          & ! INOUT: draining cell of each sub catchment (== cell L11)
-         L0_cellCoor,       &
          L0_L11_Id,         & ! INOUT: mapping of L11 Id on L0
          L1_L11_Id,         & ! INOUT: mapping of L11 Id on L1
          L11_Id,            &
@@ -383,6 +382,10 @@ CONTAINS
          L11_downBound_L1,  & ! INOUT: row end at finer level-1 scale 
          L11_leftBound_L1,  & ! INOUT: col start at finer level-1 scale 
          L11_rightBound_L1    ! INOUT: col end at finer level-1 scale 
+    !ST The following dependency has to be removed
+    use mo_global_variables, only : &
+         L0_cellCoor,       &
+         nBasins, basin, level0, level1, L0_id
 
     implicit none
 
@@ -831,7 +834,7 @@ CONTAINS
 
   subroutine L11_set_network_topology(iBasin)
 
-    use mo_global_variables, only: &
+    use mo_global_variables_routing, only: &
          L11_Id, L11_cellCoor,     &
          L11_fDir,                 &
          L11_fromN,                & ! INOUT: from node 
@@ -965,7 +968,7 @@ CONTAINS
 
   subroutine L11_routing_order(iBasin)
 
-    use mo_global_variables, only: &
+    use mo_global_variables_routing, only: &
          L11_fromN,                & ! IN:    from node 
          L11_toN,                  & ! IN:    to node
          L11_rOrder,               & ! INOUT: network routing order
@@ -1142,9 +1145,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   subroutine L11_link_location(iBasin)
-
-    use mo_global_variables, only: &
-         basin,       &
+    use mo_global_variables_routing, only: &
          L0_fDir,     & ! IN:    flow direction (standard notation) L0
          L0_draSC,    & ! IN:    Index of draining cell of each sub catchment (== cell L11)
          L11_fromN,   & ! IN:    from node 
@@ -1155,6 +1156,7 @@ CONTAINS
          L11_fCol,    & ! INOUT: from col in L0 grid
          L11_tRow,    & ! INOUT: to row in L0 grid
          L11_tCol       ! INOUT: to col in L0 grid 
+    use mo_global_variables, only: basin
 
     implicit none
 
@@ -1340,18 +1342,18 @@ CONTAINS
   !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
   ! ------------------------------------------------------------------
   subroutine L11_set_drain_outlet_gauges(iBasin)
-
-    use mo_global_variables, only: &
-         basin,       & 
+    use mo_global_variables_routing, only: &
          L0_fDir,     &       ! IN: flow direction (standard notation) L0
          L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
-         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
          L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
          L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
          L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
          L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
+    use mo_global_variables, only: &
+         basin,       & 
+         L0_cellCoor ! IN: cell coordinates (row,col) -> <only domain> input data
 
     implicit none
 
@@ -1511,12 +1513,8 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   subroutine L11_stream_features(iBasin)
-
-    use mo_global_variables, only: &
-         L0_Id,           & ! IN:    level-0 id
-         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
+    use mo_global_variables_routing, only: &
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
-         L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          L11_fRow,        & ! IN:    from row in L0 grid 
          L11_fCol,        & ! IN:    from col in L0 grid
          L11_tRow,        & ! IN:    to row in L0 grid 
@@ -1526,9 +1524,14 @@ CONTAINS
          L0_floodPlain,   & ! IN:    floodplains of stream i
          L11_length,      & ! IN:    total length [m] 
          L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
-     iFlag_cordinate_sys, & ! IN:    coordinate system
          L11_slope          ! INOUT: normalized average slope
-    use mo_mhm_constants, only: nodata_i4, nodata_dp
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    !ST The following dependency has to be removed
+    use mo_global_variables, only: &
+         L0_Id,           & ! IN:    level-0 id
+         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
+         L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
+         iFlag_cordinate_sys ! IN:    coordinate system
 
     implicit none
 
@@ -1790,7 +1793,7 @@ CONTAINS
        areaCell0, nLinkAFloodPlain,  & ! INTENT IN
        LCClassImp,                   & ! INTENT IN
        nLinkFracFPimp    )             ! INTENT OUT
-    use mo_mhm_constants, only: nodata_dp
+    use mo_mrm_constants, only: nodata_dp
     implicit none
 
     integer(i4),                intent(in)  :: nLinks
@@ -1872,7 +1875,7 @@ CONTAINS
 
     use mo_kind,             only: i4
     use mo_init_states,      only: get_basin_info
-    use mo_global_variables, only: &
+    use mo_global_variables_routing, only: &
          L11_cellCoor,      & ! cell Coordinates at Level 11
          L11_Id,            & ! cell Ids at Level 11
          L11_nCells,        & ! Number of Cells at Level 11
@@ -2174,7 +2177,8 @@ CONTAINS
   ! ------------------------------------------------------------------
   subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
-    use mo_constants,        only: SQRT2_dp
+    use mo_constants, only: SQRT2_dp
+    !ST The following dependency has to be removed
     use mo_global_variables, only: level0
 
     implicit none

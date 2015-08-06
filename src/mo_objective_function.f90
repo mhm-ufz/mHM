@@ -98,7 +98,7 @@ CONTAINS
     use mo_moment,           only: mean, correlation
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -233,7 +233,7 @@ CONTAINS
     use mo_constants,        only: pi_dp
     use mo_moment,           only: stddev, correlation
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -375,7 +375,7 @@ CONTAINS
     use mo_moment,           only: stddev
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -610,7 +610,7 @@ CONTAINS
   FUNCTION objective_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: lnnse
 
     implicit none
@@ -701,7 +701,7 @@ CONTAINS
   FUNCTION objective_sse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: sse
 
     implicit none
@@ -794,7 +794,7 @@ CONTAINS
   FUNCTION objective_nse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: nse
 
     implicit none
@@ -890,7 +890,7 @@ CONTAINS
   FUNCTION objective_equal_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
 
     implicit none
@@ -994,7 +994,7 @@ CONTAINS
   FUNCTION objective_power6_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
 
     implicit none
@@ -1100,7 +1100,7 @@ CONTAINS
   FUNCTION objective_kge(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: kge
 
     implicit none
@@ -1207,7 +1207,7 @@ CONTAINS
   FUNCTION objective_multiple_gauges_kge_power6(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
+    use mo_global_variables_routing, only: nGaugesTotal
     use mo_errormeasures,    only: kge
 
     implicit none
@@ -1851,8 +1851,9 @@ CONTAINS
 
 ! ------------------------------------------------------------------
 subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-  
-  use mo_global_variables, only: gauge, evalPer, warmingDays, nTstepDay, nMeasPerDay
+
+  use mo_global_variables_routing, only: gauge, nMeasPerDay
+  use mo_global_variables, only: evalPer, warmingDays, nTstepDay
   use mo_message,          only: message
   use mo_utils,            only: ge
   

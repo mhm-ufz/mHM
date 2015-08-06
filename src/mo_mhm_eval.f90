@@ -83,7 +83,8 @@ CONTAINS
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing
+  !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
+  !                                                    deleted related variables, included variables from routing
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
@@ -104,48 +105,51 @@ CONTAINS
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
          timeStep, nBasins, basin, simPer, readPer,          & ! [h] simulation time step, No. of basins
-         nGaugesTotal,                                       &
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
          LCyearId, LAIUnitList, LAILUT,                      & 
          GeoUnitList, GeoUnitKar, soilDB,                    &
          L0_Id, L0_soilId,                                   & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
-         L0_areaCell,L0_floodPlain,                          &        
-         soilDB, L1_areaCell, L1_nTCells_L0, L1_L11_Id,      & 
+         L0_areaCell,                                        &        
+         soilDB, L1_areaCell, L1_nTCells_L0,                 & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
          L1_rightBound_L0, latitude,                         &
-         L11_netPerm, L11_fromN, L11_toN,                    & 
-         L11_length, L11_slope, evap_coeff, fday_prec,       & 
+         evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
          L1_absvappress, L1_windspeed,                       &
          L1_pre, L1_temp , L1_fForest,                       & 
-         L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
-         L11_aFloodPlain, L1_inter,                          & 
+         L1_fPerm, L1_fSealed, L1_inter,                     & 
          L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, & 
          L1_satSTW, L1_pet_calc,                             &
          L1_aETSoil, L1_aETCanopy, L1_aETSealed,             &
          L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,  & 
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal,    & 
          L1_slowRunoff, L1_snow, L1_Throughfall,             & 
-         L1_total_runoff, L11_Qmod, L11_qOUT, L11_qTIN,      & 
-         L11_qTR, L1_alpha, L1_degDayInc, L1_degDayMax,      & 
+         L1_total_runoff, L1_alpha, L1_degDayInc,            &
+         L1_degDayMax,                                       & 
          L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, & 
          L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,      &
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
-         L1_wiltingPoint, L11_C1, L11_C2, L1_neutrons,       &
-         warmingDays, InflowGauge,                           &  
-         optimize,  nMeasPerDay,                             &
+         L1_wiltingPoint, L1_neutrons,                       &
+         warmingDays, optimize,                              &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+    use mo_global_variables_routing, only: &
+         nMeasPerDay, InflowGauge, &
+         L11_netPerm, L11_fromN, L11_toN, & 
+         L11_length, L11_slope, L11_aFloodPlain, &
+         L0_floodPlain, L1_L11_Id, nGaugesTotal, &
+         L11_Qmod, L11_qOUT, L11_qTIN, &
+         L11_qTR, L11_C1, L11_C2, L11_FracFPimp
     
     implicit none
 
@@ -216,8 +220,6 @@ CONTAINS
     integer(i4)                               :: writeout_counter ! write out time step
     !
     ! for discharge timeseries
-    integer(i4)                               :: iDay, iS, iE
-    real(dp), dimension(:,:), allocatable     :: d_Qmod
     !
     ! LAI options
     integer(i4)                               :: day_counter

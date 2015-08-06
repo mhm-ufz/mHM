@@ -157,7 +157,7 @@ PROGRAM mhm_driver
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
-       dirMorpho, dirLCover, dirGauges, dirPrecipitation,    &      ! directories
+       dirMorpho, dirLCover,  dirPrecipitation,              &      ! directories
        dirTemperature, dirOut,                               &      ! directories
        dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
        dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam  (case 1)
@@ -169,8 +169,9 @@ PROGRAM mhm_driver
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       basin, processMatrix                                         ! basin information,  processMatrix
-  USE mo_global_variables,    ONLY : opti_function, dirConfigOut
+       basin, processMatrix,                                 &      ! basin information,  processMatrix
+       opti_function, dirConfigOut
+  USE mo_global_variables_routing, ONLY : dirGauges                 ! directory
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out

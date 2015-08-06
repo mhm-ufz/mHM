@@ -16,15 +16,16 @@ contains
          file_facc, ufacc, & ! file name and unit of flow acc map
          file_fdir, ufdir, & ! file name and unit of flow dir map
          file_gaugeloc, ugaugeloc ! file name and unit of gauge locations m
-    !ST: The following dependency has to be removed
-    use mo_global_variables, only: &
-         dirMorpho, & ! directories
-         level0, & ! grid information (ncols, nrows, ..)
-         basin, & ! basin information for single basins
+    use mo_global_variables_routing, only: &
          L0_fAcc, & ! flow accumulation on input resolution (L0)
          L0_fDir, & ! flow direction on input resolution (L0)
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc ! location of inflow gauges on input resolution (L0)
+    !ST: The following dependency has to be removed
+    use mo_global_variables, only: &
+         dirMorpho, & ! directories
+         level0, & ! grid information (ncols, nrows, ..)
+         basin ! basin information for single basins
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -120,15 +121,16 @@ contains
     use mo_string_utils, only: num2str
     use mo_read_timeseries, only: read_timeseries
     use mo_file, only: udischarge
+    use mo_global_variables_routing, only: &
+         nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
+         nInflowGaugesTotal, InflowGauge ! inflow stations information
     !ST: The following dependency has to be removed
     use mo_global_variables, only: &
-         nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
          evalPer, & ! model evaluation period (for discharge read in)
          optimize, & ! optimizeation flag for some error checks
          opti_function, & ! opti_function that determines to what data to calibrate
-         nInflowGaugesTotal, InflowGauge, & ! inflow stations information
          simPer ! model simulation period (for inflow read in)
-    USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
+    use mo_mhm_constants, only: nodata_dp ! mHM's global nodata vales
     !
     implicit none
     ! input variables

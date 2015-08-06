@@ -39,7 +39,7 @@ CONTAINS
 
   !>        \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
   !>                 fluxes, and parameters) for a given basin. Variables allocated here is 
-  !>                 defined in them mo_global_varibles.f90 file. After allocating any variable
+  !>                 defined in them mo_global_variables.f90 file. After allocating any variable
   !>                 in this routine, initalize them in the following variables_default_init 
   !>                 subroutine:
   !>                 
@@ -91,10 +91,12 @@ CONTAINS
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
-         L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp, L1_neutrons
+         L1_neutrons
+    use mo_global_variables_routing, only: L11_Qmod, L11_qOUT, L11_qTIN, &
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
 
-    use mo_mhm_constants,    only: nRoutingStates, YearMonths_i4    
+    use mo_mhm_constants,    only: YearMonths_i4
+    use mo_mrm_constants,    only: nRoutingStates
     use mo_append,           only: append                      ! append vector
 
     implicit none
@@ -398,7 +400,7 @@ CONTAINS
   
   !>        \details Default initalization of mHM related L1 and L11 variables (e.g., states,
   !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>                 Variables initalized here is defined in the mo_global_varibles.f90 file. 
+  !>                 Variables initalized here is defined in the mo_global_variables.f90 file. 
   !>                 Only Variables that are defined in the variables_alloc subroutine are 
   !>                 intialized here.
   !
@@ -453,8 +455,10 @@ CONTAINS
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
+         L1_neutrons
+    use mo_global_variables_routing, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp, L1_neutrons
+         L11_FracFPimp
 
     use mo_mhm_constants,    only:               &
          P1_InitStateFluxes, P2_InitStateFluxes, &
@@ -721,11 +725,13 @@ CONTAINS
   !         \authors  Rohini Kumar, Luis Samaniego
   !         \date     Jan 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
+  !                   Stephan Thober, Aug 2015 - moved level11 to mo_global_variables_routing
 
   subroutine get_basin_info(iBasin, iLevel, nrows, ncols, ncells, iStart, iEnd, &
                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
 
-    use mo_global_variables, only: basin, level0, level1, level11, level2
+    use mo_global_variables, only: basin, level0, level1, level2
+    use mo_global_variables_routing, only: level11
     implicit none
 
     integer(i4), intent(in)                                      :: iBasin

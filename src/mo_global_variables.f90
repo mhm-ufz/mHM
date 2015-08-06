@@ -35,7 +35,7 @@ MODULE mo_global_variables
 
   ! Types have to be public
   PUBLIC :: period
-  PUBLIC :: gaugingStation
+  ! PUBLIC :: gaugingStation
   PUBLIC :: soilType
   PUBLIC :: gridGeoRef
   PUBLIC :: basinInfo
@@ -46,7 +46,6 @@ MODULE mo_global_variables
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
   integer(i4),   dimension(:), allocatable, public   :: timeStep_model_inputs      ! frequency for reading meteo input
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
-  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: read_restart               ! flag 
   logical,       public                              :: write_restart              ! flag 
@@ -117,7 +116,6 @@ MODULE mo_global_variables
   ! has the dimension of nBasins
   character(256), dimension(:), allocatable, public :: dirMorpho          ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover          ! Directory where land cover files are located
-  character(256), dimension(:), allocatable, public :: dirGauges          ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
   character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
@@ -201,24 +199,6 @@ MODULE mo_global_variables
      real(dp), dimension(:,:,:), allocatable    :: Ks                 ! [cm/d]     Saturated hydaulic conductivity
   end type soilType
   type(soilType), public                        :: soilDB             !            The soil database
-
-  ! -----------------------------------------------------------------
-  ! GAUGED station data
-  ! -----------------------------------------------------------------
-  integer(i4), public                            :: nGaugesTotal       ! Number of evaluation gauges for all basins 
-  integer(i4), public                            :: nInflowGaugesTotal ! Number of evaluation gauges for all basins 
-
-  integer(i4), public                            :: nMeasPerDay        ! Number of observations per day,
-  !                                                                    ! e.g. 24 -> hourly discharge, 1 -> daily discharge
-  type gaugingStation
-     integer(i4),    dimension(:),   allocatable :: basinId            ! Basin Id
-     integer(i4),    dimension(:),   allocatable :: gaugeId            ! Gauge Id (e.g. 0000444)
-     character(256), dimension(:),   allocatable :: fname              ! Name runoff file
-     real(dp),       dimension(:,:), allocatable :: Q                  ! [m3 s-1] observed daily mean discharge (simPer)
-     !                                                                 ! dim1=number observations, dim2=number of gauges
-  end type gaugingStation
-  type(gaugingStation), public                   :: gauge              ! Gauging station information
-  type(gaugingStation), public                   :: InflowGauge        ! inflow gauge information
   
   ! -----------------------------------------------------------------
   ! GEOLOGICAL FORMATION data
@@ -259,8 +239,6 @@ MODULE mo_global_variables
 
   type(gridGeoRef), public                  :: level0       ! Reference of the input data files
   type(gridGeoRef), public                  :: level1       ! Reference of the hydrological variables
-  type(gridGeoRef), public                  :: level11      ! Reference of the routing variables
-  type(gridGeoRef), public                  :: level110     ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
   type(gridGeoRef), public                  :: level2       ! Reference of the metereological variables
 
   real(dp), dimension(:), allocatable, public :: longitude  ! 1d longitude array
@@ -352,12 +330,8 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable      :: L0_elev       ! [m]       Elevation (sinks removed)   
   real(dp), public, dimension(:), allocatable      :: L0_slope      ! [%]       Slope 
   real(dp), public, dimension(:), allocatable      :: L0_asp        ! [degree]  Aspect degree
-  integer(i4), public, dimension(:), allocatable   :: L0_fAcc       !           Flow accumulation
-  integer(i4), public, dimension(:), allocatable   :: L0_fDir       !           Flow direction (standard ArcGIS)
   integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           Soil id
   integer(i4), public, dimension(:), allocatable   :: L0_geoUnit    !           Geologic formation (unit)
-  integer(i4), public, dimension(:), allocatable   :: L0_gaugeLoc   !           Location of gauges within the catchment
-  integer(i4), public, dimension(:), allocatable   :: L0_InflowGaugeLoc         ! Location of inflow gauges within the catchment
  
   ! input data - land cover
   integer(i4), public, dimension(:), allocatable   :: L0_LCover_LAI ! Special landcover id (upto 10 classes) only for the LAI index
@@ -370,14 +344,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable      :: L0_areaCell   ! [m2] Area of a cell at level-0 
   integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor   !      Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:), allocatable   :: L0_Id         !      Level-0 id
-  integer(i4), public, dimension(:), allocatable   :: L0_L11_Id     !      Mapping of L11 Id on L0  
-  !                                                                 !      (sub-cat. id. == cell Id L11)
   real(dp), public, dimension(:), allocatable      :: L0_slope_emp  !      Empirical quantiles of slope
-  integer(i4), public, dimension(:), allocatable   :: L0_draSC      !      Index of draining cell of each sub catchment 
-  !                                                                 !      i.e. a routing cell L11
-  integer(i4), public, dimension(:), allocatable   :: L0_draCell    !      Draining cell id at L11 of ith cell of L0
-  integer(i4), public, dimension(:), allocatable   :: L0_streamNet  !      Stream network
-  integer(i4), public, dimension(:), allocatable   :: L0_floodPlain !      Floodplains of stream i
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0
   !                                                                  !      dim1=number of grid cells, dim2=number of LAI time steps
@@ -391,7 +358,6 @@ MODULE mo_global_variables
   integer(i4), public, dimension(:,:), allocatable :: L1_cellCoor      !       Cell coordinates (row,col)
   !                                                                    !       -> <only for the domain> L1 modelling
   integer(i4), public, dimension(:), allocatable   :: L1_Id            !       Level-1 id
-  integer(i4), public, dimension(:), allocatable   :: L1_L11_Id        !       Mapping of L11 Id on L1
 
   integer(i4), public, dimension(:), allocatable   :: L1_upBound_L0    ! Row start at finer level-0 scale 
   integer(i4), public, dimension(:), allocatable   :: L1_downBound_L0  ! Row end at finer level-0 scale 
@@ -491,70 +457,6 @@ MODULE mo_global_variables
   !                                                                !        in sealed surfaces
   real(dp), public, dimension(:,:), allocatable :: L1_wiltingPoint ! [mm]   Permanent wilting point: below which neither 
   !                                                                !        plant can take water nor water can drain in
-
-  ! -------------------------------------------------------------------
-  ! L11 DOMAIN description
-  ! -------------------------------------------------------------------
-  ! dim1 = number grid cells L11
-  ! dim2 = 2
-  integer(i4), public                              :: L11_nCells        ! No. of routing cells  (= nSC = nNodes)
-  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor      ! Cell coordinates (row,col)
-  !                                                                     ! -> <only domain> Routing
-  integer(i4), public, dimension(:), allocatable   :: L11_Id            ! Ids of grid at level-11           
-  integer(i4), public, dimension(:), allocatable   :: L11_fDir          ! Flow direction (standard notation)
-
-  ! Reference
-  ! dim1 = number grid cells L11
-  integer(i4), public, dimension(:), allocatable   :: L11_upBound_L0    ! Row start at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_downBound_L0  ! Row end at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_leftBound_L0  ! Col start at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_rightBound_L0 ! Col end at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_upBound_L1    ! Row start at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_downBound_L1  ! Row end at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_leftBound_L1  ! Col start at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_rightBound_L1 ! Col end at finer level-1 scale 
-
-  ! Constants
-  ! dim1 = number grid cells L11
-  integer(i4), public, dimension(:), allocatable   :: L11_rowOut        ! Grid vertical location of the Outlet
-  integer(i4), public, dimension(:), allocatable   :: L11_colOut        ! Grid horizontal location  of the Outlet
-
-  ! -------------------------------------------------------------------
-  ! L11 NETWORK description
-  ! -------------------------------------------------------------------
-  ! Fluxes
-  ! dim1 = number grid cells L11
-  ! dim2 = 2
-  real(dp), public, dimension(:), allocatable     :: L11_Qmod        ! [m3 s-1] Simulated discharge
-  real(dp), public, dimension(:), allocatable     :: L11_qOUT        ! [m3 s-1] Total outflow from cells L11 at time tt
-  real(dp), public, dimension(:,:), allocatable   :: L11_qTIN        !          Total discharge inputs at t-1 and t
-  real(dp), public, dimension(:,:), allocatable   :: L11_qTR         !          Routed outflow leaving a node
-
-  ! Stream link description ( drainage network topology )
-  ! dim1 = number grid cells L11
-  integer(i4), public, dimension(:), allocatable  :: L11_fromN       !         From node 
-  integer(i4), public, dimension(:), allocatable  :: L11_toN         !         To node
-  integer(i4), public, dimension(:), allocatable  :: L11_netPerm     !         Routing sequence (permutation of L11_rOrder)
-  integer(i4), public, dimension(:), allocatable  :: L11_fRow        !         From row in L0 grid 
-  integer(i4), public, dimension(:), allocatable  :: L11_fCol        !         From col in L0 grid
-  integer(i4), public, dimension(:), allocatable  :: L11_tRow        !         To row in L0 grid 
-  integer(i4), public, dimension(:), allocatable  :: L11_tCol        !         To col in L0 grid 
-  integer(i4), public, dimension(:), allocatable  :: L11_rOrder      !         Network routing order  
-  integer(i4), public, dimension(:), allocatable  :: L11_label       !         Label Id [0='', 1=HeadWater, 2=Sink]
-  logical, public, dimension(:), allocatable      :: L11_sink        !         .true. if sink node reached
-  real(dp), public, dimension(:), allocatable     :: L11_length      ! [m]     Total length of river link
-  real(dp), public, dimension(:), allocatable     :: L11_aFloodPlain ! [m2]    Area of the flood plain
-  real(dp), public, dimension(:), allocatable     :: L11_FracFPimp   ! [1]     Fraction of the flood plain with
-  !                                                                  !         impervious cover
-  real(dp), public, dimension(:), allocatable     :: L11_slope       ! [1]     Average slope of river link
-
-  ! Parameters
-  ! dim1 = number grid cells L11
-  real(dp), public, dimension(:), allocatable     :: L11_K           ! [d]     kappa: Muskingum travel time parameter.
-  real(dp), public, dimension(:), allocatable     :: L11_xi          ! [1]     xi:    Muskingum diffusion parameter
-  !                                                                  !                (attenuation).
-  real(dp), public, dimension(:), allocatable     :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
-  real(dp), public, dimension(:), allocatable     :: L11_C2          ! [-]     Routing parameter C2 (")
 
   ! -------------------------------------------------------------------
   ! Monthly day/night variation of Meteorological variables

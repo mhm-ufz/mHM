@@ -353,7 +353,7 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-processCase(8) = 0
+processCase(8) = 1
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1

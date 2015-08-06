@@ -79,6 +79,7 @@ CONTAINS
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
   !                    Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
+  !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM_src folder
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -88,7 +89,6 @@ CONTAINS
     USE mo_soil_database,      ONLY: read_soil_LUT
     USE mo_read_spatial_data,  ONLY: read_header_ascii,                   &
                                      read_spatial_data_ascii
-    USE mo_read_timeseries ,   ONLY: read_timeseries
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
     USE mo_message,            ONLY: message
@@ -98,64 +98,52 @@ CONTAINS
                                      file_dem           , udem,           & ! file name and unit of elevation map
                                      file_slope         , uslope,         & ! file name and unit of slope map
                                      file_aspect        , uaspect,        & ! file name and unit of aspect map
-                                     file_facc          , ufacc,          & ! file name and unit of flow acc map
-                                     file_fdir          , ufdir,          & ! file name and unit of flow dir map
                                      file_soilclass     , usoilclass,     & ! file name and unit of soil class map
                                      file_hydrogeoclass , uhydrogeoclass, & ! file name and unit of hydrogeo class map
-                                     file_gaugeloc      , ugaugeloc,      & ! file name and unit of gauge locations map
                                      file_laiclass      , ulaiclass,      & ! file name and unit of lai class map
                                      file_soil_database ,                 & ! file name and unit of soil class map
-                                     udischarge         ,                 & ! unit of discharge time series
                                      ulcoverclass                           ! unit of land cover class map
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
                                      L0_Basin,                            & ! L0_Basin ID
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
-                                     L0_fAcc,                             & ! flow accumulation on input resolution (L0)
-                                     L0_fDir,                             & ! flow direction on input resolution (L0)
                                      L0_soilId,                           & ! soil class ID on input resolution (L0)
                                      L0_geoUnit,                          & ! hydro class ID on input resolution (L0)
-                                     L0_gaugeLoc,                         & ! location of evaluation gauges on input resolution (L0)
-                                     L0_InflowGaugeLoc,                   & ! location of inflow gauges on input resolution (L0)
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles,                      & ! directory of common files
                                      LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
-                                     optimize,                            & ! optimizeation flag for some error checks
-                                     opti_function,                       & ! opti_function that determines to what data to calibrate
-                                     nGaugesTotal, gauge, nMeasPerDay,    & ! evaluaton gauging station information
-                                     nInflowGaugesTotal, InflowGauge,     & ! inflow stations information
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
-                                     evalPer,                             & ! model evaluation period (for discharge read in)
-                                     simPer,                              & ! model simulation period (for inflow read in)
                                      processMatrix,                       & ! identify activated processes
                                      perform_mpr,                         & ! flag indicating whether L0 is read
                                      !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
                                      nLAIclass, LAIUnitList, LAILUT,soilDB
+    use mo_global_variables_routing, only:                                &
+                                     L0_fAcc,                             & ! flow accumulation on input resolution (L0)
+                                     L0_fDir,                             & ! flow direction on input resolution (L0)
+                                     L0_gaugeLoc,                         & ! location of evaluation gauges on input resolution (L0)
+                                     L0_InflowGaugeLoc                      ! location of inflow gauges on input resolution (L0)
+         
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
     USE mo_read_data_routing,  only: read_discharge_data, read_L0_data_routing
     
     implicit none
 
     ! local variables
-    integer(i4)                               :: iGauge
     integer(i4)                               :: iBasin, iVar     ! loop variables
     integer(i4)                               :: nunit            ! file unit of file to read
     integer(i4)                               :: nCells           ! number of cells in global_mask
     character(256)                            :: fName            ! file name of file to read
-    real(dp), dimension(:),   allocatable     :: data_dp_1d
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
-    logical, dimension(:),   allocatable      :: mask_1d
     logical, dimension(:,:), allocatable      :: mask_2d
     logical, dimension(:,:), allocatable      :: mask_global
-    integer(i4), dimension(3)                 :: start_tmp, end_tmp
     integer(i4), dimension(:),  allocatable   :: dummy_i4
     real(dp),    dimension(:),  allocatable   :: dummy_dp
 
