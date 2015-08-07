@@ -26,7 +26,7 @@
 !>          6          | interflow                 | 1     | Nonlinear reservoir with saturation excess
 !>          7          | percolation and base flow | 1     | GW linear reservoir     
 !>          8          | routing                   | 0     | no routing
-!>          8          |         ''                | 1     | Muskingum
+!>          8          |         ''                | 1     | use mRM i.e. Muskingum 
 !>
   
 !> \author Luis Samaniego
@@ -111,6 +111,7 @@ CONTAINS
   !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
   !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -129,15 +130,9 @@ CONTAINS
       c2TSTu              , & ! unit transformation coefficient
       horizon_depth       , & ! Depth of each horizon in mHM
       nCells1             , & ! number of cells in a given basin at level L1
-      nNodes              , & ! number of cells in a given basin at level L11 = nCells11
       nHorizons_mHM       , & ! Number of Horizons in mHM
       ntimesteps_day      , & ! number of time intervals per day, transformed in dp
-      TS                  , & ! time step in [h]
       mask0               , & ! mask 0 for MPR
-      nInflowGauges       , & ! number of inflow gauges
-      InflowIndexList     , & ! list of indices for inflow gauges
-      InflowHeadwater     , & ! flag if headwater cells should be considered
-      InflowNodeList      , & ! list of L11 ID for inflow gauges
       global_parameters   , & ! global mHM parameters
       ! LUT
       LCyearId            , & ! mapping of landcover scenes
@@ -154,8 +149,6 @@ CONTAINS
       Asp0                , & ! [degree] Aspect at Level 0
       LAI0                , & ! LAI at level 0
       geoUnit0            , & ! geological units at level 0
-      areaCell0           , & ! area of cell at level 0
-      floodPlain0         , & ! flood plain id at level 0
       SDB_is_present      , & ! indicates whether soiltype exists
       SDB_nHorizons       , & ! Number of Horizons per soiltype
       SDB_nTillHorizons   , & ! Number of Tillage Horizons
@@ -165,20 +158,12 @@ CONTAINS
       SDB_Wd              , & ! soil weighing vertical column of mHM
       SDB_RZdepth         , & ! soil depth from LUT
       ! Physiographic L1
-      areaCell1           , & ! effective area of cell at this level
       nTCells0_inL1       , & ! total number of valid L0 cells in a given L1 cell
-      L11Id_on_L1         , & ! mapping of L11 Id on L1
       L0upBound_inL1      , & ! upper row of L0 block within L1 cell
       L0downBound_inL1    , & ! lower row of L0 block within L1 cell
       L0leftBound_inL1    , & ! left column of L0 block within L1 cell
       L0rightBound_inL1   , & ! right column of L0 block within L1 cell
       latitude            , & ! latitude on level 1
-      ! Physiographic L11
-      netPerm             , & ! Routing order
-      nLink_fromN         , & ! Link: from node i
-      nLink_toN           , & ! Link: to node j
-      length11            , & ! [m] link total length
-      slope11             , & ! average slope
       ! Forcings
       evap_coeff          , & ! Evaporation coefficent for free-water surface of that current month
       fday_prec           , & ! [-] day ratio precipitation < 1
@@ -195,8 +180,6 @@ CONTAINS
       windspeed_in        , & ! [m s-1]  Daily average wind speed
       prec_in             , & ! [mm d-1] Daily mean precipitation
       temp_in             , & ! [degc]   Daily average temperature
-      ! discharge inflow
-      QInflow             , & ! discharge time series of inflow
       ! In-Out -----------------------------------------------------------------
       ! Configuration
       yId                 , & ! Current Id of the LCover year scene
@@ -204,8 +187,6 @@ CONTAINS
       fForest1            , & ! fraction of forest cover at scale L1
       fPerm1              , & ! fraction of permeable area at scale L1
       fSealed1            , & ! fraction of sealed area at scale L1
-      fFPimp11            , & ! fraction of sealed cover in flood plains L11
-      aFloodPlain11       , & ! Area of the flood plain at L11 
       ! States
       interc              , & ! Interception
       snowpack            , & ! Snowpack
@@ -231,11 +212,6 @@ CONTAINS
       snow                , & ! Snow precipitation depth
       throughfall         , & ! Throughfall
       total_runoff        , & ! Generated runoff
-      ! Fluxes L11
-      nNode_Qmod          , & ! Simulated discharge
-      nNode_qOUT          , & ! Total outflow from cells L11 at time tt
-      nNode_qTIN          , & ! Total discharge inputs at t-1 and t
-      nNode_qTR           , & ! Routed outflow leaving a node
       ! Effective Parameters
       alpha               , & ! Exponent for the upper reservoir
       deg_day_incr        , & ! Increase of the Degree-day factor per mm of increase in precipitation
@@ -260,12 +236,9 @@ CONTAINS
       temp_thresh         , & ! Threshold temperature for snow/rain
       unsat_thresh        , & ! Threshold water depth in upper reservoir
       water_thresh_sealed , & ! Threshold water depth in impervious areas
-      wilting_point       , & ! Permanent wilting point for each horizon
-      nLink_C1            , & ! Routing parameter  C1
-      nLink_C2              ) ! Routing parameter  C2
+      wilting_point         ) ! Permanent wilting point for each horizon
     
     ! subroutines required to estimate variables prior to the MPR call
-    use mo_net_startup,             only: L11_fraction_sealed_floodplain   ! flood plain subroutine
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
     use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
@@ -276,13 +249,10 @@ CONTAINS
     use mo_soil_moisture,           only: soil_moisture
     use mo_neutrons,                only: DesiletsN0, COSMIC
     use mo_runoff,                  only: runoff_unsat_zone
-    use mo_runoff,                  only: runoff_sat_zone
-    use mo_runoff,                  only: L1_total_runoff 
-    use mo_routing,                 only: L11_routing, L11_runoff_acc
+    use mo_runoff,                  only: runoff_sat_zone, L1_total_runoff 
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
-
-    use mo_mhm_constants,           only: HarSamConst                      ! parameters for Hargreaves-Samani Equation
+    use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
                                           
     implicit none
 
@@ -300,81 +270,61 @@ CONTAINS
     real(dp),                    intent(in) :: c2TSTu
     real(dp),    dimension(:),   intent(in) :: horizon_depth
     integer(i4),                 intent(in) :: nCells1
-    integer(i4),                 intent(in) :: nNodes
     integer(i4),                 intent(in) :: nHorizons_mHM
     real(dp),                    intent(in) :: ntimesteps_day
-    integer(i4),                 intent(in) :: TS
     logical,     dimension(:,:), intent(in) :: mask0
-    integer(i4),                 intent(in) :: nInflowGauges 
-    integer(i4), dimension(:)  , intent(in) :: InflowIndexList
-    logical ,    dimension(:)  , intent(in) :: InflowHeadwater
-    integer(i4), dimension(:)  , intent(in) :: InflowNodeList
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
-    integer(i4),                   intent(in)    :: LCyearId
-    integer(i4), dimension(:),     intent(in)    :: GeoUnitList
-    integer(i4), dimension(:),     intent(in)    :: GeoUnitKar
-    integer(i4), dimension(:),     intent(in)    :: LAIUnitList 
-    real(dp),    dimension(:,:),   intent(in)    :: LAILUT
+    integer(i4),                   intent(in) :: LCyearId
+    integer(i4), dimension(:),     intent(in) :: GeoUnitList
+    integer(i4), dimension(:),     intent(in) :: GeoUnitKar
+    integer(i4), dimension(:),     intent(in) :: LAIUnitList 
+    real(dp),    dimension(:,:),   intent(in) :: LAILUT
 
     ! Physiographic L0
-    real(dp),    dimension(:),     intent(in)    :: slope_emp0
-    integer(i4), dimension(:),     intent(in)    :: cellId0
-    integer(i4), dimension(:),     intent(in)    :: soilId0
-    integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
-    integer(i4), dimension(:),     intent(in)    :: LCover0
-    real(dp),    dimension(:),     intent(in)    :: Asp0
-    real(dp),    dimension(:),     intent(in)    :: LAI0
-    integer(i4), dimension(:),     intent(in)    :: geoUnit0
-    real(dp),    dimension(:),     intent(in)    :: areaCell0
-    integer(i4), dimension(:),     intent(in)    :: floodPlain0
+    real(dp),    dimension(:),     intent(in) :: slope_emp0
+    integer(i4), dimension(:),     intent(in) :: cellId0
+    integer(i4), dimension(:),     intent(in) :: soilId0
+    integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
+    integer(i4), dimension(:),     intent(in) :: LCover0
+    real(dp),    dimension(:),     intent(in) :: Asp0
+    real(dp),    dimension(:),     intent(in) :: LAI0
+    integer(i4), dimension(:),     intent(in) :: geoUnit0
 
-    integer(i4), dimension(:),     intent(in)    :: SDB_is_present
-    integer(i4), dimension(:),     intent(in)    :: SDB_nHorizons
-    integer(i4), dimension(:),     intent(in)    :: SDB_nTillHorizons
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_sand
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_clay
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_DbM
-    real(dp),    dimension(:,:,:), intent(in)    :: SDB_Wd
-    real(dp),    dimension(:),     intent(in)    :: SDB_RZdepth
+    integer(i4), dimension(:),     intent(in) :: SDB_is_present
+    integer(i4), dimension(:),     intent(in) :: SDB_nHorizons
+    integer(i4), dimension(:),     intent(in) :: SDB_nTillHorizons
+    real(dp),    dimension(:,:),   intent(in) :: SDB_sand
+    real(dp),    dimension(:,:),   intent(in) :: SDB_clay
+    real(dp),    dimension(:,:),   intent(in) :: SDB_DbM
+    real(dp),    dimension(:,:,:), intent(in) :: SDB_Wd
+    real(dp),    dimension(:),     intent(in) :: SDB_RZdepth
 
     ! Physiographic L1
-    real(dp),    dimension(:),     intent(in)    :: areaCell1
-    integer(i4), dimension(:),     intent(in)    :: nTCells0_inL1
-    integer(i4), dimension(:),     intent(in)    :: L11Id_on_L1
-    integer(i4), dimension(:),     intent(in)    :: L0upBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0downBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0leftBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0rightBound_inL1
-    real(dp),    dimension(:),     intent(in)    :: latitude
-
-    ! Physiographic L11
-    integer(i4), dimension(:),     intent(in)    :: netPerm
-    integer(i4), dimension(:),     intent(in)    :: nLink_fromN
-    integer(i4), dimension(:),     intent(in)    :: nLink_toN
-    real(dp),    dimension(:),     intent(in)    :: length11
-    real(dp),    dimension(:),     intent(in)    :: slope11
+    integer(i4), dimension(:),     intent(in) :: nTCells0_inL1
+    integer(i4), dimension(:),     intent(in) :: L0upBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0downBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0leftBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in) :: latitude
 
     ! Forcings
-    real(dp),    dimension(:),     intent(in)    :: evap_coeff
-    real(dp),    dimension(:),     intent(in)    :: fday_prec
-    real(dp),    dimension(:),     intent(in)    :: fnight_prec
-    real(dp),    dimension(:),     intent(in)    :: fday_pet
-    real(dp),    dimension(:),     intent(in)    :: fnight_pet
-    real(dp),    dimension(:),     intent(in)    :: fday_temp
-    real(dp),    dimension(:),     intent(in)    :: fnight_temp
-    real(dp),    dimension(:),     intent(in)    :: pet_in
-    real(dp),    dimension(:),     intent(in)    :: tmin_in
-    real(dp),    dimension(:),     intent(in)    :: tmax_in
-    real(dp),    dimension(:),     intent(in)    :: netrad_in
-    real(dp),    dimension(:),     intent(in)    :: absvappres_in
-    real(dp),    dimension(:),     intent(in)    :: windspeed_in
-    real(dp),    dimension(:),     intent(in)    :: prec_in
-    real(dp),    dimension(:),     intent(in)    :: temp_in
-
-    ! discharge inflow
-    real(dp),    dimension(:),   intent(in) :: QInflow
+    real(dp),    dimension(:),     intent(in) :: evap_coeff
+    real(dp),    dimension(:),     intent(in) :: fday_prec
+    real(dp),    dimension(:),     intent(in) :: fnight_prec
+    real(dp),    dimension(:),     intent(in) :: fday_pet
+    real(dp),    dimension(:),     intent(in) :: fnight_pet
+    real(dp),    dimension(:),     intent(in) :: fday_temp
+    real(dp),    dimension(:),     intent(in) :: fnight_temp
+    real(dp),    dimension(:),     intent(in) :: pet_in
+    real(dp),    dimension(:),     intent(in) :: tmin_in
+    real(dp),    dimension(:),     intent(in) :: tmax_in
+    real(dp),    dimension(:),     intent(in) :: netrad_in
+    real(dp),    dimension(:),     intent(in) :: absvappres_in
+    real(dp),    dimension(:),     intent(in) :: windspeed_in
+    real(dp),    dimension(:),     intent(in) :: prec_in
+    real(dp),    dimension(:),     intent(in) :: temp_in
 
     ! Configuration
     integer(i4),                   intent(inout) ::  yId
@@ -383,8 +333,6 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) :: fForest1
     real(dp), dimension(:),        intent(inout) :: fPerm1
     real(dp), dimension(:),        intent(inout) :: fSealed1
-    real(dp), dimension(:),        intent(inout) :: fFPimp11
-    real(dp), dimension(:),        intent(in)    :: aFloodPlain11
 
     ! States
     real(dp),  dimension(:),       intent(inout) :: interc
@@ -413,12 +361,6 @@ CONTAINS
     real(dp),  dimension(:),       intent(inout) :: throughfall
     real(dp),  dimension(:),       intent(inout) :: total_runoff
 
-    ! Fluxes L11
-    real(dp), dimension(:),        intent(out)   :: nNode_Qmod
-    real(dp), dimension(:),        intent(inout) :: nNode_qOUT
-    real(dp), dimension(:,:),      intent(inout) :: nNode_qTIN
-    real(dp), dimension(:,:),      intent(inout) :: nNode_qTR
-
     ! Effective Parameters
     real(dp), dimension(:),        intent(inout) ::  alpha
     real(dp), dimension(:),        intent(inout) ::  deg_day_incr
@@ -444,8 +386,6 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  unsat_thresh
     real(dp), dimension(:),        intent(inout) ::  water_thresh_sealed
     real(dp), dimension(:,:),      intent(inout) ::  wilting_point
-    real(dp), dimension(:),        intent(inout) ::  nLink_C1
-    real(dp), dimension(:),        intent(inout) ::  nLink_C2
 
     ! local
     logical                :: isday       ! is day or night
@@ -529,34 +469,21 @@ CONTAINS
         fPerm1(:)   = fPerm1(:)   / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
  
         !-------------------------------------------------------------------
-        ! estimate fraction of impervious cover in flood plains
-        ! --> time independent variable: to be initalized every time
-        !     with landcover change 
-        ! --> Note: L11_fraction_sealed_floodplain routine is called
-        !           only in case when routing process is ON
-        !-------------------------------------------------------------------
-        if( processMatrix(8, 1) .NE. 0 ) then
-             CALL L11_fraction_sealed_floodplain( nNodes-1, LCover0, floodPlain0,       &
-                                                  areaCell0, aFloodPlain11, 2, fFPimp11 )
-        end if
-
-        !-------------------------------------------------------------------
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, global_parameters(:), nodata_dp, TS, mask0,           &
+           call mpr( processMatrix, global_parameters(:), nodata_dp, mask0,               &
                 geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
                 SDB_is_present, SDB_nHorizons,                                            &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
                 nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
-                soilId0, Asp0, L0_LCover_LAI, LCover0, length11, slope11, fFPimp11,       &
+                soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
                 slope_emp0, cellId0,                                                      &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                 L0rightBound_inL1, nTCells0_inL1,                                         &
                 alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
                 fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
                 surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
-                nLink_C1,  nLink_C2,                                                      &
                 soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
@@ -699,29 +626,6 @@ CONTAINS
     !$OMP end do
     !$OMP end parallel
 
-    !-------------------------------------------------------------------
-    ! routing at L11 level
-    !-------------------------------------------------------------------
-    if ( processMatrix(8, 1) .eq. 1 ) then
-
-       ! runoff accumulation at L11 from L1 level
-       call L11_runoff_acc( total_runoff, areaCell1, L11Id_on_L1, TS,                          & ! Intent IN
-            nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow,          & ! Intent IN
-            nNode_qOUT )                                                                         ! Intent OUT
-       ! for a single node model run
-       if( nNodes .GT. 1) then
-         ! routing of water within river reaches
-         call L11_routing( nNodes, nNodes-1, netPerm, nLink_fromN,                             & ! Intent IN
-              nLink_toN, nLink_C1, nLink_C2, nNode_qOUT,                                       & ! Intent IN
-              nInflowGauges, InflowHeadwater, InflowNodeList,                                  & ! Intent IN
-              nNode_qTIN, nNode_qTR,                                                           & ! Intent INOUT
-              nNode_Qmod )                                                                       ! Intent OUT
-       else
-         nNode_Qmod(:) = nNode_qOUT(:) 
-       end if
-       !
-    end if
-    
     !-------------------------------------------------------------------
     ! Nested model: Neutrons state variable, related to soil moisture   
     !-------------------------------------------------------------------

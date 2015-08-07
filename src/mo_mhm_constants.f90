@@ -46,7 +46,6 @@ MODULE mo_mhm_constants
 
   ! temporal
   real(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day
-  real(dp),    public, parameter :: HourSecs           =   3600.0_dp  ! seconds per hour
   real(dp),    public, parameter :: YearMonths         =     12.0_dp  ! months per year
   integer(i4), public, parameter :: YearMonths_i4      =     12       ! months per year
   real(dp),    public, parameter :: YearDays           =    365.0_dp  ! days in a year

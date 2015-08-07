@@ -1515,6 +1515,7 @@ CONTAINS
   subroutine L11_stream_features(iBasin)
     use mo_global_variables_routing, only: &
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
+         L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          L11_fRow,        & ! IN:    from row in L0 grid 
          L11_fCol,        & ! IN:    from col in L0 grid
          L11_tRow,        & ! IN:    to row in L0 grid 
@@ -1530,7 +1531,6 @@ CONTAINS
     use mo_global_variables, only: &
          L0_Id,           & ! IN:    level-0 id
          L0_elev,         & ! IN:    elevation (sinks removed)  [m]
-         L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          iFlag_cordinate_sys ! IN:    coordinate system
 
     implicit none

@@ -10,6 +10,11 @@ module mo_global_variables_routing
   PUBLIC :: gaugingStation
 
   ! -------------------------------------------------------------------
+  ! General variables
+  ! -------------------------------------------------------------------
+  logical :: is_start ! flag for first timestep
+
+  ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mRM
   ! -------------------------------------------------------------------
   real(dp), dimension(:), allocatable, public :: resolutionRouting ! [m or °] resolution of routing - Level 11
@@ -63,6 +68,8 @@ module mo_global_variables_routing
   integer(i4), public, dimension(:), allocatable :: L0_InflowGaugeLoc ! Location of inflow gauges within catchment
   integer(i4), public, dimension(:), allocatable :: L0_L11_Id ! Mapping of L11 Id on L0  
   !                                                           ! (sub-cat. id. == cell Id L11)
+  real(dp), public, dimension(:), allocatable :: L0_areaCell ! [m2] Area of a cell at level-0 
+
   !
   ! mRM derived variables
   ! dim1 = number grid cells L0
@@ -74,11 +81,43 @@ module mo_global_variables_routing
 
   
   ! -------------------------------------------------------------------
+  ! L0 BASIN help variables
+  ! -------------------------------------------------------------------
+  ! dim1 = number of Basins
+  integer(i4), dimension(:), allocatable :: L0_nNodes ! number of nodes at L0 scale per basin
+  integer(i4), dimension(:), allocatable :: L0_s      ! start index of 1d arrays per basin
+  integer(i4), dimension(:), allocatable :: L0_e      ! end index of 1d arrays per basin
+
+  ! -------------------------------------------------------------------
+  ! L1 BASIN help variables
+  ! -------------------------------------------------------------------
+  ! dim1 = number of Basins
+  integer(i4), dimension(:), allocatable :: L1_nNodes ! number of nodes at L1 scale per basin
+  integer(i4), dimension(:), allocatable :: L1_s      ! start index of 1d arrays per basin
+  integer(i4), dimension(:), allocatable :: L1_e      ! end index of 1d arrays per basin
+
+  ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L1
   integer(i4), public, dimension(:), allocatable :: L1_L11_Id ! Mapping of L11 Id on L1
+  real(dp),    public, dimension(:), allocatable :: L1_areaCell ! [km2] Effective area of cell at this level
 
+  ! -------------------------------------------------------------------
+  ! L110 BASIN help variables
+  ! -------------------------------------------------------------------
+  ! dim1 = number of Basins
+  integer(i4), dimension(:), allocatable :: L110_s ! start index of 1d arrays per basin
+  integer(i4), dimension(:), allocatable :: L110_e ! end index of 1d arrays per basin
+
+  ! -------------------------------------------------------------------
+  ! L11 BASIN help variables
+  ! -------------------------------------------------------------------
+  ! dim1 = number of Basins
+  integer(i4), dimension(:), allocatable :: L11_nNodes ! number of nodes at L11 scale per basin
+  integer(i4), dimension(:), allocatable :: L11_s      ! start index of 1d arrays per basin
+  integer(i4), dimension(:), allocatable :: L11_e      ! end index of 1d arrays per basin
+  
   ! -------------------------------------------------------------------
   ! L11 DOMAIN description
   ! -------------------------------------------------------------------

@@ -341,7 +341,6 @@ MODULE mo_global_variables
   ! mHM derived variables
   ! dim1 = number grid cells L0
   integer(i4), public                              :: L0_nCells     !      Number of valid cells 
-  real(dp), public, dimension(:), allocatable      :: L0_areaCell   ! [m2] Area of a cell at level-0 
   integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor   !      Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:), allocatable   :: L0_Id         !      Level-0 id
   real(dp), public, dimension(:), allocatable      :: L0_slope_emp  !      Empirical quantiles of slope
@@ -354,7 +353,6 @@ MODULE mo_global_variables
   ! dim1 = number grid cells L1
   ! dim2 = 2
   integer(i4), public                              :: L1_nCells        !       No. of cells at this level 
-  real(dp),    public, dimension(:), allocatable   :: L1_areaCell      ! [km2] Effective area of cell at this level
   integer(i4), public, dimension(:,:), allocatable :: L1_cellCoor      !       Cell coordinates (row,col)
   !                                                                    !       -> <only for the domain> L1 modelling
   integer(i4), public, dimension(:), allocatable   :: L1_Id            !       Level-1 id

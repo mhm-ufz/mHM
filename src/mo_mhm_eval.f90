@@ -111,8 +111,7 @@ CONTAINS
          GeoUnitList, GeoUnitKar, soilDB,                    &
          L0_Id, L0_soilId,                                   & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
-         L0_areaCell,                                        &        
-         soilDB, L1_areaCell, L1_nTCells_L0,                 & 
+         soilDB, L1_nTCells_L0,                 & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
          L1_rightBound_L0, latitude,                         &
@@ -144,12 +143,16 @@ CONTAINS
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
     use mo_global_variables_routing, only: &
-         nMeasPerDay, InflowGauge, &
-         L11_netPerm, L11_fromN, L11_toN, & 
-         L11_length, L11_slope, L11_aFloodPlain, &
-         L0_floodPlain, L1_L11_Id, nGaugesTotal, &
-         L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_C1, L11_C2, L11_FracFPimp
+         nMeasPerDay, &
+         ! InflowGauge, &
+         ! L11_netPerm, L11_fromN, L11_toN, & 
+         ! L11_length, L11_slope, L11_aFloodPlain, &
+         ! L0_floodPlain, L1_L11_Id, &
+         nGaugesTotal, &
+         L11_Qmod ! , L11_qOUT, L11_qTIN, &
+         ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
+    use mo_routing, only: mrm_routing
+    use mo_read_config_routing, only: set_helping_varialbes
     
     implicit none
 
@@ -219,13 +222,15 @@ CONTAINS
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
     !
-    ! for discharge timeseries
+    ! for routing
+    logical                                   :: do_mpr
     !
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-    
+
+    call set_helping_varialbes() !ST only temporarilly for mRM
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -429,22 +434,18 @@ CONTAINS
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
                timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
-               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
-               basin%InflowGaugeHeadwater(ii,:), basin%InflowGaugeNodeList(ii,:),           & ! IN C
+               nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
+               L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
-               L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
+               L1_nTCells_L0(s1:e1),                                                        & ! IN L1
                L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
                L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1),                             & ! IN L1
                latitude(s_p5(1):e_p5(1)),                                                   & ! IN L1
-               L11_netPerm(s11:e11), L11_fromN(s11:e11), L11_toN(s11:e11),                  & ! IN L11
-               L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
                L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET
@@ -455,10 +456,8 @@ CONTAINS
                L1_windspeed(s_p5(6):e_p5(6), iMeteo_p5(6)),                                 & ! IN F:PET
                L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN F:Pre 
                L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN F:Temp
-               InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
-               L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
                L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S 
                L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1), L1_neutrons,    & ! INOUT S 
                L1_pet_calc(s1:e1),                                                          & ! INOUT X
@@ -467,7 +466,6 @@ CONTAINS
                L1_melt(s1:e1), L1_percol(s1:e1), L1_preEffect(s1:e1), L1_rain(s1:e1),       & ! INOUT X
                L1_runoffSeal(s1:e1), L1_slowRunoff(s1:e1), L1_snow(s1:e1),                  & ! INOUT X
                L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                               & ! INOUT X
-               L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:), & ! INOUT X11
                L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                   & ! INOUT E1
                L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1),                     & ! INOUT E1
                L1_HarSamCoeff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),     & ! INOUT E1
@@ -476,9 +474,20 @@ CONTAINS
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
                L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
-               L1_wiltingPoint(s1:e1,:),                                                    & ! INOUT E1
-               L11_C1(s11:e11), L11_C2(s11:e11)                                             ) ! INOUT E11
+               L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 
+          ! call mRM routing
+          if (processMatrix(8, 1) .eq. 1) then
+             ! determine whether mpr is to be executed
+             if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
+                do_mpr = perform_mpr
+             else
+                do_mpr = .false.
+             end if
+             !
+             call mRM_routing(parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), &
+                  ii, L1_total_runoff(s1:e1), iMeteoTS, LCyearId(year,ii), do_mpr)
+          end if
 
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day

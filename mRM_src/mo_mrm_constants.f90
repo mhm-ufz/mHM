@@ -9,16 +9,16 @@ module mo_mrm_constants
   ! natural 
   integer(i4), public, parameter :: fourtytwo = 42_i4 ! constant for universal results
   ! computational
-  integer(i4), public, parameter :: nodata_i4          = -9999_i4  ! [-]     global no data value
-  real(dp),    public, parameter :: nodata_dp          = -9999._dp ! [-]     global no data value
+  integer(i4), public, parameter :: nodata_i4 = -9999_i4  ! [-]     global no data value
+  real(dp),    public, parameter :: nodata_dp = -9999._dp ! [-]     global no data value
   !
-  integer(i4), public, parameter :: nRoutingStates     = 2         ! Dimension of the auxiliary vectors
-  !                                                                ! which store current and past states of
-  !                                                                ! incoming and outgoing of discharge at
-  !                                                                ! a given node 
-  !                                                                ! (1 - past)
-  !                                                                ! (2 - current)
-  integer(i4), public, parameter :: maxNoGauges        = 200_i4    ! maximal number of gauges allowed
-
-
+  integer(i4), public, parameter :: nRoutingStates = 2 ! Dimension of the auxiliary vectors
+  !                                                    ! which store current and past states of
+  !                                                    ! incoming and outgoing of discharge at
+  !                                                    ! a given node 
+  !                                                    ! (1 - past)
+  !                                                    ! (2 - current)
+  integer(i4), public, parameter :: maxNoGauges = 200_i4 ! maximal number of gauges allowed
+  ! temporal
+  real(dp),    public, parameter :: HourSecs = 3600.0_dp ! seconds per hour
 end module mo_mrm_constants

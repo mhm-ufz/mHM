@@ -99,7 +99,6 @@ CONTAINS
          iFlag_cordinate_sys,       &
          L0_nCells,                 &
          L1_nCells,                 &
-         L1_areaCell,               &
          timeStep,                  &
          resolutionHydrology,       &
          read_restart,              &
@@ -132,6 +131,7 @@ CONTAINS
          L11_slope,                 &
          L11_ID,                    &
          L1_L11_ID,                 &
+         L1_areaCell,               &
          nGaugesTotal,              &
          nInflowGaugesTotal,        &
          resolutionRouting,         &  

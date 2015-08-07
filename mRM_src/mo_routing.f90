@@ -21,12 +21,150 @@ MODULE mo_routing
 
   PRIVATE
 
+  PUBLIC :: mRM_routing
   PUBLIC :: L11_routing      ! route water
   PUBLIC :: L11_runoff_acc   ! upscale runoff and add inflow gauge
 
   ! ------------------------------------------------------------------
 
 CONTAINS
+
+  subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, LCyearID, do_mpr_routing, discharge)
+    use mo_global_variables_routing, only: is_start, &
+         L0_s, L0_e, & ! Level0 help variables
+         L1_s, L1_e, & ! Level0 help variables
+         L11_nNodes, L11_s, L11_e, & ! Level11 help variables
+         L110_s, L110_e, & ! Level110 help variables
+         L0_areaCell, &
+         L0_floodPlain, & ! flood plains at L0 level
+         L1_areaCell, &
+         L11_aFloodPlain, & ! flood plains at L11 level
+         L11_FracFPimp, & ! fraction of impervious layer at L11 scale
+         L11_length, & ! link length
+         L11_slope, &
+         L11_C1, & ! first muskingum parameter
+         L11_C2, & ! second muskigum parameter
+         L1_L11_Id, &
+         InflowGauge, &
+         L11_qOUT, & ! routed runoff flowing out of L11 cell
+         L11_netPerm, & ! routing order at L11
+         L11_fromN, & ! link source at L11
+         L11_toN, & ! link target at L11
+         L11_qTIN, & ! inflow water into the reach at L11
+         L11_qTR, & !
+         L11_qMod ! final variable containing routed water
+    use mo_net_startup, only: L11_fraction_sealed_floodplain
+    use mo_mpr_routing, only: reg_rout
+    !ST The following dependency has to be removed
+    use mo_global_variables, only: L0_LCover, timeStep, basin
+         
+    !
+    implicit none
+    ! input variables
+    real(dp), dimension(5), intent(in) :: global_routing_param
+    integer(i4), intent(in) :: iBasin
+    real(dp), dimension(:), intent(in) :: runoff ! generated runoff for this timestep
+    integer(i4), intent(in) :: LCyearID ! current land cover
+    integer(i4), intent(in) :: iTS ! current timestep
+    logical, optional, intent(in) :: do_mpr_routing
+    ! output variables
+    real(dp), optional, intent(out) :: discharge
+    ! local variables
+    logical :: do_mpr
+    integer(i4) :: nNodes
+    integer(i4) :: s11
+    integer(i4) :: e11
+    integer(i4) :: s110
+    integer(i4) :: e110
+    integer(i4) :: s1
+    integer(i4) :: e1
+    integer(i4) :: s0
+    integer(i4) :: e0
+
+    nNodes = L11_nNodes(iBasin)
+    s11 = L11_s(iBasin)
+    e11 = L11_e(iBasin)
+    s110 = L110_s(iBasin)
+    e110 = L110_e(iBasin)
+    s1 = L1_s(iBasin)
+    e1 = L1_e(iBasin)
+    s0 = L0_s(iBasin)
+    e0 = L0_e(iBasin)
+    
+
+    ! evaluate whether mpr should be executed
+    do_mpr = .false.
+    if (is_start) then
+       do_mpr = .true.
+       is_start = .false.
+    end if
+    if (present(do_mpr_routing)) do_mpr = do_mpr_routing
+
+    if (do_mpr) then
+       ! execute mpr for routing
+       
+       !-------------------------------------------------------------------
+       ! estimate fraction of impervious cover in flood plains
+       ! --> time independent variable: to be initalized every time
+       !     with landcover change 
+       ! --> Note: L11_fraction_sealed_floodplain routine is called
+       !           only in case when routing process is ON
+       !-------------------------------------------------------------------
+       CALL L11_fraction_sealed_floodplain( nNodes-1, &
+            L0_LCover(s0:e0, LCyearID), &
+            ! L0_floodPlain(s110:e110),       &
+            L0_floodPlain(s0:e0),       &
+            L0_areaCell(s0:e0), &
+            L11_aFloodPlain(s11:e11), &
+            2, &
+            L11_FracFPimp(s11:e11))
+
+       ! execute routing
+       ! for a single node model run
+       if( (e11 - s11) .GT. 1) then
+          call reg_rout( global_routing_param, &
+               L11_length(s11:e11 - 1), L11_slope(s11:e11 - 1), L11_FracFPimp(s11:e11 - 1), &
+               real(timeStep,dp), L11_C1(s11:e11 - 1), L11_C2(s11:e11 -1 ))
+       end if 
+
+    end if
+
+    ! execute routing
+    !-------------------------------------------------------------------
+    ! routing at L11 level
+    !-------------------------------------------------------------------
+    ! runoff accumulation at L11 from L1 level
+    call L11_runoff_acc(runoff, L1_areaCell(s1:e1), L1_L11_Id(s1:e1), timeStep, & ! Intent IN
+         basin%nInflowGauges(iBasin), &
+         basin%InflowGaugeIndexList(iBasin,:), &
+         basin%InflowGaugeHeadwater(iBasin,:), &
+         basin%InflowGaugeNodeList(iBasin,:), &
+         InflowGauge%Q(iTS,:), & ! Intent IN
+         L11_qOUT(s11:e11) )                                                                         ! Intent OUT
+    ! for a single node model run
+    if( nNodes .GT. 1) then
+       ! routing of water within river reaches
+       call L11_routing( nNodes, nNodes-1, &
+            L11_netPerm(s11:e11), &
+            L11_fromN(s11:e11), & ! Intent IN
+            L11_toN(s11:e11), & ! Intent IN
+            L11_C1(s11:e11), & ! Intent IN
+            L11_C2(s11:e11), & ! Intent IN
+            L11_qOUT(s11:e11), & ! Intent IN
+            basin%nInflowGauges(iBasin), & ! Intent IN
+            basin%InflowGaugeHeadwater(iBasin,:), & ! Intent IN
+            basin%InflowGaugeNodeList(iBasin,:), & ! Intent IN
+            L11_qTIN(s11:e11,:), & ! Intent INOUT
+            L11_qTR(s11:e11,:), & ! Intent INOUT
+            L11_Qmod(s11:e11) ) ! Intent OUT
+    else
+       L11_Qmod(s11:e11) = L11_qOUT(s11:e11) 
+    end if
+
+    ! set output variable discharge if given
+    if (present(discharge)) discharge = L11_Qmod(s11)
+    
+  end subroutine mRM_routing
 
   ! ------------------------------------------------------------------
 
@@ -284,7 +422,7 @@ CONTAINS
   SUBROUTINE L11_runoff_acc(qAll, efecArea, L11id, TS, nInflowGauges, InflowIndexList, &
                             InflowHeadwater, InflowNodeList, QInflow, qOUT)
 
-    use mo_mhm_constants, only:   HourSecs
+    use mo_mrm_constants, only:   HourSecs
 
     IMPLICIT NONE
 

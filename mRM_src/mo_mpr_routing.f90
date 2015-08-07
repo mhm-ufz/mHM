@@ -1,6 +1,7 @@
 module mo_mpr_routing
   use mo_kind, only: dp
   implicit none
+  public :: reg_rout
 contains
   
   ! ----------------------------------------------------------------------------

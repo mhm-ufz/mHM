@@ -427,7 +427,7 @@ CONTAINS
 
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
-    use mo_global_variables, only: level0, L0_areaCell,    &
+    use mo_global_variables, only: level0,                 &
                                    L0_nCells, L0_cellCoor, &
                                    L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
@@ -437,7 +437,8 @@ CONTAINS
     use mo_orderpack,     only: unirnk
     use mo_utils,         only: le, eq
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
-
+    !ST The following dependency has to be removed
+    use mo_global_variables_routing, only: L0_areaCell
     implicit none
 
     integer(i4), intent(in)                               :: iBasin
@@ -615,14 +616,15 @@ CONTAINS
   subroutine L1_variable_init(iBasin)
 
     use mo_global_variables, only: nBasins, basin, level0, level1, &
-                                   L0_areacell, L1_areaCell,       &
-                                   L1_nCells, L1_Id, L1_cellCoor,  &
-                                   L1_upBound_L0, L1_downBound_L0, &
-                                   L1_leftBound_L0,                &
-                                   L1_rightBound_L0, L1_nTCells_L0,&
-                                   resolutionHydrology
-     use  mo_init_states,  only : calculate_grid_properties
-     use mo_append,        only : append                      ! append vector
+         L1_nCells, L1_Id, L1_cellCoor,  &
+         L1_upBound_L0, L1_downBound_L0, &
+         L1_leftBound_L0,                &
+         L1_rightBound_L0, L1_nTCells_L0,&
+         resolutionHydrology
+    use mo_init_states,     only: calculate_grid_properties
+    use mo_append,          only: append                      ! append vector
+    !ST The following dependency has to be removed
+    use mo_global_variables_routing, only: L0_areaCell, L1_areaCell
 
     implicit none
 
@@ -664,7 +666,7 @@ CONTAINS
 
     ! level-0 information
     call get_basin_info( iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0, &
-                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
+         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
 
     if(iBasin == 1) then
        allocate( level1%nrows        (nBasins) )
@@ -677,9 +679,9 @@ CONTAINS
 
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
-                                    resolutionHydrology(iBasin) , &
-                                    level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
-                                    level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
+         resolutionHydrology(iBasin) , &
+         level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1 )
@@ -700,7 +702,6 @@ CONTAINS
           mask1(ic,jc) = .TRUE.
        end do
     end do
-
 
     ! level-0 cell area
     allocate( areaCell0_2D(nrows0,ncols0) )
@@ -796,8 +797,8 @@ CONTAINS
 
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell, &
-                cellCoor, Id, upBound, downBound,     &
-                leftBound, rightBound, nTCells        )
+         cellCoor, Id, upBound, downBound,     &
+         leftBound, rightBound, nTCells        )
 
   end subroutine L1_variable_init
 

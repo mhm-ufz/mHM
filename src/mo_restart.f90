@@ -136,7 +136,6 @@ CONTAINS
          basin, &
          L0_cellCoor    ,          & 
          L0_Id         ,           & ! Ids of grid at level-0 
-         L0_areaCell   ,           & ! Ids of grid at level-0
          L0_slope_emp  ,           & ! Empirical quantiles of slope
          L1_Id         ,           & ! Ids of grid at level-1
          L1_cellCoor    ,          &
@@ -144,10 +143,11 @@ CONTAINS
          L1_downBound_L0,          & ! Row end at finer level-0 scale
          L1_leftBound_L0,          & ! Col start at finer level-0 scale
          L1_rightBound_L0,         & ! Col end at finer level-0 scale
-         L1_areaCell   ,           & ! [km2] Effective area of cell at this level
          L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
-    use mo_mrm_constants,    only: nRoutingStates
     use mo_restart_routing,  only: write_restart_routing
+    use mo_global_variables_routing, only: &
+         L0_areaCell, & ! Ids of grid at level-0
+         L1_areaCell ! [km2] Effective area of cell at this level
 
     implicit none
 
@@ -582,7 +582,6 @@ CONTAINS
          L0_soilId,      & ! soil IDs at lower level
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
-         L0_areaCell   , & ! Ids of grid at level-0
          L0_slope_emp  , & ! Empirical quantiles of slope
          basin, & 
          nBasins, &
@@ -597,8 +596,11 @@ CONTAINS
          L1_downBound_L0, & ! Row end at finer level-0 scale
          L1_leftBound_L0, & ! Col start at finer level-0 scale
          L1_rightBound_L0, & ! Col end at finer level-0 scale
-         L1_areaCell   , & ! [km2] Effective area of cell at this level
          L1_nTCells_L0     ! Total number of valid L0 cells in a given L1 cell
+    use mo_global_variables_routing, only: &
+         L0_areaCell, & ! Ids of grid at level-0
+         L1_areaCell ! [km2] Effective area of cell at this level
+         
 
     implicit none
 
@@ -855,7 +857,6 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_ncread,           only: Get_NcVar
     use mo_mhm_constants,    only: YearMonths_i4
-    use mo_mrm_constants,    only: nRoutingStates
     use mo_restart_routing,  only: read_restart_routing
     use mo_global_variables, only: processMatrix, &
          L1_fSealed, &
