@@ -6,7 +6,7 @@ module mo_read_data_routing
   private :: rotate_fdir_variable
 contains
   !
-  subroutine read_L0_data_routing(iBasin, mask_global)
+  subroutine read_L0_data_routing(iBasin)
     use mo_mhm_constants, only: nodata_i4 ! mHM's global nodata vales
     use mo_append, only: append
     use mo_string_utils, only: num2str
@@ -22,6 +22,8 @@ contains
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc ! location of inflow gauges on input resolution (L0)
     !ST: The following dependency has to be removed
+    use mo_file, only: &
+         file_dem, udem
     use mo_global_variables, only: &
          dirMorpho, & ! directories
          level0, & ! grid information (ncols, nrows, ..)
@@ -29,14 +31,22 @@ contains
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
-    logical, dimension(:,:), intent(in) :: mask_global
     ! local variables
     integer(i4) :: iVar
     integer(i4) :: iGauge
     character(256) :: fname
     integer(i4) :: nunit
     integer(i4), dimension(:,:), allocatable :: data_i4_2d
+    real(dp), dimension(:,:), allocatable :: data_dp_2d
     logical, dimension(:,:), allocatable :: mask_2d
+    logical, dimension(:,:), allocatable :: mask_global
+    
+
+    ! DEM + overall mask creation
+    fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
+    call read_spatial_data_ascii(trim(fName), udem, &
+         level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
+         level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
     ! read fAcc, fDir, gaugeLoc
     do iVar = 1, 3
        select case (iVar)
@@ -110,6 +120,9 @@ contains
        deallocate(data_i4_2d, mask_2d)
        !
     end do
+
+    ! free memory
+    deallocate(data_dp_2d, mask_global)
 
   end subroutine read_L0_data_routing
   ! ************************************************

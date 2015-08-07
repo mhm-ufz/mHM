@@ -325,8 +325,9 @@ contains
 
   end subroutine write_restart_routing
   !
-  subroutine read_restart_routing(iBasin, Fname)
+  subroutine read_restart_routing(iBasin, dirRestart)
     use mo_ncread, only: Get_NcVar
+    use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates
     use mo_global_variables_routing, only: &
          L11_Qmod, &
@@ -344,7 +345,7 @@ contains
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
-    character(256), intent(in) :: Fname
+    character(256), intent(in) :: dirRestart
     ! local variables
     integer(i4) :: ii
     integer(i4) :: s11 ! start index at level 11
@@ -355,7 +356,11 @@ contains
     logical, dimension(:,:), allocatable :: mask11 ! mask at level 11
     real(dp), dimension(:,:), allocatable :: dummyD2 ! dummy, 2 dimension
     real(dp), dimension(:,:,:), allocatable :: dummyD3 ! dummy, 3 dimension
+    character(256) :: Fname
 
+    ! set file name
+    Fname = trim(dirRestart) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
+    
     ! level-11 information
     call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11, &
          iStart=s11, iEnd=e11, mask=mask11 )

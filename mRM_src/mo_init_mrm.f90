@@ -1,4 +1,4 @@
-!> \file mo_net_startup.f90
+!> \file mo_init_mrm.f90
 
 !> \brief Startup drainage network for mHM.
 
@@ -17,7 +17,7 @@
 !                                     on a regular X-Y coordinate system
 !         Stephan Thober, Aug 2015 - creating routing_init routine for mRM
 
-MODULE mo_net_startup
+MODULE mo_init_mrm
 
   ! This module sets the river network characteristics and routing order.
 
@@ -32,7 +32,7 @@ MODULE mo_net_startup
 
   PRIVATE
 
-  public :: routing_init
+  public :: init_mRM
 
   ! PUBLIC :: L11_variable_init
   ! PUBLIC :: L11_flow_direction
@@ -42,36 +42,280 @@ MODULE mo_net_startup
   ! PUBLIC :: L11_set_drain_outlet_gauges
   ! PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
-  PUBLIC :: routing_dummy_alloc
   PUBLIC :: get_distance_two_lat_lon_points
 
 CONTAINS
 
-  subroutine routing_init(iBasin)
+  subroutine init_mRM()
 
-    use mo_restart_routing, only : read_restart_L11_config
+    use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing
+    use mo_restart_routing, only: read_restart_L11_config, read_restart_routing
     !ST following dependency has to be removed
-    use mo_global_variables, only : read_restart, dirRestartIn
+    use mo_global_variables, only: read_restart, dirRestartIn, nBasins, perform_mpr, L0_Basin
     
     implicit none
 
-    integer(i4), intent(in) :: iBasin
+    integer(i4) :: iBasin
 
+    ! ----------------------------------------------------------
+    ! READ DATA
+    ! ----------------------------------------------------------
+    if (perform_mpr) then
+       do iBasin = 1, nBasins
+          call read_L0_data_routing(iBasin)
+          if (iBasin .eq. 1) then
+             call L0_check_input_routing(iBasin)
+          else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+             call L0_check_input_routing(iBasin)
+          end if
+       end do
+    end if
+    call read_discharge_data(.true.) !( processMatrix(8,1) .GE. 1 ))
+
+    ! ----------------------------------------------------------
+    ! INITIALIZE STREAM NETWORK
+    ! ----------------------------------------------------------
     ! check if variables should be read from restart
     if ( .not. read_restart ) then
-       call L11_variable_init(iBasin)
-       call L11_flow_direction(iBasin)
-       call L11_set_network_topology(iBasin)
-       call L11_routing_order(iBasin)
-       call L11_link_location(iBasin)
-       call L11_set_drain_outlet_gauges(iBasin)
-       ! stream characteristics
-       call L11_stream_features(iBasin)
+       do iBasin = 1, nBasins
+          call L11_variable_init(iBasin)
+          call L11_flow_direction(iBasin)
+          call L11_set_network_topology(iBasin)
+          call L11_routing_order(iBasin)
+          call L11_link_location(iBasin)
+          call L11_set_drain_outlet_gauges(iBasin)
+          ! stream characteristics
+          call L11_stream_features(iBasin)
+       end do
     else
-       call read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
+       do iBasin = 1, nBasins
+          call read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
+       end do
     end if
 
-  end subroutine routing_init
+    ! ----------------------------------------------------------
+    ! INITIALIZE STATES
+    ! ----------------------------------------------------------
+    ! State variables, fluxes and parameter fields
+    ! have to be allocated in any case
+    do iBasin = 1, nBasins
+       call variables_alloc_routing(iBasin)
+    end do
+    
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
+    if ( .not. read_restart ) then
+       call variables_default_init_routing()
+    else
+       do iBasin = 1, nBasins
+          call read_restart_routing(iBasin, dirRestartIn(iBasin))
+       end do
+    end if
+
+    call set_helping_variables() !ST only temporarilly for mRM
+
+  end subroutine init_mRM
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          variables_default_init_routing
+
+  !>        \brief Default initalization mRM related L11 variables
+  
+  !>        \details Default initalization of mHM related L11 variables (e.g., states,
+  !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
+  !>                 Variables initalized here is defined in the mo_global_variables.f90 file. 
+  !>                 Only Variables that are defined in the variables_alloc subroutine are 
+  !>                 intialized here.
+  !
+  !>                 If a variable is added or removed here, then it also has to be added or removed
+  !>                 in the subroutine state_variables_set in the module mo_restart and in the 
+  !>                 subroutine set_state in the module mo_set_netcdf_restart.
+  !
+  !     CALLING SEQUENCE
+  !         call variables_default_init()
+
+  !     INTENT(IN)
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+
+  !     RETURN
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+
+  !     HISTORY
+  !         \authors  Stephan Thober, Rohini Kumar, and Juliane Mai
+  !         \date    Aug 2015
+  !         Modified
+
+  subroutine variables_default_init_routing()
+
+    use mo_global_variables_routing, only: &
+         L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
+         L11_FracFPimp
+
+    use mo_mrm_constants,    only:               &
+         P1_InitStateFluxes
+    
+    implicit none
+
+    ! inital values
+    integer(i4)                               :: i
+
+    !-------------------------------------------
+    ! L11 ROUTING STATE VARIABLES, FLUXES AND
+    !             PARAMETERS
+    !-------------------------------------------
+
+    ! simulated discharge at each node
+    L11_Qmod = P1_InitStateFluxes
+
+    ! Total outflow from cells L11 at time tt
+    L11_qOUT = P1_InitStateFluxes
+
+    ! Total discharge inputs at t-1 and t
+    L11_qTIN = P1_InitStateFluxes
+
+    !  Routed outflow leaving a node
+    L11_qTR = P1_InitStateFluxes
+
+    ! kappa: Muskingum travel time parameter.
+    L11_K = P1_InitStateFluxes
+
+    ! xi:    Muskingum diffusion parameter
+    L11_xi = P1_InitStateFluxes
+
+    ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
+    L11_C1 = P1_InitStateFluxes
+
+    ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
+    L11_C2 = P1_InitStateFluxes
+
+    ! Fraction of the flood plain with impervious cover
+    L11_FracFPimp = P1_InitStateFluxes
+
+  end subroutine variables_default_init_routing
+
+  ! --------------------------------------------------------------------------
+  ! L11 ROUTING STATE VARIABLES, FLUXES AND
+  !             PARAMETERS
+  ! --------------------------------------------------------------------------
+  subroutine variables_alloc_routing(iBasin)
+    use mo_mrm_constants,    only: nRoutingStates
+    use mo_append,           only: append                      ! append vector
+    use mo_global_variables_routing, only: L11_Qmod, L11_qOUT, L11_qTIN, &
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
+    !ST The following dependency has to be removed
+    use mo_init_states, only: get_basin_info
+    implicit none
+    ! input variables
+    integer(i4), intent(in) :: iBasin
+    ! local variables
+    integer(i4) :: nrows11, ncols11
+    integer(i4) :: ncells11
+    real(dp), dimension(:),   allocatable :: dummy_Vector11
+    real(dp), dimension(:,:), allocatable :: dummy_Matrix11_IT
+
+    ! level-11 information
+    call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11 ) 
+
+    ! dummy vector and matrix
+    allocate( dummy_Vector11   (nCells11     ) )
+    allocate( dummy_Matrix11_IT(nCells11, nRoutingStates) )
+
+    ! simulated discharge at each node
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_Qmod,  dummy_Vector11 )
+
+    ! Total outflow from cells L11 at time tt
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_qOUT, dummy_Vector11 )
+
+    ! Total discharge inputs at t-1 and t
+    dummy_Matrix11_IT(:,:) = 0.0_dp
+    call append( L11_qTIN, dummy_Matrix11_IT )
+
+    !  Routed outflow leaving a node
+    dummy_Matrix11_IT(:,:) = 0.0_dp
+    call append( L11_qTR, dummy_Matrix11_IT )
+
+    ! kappa: Muskingum travel time parameter.
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_K, dummy_Vector11 )
+
+    ! xi:    Muskingum diffusion parameter
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_xi, dummy_Vector11 )
+
+    ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_C1, dummy_Vector11 )
+
+    ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_C2, dummy_Vector11 )
+
+    ! Fraction of the flood plain with impervious cover
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_FracFPimp, dummy_Vector11 )
+
+    ! free space
+    if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
+    if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
+
+  end subroutine variables_alloc_routing
+
+  ! --------------------------------------------------------------------------
+  ! L0_check_input_routing
+  ! --------------------------------------------------------------------------
+  subroutine L0_check_input_routing(iBasin)
+    use mo_message, only: message, message_text
+    use mo_string_utils, only: num2str
+    use mo_global_variables_routing, only: L0_fDir, L0_fAcc
+    !ST This dependency has to be removed
+    use mo_global_variables, only: basin
+    implicit none
+    ! input variables
+    integer(i4) :: iBasin
+    ! local variables
+    integer(i4) :: k
+
+    do k = basin%L0_iStart(iBasin), basin%L0_iEnd(iBasin)
+       ! flow direction [-]
+       if ( L0_fDir(k) .eq. nodata_i4  ) then
+          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
+          call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
+               trim(message_text) )
+          stop
+       end if
+       ! flow accumulation [-]
+       if ( L0_fAcc(k) .eq. nodata_i4 ) then
+          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
+          call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
+               trim(message_text) )
+          stop
+       end if
+    end do
+    
+  end subroutine L0_check_input_routing
 
   ! --------------------------------------------------------------------------
 
@@ -314,7 +558,7 @@ CONTAINS
   !>                with the highest flow accumulation within a grid cell. The
   !>                topology of a tipical drainage routing network at level-11 is
   !>                shown in the right panel. Gray color areas denote the flood
-  !>                plains estimated in mo_net_startup, where the network
+  !>                plains estimated in mo_init_mrm, where the network
   !>                upscaling is also carried out.
 
   !>                For the sake of simplicity, it is assumed that all runoff leaving
@@ -1821,152 +2065,155 @@ CONTAINS
      
   end subroutine L11_fraction_sealed_floodplain
 
-  ! ------------------------------------------------------------------
+  ! ! ------------------------------------------------------------------
 
-  !     NAME
-  !         routing_dummy_alloc
+  ! !     NAME
+  ! !         routing_dummy_alloc
 
-  !     PURPOSE
-  !>        \brief routing_dummy_alloc related to routing
+  ! !     PURPOSE
+  ! !>        \brief routing_dummy_alloc related to routing
 
-  !>        \details Allocate L0 variable that are initialized
-  !>                 for routing, when routing is switched off. This is a dummy
-  !>                 allocation required for the mhm call. No initialization is
-  !>                 performed. These variables are all the variables that would
-  !>                 would have been initialized by the net startup or restart
-  !>                 L11 config, if routing would be switched on.
+  ! !>        \details Allocate L0 variable that are initialized
+  ! !>                 for routing, when routing is switched off. This is a dummy
+  ! !>                 allocation required for the mhm call. No initialization is
+  ! !>                 performed. These variables are all the variables that would
+  ! !>                 would have been initialized by the net startup or restart
+  ! !>                 L11 config, if routing would be switched on.
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
+  ! !     INTENT(IN)
+  ! !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
 
-  !     INTENT(INOUT)
-  !         None
+  ! !     INTENT(INOUT)
+  ! !         None
 
-  !     INTENT(OUT)
-  !         None
+  ! !     INTENT(OUT)
+  ! !         None
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! !     INTENT(IN), OPTIONAL
+  ! !         None
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! !     INTENT(INOUT), OPTIONAL
+  ! !         None
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  ! !     INTENT(OUT), OPTIONAL
+  ! !         None
 
-  !     RETURN
-  !         None
+  ! !     RETURN
+  ! !         None
 
-  !     RESTRICTIONS
-  !         None
+  ! !     RESTRICTIONS
+  ! !         None
 
-  !     EXAMPLE
-  !         None
+  ! !     EXAMPLE
+  ! !         None
 
-  !     LITERATURE
-  !         None
+  ! !     LITERATURE
+  ! !         None
 
-  !     HISTORY
-  !>        \author  Stephan Thober
-  !>        \date    Sep 2013
+  ! !     HISTORY
+  ! !>        \author  Stephan Thober
+  ! !>        \date    Sep 2013
 
-  ! ------------------------------------------------------------------
-  subroutine routing_dummy_alloc( iBasin )
+  ! ! ------------------------------------------------------------------
+  ! subroutine routing_dummy_alloc( )
 
-    use mo_kind,             only: i4
-    use mo_init_states,      only: get_basin_info
-    use mo_global_variables_routing, only: &
-         L11_cellCoor,      & ! cell Coordinates at Level 11
-         L11_Id,            & ! cell Ids at Level 11
-         L11_nCells,        & ! Number of Cells at Level 11
-         L0_draSC,          &
-         L0_L11_Id,         &
-         L1_L11_Id,         &
-         L11_fDir,          &
-         L11_rowOut,        &
-         L11_colOut,        &
-         L11_upBound_L0,    &
-         L11_downBound_L0,  &
-         L11_leftBound_L0,  &
-         L11_rightBound_L0, &
-         L11_upBound_L1,    &
-         L11_downBound_L1,  &
-         L11_leftBound_L1,  &
-         L11_rightBound_L1, &
-         L11_fromN,         &
-         L11_toN,           &
-         L11_rOrder,        &
-         L11_label,         &
-         L11_sink,          &
-         L11_netPerm,       &
-         L11_fRow,          &
-         L11_fCol,          &
-         L11_tRow,          &
-         L11_tCol,          &
-         L0_draCell,        &
-         L0_streamNet,      &
-         L0_floodPlain,     &
-         L11_length,        &
-         L11_aFloodPlain,   &
-         L11_slope
+  !   use mo_kind,             only: i4
+  !   use mo_init_states,      only: get_basin_info
+  !   use mo_global_variables_routing, only: &
+  !        L11_cellCoor,      & ! cell Coordinates at Level 11
+  !        L11_Id,            & ! cell Ids at Level 11
+  !        L11_nCells,        & ! Number of Cells at Level 11
+  !        L0_draSC,          &
+  !        L0_L11_Id,         &
+  !        L1_L11_Id,         &
+  !        L11_fDir,          &
+  !        L11_rowOut,        &
+  !        L11_colOut,        &
+  !        L11_upBound_L0,    &
+  !        L11_downBound_L0,  &
+  !        L11_leftBound_L0,  &
+  !        L11_rightBound_L0, &
+  !        L11_upBound_L1,    &
+  !        L11_downBound_L1,  &
+  !        L11_leftBound_L1,  &
+  !        L11_rightBound_L1, &
+  !        L11_fromN,         &
+  !        L11_toN,           &
+  !        L11_rOrder,        &
+  !        L11_label,         &
+  !        L11_sink,          &
+  !        L11_netPerm,       &
+  !        L11_fRow,          &
+  !        L11_fCol,          &
+  !        L11_tRow,          &
+  !        L11_tCol,          &
+  !        L0_draCell,        &
+  !        L0_streamNet,      &
+  !        L0_floodPlain,     &
+  !        L11_length,        &
+  !        L11_aFloodPlain,   &
+  !        L11_slope
+  !   use mo_global_variables, only: nBasins
 
-    implicit none
+  !   implicit none
 
-    integer(i4), intent(in) :: iBasin
+  !   ! local
+  !   integer(i4) :: iBasin
+  !   integer(i4) :: ncols0
+  !   integer(i4) :: nrows0
+  !   integer(i4) :: ncells0
+  !   integer(i4) :: ncols1
+  !   integer(i4) :: nrows1
+  !   integer(i4) :: ncells1
 
-    ! local
-    integer(i4) :: ncols0
-    integer(i4) :: nrows0
-    integer(i4) :: ncells0
-    integer(i4) :: ncols1
-    integer(i4) :: nrows1
-    integer(i4) :: ncells1
+  !   do iBasin = 1, nBasins
+  !      ! get L0 information
+  !      call get_basin_info( iBasin, 0, nrows0, ncols0, ncells=ncells0 )
+       
+  !      ! get L1 information
+  !      call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 )
 
-    ! get L0 information
-    call get_basin_info( iBasin, 0, nrows0, ncols0, ncells=ncells0 )
+  !      ! L0 variables ---------------------------------------------------
+  !      call extend( L0_draSC, ncells0 )
+  !      call extend( L0_L11_Id, ncells0 )
+  !      call extend( L0_draCell, ncells0 )
+  !      call extend( L0_streamnet, ncells0 )
+  !      call extend( L0_floodplain, ncells0 )
+  !      ! L1 variables ---------------------------------------------------
+  !      call extend( L1_L11_Id, ncells1 )
+  !      call extend( L11_upBound_L1, ncells1 )
+  !      call extend( L11_downBound_L1, ncells1 )
+  !      call extend( L11_leftBound_L1, ncells1 )
+  !      call extend( L11_rightBound_L1, ncells1 )
 
-    ! get L1 information
-    call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 )
+  !      ! L11 variables --------------------------------------------------
+  !      if ( .not. allocated( L11_cellCoor) )        allocate( L11_cellCoor( 1, 1) )
+  !      if ( .not. allocated( L11_Id ) )             allocate( L11_Id( 1 ) )
+  !      L11_nCells = 1_i4
+  !      if ( .not. allocated( L11_fDir ) )           allocate( L11_fDir( 1 ) )
+  !      if ( .not. allocated( L11_rowOut ) )         allocate( L11_rowOut( 1 ) )
+  !      if ( .not. allocated( L11_colOut ) )         allocate( L11_colOut( 1 ) )
+  !      if ( .not. allocated( L11_upBound_L0 ) )     allocate( L11_upBound_L0( 1 ) )
+  !      if ( .not. allocated( L11_downBound_L0 ) )   allocate( L11_downBound_L0( 1 ) )
+  !      if ( .not. allocated( L11_leftBound_L0 ) )   allocate( L11_leftBound_L0( 1 ) )
+  !      if ( .not. allocated( L11_rightBound_L0 ) )  allocate( L11_rightBound_L0( 1 ) )
+  !      if ( .not. allocated( L11_fromN ) )          allocate( L11_fromN( 1 ) )
+  !      if ( .not. allocated( L11_toN ) )            allocate( L11_toN( 1 ) )
+  !      if ( .not. allocated( L11_rOrder) )          allocate( L11_rOrder( 1 ) )
+  !      if ( .not. allocated( L11_label) )           allocate( L11_label( 1 ) )
+  !      if ( .not. allocated( L11_sink) )            allocate( L11_sink( 1 ) )
+  !      if ( .not. allocated( L11_netPerm) )         allocate( L11_netPerm( 1 ) )
+  !      if ( .not. allocated( L11_fRow) )            allocate( L11_fRow( 1 ) )
+  !      if ( .not. allocated( L11_fCol) )            allocate( L11_fCol( 1 ) )
+  !      if ( .not. allocated( L11_tRow) )            allocate( L11_tRow( 1 ) )
+  !      if ( .not. allocated( L11_tCol) )            allocate( L11_tCol( 1 ) )
+  !      if ( .not. allocated( L11_length) )          allocate( L11_length( 1) )
+  !      if ( .not. allocated( L11_aFloodPlain) )     allocate( L11_aFloodPlain( 1) )
+  !      if ( .not. allocated( L11_slope) )           allocate( L11_slope( 1) )
 
-    ! L0 variables ---------------------------------------------------
-    call extend( L0_draSC, ncells0 )
-    call extend( L0_L11_Id, ncells0 )
-    call extend( L0_draCell, ncells0 )
-    call extend( L0_streamnet, ncells0 )
-    call extend( L0_floodplain, ncells0 )
-    ! L1 variables ---------------------------------------------------
-    call extend( L1_L11_Id, ncells1 )
-    call extend( L11_upBound_L1, ncells1 )
-    call extend( L11_downBound_L1, ncells1 )
-    call extend( L11_leftBound_L1, ncells1 )
-    call extend( L11_rightBound_L1, ncells1 )
+  !   end do
 
-    ! L11 variables --------------------------------------------------
-    if ( .not. allocated( L11_cellCoor) )        allocate( L11_cellCoor( 1, 1) )
-    if ( .not. allocated( L11_Id ) )             allocate( L11_Id( 1 ) )
-    L11_nCells = 1_i4
-    if ( .not. allocated( L11_fDir ) )           allocate( L11_fDir( 1 ) )
-    if ( .not. allocated( L11_rowOut ) )         allocate( L11_rowOut( 1 ) )
-    if ( .not. allocated( L11_colOut ) )         allocate( L11_colOut( 1 ) )
-    if ( .not. allocated( L11_upBound_L0 ) )     allocate( L11_upBound_L0( 1 ) )
-    if ( .not. allocated( L11_downBound_L0 ) )   allocate( L11_downBound_L0( 1 ) )
-    if ( .not. allocated( L11_leftBound_L0 ) )   allocate( L11_leftBound_L0( 1 ) )
-    if ( .not. allocated( L11_rightBound_L0 ) )  allocate( L11_rightBound_L0( 1 ) )
-    if ( .not. allocated( L11_fromN ) )          allocate( L11_fromN( 1 ) )
-    if ( .not. allocated( L11_toN ) )            allocate( L11_toN( 1 ) )
-    if ( .not. allocated( L11_rOrder) )          allocate( L11_rOrder( 1 ) )
-    if ( .not. allocated( L11_label) )           allocate( L11_label( 1 ) )
-    if ( .not. allocated( L11_sink) )            allocate( L11_sink( 1 ) )
-    if ( .not. allocated( L11_netPerm) )         allocate( L11_netPerm( 1 ) )
-    if ( .not. allocated( L11_fRow) )            allocate( L11_fRow( 1 ) )
-    if ( .not. allocated( L11_fCol) )            allocate( L11_fCol( 1 ) )
-    if ( .not. allocated( L11_tRow) )            allocate( L11_tRow( 1 ) )
-    if ( .not. allocated( L11_tCol) )            allocate( L11_tCol( 1 ) )
-    if ( .not. allocated( L11_length) )          allocate( L11_length( 1) )
-    if ( .not. allocated( L11_aFloodPlain) )     allocate( L11_aFloodPlain( 1) )
-    if ( .not. allocated( L11_slope) )           allocate( L11_slope( 1) )
-
-  end subroutine routing_dummy_alloc
+  ! end subroutine routing_dummy_alloc
 
   ! -------------------------------------------------------------------
   ! extend allocated arrays
@@ -2315,5 +2562,44 @@ CONTAINS
 
   end subroutine get_distance_two_lat_lon_points
 
+  subroutine set_helping_variables()
+    !
+    use mo_global_variables_routing, only: &
+         L0_nNodes, L0_s, L0_e, & ! Level0 help variables
+         L1_nNodes, L1_s, L1_e, & ! Level1 help variables
+         L110_s, L110_e, & ! Level110 help variables
+         L11_nNodes, L11_s, L11_e ! Level11 help variables
+    use mo_mrm_constants, only: nodata_i4
+    use mo_global_variables, only: nBasins
+    use mo_init_states, only: get_basin_info
+    implicit none
+    ! local variables
+    integer(i4) :: ii
+    integer(i4) :: nrows ! number of rows
+    integer(i4) :: ncols ! number of colums
+    !
+    allocate(L0_nNodes(nBasins)) ; L0_nNodes = nodata_i4
+    allocate(L0_s(nBasins)) ; L0_s = nodata_i4
+    allocate(L0_e(nBasins)) ; L0_e = nodata_i4
+    allocate(L1_nNodes(nBasins)) ; L1_nNodes = nodata_i4
+    allocate(L1_s(nBasins)) ; L1_s = nodata_i4
+    allocate(L1_e(nBasins)) ; L1_e = nodata_i4
+    allocate(L11_nNodes(nBasins)) ; L11_nNodes = nodata_i4
+    allocate(L11_s(nBasins)) ; L11_s = nodata_i4
+    allocate(L11_e(nBasins)) ; L11_e = nodata_i4
+    allocate(L110_s(nBasins)) ; L110_s = nodata_i4
+    allocate(L110_e(nBasins)) ; L110_e = nodata_i4
+    !
+    do ii = 1, nBasins
+       call get_basin_info(ii, 0, nrows, ncols, &
+            nCells=L0_nNodes(ii), iStart=L0_s(ii), iEnd=L0_e(ii))
+       call get_basin_info(ii, 1, nrows, ncols, &
+            nCells=L1_nNodes(ii), iStart=L1_s(ii), iEnd=L1_e(ii))
+       call get_basin_info(ii, 11, nrows, ncols, &
+            nCells=L11_nNodes(ii), iStart=L11_s(ii), iEnd=L11_e(ii))
+       call get_basin_info(ii, 11, nrows, ncols, &
+            iStart=L11_s(ii), iEnd=L11_e(ii))
+    end do
+  end subroutine set_helping_variables
 
-END MODULE mo_net_startup
+END MODULE mo_init_mrm

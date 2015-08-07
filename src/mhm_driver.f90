@@ -193,6 +193,7 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
+  USE mo_init_mrm,            ONLY : init_mRM
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
@@ -370,6 +371,13 @@ PROGRAM mhm_driver
   !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  ! --------------------------------------------------------------------------
+  ! READ and INITIALISE mRM ROUTING
+  ! --------------------------------------------------------------------------
+  if (processMatrix(8, 1) .eq. 1) then
+     call init_mRM()
+  end if
 
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()

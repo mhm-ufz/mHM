@@ -152,7 +152,6 @@ CONTAINS
          L11_Qmod ! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
     use mo_routing, only: mrm_routing
-    use mo_read_config_routing, only: set_helping_varialbes
     
     implicit none
 
@@ -230,7 +229,6 @@ CONTAINS
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
 
-    call set_helping_varialbes() !ST only temporarilly for mRM
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------

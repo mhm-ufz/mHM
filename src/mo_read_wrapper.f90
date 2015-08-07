@@ -341,9 +341,6 @@ CONTAINS
              !
           end do nVars_integer
           !
-          ! read fAcc, fDir, gaugeLoc
-          if (processMatrix(8, 1) .EQ. 1) call read_L0_data_routing(iBasin, mask_global)
-          !
        else
           ! if restart is switched on, perform dummy allocation of
           allocate( dummy_dp( count(mask_global) ) )
@@ -401,10 +398,5 @@ CONTAINS
        L0_asp(:)    = merge( aspect_minVal, L0_asp(:),    (L0_asp(:)    .lt. aspect_minVal)  )
     end if
 
-    ! ************************************************
-    ! READ DISCHARGE TIME SERIES
-    ! ************************************************
-    call read_discharge_data(( processMatrix(8,1) .GE. 1 ))
-    
   end subroutine read_data
 END MODULE mo_read_wrapper

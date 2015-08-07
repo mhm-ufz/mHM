@@ -53,7 +53,7 @@ CONTAINS
          L11_qTIN, & ! inflow water into the reach at L11
          L11_qTR, & !
          L11_qMod ! final variable containing routed water
-    use mo_net_startup, only: L11_fraction_sealed_floodplain
+    use mo_init_mrm, only: L11_fraction_sealed_floodplain
     use mo_mpr_routing, only: reg_rout
     !ST The following dependency has to be removed
     use mo_global_variables, only: L0_LCover, timeStep, basin
@@ -91,7 +91,6 @@ CONTAINS
     s0 = L0_s(iBasin)
     e0 = L0_e(iBasin)
     
-
     ! evaluate whether mpr should be executed
     do_mpr = .false.
     if (is_start) then
@@ -100,9 +99,8 @@ CONTAINS
     end if
     if (present(do_mpr_routing)) do_mpr = do_mpr_routing
 
+    ! execute mpr for routing
     if (do_mpr) then
-       ! execute mpr for routing
-       
        !-------------------------------------------------------------------
        ! estimate fraction of impervious cover in flood plains
        ! --> time independent variable: to be initalized every time
@@ -118,15 +116,12 @@ CONTAINS
             L11_aFloodPlain(s11:e11), &
             2, &
             L11_FracFPimp(s11:e11))
-
-       ! execute routing
        ! for a single node model run
-       if( (e11 - s11) .GT. 1) then
+       if( nNodes .GT. 1) then
           call reg_rout( global_routing_param, &
                L11_length(s11:e11 - 1), L11_slope(s11:e11 - 1), L11_FracFPimp(s11:e11 - 1), &
                real(timeStep,dp), L11_C1(s11:e11 - 1), L11_C2(s11:e11 -1 ))
        end if 
-
     end if
 
     ! execute routing
@@ -206,7 +201,7 @@ CONTAINS
   !>    \f$ \Delta t \f$ time interval in hours. \n 
   !>    \f$ t \f$ Time index for each \f$ \Delta t \f$ interval. \n
   !>    To improve performance, a routing sequence "netPerm" is
-  !>    required. This permutation is determined in the mo_net_startup
+  !>    required. This permutation is determined in the mo_init_mrm
   !>    routine.
 
   !     INTENT(IN)

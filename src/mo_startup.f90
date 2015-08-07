@@ -89,17 +89,17 @@ CONTAINS
   !                  Rohini Kumar,   Nov 2013 - updated documentation
   !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
   !                  Stephan Thober, Jun 2014 - updated flag for read_restart
+  !                  Stephan Thober, Aug 2015 - removed initialisation of routing
 
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, &
+    use mo_global_variables, only: soilDB, L0_Basin, &
          read_restart, perform_mpr, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
     USE mo_restart,          ONLY: read_restart_config
 
-    use mo_net_startup,      only: routing_init, routing_dummy_alloc
     implicit none
 
     integer(i4), intent(in) :: iBasin
@@ -134,14 +134,6 @@ CONTAINS
 
     ! L2 inialization
     call L2_variable_init(iBasin)
-
-    ! L11: network initialization
-    if ( processMatrix(8, 1) .ne. 0 ) then
-       call routing_init(iBasin)
-    else
-       ! allocate dummy space for L0 variables related to routing process
-       call routing_dummy_alloc(iBasin)
-    end if
 
     ! State variables, fluxes and parameter fields
     ! have to be allocated in any case
@@ -259,6 +251,7 @@ CONTAINS
   !                                             and changed within the code made accordingly
   !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
   !                & Stephan Thober,           to process_matrix flag
+  !                  Stephan Thober, Aug 2015 - moved check of L0 routing variables to mRM
 
   subroutine L0_check_input(iBasin)
 
@@ -267,9 +260,7 @@ CONTAINS
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
                                    nLCover_scene            , &
-                                   L0_LCover, timeStep_LAI_input, &
-                                   processMatrix
-    use mo_global_variables_routing, only: L0_fDir, L0_fAcc         
+                                   L0_LCover, timeStep_LAI_input
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str
@@ -298,24 +289,6 @@ CONTAINS
           call message(' Error: slope has missing value within the valid masked area at cell in basin ', &
                trim(message_text) )
           stop
-       end if
-
-       if( processMatrix(8, 1) .NE. 0 ) then
-         ! flow direction [-]
-         if ( L0_fDir(k) .eq. nodata_i4  ) then
-            message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-            call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
-                 trim(message_text) )
-            stop
-         end if
-         ! flow accumulation [-]
-         if ( L0_fAcc(k) .eq. nodata_i4 ) then
-            message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-            call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
-                 trim(message_text) )
-            stop
-         end if
-
        end if
 
        ! aspect [degree]

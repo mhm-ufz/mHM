@@ -1232,14 +1232,6 @@ CONTAINS
        deallocate( dummyD3)
     end select
 
-    !-------------------------------------------
-    ! L11 ROUTING STATE VARIABLES, FLUXES AND
-    !             PARAMETERS
-    !-------------------------------------------
-    if (  processMatrix(8, 1) /= 0 ) then
-       call read_restart_routing(iBasin, Fname)
-    end if
-
   end subroutine read_restart_states
 
 END MODULE mo_restart

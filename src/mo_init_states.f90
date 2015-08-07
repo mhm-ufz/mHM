@@ -92,8 +92,6 @@ CONTAINS
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
-    use mo_global_variables_routing, only: L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
 
     use mo_mhm_constants,    only: YearMonths_i4
     use mo_mrm_constants,    only: nRoutingStates
@@ -106,13 +104,13 @@ CONTAINS
     ! local variables
     integer(i4)                               :: nrows1, ncols1
     integer(i4)                               :: ncells1
-    integer(i4)                               :: nrows11, ncols11
-    integer(i4)                               :: ncells11
+    ! integer(i4)                               :: nrows11, ncols11
+    ! integer(i4)                               :: ncells11
     real(dp), dimension(:),   allocatable     :: dummy_Vector
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix_months
-    real(dp), dimension(:),   allocatable     :: dummy_Vector11
-    real(dp), dimension(:,:), allocatable     :: dummy_Matrix11_IT
+    ! real(dp), dimension(:),   allocatable     :: dummy_Vector11
+    ! real(dp), dimension(:,:), allocatable     :: dummy_Matrix11_IT
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 ) 
@@ -329,65 +327,10 @@ CONTAINS
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_wiltingPoint,  dummy_Matrix )
 
-    !-------------------------------------------
-    ! L11 ROUTING STATE VARIABLES, FLUXES AND
-    !             PARAMETERS
-    !-------------------------------------------
-    if(  processMatrix(8, 1) .eq. 0 ) then
-       nrows11 = 1
-       ncols11 = 1
-       ncells11 = 1
-    else
-       ! level-11 information
-       call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11 ) 
-    end if
-
-    ! dummy vector and matrix
-    allocate( dummy_Vector11   (nCells11     ) )
-    allocate( dummy_Matrix11_IT(nCells11, nRoutingStates) )
-
-    ! simulated discharge at each node
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_Qmod,  dummy_Vector11 )
-
-    ! Total outflow from cells L11 at time tt
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_qOUT, dummy_Vector11 )
-
-    ! Total discharge inputs at t-1 and t
-    dummy_Matrix11_IT(:,:) = 0.0_dp
-    call append( L11_qTIN, dummy_Matrix11_IT )
-
-    !  Routed outflow leaving a node
-    dummy_Matrix11_IT(:,:) = 0.0_dp
-    call append( L11_qTR, dummy_Matrix11_IT )
-
-    ! kappa: Muskingum travel time parameter.
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_K, dummy_Vector11 )
-
-    ! xi:    Muskingum diffusion parameter
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_xi, dummy_Vector11 )
-
-    ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_C1, dummy_Vector11 )
-
-    ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_C2, dummy_Vector11 )
-
-    ! Fraction of the flood plain with impervious cover
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_FracFPimp, dummy_Vector11 )
-
     ! free space
     if ( allocated( dummy_Vector          ) ) deallocate( dummy_Vector          )  
     if ( allocated( dummy_Matrix          ) ) deallocate( dummy_Matrix          )
     if ( allocated( dummy_Matrix_months   ) ) deallocate( dummy_Matrix_months   )
-    if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
-    if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
 
   end subroutine variables_alloc
   
@@ -396,9 +339,9 @@ CONTAINS
   !      NAME
   !          variables_default_init
 
-  !>        \brief Default initalization mHM related L1 and L11 variables
+  !>        \brief Default initalization mHM related L1 variables
   
-  !>        \details Default initalization of mHM related L1 and L11 variables (e.g., states,
+  !>        \details Default initalization of mHM related L1 variables (e.g., states,
   !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
   !>                 Variables initalized here is defined in the mo_global_variables.f90 file. 
   !>                 Only Variables that are defined in the variables_alloc subroutine are 
@@ -439,6 +382,7 @@ CONTAINS
   !         \authors  R. Kumar & J. Mai
   !         \date    Sep. 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
+  !              Stephan Thober Aug 2015   - moved routing variables to mRM
 
   subroutine variables_default_init()
 
@@ -456,9 +400,6 @@ CONTAINS
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
-    use mo_global_variables_routing, only: &
-         L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp
 
     use mo_mhm_constants,    only:               &
          P1_InitStateFluxes, P2_InitStateFluxes, &
@@ -637,38 +578,6 @@ CONTAINS
 
     ! Permanent wilting point
     L1_wiltingPoint = P1_InitStateFluxes
-
-    !-------------------------------------------
-    ! L11 ROUTING STATE VARIABLES, FLUXES AND
-    !             PARAMETERS
-    !-------------------------------------------
-
-    ! simulated discharge at each node
-    L11_Qmod = P1_InitStateFluxes
-
-    ! Total outflow from cells L11 at time tt
-    L11_qOUT = P1_InitStateFluxes
-
-    ! Total discharge inputs at t-1 and t
-    L11_qTIN = P1_InitStateFluxes
-
-    !  Routed outflow leaving a node
-    L11_qTR = P1_InitStateFluxes
-
-    ! kappa: Muskingum travel time parameter.
-    L11_K = P1_InitStateFluxes
-
-    ! xi:    Muskingum diffusion parameter
-    L11_xi = P1_InitStateFluxes
-
-    ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
-    L11_C1 = P1_InitStateFluxes
-
-    ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
-    L11_C2 = P1_InitStateFluxes
-
-    ! Fraction of the flood plain with impervious cover
-    L11_FracFPimp = P1_InitStateFluxes
 
   end subroutine variables_default_init
   ! ------------------------------------------------------------------

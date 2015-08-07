@@ -205,53 +205,8 @@ contains
        end if
     end if
 
-    ! ! initialize helping variables THIS IS TOO EARLY HERE
-    ! if (do_routing) then
-    !    call set_helping_varialbes()
-    ! end if
-
   end subroutine read_config_routing
 
-  subroutine set_helping_varialbes()
-    !
-    use mo_global_variables_routing, only: &
-         L0_nNodes, L0_s, L0_e, & ! Level0 help variables
-         L1_nNodes, L1_s, L1_e, & ! Level1 help variables
-         L110_s, L110_e, & ! Level110 help variables
-         L11_nNodes, L11_s, L11_e ! Level11 help variables
-    use mo_mrm_constants, only: nodata_i4
-    use mo_global_variables, only: nBasins
-    use mo_init_states, only: get_basin_info
-    implicit none
-    ! local variables
-    integer(i4) :: ii
-    integer(i4) :: nrows ! number of rows
-    integer(i4) :: ncols ! number of colums
-    !
-    allocate(L0_nNodes(nBasins)) ; L0_nNodes = nodata_i4
-    allocate(L0_s(nBasins)) ; L0_s = nodata_i4
-    allocate(L0_e(nBasins)) ; L0_e = nodata_i4
-    allocate(L1_nNodes(nBasins)) ; L1_nNodes = nodata_i4
-    allocate(L1_s(nBasins)) ; L1_s = nodata_i4
-    allocate(L1_e(nBasins)) ; L1_e = nodata_i4
-    allocate(L11_nNodes(nBasins)) ; L11_nNodes = nodata_i4
-    allocate(L11_s(nBasins)) ; L11_s = nodata_i4
-    allocate(L11_e(nBasins)) ; L11_e = nodata_i4
-    allocate(L110_s(nBasins)) ; L110_s = nodata_i4
-    allocate(L110_e(nBasins)) ; L110_e = nodata_i4
-    !
-    do ii = 1, nBasins
-       call get_basin_info(ii, 0, nrows, ncols, &
-            nCells=L0_nNodes(ii), iStart=L0_s(ii), iEnd=L0_e(ii))
-       call get_basin_info(ii, 1, nrows, ncols, &
-            nCells=L1_nNodes(ii), iStart=L1_s(ii), iEnd=L1_e(ii))
-       call get_basin_info(ii, 11, nrows, ncols, &
-            nCells=L11_nNodes(ii), iStart=L11_s(ii), iEnd=L11_e(ii))
-       call get_basin_info(ii, 11, nrows, ncols, &
-            iStart=L11_s(ii), iEnd=L11_e(ii))
-    end do
-  end subroutine set_helping_varialbes
-  !
   subroutine read_routing_params(processCase)
     use mo_file, only: file_namelist_param, unamelist_param ! file containing parameter values
     use mo_append, only: append

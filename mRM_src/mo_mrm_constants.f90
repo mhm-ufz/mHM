@@ -21,4 +21,7 @@ module mo_mrm_constants
   integer(i4), public, parameter :: maxNoGauges = 200_i4 ! maximal number of gauges allowed
   ! temporal
   real(dp),    public, parameter :: HourSecs = 3600.0_dp ! seconds per hour
+  ! default inital values for states and fluxes as well as parameter fields
+  real(dp),    public, parameter :: P1_InitStateFluxes =    0.00_dp
+
 end module mo_mrm_constants
