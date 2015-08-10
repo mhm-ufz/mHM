@@ -30,7 +30,10 @@ MODULE mo_routing
 CONTAINS
 
   subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, LCyearID, do_mpr_routing, discharge)
-    use mo_global_variables_routing, only: is_start, &
+    use mo_global_variables_routing, only: &
+         timeStep, &
+         basin_mrm, &
+         is_start, &
          L0_s, L0_e, & ! Level0 help variables
          L1_s, L1_e, & ! Level0 help variables
          L11_nNodes, L11_s, L11_e, & ! Level11 help variables
@@ -56,7 +59,7 @@ CONTAINS
     use mo_init_mrm, only: L11_fraction_sealed_floodplain
     use mo_mpr_routing, only: reg_rout
     !ST The following dependency has to be removed
-    use mo_global_variables, only: L0_LCover, timeStep, basin
+    use mo_global_variables, only: L0_LCover
          
     !
     implicit none
@@ -130,10 +133,10 @@ CONTAINS
     !-------------------------------------------------------------------
     ! runoff accumulation at L11 from L1 level
     call L11_runoff_acc(runoff, L1_areaCell(s1:e1), L1_L11_Id(s1:e1), timeStep, & ! Intent IN
-         basin%nInflowGauges(iBasin), &
-         basin%InflowGaugeIndexList(iBasin,:), &
-         basin%InflowGaugeHeadwater(iBasin,:), &
-         basin%InflowGaugeNodeList(iBasin,:), &
+         basin_mrm%nInflowGauges(iBasin), &
+         basin_mrm%InflowGaugeIndexList(iBasin,:), &
+         basin_mrm%InflowGaugeHeadwater(iBasin,:), &
+         basin_mrm%InflowGaugeNodeList(iBasin,:), &
          InflowGauge%Q(iTS,:), & ! Intent IN
          L11_qOUT(s11:e11) )                                                                         ! Intent OUT
     ! for a single node model run
@@ -146,9 +149,9 @@ CONTAINS
             L11_C1(s11:e11), & ! Intent IN
             L11_C2(s11:e11), & ! Intent IN
             L11_qOUT(s11:e11), & ! Intent IN
-            basin%nInflowGauges(iBasin), & ! Intent IN
-            basin%InflowGaugeHeadwater(iBasin,:), & ! Intent IN
-            basin%InflowGaugeNodeList(iBasin,:), & ! Intent IN
+            basin_mrm%nInflowGauges(iBasin), & ! Intent IN
+            basin_mrm%InflowGaugeHeadwater(iBasin,:), & ! Intent IN
+            basin_mrm%InflowGaugeNodeList(iBasin,:), & ! Intent IN
             L11_qTIN(s11:e11,:), & ! Intent INOUT
             L11_qTR(s11:e11,:), & ! Intent INOUT
             L11_Qmod(s11:e11) ) ! Intent OUT

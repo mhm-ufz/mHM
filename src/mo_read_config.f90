@@ -124,14 +124,12 @@ CONTAINS
          file_namelist_param, unamelist_param,              & ! file containing parameter values
          file_defOutput, udefOutput,                        & ! file specifying which output to write
          file_geolut, ugeolut                                 ! file specifying geological formations
-    use mo_global_variables_routing, only:                  &
-         resolutionRouting,                                 & ! resolution of routing
-         dirGauges                                            ! directory of gauge files
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
          timestep_model_inputs,                             & ! read input frequency
          resolutionHydrology,                               & ! resolutions of hydrology
+         resolutionRouting,                                 & ! resolution of routing
          L0_Basin,                                          & ! L0_Basin ID
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
@@ -157,7 +155,7 @@ CONTAINS
          dds_r,                                             & ! DDS: perturbation rate
          sa_temp,                                           & ! SA: initial temperature
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
-                                !                                                    !      # points per subcomplex
+         !                                                    !      # points per subcomplex
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcover_scene,                & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -186,8 +184,8 @@ CONTAINS
 
     ! LOCAL variables
     ! PARAMETERS
-    integer(i4), dimension(nProcesses)              :: processCase               ! Choosen process description number
-
+    integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
+    real(dp), dimension(5, nColPars)                :: dummy_2d_dp = nodata_dp ! space holder for routing parameters
     ! interception
     real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
@@ -264,7 +262,6 @@ CONTAINS
     integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
     character(256), dimension(maxNoBasins)          :: dir_Morpho
     character(256), dimension(maxNoBasins)          :: dir_LCover
-    character(256), dimension(maxNoBasins)          :: dir_Gauges
     character(256), dimension(maxNoBasins)          :: dir_Precipitation
     character(256), dimension(maxNoBasins)          :: dir_Temperature
     character(256), dimension(maxNoBasins)          :: dir_MinTemperature
@@ -291,14 +288,14 @@ CONTAINS
     type(period),   dimension(maxNoBasins)          :: eval_Per
     integer(i4),    dimension(maxNoBasins)          :: time_step_model_inputs
     !
-    real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
-    real(dp),    dimension(maxNoBasins)             :: resolution_Routing
-    integer(i4),    dimension(maxNoBasins)          :: L0Basin
+    real(dp), dimension(maxNoBasins)                :: resolution_Hydrology
+    real(dp), dimension(maxNoBasins)                :: resolution_Routing
+    integer(i4), dimension(maxNoBasins)             :: L0Basin
 
     ! define namelists
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings, &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                         &
+         dir_Morpho, dir_LCover, dir_Precipitation,                         &
          dir_Temperature, dir_ReferenceET, dir_MinTemperature,                       &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
          dir_NetRadiation, dir_Out, dir_RestartOut,                                  &
@@ -373,7 +370,6 @@ CONTAINS
     allocate(L0_Basin           (nBasins))
     allocate(dirMorpho          (nBasins))
     allocate(dirLCover          (nBasins))
-    allocate(dirGauges          (nBasins))
     allocate(dirPrecipitation   (nBasins))
     allocate(dirTemperature     (nBasins))
     allocate(dirwindspeed       (nBasins))
@@ -407,19 +403,19 @@ CONTAINS
     end if
 
     ! allocate time periods
-    allocate(simPer                (nBasins))
-    allocate(evalPer               (nBasins))
-    allocate(warmingDays           (nBasins))
-    allocate(warmPer               (nBasins))
-    allocate(timestep_model_inputs (nBasins))
+    allocate(simPer(nBasins))
+    allocate(evalPer(nBasins))
+    allocate(warmingDays(nBasins))
+    allocate(warmPer(nBasins))
+    allocate(timestep_model_inputs(nBasins))
 
     !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
     call position_nml('time_periods', unamelist)
     read(unamelist, nml=time_periods)
-    warmingDays           = warming_Days(          1:nBasins)
-    evalPer               = eval_Per(              1:nBasins)
+    warmingDays = warming_Days(1:nBasins)
+    evalPer     = eval_Per(1:nBasins)
     timestep_model_inputs = time_step_model_inputs(1:nBasins)
 
     ! consistency check for timestep_model_inputs
@@ -477,7 +473,6 @@ CONTAINS
 
     dirMorpho                 = dir_Morpho         (1:nBasins)
     dirLCover                 = dir_LCover         (1:nBasins)
-    dirGauges                 = dir_Gauges         (1:nBasins)
     dirPrecipitation          = dir_Precipitation  (1:nBasins)
     dirTemperature            = dir_Temperature    (1:nBasins)
     dirReferenceET            = dir_ReferenceET    (1:nBasins)
@@ -552,11 +547,6 @@ CONTAINS
           stop
        end if
     end if
-
-    !===============================================================
-    ! Read evaluation gauge information
-    !===============================================================
-    call read_config_routing(( processCase(8) .GT. 0 ))
 
     !===============================================================
     ! Read night-day ratios and pan evaporation
@@ -1039,8 +1029,14 @@ CONTAINS
        processMatrix(8, 2) = 0_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
     case(1)
+       ! parameter values and names are set in mRM
        ! 1 - Muskingum approach
-       call read_routing_params(processCase(8))
+       processMatrix(8, 1) = processCase(8)
+       processMatrix(8, 2) = 5_i4
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+       call append(global_parameters, dummy_2d_dp)
+       call append(global_parameters_name, (/'dummy', 'dummy', 'dummy', 'dummy', 'dummy'/))
+       
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')

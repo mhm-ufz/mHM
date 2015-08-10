@@ -17,13 +17,65 @@ module mo_global_variables_routing
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mRM
   ! -------------------------------------------------------------------
+  integer(i4), public :: timeStep ! [h] simulation time step (= TS) in [h]
+  integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs ! frequency for reading meteo input
+  integer(i4), public :: iFlag_cordinate_sys ! options model for the run cordinate system
+  integer(i4), dimension(:), allocatable, public :: L0_Basin
   real(dp), dimension(:), allocatable, public :: resolutionRouting ! [m or °] resolution of routing - Level 11
-  
+  real(dp), dimension(:), allocatable, public :: resolutionHydrology ! [m or °] resolution of routing - Level 11
+  logical, public :: read_restart ! flag 
+  logical, public :: write_restart ! flag 
+  logical, public :: perform_mpr ! switch for performing multiscale parameter regionalization
+
+  ! -------------------------------------------------------------------
+  ! OPTIMIZATION
+  ! -------------------------------------------------------------------
+  integer(i4), public :: opti_method   ! Optimization algorithm:
+  !                                    ! 1 - DDS
+  !                                    ! 2 - Simulated Annealing
+  !                                    ! 3 - SCE
+  integer(i4), public :: opti_function ! Objective function:
+  !                                    ! 1 - 1.0-NSE
+  !                                    ! 2 - 1.0-lnNSE
+  !                                    ! 3 - 1.0-0.5*(NSE+lnNSE)
+  logical,     public :: optimize      ! Optimization   (.true. ) or
+  !                                    ! Evaluation run (.false.)
+  ! settings for optimization algorithms: 
+  integer(i8), public :: seed          ! seed used for optimization
+  !                                    ! default: -9 --> system time 
+  integer(i4), public :: nIterations   ! number of iterations for optimization
+  real(dp),    public :: dds_r         ! DDS: perturbation rate
+  !                                    !      default: 0.2
+  real(dp),    public :: sa_temp       ! SA:  initial temperature
+  !                                    !      default: -9.0 --> estimated
+  integer(i4), public :: sce_ngs       ! SCE: # of complexes
+  !                                    !      default: 2
+  integer(i4), public :: sce_npg       ! SCE: # of points per complex
+  !                                    !      default: -9 --> 2n+1
+  integer(i4), public :: sce_nps       ! SCE: # of points per subcomplex
+  !                                    !      default: -9 --> n+1
+
+  ! -------------------------------------------------------------------
+  ! PARAMETER description
+  ! -------------------------------------------------------------------
+  real(dp), dimension(:,:), allocatable, public :: mrm_global_parameters ! Matrix of global parameters 
+  !                                                                      ! col1: min, col2: max, col3: initial, 
+  !                                                                      ! col4: flag, col5: scaling
+  character(256), dimension(:), allocatable, public :: mrm_global_parameters_name ! Matrix of global parameters
+  !                                                                               ! col1:names
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
+  ! has the dimension of nBasins
+  character(256), public :: dirConfigOut
+  character(256), public :: dirCommonFiles ! directory where common input files should be located
+  character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
+  character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
-
+  character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
+  character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
+  character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
+ 
   ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
@@ -56,7 +108,94 @@ module mo_global_variables_routing
   type(gaugingStation), public :: gauge ! Gauging station information
   type(gaugingStation), public :: InflowGauge ! inflow gauge information
 
-  
+  ! -----------------------------------------------------------------
+  ! LAND COVER DATA
+  ! -----------------------------------------------------------------
+  ! Land cover information
+  real(dp), public :: fracSealed_cityArea ! fraction of area within city assumed to be
+  !                                       ! perfectly sealed [0-1] 
+  integer(i4), public :: nLCover_scene ! Number of land cover scene
+  character(256), public, dimension(:), allocatable :: LCfilename ! file names for the different land cover scenes
+  integer(i4), public, dimension(:,:), allocatable :: LCyearId ! Mapping of landcover scenes (1, 2,..) for each basin
+
+  ! -------------------------------------------------------------------
+  ! PERIOD description
+  ! -------------------------------------------------------------------
+  type period
+      integer(i4) :: dStart      ! first day
+      integer(i4) :: mStart      ! first month
+      integer(i4) :: yStart      ! first year
+      integer(i4) :: dEnd        ! last  day
+      integer(i4) :: mEnd        ! last  month
+      integer(i4) :: yEnd        ! last  year
+      integer(i4) :: julStart    ! first julian day 
+      integer(i4) :: julEnd      ! last  julian day 
+      integer(i4) :: nObs        ! total number of observations
+  end type period
+  !
+  type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
+  type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
+  type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
+  type(period), dimension(:), allocatable, public :: readPer     ! start and end dates of read period
+  integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
+
+  ! -------------------------------------------------------------------
+  ! BASIN general description
+  ! -------------------------------------------------------------------
+  integer(i4), public :: nBasins ! Number of basins for multi-basin optimization
+  type basinInfo
+     ! dim1 = basin id
+     ! dim2 = maximum number of gauges in a given basin
+     ! discharge measurement gauges
+     integer(i4), dimension(:),   allocatable :: nGauges        ! Number of gauges within a basin
+     integer(i4), dimension(:,:), allocatable :: gaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
+     integer(i4), dimension(:,:), allocatable :: gaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
+     integer(i4), dimension(:,:), allocatable :: gaugeNodeList  ! Gauge node list at L11
+
+     ! discharge inflow gauges (e.g if headwar bsins are missing)
+     integer(i4), dimension(:),   allocatable :: nInflowGauges        ! Number of gauges within a basin
+     integer(i4), dimension(:,:), allocatable :: InflowGaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
+     integer(i4), dimension(:,:), allocatable :: InflowGaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
+     integer(i4), dimension(:,:), allocatable :: InflowGaugeNodeList  ! Gauge node list at L11
+     logical,     dimension(:,:), allocatable :: InflowGaugeHeadwater ! if headwater cells of inflow gauge will be considered
+
+     ! basin outlet
+     integer(i4), dimension(:), allocatable :: L0_rowOutlet   ! Outlet location in L0 
+     integer(i4), dimension(:), allocatable :: L0_colOutlet   ! Outlet location in L0 
+
+     ! for remapping                                           
+     integer(i4), dimension(:), allocatable :: L0_iStart      ! Starting cell index of a given basin at L0
+     integer(i4), dimension(:), allocatable :: L0_iEnd        ! Ending cell index of a given basin at L0
+     integer(i4), dimension(:), allocatable :: L0_iStartMask  ! Starting cell index of mask a given basin at L0
+     integer(i4), dimension(:), allocatable :: L0_iEndMask    ! Ending cell index of mask a given basin at L0
+     logical,     dimension(:), allocatable :: L0_mask        ! Mask of level0 based on DEM
+
+     integer(i4), dimension(:), allocatable :: L1_iStart      ! Starting cell index of a given basin at L1
+     integer(i4), dimension(:), allocatable :: L1_iEnd        ! Ending cell index of a given basin at L1
+     integer(i4), dimension(:), allocatable :: L1_iStartMask  ! Starting cell index of mask a given basin at L1
+     integer(i4), dimension(:), allocatable :: L1_iEndMask    ! Ending cell index of mask a given basin at L1
+     logical,     dimension(:), allocatable :: L1_mask        ! Mask of level1
+
+     integer(i4), dimension(:), allocatable :: L11_iStart ! Sarting cell index of a given basin at L11 = node
+     integer(i4), dimension(:), allocatable :: L11_iEnd ! Ending cell index of a given basin at L11   = node
+     integer(i4), dimension(:), allocatable :: L11_iStartMask ! Starting cell index of mask a given basin at L11
+     integer(i4), dimension(:), allocatable :: L11_iEndMask   ! Ending cell index of mask a given basin at L11
+     logical,     dimension(:), allocatable :: L11_mask       ! Mask of level11
+
+     integer(i4), dimension(:), allocatable :: L110_iStart    ! Sarting cell index of L0_floodPlain 
+     !                                                        ! at a given basin at L110 = node
+     integer(i4), dimension(:), allocatable :: L110_iEnd      ! Ending cell index of L0_floodPlain 
+     !                                                        ! at a given basin at L110   = node
+
+     Integer(i4), dimension(:), allocatable :: L2_iStart      ! Starting cell index of a given basin at L2
+     integer(i4), dimension(:), allocatable :: L2_iEnd        ! Ending cell index of a given basin at L2
+     integer(i4), dimension(:), allocatable :: L2_iStartMask  ! Starting cell index of mask a given basin at L2
+     integer(i4), dimension(:), allocatable :: L2_iEndMask    ! Ending cell index of mask a given basin at L2
+     logical,     dimension(:), allocatable :: L2_mask        ! Mask of level2
+
+  end type basinInfo
+  type(basinInfo), public :: basin_mrm ! Basin structure
+
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain> 
   ! -------------------------------------------------------------------

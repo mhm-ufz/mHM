@@ -143,6 +143,7 @@ CONTAINS
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
     use mo_global_variables_routing, only: &
+         basin_mrm, &
          nMeasPerDay, &
          ! InflowGauge, &
          ! L11_netPerm, L11_fromN, L11_toN, & 
@@ -705,8 +706,8 @@ CONTAINS
           !        ordered corresponing to gauge%Q(:,:)
           !----------------------------------------------------------------------
           if( present(runoff) ) then
-             do gg = 1, basin%nGauges(ii)
-                runoff(tt,basin%gaugeIndexList(ii,gg)) = L11_Qmod( basin%gaugeNodeList(ii,gg) + s11 - 1 )
+             do gg = 1, basin_mrm%nGauges(ii)
+                runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
              end do
           end if
 

@@ -264,10 +264,11 @@ CONTAINS
     ! basin config
     write(uconfig,218) 'Basin-wise Configuration'
     do n=1,nBasins
-       if ( processMatrix(8,1) .ne. 0 ) then
-          write(uconfig,103) 'Basin No.                   ', n, &
-               'No. of gauges               ', basin%nGauges(n)
-       end if
+       !ST has to be moved to the config write of mRM
+       ! if ( processMatrix(8,1) .ne. 0 ) then
+       !    write(uconfig,103) 'Basin No.                   ', n, &
+       !         'No. of gauges               ', basin%nGauges(n)
+       ! end if
 
        write(uconfig, 222)   'Directory list'
 

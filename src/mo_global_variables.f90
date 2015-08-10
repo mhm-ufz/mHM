@@ -46,6 +46,7 @@ MODULE mo_global_variables
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
   integer(i4),   dimension(:), allocatable, public   :: timeStep_model_inputs      ! frequency for reading meteo input
   real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
+  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of hydrology - Level 1
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: read_restart               ! flag 
   logical,       public                              :: write_restart              ! flag 
@@ -248,15 +249,15 @@ MODULE mo_global_variables
   ! PERIOD description
   ! -------------------------------------------------------------------
   type period
-      integer(i4)      :: dStart      ! first day
-      integer(i4)      :: mStart      ! first month
-      integer(i4)      :: yStart      ! first year
-      integer(i4)      :: dEnd        ! last  day
-      integer(i4)      :: mEnd        ! last  month
-      integer(i4)      :: yEnd        ! last  year
-      integer(i4)      :: julStart    ! first julian day 
-      integer(i4)      :: julEnd      ! last  julian day 
-      integer(i4)      :: nObs        ! total number of observations
+      integer(i4) :: dStart      ! first day
+      integer(i4) :: mStart      ! first month
+      integer(i4) :: yStart      ! first year
+      integer(i4) :: dEnd        ! last  day
+      integer(i4) :: mEnd        ! last  month
+      integer(i4) :: yEnd        ! last  year
+      integer(i4) :: julStart    ! first julian day 
+      integer(i4) :: julEnd      ! last  julian day 
+      integer(i4) :: nObs        ! total number of observations
   end type period
 
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming

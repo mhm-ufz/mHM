@@ -10,6 +10,7 @@ contains
     use mo_ncwrite, only: var2nc
     use mo_string_utils, only: num2str
     use mo_global_variables_routing, only: &
+         basin_mrm, &
          L11_Qmod, &
          L11_qOUT, &
          L11_qTIN, &
@@ -312,11 +313,11 @@ contains
          dims_outlet, 'L0_OutletCoord', &
          long_name = 'Outlet Coordinates at Level 0',missing_value=nodata_i4)
 
-    call var2nc( Fname, basin%gaugeNodeList(iBasin,:), &
+    call var2nc( Fname, basin_mrm%gaugeNodeList(iBasin,:), &
          dims_gauges, 'gaugeNodeList', &
          long_name = 'cell ID of gauges',missing_value=nodata_i4)
 
-    call var2nc( Fname, basin%InflowGaugeNodeList(iBasin,:), &
+    call var2nc( Fname, basin_mrm%InflowGaugeNodeList(iBasin,:), &
          dims_inflow, 'InflowGaugeNodeList', &
          long_name = 'cell ID of gauges',missing_value=nodata_i4)
 
@@ -481,6 +482,8 @@ contains
     use mo_ncread,           only: Get_NcVar
     use mo_mrm_constants,    only: nodata_dp
     use mo_global_variables_routing, only: &
+         nBasins,           & ! Number of Basins
+         basin_mrm,         &
          resolutionRouting, &
          level11,           &
          L11_cellCoor,      & ! cell Coordinates at Level 11
@@ -518,8 +521,7 @@ contains
          L11_slope
     !ST The following dependencies have to be removed
     use mo_init_states,      only: calculate_grid_properties
-    use mo_global_variables, only: basin, & ! basin database
-         nBasins ! Number of Basins
+    use mo_global_variables, only: basin ! basin database
 
     implicit none
 
@@ -767,16 +769,16 @@ contains
     call append( L0_draCell,     PACK ( dummyI2,  mask0)  ) 
 
     ! read gaugenodelist
-    allocate(dummyI1( size(basin%gaugeNodeList(iBasin,:))))
+    allocate(dummyI1( size(basin_mrm%gaugeNodeList(iBasin,:))))
     call Get_NcVar( Fname, 'gaugeNodeList', dummyI1)
-    basin%gaugeNodeList( iBasin, : ) = dummyI1
+    basin_mrm%gaugeNodeList( iBasin, : ) = dummyI1
     deallocate(dummyI1)
 
     ! read InflowGaugeNodelist
-    if (basin%nInflowGauges(iBasin) > 0) then 
-       allocate(dummyI1( size(basin%InflowGaugeNodeList(iBasin,:))))
+    if (basin_mrm%nInflowGauges(iBasin) > 0) then 
+       allocate(dummyI1( size(basin_mrm%InflowGaugeNodeList(iBasin,:))))
        call Get_NcVar( Fname, 'InflowGaugeNodeList', dummyI1)
-       basin%InflowgaugeNodeList( iBasin, : ) = dummyI1
+       basin_mrm%InflowgaugeNodeList( iBasin, : ) = dummyI1
        deallocate(dummyI1)
     end if
 

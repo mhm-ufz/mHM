@@ -266,7 +266,7 @@ PROGRAM mhm_driver
      call message( '  --------------' )
      call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
      call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
-     call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
+     ! call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
@@ -287,20 +287,20 @@ PROGRAM mhm_driver
         call message('    LAI directory:             ', trim(dirgridded_LAI(ii)) )
      end if
 
-     if (processMatrix(8,1) .GT. 0) then
-        call message('    Evaluation gauge            ', 'ID')
-        do jj = 1 , basin%nGauges(ii)
-           call message('    ',trim(adjustl(num2str(jj))),'                           ', &
-                trim(adjustl(num2str(basin%gaugeIdList(ii,jj)))))
-        end do
-     end if
-     if (basin%nInflowGauges(ii) .GT. 0) then
-        call message('    Inflow gauge              ', 'ID')
-        do jj = 1 , basin%nInflowGauges(ii)
-           call message('    ',trim(adjustl(num2str(jj))),'                         ', &
-                trim(adjustl(num2str(basin%InflowGaugeIdList(ii,jj)))))
-        end do
-     end if
+     ! if (processMatrix(8,1) .GT. 0) then
+     !    call message('    Evaluation gauge            ', 'ID')
+     !    do jj = 1 , basin%nGauges(ii)
+     !       call message('    ',trim(adjustl(num2str(jj))),'                           ', &
+     !            trim(adjustl(num2str(basin%gaugeIdList(ii,jj)))))
+     !    end do
+     ! end if
+     ! if (basin%nInflowGauges(ii) .GT. 0) then
+     !    call message('    Inflow gauge              ', 'ID')
+     !    do jj = 1 , basin%nInflowGauges(ii)
+     !       call message('    ',trim(adjustl(num2str(jj))),'                         ', &
+     !            trim(adjustl(num2str(basin%InflowGaugeIdList(ii,jj)))))
+     !    end do
+     ! end if
      call message('')
   end do
 

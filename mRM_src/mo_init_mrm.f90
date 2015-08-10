@@ -49,14 +49,21 @@ CONTAINS
   subroutine init_mRM()
 
     use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing
+    use mo_read_config_routing, only: read_mrm_config
     use mo_restart_routing, only: read_restart_L11_config, read_restart_routing
+    use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin
     !ST following dependency has to be removed
-    use mo_global_variables, only: read_restart, dirRestartIn, nBasins, perform_mpr, L0_Basin
+    use mo_global_variables, only: dirRestartIn
     
     implicit none
 
     integer(i4) :: iBasin
 
+    ! ----------------------------------------------------------
+    ! READ CONFIG
+    ! ----------------------------------------------------------
+    call read_mrm_config()
+    
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
@@ -70,7 +77,7 @@ CONTAINS
           end if
        end do
     end if
-    call read_discharge_data(.true.) !( processMatrix(8,1) .GE. 1 ))
+    call read_discharge_data()
 
     ! ----------------------------------------------------------
     ! INITIALIZE STREAM NETWORK
@@ -117,6 +124,7 @@ CONTAINS
     call set_helping_variables() !ST only temporarilly for mRM
 
   end subroutine init_mRM
+ 
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -1587,6 +1595,7 @@ CONTAINS
   ! ------------------------------------------------------------------
   subroutine L11_set_drain_outlet_gauges(iBasin)
     use mo_global_variables_routing, only: &
+         basin_mrm,   & 
          L0_fDir,     &       ! IN: flow direction (standard notation) L0
          L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
          L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
@@ -1596,7 +1605,6 @@ CONTAINS
          L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
          L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
     use mo_global_variables, only: &
-         basin,       & 
          L0_cellCoor ! IN: cell coordinates (row,col) -> <only domain> input data
 
     implicit none
@@ -1676,18 +1684,18 @@ CONTAINS
        ! the routing cell at level-11
         if ( gaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! evaluation gauges
-          do ll = 1, basin%nGauges(iBasin)
+          do ll = 1, basin_mrm%nGauges(iBasin)
              ! search for gaugeID in L0 grid and save ID on L11
-             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if (basin_mrm%gaugeIdList(iBasin, ll) .EQ. gaugeLoc0(ii,jj)) basin_mrm%gaugeNodeList(iBasin, ll) = L11Id_on_L0(ii, jj)
           end do
        end if
 
        if ( InflowGaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! inflow gauges
-          do ll = 1, basin%nInflowGauges(iBasin)
+          do ll = 1, basin_mrm%nInflowGauges(iBasin)
              ! search for gaugeID in L0 grid and save ID on L11
-             if ( basin%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
-                  basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if ( basin_mrm%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
+                  basin_mrm%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
   

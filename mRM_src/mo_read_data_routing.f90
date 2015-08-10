@@ -5,29 +5,28 @@ module mo_read_data_routing
   public :: read_L0_data_routing
   private :: rotate_fdir_variable
 contains
-  !
+  
   subroutine read_L0_data_routing(iBasin)
     use mo_mhm_constants, only: nodata_i4 ! mHM's global nodata vales
     use mo_append, only: append
     use mo_string_utils, only: num2str
     use mo_message, only: message
     use mo_read_spatial_data, only: read_spatial_data_ascii
-    use mo_file, only: &
+    use mo_mrm_file, only: &
          file_facc, ufacc, & ! file name and unit of flow acc map
          file_fdir, ufdir, & ! file name and unit of flow dir map
-         file_gaugeloc, ugaugeloc ! file name and unit of gauge locations m
+         file_gaugeloc, ugaugeloc, & ! file name and unit of gauge locations m
+         file_dem, udem
     use mo_global_variables_routing, only: &
+         dirMorpho, & ! directories
          L0_fAcc, & ! flow accumulation on input resolution (L0)
          L0_fDir, & ! flow direction on input resolution (L0)
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
-         L0_InflowGaugeLoc ! location of inflow gauges on input resolution (L0)
+         L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
+         basin_mrm ! basin information for single basins
     !ST: The following dependency has to be removed
-    use mo_file, only: &
-         file_dem, udem
     use mo_global_variables, only: &
-         dirMorpho, & ! directories
-         level0, & ! grid information (ncols, nrows, ..)
-         basin ! basin information for single basins
+         level0 ! grid information (ncols, nrows, ..)
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -80,11 +79,11 @@ contains
        case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges
           ! Input data check
-          do iGauge = 1, basin%nGauges(iBasin)
+          do iGauge = 1, basin_mrm%nGauges(iBasin)
              ! If gaugeId is found in gauging location file?
-             if (.not. any(data_i4_2d .EQ. basin%gaugeIdList(iBasin, iGauge))) then
+             if (.not. any(data_i4_2d .EQ. basin_mrm%gaugeIdList(iBasin, iGauge))) then
                 call message()
-                call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin%gaugeIdList(iBasin, iGauge)))), &
+                call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin_mrm%gaugeIdList(iBasin, iGauge)))), &
                      '" not found in ' )
                 call message('          Gauge location input file: ', &
                      trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
@@ -96,14 +95,14 @@ contains
 
           ! inflow gauges
           ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
-          if (basin%nInflowGauges(iBasin) .GT. 0_i4) then
+          if (basin_mrm%nInflowGauges(iBasin) .GT. 0_i4) then
              ! Input data check
-             do iGauge = 1, basin%nInflowGauges(iBasin)
+             do iGauge = 1, basin_mrm%nInflowGauges(iBasin)
                 ! If InflowGaugeId is found in gauging location file?
-                if (.not. any(data_i4_2d .EQ. basin%InflowGaugeIdList(iBasin, iGauge))) then
+                if (.not. any(data_i4_2d .EQ. basin_mrm%InflowGaugeIdList(iBasin, iGauge))) then
                    call message()
                    call message('***ERROR: Inflow Gauge ID "', &
-                        trim(adjustl(num2str(basin%InflowGaugeIdList(iBasin, iGauge)))), &
+                        trim(adjustl(num2str(basin_mrm%InflowGaugeIdList(iBasin, iGauge)))), &
                         '" not found in ' )
                    call message('          Gauge location input file: ', &
                         trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_gaugeloc)))
@@ -128,26 +127,24 @@ contains
   ! ************************************************
   ! READ DISCHARGE TIME SERIES
   ! ************************************************
-  subroutine read_discharge_data(do_routing)
+  subroutine read_discharge_data()
     use mo_message, only: message
     use mo_append, only: paste
     use mo_string_utils, only: num2str
     use mo_read_timeseries, only: read_timeseries
     use mo_file, only: udischarge
+    use mo_mrm_constants, only: nodata_dp
     use mo_global_variables_routing, only: &
          nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
-         nInflowGaugesTotal, InflowGauge ! inflow stations information
-    !ST: The following dependency has to be removed
-    use mo_global_variables, only: &
+         nInflowGaugesTotal, InflowGauge, & ! inflow stations information
          evalPer, & ! model evaluation period (for discharge read in)
          optimize, & ! optimizeation flag for some error checks
          opti_function, & ! opti_function that determines to what data to calibrate
          simPer ! model simulation period (for inflow read in)
-    use mo_mhm_constants, only: nodata_dp ! mHM's global nodata vales
     !
     implicit none
     ! input variables
-    logical, intent(in) :: do_routing
+    !
     ! local variables
     integer(i4) :: iGauge
     integer(i4) :: iBasin
@@ -156,27 +153,22 @@ contains
     real(dp), dimension(:), allocatable :: data_dp_1d
     logical, dimension(:), allocatable :: mask_1d
     !
-    ! processMatrix(8,1) - process(8)=discharge
-    if(do_routing) then
-       do iGauge = 1, nGaugesTotal
-          ! get basin id
-          iBasin = gauge%basinId(iGauge)
-          ! get start and end dates
-          start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
-          end_tmp   = (/evalPer(iBasin)%yEnd,   evalPer(iBasin)%mEnd,   evalPer(iBasin)%dEnd  /)
-          ! evaluation gauge
-          fName = trim(adjustl(gauge%fname(iGauge)))
-          call read_timeseries(trim(fName), udischarge, &
-               start_tmp, end_tmp, optimize, opti_function, &
-               data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
-          data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-          call paste(gauge%Q, data_dp_1d, nodata_dp )
-          deallocate (data_dp_1d)
-       end do
-       !
-    end if
-
-
+    do iGauge = 1, nGaugesTotal
+       ! get basin id
+       iBasin = gauge%basinId(iGauge)
+       ! get start and end dates
+       start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
+       end_tmp   = (/evalPer(iBasin)%yEnd,   evalPer(iBasin)%mEnd,   evalPer(iBasin)%dEnd  /)
+       ! evaluation gauge
+       fName = trim(adjustl(gauge%fname(iGauge)))
+       call read_timeseries(trim(fName), udischarge, &
+            start_tmp, end_tmp, optimize, opti_function, &
+            data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
+       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+       call paste(gauge%Q, data_dp_1d, nodata_dp )
+       deallocate (data_dp_1d)
+    end do
+    !
     ! inflow gauge
     !
     ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of basin 1 and initialization
@@ -216,7 +208,7 @@ contains
   ! L. Samaniego & R. Kumar
   ! ------------------------------------------------------------------
   subroutine rotate_fdir_variable( x )
-    USE mo_mhm_constants,      ONLY: nodata_i4    ! mHM's global nodata vales
+    USE mo_mrm_constants,      ONLY: nodata_i4    ! mHM's global nodata vales
 
     implicit none
 

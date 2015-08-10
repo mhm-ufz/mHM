@@ -9,10 +9,9 @@ module mo_write_routing
 contains
 
   subroutine write_routing(runoff)
-    use mo_global_variables_routing, only: gauge, nGaugesTotal
+    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer
     !ST: the following dependency has to be removed
-    use mo_global_variables, only: basin, nBasins, &
-         evalPer, warmingDays, ntstepday, simPer
+    use mo_global_variables, only: ntstepday
     
     implicit none
 
@@ -49,9 +48,9 @@ contains
           iE = tt + NTSTEPDAY - 1
           iDay = iDay + 1
           ! over gauges
-          do gg = 1, basin%nGauges(ii)
-             d_Qmod(iDay, basin%gaugeIndexList(ii,gg) ) = &
-                  sum( runoff(iS:iE, basin%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
+          do gg = 1, basin_mrm%nGauges(ii)
+             d_Qmod(iDay, basin_mrm%gaugeIndexList(ii,gg) ) = &
+                  sum( runoff(iS:iE, basin_mrm%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
           end do
           !
        end do
@@ -116,15 +115,16 @@ contains
 
 
     use mo_errormeasures,       only: kge, nse
-    use mo_global_variables_routing, only: gauge
     use mo_julian,              only: dec2date
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
     use mo_utils,               only: ge
-    !ST The following dependencies have to be removed
-    use mo_file,                only: file_daily_discharge, udaily_discharge
-    use mo_global_variables,    only: nBasins, basin, dirOut, evalPer
-
+    use mo_mrm_file,            only: file_daily_discharge, udaily_discharge
+    use mo_global_variables_routing, only: &
+         nBasins, &
+         basin_mrm, &
+          dirOut, evalPer, &
+         gauge
 
     implicit none
 
@@ -145,10 +145,10 @@ contains
 
     ! basin loop
     do bb = 1, nBasins
-       if( basin%nGauges(bb) .lt. 1 ) cycle
+       if( basin_mrm%nGauges(bb) .lt. 1 ) cycle
 
        ! estimate igauge_end
-       igauge_end = igauge_start + basin%nGauges(bb) - 1
+       igauge_end = igauge_start + basin_mrm%nGauges(bb) - 1
 
        ! check the existance of file
        fName = trim(adjustl(dirOut(bb))) // trim(adjustl(file_daily_discharge))
@@ -160,13 +160,13 @@ contains
        end if
 
        ! header
-       write(formHeader, *) '( 4a8, ' , basin%nGauges(bb),'(2X, a5, i10.10, 2X, a5, i10.10) )' 
+       write(formHeader, *) '( 4a8, ' , basin_mrm%nGauges(bb),'(2X, a5, i10.10, 2X, a5, i10.10) )' 
        write(udaily_discharge, formHeader) 'No', 'Day', 'Mon', 'Year', &
             ( 'Qobs_', gauge%gaugeId(gg), &
             'Qsim_', gauge%gaugeId(gg), gg=igauge_start, igauge_end )
 
        ! form data
-       write(formData, *) '( 4I8, ' , basin%nGauges(bb),'(2X,   f15.7 , 2X,  f15.7  ) )' 
+       write(formData, *) '( 4I8, ' , basin_mrm%nGauges(bb),'(2X,   f15.7 , 2X,  f15.7  ) )' 
 
        ! write data
        newTime  = real(evalPer(bb)%julStart,dp) - 0.5_dp
@@ -198,6 +198,5 @@ contains
     end do
     !
   end subroutine write_daily_obs_sim_discharge
-
 
 end module mo_write_routing
