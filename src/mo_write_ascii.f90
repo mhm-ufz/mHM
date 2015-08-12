@@ -119,6 +119,7 @@ CONTAINS
          LCyearId,                  &
          LCfilename
     use mo_global_variables_routing, only: &
+         basin_mrm,                 &
          gauge,                     &
          InflowGauge,               &
          L11_nCells,                &
@@ -312,8 +313,8 @@ CONTAINS
                '      [km]', &
                '    [o/oo]'
           !
-          do j=basin%L11_iStart(n), basin%L11_iEnd(n)-1
-             i=L11_netPerm(j) + basin%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
              write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                   L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
           end do
@@ -321,7 +322,7 @@ CONTAINS
           write(uconfig, 109)  '   Overall', '     Basin', &
                '      Cell', '   Routing', &
                '        Id', '   Node Id'
-          do i=basin%L11_iStart(n), basin%L11_iEnd(n)
+          do i=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)
              write(uconfig, 110) i, L11_Id(i)
           end do
 

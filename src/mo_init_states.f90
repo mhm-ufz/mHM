@@ -640,7 +640,7 @@ CONTAINS
                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
 
     use mo_global_variables, only: basin, level0, level1, level2
-    use mo_global_variables_routing, only: level11
+    use mo_global_variables_routing, only: level11, basin_mrm
     implicit none
 
     integer(i4), intent(in)                                      :: iBasin
@@ -693,15 +693,15 @@ CONTAINS
     case (11)
        nrows = level11%nrows(iBasin)
        ncols = level11%ncols(iBasin)
-       if (present(ncells)) ncells = basin%L11_iEnd(iBasin) - basin%L11_iStart(iBasin) + 1
-       if (present(iStart)) iStart = basin%L11_iStart(iBasin)
-       if (present(iEnd))   iEnd   = basin%L11_iEnd(iBasin)
-       if (present(iStartMask)) iStartMask = basin%L11_iStartMask(iBasin)
-       if (present(iEndMask))   iEndMask   = basin%L11_iEndMask(iBasin)
+       if (present(ncells)) ncells = basin_mrm%L11_iEnd(iBasin) - basin_mrm%L11_iStart(iBasin) + 1
+       if (present(iStart)) iStart = basin_mrm%L11_iStart(iBasin)
+       if (present(iEnd))   iEnd   = basin_mrm%L11_iEnd(iBasin)
+       if (present(iStartMask)) iStartMask = basin_mrm%L11_iStartMask(iBasin)
+       if (present(iEndMask))   iEndMask   = basin_mrm%L11_iEndMask(iBasin)
        if (present(Mask)) then
           allocate ( mask(nrows, ncols) )
           mask(:,:) = .FALSE.
-          mask(:,:) = RESHAPE( basin%L11_Mask( basin%L11_iStartMask(iBasin): basin%L11_iEndMask(iBasin)),&
+          mask(:,:) = RESHAPE( basin_mrm%L11_Mask( basin_mrm%L11_iStartMask(iBasin): basin_mrm%L11_iEndMask(iBasin)),&
                (/nrows,ncols/) )
        end if
        if (present(xllcorner)) xllcorner = level11%xllcorner(iBasin)
@@ -709,8 +709,8 @@ CONTAINS
        if (present(cellsize)) cellsize   = level11%cellsize(iBasin)
 
     case (110)
-       if (present(iStart)) iStart = basin%L110_iStart(iBasin)
-       if (present(iEnd))   iEnd   = basin%L110_iEnd(iBasin)
+       if (present(iStart)) iStart = basin_mrm%L110_iStart(iBasin)
+       if (present(iEnd))   iEnd   = basin_mrm%L110_iEnd(iBasin)
 
     case (2)
        nrows = level2%nrows(iBasin)

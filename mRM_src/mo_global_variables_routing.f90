@@ -91,6 +91,8 @@ module mo_global_variables_routing
      real(dp), dimension(:), allocatable :: cellsize ! Cellsize x = cellsize y
      real(dp), dimension(:), allocatable :: nodata_value ! Code to define the mask
   end type gridGeoRef
+  type(gridGeoRef), public :: level0 ! grid information at morphological level (e.g., dem, fDir)
+  type(gridGeoRef), public :: level1 ! grid information at runoff level
   type(gridGeoRef), public :: level11 ! Reference of the routing variables
   type(gridGeoRef), public :: level110 ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
 
@@ -204,8 +206,11 @@ module mo_global_variables_routing
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells
   ! input data - morphological variables
+  real(dp), public, dimension(:), allocatable :: L0_elev ! [m] Elevation (sinks removed)   
   integer(i4), public, dimension(:), allocatable :: L0_fAcc ! Flow accumulation
   integer(i4), public, dimension(:), allocatable :: L0_fDir ! Flow direction (standard ArcGIS)
+  integer(i4), public, dimension(:,:), allocatable :: L0_LCover ! Normal  landcover id (upto 3 classes) 
+  !                                                             ! dim1=number grid cells, dim2=Number of land cover scenes
   integer(i4), public, dimension(:), allocatable :: L0_gaugeLoc ! Location of gauges within the catchment
   integer(i4), public, dimension(:), allocatable :: L0_InflowGaugeLoc ! Location of inflow gauges within catchment
   integer(i4), public, dimension(:), allocatable :: L0_L11_Id ! Mapping of L11 Id on L0  

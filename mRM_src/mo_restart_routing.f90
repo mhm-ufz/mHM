@@ -58,7 +58,6 @@ contains
     use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
     !ST: the following dependency has to be removed
     use mo_init_states, only: get_basin_info
-    use mo_global_variables, only: basin
 
     implicit none
     ! input variables
@@ -172,7 +171,7 @@ contains
     call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
     call var2nc( Fname, &
          merge( 1_i4, 0_i4,  &
-         reshape(basin%L11_Mask(basin%L11_iStartMask(iBasin):basin%L11_iEndMask(iBasin)),&
+         reshape(basin_mrm%L11_Mask(basin_mrm%L11_iStartMask(iBasin):basin_mrm%L11_iEndMask(iBasin)),&
          (/nrows11,ncols11/)) ),&
          dims_L11(1:2), 'L11_basin_Mask', &
          long_name = 'Mask at Level 11', missing_value = nodata_i4, create = .true. )
@@ -309,7 +308,7 @@ contains
          dims_L11(1:2), 'L11_rightBound_L1', &
          long_name = 'Col start at finer level-1 scale',missing_value=nodata_i4)
 
-    call var2nc( Fname, (/ basin%L0_rowOutlet(iBasin), basin%L0_colOutlet(iBasin) /), &
+    call var2nc( Fname, (/ basin_mrm%L0_rowOutlet(iBasin), basin_mrm%L0_colOutlet(iBasin) /), &
          dims_outlet, 'L0_OutletCoord', &
          long_name = 'Outlet Coordinates at Level 0',missing_value=nodata_i4)
 

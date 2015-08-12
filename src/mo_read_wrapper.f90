@@ -300,10 +300,10 @@ CONTAINS
           end do nVars_real
           !
           ! read soilID, geoUnit, LAI - datatype integer
-          nVars_integer: do iVar = 1, 6
+          nVars_integer: do iVar = 1, 3
 
              ! handle LAI options
-             ! if( (iVar .EQ. 6)  .AND. (timeStep_LAI_input < 0) ) CYCLE
+             ! if( (iVar .EQ. 3)  .AND. (timeStep_LAI_input < 0) ) CYCLE
 
              select case (iVar)
              case(1) ! soil ID

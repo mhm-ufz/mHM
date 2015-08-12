@@ -85,9 +85,9 @@ CONTAINS
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
+    call read_L0_data_routing()
     if (perform_mpr) then
        do iBasin = 1, nBasins
-          call read_L0_data_routing(iBasin)
           if (iBasin .eq. 1) then
              call L0_check_input_routing(iBasin)
           else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
@@ -415,16 +415,14 @@ CONTAINS
   subroutine L0_check_input_routing(iBasin)
     use mo_message, only: message, message_text
     use mo_string_utils, only: num2str
-    use mo_global_variables_routing, only: L0_fDir, L0_fAcc
-    !ST This dependency has to be removed
-    use mo_global_variables, only: basin
+    use mo_global_variables_routing, only: L0_fDir, L0_fAcc, basin_mrm
     implicit none
     ! input variables
     integer(i4) :: iBasin
     ! local variables
     integer(i4) :: k
 
-    do k = basin%L0_iStart(iBasin), basin%L0_iEnd(iBasin)
+    do k = basin_mrm%L0_iStart(iBasin), basin_mrm%L0_iEnd(iBasin)
        ! flow direction [-]
        if ( L0_fDir(k) .eq. nodata_i4  ) then
           message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
@@ -496,6 +494,7 @@ CONTAINS
 
   subroutine L11_variable_init(iBasin)
     use mo_global_variables_routing, only: &
+         basin_mrm, &
          level11, resolutionRouting, &
          nBasins, &
          L11_cellCoor,                       & ! cell coordinates (row,col)
@@ -503,7 +502,7 @@ CONTAINS
          L11_Id                                ! ids of grid at level-11    
     !ST The following dependency has to be removed
     use mo_global_variables, only :          &
-         level1, basin
+         level1
     use  mo_init_states,  only : calculate_grid_properties
 
     implicit none
@@ -609,36 +608,36 @@ CONTAINS
     if(iBasin == 1) then
 
        ! allocate
-       allocate(basin%L11_iStart     (nBasins))
-       allocate(basin%L11_iEnd       (nBasins))
-       allocate(basin%L11_iStartMask (nBasins))
-       allocate(basin%L11_iEndMask   (nBasins))
+       allocate(basin_mrm%L11_iStart     (nBasins))
+       allocate(basin_mrm%L11_iEnd       (nBasins))
+       allocate(basin_mrm%L11_iStartMask (nBasins))
+       allocate(basin_mrm%L11_iEndMask   (nBasins))
 
        ! initialize   
-       basin%L11_iStart(:)     = nodata_i4  
-       basin%L11_iEnd(:)       = nodata_i4 
-       basin%L11_iStartMask(:) = nodata_i4
-       basin%L11_iEndMask(:)   = nodata_i4
+       basin_mrm%L11_iStart(:)     = nodata_i4  
+       basin_mrm%L11_iEnd(:)       = nodata_i4 
+       basin_mrm%L11_iStartMask(:) = nodata_i4
+       basin_mrm%L11_iEndMask(:)   = nodata_i4
 
        ! basin information
-       basin%L11_iStart(iBasin) = 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells - 1
+       basin_mrm%L11_iStart(iBasin) = 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells - 1
 
-       basin%L11_iStartMask(iBasin) = 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     else
 
        ! basin information
-       basin%L11_iStart(iBasin) = basin%L11_iEnd(iBasin-1) + 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells - 1
+       basin_mrm%L11_iStart(iBasin) = basin_mrm%L11_iEnd(iBasin-1) + 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells - 1
 
-       basin%L11_iStartMask(iBasin) = basin%L11_iEndMask(iBasin-1) + 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = basin_mrm%L11_iEndMask(iBasin-1) + 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     end if
 
-    call append( basin%L11_Mask,  RESHAPE( mask11, (/nrows11*ncols11/)  )  )
+    call append( basin_mrm%L11_Mask,  RESHAPE( mask11, (/nrows11*ncols11/)  )  )
     ! other L11 data sets
     call append( L11_cellCoor, cellCoor )
     call append( L11_Id, Id )
@@ -735,6 +734,8 @@ CONTAINS
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
     use mo_global_variables_routing, only: &
+         basin_mrm, &
+         level0, &
          nBasins, &
          level11,   &
          L0_fAcc, L0_fDir,  &
@@ -757,7 +758,7 @@ CONTAINS
     !ST The following dependency has to be removed
     use mo_global_variables, only : &
          L0_cellCoor,       &
-         basin, level0, level1, L0_id
+         level1, L0_id
 
     implicit none
 
@@ -1115,13 +1116,13 @@ CONTAINS
 
     ! allocate space for row and col Outlet
     if(iBasin .eq. 1) then
-       allocate( basin%L0_rowOutlet(nBasins) ) 
-       allocate( basin%L0_colOutlet(nBasins) )
+       allocate( basin_mrm%L0_rowOutlet(nBasins) ) 
+       allocate( basin_mrm%L0_colOutlet(nBasins) )
     end if
 
     ! L0 data sets
-    basin%L0_rowOutlet(iBasin) = oLoc(1)
-    basin%L0_colOutlet(iBasin) = oLoc(2)
+    basin_mrm%L0_rowOutlet(iBasin) = oLoc(1)
+    basin_mrm%L0_colOutlet(iBasin) = oLoc(2)
     call append( L0_draSC,     PACK ( draSC0(:,:),  mask0)  ) 
     call append( L0_L11_Id,    PACK ( L11Id_on_L0(:,:), mask0)  )
 
@@ -1518,6 +1519,7 @@ CONTAINS
 
   subroutine L11_link_location(iBasin)
     use mo_global_variables_routing, only: &
+         basin_mrm,   & ! IN
          L0_fDir,     & ! IN:    flow direction (standard notation) L0
          L0_draSC,    & ! IN:    Index of draining cell of each sub catchment (== cell L11)
          L11_fromN,   & ! IN:    from node 
@@ -1528,7 +1530,6 @@ CONTAINS
          L11_fCol,    & ! INOUT: from col in L0 grid
          L11_tRow,    & ! INOUT: to row in L0 grid
          L11_tCol       ! INOUT: to col in L0 grid 
-    use mo_global_variables, only: basin
 
     implicit none
 
@@ -1608,8 +1609,8 @@ CONTAINS
       colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
       ! finding main outlet (row, col) in L0
-      oLoc(1) = basin%L0_rowOutlet(iBasin)
-      oLoc(2) = basin%L0_colOutlet(iBasin) 
+      oLoc(1) = basin_mrm%L0_rowOutlet(iBasin)
+      oLoc(2) = basin_mrm%L0_colOutlet(iBasin) 
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
@@ -1886,6 +1887,8 @@ CONTAINS
 
   subroutine L11_stream_features(iBasin)
     use mo_global_variables_routing, only: &
+         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
+         iFlag_cordinate_sys, & ! IN:    coordinate system
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
          L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          L11_fRow,        & ! IN:    from row in L0 grid 
@@ -1901,9 +1904,7 @@ CONTAINS
     use mo_mrm_constants, only: nodata_i4, nodata_dp
     !ST The following dependency has to be removed
     use mo_global_variables, only: &
-         L0_Id,           & ! IN:    level-0 id
-         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
-         iFlag_cordinate_sys ! IN:    coordinate system
+         L0_Id ! IN:    level-0 id
 
     implicit none
 
@@ -2381,8 +2382,7 @@ CONTAINS
   subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
     use mo_constants, only: SQRT2_dp
-    !ST The following dependency has to be removed
-    use mo_global_variables, only: level0
+    use mo_global_variables_routing, only: level0
 
     implicit none
 
@@ -2524,9 +2524,9 @@ CONTAINS
          L0_nNodes, L0_s, L0_e, & ! Level0 help variables
          L1_nNodes, L1_s, L1_e, & ! Level1 help variables
          L110_s, L110_e, & ! Level110 help variables
-         L11_nNodes, L11_s, L11_e ! Level11 help variables
+         L11_nNodes, L11_s, L11_e, & ! Level11 help variables
+         nBasins
     use mo_mrm_constants, only: nodata_i4
-    use mo_global_variables, only: nBasins
     use mo_init_states, only: get_basin_info
     implicit none
     ! local variables
