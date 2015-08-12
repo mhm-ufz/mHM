@@ -527,7 +527,7 @@ CONTAINS
          rdum = level0%yllcorner(iBasin) + (real(j,dp)-0.5_dp) * level0%cellsize(iBasin)
          ! convert to radians
          rdum = rdum*degree_to_radian
-         !    AREA[m²]
+         !    AREA [m2]
          areaCell_2D(:,i) = (level0%cellsize(iBasin) * cos(rdum) * degree_to_metre) * (level0%cellsize(iBasin)*degree_to_metre)
        end do
        areaCell(:) = pack( areaCell_2D(:,:), mask)

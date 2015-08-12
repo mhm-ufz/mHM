@@ -45,8 +45,8 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   integer(i4),   public                              :: timeStep                   ! [h] simulation time step (= TS) in [h]
   integer(i4),   dimension(:), allocatable, public   :: timeStep_model_inputs      ! frequency for reading meteo input
-  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or °] resolution of hydrology - Level 1
-  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or °] resolution of routing - Level 11
+  real(dp),      dimension(:), allocatable, public   :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
+  real(dp),      dimension(:), allocatable, public   :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   integer(i4),   dimension(:), allocatable, public   :: L0_Basin
   logical,       public                              :: read_restart               ! flag 
   logical,       public                              :: write_restart              ! flag 
