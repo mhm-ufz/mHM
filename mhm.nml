@@ -138,6 +138,8 @@ inputFormat_meteo_forcings = "nc"
 dir_Morpho(1)        = "test_basin/input/morph/"
 !> directory where land cover files are located
 dir_LCover(1)        = "test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(1)        = "test_basin/input/gauge/"
 !> directory where meteorological input is located
 dir_Precipitation(1) = "test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "test_basin/input/meteo/tavg/"

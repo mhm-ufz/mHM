@@ -12,6 +12,9 @@ module mo_global_variables_routing
   ! -------------------------------------------------------------------
   ! General variables
   ! -------------------------------------------------------------------
+  integer(i4) :: coupling_mode ! 0 = stand alone
+  !                            ! 1 = general coupling to a model
+  !                            ! 2 = specific coupling to mhm
   logical :: is_start ! flag for first timestep
 
   ! -------------------------------------------------------------------
@@ -114,7 +117,7 @@ module mo_global_variables_routing
   ! Land cover information
   real(dp), public :: fracSealed_cityArea ! fraction of area within city assumed to be
   !                                       ! perfectly sealed [0-1] 
-  integer(i4), public :: nLCover_scene ! Number of land cover scene
+  integer(i4), public :: nLCoverScene ! Number of land cover scene
   character(256), public, dimension(:), allocatable :: LCfilename ! file names for the different land cover scenes
   integer(i4), public, dimension(:,:), allocatable :: LCyearId ! Mapping of landcover scenes (1, 2,..) for each basin
 

@@ -111,7 +111,6 @@ CONTAINS
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_nml,              only: open_nml, close_nml, position_nml
-    use mo_read_config_routing, only: read_config_routing, read_routing_params
     use mo_mhm_constants,    only:                          &
          nodata_i4, nodata_dp,                              & ! nodata values
          nColPars,                                          & ! number of properties of the global variables
@@ -131,7 +130,7 @@ CONTAINS
          resolutionHydrology,                               & ! resolutions of hydrology
          resolutionRouting,                                 & ! resolution of routing
          L0_Basin,                                          & ! L0_Basin ID
-         dirMorpho, dirLCover,                              & ! input directory of morphological
+         dirMorpho, dirLCover, dirGauges,                   & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
@@ -157,7 +156,7 @@ CONTAINS
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
          !                                                    !      # points per subcomplex
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
-         fracSealed_cityArea, nLcover_scene,                & ! land cover information
+         fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
          nBasins,                                           & ! number of basins
          read_restart,                                      & ! flag reading restart
@@ -262,6 +261,7 @@ CONTAINS
     integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
     character(256), dimension(maxNoBasins)          :: dir_Morpho
     character(256), dimension(maxNoBasins)          :: dir_LCover
+    character(256), dimension(maxNoBasins)          :: dir_Gauges
     character(256), dimension(maxNoBasins)          :: dir_Precipitation
     character(256), dimension(maxNoBasins)          :: dir_Temperature
     character(256), dimension(maxNoBasins)          :: dir_MinTemperature
@@ -278,9 +278,10 @@ CONTAINS
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
     !
-    integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
-    integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
-    character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
+  integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover 
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearEnd   ! ending year LCover 
+  character(256), dimension(maxNLCovers)            :: LCoverfName     ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
     real(dp)                                        :: jday_frac
@@ -295,7 +296,7 @@ CONTAINS
     ! define namelists
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings, &
-         dir_Morpho, dir_LCover, dir_Precipitation,                         &
+         dir_Morpho, dir_LCover, dir_Gauges, dir_Precipitation,                      &
          dir_Temperature, dir_ReferenceET, dir_MinTemperature,                       &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
          dir_NetRadiation, dir_Out, dir_RestartOut,                                  &
@@ -370,6 +371,7 @@ CONTAINS
     allocate(L0_Basin           (nBasins))
     allocate(dirMorpho          (nBasins))
     allocate(dirLCover          (nBasins))
+    allocate(dirGauges          (nBasins))
     allocate(dirPrecipitation   (nBasins))
     allocate(dirTemperature     (nBasins))
     allocate(dirwindspeed       (nBasins))
@@ -473,6 +475,7 @@ CONTAINS
 
     dirMorpho                 = dir_Morpho         (1:nBasins)
     dirLCover                 = dir_LCover         (1:nBasins)
+    dirGauges                 = dir_Gauges         (1:nBasins)
     dirPrecipitation          = dir_Precipitation  (1:nBasins)
     dirTemperature            = dir_Temperature    (1:nBasins)
     dirReferenceET            = dir_ReferenceET    (1:nBasins)
@@ -608,10 +611,10 @@ CONTAINS
     end do
     !
     ! correct number of input land cover scenes to number of needed scenes
-    nLcover_scene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
+    nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
          minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
     ! put land cover scenes to corresponding file name and LuT
-    allocate(LCfilename(nLcover_scene))
+    allocate(LCfilename(nLCoverScene))
     LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
          maxval(LCyearId))
     ! update the ID's

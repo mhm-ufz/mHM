@@ -114,7 +114,7 @@ CONTAINS
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles,                      & ! directory of common files
-                                     LCfilename, nLCover_scene,           & ! file names and number of land cover scenes
+                                     LCfilename, nLCoverScene,           & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
@@ -370,7 +370,7 @@ CONTAINS
 
        !
        ! LCover read in is realized seperated because of unknown number of scenes
-       do iVar = 1, nLCover_scene
+       do iVar = 1, nLCoverScene
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &

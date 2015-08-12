@@ -49,21 +49,39 @@ CONTAINS
   subroutine init_mRM()
 
     use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing
-    use mo_read_config_routing, only: read_mrm_config
+    use mo_read_config_routing, only: read_mrm_config_coupling, read_mrm_config
     use mo_restart_routing, only: read_restart_L11_config, read_restart_routing
-    use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin
-    !ST following dependency has to be removed
-    use mo_global_variables, only: dirRestartIn
+    use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
+         coupling_mode
     
     implicit none
 
     integer(i4) :: iBasin
 
+    !-----------------------------------------------------------
+    ! READ COUPLING MODE
+    !-----------------------------------------------------------
+    call read_mrm_config_coupling()
+    
+    !-----------------------------------------------------------
+    ! PRINT STARTUP MESSAGE
+    !-----------------------------------------------------------
+    if (coupling_mode .ne. 2) then
+       call print_startup_message()
+    end if
+    
     ! ----------------------------------------------------------
     ! READ CONFIG
     ! ----------------------------------------------------------
     call read_mrm_config()
     
+    !-----------------------------------------------------------
+    ! CONFIG OUTPUT
+    !-----------------------------------------------------------
+    if (coupling_mode .ne. 2) then
+       call config_output()
+    end if
+
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
@@ -124,6 +142,106 @@ CONTAINS
     call set_helping_variables() !ST only temporarilly for mRM
 
   end subroutine init_mRM
+
+  !===============================================================
+  ! PRINT STARTUP MESSAGE
+  !===============================================================
+  subroutine print_startup_message()
+    use mo_message, only: message, message_text
+    use mo_string_utils, only: num2str, separator
+    use mo_mrm_file, only: &
+         version, &
+         version_date, &
+         file_main, &
+         file_namelist_mrm, &
+         file_namelist_param_mrm
+    implicit none
+    ! local variables
+    integer(i4), dimension(8) :: datetime ! Date and time
+
+    call message(separator)
+    call message('              mRM-UFZ')
+    call message()
+    call message('    MULTISCALE ROUTING MODEL')
+    call message('           Version ', trim(version))
+    call message('           ', trim(version_date))
+    call message()
+    call message('Originally by S. Thober & M. Cuntz')
+    call message()
+    call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
+
+    call message(separator)
+
+    call message()
+    call date_and_time(values=datetime)
+    message_text = trim(num2str(datetime(3),'(I2.2)'))//"."//trim(num2str(datetime(2),'(I2.2)')) &
+         //"."//trim(num2str(datetime(1),'(I4.4)'))//" "//trim(num2str(datetime(5),'(I2.2)')) &
+         //":"//trim(num2str(datetime(6),'(I2.2)'))//":"//trim(num2str(datetime(7),'(I2.2)'))
+    call message('Start at ', trim(message_text), '.')
+    call message('Using main file ', trim(file_main), ' and namelists: ')
+    call message('     ',trim(file_namelist_mrm))
+    call message('     ',trim(file_namelist_param_mrm))
+    call message()
+
+    !$OMP PARALLEL
+    !$ n_threads = OMP_GET_NUM_THREADS()
+    !$OMP END PARALLEL
+    !$ call message('Run with OpenMP with ', trim(num2str(n_threads)), ' threads.')
+
+  end subroutine print_startup_message
+
+  !---------------------------------------------------------------
+  ! Config output
+  !---------------------------------------------------------------
+  subroutine config_output()
+    use mo_string_utils, only: num2str, separator
+    use mo_message, only: message, message_text
+    use mo_mrm_file, only: &
+         file_namelist_mrm, &
+         file_namelist_param_mrm
+    use mo_global_variables_routing, only: &
+         dirMorpho, &
+         dirLCover, &
+         dirGauges, &
+         dirOut, &
+         basin_mrm, &
+         nBasins
+    implicit none
+    ! local variables
+    integer(i4) :: ii
+    integer(i4) :: jj
+    !
+    call message()
+    call message('Read namelist file: ', trim(file_namelist_mrm))
+    call message('Read namelist file: ', trim(file_namelist_param_mrm))
+
+    call message()
+    call message('  # of basins:         ', trim(num2str(nbasins)))
+    call message()
+    call message('  Input data directories:')
+    do ii = 1, nbasins
+       call message( '  --------------' )
+       call message( '      BASIN                   ', num2str(ii,'(I3)') )
+       call message( '  --------------' )
+       call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
+       call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
+       call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
+       call message('    Output directory:           ',   trim(dirOut(ii) ))
+       call message('    Evaluation gauge            ', 'ID')
+       do jj = 1 , basin_mrm%nGauges(ii)
+          call message('    ',trim(adjustl(num2str(jj))),'                           ', &
+               trim(adjustl(num2str(basin_mrm%gaugeIdList(ii,jj)))))
+       end do
+       if (basin_mrm%nInflowGauges(ii) .GT. 0) then
+          call message('    Inflow gauge              ', 'ID')
+          do jj = 1 , basin_mrm%nInflowGauges(ii)
+             call message('    ',trim(adjustl(num2str(jj))),'                         ', &
+                  trim(adjustl(num2str(basin_mrm%InflowGaugeIdList(ii,jj)))))
+          end do
+       end if
+    end do
+  end subroutine config_output
+
  
   ! ------------------------------------------------------------------
 
@@ -379,12 +497,13 @@ CONTAINS
   subroutine L11_variable_init(iBasin)
     use mo_global_variables_routing, only: &
          level11, resolutionRouting, &
+         nBasins, &
          L11_cellCoor,                       & ! cell coordinates (row,col)
          L11_nCells,                         & ! Total No. of routing cells  (= nNodes)
          L11_Id                                ! ids of grid at level-11    
     !ST The following dependency has to be removed
     use mo_global_variables, only :          &
-         level1, nBasins, basin
+         level1, basin
     use  mo_init_states,  only : calculate_grid_properties
 
     implicit none
@@ -616,6 +735,7 @@ CONTAINS
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
     use mo_global_variables_routing, only: &
+         nBasins, &
          level11,   &
          L0_fAcc, L0_fDir,  &
          L0_draSC,          & ! INOUT: draining cell of each sub catchment (== cell L11)
@@ -637,7 +757,7 @@ CONTAINS
     !ST The following dependency has to be removed
     use mo_global_variables, only : &
          L0_cellCoor,       &
-         nBasins, basin, level0, level1, L0_id
+         basin, level0, level1, L0_id
 
     implicit none
 
@@ -2072,178 +2192,6 @@ CONTAINS
     end if
      
   end subroutine L11_fraction_sealed_floodplain
-
-  ! ! ------------------------------------------------------------------
-
-  ! !     NAME
-  ! !         routing_dummy_alloc
-
-  ! !     PURPOSE
-  ! !>        \brief routing_dummy_alloc related to routing
-
-  ! !>        \details Allocate L0 variable that are initialized
-  ! !>                 for routing, when routing is switched off. This is a dummy
-  ! !>                 allocation required for the mhm call. No initialization is
-  ! !>                 performed. These variables are all the variables that would
-  ! !>                 would have been initialized by the net startup or restart
-  ! !>                 L11 config, if routing would be switched on.
-
-  ! !     INTENT(IN)
-  ! !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
-
-  ! !     INTENT(INOUT)
-  ! !         None
-
-  ! !     INTENT(OUT)
-  ! !         None
-
-  ! !     INTENT(IN), OPTIONAL
-  ! !         None
-
-  ! !     INTENT(INOUT), OPTIONAL
-  ! !         None
-
-  ! !     INTENT(OUT), OPTIONAL
-  ! !         None
-
-  ! !     RETURN
-  ! !         None
-
-  ! !     RESTRICTIONS
-  ! !         None
-
-  ! !     EXAMPLE
-  ! !         None
-
-  ! !     LITERATURE
-  ! !         None
-
-  ! !     HISTORY
-  ! !>        \author  Stephan Thober
-  ! !>        \date    Sep 2013
-
-  ! ! ------------------------------------------------------------------
-  ! subroutine routing_dummy_alloc( )
-
-  !   use mo_kind,             only: i4
-  !   use mo_init_states,      only: get_basin_info
-  !   use mo_global_variables_routing, only: &
-  !        L11_cellCoor,      & ! cell Coordinates at Level 11
-  !        L11_Id,            & ! cell Ids at Level 11
-  !        L11_nCells,        & ! Number of Cells at Level 11
-  !        L0_draSC,          &
-  !        L0_L11_Id,         &
-  !        L1_L11_Id,         &
-  !        L11_fDir,          &
-  !        L11_rowOut,        &
-  !        L11_colOut,        &
-  !        L11_upBound_L0,    &
-  !        L11_downBound_L0,  &
-  !        L11_leftBound_L0,  &
-  !        L11_rightBound_L0, &
-  !        L11_upBound_L1,    &
-  !        L11_downBound_L1,  &
-  !        L11_leftBound_L1,  &
-  !        L11_rightBound_L1, &
-  !        L11_fromN,         &
-  !        L11_toN,           &
-  !        L11_rOrder,        &
-  !        L11_label,         &
-  !        L11_sink,          &
-  !        L11_netPerm,       &
-  !        L11_fRow,          &
-  !        L11_fCol,          &
-  !        L11_tRow,          &
-  !        L11_tCol,          &
-  !        L0_draCell,        &
-  !        L0_streamNet,      &
-  !        L0_floodPlain,     &
-  !        L11_length,        &
-  !        L11_aFloodPlain,   &
-  !        L11_slope
-  !   use mo_global_variables, only: nBasins
-
-  !   implicit none
-
-  !   ! local
-  !   integer(i4) :: iBasin
-  !   integer(i4) :: ncols0
-  !   integer(i4) :: nrows0
-  !   integer(i4) :: ncells0
-  !   integer(i4) :: ncols1
-  !   integer(i4) :: nrows1
-  !   integer(i4) :: ncells1
-
-  !   do iBasin = 1, nBasins
-  !      ! get L0 information
-  !      call get_basin_info( iBasin, 0, nrows0, ncols0, ncells=ncells0 )
-       
-  !      ! get L1 information
-  !      call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 )
-
-  !      ! L0 variables ---------------------------------------------------
-  !      call extend( L0_draSC, ncells0 )
-  !      call extend( L0_L11_Id, ncells0 )
-  !      call extend( L0_draCell, ncells0 )
-  !      call extend( L0_streamnet, ncells0 )
-  !      call extend( L0_floodplain, ncells0 )
-  !      ! L1 variables ---------------------------------------------------
-  !      call extend( L1_L11_Id, ncells1 )
-  !      call extend( L11_upBound_L1, ncells1 )
-  !      call extend( L11_downBound_L1, ncells1 )
-  !      call extend( L11_leftBound_L1, ncells1 )
-  !      call extend( L11_rightBound_L1, ncells1 )
-
-  !      ! L11 variables --------------------------------------------------
-  !      if ( .not. allocated( L11_cellCoor) )        allocate( L11_cellCoor( 1, 1) )
-  !      if ( .not. allocated( L11_Id ) )             allocate( L11_Id( 1 ) )
-  !      L11_nCells = 1_i4
-  !      if ( .not. allocated( L11_fDir ) )           allocate( L11_fDir( 1 ) )
-  !      if ( .not. allocated( L11_rowOut ) )         allocate( L11_rowOut( 1 ) )
-  !      if ( .not. allocated( L11_colOut ) )         allocate( L11_colOut( 1 ) )
-  !      if ( .not. allocated( L11_upBound_L0 ) )     allocate( L11_upBound_L0( 1 ) )
-  !      if ( .not. allocated( L11_downBound_L0 ) )   allocate( L11_downBound_L0( 1 ) )
-  !      if ( .not. allocated( L11_leftBound_L0 ) )   allocate( L11_leftBound_L0( 1 ) )
-  !      if ( .not. allocated( L11_rightBound_L0 ) )  allocate( L11_rightBound_L0( 1 ) )
-  !      if ( .not. allocated( L11_fromN ) )          allocate( L11_fromN( 1 ) )
-  !      if ( .not. allocated( L11_toN ) )            allocate( L11_toN( 1 ) )
-  !      if ( .not. allocated( L11_rOrder) )          allocate( L11_rOrder( 1 ) )
-  !      if ( .not. allocated( L11_label) )           allocate( L11_label( 1 ) )
-  !      if ( .not. allocated( L11_sink) )            allocate( L11_sink( 1 ) )
-  !      if ( .not. allocated( L11_netPerm) )         allocate( L11_netPerm( 1 ) )
-  !      if ( .not. allocated( L11_fRow) )            allocate( L11_fRow( 1 ) )
-  !      if ( .not. allocated( L11_fCol) )            allocate( L11_fCol( 1 ) )
-  !      if ( .not. allocated( L11_tRow) )            allocate( L11_tRow( 1 ) )
-  !      if ( .not. allocated( L11_tCol) )            allocate( L11_tCol( 1 ) )
-  !      if ( .not. allocated( L11_length) )          allocate( L11_length( 1) )
-  !      if ( .not. allocated( L11_aFloodPlain) )     allocate( L11_aFloodPlain( 1) )
-  !      if ( .not. allocated( L11_slope) )           allocate( L11_slope( 1) )
-
-  !   end do
-
-  ! end subroutine routing_dummy_alloc
-
-  ! -------------------------------------------------------------------
-  ! extend allocated arrays
-  ! -------------------------------------------------------------------
-  subroutine extend( arr, ext_size)
-
-    use mo_kind, only: i4
-
-    implicit none
-
-    integer(i4), dimension(:), allocatable, intent(inout) :: arr
-    integer(i4),                            intent(in)    :: ext_size
-    integer(i4)                                           :: old_size
-
-    old_size = 0_i4
-    if ( allocated( arr ) ) then
-       old_size = size( arr )
-       deallocate( arr )
-    end if
-    allocate( arr( old_size + ext_size ) )
-
-  end subroutine extend
 
   ! ------------------------------------------------------------------
   !  MOVE UPSTREAM FROM-TO

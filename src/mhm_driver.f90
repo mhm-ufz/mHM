@@ -199,7 +199,7 @@ PROGRAM mhm_driver
   IMPLICIT NONE
 
   ! local
-  integer, dimension(8)                 :: datetime         ! Date and time
+  integer(i4), dimension(8)             :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4)                           :: ii, jj           ! Counters
   integer(i4)                           :: iTimer           ! Current timer number
@@ -287,20 +287,6 @@ PROGRAM mhm_driver
         call message('    LAI directory:             ', trim(dirgridded_LAI(ii)) )
      end if
 
-     ! if (processMatrix(8,1) .GT. 0) then
-     !    call message('    Evaluation gauge            ', 'ID')
-     !    do jj = 1 , basin%nGauges(ii)
-     !       call message('    ',trim(adjustl(num2str(jj))),'                           ', &
-     !            trim(adjustl(num2str(basin%gaugeIdList(ii,jj)))))
-     !    end do
-     ! end if
-     ! if (basin%nInflowGauges(ii) .GT. 0) then
-     !    call message('    Inflow gauge              ', 'ID')
-     !    do jj = 1 , basin%nInflowGauges(ii)
-     !       call message('    ',trim(adjustl(num2str(jj))),'                         ', &
-     !            trim(adjustl(num2str(basin%InflowGaugeIdList(ii,jj)))))
-     !    end do
-     ! end if
      call message('')
   end do
 

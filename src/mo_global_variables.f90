@@ -29,7 +29,7 @@ MODULE mo_global_variables
 
   
   USE mo_kind,          ONLY: i4, i8, dp
-  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins
+  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins, maxNLCovers
 
   IMPLICIT NONE
 
@@ -117,6 +117,7 @@ MODULE mo_global_variables
   ! has the dimension of nBasins
   character(256), dimension(:), allocatable, public :: dirMorpho          ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover          ! Directory where land cover files are located
+  character(256), dimension(:), allocatable, public :: dirGauges          ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
   character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
@@ -214,7 +215,7 @@ MODULE mo_global_variables
   ! Land cover information
   real(dp), public                                    :: fracSealed_cityArea ! fraction of area within city assumed to be
                                                                              ! perfectly sealed [0-1] 
-  integer(i4),    public                              :: nLCover_scene       ! Number of land cover scene
+  integer(i4),    public                              :: nLCoverScene        ! Number of land cover scene
   character(256), public, dimension(:),   allocatable :: LCfilename          ! file names for the different land cover scenes
   integer(i4),    public, dimension(:,:), allocatable :: LCyearId            ! Mapping of landcover scenes (1, 2, ...) for each basin
                                                                              ! to the actual year(1960, 1961, ...)

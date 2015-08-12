@@ -259,7 +259,7 @@ CONTAINS
                                    L0_elev, L0_slope, L0_asp, &
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
-                                   nLCover_scene            , &
+                                   nLCoverScene            , &
                                    L0_LCover, timeStep_LAI_input
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
@@ -316,7 +316,7 @@ CONTAINS
        end if
 
        ! landcover scenes
-       do  n = 1, nLCover_scene
+       do  n = 1, nLCoverScene
           if ( L0_LCover(k,n) .eq. nodata_i4  ) then
              message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))//','// trim(num2str(n,'(I5)'))
              call message(' Error: land cover id has missing values within the valid masked area at cell in basin and scene ', &
