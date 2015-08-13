@@ -51,7 +51,7 @@ CONTAINS
          L1_variable_init_routing, &
          L0_variable_init_routing
     use mo_read_config_routing, only: read_mrm_config_coupling, read_mrm_config
-    use mo_restart_routing, only: read_restart_L11_config, read_restart_routing
+    use mo_restart_routing, only: read_restart_L11_config, read_restart_routing, read_restart_config_routing
     use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
          coupling_mode
     
@@ -59,6 +59,7 @@ CONTAINS
 
     integer(i4) :: iBasin
 
+    print *, 'inititalize mRM'
     !-----------------------------------------------------------
     ! READ COUPLING MODE
     !-----------------------------------------------------------
@@ -97,6 +98,7 @@ CONTAINS
           end if
        end do
     end if
+    
     ! level 1 data
     do iBasin = 1, nBasins
        if ( .not. read_restart ) then
@@ -108,6 +110,7 @@ CONTAINS
           call L1_variable_init_routing(iBasin)
        else
           ! read from restart
+          call read_restart_config_routing(iBasin, dirRestartIn(iBasin))
        end if
     end do
     ! discharge data
@@ -210,8 +213,8 @@ CONTAINS
   ! Config output
   !---------------------------------------------------------------
   subroutine config_output()
-    use mo_string_utils, only: num2str, separator
-    use mo_message, only: message, message_text
+    use mo_string_utils, only: num2str
+    use mo_message, only: message
     use mo_mrm_file, only: &
          file_namelist_mrm, &
          file_namelist_param_mrm

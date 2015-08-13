@@ -543,16 +543,6 @@ PROGRAM mhm_driver
      !
   end if
 
-#ifdef mrm2mhm    
-    ! --------------------------------------------------------------------------
-    ! WRITE RUNOFF TO ASCII FILE
-    ! --------------------------------------------------------------------------
-    if( (.not. optimize) .AND. (processMatrix(8, 1) .ne. 0) .AND. (nMeasPerDay .eq. 1) ) then
-       call write_routing(runoff)
-    end if
-#endif
-
-
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
@@ -565,6 +555,14 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
+
+#ifdef mrm2mhm    
+  ! --------------------------------------------------------------------------
+  ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
+  ! files are written)
+  ! --------------------------------------------------------------------------
+  if (processMatrix(8, 1) .ne. 0) call write_routing(riverrun)
+#endif
 
 
   ! --------------------------------------------------------------------------

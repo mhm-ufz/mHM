@@ -114,7 +114,7 @@ contains
              basin_mrm%L0_iEndMask  (iBasin) = basin_mrm%L0_iEndMask(iBasin - 1 )
              !
              ! DO NOT read L0 data
-             return
+             cycle
              !
           end if
        end if
@@ -243,6 +243,8 @@ contains
 
        ! free memory
        deallocate(mask_global)
+       deallocate(dataMatrix_i4)
+       
     end do basin_loop
 
   end subroutine read_L0_data_routing

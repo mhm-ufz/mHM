@@ -4,7 +4,221 @@ module mo_restart_routing
   public :: read_restart_routing
   public :: write_restart_routing
   public :: read_restart_L11_config
+  public :: read_restart_config_routing
 contains
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !         read_restart_config_routing
+
+  !     PURPOSE
+  !>        \brief reads configuration apart from Level 11 configuration
+  !>        from a restart directory
+
+  !>        \details read configuration variables from a given restart
+  !>        directory and initializes all configuration variables,
+  !>        that are initialized in the subroutine L0_variable_init_routing
+  !>        and L1_variable_init_routing contained in module mo_init_mRM.
+  !>        Adapted from read_restart_config in mo_restart of mHM.
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
+  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+
+  !     RESTRICTIONS 
+  !>        \note Restart Files must have the format, as if
+  !>        it would have been written by subroutine write_restart_files
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Apr 2013
+
+  subroutine read_restart_config_routing(iBasin, InPath)
+    
+    use mo_kind,             only: i4, dp
+    use mo_message,          only: message
+    use mo_string_utils,     only: num2str
+    use mo_append,           only: append
+    use mo_ncread,           only: Get_NcVar
+    use mo_mrm_constants,    only: nodata_dp
+    use mo_tools,            only: calculate_grid_properties, get_basin_info_mrm
+    use mo_global_variables_routing, only: L0_Basin, & ! check whether L0_Basin should be read
+         perform_mpr,    & ! switch that controls whether mpr is performed or not
+         L0_cellCoor   , & 
+         L0_Id         , & ! Ids of grid at level-0 
+         basin_mrm, & 
+         nBasins, &
+         level1, &
+         L0_areaCell, & ! Ids of grid at level-0
+         L1_areaCell, & ! [km2] Effective area of cell at this level
+         resolutionHydrology
+
+    implicit none
+
+    !
+    integer(i4), intent(in) :: iBasin
+    character(256), intent(in) :: InPath ! list of Input paths per Basin
+
+    !
+    integer(i4)                                          :: nrows0   ! Number of rows at level 0
+    integer(i4)                                          :: ncols0   ! Number of cols at level 
+    integer(i4)                                          :: iStart0, iEnd0
+    logical, dimension(:,:), allocatable                 :: mask0    ! Mask at Level 0
+    integer(i4)                                          :: nrows1   ! Number of rows at level 1
+    integer(i4)                                          :: ncols1   ! Number of cols at level 1
+    logical, dimension(:,:), allocatable                 :: mask1    ! Mask at Level 1
+    real(dp)                                             :: xllcorner0, yllcorner0
+    real(dp)                                             :: cellsize0
+    !
+    ! Dummy Variables
+    integer(i4)                                          :: ii
+    integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
+    integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
+    real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 
+
+    ! local variables
+    character(256) :: Fname
+
+    ! read config
+    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc' ! '_restart.nc'
+    call message('    Reading config from     ', trim(adjustl(Fname)),' ...')
+ 
+    !
+    ! level-0 information
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, iStart= iStart0, iEnd=iEnd0, mask=mask0, &
+         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0  )
+    !
+    if (iBasin .eq. 1) then
+       allocate( level1%nrows        (nBasins) )
+       allocate( level1%ncols        (nBasins) )
+       allocate( level1%xllcorner    (nBasins) )
+       allocate( level1%yllcorner    (nBasins) )
+       allocate( level1%cellsize     (nBasins) )
+       allocate( level1%nodata_value (nBasins) )
+    end if
+    ! grid properties
+    call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
+         resolutionHydrology(iBasin) , &
+         level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
+    !
+    ! level-1 information
+    call get_basin_info_mrm( iBasin, 1, nrows1, ncols1 )
+
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+    ! check whether L0 data should be read
+    if ( iBasin .eq. 1 ) then
+       ! read L0 cellCoor
+       allocate( dummyI2( nrows0, ncols0 ) )
+       allocate( dummyI22( count(mask0), 2 ))
+       call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+       dummyI22(:,1) = pack( dummyI2, mask0 )
+       call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+       dummyI22(:,2) = pack( dummyI2, mask0 )
+       call append( L0_cellCoor, dummyI22)
+       deallocate( dummyI22 )
+       !
+       call Get_NcVar( Fname, 'L0_Id', dummyI2)
+       call append( L0_Id, pack(dummyI2, mask0) )
+       deallocate( dummyI2 )
+       !
+       allocate( dummyD2( nrows0, ncols0 ) )
+       call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+       call append( L0_areaCell, pack(dummyD2, mask0) )
+       deallocate(dummyD2)
+       !
+    else
+       if ( L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1) ) then
+          ! read L0 cellCoor
+          allocate( dummyI2( nrows0, ncols0 ) )
+          allocate( dummyI22( count(mask0), 2 ))
+          call Get_NcVar( Fname, 'L0_rowCoor', dummyI2 )
+          dummyI22(:,1) = pack( dummyI2, mask0 )
+          call Get_NcVar( Fname, 'L0_colCoor', dummyI2 )
+          dummyI22(:,2) = pack( dummyI2, mask0 )
+          call append( L0_cellCoor, dummyI22)
+          deallocate( dummyI22 )
+          !
+          call Get_NcVar( Fname, 'L0_Id', dummyI2)
+          call append( L0_Id, pack(dummyI2, mask0) )
+          deallocate( dummyI2 )
+          !
+          allocate( dummyD2( nrows0, ncols0 ) )
+          call Get_NcVar( Fname, 'L0_areaCell', dummyD2 )
+          call append( L0_areaCell, pack(dummyD2, mask0) )
+          deallocate(dummyD2)
+          !
+       end if
+    end if
+
+    !
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! Read L1 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! read L1 mask
+    allocate( dummyI2( nrows1, ncols1 ), mask1( nrows1, ncols1) )
+    call Get_NcVar( Fname,  'L1_basin_Mask', dummyI2 )
+    mask1 = (dummyI2 .eq. 1_i4)
+    call append( basin_mrm%L1_Mask, reshape( mask1, (/nrows1*ncols1/)))
+    !
+    ! update basin database
+    if( iBasin .eq. 1 ) then
+
+       allocate(basin_mrm%L1_iStart(nBasins))
+       allocate(basin_mrm%L1_iEnd  (nBasins))
+       allocate(basin_mrm%L1_iStartMask(nBasins))
+       allocate(basin_mrm%L1_iEndMask   (nBasins))    
+
+       ! basin information
+       basin_mrm%L1_iStart(iBasin) = 1
+       basin_mrm%L1_iEnd  (iBasin) = basin_mrm%L1_iStart(iBasin) + count(mask1) - 1
+
+       basin_mrm%L1_iStartMask(iBasin) = 1
+       basin_mrm%L1_iEndMask  (iBasin) = basin_mrm%L1_iStartMask(iBasin) + nrows1*ncols1 - 1
+
+    else
+
+       ! basin information
+       basin_mrm%L1_iStart(iBasin) = basin_mrm%L1_iEnd(iBasin-1) + 1
+       basin_mrm%L1_iEnd  (iBasin) = basin_mrm%L1_iStart(iBasin) + count(mask1) - 1
+
+       basin_mrm%L1_iStartMask(iBasin) = basin_mrm%L1_iEndMask(iBasin-1) + 1
+       basin_mrm%L1_iEndMask  (iBasin) = basin_mrm%L1_iStartMask(iBasin) + nrows1*ncols1 - 1
+
+    end if
+    ! 
+    allocate( dummyD2( nrows1, ncols1 ) )
+    call Get_NcVar( Fname, 'L1_areaCell', dummyD2 )
+    call append( L1_areaCell     , pack( dummyD2, mask1)   )
+
+  end subroutine read_restart_config_routing
+  
   subroutine write_restart_routing(iBasin, OutPath)
     use mo_message, only: message
     use mo_ncwrite, only: var2nc
@@ -118,6 +332,7 @@ contains
 
     !ST set variable name for compitability with mHM, should be changed
     Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
+    call message('    Writing L11_states to ' // trim(Fname) // ' ...')
 
     call var2nc( Fname, unpack( L11_Qmod(s11:e11), mask11, nodata_dp ), &
          dims_L11(1:2), 'L11_Qmod', &
@@ -324,6 +539,7 @@ contains
   end subroutine write_restart_routing
   !
   subroutine read_restart_routing(iBasin, dirRestart)
+    use mo_message, only: message
     use mo_ncread, only: Get_NcVar
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates
@@ -356,6 +572,7 @@ contains
 
     ! set file name
     Fname = trim(dirRestart) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
+    call message('    Reading L11_states from ' // trim(Fname) // ' ...')
     
     ! level-11 information
     call get_basin_info_mrm( iBasin, 11, nrows11, ncols11, ncells=ncells11, &
@@ -414,7 +631,7 @@ contains
 
     ! free memory
     deallocate( dummyD2, dummyD3 )
-
+    
   end subroutine read_restart_routing
   ! ------------------------------------------------------------------
 

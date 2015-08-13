@@ -122,14 +122,7 @@ CONTAINS
                                      perform_mpr,                         & ! flag indicating whether L0 is read
                                      !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
-                                     nLAIclass, LAIUnitList, LAILUT,soilDB
-
-    ! use mo_global_variables_routing, only:                                &
-    !                                  L0_fAcc,                             & ! flow accumulation on input resolution (L0)
-    !                                  L0_fDir,                             & ! flow direction on input resolution (L0)
-    !                                  L0_gaugeLoc,                         & ! location of evaluation gauges on input resolution (L0)
-    !                                  L0_InflowGaugeLoc                      ! location of inflow gauges on input resolution (L0)
-         
+                                     nLAIclass, LAIUnitList, LAILUT,soilDB        
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
     
     implicit none
@@ -348,12 +341,8 @@ CONTAINS
           call append( L0_elev,     dummy_dp )
           call append( L0_slope,    dummy_dp )
           call append( L0_asp,      dummy_dp )
-          ! call append( L0_fAcc,     dummy_i4 )
-          ! call append( L0_fDir,     dummy_i4 )
           call append( L0_soilId,   dummy_i4 )
           call append( L0_geoUnit,  dummy_i4 )
-          ! call append( L0_gaugeLoc, dummy_i4 )
-          ! call append( L0_InflowGaugeLoc, dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
           ! read L0_LCover_LAI
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))

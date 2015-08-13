@@ -1,21 +1,13 @@
 README for mRM
 
-SUBROUTINES that have been moved for creation of mRM:
-
-read_config_routing -> mo_read_config_routing
-read_routing_params -> mo_read_config_routing
-read_L0_data_routing -> mo_read_data_routing
-read_discharge_data -> mo_read_data_routing
-routing_init -> mo_net_startup
-L11_fraction_sealed_floodplain -> mo_net_startup
-reg_rout -> mo_mpr_routing
-L11_runoff_acc -> mo_routing
-L11_routing -> mo_routing
-write_routing -> mo_write_routing
-
-VARIABLES that have to be added for mRM (see mo_global_variables_routing for moved variables):
-dirMorpho -> dirRouting
-evalPer -> evalPerRouting
+TODOS
+- move writing of config from mo_write_ascii to mRM
+- write config for mRM separately within mRM
+- remove double allocation of L0 variables (i.e., L0_elev, L0_LCover)
+- restart needs to be revised (after merge with trunk, L0_areaCell, and
+  L1_areaCell are should be moved to the restart of mRM)
+TOP PRIORITY
+MERGE TRUNK
 
 ------------------------------------------------------------
                          README

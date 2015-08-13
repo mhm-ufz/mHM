@@ -4,26 +4,44 @@ module mo_write_routing
   
   implicit none
 
-  public write_routing
+  public :: write_routing
 
 contains
 
   subroutine write_routing(runoff)
-    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
-         ntstepday
     
+    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
+         ntstepday, write_restart, dirRestartOut, &
+         nMeasPerDay, optimize
+    use mo_restart_routing,  only: write_restart_routing
+
     implicit none
 
     ! input variables
     real(dp), dimension(:,:), allocatable, optional, intent(in) :: runoff       ! dim1=time dim2=gauge
     
     ! local variables
+    integer(i4) :: iBasin
     integer(i4) :: iDay, iS, iE
     integer(i4) :: ii
     integer(i4) :: tt
     integer(i4) :: gg
     integer(i4) :: nTimeSteps
     real(dp), dimension(:,:), allocatable :: d_Qmod
+
+    ! --------------------------------------------------------------------------
+    ! CHECK CONDITIONS FOR WRITING ROUTING
+    ! --------------------------------------------------------------------------
+    if ((optimize) .or. (nMeasPerDay .ne. 1)) return
+    
+    ! --------------------------------------------------------------------------
+    ! WRITE RESTART
+    ! --------------------------------------------------------------------------
+    if (write_restart) then
+       do iBasin = 1, nBasins
+          call write_restart_routing(iBasin, dirRestartOut)
+       end do
+    end if
     
     ! --------------------------------------------------------------------------
     ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 

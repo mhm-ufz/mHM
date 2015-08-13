@@ -194,7 +194,6 @@ CONTAINS
     integer(i4)                               :: maxTimeSteps
     integer(i4)                               :: ii, tt, gg, ll   ! Counters
     integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
-    integer(i4)                               :: nNodes           !
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
     !
