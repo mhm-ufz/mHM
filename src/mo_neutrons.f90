@@ -157,7 +157,7 @@ CONTAINS
   !     LITERATURE
   !         J. Shuttleworth, R. Rosolem, M. Zreda, and T. Franz,
   !         The COsmic-ray Soil Moisture Interaction Code (COSMIC) for use in data assimilation,
-  !         HESS, 17, 3205–3217, 2013, doi:10.5194/hess-17-3205-2013
+  !         HESS, 17, 3205-3217, 2013, doi:10.5194/hess-17-3205-2013
   !         Support and Code: http://cosmos.hwr.arizona.edu/Software/cosmic.html
   !
   !     HISTORY

@@ -24,8 +24,8 @@ module mo_global_variables_routing
   integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs ! frequency for reading meteo input
   integer(i4), public :: iFlag_cordinate_sys ! options model for the run cordinate system
   integer(i4), dimension(:), allocatable, public :: L0_Basin
-  real(dp), dimension(:), allocatable, public :: resolutionRouting ! [m or °] resolution of routing - Level 11
-  real(dp), dimension(:), allocatable, public :: resolutionHydrology ! [m or °] resolution of routing - Level 11
+  real(dp), dimension(:), allocatable, public :: resolutionRouting ! [m or degree] resolution of routing - Level 11
+  real(dp), dimension(:), allocatable, public :: resolutionHydrology ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart ! flag 
   logical, public :: write_restart ! flag 
   logical, public :: perform_mpr ! switch for performing multiscale parameter regionalization
