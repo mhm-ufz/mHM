@@ -129,7 +129,7 @@ CONTAINS
        end if
        call L1_variable_init(iBasin)
     else
-       call read_restart_config( iBasin, soilDB%is_present, dirRestartIn(iBasin ) )
+       call read_restart_config(iBasin, soilDB%is_present, dirRestartIn(iBasin))
     end if
 
     ! L2 inialization

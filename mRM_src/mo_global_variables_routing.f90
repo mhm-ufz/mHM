@@ -79,6 +79,12 @@ module mo_global_variables_routing
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
  
+  ! ------------------------------------------------------------------
+  ! CONSTANT 
+  ! ------------------------------------------------------------------
+  integer(i4), public :: nTstepDay ! Number of time intervals per day
+  !                                ! (was previously NAGG)
+
   ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
@@ -211,6 +217,10 @@ module mo_global_variables_routing
   integer(i4), public, dimension(:), allocatable :: L0_fDir ! Flow direction (standard ArcGIS)
   integer(i4), public, dimension(:,:), allocatable :: L0_LCover ! Normal  landcover id (upto 3 classes) 
   !                                                             ! dim1=number grid cells, dim2=Number of land cover scenes
+
+  integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor ! Cell coordinates (row,col) for each grid cell, dim2=2
+  integer(i4), public, dimension(:), allocatable :: L0_Id ! Level-0 id
+
   integer(i4), public, dimension(:), allocatable :: L0_gaugeLoc ! Location of gauges within the catchment
   integer(i4), public, dimension(:), allocatable :: L0_InflowGaugeLoc ! Location of inflow gauges within catchment
   integer(i4), public, dimension(:), allocatable :: L0_L11_Id ! Mapping of L11 Id on L0  

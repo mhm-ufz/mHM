@@ -31,6 +31,7 @@ CONTAINS
 
   subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, LCyearID, do_mpr_routing, discharge)
     use mo_global_variables_routing, only: &
+         L0_LCover, &
          timeStep, &
          basin_mrm, &
          is_start, &
@@ -58,8 +59,6 @@ CONTAINS
          L11_qMod ! final variable containing routed water
     use mo_init_mrm, only: L11_fraction_sealed_floodplain
     use mo_mpr_routing, only: reg_rout
-    !ST The following dependency has to be removed
-    use mo_global_variables, only: L0_LCover
          
     !
     implicit none
@@ -113,8 +112,8 @@ CONTAINS
        !-------------------------------------------------------------------
        CALL L11_fraction_sealed_floodplain( nNodes-1, &
             L0_LCover(s0:e0, LCyearID), &
-            ! L0_floodPlain(s110:e110),       &
-            L0_floodPlain(s0:e0),       &
+            L0_floodPlain(s110:e110),       &
+            ! L0_floodPlain(s0:e0),       &
             L0_areaCell(s0:e0), &
             L11_aFloodPlain(s11:e11), &
             2, &

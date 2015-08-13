@@ -36,6 +36,7 @@ contains
     use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm
     use mo_string_utils, only: num2str
     use mo_global_variables_routing, only : &
+         nTstepDay, & ! # of time steps per day
          timestep, & ! timestep of routing [h]
          iFlag_cordinate_sys, & ! model run cordinate system
          nGaugesTotal, gauge, & ! number of evaluation gauges and gauge informations 
@@ -215,6 +216,9 @@ contains
     allocate(warmingDays(nBasins))
     allocate(warmPer(nBasins))
     allocate(timestep_model_inputs(nBasins))
+
+    ! set ntstepday
+    nTstepDay = 24_i4/timeStep ! # of time steps per day
 
     !===============================================================
     !  read simulation time periods incl. warming days
@@ -765,6 +769,8 @@ contains
 
 #ifdef mrm2mhm
   ! --------------------------------------------------------------------------------
+  ! SUBROUTINE FOR COUPLING WITH MHM
+  ! --------------------------------------------------------------------------------
   ! subroutine for copying mainconfig from mhm
   ! --------------------------------------------------------------------------------
   subroutine copy_main_config_from_mhm(timestep_out, iFlag_cordinate_sys_out, resolution_Routing_out, resolution_Hydrology_out, &
@@ -866,33 +872,5 @@ contains
     dir_RestartOut_out(1:nBasins) = dirRestartOut
     dir_RestartIn_out(1:nBasins)  = dirRestartIn     
   end subroutine copy_directories_from_mhm
-
-  ! ! --------------------------------------------------------------------------------
-  ! ! subroutine for copying LCover from mhm
-  ! ! --------------------------------------------------------------------------------
-  ! subroutine copy_LCover_from_mhm(fracSealed_cityArea_out, &
-  !      nLcover_scene_out, &
-  !      LCoverYearStart_out, &
-  !      LCoverYearEnd_out, &
-  !      LCoverfName_out)
-  !   use mo_global_variables, only: &
-  !        fracSealed_cityArea, &
-  !        nLCover_scene, &
-  !        LCoverfName, &
-  !        LCoverYearStart, &
-  !        LCoverYearEnd
-  !   implicit none
-  !   real(dp) :: fracSealed_cityArea_out
-  !   integer(i4) :: nLcover_scene_out
-  !   integer(i4), dimension(:) :: LCoverYearStart_out
-  !   integer(i4), dimension(:) :: LCoverYearEnd_out
-  !   character(256), dimension(:) :: LCoverfName_out
-  !   !copy variables
-  !   fracSealed_cityArea_out = fracSealed_cityArea
-  !   nLcover_scene_out = nLCover_scene
-  !   LCoverYearStart_out = LCoverYearStart
-  !   LCoverYearEnd_out = LCoverYearEnd
-  !   LCoverfName_out = LCoverfName
-  ! end subroutine copy_LCover_from_mhm
 #endif
 end module mo_read_config_routing

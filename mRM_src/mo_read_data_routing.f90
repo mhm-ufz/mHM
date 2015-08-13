@@ -3,6 +3,8 @@ module mo_read_data_routing
   implicit none
   public :: read_discharge_data
   public :: read_L0_data_routing
+  public :: L1_variable_init_routing
+  public :: L0_variable_init_routing
   private :: rotate_fdir_variable
 contains
   
@@ -244,6 +246,320 @@ contains
     end do basin_loop
 
   end subroutine read_L0_data_routing
+
+  ! ************************************************
+  ! INITIALIZE LEVEL0 INFORMATION
+  ! ************************************************
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          L0_variable_init_routing
+
+  !>        \brief   level 0 variable initialization
+
+  !>        \details following tasks are performed for L0 data sets
+  !>                 -  cell id & numbering
+  !>                 -  storage of cell cordinates (row and coloum id)
+  !>                 If a variable is added or removed here, then it also has to
+  !>                 be added or removed in the subroutine config_variables_set in
+  !>                 module mo_restart and in the subroutine set_config in module
+  !>                 mo_set_netcdf_restart
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+
+  !     INTENT(INOUT)
+  !>        \param[in,out] "integer(i4), dimension(:) :: soilId_isPresent"
+  !>        flag to indicate wether a given soil-id is present or not, DIMENSION [nSoilTypes]
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author  Rohini Kumar
+  !         \date    Jan 2013
+  !         Modified
+  !         Rohini Kumar & Matthias Cuntz, May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                                   on a regular X-Y coordinate system
+  !         Matthias Cuntz,                May 2014 - changed empirical distribution function
+  !                                                   so that doubles get the same value
+  !         Stephan Thober,                Aug 2015 - adapted for mRM
+
+  subroutine L0_variable_init_routing(iBasin)
+    use mo_append,        only: append
+    use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_tools, only: get_basin_info_mrm
+    use mo_global_variables_routing, only: &
+         L0_areaCell,            &
+         level0,                 &
+         L0_cellCoor, &
+         L0_Id, &
+         iFlag_cordinate_sys
+    implicit none
+
+    integer(i4), intent(in) :: iBasin
+
+    ! local variables
+    integer(i4)                               :: nCells
+    integer(i4), dimension(:,:), allocatable  :: cellCoor
+    integer(i4), dimension(:), allocatable    :: Id
+    real(dp), dimension(:), allocatable       :: areaCell
+    real(dp), dimension(:,:), allocatable     :: areaCell_2D
+
+    integer(i4)                               :: nrows, ncols
+    integer(i4)                               :: iStart, iEnd
+    logical, dimension(:,:), allocatable      :: mask
+
+    integer(i4)                               :: i, j, k
+    real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
+
+    !--------------------------------------------------------
+    ! STEPS::
+    ! 1) Estimate each variable locally for a given basin
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+
+    ! level-0 information
+    call get_basin_info_mrm( iBasin, 0, nrows, ncols, nCells=nCells, iStart=iStart, iEnd=iEnd, mask=mask )
+
+    allocate( cellCoor(nCells,2) )
+    allocate(       Id(nCells  ) )
+    allocate( areaCell(nCells  ) )
+    allocate( areaCell_2D(nrows,ncols) )
+
+    cellCoor(:,:) =  nodata_i4
+    Id(:)         =  nodata_i4
+    areaCell(:)   =  nodata_dp
+    areaCell_2D(:,:) =  nodata_dp
+
+    !------------------------------------------------
+    ! start looping for cell cordinates and ids
+    !------------------------------------------------
+    k = 0
+    do j = 1, ncols
+       do i = 1, nrows
+          if ( .NOT. mask(i,j) ) cycle
+          k = k + 1
+          Id(k)         = k
+          cellCoor(k,1) = i
+          cellCoor(k,2) = j
+       end do
+    end do
+
+    ! ESTIMATE AREA [m2]
+
+    ! regular X-Y coordinate system
+    if(iFlag_cordinate_sys .eq. 0) then
+       areaCell(:) = level0%cellsize(iBasin) * level0%cellsize(iBasin)
+
+    ! regular lat-lon coordinate system
+    else if(iFlag_cordinate_sys .eq. 1) then
+
+       degree_to_radian = TWOPI_dp / 360.0_dp
+       degree_to_metre  = RadiusEarth_dp*TWOPI_dp/360.0_dp
+       do i = ncols, 1, -1
+         j =  ncols - i + 1
+         ! get latitude in degrees
+         rdum = level0%yllcorner(iBasin) + (real(j,dp)-0.5_dp) * level0%cellsize(iBasin)
+         ! convert to radians
+         rdum = rdum*degree_to_radian
+         !    AREA[m²]
+         areaCell_2D(:,i) = (level0%cellsize(iBasin) * cos(rdum) * degree_to_metre) * (level0%cellsize(iBasin)*degree_to_metre)
+       end do
+       areaCell(:) = pack( areaCell_2D(:,:), mask)
+
+    end if
+
+    !--------------------------------------------------------
+    ! Start padding up local variables to global variables
+    !--------------------------------------------------------
+    call append( L0_cellCoor, cellCoor )
+    call append( L0_Id, Id             )
+    call append( L0_areaCell, areaCell )
+
+    ! free space
+    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask)
+
+  end subroutine L0_variable_init_routing
+
+  ! ************************************************
+  ! INITIALIZE LEVEL1 INFORMATION
+  ! ************************************************
+  subroutine L1_variable_init_routing(iBasin)
+    use mo_mrm_constants, only: nodata_dp
+    use mo_append, only: append ! append vector
+    use mo_tools, only: get_basin_info_mrm, calculate_grid_properties
+    use mo_global_variables_routing, only: &
+         level0, &
+         resolutionHydrology, &
+         L0_areaCell, &
+         L1_areaCell, &
+         level1, &
+         nBasins, &
+         basin_mrm
+    
+    implicit none
+    ! input variables
+    integer(i4), intent(in) :: iBasin
+    ! local variables
+    integer(i4)                               :: nrows0, ncols0
+    integer(i4)                               :: iStart0, iEnd0
+    real(dp)                                  :: xllcorner0, yllcorner0
+    real(dp)                                  :: cellsize0
+    logical, dimension(:,:), allocatable      :: mask0
+    real(dp), dimension(:,:), allocatable     :: areaCell0_2D
+
+    integer(i4)                               :: nrows1, ncols1
+    logical, dimension(:,:), allocatable      :: mask1
+
+    integer(i4)                               :: nCells
+    real(dp), dimension(:), allocatable       :: areaCell
+
+    real(dp)                                  :: cellFactorHydro
+
+    integer(i4)                               :: iup, idown
+    integer(i4)                               :: jl, jr
+
+    integer(i4)                               :: i, j, k, ic, jc
+
+    !--------------------------------------------------------
+    ! STEPS::
+    ! 1) Estimate each variable locally for a given basin
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+
+    ! level-0 information
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0, &
+         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
+
+    if(iBasin == 1) then
+       allocate( level1%nrows        (nBasins) )
+       allocate( level1%ncols        (nBasins) )
+       allocate( level1%xllcorner    (nBasins) )
+       allocate( level1%yllcorner    (nBasins) )
+       allocate( level1%cellsize     (nBasins) )
+       allocate( level1%nodata_value (nBasins) )
+    end if
+
+    ! grid properties
+    call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
+         resolutionHydrology(iBasin) , &
+         level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
+
+    ! level-1 information
+    call get_basin_info_mrm( iBasin, 1, nrows1, ncols1 )
+
+    ! cellfactor = leve1-1 / level-0
+    cellFactorHydro = level1%cellsize(iBasin) / level0%cellsize(iBasin)
+
+    ! allocation and initalization of mask at level-1
+    allocate( mask1(nrows1, ncols1) )
+    mask1(:,:) = .FALSE.
+
+    ! create mask at level-1
+    do j=1,ncols0
+       jc = ceiling( real(j,dp)/cellFactorHydro )
+       do i=1,nrows0
+          if ( .NOT. mask0(i,j) ) cycle
+          ic = ceiling( real(i,dp)/cellFactorHydro )
+          mask1(ic,jc) = .TRUE.
+       end do
+    end do
+
+    ! level-0 cell area
+    allocate( areaCell0_2D(nrows0,ncols0) )
+    areaCell0_2D(:,:) = UNPACK( L0_areaCell(iStart0:iEnd0), mask0, nodata_dp )
+
+    ! estimate ncells and initalize related variables
+    nCells = count( mask1 )
+
+    ! allocate and initalize cell1 related variables
+    allocate( areaCell  (nCells   ) )
+
+    k   = 0
+    do jc=1,ncols1
+       do ic=1,nrows1
+          if ( .NOT. mask1(ic,jc) ) cycle
+          k = k + 1
+
+          ! coord. of all corners -> of finer scale level-0
+          iup   = (ic-1) * nint(cellFactorHydro,i4) + 1
+          idown =    ic  * nint(cellFactorHydro,i4)
+          jl    = (jc-1) * nint(cellFactorHydro,i4) + 1
+          jr    =    jc  * nint(cellFactorHydro,i4)
+
+          ! constrain the range of up, down, left, and right boundaries
+          if(iup   < 1      ) iup =  1
+          if(idown > nrows0 ) idown =  nrows0
+          if(jl    < 1      ) jl =  1
+          if(jr    > ncols0 ) jr =  ncols0
+
+          ! effective area [km2] & total no. of L0 cells within a given L1 cell
+          areaCell(k) =   sum( areacell0_2D(iup:idown, jl:jr), mask0(iup:idown, jl:jr) )*1.0E-6
+
+       end do
+    end do
+
+
+    !--------------------------------------------------------
+    ! Start padding up local variables to global variables
+    !--------------------------------------------------------
+    if( iBasin .eq. 1 ) then
+
+       allocate(basin_mrm%L1_iStart(nBasins))
+       allocate(basin_mrm%L1_iEnd  (nBasins))
+       allocate(basin_mrm%L1_iStartMask(nBasins))
+       allocate(basin_mrm%L1_iEndMask   (nBasins))
+
+       ! basin information
+       basin_mrm%L1_iStart(iBasin) = 1
+       basin_mrm%L1_iEnd  (iBasin) = basin_mrm%L1_iStart(iBasin) + nCells - 1
+
+       basin_mrm%L1_iStartMask(iBasin) = 1
+       basin_mrm%L1_iEndMask  (iBasin) = basin_mrm%L1_iStartMask(iBasin) + nrows1*ncols1 - 1
+
+    else
+
+       ! basin information
+       basin_mrm%L1_iStart(iBasin) = basin_mrm%L1_iEnd(iBasin-1) + 1
+       basin_mrm%L1_iEnd  (iBasin) = basin_mrm%L1_iStart(iBasin) + nCells - 1
+
+       basin_mrm%L1_iStartMask(iBasin) = basin_mrm%L1_iEndMask(iBasin-1) + 1
+       basin_mrm%L1_iEndMask  (iBasin) = basin_mrm%L1_iStartMask(iBasin) + nrows1*ncols1 - 1
+
+    end if
+
+    call append( basin_mrm%L1_Mask,  RESHAPE( mask1, (/nrows1*ncols1/)  )  )
+    call append( L1_areaCell, areaCell )
+
+    ! free space
+    deallocate( mask0, areaCell0_2D, mask1, areaCell )
+
+  end subroutine L1_variable_init_routing
   ! ************************************************
   ! READ DISCHARGE TIME SERIES
   ! ************************************************

@@ -24,7 +24,6 @@ MODULE mo_init_mrm
   ! Written  Luis Samaniego, Mar 2005
 
   USE mo_kind,          ONLY: i4, dp
-  USE mo_init_states,   ONLY: get_basin_info
   USE mo_mhm_constants, ONLY: nodata_i4, nodata_dp
   USE mo_append,        ONLY: append
 
@@ -48,7 +47,9 @@ CONTAINS
 
   subroutine init_mRM()
 
-    use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing
+    use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing, &
+         L1_variable_init_routing, &
+         L0_variable_init_routing
     use mo_read_config_routing, only: read_mrm_config_coupling, read_mrm_config
     use mo_restart_routing, only: read_restart_L11_config, read_restart_routing
     use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
@@ -85,6 +86,7 @@ CONTAINS
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
+    ! level 0 data
     call read_L0_data_routing()
     if (perform_mpr) then
        do iBasin = 1, nBasins
@@ -95,6 +97,20 @@ CONTAINS
           end if
        end do
     end if
+    ! level 1 data
+    do iBasin = 1, nBasins
+       if ( .not. read_restart ) then
+          if (iBasin .eq. 1) then
+             call L0_variable_init_routing(iBasin)
+          else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
+             call L0_variable_init_routing(iBasin)
+          end if
+          call L1_variable_init_routing(iBasin)
+       else
+          ! read from restart
+       end if
+    end do
+    ! discharge data
     call read_discharge_data()
 
     ! ----------------------------------------------------------
@@ -293,51 +309,34 @@ CONTAINS
   !         Modified
 
   subroutine variables_default_init_routing()
-
     use mo_global_variables_routing, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
          L11_FracFPimp
-
     use mo_mrm_constants,    only:               &
          P1_InitStateFluxes
-    
     implicit none
-
-    ! inital values
-    integer(i4)                               :: i
-
     !-------------------------------------------
     ! L11 ROUTING STATE VARIABLES, FLUXES AND
     !             PARAMETERS
     !-------------------------------------------
-
     ! simulated discharge at each node
     L11_Qmod = P1_InitStateFluxes
-
     ! Total outflow from cells L11 at time tt
     L11_qOUT = P1_InitStateFluxes
-
     ! Total discharge inputs at t-1 and t
     L11_qTIN = P1_InitStateFluxes
-
     !  Routed outflow leaving a node
     L11_qTR = P1_InitStateFluxes
-
     ! kappa: Muskingum travel time parameter.
     L11_K = P1_InitStateFluxes
-
     ! xi:    Muskingum diffusion parameter
     L11_xi = P1_InitStateFluxes
-
     ! Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
     L11_C1 = P1_InitStateFluxes
-
     ! Routing parameter C2 =f(K,xi, DT) (Chow, 25-41)
     L11_C2 = P1_InitStateFluxes
-
     ! Fraction of the flood plain with impervious cover
     L11_FracFPimp = P1_InitStateFluxes
-
   end subroutine variables_default_init_routing
 
   ! --------------------------------------------------------------------------
@@ -347,10 +346,9 @@ CONTAINS
   subroutine variables_alloc_routing(iBasin)
     use mo_mrm_constants,    only: nRoutingStates
     use mo_append,           only: append                      ! append vector
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: L11_Qmod, L11_qOUT, L11_qTIN, &
          L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
-    !ST The following dependency has to be removed
-    use mo_init_states, only: get_basin_info
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -361,7 +359,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable :: dummy_Matrix11_IT
 
     ! level-11 information
-    call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11 ) 
+    call get_basin_info_mrm( iBasin, 11, nrows11, ncols11, ncells=ncells11 ) 
 
     ! dummy vector and matrix
     allocate( dummy_Vector11   (nCells11     ) )
@@ -493,17 +491,15 @@ CONTAINS
   ! --------------------------------------------------------------------------
 
   subroutine L11_variable_init(iBasin)
+    use mo_tools, only: get_basin_info_mrm, calculate_grid_properties
     use mo_global_variables_routing, only: &
+         level1, &
          basin_mrm, &
          level11, resolutionRouting, &
          nBasins, &
          L11_cellCoor,                       & ! cell coordinates (row,col)
          L11_nCells,                         & ! Total No. of routing cells  (= nNodes)
          L11_Id                                ! ids of grid at level-11    
-    !ST The following dependency has to be removed
-    use mo_global_variables, only :          &
-         level1
-    use  mo_init_states,  only : calculate_grid_properties
 
     implicit none
 
@@ -531,7 +527,7 @@ CONTAINS
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! level-0 information
-    call get_basin_info( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
 
     if(iBasin == 1) then
        ! allocate
@@ -557,11 +553,11 @@ CONTAINS
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin),                 &
          level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin) )
     ! level-1 information
-    call get_basin_info (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
+    call get_basin_info_mrm (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
          iStartMask=iStartMask1, iEndMask=iEndMask1, mask=mask1 ) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11) 
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11) 
 
     ! allocate and initialize
     allocate( mask11(nrows11, ncols11) )
@@ -733,13 +729,17 @@ CONTAINS
   !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          basin_mrm, &
          level0, &
+         level1, &
          nBasins, &
          level11,   &
          L0_fAcc, L0_fDir,  &
          L0_draSC,          & ! INOUT: draining cell of each sub catchment (== cell L11)
+         L0_cellCoor,       &
+         L0_id,             &
          L0_L11_Id,         & ! INOUT: mapping of L11 Id on L0
          L1_L11_Id,         & ! INOUT: mapping of L11 Id on L1
          L11_Id,            &
@@ -755,10 +755,6 @@ CONTAINS
          L11_downBound_L1,  & ! INOUT: row end at finer level-1 scale 
          L11_leftBound_L1,  & ! INOUT: col start at finer level-1 scale 
          L11_rightBound_L1    ! INOUT: col end at finer level-1 scale 
-    !ST The following dependency has to be removed
-    use mo_global_variables, only : &
-         L0_cellCoor,       &
-         level1, L0_id
 
     implicit none
 
@@ -805,15 +801,15 @@ CONTAINS
     !--------------------------------------------------------
 
     ! level-0 information
-    call get_basin_info (iBasin, 0, nrows0, ncols0, ncells=nCells0,   &
+    call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, ncells=nCells0,   &
          iStart=iStart0, iEnd=iEnd0, mask=mask0) 
 
     ! level-1 information
-    call get_basin_info (iBasin, 1, nrows1, ncols1, ncells=nCells1,   &
+    call get_basin_info_mrm (iBasin, 1, nrows1, ncols1, ncells=nCells1,   &
          iStart=iStart1, iEnd=iEnd1, mask=mask1) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
     ! allocate
@@ -1207,6 +1203,7 @@ CONTAINS
 
   subroutine L11_set_network_topology(iBasin)
 
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L11_Id, L11_cellCoor,     &
          L11_fDir,                 &
@@ -1232,7 +1229,7 @@ CONTAINS
     integer(i4), dimension(:), allocatable    :: nLinkFromN, nLinkToN 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
     !     Routing network vectors have nNodes size instead of nLinks to
@@ -1341,6 +1338,7 @@ CONTAINS
 
   subroutine L11_routing_order(iBasin)
 
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L11_fromN,                & ! IN:    from node 
          L11_toN,                  & ! IN:    to node
@@ -1369,7 +1367,7 @@ CONTAINS
     logical                                   :: flag
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
     !  Routing network vectors have nNodes size instead of nLinks to
@@ -1518,6 +1516,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   subroutine L11_link_location(iBasin)
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          basin_mrm,   & ! IN
          L0_fDir,     & ! IN:    flow direction (standard notation) L0
@@ -1560,13 +1559,13 @@ CONTAINS
     integer(i4), dimension(2)                 :: oLoc           ! output location in L0
 
     ! level-0 information
-    call get_basin_info (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
+    call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
 
     ! level-110 information
-    call get_basin_info (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
+    call get_basin_info_mrm (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
 
@@ -1715,18 +1714,18 @@ CONTAINS
   !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
   ! ------------------------------------------------------------------
   subroutine L11_set_drain_outlet_gauges(iBasin)
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          basin_mrm,   & 
          L0_fDir,     &       ! IN: flow direction (standard notation) L0
          L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
          L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
          L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
          L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
          L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
-    use mo_global_variables, only: &
-         L0_cellCoor ! IN: cell coordinates (row,col) -> <only domain> input data
 
     implicit none
 
@@ -1751,11 +1750,11 @@ CONTAINS
     integer(i4)                               :: iRow, jCol
 
     ! level-0 information
-    call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
     ! level-110 information (nrows110,ncols110) always equal to (nrows0,ncols0)
-    call get_basin_info ( iBasin, 110, nrows110, ncols110, &
+    call get_basin_info_mrm ( iBasin, 110, nrows110, ncols110, &
          iStart=iStart110, iEnd=iEnd110 ) 
 
     ! allocate
@@ -1886,9 +1885,12 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   subroutine L11_stream_features(iBasin)
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L0_elev,         & ! IN:    elevation (sinks removed)  [m]
          iFlag_cordinate_sys, & ! IN:    coordinate system
+         L0_Id,           & ! IN:    level-0 id
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
          L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          L11_fRow,        & ! IN:    from row in L0 grid 
@@ -1901,10 +1903,6 @@ CONTAINS
          L11_length,      & ! IN:    total length [m] 
          L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
          L11_slope          ! INOUT: normalized average slope
-    use mo_mrm_constants, only: nodata_i4, nodata_dp
-    !ST The following dependency has to be removed
-    use mo_global_variables, only: &
-         L0_Id ! IN:    level-0 id
 
     implicit none
 
@@ -1942,11 +1940,11 @@ CONTAINS
     real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
 
     ! level-0 information
-    call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
 
@@ -2520,14 +2518,14 @@ CONTAINS
 
   subroutine set_helping_variables()
     !
+    use mo_mrm_constants, only: nodata_i4
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L0_nNodes, L0_s, L0_e, & ! Level0 help variables
          L1_nNodes, L1_s, L1_e, & ! Level1 help variables
          L110_s, L110_e, & ! Level110 help variables
          L11_nNodes, L11_s, L11_e, & ! Level11 help variables
          nBasins
-    use mo_mrm_constants, only: nodata_i4
-    use mo_init_states, only: get_basin_info
     implicit none
     ! local variables
     integer(i4) :: ii
@@ -2547,15 +2545,15 @@ CONTAINS
     allocate(L110_e(nBasins)) ; L110_e = nodata_i4
     !
     do ii = 1, nBasins
-       call get_basin_info(ii, 0, nrows, ncols, &
+       call get_basin_info_mrm(ii, 0, nrows, ncols, &
             nCells=L0_nNodes(ii), iStart=L0_s(ii), iEnd=L0_e(ii))
-       call get_basin_info(ii, 1, nrows, ncols, &
+       call get_basin_info_mrm(ii, 1, nrows, ncols, &
             nCells=L1_nNodes(ii), iStart=L1_s(ii), iEnd=L1_e(ii))
-       call get_basin_info(ii, 11, nrows, ncols, &
+       call get_basin_info_mrm(ii, 11, nrows, ncols, &
             nCells=L11_nNodes(ii), iStart=L11_s(ii), iEnd=L11_e(ii))
-       call get_basin_info(ii, 11, nrows, ncols, &
-            iStart=L11_s(ii), iEnd=L11_e(ii))
+       call get_basin_info_mrm(ii, 110, nrows, ncols, &
+            iStart=L110_s(ii), iEnd=L110_e(ii))
     end do
   end subroutine set_helping_variables
-
+  
 END MODULE mo_init_mrm

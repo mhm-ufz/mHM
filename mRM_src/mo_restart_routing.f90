@@ -9,6 +9,8 @@ contains
     use mo_message, only: message
     use mo_ncwrite, only: var2nc
     use mo_string_utils, only: num2str
+    use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          basin_mrm, &
          L11_Qmod, &
@@ -55,10 +57,6 @@ contains
          L11_length, &
          L11_aFloodPlain, &
          L11_slope
-    use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
-    !ST: the following dependency has to be removed
-    use mo_init_states, only: get_basin_info
-
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -110,13 +108,13 @@ contains
     dims_Links     = 'nLinks'
     
     ! get Level0 information about the basin
-    call get_basin_info( iBasin, 0, nrows0, ncols0, iStart=s0, iEnd=e0, mask=mask0 )
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, iStart=s0, iEnd=e0, mask=mask0 )
     ! get Level1 information about the basin
-    call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
+    call get_basin_info_mrm( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
     ! get Level11 information about the basin
-    call get_basin_info( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
+    call get_basin_info_mrm( iBasin, 11, nrows11, ncols11, iStart=s11, iEnd=e11, mask=mask11 )
     ! get Level110 information about the basin
-    call get_basin_info( iBasin, 110, nrows110, ncols110, iStart=s110, iEnd=e110)
+    call get_basin_info_mrm( iBasin, 110, nrows110, ncols110, iStart=s110, iEnd=e110)
 
     !ST set variable name for compitability with mHM, should be changed
     Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
@@ -329,6 +327,7 @@ contains
     use mo_ncread, only: Get_NcVar
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates
+    use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L11_Qmod, &
          L11_Qout, &
@@ -339,9 +338,6 @@ contains
          L11_C1, &
          L11_C2, &
          L11_FracFPimp
-    !ST: The following dependency has to be removed
-    use mo_init_states, only: get_basin_info
-
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -362,7 +358,7 @@ contains
     Fname = trim(dirRestart) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
     
     ! level-11 information
-    call get_basin_info( iBasin, 11, nrows11, ncols11, ncells=ncells11, &
+    call get_basin_info_mrm( iBasin, 11, nrows11, ncols11, ncells=ncells11, &
          iStart=s11, iEnd=e11, mask=mask11 )
     allocate( dummyD2( nrows11, ncols11 ) )
 
@@ -476,7 +472,6 @@ contains
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_kind,             only: i4, dp
-    use mo_init_states,      only: get_basin_info
     use mo_append,           only: append
     use mo_ncread,           only: Get_NcVar
     use mo_mrm_constants,    only: nodata_dp
@@ -518,9 +513,7 @@ contains
          L11_length,        &
          L11_aFloodPlain,   &
          L11_slope
-    !ST The following dependencies have to be removed
-    use mo_init_states,      only: calculate_grid_properties
-    use mo_global_variables, only: basin ! basin database
+    use mo_tools, only: get_basin_info_mrm, calculate_grid_properties
 
     implicit none
 
@@ -555,11 +548,11 @@ contains
     call message('    Reading L11_config from ', trim(adjustl(Fname)),' ...')
 
     ! level-0 information
-    call get_basin_info( iBasin, 0, nrows0, ncols0,&
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0,&
          xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0, mask=mask0 )
 
     ! level-1 information
-    call get_basin_info( iBasin, 1, nrows1, ncols1, mask=mask1 )
+    call get_basin_info_mrm( iBasin, 1, nrows1, ncols1, mask=mask1 )
 
     ! calculate l11 grid resolutionRouting
     if(iBasin .eq. 1) then
@@ -576,13 +569,13 @@ contains
          level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin)        )
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11)
 
     ! read L11 mask
     allocate( dummyI2( nrows11, ncols11 ), mask11( nrows11, ncols11) )
     call Get_NcVar( Fname,  'L11_basin_Mask', dummyI2 )
     mask11 = (dummyI2 .eq. 1_i4)
-    call append( basin%L11_Mask, reshape( mask11, (/nrows11*ncols11/)))
+    call append( basin_mrm%L11_Mask, reshape( mask11, (/nrows11*ncols11/)))
 
     ! get Number of cells
     nCells11 = count( dummyI2 .eq. 1_i4 )
@@ -592,26 +585,26 @@ contains
     if (iBasin .eq. 1) then
 
        !
-       allocate(basin%L11_iStart     (nBasins))
-       allocate(basin%L11_iEnd       (nBasins))
-       allocate(basin%L11_iStartMask (nBasins))
-       allocate(basin%L11_iEndMask   (nBasins))    
+       allocate(basin_mrm%L11_iStart     (nBasins))
+       allocate(basin_mrm%L11_iEnd       (nBasins))
+       allocate(basin_mrm%L11_iStartMask (nBasins))
+       allocate(basin_mrm%L11_iEndMask   (nBasins))    
 
        ! basin information
-       basin%L11_iStart(iBasin) = 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells11 - 1
+       basin_mrm%L11_iStart(iBasin) = 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells11 - 1
 
-       basin%L11_iStartMask(iBasin) = 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     else
 
        ! basin information
-       basin%L11_iStart(iBasin) = basin%L11_iEnd(iBasin-1) + 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells11 - 1
+       basin_mrm%L11_iStart(iBasin) = basin_mrm%L11_iEnd(iBasin-1) + 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells11 - 1
 
-       basin%L11_iStartMask(iBasin) = basin%L11_iEndMask(iBasin-1) + 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = basin_mrm%L11_iEndMask(iBasin-1) + 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     end if
 
@@ -640,13 +633,13 @@ contains
 
     ! allocate space for row and col Outlet
     if (iBasin .eq. 1) then
-       allocate( basin%L0_rowOutlet(nBasins) ) 
-       allocate( basin%L0_colOutlet(nBasins) )
+       allocate( basin_mrm%L0_rowOutlet(nBasins) ) 
+       allocate( basin_mrm%L0_colOutlet(nBasins) )
     end if
 
     ! L0 data sets
-    basin%L0_rowOutlet(iBasin) = dummyI1(1)
-    basin%L0_colOutlet(iBasin) = dummyI1(2)
+    basin_mrm%L0_rowOutlet(iBasin) = dummyI1(1)
+    basin_mrm%L0_colOutlet(iBasin) = dummyI1(2)
     deallocate(dummyI1)
 
     ! read L0 draining cell index

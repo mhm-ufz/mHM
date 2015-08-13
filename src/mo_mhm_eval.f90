@@ -150,7 +150,8 @@ CONTAINS
          ! L11_length, L11_slope, L11_aFloodPlain, &
          ! L0_floodPlain, L1_L11_Id, &
          nGaugesTotal, &
-         L11_Qmod ! , L11_qOUT, L11_qTIN, &
+         L11_Qmod, &
+         L11_s! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
     use mo_routing, only: mrm_routing
     
@@ -297,7 +298,7 @@ CONTAINS
 
        ! get basin information
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
-       call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
+       ! call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
        ! process 8 - routing process (on or off)
@@ -707,7 +708,8 @@ CONTAINS
           !----------------------------------------------------------------------
           if( present(runoff) ) then
              do gg = 1, basin_mrm%nGauges(ii)
-                runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
+                ! runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
+                runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(ii,gg) + L11_s(ii) - 1)
              end do
           end if
 

@@ -9,9 +9,8 @@ module mo_write_routing
 contains
 
   subroutine write_routing(runoff)
-    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer
-    !ST: the following dependency has to be removed
-    use mo_global_variables, only: ntstepday
+    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
+         ntstepday
     
     implicit none
 
