@@ -137,6 +137,8 @@ CONTAINS
          L0_cellCoor    ,          & 
          L0_Id         ,           & ! Ids of grid at level-0 
          L0_slope_emp  ,           & ! Empirical quantiles of slope
+         L0_areaCell, & ! Ids of grid at level-0
+         L1_areaCell, & ! [km2] Effective area of cell at this level
          L1_Id         ,           & ! Ids of grid at level-1
          L1_cellCoor    ,          &
          L1_upBound_L0 ,           & ! Row start at finer level-0 scale 
@@ -144,10 +146,6 @@ CONTAINS
          L1_leftBound_L0,          & ! Col start at finer level-0 scale
          L1_rightBound_L0,         & ! Col end at finer level-0 scale
          L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
-    use mo_restart_routing,  only: write_restart_routing
-    use mo_global_variables_routing, only: &
-         L0_areaCell, & ! Ids of grid at level-0
-         L1_areaCell ! [km2] Effective area of cell at this level
 
     implicit none
 
@@ -436,13 +434,13 @@ CONTAINS
           deallocate( dummy_d3 )
        end select
 
-       !-------------------------------------------
-       ! L11 ROUTING STATE VARIABLES, FLUXES AND
-       !             PARAMETERS
-       !-------------------------------------------
-       if ( processMatrix(8,1) .ne. 0 ) then
-          call write_restart_routing(iBasin, OutPath)
-       end if
+       ! !-------------------------------------------
+       ! ! L11 ROUTING STATE VARIABLES, FLUXES AND
+       ! !             PARAMETERS
+       ! !-------------------------------------------
+       ! if ( processMatrix(8,1) .ne. 0 ) then
+       !    call write_restart_routing(iBasin, OutPath)
+       ! end if
 
        ! -------------------------------------------------------------
        ! config set - create new file
@@ -587,6 +585,8 @@ CONTAINS
          nBasins, &
          level1, &
          L0_nCells, &
+         L0_areaCell, & ! Ids of grid at level-0
+         L1_areaCell, & ! [km2] Effective area of cell at this level
          nSoilTypes, &
          resolutionHydrology, &
          L1_nCells,      &
@@ -597,10 +597,6 @@ CONTAINS
          L1_leftBound_L0, & ! Col start at finer level-0 scale
          L1_rightBound_L0, & ! Col end at finer level-0 scale
          L1_nTCells_L0     ! Total number of valid L0 cells in a given L1 cell
-    use mo_global_variables_routing, only: &
-         L0_areaCell, & ! Ids of grid at level-0
-         L1_areaCell ! [km2] Effective area of cell at this level
-         
 
     implicit none
 
@@ -857,7 +853,6 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_ncread,           only: Get_NcVar
     use mo_mhm_constants,    only: YearMonths_i4
-    use mo_restart_routing,  only: read_restart_routing
     use mo_global_variables, only: processMatrix, &
          L1_fSealed, &
          L1_fForest, &

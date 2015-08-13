@@ -349,6 +349,8 @@ MODULE mo_global_variables
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0
   !                                                                  !      dim1=number of grid cells, dim2=number of LAI time steps
+  real(dp), public, dimension(:), allocatable      :: L0_areaCell   ! [m2] Area of a cell at level-0 
+
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------
@@ -358,6 +360,7 @@ MODULE mo_global_variables
   integer(i4), public, dimension(:,:), allocatable :: L1_cellCoor      !       Cell coordinates (row,col)
   !                                                                    !       -> <only for the domain> L1 modelling
   integer(i4), public, dimension(:), allocatable   :: L1_Id            !       Level-1 id
+  real(dp),    public, dimension(:), allocatable   :: L1_areaCell      ! [km2] Effective area of cell at this level
 
   integer(i4), public, dimension(:), allocatable   :: L1_upBound_L0    ! Row start at finer level-0 scale 
   integer(i4), public, dimension(:), allocatable   :: L1_downBound_L0  ! Row end at finer level-0 scale 

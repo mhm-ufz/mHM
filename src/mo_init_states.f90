@@ -76,10 +76,11 @@ CONTAINS
   !>        \author Rohini Kumar
   !>        \date Jan 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
+  !                   S. Thober, Aug 2015  - removed routing related variables
 
   subroutine variables_alloc(iBasin) 
 
-    use mo_global_variables, only: processMatrix, nSoilHorizons_mHM,            &
+    use mo_global_variables, only: nSoilHorizons_mHM,            &
          L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &  
          L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
          L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
@@ -94,7 +95,6 @@ CONTAINS
          L1_neutrons
 
     use mo_mhm_constants,    only: YearMonths_i4
-    use mo_mrm_constants,    only: nRoutingStates
     use mo_append,           only: append                      ! append vector
 
     implicit none
@@ -104,13 +104,9 @@ CONTAINS
     ! local variables
     integer(i4)                               :: nrows1, ncols1
     integer(i4)                               :: ncells1
-    ! integer(i4)                               :: nrows11, ncols11
-    ! integer(i4)                               :: ncells11
     real(dp), dimension(:),   allocatable     :: dummy_Vector
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix_months
-    ! real(dp), dimension(:),   allocatable     :: dummy_Vector11
-    ! real(dp), dimension(:,:), allocatable     :: dummy_Matrix11_IT
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 ) 
@@ -639,8 +635,8 @@ CONTAINS
   subroutine get_basin_info(iBasin, iLevel, nrows, ncols, ncells, iStart, iEnd, &
                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
 
+    use mo_message, only: message
     use mo_global_variables, only: basin, level0, level1, level2
-    use mo_global_variables_routing, only: level11, basin_mrm
     implicit none
 
     integer(i4), intent(in)                                      :: iBasin
@@ -691,26 +687,14 @@ CONTAINS
        if (present(cellsize))  cellsize = level1%cellsize(iBasin)
 
     case (11)
-       nrows = level11%nrows(iBasin)
-       ncols = level11%ncols(iBasin)
-       if (present(ncells)) ncells = basin_mrm%L11_iEnd(iBasin) - basin_mrm%L11_iStart(iBasin) + 1
-       if (present(iStart)) iStart = basin_mrm%L11_iStart(iBasin)
-       if (present(iEnd))   iEnd   = basin_mrm%L11_iEnd(iBasin)
-       if (present(iStartMask)) iStartMask = basin_mrm%L11_iStartMask(iBasin)
-       if (present(iEndMask))   iEndMask   = basin_mrm%L11_iEndMask(iBasin)
-       if (present(Mask)) then
-          allocate ( mask(nrows, ncols) )
-          mask(:,:) = .FALSE.
-          mask(:,:) = RESHAPE( basin_mrm%L11_Mask( basin_mrm%L11_iStartMask(iBasin): basin_mrm%L11_iEndMask(iBasin)),&
-               (/nrows,ncols/) )
-       end if
-       if (present(xllcorner)) xllcorner = level11%xllcorner(iBasin)
-       if (present(yllcorner)) yllcorner = level11%yllcorner(iBasin)
-       if (present(cellsize)) cellsize   = level11%cellsize(iBasin)
+       call message('***ERROR: get_basin_info has been called for level 11 that does not exist within mHM')
+       call message('***ERROR: use get_basin_info_mrm from mRM instead')
+       stop
 
     case (110)
-       if (present(iStart)) iStart = basin_mrm%L110_iStart(iBasin)
-       if (present(iEnd))   iEnd   = basin_mrm%L110_iEnd(iBasin)
+       call message('***ERROR: get_basin_info has been called for level 110 that does not exist within mHM')
+       call message('***ERROR: use get_basin_info_mrm from mRM instead')
+       stop
 
     case (2)
        nrows = level2%nrows(iBasin)

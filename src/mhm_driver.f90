@@ -137,6 +137,7 @@
 !       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 !                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
 !                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
+!                     Stephan Thober, Aug 2015 - removed routing related variables
 
 !
 ! --------------------------------------------------------------------------
@@ -169,9 +170,8 @@ PROGRAM mhm_driver
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       basin, processMatrix,                                 &      ! basin information,  processMatrix
+       processMatrix,                                        &      ! basin information,  processMatrix
        opti_function, dirConfigOut
-  USE mo_global_variables_routing, ONLY : dirGauges                 ! directory
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
@@ -193,7 +193,10 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
+#ifdef mrm2mhm
   USE mo_init_mrm,            ONLY : init_mRM
+  USE mo_write_routing,       only : write_routing
+#endif  
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
@@ -201,7 +204,7 @@ PROGRAM mhm_driver
   ! local
   integer(i4), dimension(8)             :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
-  integer(i4)                           :: ii, jj           ! Counters
+  integer(i4)                           :: ii               ! Counters
   integer(i4)                           :: iTimer           ! Current timer number
   integer(i4)                           :: nTimeSteps
   real(dp)                              :: funcbest         ! best objective function achivied during optimization
@@ -266,7 +269,6 @@ PROGRAM mhm_driver
      call message( '  --------------' )
      call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
      call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
-     ! call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
@@ -358,12 +360,14 @@ PROGRAM mhm_driver
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+#ifdef mrm2mhm
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) .eq. 1) then
      call init_mRM()
   end if
+#endif  
 
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
@@ -538,6 +542,16 @@ PROGRAM mhm_driver
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
      !
   end if
+
+#ifdef mrm2mhm    
+    ! --------------------------------------------------------------------------
+    ! WRITE RUNOFF TO ASCII FILE
+    ! --------------------------------------------------------------------------
+    if( (.not. optimize) .AND. (processMatrix(8, 1) .ne. 0) .AND. (nMeasPerDay .eq. 1) ) then
+       call write_routing(runoff)
+    end if
+#endif
+
 
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files

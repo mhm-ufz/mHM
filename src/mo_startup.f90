@@ -405,13 +405,13 @@ CONTAINS
                                    L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
                                    L0_soilId, nSoilTypes,  &
+                                   L0_areaCell,            &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
     use mo_orderpack,     only: unirnk
     use mo_utils,         only: le, eq
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
-    !ST The following dependency has to be removed
-    use mo_global_variables_routing, only: L0_areaCell
+
     implicit none
 
     integer(i4), intent(in)                               :: iBasin
@@ -593,11 +593,10 @@ CONTAINS
          L1_upBound_L0, L1_downBound_L0, &
          L1_leftBound_L0,                &
          L1_rightBound_L0, L1_nTCells_L0,&
+         L0_areaCell, L1_areaCell,       &
          resolutionHydrology
     use mo_init_states,     only: calculate_grid_properties
     use mo_append,          only: append                      ! append vector
-    !ST The following dependency has to be removed
-    use mo_global_variables_routing, only: L0_areaCell, L1_areaCell
 
     implicit none
 

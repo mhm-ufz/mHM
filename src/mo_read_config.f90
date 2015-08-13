@@ -1034,6 +1034,10 @@ CONTAINS
     case(1)
        ! parameter values and names are set in mRM
        ! 1 - Muskingum approach
+#ifndef mrm2mhm
+       call message('***ERROR processCase(8) equals 1, but mrm2mhm preprocessor flag is not given in Makefile')
+       stop
+#endif       
        processMatrix(8, 1) = processCase(8)
        processMatrix(8, 2) = 5_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))

@@ -84,7 +84,7 @@ CONTAINS
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
-  !                                                    deleted related variables, included variables from routing
+  !                                                    included routing related variables from mRM
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
@@ -96,7 +96,6 @@ CONTAINS
     use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
-    use mo_write_routing,       only : write_routing
     use mo_write_fluxes_states, only : CloseFluxState_file
     use mo_write_fluxes_states, only : WriteFluxState
     use mo_write_fluxes_states, only : WriteFluxStateInit
@@ -104,7 +103,7 @@ CONTAINS
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
-         timeStep, nBasins, basin, simPer, readPer,          & ! [h] simulation time step, No. of basins
+         timeStep, nBasins, simPer, readPer,                 & ! [h] simulation time step, No. of basins
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
          LCyearId, LAIUnitList, LAILUT,                      & 
@@ -142,9 +141,9 @@ CONTAINS
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+#ifdef mrm2mhm
     use mo_global_variables_routing, only: &
          basin_mrm, &
-         nMeasPerDay, &
          ! InflowGauge, &
          ! L11_netPerm, L11_fromN, L11_toN, & 
          ! L11_length, L11_slope, L11_aFloodPlain, &
@@ -154,6 +153,7 @@ CONTAINS
          L11_s! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
     use mo_routing, only: mrm_routing
+#endif
     
     implicit none
 
@@ -207,8 +207,6 @@ CONTAINS
     !                                                             ! index 4: netrad
     !                                                             ! index 5: absolute vapour pressure
     !                                                             ! index 6: windspeed
-    integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
-    integer(i4)                               :: s110, e110
     integer(i4)                               :: s_meteo, e_meteo
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
@@ -239,12 +237,14 @@ CONTAINS
           call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
           stop
        else 
+#ifdef mrm2mhm
           !----------------------------------------------------------
           ! estimate maximum modeling timesteps including warming days
           !----------------------------------------------------------
           maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
           allocate( runoff(maxTimeSteps, nGaugesTotal) )
           runoff = nodata_dp
+#endif
        end if
     else 
        if ( (processMatrix(8,1) .gt. 0) .AND. (.NOT. optimize)) then
@@ -300,15 +300,6 @@ CONTAINS
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
        ! call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
-
-       ! process 8 - routing process (on or off)
-       if( processMatrix(8, 1) .eq. 0 ) then
-          s11 = 1
-          e11 = 1
-          nNodes = 1
-       else
-          call get_basin_info ( ii, 11, nrows, ncols, ncells=nNodes, iStart=s11, iEnd=e11 ) 
-       end if
 
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
@@ -477,6 +468,7 @@ CONTAINS
                L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 
           ! call mRM routing
+#ifdef mrm2mhm
           if (processMatrix(8, 1) .eq. 1) then
              ! determine whether mpr is to be executed
              if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
@@ -488,6 +480,7 @@ CONTAINS
              call mRM_routing(parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), &
                   ii, L1_total_runoff(s1:e1), iMeteoTS, LCyearId(year,ii), do_mpr)
           end if
+#endif
 
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day
@@ -698,6 +691,7 @@ CONTAINS
              end if
           end if ! <-- if (.not. optimize)
 
+#ifdef mrm2mhm          
           !----------------------------------------------------------------------
           ! FOR STORING the optional arguments
           ! 
@@ -712,6 +706,7 @@ CONTAINS
                 runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(ii,gg) + L11_s(ii) - 1)
              end do
           end if
+#endif          
 
           !----------------------------------------------------------------------
           ! FOR SOIL MOISTURE
@@ -763,14 +758,6 @@ CONTAINS
        deallocate(LAI)
 
     end do !<< BASIN LOOP
-
-    ! --------------------------------------------------------------------------
-    ! WRITE RUNOFF TO ASCII FILE
-    ! --------------------------------------------------------------------------
-    if( (.not. optimize) .AND. present(runoff) .AND. (nMeasPerDay .eq. 1) ) then
-       call write_routing(runoff)
-    end if
-
 
   end SUBROUTINE mhm_eval
 
