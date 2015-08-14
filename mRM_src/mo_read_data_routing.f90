@@ -21,6 +21,7 @@ contains
          file_dem, udem, &
          uLCoverClass
     use mo_global_variables_routing, only: &
+         coupling_mode, &
          nBasins, &
          perform_mpr, &
          nLCoverScene, &
@@ -29,14 +30,25 @@ contains
          dirMorpho, & ! directories
          dirLCover, &
          LCfilename, &
+         L0_mask_mRM, &
          L0_Basin, &
-         L0_elev, & ! level 0 elevation
-         L0_LCover, &
+         L0_elev_mRM, & ! level 0 elevation
+         L0_elev_read, &
+         L0_LCover_mRM, &
+         L0_LCover_read, &
          L0_fAcc, & ! flow accumulation on input resolution (L0)
          L0_fDir, & ! flow direction on input resolution (L0)
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
          basin_mrm ! basin information for single basins
+#ifdef mrm2mhm
+    use mo_global_variables, only: &
+         basin, & ! to get the global mask
+         ! variables that should not be allocated twice if coupled to mhm
+         L0_mask, &
+         L0_elev, & 
+         L0_LCover
+#endif    
     implicit none
     ! local variables
     integer(i4) :: iBasin
@@ -89,9 +101,22 @@ contains
 
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
-       call read_spatial_data_ascii(trim(fName), udem, &
-            level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
-            level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
+       if (coupling_mode .ne. 2) then
+          ! only read dem data if not coupled to mhm
+          call read_spatial_data_ascii(trim(fName), udem, &
+               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
+          ! create overall mHM mask on L0 and save indices
+          nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
+          call append( L0_mask_mRM, reshape(mask_global, (/nCells/)))
+       else
+#ifdef mrm2mhm
+          ! get mask global from mhm variables
+          mask_global = reshape(basin%L0_mask(basin%L0_iStartMask(iBasin):basin%L0_iEndMask(iBasin)), &
+               (/level0%nrows(iBasin), level0%ncols(iBasin)/))
+          nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
+#endif
+       end if
 
        ! Saving indices at Level110 irrespective of whether L0_data is shared or not
        if (iBasin .eq. 1) then
@@ -121,10 +146,6 @@ contains
        !
        call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
        !
-       ! create overall mHM mask on L0 and save indices
-       nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
-       call append( basin_mrm%L0_mask, reshape(mask_global, (/nCells/)))
-       !
        ! Saving indices of mask and packed data
        if(iBasin .eq. 1) then
           basin_mrm%L0_iStart(iBasin) = 1
@@ -142,13 +163,14 @@ contains
        ! Read L0 data, if restart is false
        read_L0_data: if ( perform_mpr ) then
           !
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
-          ! put data in variable
-          call append( L0_elev, pack(data_dp_2d, mask_global) )
-          ! deallocate arrays
-          deallocate(data_dp_2d)
-
+          if (coupling_mode .ne. 2) then
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
+             ! put data in variable
+             call append( L0_elev_read, pack(data_dp_2d, mask_global) )
+             ! deallocate arrays
+             deallocate(data_dp_2d)
+          end if
 
           ! read fAcc, fDir, gaugeLoc
           do iVar = 1, 3
@@ -225,27 +247,46 @@ contains
           end do
        end if read_L0_data
        !
-       ! LCover read in is realized seperated because of unknown number of scenes
-       do iVar = 1, nLCoverScene
-          fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
-          call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-          call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+       if (coupling_mode .ne. 2) then
+          ! LCover read in is realized seperated because of unknown number of scenes
+          do iVar = 1, nLCoverScene
+             fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
+             call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
+                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+             
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+             call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+             !
+             deallocate(data_i4_2d)
+          end do
           !
-          deallocate(data_i4_2d)
-       end do
-       !
-       call append( L0_LCover, dataMatrix_i4 )
+          call append( L0_LCover_read, dataMatrix_i4 )
+          ! free memory
+          deallocate(dataMatrix_i4)
+       end if
 
        ! free memory
        deallocate(mask_global)
-       deallocate(dataMatrix_i4)
        
     end do basin_loop
+
+    ! ----------------------------------------------------------------
+    ! assign pointers for L0 variables
+    ! ----------------------------------------------------------------
+    if (coupling_mode .ne. 2) then
+       L0_elev_mRM => L0_elev_read
+       L0_LCover_mRM => L0_LCover_read
+       basin_mRM%L0_mask => L0_mask_mRM
+    else
+#ifdef mrm2mhm
+       L0_elev_mRM => L0_elev
+       L0_LCover_mRM => L0_LCover
+       basin_mrm%L0_mask => L0_mask
+#endif
+    end if
+       
 
   end subroutine read_L0_data_routing
 
@@ -573,11 +614,14 @@ contains
     use mo_file, only: udischarge
     use mo_mrm_constants, only: nodata_dp
     use mo_global_variables_routing, only: &
+         nBasins, &
+         mRM_runoff, & ! variable storing runoff for each gauge
          nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
          nInflowGaugesTotal, InflowGauge, & ! inflow stations information
          evalPer, & ! model evaluation period (for discharge read in)
          optimize, & ! optimizeation flag for some error checks
          opti_function, & ! opti_function that determines to what data to calibrate
+         nTstepDay, &
          simPer ! model simulation period (for inflow read in)
     !
     implicit none
@@ -586,11 +630,20 @@ contains
     ! local variables
     integer(i4) :: iGauge
     integer(i4) :: iBasin
+    integer(i4) :: maxTimeSteps
     character(256) :: fName ! file name of file to read
     integer(i4), dimension(3) :: start_tmp, end_tmp
     real(dp), dimension(:), allocatable :: data_dp_1d
     logical, dimension(:), allocatable :: mask_1d
-    !
+
+    !----------------------------------------------------------
+    ! INITIALIZE RUNOFF
+    !----------------------------------------------------------
+    maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * nTstepDay
+    allocate( mRM_runoff(maxTimeSteps, nGaugesTotal) )
+    mRM_runoff = nodata_dp
+
+    ! READ GAUGE DATA
     do iGauge = 1, nGaugesTotal
        ! get basin id
        iBasin = gauge%basinId(iGauge)

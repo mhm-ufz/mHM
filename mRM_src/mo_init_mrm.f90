@@ -47,6 +47,7 @@ CONTAINS
 
   subroutine init_mRM()
 
+    use mo_message, only: message
     use mo_read_data_routing, only: read_discharge_data, read_L0_data_routing, &
          L1_variable_init_routing, &
          L0_variable_init_routing
@@ -59,7 +60,7 @@ CONTAINS
 
     integer(i4) :: iBasin
 
-    print *, 'inititalize mRM'
+    call message(' Inititalize mRM')
     !-----------------------------------------------------------
     ! READ COUPLING MODE
     !-----------------------------------------------------------
@@ -158,7 +159,7 @@ CONTAINS
        end do
     end if
 
-    call set_helping_variables() !ST only temporarilly for mRM
+    call message(' Finished Initialization of mRM')
 
   end subroutine init_mRM
 
@@ -185,7 +186,7 @@ CONTAINS
     call message('           Version ', trim(version))
     call message('           ', trim(version_date))
     call message()
-    call message('Originally by S. Thober & M. Cuntz')
+    call message('Written by S. Thober')
     call message()
     call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
 
@@ -1891,7 +1892,7 @@ CONTAINS
     use mo_mrm_constants, only: nodata_i4, nodata_dp
     use mo_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
-         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
+         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
          iFlag_cordinate_sys, & ! IN:    coordinate system
          L0_Id,           & ! IN:    level-0 id
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
@@ -2001,7 +2002,7 @@ CONTAINS
     if(nNodes .GT. 1) then
       ! get L0 fields
       iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
-      elev0(:,:) =       UNPACK( L0_elev (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+      elev0(:,:) =       UNPACK( L0_elev_mRM (iStart0:iEnd0),  mask0, nodata_dp_tmp )
       fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
       areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
 
@@ -2519,44 +2520,4 @@ CONTAINS
 
   end subroutine get_distance_two_lat_lon_points
 
-  subroutine set_helping_variables()
-    !
-    use mo_mrm_constants, only: nodata_i4
-    use mo_tools, only: get_basin_info_mrm
-    use mo_global_variables_routing, only: &
-         L0_nNodes, L0_s, L0_e, & ! Level0 help variables
-         L1_nNodes, L1_s, L1_e, & ! Level1 help variables
-         L110_s, L110_e, & ! Level110 help variables
-         L11_nNodes, L11_s, L11_e, & ! Level11 help variables
-         nBasins
-    implicit none
-    ! local variables
-    integer(i4) :: ii
-    integer(i4) :: nrows ! number of rows
-    integer(i4) :: ncols ! number of colums
-    !
-    allocate(L0_nNodes(nBasins)) ; L0_nNodes = nodata_i4
-    allocate(L0_s(nBasins)) ; L0_s = nodata_i4
-    allocate(L0_e(nBasins)) ; L0_e = nodata_i4
-    allocate(L1_nNodes(nBasins)) ; L1_nNodes = nodata_i4
-    allocate(L1_s(nBasins)) ; L1_s = nodata_i4
-    allocate(L1_e(nBasins)) ; L1_e = nodata_i4
-    allocate(L11_nNodes(nBasins)) ; L11_nNodes = nodata_i4
-    allocate(L11_s(nBasins)) ; L11_s = nodata_i4
-    allocate(L11_e(nBasins)) ; L11_e = nodata_i4
-    allocate(L110_s(nBasins)) ; L110_s = nodata_i4
-    allocate(L110_e(nBasins)) ; L110_e = nodata_i4
-    !
-    do ii = 1, nBasins
-       call get_basin_info_mrm(ii, 0, nrows, ncols, &
-            nCells=L0_nNodes(ii), iStart=L0_s(ii), iEnd=L0_e(ii))
-       call get_basin_info_mrm(ii, 1, nrows, ncols, &
-            nCells=L1_nNodes(ii), iStart=L1_s(ii), iEnd=L1_e(ii))
-       call get_basin_info_mrm(ii, 11, nrows, ncols, &
-            nCells=L11_nNodes(ii), iStart=L11_s(ii), iEnd=L11_e(ii))
-       call get_basin_info_mrm(ii, 110, nrows, ncols, &
-            iStart=L110_s(ii), iEnd=L110_e(ii))
-    end do
-  end subroutine set_helping_variables
-  
 END MODULE mo_init_mrm

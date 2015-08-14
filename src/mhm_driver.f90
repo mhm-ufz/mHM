@@ -531,13 +531,7 @@ PROGRAM mhm_driver
      ! --------------------------------------------------------------------------
      call message('  Run mHM')
      call timer_start(iTimer)
-     if ( processMatrix(8,1) .eq. 0 ) then
-        ! call mhm without routing
-        call mhm_eval(global_parameters(:,3))
-     else
-        ! call mhm with routing
-        call mhm_eval(global_parameters(:,3), runoff=riverrun)
-     end if
+     call mhm_eval(global_parameters(:,3))
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
      !
@@ -561,7 +555,7 @@ PROGRAM mhm_driver
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0) call write_routing(riverrun)
+  if (processMatrix(8, 1) .ne. 0) call write_routing()
 #endif
 
 

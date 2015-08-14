@@ -3,11 +3,9 @@ README for mRM
 TODOS
 - move writing of config from mo_write_ascii to mRM
 - write config for mRM separately within mRM
-- remove double allocation of L0 variables (i.e., L0_elev, L0_LCover)
+- add documentation!!!
 - restart needs to be revised (after merge with trunk, L0_areaCell, and
   L1_areaCell are should be moved to the restart of mRM)
-TOP PRIORITY
-MERGE TRUNK
 
 ------------------------------------------------------------
                          README

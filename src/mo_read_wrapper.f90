@@ -105,6 +105,7 @@ CONTAINS
                                      ulcoverclass                           ! unit of land cover class map
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
                                      L0_Basin,                            & ! L0_Basin ID
+                                     L0_mask,                             & ! global mask variable
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
@@ -234,7 +235,7 @@ CONTAINS
        !
        ! create overall mHM mask on L0 and save indices
        nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
-       call append( basin%L0_mask, reshape(mask_global, (/nCells/)))
+       call append( L0_mask, reshape(mask_global, (/nCells/)))
        !
        ! Saving indices of mask and packed data
        if(iBasin .eq. 1) then
@@ -378,6 +379,11 @@ CONTAINS
        deallocate(dataMatrix_i4)
 
     end do basins
+    !----------------------------------------------------------------
+    ! assign L0_mask to basin
+    !----------------------------------------------------------------
+    basin%L0_mask => L0_mask
+    
     !----------------------------------------------------------------
     ! Correction for slope and aspect -- min value set above
     !----------------------------------------------------------------

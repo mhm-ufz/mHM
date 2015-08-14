@@ -8,17 +8,16 @@ module mo_write_routing
 
 contains
 
-  subroutine write_routing(runoff)
+  subroutine write_routing()
     
-    use mo_global_variables_routing, only: gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
+    use mo_global_variables_routing, only: &
+         mRM_runoff, &
+         gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
          ntstepday, write_restart, dirRestartOut, &
          nMeasPerDay, optimize
     use mo_restart_routing,  only: write_restart_routing
 
     implicit none
-
-    ! input variables
-    real(dp), dimension(:,:), allocatable, optional, intent(in) :: runoff       ! dim1=time dim2=gauge
     
     ! local variables
     integer(i4) :: iBasin
@@ -67,7 +66,7 @@ contains
           ! over gauges
           do gg = 1, basin_mrm%nGauges(ii)
              d_Qmod(iDay, basin_mrm%gaugeIndexList(ii,gg) ) = &
-                  sum( runoff(iS:iE, basin_mrm%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
+                  sum( mRM_runoff(iS:iE, basin_mrm%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
           end do
           !
        end do

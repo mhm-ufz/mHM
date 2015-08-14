@@ -29,16 +29,19 @@ MODULE mo_routing
 
 CONTAINS
 
-  subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, LCyearID, do_mpr_routing, discharge)
+  subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, tt, julStart, LCyearID, do_mpr_routing, &
+       StepDayMod)
+    use mo_mrm_constants, only: nodata_dp
+    use mo_init_mrm, only: L11_fraction_sealed_floodplain
+    use mo_mpr_routing, only: reg_rout
     use mo_global_variables_routing, only: &
-         L0_LCover, &
+         mRM_runoff, &
+         nBasins, &
+         simper, &
+         L0_LCover_mRM, &
          timeStep, &
          basin_mrm, &
          is_start, &
-         L0_s, L0_e, & ! Level0 help variables
-         L1_s, L1_e, & ! Level0 help variables
-         L11_nNodes, L11_s, L11_e, & ! Level11 help variables
-         L110_s, L110_e, & ! Level110 help variables
          L0_areaCell, &
          L0_floodPlain, & ! flood plains at L0 level
          L1_areaCell, &
@@ -57,8 +60,6 @@ CONTAINS
          L11_qTIN, & ! inflow water into the reach at L11
          L11_qTR, & !
          L11_qMod ! final variable containing routed water
-    use mo_init_mrm, only: L11_fraction_sealed_floodplain
-    use mo_mpr_routing, only: reg_rout
          
     !
     implicit none
@@ -67,12 +68,16 @@ CONTAINS
     integer(i4), intent(in) :: iBasin
     real(dp), dimension(:), intent(in) :: runoff ! generated runoff for this timestep
     integer(i4), intent(in) :: LCyearID ! current land cover
-    integer(i4), intent(in) :: iTS ! current timestep
+    integer(i4), intent(in) :: iTS ! current day counter
+    integer(i4), intent(in) :: tt ! current modeling timestep
+    integer(i4), intent(in) :: julStart ! julian start date
+    integer(i4), intent(in) :: StepDayMod ! number of timesteps per day of hydrologic model
     logical, optional, intent(in) :: do_mpr_routing
-    ! output variables
-    real(dp), optional, intent(out) :: discharge
     ! local variables
-    logical :: do_mpr
+    integer(i4) :: date ! current date for inflowgauge
+    integer(i4) :: rr_idx ! current runoff index
+    logical     :: do_mpr
+    integer(i4) :: gg
     integer(i4) :: nNodes
     integer(i4) :: s11
     integer(i4) :: e11
@@ -83,16 +88,20 @@ CONTAINS
     integer(i4) :: s0
     integer(i4) :: e0
 
-    nNodes = L11_nNodes(iBasin)
-    s11 = L11_s(iBasin)
-    e11 = L11_e(iBasin)
-    s110 = L110_s(iBasin)
-    e110 = L110_e(iBasin)
-    s1 = L1_s(iBasin)
-    e1 = L1_e(iBasin)
-    s0 = L0_s(iBasin)
-    e0 = L0_e(iBasin)
-    
+    ! set helping variables
+    nNodes = basin_mrm%L11_iEnd(iBasin) - basin_mrm%L11_iStart(iBasin) + 1
+    s11 = basin_mrm%L11_iStart(iBasin)
+    e11 = basin_mrm%L11_iEnd(iBasin)
+    s110 = basin_mrm%L110_iStart(iBasin)
+    e110 = basin_mrm%L110_iEnd(iBasin)
+    s1 = basin_mrm%L1_iStart(iBasin)
+    e1 = basin_mrm%L1_iEnd(iBasin)
+    s0 = basin_mrm%L0_iStart(iBasin)
+    e0 = basin_mrm%L0_iEnd(iBasin)
+
+    ! ====================================================================
+    ! FIRST, EXECUTE MPR
+    ! ====================================================================
     ! evaluate whether mpr should be executed
     do_mpr = .false.
     if (is_start) then
@@ -111,7 +120,7 @@ CONTAINS
        !           only in case when routing process is ON
        !-------------------------------------------------------------------
        CALL L11_fraction_sealed_floodplain( nNodes-1, &
-            L0_LCover(s0:e0, LCyearID), &
+            L0_LCover_mRM(s0:e0, LCyearID), &
             L0_floodPlain(s110:e110),       &
             ! L0_floodPlain(s0:e0),       &
             L0_areaCell(s0:e0), &
@@ -126,6 +135,17 @@ CONTAINS
        end if 
     end if
 
+    ! =====================================================================
+    ! SECOND, EXECUTE ROUTING
+    ! ====================================================================
+    !
+    ! calculate current date
+    date = julstart - 1 + iTS
+    ! check whether date is within simulation period
+    if ((date .lt. simper(iBasin)%julStart) .or. (date .gt. simper(iBasin)%julEnd)) return
+    ! update date for the current inflowgauge
+    date = date - simper(iBasin)%julStart + 1
+
     ! execute routing
     !-------------------------------------------------------------------
     ! routing at L11 level
@@ -136,7 +156,7 @@ CONTAINS
          basin_mrm%InflowGaugeIndexList(iBasin,:), &
          basin_mrm%InflowGaugeHeadwater(iBasin,:), &
          basin_mrm%InflowGaugeNodeList(iBasin,:), &
-         InflowGauge%Q(iTS,:), & ! Intent IN
+         InflowGauge%Q(date,:), & ! Intent IN
          L11_qOUT(s11:e11) )                                                                         ! Intent OUT
     ! for a single node model run
     if( nNodes .GT. 1) then
@@ -158,8 +178,21 @@ CONTAINS
        L11_Qmod(s11:e11) = L11_qOUT(s11:e11) 
     end if
 
-    ! set output variable discharge if given
-    if (present(discharge)) discharge = L11_Qmod(s11)
+    !----------------------------------------------------------------------
+    ! FOR STORING the optional arguments
+    ! 
+    ! FOR RUNOFF
+    ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
+    !        index in runoff. In consequence the gauges in runoff are 
+    !        ordered corresponing to gauge%Q(:,:)
+    !----------------------------------------------------------------------
+    ! update current runoff index
+    rr_idx = tt + (julstart - SimPer(iBasin)%julstart) * StepDayMod
+
+    do gg = 1, basin_mrm%nGauges(iBasin)
+       mRM_runoff(rr_idx,basin_mrm%gaugeIndexList(iBasin,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(iBasin,gg) + &
+            basin_mrm%L11_iStart(iBasin) - 1)
+    end do
     
   end subroutine mRM_routing
 

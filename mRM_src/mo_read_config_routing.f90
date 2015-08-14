@@ -17,6 +17,10 @@ contains
     read(unamelist_mrm, nml=coupling_config)
     call close_nml(unamelist_mrm)
     ! check whether coupling mode is specified correctly
+    if (coupling_mode .eq. 0) then
+       call message('***ERROR: coupling mode equals 0, but stand alone version is not yet implemented')
+       stop
+    end if
     if (coupling_mode .eq. 2) then
 #ifndef mrm2mhm
        call message('***ERROR: coupling mode equals 2, but mrm2mhm preprocessor flag is not set while compiling')

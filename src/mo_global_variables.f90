@@ -296,7 +296,7 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L0_iEnd            ! Ending cell index of a given basin at L0
      integer(i4), dimension(:), allocatable     :: L0_iStartMask      ! Starting cell index of mask a given basin at L0
      integer(i4), dimension(:), allocatable     :: L0_iEndMask        ! Ending cell index of mask a given basin at L0
-     logical,     dimension(:), allocatable     :: L0_mask            ! Mask of level0 based on DEM
+     logical,     dimension(:), pointer         :: L0_mask        ! Mask of level0 based on DEM
 
      integer(i4), dimension(:), allocatable     :: L1_iStart          ! Starting cell index of a given basin at L1
      integer(i4), dimension(:), allocatable     :: L1_iEnd            ! Ending cell index of a given basin at L1
@@ -323,13 +323,15 @@ MODULE mo_global_variables
 
   end type basinInfo
   type(basinInfo), public                       :: basin              ! Basin structure
+  logical, dimension(:), allocatable, target    :: L0_mask            ! target variable for mRM
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain> 
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells
   ! input data - morphological variables
-  real(dp), public, dimension(:), allocatable      :: L0_elev       ! [m]       Elevation (sinks removed)   
+  real(dp), public, dimension(:), allocatable, target :: L0_elev    ! [m]       Elevation (sinks removed)   
+  !                                                                 ! target variable for coupling to mRM
   real(dp), public, dimension(:), allocatable      :: L0_slope      ! [%]       Slope 
   real(dp), public, dimension(:), allocatable      :: L0_asp        ! [degree]  Aspect degree
   integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           Soil id
@@ -337,8 +339,9 @@ MODULE mo_global_variables
  
   ! input data - land cover
   integer(i4), public, dimension(:), allocatable   :: L0_LCover_LAI ! Special landcover id (upto 10 classes) only for the LAI index
-  integer(i4), public, dimension(:,:), allocatable :: L0_LCover     ! Normal  landcover id (upto 3 classes) 
-  !                                                                 ! dim1=number grid cells, dim2=Number of land cover scenes
+  integer(i4), public, dimension(:,:), allocatable, target :: L0_LCover ! Normal  landcover id (upto 3 classes) 
+  !                                                                     ! dim1=number grid cells, dim2=Number of land cover scenes
+  !                                                                     ! target variable for coupling to mRM
 
   ! mHM derived variables
   ! dim1 = number grid cells L0

@@ -100,6 +100,7 @@ CONTAINS
     use mo_write_fluxes_states, only : WriteFluxState
     use mo_write_fluxes_states, only : WriteFluxStateInit
     use mo_global_variables,    only : &
+         nTstepDay,                                          &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
@@ -150,7 +151,8 @@ CONTAINS
          ! L0_floodPlain, L1_L11_Id, &
          nGaugesTotal, &
          L11_Qmod, &
-         L11_s! , L11_qOUT, L11_qTIN, &
+         mRM_runoff
+         ! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
     use mo_routing, only: mrm_routing
 #endif
@@ -234,20 +236,6 @@ CONTAINS
     if ( present(runoff) ) then
        if ( processMatrix(8, 1) .eq. 0 ) then
           call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
-          stop
-       else 
-#ifdef mrm2mhm
-          !----------------------------------------------------------
-          ! estimate maximum modeling timesteps including warming days
-          !----------------------------------------------------------
-          maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
-          allocate( runoff(maxTimeSteps, nGaugesTotal) )
-          runoff = nodata_dp
-#endif
-       end if
-    else 
-       if ( (processMatrix(8,1) .gt. 0) .AND. (.NOT. optimize)) then
-          call message("***ERROR: runoff can not be produced, since runoff variable is not present")
           stop
        end if
     end if
@@ -477,7 +465,8 @@ CONTAINS
              end if
              !
              call mRM_routing(parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), &
-                  ii, L1_total_runoff(s1:e1), iMeteoTS, LCyearId(year,ii), do_mpr)
+                  ii, L1_total_runoff(s1:e1), iMeteoTS, tt, simPer(ii)%julStart, LCyearId(year,ii), do_mpr, &
+                  nTstepDay)
           end if
 #endif
 
@@ -690,22 +679,24 @@ CONTAINS
              end if
           end if ! <-- if (.not. optimize)
 
-#ifdef mrm2mhm          
-          !----------------------------------------------------------------------
-          ! FOR STORING the optional arguments
-          ! 
-          ! FOR RUNOFF
-          ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
-          !        index in runoff. In consequence the gauges in runoff are 
-          !        ordered corresponing to gauge%Q(:,:)
-          !----------------------------------------------------------------------
-          if( present(runoff) ) then
-             do gg = 1, basin_mrm%nGauges(ii)
-                ! runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
-                runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(ii,gg) + L11_s(ii) - 1)
-             end do
-          end if
-#endif          
+! #ifdef mrm2mhm          
+!           !----------------------------------------------------------------------
+!           ! FOR STORING the optional arguments
+!           ! 
+!           ! FOR RUNOFF
+!           ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
+!           !        index in runoff. In consequence the gauges in runoff are 
+!           !        ordered corresponing to gauge%Q(:,:)
+!           !----------------------------------------------------------------------
+!           if( present(runoff) ) then
+!              do gg = 1, basin_mrm%nGauges(ii)
+!                 ! runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
+!                 runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(ii,gg) + &
+!                      basin_mrm%L11_iStart(ii) - 1)
+!              end do
+!           end if
+! #endif     
+          
 
           !----------------------------------------------------------------------
           ! FOR SOIL MOISTURE
@@ -757,6 +748,14 @@ CONTAINS
        deallocate(LAI)
 
     end do !<< BASIN LOOP
+
+#ifdef mrm2mhm
+    ! =========================================================================
+    ! SET RUNOFF OUTPUT VARIABLE
+    ! =========================================================================
+    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
+#endif
+
 
   end SUBROUTINE mhm_eval
 

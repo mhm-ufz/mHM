@@ -18,7 +18,7 @@
 !>                              2 = copy config from mhm to mrm internally (ignores mrm.nml and mrm_parameter.nml)
 !-----------------------------------------------------------------------------
 &coupling_config
-coupling_mode = 2
+coupling_mode = 1
 /
 !
 !
@@ -43,13 +43,14 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 1
+nBasins             = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 12000 
+resolution_Hydrology(1) = 24000 
+resolution_Hydrology(2) = 24000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -57,13 +58,15 @@ resolution_Hydrology(1) = 12000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 12000
+resolution_Routing(1) = 24000
+resolution_Routing(2) = 24000
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
 !> but not 1,2,1. The correct way should be: 1,1,2.\n
 !-----------------------------------------------------------------------------
 L0Basin(1) = 1
+L0Basin(2) = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -95,7 +98,7 @@ opti_function = 3
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
 read_restart  = .FALSE.
-write_restart = .TRUE.
+write_restart = .FALSE.
 perform_mpr   = .TRUE.
 /
 
@@ -113,11 +116,11 @@ perform_mpr   = .TRUE.
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "test_basin/"
+dirConfigOut = "output_b1/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_basin/input/morph/"
+dirCommonFiles = "../../test_basin/input/morph/"
 !
 !-----------------------------------------------------
 !> basin wise directory paths
@@ -125,17 +128,31 @@ dirCommonFiles = "test_basin/input/morph/"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_basin/input/morph/"
+dir_Morpho(1)        = "../../test_basin/input/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_basin/input/luse/"
+dir_LCover(1)        = "../../test_basin/input/luse/"
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_basin/input/gauge/"
+dir_Gauges(1)        = "../../test_basin/input/gauge/"
 !> directory where restart input is located
-dir_RestartIn(1)     = "test_basin/restart/"
+dir_RestartIn(1)     = "../../test_basin/restart/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_basin/restart/"
+dir_RestartOut(1)    = "output_b1/b1_"
 !> directory where output should be written
-dir_Out(1)           = "test_basin/output_b1/"
+dir_Out(1)           = "output_b1/b1_"
+!
+!**** for Basin 1
+!> directory where morphological files are located
+dir_Morpho(2)        = "../../test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(2)        = "../../test_basin/input/luse/"
+!> directory where discharge files are located
+dir_Gauges(2)        = "../../test_basin/input/gauge/"
+!> directory where restart input is located
+dir_RestartIn(2)     = "../../test_basin/restart/"
+!> directory where restart output should be written
+dir_RestartOut(2)    = "output_b1/b2_"
+!> directory where output should be written
+dir_Out(2)           = "output_b1/b2_"
 /
 
 &time_periods
@@ -160,18 +177,25 @@ dir_Out(1)           = "test_basin/output_b1/"
 !>                          THERE IS NO GENERAL CHECK ON THIS!
 !-----------------------------------------------------------------------------
 warming_Days(1)    = 0
+warming_Days(2)    = 150
 !> first year of wanted simulation period
 eval_Per(1)%yStart = 1991
+eval_Per(2)%yStart = 1992
 !> first month of wanted simulation period
-eval_Per(1)%mStart = 03
+eval_Per(1)%mStart = 02
+eval_Per(2)%mStart = 05
 !> first day   of wanted simulation period
-eval_Per(1)%dStart = 21
+eval_Per(1)%dStart = 16
+eval_Per(2)%dStart = 25
 !> last year   of wanted simulation period
 eval_Per(1)%yEnd   = 1992
+eval_Per(2)%yEnd   = 1993
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd   = 08
+eval_Per(2)%mEnd   = 11
 !> last day    of wanted simulation period
 eval_Per(1)%dEnd   = 28
+eval_Per(2)%dEnd   = 09
 !> switch to control read input frequency of the gridded meteo input, 
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -182,6 +206,7 @@ eval_Per(1)%dEnd   = 28
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
 time_step_model_inputs(1) = 0
+time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
@@ -231,7 +256,7 @@ LCoverfName(3)     = 'lc_1990.asc'
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal = 2
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -244,6 +269,13 @@ NoGauges_basin(1)   = 1
 Gauge_id(1,1)       = 398
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
 gauge_filename(1,1) = "00398.txt"
+!> basin 2
+!> number of gauges for subbasin (1)
+NoGauges_basin(2)   = 1
+!> id of gauge(1) for subbasin(1) --> (1,1) 
+Gauge_id(2,1)       = 398
+!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
+gauge_filename(2,1) = "00398.txt"
 /
 
 &inflow_gauges

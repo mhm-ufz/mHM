@@ -1877,8 +1877,7 @@ CONTAINS
 subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
 
 #ifdef mrm2mhm
-  use mo_global_variables_routing, only: gauge, nMeasPerDay
-  use mo_global_variables, only: evalPer, warmingDays, nTstepDay
+  use mo_global_variables_routing, only: gauge, nMeasPerDay, evalPer, warmingDays, nTstepDay
   use mo_message,          only: message
   use mo_utils,            only: ge
 #endif  

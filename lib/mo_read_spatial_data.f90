@@ -310,12 +310,12 @@ CONTAINS
   !         None
 
   !     INTENT(OUT)
-  !>        \param[in] "integer(i4)      :: header_ncols"      Reference number of columns 
-  !>        \param[in] "integer(i4)      :: header_nrows"      Reference number of rows
-  !>        \param[in] "real(dp)         :: header_xllcorner"  Reference lower left corner (x)
-  !>        \param[in] "real(dp)         :: header_yllcorner"  Reference lower left corner (y)
-  !>        \param[in] "integer(i4)      :: header_cellsize"   Reference cell size [m]
-  !>        \param[in] "real(dp)         :: header_nodata"     Reference nodata value
+  !>        \param[out] "integer(i4)      :: header_ncols"      Reference number of columns 
+  !>        \param[out] "integer(i4)      :: header_nrows"      Reference number of rows
+  !>        \param[out] "real(dp)         :: header_xllcorner"  Reference lower left corner (x)
+  !>        \param[out] "real(dp)         :: header_yllcorner"  Reference lower left corner (y)
+  !>        \param[out] "integer(i4)      :: header_cellsize"   Reference cell size [m]
+  !>        \param[out] "real(dp)         :: header_nodata"     Reference nodata value
 
   !     INTENT(IN), OPTIONAL
   !         None

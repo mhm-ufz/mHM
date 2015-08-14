@@ -103,6 +103,11 @@ module mo_global_variables_routing
   type(gridGeoRef), public :: level110 ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
 
   ! -----------------------------------------------------------------
+  ! RUNOFF variable
+  ! -----------------------------------------------------------------
+  real(dp), dimension(:,:), allocatable :: mRM_runoff ! variable containing runoff for each basin and gauge
+  
+  ! -----------------------------------------------------------------
   ! GAUGED station data
   ! -----------------------------------------------------------------
   integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all basins 
@@ -179,7 +184,7 @@ module mo_global_variables_routing
      integer(i4), dimension(:), allocatable :: L0_iEnd        ! Ending cell index of a given basin at L0
      integer(i4), dimension(:), allocatable :: L0_iStartMask  ! Starting cell index of mask a given basin at L0
      integer(i4), dimension(:), allocatable :: L0_iEndMask    ! Ending cell index of mask a given basin at L0
-     logical,     dimension(:), allocatable :: L0_mask        ! Mask of level0 based on DEM
+     logical,     dimension(:), pointer     :: L0_mask        ! Mask of level0 based on DEM
 
      integer(i4), dimension(:), allocatable :: L1_iStart      ! Starting cell index of a given basin at L1
      integer(i4), dimension(:), allocatable :: L1_iEnd        ! Ending cell index of a given basin at L1
@@ -198,25 +203,28 @@ module mo_global_variables_routing
      integer(i4), dimension(:), allocatable :: L110_iEnd      ! Ending cell index of L0_floodPlain 
      !                                                        ! at a given basin at L110   = node
 
-     Integer(i4), dimension(:), allocatable :: L2_iStart      ! Starting cell index of a given basin at L2
-     integer(i4), dimension(:), allocatable :: L2_iEnd        ! Ending cell index of a given basin at L2
-     integer(i4), dimension(:), allocatable :: L2_iStartMask  ! Starting cell index of mask a given basin at L2
-     integer(i4), dimension(:), allocatable :: L2_iEndMask    ! Ending cell index of mask a given basin at L2
-     logical,     dimension(:), allocatable :: L2_mask        ! Mask of level2
+     ! Integer(i4), dimension(:), allocatable :: L2_iStart      ! Starting cell index of a given basin at L2
+     ! integer(i4), dimension(:), allocatable :: L2_iEnd        ! Ending cell index of a given basin at L2
+     ! integer(i4), dimension(:), allocatable :: L2_iStartMask  ! Starting cell index of mask a given basin at L2
+     ! integer(i4), dimension(:), allocatable :: L2_iEndMask    ! Ending cell index of mask a given basin at L2
+     ! logical,     dimension(:), allocatable :: L2_mask        ! Mask of level2
 
   end type basinInfo
   type(basinInfo), public :: basin_mrm ! Basin structure
+  logical, dimension(:), allocatable, target :: L0_mask_mRM ! global target variable in case mRM is not used to mHM
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain> 
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells
   ! input data - morphological variables
-  real(dp), public, dimension(:), allocatable :: L0_elev ! [m] Elevation (sinks removed)   
+  real(dp), public, dimension(:), allocatable, target  :: L0_elev_read ! only read if not coupled to mhm
+  real(dp), public, dimension(:), pointer :: L0_elev_mRM ! [m] Elevation (sinks removed) variable used for routing
   integer(i4), public, dimension(:), allocatable :: L0_fAcc ! Flow accumulation
   integer(i4), public, dimension(:), allocatable :: L0_fDir ! Flow direction (standard ArcGIS)
-  integer(i4), public, dimension(:,:), allocatable :: L0_LCover ! Normal  landcover id (upto 3 classes) 
+  integer(i4), public, dimension(:,:), pointer :: L0_LCover_mRM ! Normal  landcover id (upto 3 classes) 
   !                                                             ! dim1=number grid cells, dim2=Number of land cover scenes
+  integer(i4), public, dimension(:,:), allocatable, target :: L0_LCover_read ! read variable if not coupled to mhm
 
   integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor ! Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:), allocatable :: L0_Id ! Level-0 id
@@ -236,23 +244,6 @@ module mo_global_variables_routing
   integer(i4), public, dimension(:), allocatable   :: L0_streamNet  !      Stream network
   integer(i4), public, dimension(:), allocatable   :: L0_floodPlain !      Floodplains of stream i
 
-  
-  ! -------------------------------------------------------------------
-  ! L0 BASIN help variables
-  ! -------------------------------------------------------------------
-  ! dim1 = number of Basins
-  integer(i4), dimension(:), allocatable :: L0_nNodes ! number of nodes at L0 scale per basin
-  integer(i4), dimension(:), allocatable :: L0_s      ! start index of 1d arrays per basin
-  integer(i4), dimension(:), allocatable :: L0_e      ! end index of 1d arrays per basin
-
-  ! -------------------------------------------------------------------
-  ! L1 BASIN help variables
-  ! -------------------------------------------------------------------
-  ! dim1 = number of Basins
-  integer(i4), dimension(:), allocatable :: L1_nNodes ! number of nodes at L1 scale per basin
-  integer(i4), dimension(:), allocatable :: L1_s      ! start index of 1d arrays per basin
-  integer(i4), dimension(:), allocatable :: L1_e      ! end index of 1d arrays per basin
-
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------
@@ -260,21 +251,6 @@ module mo_global_variables_routing
   integer(i4), public, dimension(:), allocatable :: L1_L11_Id ! Mapping of L11 Id on L1
   real(dp),    public, dimension(:), allocatable :: L1_areaCell ! [km2] Effective area of cell at this level
 
-  ! -------------------------------------------------------------------
-  ! L110 BASIN help variables
-  ! -------------------------------------------------------------------
-  ! dim1 = number of Basins
-  integer(i4), dimension(:), allocatable :: L110_s ! start index of 1d arrays per basin
-  integer(i4), dimension(:), allocatable :: L110_e ! end index of 1d arrays per basin
-
-  ! -------------------------------------------------------------------
-  ! L11 BASIN help variables
-  ! -------------------------------------------------------------------
-  ! dim1 = number of Basins
-  integer(i4), dimension(:), allocatable :: L11_nNodes ! number of nodes at L11 scale per basin
-  integer(i4), dimension(:), allocatable :: L11_s      ! start index of 1d arrays per basin
-  integer(i4), dimension(:), allocatable :: L11_e      ! end index of 1d arrays per basin
-  
   ! -------------------------------------------------------------------
   ! L11 DOMAIN description
   ! -------------------------------------------------------------------
