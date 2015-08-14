@@ -154,7 +154,7 @@ CONTAINS
          mRM_runoff
          ! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
-    use mo_routing, only: mrm_routing
+    use mo_mrm_routing, only: mrm_routing
 #endif
     
     implicit none

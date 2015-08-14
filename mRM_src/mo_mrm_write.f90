@@ -1,21 +1,80 @@
-module mo_write_routing
+!> \file mo_mrm_write.f90
+
+!> \brief write of discharge and restart files
+
+!> \details This module contains the subroutines for
+!> writing the discharge files and optionally the restart
+!> files.
+
+!> \author Stephan Thober
+!> \date Aug 2015
+module mo_mrm_write
 
   use mo_kind, only: i4, dp
   
   implicit none
 
-  public :: write_routing
+  public :: mrm_write
+  private
 
 contains
 
-  subroutine write_routing()
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         mrm_write
+
+  !     PURPOSE
+  !>        \brief write discharge and restart files
+  !
+  !>        \details First, this subroutine calls the writing or restart files that only
+  !>        succeeds if it happens after the write of mHM restart files because
+  !>        mHM restart files must exist. Second, simulated discharge is aggregated to the daily
+  !>        scale and then written to file jointly with observed discharge
+  !
+  !     INTENT(IN)
+  !         None
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
+
+  subroutine mrm_write()
     
     use mo_global_variables_routing, only: &
          mRM_runoff, &
          gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
          ntstepday, write_restart, dirRestartOut, &
          nMeasPerDay, optimize
-    use mo_restart_routing,  only: write_restart_routing
+    use mo_mrm_restart,  only: mrm_write_restart
 
     implicit none
     
@@ -38,7 +97,7 @@ contains
     ! --------------------------------------------------------------------------
     if (write_restart) then
        do iBasin = 1, nBasins
-          call write_restart_routing(iBasin, dirRestartOut)
+          call mrm_write_restart(iBasin, dirRestartOut)
        end do
     end if
     
@@ -75,7 +134,7 @@ contains
     call write_daily_obs_sim_discharge( gauge%Q(:,:), d_Qmod(:,:) )
     ! free space
     deallocate(d_Qmod)        
-  end subroutine write_routing
+  end subroutine mrm_write
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -215,4 +274,4 @@ contains
     !
   end subroutine write_daily_obs_sim_discharge
 
-end module mo_write_routing
+end module mo_mrm_write

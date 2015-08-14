@@ -1,14 +1,69 @@
-module mo_read_data_routing
+!> \file mo_mrm_read_data.f90
+
+!> \brief This module contains all routines to read mRM data from file.
+
+!> \details 
+
+!> \authors Stephan Thober
+!> \date Aug 2015
+
+module mo_mrm_read_data
   use mo_kind, only: i4, dp
   implicit none
-  public :: read_discharge_data
-  public :: read_L0_data_routing
-  public :: L1_variable_init_routing
-  public :: L0_variable_init_routing
-  private :: rotate_fdir_variable
+  public :: mrm_read_L0_data
+  public :: mrm_L1_variable_init
+  public :: mrm_L0_variable_init
+  public :: mrm_read_discharge
+  private
 contains
   
-  subroutine read_L0_data_routing()
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         mrm_read_L0_data
+
+  !     PURPOSE
+  !>        \brief read L0 data from file
+  !
+  !>        \details With the exception of L0_mask, L0_elev, and L0_LCover, all
+  !>        L0 variables are read from file. The former three are only read if mRM
+  !>        is not coupled to mHM, otherwise a pointer is set to the mHM variable.
+  !
+  !     INTENT(IN)
+  !         None
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !>        None
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
+  subroutine mrm_read_L0_data()
     use mo_mrm_constants, only: nodata_i4, nodata_dp ! mRM's global nodata vales
     use mo_append, only: append, paste
     use mo_string_utils, only: num2str
@@ -21,7 +76,7 @@ contains
          file_dem, udem, &
          uLCoverClass
     use mo_global_variables_routing, only: &
-         coupling_mode, &
+         mrm_coupling_mode, &
          nBasins, &
          perform_mpr, &
          nLCoverScene, &
@@ -101,7 +156,7 @@ contains
 
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
-       if (coupling_mode .ne. 2) then
+       if (mrm_coupling_mode .ne. 2) then
           ! only read dem data if not coupled to mhm
           call read_spatial_data_ascii(trim(fName), udem, &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
@@ -163,7 +218,7 @@ contains
        ! Read L0 data, if restart is false
        read_L0_data: if ( perform_mpr ) then
           !
-          if (coupling_mode .ne. 2) then
+          if (mrm_coupling_mode .ne. 2) then
              ! put global nodata value into array (probably not all grid cells have values)
              data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
              ! put data in variable
@@ -247,7 +302,7 @@ contains
           end do
        end if read_L0_data
        !
-       if (coupling_mode .ne. 2) then
+       if (mrm_coupling_mode .ne. 2) then
           ! LCover read in is realized seperated because of unknown number of scenes
           do iVar = 1, nLCoverScene
              fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
@@ -275,7 +330,7 @@ contains
     ! ----------------------------------------------------------------
     ! assign pointers for L0 variables
     ! ----------------------------------------------------------------
-    if (coupling_mode .ne. 2) then
+    if (mrm_coupling_mode .ne. 2) then
        L0_elev_mRM => L0_elev_read
        L0_LCover_mRM => L0_LCover_read
        basin_mRM%L0_mask => L0_mask_mRM
@@ -288,16 +343,12 @@ contains
     end if
        
 
-  end subroutine read_L0_data_routing
-
-  ! ************************************************
-  ! INITIALIZE LEVEL0 INFORMATION
-  ! ************************************************
+  end subroutine mrm_read_L0_data
 
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          L0_variable_init_routing
+  !          mrm_L0_variable_init
 
   !>        \brief   level 0 variable initialization
 
@@ -350,11 +401,11 @@ contains
   !                                                   so that doubles get the same value
   !         Stephan Thober,                Aug 2015 - adapted for mRM
 
-  subroutine L0_variable_init_routing(iBasin)
+  subroutine mrm_L0_variable_init(iBasin)
     use mo_append,        only: append
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
     use mo_mrm_constants, only: nodata_i4, nodata_dp
-    use mo_tools, only: get_basin_info_mrm
+    use mo_mrm_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L0_areaCell,            &
          level0,                 &
@@ -446,15 +497,55 @@ contains
     ! free space
     deallocate(cellCoor, Id, areaCell, areaCell_2D, mask)
 
-  end subroutine L0_variable_init_routing
+  end subroutine mrm_L0_variable_init
 
-  ! ************************************************
-  ! INITIALIZE LEVEL1 INFORMATION
-  ! ************************************************
-  subroutine L1_variable_init_routing(iBasin)
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          mrm_L1_variable_init
+
+  !>        \brief   level 1 variable initialization
+
+  !>        \details mRM only requires to initialize L1_areaCell and
+  !>                 L1_mask
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author  Stephan Thober
+  !         \date    Aug 2015
+  subroutine mrm_L1_variable_init(iBasin)
     use mo_mrm_constants, only: nodata_dp
     use mo_append, only: append ! append vector
-    use mo_tools, only: get_basin_info_mrm, calculate_grid_properties
+    use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
     use mo_global_variables_routing, only: &
          level0, &
          resolutionHydrology, &
@@ -602,11 +693,53 @@ contains
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell )
 
-  end subroutine L1_variable_init_routing
-  ! ************************************************
-  ! READ DISCHARGE TIME SERIES
-  ! ************************************************
-  subroutine read_discharge_data()
+  end subroutine mrm_L1_variable_init
+
+    ! ------------------------------------------------------------------
+
+  !      NAME
+  !          mrm_read_discharge
+
+  !>        \brief Read discharge timeseries from file
+
+  !>        \details Read Observed discharge at the outlet of a catchment
+  !>        and at the inflow of a catchment. Allocate global runoff
+  !>        variable that contains the simulated runoff after the simulation.
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author  Stephan Thober
+  !         \date    Aug 2015
+  subroutine mrm_read_discharge()
     use mo_message, only: message
     use mo_append, only: paste
     use mo_string_utils, only: num2str
@@ -693,7 +826,7 @@ contains
        end do
     end if
 
-  end subroutine read_discharge_data
+  end subroutine mrm_read_discharge
   ! ------------------------------------------------------------------
   ! Rotate fdir variable to the new coordinate system
   ! L. Samaniego & R. Kumar
@@ -770,4 +903,4 @@ contains
 
 end subroutine rotate_fdir_variable
 
-end module mo_read_data_routing
+end module mo_mrm_read_data

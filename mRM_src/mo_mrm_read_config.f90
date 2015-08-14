@@ -1,34 +1,146 @@
-module mo_read_config_routing
+!> \file mo_read_config_routing.f90
+
+!> \brief read mRM config
+
+!> \details This module contains all mRM subroutines related to
+!> reading the mRM configuration either from file or copy from mHM.
+
+!> \authors Stephan Thober
+!> \date Aug 2015
+module mo_mrm_read_config
   use mo_kind, only : i4, dp
   implicit none
   public :: read_mrm_config_coupling
   public :: read_mrm_config
-  public :: read_routing_params
 contains
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         read_mrm_config_coupling
+
+  !     PURPOSE
+  !>        \brief Read the coupling mode of mRM
+  !
+  !>        \details Read the variable mrm_coupling_mode from coupling_config namelist
+  !>        There are three options:
+  !>        mrm_coupling_mode = 0 - Stand-alone version
+  !>                          = 1 - Coupled to a Hydrologic or land-surface model
+  !>                          = 2 - Coupled to mHM
+  !>
+  !>        The difference between the second and third option is the read of the configuration.
+  !>        The second option reads the configuration from mrm.nml and parameters from mrm_parameters.nml.
+  !>        The third option takes the configuration from mhm.nml and parameters from mhm_parameters.nml.
+  !
+  !     INTENT(IN)
+  !         None
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !>        \note No mrm_coupling_mode greater than 2 can be given.
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
+
   subroutine read_mrm_config_coupling()
+    use mo_message, only: message
     use mo_nml, only: open_nml, position_nml, close_nml
     use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm
-    use mo_global_variables_routing, only: coupling_mode
+    use mo_global_variables_routing, only: mrm_coupling_mode
     implicit none
-    namelist /coupling_config/ coupling_mode
+    namelist /coupling_config/ mrm_coupling_mode
     call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
     call position_nml('coupling_config', unamelist_mrm)
     read(unamelist_mrm, nml=coupling_config)
     call close_nml(unamelist_mrm)
     ! check whether coupling mode is specified correctly
-    if (coupling_mode .eq. 0) then
+    if (mrm_coupling_mode .eq. 0) then
        call message('***ERROR: coupling mode equals 0, but stand alone version is not yet implemented')
        stop
     end if
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifndef mrm2mhm
        call message('***ERROR: coupling mode equals 2, but mrm2mhm preprocessor flag is not set while compiling')
        stop
 #endif       
     end if
+    if (mrm_coupling_mode .gt. 2) then
+       call message('***ERROR: coupling mode greater than two is not yet provided')
+       stop
+    end if
   end subroutine read_mrm_config_coupling
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         read_mrm_config
+
+  !     PURPOSE
+  !>        \brief Read the general config of mRM
+  !
+  !>        \details Depending on the variable mrm_coupling_config, the
+  !>        mRM config is either read from mrm.nml and parameters from
+  !>        mrm_parameter.nml or copied from mHM.
+  !
+  !     INTENT(IN)
+  !         None
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
   subroutine read_mrm_config()
     use mo_julian, only: dec2date, date2dec
     use mo_message, only: message
@@ -81,7 +193,7 @@ contains
          mrm_global_parameters, &
          basin_mrm, &
          period, & ! structure for time periods
-         coupling_mode
+         mrm_coupling_mode
 #ifdef mrm2mhm
     use mo_file, only: file_namelist, unamelist, file_namelist_param
 #endif    
@@ -170,7 +282,7 @@ contains
     !===============================================================
     !  Read namelist specifying the model configuration
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm       
        call copy_main_config_from_mhm(timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
          L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
@@ -227,7 +339,7 @@ contains
     !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        call copy_time_periods_from_mhm(warming_Days, eval_Per, time_step_model_inputs)
 #endif       
@@ -289,7 +401,7 @@ contains
     !===============================================================
     !  Read namelist for mainpaths
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        call copy_directories_from_mhm(dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover, dir_Gauges,             &
@@ -311,7 +423,7 @@ contains
     !===============================================================
     ! Read land cover information
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        ! read namelist from mhm.nml
        call open_nml(file_namelist, unamelist, quiet=.true.)
@@ -327,7 +439,7 @@ contains
     !===============================================================
     ! READ EVALUATION GAUGES
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        ! read namelist from mhm.nml
        call open_nml(file_namelist, unamelist,  quiet=.true.)
@@ -412,7 +524,7 @@ contains
     InflowGauge_id       = nodata_i4
     InflowGauge_filename = num2str(nodata_i4)
 
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        ! read namelist from mhm.nml
        call open_nml(file_namelist, unamelist,  quiet=.true.)
@@ -610,12 +722,12 @@ contains
     !===============================================================
     ! Read namelist global parameters
     !===============================================================
-    call read_routing_params(1, para_file)
+    call read_mrm_routing_params(1, para_file)
 
     !===============================================================
     ! Settings for Optimization
     !===============================================================
-    if (coupling_mode .eq. 2) then
+    if (mrm_coupling_mode .eq. 2) then
 #ifdef mrm2mhm
        ! read namelist from mhm.nml
        call open_nml(file_namelist, unamelist,  quiet=.true.)
@@ -662,9 +774,9 @@ contains
   end subroutine read_mrm_config
   
   ! ---------------------------------------------------------------------------
-  ! SUBROUTINE READ_ROUTING_PARAMS
+  ! SUBROUTINE READ_MRM_ROUTING_PARAMS
   ! ---------------------------------------------------------------------------
-  subroutine read_routing_params(processCase, file_namelist)
+  subroutine read_mrm_routing_params(processCase, file_namelist)
     use mo_mrm_file, only: unamelist_param ! file containing parameter values
     use mo_append, only: append
     use mo_nml, only: open_nml, position_nml, close_nml
@@ -750,7 +862,7 @@ contains
 
     call close_nml(unamelist_param)
 
-  end subroutine read_routing_params
+  end subroutine read_mrm_routing_params
 
   ! --------------------------------------------------------------------------------
   ! private funtions and subroutines, DUPLICATED FROM mo_read_config.f90
@@ -877,4 +989,4 @@ contains
     dir_RestartIn_out(1:nBasins)  = dirRestartIn     
   end subroutine copy_directories_from_mhm
 #endif
-end module mo_read_config_routing
+end module mo_mrm_read_config

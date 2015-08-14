@@ -194,8 +194,8 @@ PROGRAM mhm_driver
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
 #ifdef mrm2mhm
-  USE mo_init_mrm,            ONLY : init_mRM
-  USE mo_write_routing,       only : write_routing
+  USE mo_mrm_init,            ONLY : mrm_init
+  USE mo_mrm_write,           only : mrm_write
 #endif  
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
@@ -365,7 +365,7 @@ PROGRAM mhm_driver
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) .eq. 1) then
-     call init_mRM()
+     call mrm_init()
   end if
 #endif  
 
@@ -555,7 +555,7 @@ PROGRAM mhm_driver
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0) call write_routing()
+  if (processMatrix(8, 1) .ne. 0) call mrm_write()
 #endif
 
 

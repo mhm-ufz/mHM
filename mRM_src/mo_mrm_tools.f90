@@ -1,7 +1,19 @@
-module mo_tools
+!> \file mo_mrm_tools.f90
+
+!> \brief Provide utility routines used within mRM.
+
+!> \details This module contains subroutines that are used frequently
+!> to obtain basin and grid properties.
+
+!> \author Luis Samaniego
+!> \date Dec 2012
+!  Modified
+!       Stephan Thober, Aug 2015 - adapted to mRM
+module mo_mrm_tools
   implicit none
   public :: get_basin_info_mrm
   public :: calculate_grid_properties
+  private
 contains
   ! ------------------------------------------------------------------
 
@@ -11,7 +23,7 @@ contains
   !>        \brief Get basic basin information (e.g., nrows, ncols, indices, mask)
   
   !>        \details Get basic basin information (e.g., nrows, ncols, indices, mask) for
-  !>                 different levels (L0, L1, L11, L110 and L2).
+  !>                 different levels (L0, L1, L11, and L110).
   !
   !     CALLING SEQUENCE
   !         call get_basin_info_mrm(iBasin, iLevel,nrows,ncols, ncells, iStart, iEnd, &
@@ -48,6 +60,7 @@ contains
   !     RETURN
 
   !     RESTRICTIONS
+  !>    \note This subroutine cannot be called for level 2, that does not exist within mRM.
 
   !     EXAMPLE
 
@@ -256,4 +269,4 @@ contains
 
   end subroutine calculate_grid_properties
   
-end module mo_tools
+end module mo_mrm_tools

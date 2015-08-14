@@ -1,7 +1,18 @@
-module mo_mpr_routing
+!> \file mo_mrm_mpr.f90
+
+!> \brief Perform Multiscale Parameter Regionalization on Routing Parameters
+
+!> \details This module contains the subroutine for calculating the regionalized
+!> routing parameters (beta-parameters) given the five global routing parameters
+!> (gamma) at the level 0 scale.
+
+!> \author Luis Samaniego, Stephan Thober
+!> \date Aug 2015
+module mo_mrm_mpr
   use mo_kind, only: dp
   implicit none
   public :: reg_rout
+  private
 contains
   
   ! ----------------------------------------------------------------------------
@@ -106,4 +117,4 @@ contains
     C2 = 1.0_dp - C1 * K / TS
 
   end subroutine reg_rout
-end module mo_mpr_routing
+end module mo_mrm_mpr

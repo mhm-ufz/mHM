@@ -1,4 +1,4 @@
-!> \file mo_routing.f90
+!> \file mo_mrm_routing.f90
 
 !> \brief Performs runoff routing for mHM at level L11.
 
@@ -8,8 +8,10 @@
 
 !> \author Luis Samaniego
 !> \date Dec 2012
+!  Modified
+!       Stephan Thober, Aug 2015 - adapted to mRM
 
-MODULE mo_routing
+MODULE mo_mrm_routing
 
   ! This module performs runoff flood routing for mHM.
 
@@ -22,18 +24,72 @@ MODULE mo_routing
   PRIVATE
 
   PUBLIC :: mRM_routing
-  PUBLIC :: L11_routing      ! route water
-  PUBLIC :: L11_runoff_acc   ! upscale runoff and add inflow gauge
 
   ! ------------------------------------------------------------------
 
 CONTAINS
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         mrm_routing
+
+  !     PURPOSE
+  !>        \brief route water given runoff
+  !
+  !>        \details This routine first performs mpr for the routing variables
+  !>        if required, then accumulates the runoff to the routing resolution
+  !>        and eventually routes the water in a third step. The last two steps
+  !>        are only carried out if the given timestep is within the simulation
+  !>        period of the routing.
+  !
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(5) :: global_routing_params - parameters"
+  !>        \param[in] "integer(i4) :: iBasin - Basin Id"
+  !>        \param[in] "real(dp), dimension(:) :: runoff - simulated runoff to route"
+  !>        \param[in] "integer(i4) :: iTS - current day index of given runoff"
+  !>        \param[in] "integer(i4) :: tt - current timestep index of given runoff"
+  !>        \param[in] "integer(i4) :: julStart - julian start date of given runoff"
+  !>        \param[in] "integer(i4) :: LCyearId - land cover year id of given runoff"
+  !>        \param[in] "integer(i4) :: StepDayMod - number of timesteps within one day of the given runoff"
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "logical, optional :: do_mpr_routing - indicate whether routing is to be performed"
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
+
   subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, tt, julStart, LCyearID, do_mpr_routing, &
        StepDayMod)
     use mo_mrm_constants, only: nodata_dp
-    use mo_init_mrm, only: L11_fraction_sealed_floodplain
-    use mo_mpr_routing, only: reg_rout
+    use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
+    use mo_mrm_mpr, only: reg_rout
     use mo_global_variables_routing, only: &
          mRM_runoff, &
          nBasins, &
@@ -513,4 +569,4 @@ CONTAINS
 
   END SUBROUTINE L11_runoff_acc
 
-END MODULE mo_routing
+END MODULE mo_mrm_routing

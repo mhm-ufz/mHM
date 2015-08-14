@@ -12,7 +12,7 @@ module mo_global_variables_routing
   ! -------------------------------------------------------------------
   ! General variables
   ! -------------------------------------------------------------------
-  integer(i4) :: coupling_mode ! 0 = stand alone
+  integer(i4) :: mrm_coupling_mode ! 0 = stand alone
   !                            ! 1 = general coupling to a model
   !                            ! 2 = specific coupling to mhm
   logical :: is_start ! flag for first timestep

@@ -1,24 +1,33 @@
-module mo_restart_routing
+!> \file mo_mrm_restart.f90
+
+!> \brief Restart routines
+
+!> \details This module contains the subroutines for reading and writing
+!> routing related variables to file.
+
+!> \authors Stephan Thober
+!> \date Aug 2015
+module mo_mrm_restart
   use mo_kind, only: i4, dp
   implicit none
-  public :: read_restart_routing
-  public :: write_restart_routing
-  public :: read_restart_L11_config
-  public :: read_restart_config_routing
+  public :: mrm_read_restart
+  public :: mrm_write_restart
+  public :: mrm_read_restart_L11_config
+  public :: mrm_read_restart_config
 contains
   ! ------------------------------------------------------------------
 
   !      NAME
-  !         read_restart_config_routing
+  !         mrm_read_restart_config
 
   !     PURPOSE
-  !>        \brief reads configuration apart from Level 11 configuration
-  !>        from a restart directory
+  !>        \brief reads level 0 and level 1 configuration relevant for
+  !>        routing from a restart directory
 
   !>        \details read configuration variables from a given restart
   !>        directory and initializes all configuration variables,
-  !>        that are initialized in the subroutine L0_variable_init_routing
-  !>        and L1_variable_init_routing contained in module mo_init_mRM.
+  !>        that are initialized in the subroutine mrm_L0_variable_init
+  !>        and mrm_L1_variable_init contained in module mo_mrm_init.
   !>        Adapted from read_restart_config in mo_restart of mHM.
 
   !     INTENT(IN)
@@ -54,9 +63,9 @@ contains
 
   !     HISTORY
   !>        \author Stephan Thober
-  !>        \date Apr 2013
+  !>        \date Aug 2015
 
-  subroutine read_restart_config_routing(iBasin, InPath)
+  subroutine mrm_read_restart_config(iBasin, InPath)
     
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -64,7 +73,7 @@ contains
     use mo_append,           only: append
     use mo_ncread,           only: Get_NcVar
     use mo_mrm_constants,    only: nodata_dp
-    use mo_tools,            only: calculate_grid_properties, get_basin_info_mrm
+    use mo_mrm_tools,            only: calculate_grid_properties, get_basin_info_mrm
     use mo_global_variables_routing, only: L0_Basin, & ! check whether L0_Basin should be read
          perform_mpr,    & ! switch that controls whether mpr is performed or not
          L0_cellCoor   , & 
@@ -217,14 +226,60 @@ contains
     call Get_NcVar( Fname, 'L1_areaCell', dummyD2 )
     call append( L1_areaCell     , pack( dummyD2, mask1)   )
 
-  end subroutine read_restart_config_routing
+  end subroutine mrm_read_restart_config
   
-  subroutine write_restart_routing(iBasin, OutPath)
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !         mrm_write_restart
+
+  !     PURPOSE
+  !>        \brief write routing states and configuration
+
+  !>        \details write configuration and state variables to a given restart
+  !>        directory.
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
+  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+
+  !     RESTRICTIONS 
+  !>        \note can only be used after mHM write_restart has been called because
+  !>        state variables are added to the file containing the state variables of mHM.
+  !>        This file must exist.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
     use mo_ncwrite, only: var2nc
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
-    use mo_tools, only: get_basin_info_mrm
+    use mo_mrm_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          basin_mrm, &
          L11_Qmod, &
@@ -536,14 +591,61 @@ contains
     ! free dummy variables
     deallocate( dummy_d3 )
 
-  end subroutine write_restart_routing
+  end subroutine mrm_write_restart
   !
-  subroutine read_restart_routing(iBasin, dirRestart)
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !         mrm_read_restart
+
+  !     PURPOSE
+  !>        \brief read routing states
+
+  !>        \details read state variables from a given restart
+  !>        directory and initializes all configuration variables,
+  !>        that are initialized in the subroutine L11_variable_init
+  !>        Adapted from read_restart in mo_restart of mHM.
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
+  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+
+  !     RESTRICTIONS 
+  !>        \note Restart Files must have the format, as if
+  !>        it would have been written by subroutine write_restart_files
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  subroutine mrm_read_restart(iBasin, dirRestart)
     use mo_message, only: message
     use mo_ncread, only: Get_NcVar
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates
-    use mo_tools, only: get_basin_info_mrm
+    use mo_mrm_tools, only: get_basin_info_mrm
     use mo_global_variables_routing, only: &
          L11_Qmod, &
          L11_Qout, &
@@ -632,18 +734,18 @@ contains
     ! free memory
     deallocate( dummyD2, dummyD3 )
     
-  end subroutine read_restart_routing
+  end subroutine mrm_read_restart
   ! ------------------------------------------------------------------
 
   !      NAME
-  !         read_restart_L11_config
+  !         mrm_read_restart_L11_config
 
   !     PURPOSE
   !>        \brief reads Level 11 configuration from a restart directory
 
   !>        \details read Level 11 configuration variables from a given restart
   !>        directory and initializes all Level 11 configuration variables,
-  !>        that are initialized in the subroutine initialise,
+  !>        that are initialized in L11_variable_init,
   !>        contained in module mo_startup.
 
   !     INTENT(IN)
@@ -682,8 +784,8 @@ contains
   !>        \date     Apr 2013
 
   !         Modified  Matthias Zink , Apr 2014 - added inflow gauge
-
-  subroutine read_restart_L11_config( iBasin, InPath )
+  !                   Stephan Thober, Aug 2015 - adapted for mRM
+  subroutine mrm_read_restart_L11_config( iBasin, InPath )
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
@@ -730,7 +832,7 @@ contains
          L11_length,        &
          L11_aFloodPlain,   &
          L11_slope
-    use mo_tools, only: get_basin_info_mrm, calculate_grid_properties
+    use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
 
     implicit none
 
@@ -1017,5 +1119,5 @@ contains
     call append( L11_slope, dummyD1 )
     deallocate( dummyD1 )
 
-  end subroutine read_restart_L11_config
-end module mo_restart_routing
+  end subroutine mrm_read_restart_L11_config
+end module mo_mrm_restart
