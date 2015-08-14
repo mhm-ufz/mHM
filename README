@@ -7,18 +7,6 @@ TODOS
   L1_areaCell are should be moved to the restart of mRM)
 - openMP not running  
 
-
-Documentation done for following files:
-mo_mrm_read_config.f90
-mo_mrm_net_startup.f90
-mo_mrm_init.f90
-mo_mrm_read_data.f90
-mo_mrm_restart.f90
-mo_mrm_routing.f90
-mo_mrm_mpr.f90
-mo_mrm_tools.f90
-mo_mrm_write.f90
-
 ------------------------------------------------------------
                          README
 ------------------------------------------------------------

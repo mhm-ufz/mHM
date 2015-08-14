@@ -90,7 +90,7 @@ CONTAINS
     use mo_mrm_constants, only: nodata_dp
     use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
     use mo_mrm_mpr, only: reg_rout
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          mRM_runoff, &
          nBasins, &
          simper, &

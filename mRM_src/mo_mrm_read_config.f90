@@ -71,7 +71,7 @@ contains
     use mo_message, only: message
     use mo_nml, only: open_nml, position_nml, close_nml
     use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm
-    use mo_global_variables_routing, only: mrm_coupling_mode
+    use mo_mrm_global_variables, only: mrm_coupling_mode
     implicit none
     namelist /coupling_config/ mrm_coupling_mode
     call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
@@ -151,7 +151,7 @@ contains
          maxNoBasins ! maximum number of allowed basins
     use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm
     use mo_string_utils, only: num2str
-    use mo_global_variables_routing, only : &
+    use mo_mrm_global_variables, only : &
          nTstepDay, & ! # of time steps per day
          timestep, & ! timestep of routing [h]
          iFlag_cordinate_sys, & ! model run cordinate system
@@ -782,7 +782,7 @@ contains
     use mo_nml, only: open_nml, position_nml, close_nml
     use mo_message, only: message
     use mo_mrm_constants, only: nColPars ! number of properties of the global variables
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          mrm_global_parameters, &
          mrm_global_parameters_name
 #ifdef mrm2mhm    
@@ -930,7 +930,7 @@ contains
   ! subroutine for copying time periods from mhm
   ! --------------------------------------------------------------------------------
   subroutine copy_time_periods_from_mhm(warming_Days_out, eval_Per_out, time_step_model_inputs_out)
-    use mo_global_variables_routing, only: period
+    use mo_mrm_global_variables, only: period
     use mo_global_variables, only: &
          nBasins, warmingDays, evalPer, timestep_model_inputs
     implicit none

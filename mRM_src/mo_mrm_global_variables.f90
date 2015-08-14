@@ -1,9 +1,12 @@
-!> \file mo_global_variables_routing.f90
-!> \brief Global variables for routing ONLY used in reading, writing and startup.
+!> \file mo_mrm_global_variables.f90
+
+!> \brief Global variables for mRM only
+
 !> \details 
+
 !> \authors Stephan Thober
 !> \date Aug 2015
-module mo_global_variables_routing
+module mo_mrm_global_variables
   use mo_kind, only: i4, i8, dp
   implicit none
   ! Types have to be public
@@ -313,4 +316,4 @@ module mo_global_variables_routing
   real(dp), public, dimension(:), allocatable     :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
   real(dp), public, dimension(:), allocatable     :: L11_C2          ! [-]     Routing parameter C2 (")
 
-end module mo_global_variables_routing
+end module mo_mrm_global_variables

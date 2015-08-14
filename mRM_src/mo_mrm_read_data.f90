@@ -75,7 +75,7 @@ contains
          file_gaugeloc, ugaugeloc, & ! file name and unit of gauge locations m
          file_dem, udem, &
          uLCoverClass
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          mrm_coupling_mode, &
          nBasins, &
          perform_mpr, &
@@ -406,7 +406,7 @@ contains
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
     use mo_mrm_constants, only: nodata_i4, nodata_dp
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          L0_areaCell,            &
          level0,                 &
          L0_cellCoor, &
@@ -546,7 +546,7 @@ contains
     use mo_mrm_constants, only: nodata_dp
     use mo_append, only: append ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          level0, &
          resolutionHydrology, &
          L0_areaCell, &
@@ -746,7 +746,7 @@ contains
     use mo_read_timeseries, only: read_timeseries
     use mo_file, only: udischarge
     use mo_mrm_constants, only: nodata_dp
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          nBasins, &
          mRM_runoff, & ! variable storing runoff for each gauge
          nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information

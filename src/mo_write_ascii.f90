@@ -119,7 +119,7 @@ CONTAINS
          LCyearId,                  &
          LCfilename
 #ifdef mrm2mhm    
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          basin_mrm,                 &
          gauge,                     &
          InflowGauge,               &

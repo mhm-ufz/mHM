@@ -74,7 +74,7 @@ contains
     use mo_ncread,           only: Get_NcVar
     use mo_mrm_constants,    only: nodata_dp
     use mo_mrm_tools,            only: calculate_grid_properties, get_basin_info_mrm
-    use mo_global_variables_routing, only: L0_Basin, & ! check whether L0_Basin should be read
+    use mo_mrm_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
          perform_mpr,    & ! switch that controls whether mpr is performed or not
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
@@ -280,7 +280,7 @@ contains
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          basin_mrm, &
          L11_Qmod, &
          L11_qOUT, &
@@ -646,7 +646,7 @@ contains
     use mo_string_utils, only: num2str
     use mo_mrm_constants, only: nRoutingStates
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          L11_Qmod, &
          L11_Qout, &
          L11_qTIN, &
@@ -794,7 +794,7 @@ contains
     use mo_append,           only: append
     use mo_ncread,           only: Get_NcVar
     use mo_mrm_constants,    only: nodata_dp
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          nBasins,           & ! Number of Basins
          basin_mrm,         &
          resolutionRouting, &

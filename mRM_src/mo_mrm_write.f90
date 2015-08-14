@@ -69,7 +69,7 @@ contains
 
   subroutine mrm_write()
     
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          mRM_runoff, &
          gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
          ntstepday, write_restart, dirRestartOut, &
@@ -195,7 +195,7 @@ contains
     use mo_string_utils,        only: num2str
     use mo_utils,               only: ge
     use mo_mrm_file,            only: file_daily_discharge, udaily_discharge
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          nBasins, &
          basin_mrm, &
           dirOut, evalPer, &

@@ -18,7 +18,7 @@
 !>                              2 = copy config from mhm to mrm internally (ignores mrm.nml and mrm_parameter.nml)
 !-----------------------------------------------------------------------------
 &coupling_config
-coupling_mode = 1
+mrm_coupling_mode = 1
 /
 !
 !

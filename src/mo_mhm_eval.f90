@@ -143,7 +143,7 @@ CONTAINS
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
 #ifdef mrm2mhm
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          basin_mrm, &
          ! InflowGauge, &
          ! L11_netPerm, L11_fromN, L11_toN, & 

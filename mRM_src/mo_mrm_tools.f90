@@ -76,7 +76,7 @@ contains
                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
     use mo_kind, only: i4, dp
     use mo_message, only: message
-    use mo_global_variables_routing, only: level0, level1, level11, basin_mrm
+    use mo_mrm_global_variables, only: level0, level1, level11, basin_mrm
     implicit none
 
     integer(i4), intent(in)                                      :: iBasin

@@ -77,7 +77,7 @@ CONTAINS
          mrm_L0_variable_init
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_restart, only: mrm_read_restart_L11_config, mrm_read_restart, mrm_read_restart_config
-    use mo_global_variables_routing, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
+    use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
          mrm_coupling_mode
     use mo_mrm_net_startup, only: &
          L11_variable_init, &
@@ -235,11 +235,6 @@ CONTAINS
     call message('     ',trim(file_namelist_param_mrm))
     call message()
 
-    !$OMP PARALLEL
-    !$ n_threads = OMP_GET_NUM_THREADS()
-    !$OMP END PARALLEL
-    !$ call message('Run with OpenMP with ', trim(num2str(n_threads)), ' threads.')
-
   end subroutine print_startup_message
 
   !---------------------------------------------------------------
@@ -251,7 +246,7 @@ CONTAINS
     use mo_mrm_file, only: &
          file_namelist_mrm, &
          file_namelist_param_mrm
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          dirMorpho, &
          dirLCover, &
          dirGauges, &
@@ -345,7 +340,7 @@ CONTAINS
   !         Modified
 
   subroutine variables_default_init_routing()
-    use mo_global_variables_routing, only: &
+    use mo_mrm_global_variables, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
          L11_FracFPimp
     use mo_mrm_constants,    only:               &
@@ -383,7 +378,7 @@ CONTAINS
     use mo_mrm_constants,    only: nRoutingStates
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_global_variables_routing, only: L11_Qmod, L11_qOUT, L11_qTIN, &
+    use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
          L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
     implicit none
     ! input variables
@@ -449,7 +444,7 @@ CONTAINS
   subroutine L0_check_input_routing(iBasin)
     use mo_message, only: message, message_text
     use mo_string_utils, only: num2str
-    use mo_global_variables_routing, only: L0_fDir, L0_fAcc, basin_mrm
+    use mo_mrm_global_variables, only: L0_fDir, L0_fAcc, basin_mrm
     implicit none
     ! input variables
     integer(i4) :: iBasin
