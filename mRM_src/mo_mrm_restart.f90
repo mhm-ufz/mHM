@@ -75,7 +75,6 @@ contains
     use mo_mrm_constants,    only: nodata_dp
     use mo_mrm_tools,            only: calculate_grid_properties, get_basin_info_mrm
     use mo_mrm_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
-         perform_mpr,    & ! switch that controls whether mpr is performed or not
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          basin_mrm, & 
@@ -103,7 +102,6 @@ contains
     real(dp)                                             :: cellsize0
     !
     ! Dummy Variables
-    integer(i4)                                          :: ii
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 

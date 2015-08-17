@@ -144,16 +144,13 @@ CONTAINS
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
 #ifdef mrm2mhm
     use mo_mrm_global_variables, only: &
-         basin_mrm, &
          ! InflowGauge, &
          ! L11_netPerm, L11_fromN, L11_toN, & 
          ! L11_length, L11_slope, L11_aFloodPlain, &
          ! L0_floodPlain, L1_L11_Id, &
-         nGaugesTotal, &
-         L11_Qmod, &
-         mRM_runoff
          ! , L11_qOUT, L11_qTIN, &
          ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
+         mRM_runoff
     use mo_mrm_routing, only: mrm_routing
 #endif
     
@@ -193,8 +190,7 @@ CONTAINS
     !
     ! counters and indexes
     integer(i4)                               :: nTimeSteps
-    integer(i4)                               :: maxTimeSteps
-    integer(i4)                               :: ii, tt, gg, ll   ! Counters
+    integer(i4)                               :: ii, tt, ll   ! Counters
     integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
@@ -222,8 +218,10 @@ CONTAINS
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
     !
+#ifdef mrm2mhm    
     ! for routing
     logical                                   :: do_mpr
+#endif    
     !
     ! LAI options
     integer(i4)                               :: day_counter
@@ -678,25 +676,6 @@ CONTAINS
                 !
              end if
           end if ! <-- if (.not. optimize)
-
-! #ifdef mrm2mhm          
-!           !----------------------------------------------------------------------
-!           ! FOR STORING the optional arguments
-!           ! 
-!           ! FOR RUNOFF
-!           ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
-!           !        index in runoff. In consequence the gauges in runoff are 
-!           !        ordered corresponing to gauge%Q(:,:)
-!           !----------------------------------------------------------------------
-!           if( present(runoff) ) then
-!              do gg = 1, basin_mrm%nGauges(ii)
-!                 ! runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod( basin_mrm%gaugeNodeList(ii,gg) + s11 - 1 )
-!                 runoff(tt,basin_mrm%gaugeIndexList(ii,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(ii,gg) + &
-!                      basin_mrm%L11_iStart(ii) - 1)
-!              end do
-!           end if
-! #endif     
-          
 
           !----------------------------------------------------------------------
           ! FOR SOIL MOISTURE

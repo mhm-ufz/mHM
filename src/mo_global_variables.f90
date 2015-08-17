@@ -273,24 +273,6 @@ MODULE mo_global_variables
   integer(i4), public                           :: nBasins            ! Number of basins for multi-basin optimization
   type basinInfo
      ! dim1 = basin id
-     ! dim2 = maximum number of gauges in a given basin
-     ! discharge measurement gauges
-     integer(i4), dimension(:),   allocatable   :: nGauges            ! Number of gauges within a basin
-     integer(i4), dimension(:,:), allocatable   :: gaugeIdList        ! Gauge Id list (e.g. 0000444 0000445)
-     integer(i4), dimension(:,:), allocatable   :: gaugeIndexList     ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
-     integer(i4), dimension(:,:), allocatable   :: gaugeNodeList      ! Gauge node list at L11
-
-     ! discharge inflow gauges (e.g if headwater bsins are missing)
-     integer(i4), dimension(:),   allocatable   :: nInflowGauges        ! Number of gauges within a basin
-     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIdList    ! Gauge Id list (e.g. 0000444 0000445)
-     integer(i4), dimension(:,:), allocatable   :: InflowGaugeIndexList ! Gauge index list (e.g. 1 for 00444, 2 for 00445)
-     integer(i4), dimension(:,:), allocatable   :: InflowGaugeNodeList  ! Gauge node list at L11
-     logical,     dimension(:,:), allocatable   :: InflowGaugeHeadwater ! if headwater cells of inflow gauge will be considered
-
-     ! basin outlet
-     integer(i4), dimension(:), allocatable     :: L0_rowOutlet       ! Outlet location in L0 
-     integer(i4), dimension(:), allocatable     :: L0_colOutlet       ! Outlet location in L0 
-
      ! for remapping                                                   
      integer(i4), dimension(:), allocatable     :: L0_iStart          ! Starting cell index of a given basin at L0
      integer(i4), dimension(:), allocatable     :: L0_iEnd            ! Ending cell index of a given basin at L0
@@ -303,17 +285,6 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L1_iStartMask      ! Starting cell index of mask a given basin at L1
      integer(i4), dimension(:), allocatable     :: L1_iEndMask        ! Ending cell index of mask a given basin at L1
      logical,     dimension(:), allocatable     :: L1_mask            ! Mask of level1
-
-     integer(i4), dimension(:), allocatable     :: L11_iStart         ! Sarting cell index of a given basin at L11 = node
-     integer(i4), dimension(:), allocatable     :: L11_iEnd           ! Ending cell index of a given basin at L11   = node
-     integer(i4), dimension(:), allocatable     :: L11_iStartMask     ! Starting cell index of mask a given basin at L11
-     integer(i4), dimension(:), allocatable     :: L11_iEndMask       ! Ending cell index of mask a given basin at L11
-     logical,     dimension(:), allocatable     :: L11_mask           ! Mask of level11
-
-     integer(i4), dimension(:), allocatable     :: L110_iStart        ! Sarting cell index of L0_floodPlain 
-     !                                                                ! at a given basin at L110 = node
-     integer(i4), dimension(:), allocatable     :: L110_iEnd          ! Ending cell index of L0_floodPlain 
-     !                                                                ! at a given basin at L110   = node
 
      Integer(i4), dimension(:), allocatable     :: L2_iStart          ! Starting cell index of a given basin at L2
      integer(i4), dimension(:), allocatable     :: L2_iEnd            ! Ending cell index of a given basin at L2

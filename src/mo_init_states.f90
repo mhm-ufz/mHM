@@ -584,7 +584,7 @@ CONTAINS
   !>        \brief Get basic basin information (e.g., nrows, ncols, indices, mask)
   
   !>        \details Get basic basin information (e.g., nrows, ncols, indices, mask) for
-  !>                 different levels (L0, L1, L11, L110 and L2).
+  !>                 different levels (L0, L1, and L2).
   !
   !     CALLING SEQUENCE
   !         call get_basin_info(iBasin, iLevel,nrows,ncols, ncells, iStart, iEnd, &
@@ -630,7 +630,7 @@ CONTAINS
   !         \authors  Rohini Kumar, Luis Samaniego
   !         \date     Jan 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
-  !                   Stephan Thober, Aug 2015 - moved level11 to mo_global_variables_routing
+  !                   Stephan Thober, Aug 2015 - moved L11 and L110 to mRM
 
   subroutine get_basin_info(iBasin, iLevel, nrows, ncols, ncells, iStart, iEnd, &
                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 

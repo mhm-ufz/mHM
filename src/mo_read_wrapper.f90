@@ -79,7 +79,7 @@ CONTAINS
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
   !                    Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
-  !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM_src folder
+  !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -119,7 +119,6 @@ CONTAINS
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
-                                     processMatrix,                       & ! identify activated processes
                                      perform_mpr,                         & ! flag indicating whether L0 is read
                                      !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
@@ -178,10 +177,6 @@ CONTAINS
     allocate(basin%L0_iStartMask(nBasins))
     allocate(basin%L0_iEndMask  (nBasins))
     !
-    ! allocate necessary variables at Level110
-    allocate(basin%L110_iStart    (nBasins))
-    allocate(basin%L110_iEnd      (nBasins))
-    !
     basins: do iBasin = 1, nBasins
        !
        ! Header (to check consistency)
@@ -204,15 +199,6 @@ CONTAINS
        call read_spatial_data_ascii(trim(fName), udem, &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
             level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
-       !
-       ! Saving indices at Level110 irrespective of whether L0_data is shared or not
-       if (iBasin .eq. 1) then
-          basin%L110_iStart(iBasin) = 1
-          basin%L110_iEnd  (iBasin) = basin%L110_iStart(iBasin) + count(mask_global) - 1
-        else
-          basin%L110_iStart(iBasin) = basin%L110_iEnd(iBasin-1) + 1
-          basin%L110_iEnd  (iBasin) = basin%L110_iStart(iBasin) + count(mask_global) - 1
-       end if
        !
        ! check whether L0 data is shared
        if (iBasin .gt. 1) then

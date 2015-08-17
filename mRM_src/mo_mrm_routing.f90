@@ -87,12 +87,10 @@ CONTAINS
 
   subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, tt, julStart, LCyearID, do_mpr_routing, &
        StepDayMod)
-    use mo_mrm_constants, only: nodata_dp
     use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
     use mo_mrm_mpr, only: reg_rout
     use mo_mrm_global_variables, only: &
          mRM_runoff, &
-         nBasins, &
          simper, &
          L0_LCover_mRM, &
          timeStep, &

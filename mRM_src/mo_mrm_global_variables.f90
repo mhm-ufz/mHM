@@ -18,7 +18,7 @@ module mo_mrm_global_variables
   integer(i4) :: mrm_coupling_mode ! 0 = stand alone
   !                            ! 1 = general coupling to a model
   !                            ! 2 = specific coupling to mhm
-  logical :: is_start ! flag for first timestep
+  logical :: is_start ! flag for first timestep for mpr
 
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mRM
@@ -205,13 +205,6 @@ module mo_mrm_global_variables
      !                                                        ! at a given basin at L110 = node
      integer(i4), dimension(:), allocatable :: L110_iEnd      ! Ending cell index of L0_floodPlain 
      !                                                        ! at a given basin at L110   = node
-
-     ! Integer(i4), dimension(:), allocatable :: L2_iStart      ! Starting cell index of a given basin at L2
-     ! integer(i4), dimension(:), allocatable :: L2_iEnd        ! Ending cell index of a given basin at L2
-     ! integer(i4), dimension(:), allocatable :: L2_iStartMask  ! Starting cell index of mask a given basin at L2
-     ! integer(i4), dimension(:), allocatable :: L2_iEndMask    ! Ending cell index of mask a given basin at L2
-     ! logical,     dimension(:), allocatable :: L2_mask        ! Mask of level2
-
   end type basinInfo
   type(basinInfo), public :: basin_mrm ! Basin structure
   logical, dimension(:), allocatable, target :: L0_mask_mRM ! global target variable in case mRM is not used to mHM
@@ -241,11 +234,11 @@ module mo_mrm_global_variables
   !
   ! mRM derived variables
   ! dim1 = number grid cells L0
-  integer(i4), public, dimension(:), allocatable   :: L0_draSC      !      Index of draining cell of each sub catchment 
-  !                                                                 !      i.e. a routing cell L11
-  integer(i4), public, dimension(:), allocatable   :: L0_draCell    !      Draining cell id at L11 of ith cell of L0
-  integer(i4), public, dimension(:), allocatable   :: L0_streamNet  !      Stream network
-  integer(i4), public, dimension(:), allocatable   :: L0_floodPlain !      Floodplains of stream i
+  integer(i4), public, dimension(:), allocatable :: L0_draSC      !      Index of draining cell of each sub catchment 
+  !                                                               !      i.e. a routing cell L11
+  integer(i4), public, dimension(:), allocatable :: L0_draCell    !      Draining cell id at L11 of ith cell of L0
+  integer(i4), public, dimension(:), allocatable :: L0_streamNet  !      Stream network
+  integer(i4), public, dimension(:), allocatable :: L0_floodPlain !      Floodplains of stream i
 
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
@@ -259,27 +252,27 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L11
   ! dim2 = 2
-  integer(i4), public                              :: L11_nCells        ! No. of routing cells  (= nSC = nNodes)
-  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor      ! Cell coordinates (row,col)
-  !                                                                     ! -> <only domain> Routing
-  integer(i4), public, dimension(:), allocatable   :: L11_Id            ! Ids of grid at level-11           
-  integer(i4), public, dimension(:), allocatable   :: L11_fDir          ! Flow direction (standard notation)
+  integer(i4), public :: L11_nCells ! No. of routing cells  (= nSC = nNodes)
+  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor ! Cell coordinates (row,col)
+  !                                                                ! -> <only domain> Routing
+  integer(i4), public, dimension(:), allocatable :: L11_Id ! Ids of grid at level-11           
+  integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
 
   ! Reference
   ! dim1 = number grid cells L11
-  integer(i4), public, dimension(:), allocatable   :: L11_upBound_L0    ! Row start at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_downBound_L0  ! Row end at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_leftBound_L0  ! Col start at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_rightBound_L0 ! Col end at finer level-0 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_upBound_L1    ! Row start at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_downBound_L1  ! Row end at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_leftBound_L1  ! Col start at finer level-1 scale 
-  integer(i4), public, dimension(:), allocatable   :: L11_rightBound_L1 ! Col end at finer level-1 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_upBound_L0    ! Row start at finer level-0 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_downBound_L0  ! Row end at finer level-0 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_leftBound_L0  ! Col start at finer level-0 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_rightBound_L0 ! Col end at finer level-0 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_upBound_L1    ! Row start at finer level-1 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_downBound_L1  ! Row end at finer level-1 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_leftBound_L1  ! Col start at finer level-1 scale 
+  integer(i4), public, dimension(:), allocatable :: L11_rightBound_L1 ! Col end at finer level-1 scale 
 
   ! Constants
   ! dim1 = number grid cells L11
-  integer(i4), public, dimension(:), allocatable   :: L11_rowOut        ! Grid vertical location of the Outlet
-  integer(i4), public, dimension(:), allocatable   :: L11_colOut        ! Grid horizontal location  of the Outlet
+  integer(i4), public, dimension(:), allocatable :: L11_rowOut ! Grid vertical location of the Outlet
+  integer(i4), public, dimension(:), allocatable :: L11_colOut ! Grid horizontal location  of the Outlet
 
   ! -------------------------------------------------------------------
   ! L11 NETWORK description

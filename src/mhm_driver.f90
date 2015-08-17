@@ -208,8 +208,6 @@ PROGRAM mhm_driver
   integer(i4)                           :: iTimer           ! Current timer number
   integer(i4)                           :: nTimeSteps
   real(dp)                              :: funcbest         ! best objective function achivied during optimization
-  ! model output
-  real(dp), allocatable, dimension(:,:) :: riverrun         ! simulated river runoff at all gauges, timepoints
   ! mcmc
   real(dp), dimension(:,:), allocatable :: burnin_paras     ! parameter sets sampled during burnin
   real(dp), dimension(:,:), allocatable :: mcmc_paras       ! parameter sets sampled during proper mcmc
