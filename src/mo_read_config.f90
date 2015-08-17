@@ -101,6 +101,7 @@ CONTAINS
   !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
   !                  Matthias Zink,  Mar  2015 - added optional soil moisture read in for calibration
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
+  !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
 
 
   subroutine read_config()
@@ -116,8 +117,7 @@ CONTAINS
          maxNoSoilHorizons,                                 & ! maximum number of allowed soil layers
          maxNoBasins,                                       & ! maximum number of allowed basins
          maxNLcovers,                                       & ! maximum number of allowed LCover scenes
-         maxGeoUnit,                                        & ! maximum number of allowed geological classes
-         maxNoGauges                                          ! maximum number of allowed gauges
+         maxGeoUnit                                           ! maximum number of allowed geological classes
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
@@ -127,9 +127,10 @@ CONTAINS
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
          timestep_model_inputs,                             & ! read input frequency
-         resolutionHydrology, resolutionRouting,            & ! resolutions of hydrology and routing
+         resolutionHydrology,                               & ! resolutions of hydrology
+         resolutionRouting,                                 & ! resolution of routing
          L0_Basin,                                          & ! L0_Basin ID
-         dirMorpho, dirLCover,                              & ! input directory of morphological
+         dirMorpho, dirLCover, dirGauges,                   & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
@@ -139,7 +140,6 @@ CONTAINS
          dirLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles,                                    & ! directory where common files are located
-         dirGauges,                                         & ! directory of gauge files
          dirOut,                                            & ! output directory basin wise
          dirRestartOut,                                     & ! output directory of restart file basin wise
          dirRestartIn,                                      & ! input directory of restart file basin wise
@@ -154,9 +154,9 @@ CONTAINS
          dds_r,                                             & ! DDS: perturbation rate
          sa_temp,                                           & ! SA: initial temperature
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
-                                !                                                    !      # points per subcomplex
+         !                                                    !      # points per subcomplex
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
-         fracSealed_cityArea, nLcover_scene,                & ! land cover information
+         fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
          nBasins,                                           & ! number of basins
          read_restart,                                      & ! flag reading restart
@@ -165,9 +165,6 @@ CONTAINS
          warmingDays, warmPer,                              & ! warming days and warming period
          evalPer, simPer,                                   & ! model eval. & sim. periods
                                 !                                                    ! (sim. = wrm. + eval.)
-         nGaugesTotal, gauge,                               & ! number of evaluation gauges and gauge informations
-         nInflowGaugesTotal, InflowGauge,                   & ! number of inflow gauges and gauge informations
-         basin,                                             & ! evaluation and inflow gauge information
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
@@ -186,8 +183,8 @@ CONTAINS
 
     ! LOCAL variables
     ! PARAMETERS
-    integer(i4), dimension(nProcesses)              :: processCase               ! Choosen process description number
-
+    integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
+    real(dp), dimension(5, nColPars)                :: dummy_2d_dp = nodata_dp ! space holder for routing parameters
     ! interception
     real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
@@ -243,12 +240,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rechargeCoefficient
     real(dp), dimension(nColPars)                   :: rechargeFactor_karstic
     real(dp), dimension(nColPars)                   :: gain_loss_GWreservoir_karstic
-    ! routing
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_constant
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverLength
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_riverSlope
-    real(dp), dimension(nColPars)                   :: muskingumTravelTime_impervious
-    real(dp), dimension(nColPars)                   :: muskingumAttenuation_riverSlope
+    ! routing moved to mRM
     ! neutrons
     real(dp), dimension(nColPars)                   :: Desilets_N0
     real(dp), dimension(nColPars)                   :: COSMIC_N0
@@ -286,9 +278,10 @@ CONTAINS
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
     !
-    integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart           ! starting year of LCover
-    integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd             ! ending year  of LCover
-    character(256), dimension(maxNLCovers)          :: LCoverfName               ! filename of Lcover file
+  integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover 
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearEnd   ! ending year LCover 
+  character(256), dimension(maxNLCovers)            :: LCoverfName     ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
     real(dp)                                        :: jday_frac
@@ -296,23 +289,14 @@ CONTAINS
     type(period),   dimension(maxNoBasins)          :: eval_Per
     integer(i4),    dimension(maxNoBasins)          :: time_step_model_inputs
     !
-    real(dp),    dimension(maxNoBasins)             :: resolution_Hydrology
-    real(dp),    dimension(maxNoBasins)             :: resolution_Routing
-    integer(i4),    dimension(maxNoBasins)          :: L0Basin
-    ! for gauge read in
-    integer(i4)                                        :: i_basin, i_gauge, idx
-    integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
-    integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
-    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
-    integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
-    logical,        dimension(maxNoBasins,maxNoGauges) :: InflowGauge_Headwater
-    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
-    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
+    real(dp), dimension(maxNoBasins)                :: resolution_Hydrology
+    real(dp), dimension(maxNoBasins)                :: resolution_Routing
+    integer(i4), dimension(maxNoBasins)             :: L0Basin
 
     ! define namelists
     ! namelist directories
     namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings, &
-         dir_Morpho,dir_LCover,dir_Gauges,dir_Precipitation,                         &
+         dir_Morpho, dir_LCover, dir_Gauges, dir_Precipitation,                      &
          dir_Temperature, dir_ReferenceET, dir_MinTemperature,                       &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
          dir_NetRadiation, dir_Out, dir_RestartOut,                                  &
@@ -337,11 +321,6 @@ CONTAINS
     namelist/nightDayRatio/fnight_prec,fnight_pet,fnight_temp
     ! namelsit process selection
     namelist /processSelection/ processCase
-    ! namelist for evaluation gauges
-    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
-    ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
-         InflowGauge_filename, InflowGauge_Headwater
     ! namelist parameters
     namelist /interception1/ canopyInterceptionFactor
     namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious, &
@@ -362,8 +341,6 @@ CONTAINS
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
          slowInterflowRecession_Ks, exponentSlowInterflow
     namelist /percolation1/ rechargeCoefficient, rechargeFactor_karstic, gain_loss_GWreservoir_karstic
-    namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, muskingumTravelTime_riverSlope, &
-         muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
     namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31
     !
     namelist /geoparameter/ GeoParam
@@ -389,26 +366,26 @@ CONTAINS
        stop
     end if
     ! allocate patharray sizes
-    allocate(resolutionHydrology (nBasins))
-    allocate(resolutionRouting   (nBasins))
-    allocate(L0_Basin            (nBasins))
-    allocate(dirMorpho           (nBasins))
-    allocate(dirLCover           (nBasins))
-    allocate(dirGauges           (nBasins))
-    allocate(dirPrecipitation    (nBasins))
-    allocate(dirTemperature      (nBasins))
-    allocate(dirwindspeed        (nBasins))
-    allocate(dirabsVapPressure   (nBasins))
-    allocate(dirReferenceET      (nBasins))
-    allocate(dirMinTemperature   (nBasins))
-    allocate(dirMaxTemperature   (nBasins))
-    allocate(dirNetRadiation     (nBasins))
-    allocate(dirOut              (nBasins))
-    allocate(dirRestartOut       (nBasins))
-    allocate(dirRestartIn        (nBasins))
-    allocate(dirLatLon           (nBasins))
-    allocate(dirgridded_LAI      (nBasins))
-    allocate(dirSoil_Moisture    (nBasins))
+    allocate(resolutionHydrology(nBasins))
+    allocate(resolutionRouting  (nBasins))
+    allocate(L0_Basin           (nBasins))
+    allocate(dirMorpho          (nBasins))
+    allocate(dirLCover          (nBasins))
+    allocate(dirGauges          (nBasins))
+    allocate(dirPrecipitation   (nBasins))
+    allocate(dirTemperature     (nBasins))
+    allocate(dirwindspeed       (nBasins))
+    allocate(dirabsVapPressure  (nBasins))
+    allocate(dirReferenceET     (nBasins))
+    allocate(dirMinTemperature  (nBasins))
+    allocate(dirMaxTemperature  (nBasins))
+    allocate(dirNetRadiation    (nBasins))
+    allocate(dirOut             (nBasins))
+    allocate(dirRestartOut      (nBasins))
+    allocate(dirRestartIn       (nBasins))
+    allocate(dirLatLon          (nBasins))
+    allocate(dirgridded_LAI     (nBasins))
+    allocate(dirSoil_Moisture   (nBasins))
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -428,20 +405,20 @@ CONTAINS
     end if
 
     ! allocate time periods
-    allocate(simPer                (nBasins))
-    allocate(evalPer               (nBasins))
-    allocate(warmingDays           (nBasins))
-    allocate(warmPer               (nBasins))
-    allocate(timestep_model_inputs (nBasins))
+    allocate(simPer(nBasins))
+    allocate(evalPer(nBasins))
+    allocate(warmingDays(nBasins))
+    allocate(warmPer(nBasins))
+    allocate(timestep_model_inputs(nBasins))
 
     !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
     call position_nml('time_periods', unamelist)
     read(unamelist, nml=time_periods)
-    warmingDays           = warming_Days(           1:nBasins )
-    evalPer               = eval_Per(               1:nBasins )
-    timestep_model_inputs = time_step_model_inputs( 1:nBasins )
+    warmingDays = warming_Days(1:nBasins)
+    evalPer     = eval_Per(1:nBasins)
+    timestep_model_inputs = time_step_model_inputs(1:nBasins)
 
     ! consistency check for timestep_model_inputs
     if (       any( timestep_model_inputs .ne. 0 ) .and. &
@@ -488,7 +465,6 @@ CONTAINS
        simPer(ii)%mEnd     = evalPer(ii)%mEnd
        simPer(ii)%yEnd     = evalPer(ii)%yEnd
        simPer(ii)%julEnd   = evalPer(ii)%julEnd
-
     end do
 
     !===============================================================
@@ -576,167 +552,6 @@ CONTAINS
     end if
 
     !===============================================================
-    ! Read evaluation gauge information
-    !===============================================================
-    routing_activated: if( processCase(8) .GT. 0 ) then
-       nGaugesTotal   = nodata_i4
-       NoGauges_basin = nodata_i4
-       Gauge_id       = nodata_i4
-       gauge_filename = num2str(nodata_i4)
-
-       call position_nml('evaluation_gauges', unamelist)
-       read(unamelist, nml=evaluation_gauges)
-
-       if (nGaugesTotal .GT. maxNoGauges) then
-          call message()
-          call message('***ERROR: mhm.nml: Total number of evaluation gauges is restricted to', num2str(maxNoGauges))
-          call message('          Error occured in namlist: evaluation_gauges')
-          stop
-       end if
-
-       allocate(gauge%gaugeId        (nGaugesTotal))                       ; gauge%gaugeId        = nodata_i4
-       allocate(gauge%basinId        (nGaugesTotal))                       ; gauge%basinId        = nodata_i4
-       allocate(gauge%fName          (nGaugesTotal))                       ; gauge%fName(1)       = num2str(nodata_i4)
-       allocate(basin%nGauges        (nBasins                           )) ; basin%nGauges        = nodata_i4
-       allocate(basin%gaugeIdList    (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIdList    = nodata_i4
-       allocate(basin%gaugeIndexList (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeIndexList = nodata_i4
-       allocate(basin%gaugeNodeList  (nBasins, maxval(NoGauges_basin(:)))) ; basin%gaugeNodeList  = nodata_i4
-
-       idx = 0
-       do i_basin = 1, nBasins
-          ! check if NoGauges_basin has a valid value
-          if ( NoGauges_basin(i_basin) .EQ. nodata_i4 ) then
-             call message()
-             call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
-                  trim(adjustl(num2str(i_basin))),' is not defined!')
-             call message('          Error occured in namlist: evaluation_gauges')
-             stop
-          end if
-
-          basin%nGauges(i_basin)          = NoGauges_basin(i_basin)
-
-          do i_gauge = 1, NoGauges_basin(i_basin)
-             ! check if NoGauges_basin has a valid value
-             if (Gauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
-                call message()
-                call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
-                     trim(adjustl(num2str(i_gauge))),' for subbasin ', &
-                     trim(adjustl(num2str(i_basin))),' is not defined!')
-                call message('          Error occured in namlist: evaluation_gauges')
-                stop
-             else if (trim(gauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
-                call message()
-                call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
-                     trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
-                     trim(adjustl(num2str(i_basin))),' is not defined!')
-                call message('          Error occured in namlist: evaluation_gauges')
-                stop
-             end if
-             !
-             idx = idx + 1
-             gauge%basinId(idx)                    = i_basin
-             gauge%gaugeId(idx)                    = Gauge_id(i_basin,i_gauge)
-             gauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(gauge_filename(i_basin,i_gauge))
-             basin%gaugeIdList(i_basin,i_gauge)    = Gauge_id(i_basin,i_gauge)
-             basin%gaugeIndexList(i_basin,i_gauge) = idx
-          end do
-       end do
-
-       if ( nGaugesTotal .NE. idx) then
-          call message()
-          call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
-               ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
-          call message('          Error occured in namlist: evaluation_gauges')
-          stop
-       end if
-
-    end if routing_activated
-
-    !===============================================================
-    ! Read inflow gauge information
-    !===============================================================
-
-    nInflowGaugesTotal   = 0
-    NoInflowGauges_basin = 0
-    InflowGauge_id       = nodata_i4
-    InflowGauge_filename = num2str(nodata_i4)
-
-    call position_nml('inflow_gauges', unamelist)
-    read(unamelist, nml=inflow_gauges)
-
-    if (nInflowGaugesTotal .GT. maxNoGauges) then
-       call message()
-       call message('***ERROR: mhm.nml:read_gauge_lut: Total number of inflow gauges is restricted to', num2str(maxNoGauges))
-       call message('          Error occured in namlist: inflow_gauges')
-       stop
-    end if
-
-    ! allocation - max() to avoid allocation with zero, needed for mhm call
-    allocate(InflowGauge%gaugeId        (max(1,nInflowGaugesTotal)))
-    allocate(InflowGauge%basinId        (max(1,nInflowGaugesTotal)))
-    allocate(InflowGauge%fName          (max(1,nInflowGaugesTotal)))
-    allocate(basin%nInflowGauges        (nBasins                                 ))
-    allocate(basin%InflowGaugeIdList    (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    allocate(basin%InflowGaugeHeadwater (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    allocate(basin%InflowGaugeIndexList (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    allocate(basin%InflowGaugeNodeList  (nBasins, max(1, maxval(NoInflowGauges_basin(:)))))
-    ! initialization
-    InflowGauge%gaugeId        = nodata_i4
-    InflowGauge%basinId        = nodata_i4
-    InflowGauge%fName          = num2str(nodata_i4)
-    basin%nInflowGauges        = 0
-    basin%InflowGaugeIdList    = nodata_i4
-    basin%InflowGaugeHeadwater = .FALSE.
-    basin%InflowGaugeIndexList = nodata_i4
-    basin%InflowGaugeNodeList  = nodata_i4
-
-    idx = 0
-    do i_basin = 1, nBasins
-
-       ! no inflow gauge for subbasin i
-       if (NoInflowGauges_basin(i_basin) .EQ. nodata_i4) then
-          NoInflowGauges_basin(i_basin)       = 0
-       end if
-
-       basin%nInflowGauges(i_basin) = NoInflowGauges_basin(i_basin)
-
-       do i_gauge = 1, NoInflowGauges_basin(i_basin)
-          ! check if NoInflowGauges_basin has a valid value
-          if (InflowGauge_id(i_basin,i_gauge) .EQ. nodata_i4) then
-             call message()
-             call message('***ERROR: mhm.nml:ID of inflow gauge ',        &
-                  trim(adjustl(num2str(i_gauge))),' for subbasin ', &
-                  trim(adjustl(num2str(i_basin))),' is not defined!')
-             call message('          Error occured in namlist: inflow_gauges')
-             stop
-          else if (trim(InflowGauge_filename(i_basin,i_gauge)) .EQ. trim(num2str(nodata_i4))) then
-             call message()
-             call message('***ERROR: mhm.nml:Filename of inflow gauge ', &
-                  trim(adjustl(num2str(i_gauge))),' for subbasin ',  &
-                  trim(adjustl(num2str(i_basin))),' is not defined!')
-             call message('          Error occured in namlist: inflow_gauges')
-             stop
-          end if
-          !
-          idx = idx + 1
-          InflowGauge%basinId(idx)                    = i_basin
-          InflowGauge%gaugeId(idx)                    = InflowGauge_id(i_basin,i_gauge)
-          InflowGauge%fname(idx)                      = trim(dirGauges(i_basin)) // trim(InflowGauge_filename(i_basin,i_gauge))
-          basin%InflowGaugeIdList(i_basin,i_gauge)    = InflowGauge_id(i_basin,i_gauge)
-          basin%InflowGaugeHeadwater(i_basin,i_gauge) = InflowGauge_Headwater(i_basin,i_gauge)
-          basin%InflowGaugeIndexList(i_basin,i_gauge) = idx
-       end do
-    end do
-
-    if ( nInflowGaugesTotal .NE. idx) then
-       call message()
-       call message('***ERROR: mhm.nml: Total number of inflow gauges (', trim(adjustl(num2str(nInflowGaugesTotal))), &
-            ') different from sum of inflow gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
-       call message('          Error occured in namlist: inflow_gauges')
-       stop
-    end if
-
-    !===============================================================
     ! Read night-day ratios and pan evaporation
     !===============================================================
     ! Evap. coef. for free-water surfaces
@@ -796,10 +611,10 @@ CONTAINS
     end do
     !
     ! correct number of input land cover scenes to number of needed scenes
-    nLcover_scene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
+    nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
          minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
     ! put land cover scenes to corresponding file name and LuT
-    allocate(LCfilename(nLcover_scene))
+    allocate(LCfilename(nLCoverScene))
     LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
          maxval(LCyearId))
     ! update the ID's
@@ -1217,32 +1032,18 @@ CONTAINS
        processMatrix(8, 2) = 0_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
     case(1)
+       ! parameter values and names are set in mRM
        ! 1 - Muskingum approach
-       call position_nml('routing1', unamelist_param)
-       read(unamelist_param, nml=routing1)
+#ifndef mrm2mhm
+       call message('***ERROR processCase(8) equals 1, but mrm2mhm preprocessor flag is not given in Makefile')
+       stop
+#endif       
        processMatrix(8, 1) = processCase(8)
        processMatrix(8, 2) = 5_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
-       call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
-       call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
-
-       call append(global_parameters_name, (/ &
-            'muskingumTravelTime_constant   ', &
-            'muskingumTravelTime_riverLength', &
-            'muskingumTravelTime_riverSlope ', &
-            'muskingumTravelTime_impervious ', &
-            'muskingumAttenuation_riverSlope'/))
-
-       ! check if parameter are in range
-       if ( .not. in_bound(global_parameters) ) then
-          call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
-               trim(adjustl(file_namelist_param)))
-          stop
-       end if
-
+       call append(global_parameters, dummy_2d_dp)
+       call append(global_parameters_name, (/'dummy', 'dummy', 'dummy', 'dummy', 'dummy'/))
+       
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')

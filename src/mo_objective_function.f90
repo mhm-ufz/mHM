@@ -93,12 +93,13 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date Dec 2012
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION loglikelihood( parameterset, stddev, stddev_new, likeli_new)
     use mo_moment,           only: mean, correlation
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -125,7 +126,7 @@ CONTAINS
     call mhm_eval(parameterset, runoff=runoff)
 
     ! extract runoff and append it to obs and calc
-    do gg = 1, nGaugesTotal
+    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! append it to variables
@@ -228,12 +229,13 @@ CONTAINS
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date Mar 2014
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
     use mo_constants,        only: pi_dp
     use mo_moment,           only: stddev, correlation
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -263,7 +265,7 @@ CONTAINS
 
   
     ! extract runoff and append it to obs and calc
-    do gg = 1, nGaugesTotal
+    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! append it to variables
@@ -370,12 +372,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date Mar 2014
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION loglikelihood_trend_no_autocorr(parameterset, stddev_old, stddev_new, likeli_new)
     use mo_moment,           only: stddev
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_append,           only: append
 
     implicit none
@@ -402,7 +405,7 @@ CONTAINS
     call mhm_eval(parameterset, runoff=runoff)
 
     ! extract runoff and append it to obs and calc
-    do gg = 1, nGaugesTotal
+    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! append it to variables
@@ -606,11 +609,12 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date May 2013
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: lnnse
 
     implicit none
@@ -622,14 +626,16 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_lnnse = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! lnNSE
@@ -697,11 +703,12 @@ CONTAINS
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date March 2014
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_sse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: sse
 
     implicit none
@@ -713,14 +720,16 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_sse = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        !
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        !
@@ -790,11 +799,12 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date May 2013
   !         Modified, Stephan Thober, Jan 2015 - introduced extract runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_nse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse
 
     implicit none
@@ -806,14 +816,16 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_nse = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        !
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        !
@@ -886,11 +898,12 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date May 2013
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_equal_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
 
     implicit none
@@ -902,14 +915,16 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff             ! modelled runoff for a given parameter set
     !                                                           ! dim2=nGauges
     integer(i4)                           :: gg                 ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff
     real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_equal_nse_lnnse = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        !
@@ -990,11 +1005,12 @@ CONTAINS
   !>        \author Juliane Mai and Matthias Cuntz
   !>        \date March 2014
   !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_power6_nse_lnnse(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: nse, lnnse
 
     implicit none
@@ -1006,12 +1022,14 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     real(dp), parameter :: onesixth = 1.0_dp/6.0_dp
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_power6_nse_lnnse = 0.0_dp
     do gg=1, nGaugesTotal
@@ -1096,11 +1114,12 @@ CONTAINS
   !>        \date August 2014
   !         Modified, R. Kumar & O. Rakovec, Sep. 2014
   !                   Stephan Thober,        Jan  2015 - introduced extract_runoff
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_kge(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: kge
 
     implicit none
@@ -1112,15 +1131,17 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     !
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_kge = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! KGE
@@ -1203,11 +1224,12 @@ CONTAINS
   !     HISTORY
   !>        \author Rohini Kumar
   !>        \date March 2015
+  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                                              to not interfere with mRM
 
   FUNCTION objective_multiple_gauges_kge_power6(parameterset)
     
     use mo_mhm_eval,         only: mhm_eval
-    use mo_global_variables, only: nGaugesTotal
     use mo_errormeasures,    only: kge
 
     implicit none
@@ -1220,15 +1242,17 @@ CONTAINS
     real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
     integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
     logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
     !
 
     call mhm_eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
 
     objective_multiple_gauges_kge_power6 = 0.0_dp
-    do gg=1,nGaugesTotal
+    do gg=1, nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! KGE
@@ -1851,10 +1875,12 @@ CONTAINS
 
 ! ------------------------------------------------------------------
 subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-  
-  use mo_global_variables, only: gauge, evalPer, warmingDays, nTstepDay, nMeasPerDay
+
+#ifdef mrm2mhm
+  use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer, warmingDays, nTstepDay
   use mo_message,          only: message
   use mo_utils,            only: ge
+#endif  
   
   implicit none
 
@@ -1881,6 +1907,7 @@ subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_m
   integer(i4)                         :: TPD_obs ! observed Timesteps per Day
   real(dp), dimension(:), allocatable :: dummy
 
+#ifdef mrm2mhm  
   ! copy time resolution to local variables
   TPD_sim = nTstepDay
   TPD_obs = nMeasPerDay
@@ -1923,6 +1950,7 @@ subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_m
        real(factor,dp)
   ! clean up
   deallocate( dummy )
+#endif  
 
 end subroutine extract_runoff
 

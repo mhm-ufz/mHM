@@ -83,6 +83,8 @@ CONTAINS
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
   !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
+  !                                                    included routing related variables from mRM
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
@@ -94,57 +96,63 @@ CONTAINS
     use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
-    use mo_write_ascii,         only : write_daily_obs_sim_discharge
     use mo_write_fluxes_states, only : CloseFluxState_file
     use mo_write_fluxes_states, only : WriteFluxState
     use mo_write_fluxes_states, only : WriteFluxStateInit
     use mo_global_variables,    only : &
+         nTstepDay,                                          &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
-         timeStep, nBasins, basin, simPer, readPer,          & ! [h] simulation time step, No. of basins
-         nGaugesTotal,                                       &
+         timeStep, nBasins, simPer, readPer,                 & ! [h] simulation time step, No. of basins
          processMatrix, c2TSTu, HorizonDepth_mHM,            & 
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
          LCyearId, LAIUnitList, LAILUT,                      & 
          GeoUnitList, GeoUnitKar, soilDB,                    &
          L0_Id, L0_soilId,                                   & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
-         L0_areaCell,L0_floodPlain,                          &        
-         soilDB, L1_areaCell, L1_nTCells_L0, L1_L11_Id,      & 
+         soilDB, L1_nTCells_L0,                 & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
          L1_rightBound_L0, latitude,                         &
-         L11_netPerm, L11_fromN, L11_toN,                    & 
-         L11_length, L11_slope, evap_coeff, fday_prec,       & 
+         evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
          L1_absvappress, L1_windspeed,                       &
          L1_pre, L1_temp , L1_fForest,                       & 
-         L1_fPerm, L1_fSealed, L11_FracFPimp,                & 
-         L11_aFloodPlain, L1_inter,                          & 
+         L1_fPerm, L1_fSealed, L1_inter,                     & 
          L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, & 
          L1_satSTW, L1_pet_calc,                             &
          L1_aETSoil, L1_aETCanopy, L1_aETSealed,             &
          L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,  & 
          L1_percol, L1_preEffect, L1_rain, L1_runoffSeal,    & 
          L1_slowRunoff, L1_snow, L1_Throughfall,             & 
-         L1_total_runoff, L11_Qmod, L11_qOUT, L11_qTIN,      & 
-         L11_qTR, L1_alpha, L1_degDayInc, L1_degDayMax,      & 
+         L1_total_runoff, L1_alpha, L1_degDayInc,            &
+         L1_degDayMax,                                       & 
          L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, & 
          L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,      &
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
-         L1_wiltingPoint, L11_C1, L11_C2, L1_neutrons,       &
-         warmingDays, evalPer, gauge, InflowGauge,           &  
-         optimize,  nMeasPerDay,                             &
+         L1_wiltingPoint, L1_neutrons,                       &
+         warmingDays, optimize,                              &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+#ifdef mrm2mhm
+    use mo_mrm_global_variables, only: &
+         ! InflowGauge, &
+         ! L11_netPerm, L11_fromN, L11_toN, & 
+         ! L11_length, L11_slope, L11_aFloodPlain, &
+         ! L0_floodPlain, L1_L11_Id, &
+         ! , L11_qOUT, L11_qTIN, &
+         ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
+         mRM_runoff
+    use mo_mrm_routing, only: mrm_routing
+#endif
     
     implicit none
 
@@ -182,10 +190,8 @@ CONTAINS
     !
     ! counters and indexes
     integer(i4)                               :: nTimeSteps
-    integer(i4)                               :: maxTimeSteps
-    integer(i4)                               :: ii, tt, gg, ll   ! Counters
+    integer(i4)                               :: ii, tt, ll   ! Counters
     integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
-    integer(i4)                               :: nNodes           !
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
     !
@@ -198,8 +204,6 @@ CONTAINS
     !                                                             ! index 4: netrad
     !                                                             ! index 5: absolute vapour pressure
     !                                                             ! index 6: windspeed
-    integer(i4)                               :: s11, e11         ! process 8: start and end index of vectors (on or off)
-    integer(i4)                               :: s110, e110
     integer(i4)                               :: s_meteo, e_meteo
     logical, dimension(:,:), allocatable      :: mask0, mask1
     integer(i4)                               :: nrows, ncols
@@ -214,33 +218,22 @@ CONTAINS
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
     !
-    ! for discharge timeseries
-    integer(i4)                               :: iday, iS, iE
-    real(dp), dimension(:,:), allocatable     :: d_Qmod
+#ifdef mrm2mhm    
+    ! for routing
+    logical                                   :: do_mpr
+#endif    
     !
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-    
+
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
     if ( present(runoff) ) then
        if ( processMatrix(8, 1) .eq. 0 ) then
           call message("***ERROR: runoff can not be produced, since routing process is off in Process Matrix")
-          stop
-       else 
-          !----------------------------------------------------------
-          ! estimate maximum modeling timesteps including warming days
-          !----------------------------------------------------------
-          maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
-          allocate( runoff(maxTimeSteps, nGaugesTotal) )
-          runoff = nodata_dp
-       end if
-    else 
-       if ( (processMatrix(8,1) .gt. 0) .AND. (.NOT. optimize)) then
-          call message("***ERROR: runoff can not be produced, since runoff variable is not present")
           stop
        end if
     end if
@@ -280,7 +273,7 @@ CONTAINS
 
        ! calculate NtimeSteps for this basin
        nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
-
+       
        ! reinitialize time counter for LCover and MPR
        ! -0.5 is due to the fact that dec2date routine 
        !   changes the day at 12:00 in NOON
@@ -290,17 +283,8 @@ CONTAINS
 
        ! get basin information
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
-       call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
+       ! call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
-
-       ! process 8 - routing process (on or off)
-       if( processMatrix(8, 1) .eq. 0 ) then
-          s11 = 1
-          e11 = 1
-          nNodes = 1
-       else
-          call get_basin_info ( ii, 11, nrows, ncols, ncells=nNodes, iStart=s11, iEnd=e11 ) 
-       end if
 
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
@@ -426,22 +410,18 @@ CONTAINS
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
                timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C          
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nNodes, nSoilHorizons_mHM, real(NTSTEPDAY,dp), timeStep, mask0,      & ! IN C 
-               basin%nInflowGauges(ii), basin%InflowGaugeIndexList(ii,:),                   & ! IN C
-               basin%InflowGaugeHeadwater(ii,:), basin%InflowGaugeNodeList(ii,:),           & ! IN C
+               nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
-               L0_geoUnit(s0:e0), L0_areaCell(s0:e0),L0_floodPlain(s110:e110),              & ! IN L0
+               L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,             & ! IN L0
-               L1_areaCell(s1:e1), L1_nTCells_L0(s1:e1),  L1_L11_Id(s1:e1),                 & ! IN L1
+               L1_nTCells_L0(s1:e1),                                                        & ! IN L1
                L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
                L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1),                             & ! IN L1
                latitude(s_p5(1):e_p5(1)),                                                   & ! IN L1
-               L11_netPerm(s11:e11), L11_fromN(s11:e11), L11_toN(s11:e11),                  & ! IN L11
-               L11_length(s11:e11), L11_slope(s11:e11),                                     & ! IN L11
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
                L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET
@@ -452,10 +432,8 @@ CONTAINS
                L1_windspeed(s_p5(6):e_p5(6), iMeteo_p5(6)),                                 & ! IN F:PET
                L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN F:Pre 
                L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN F:Temp
-               InflowGauge%Q(iMeteoTS,:),                                                   & ! IN Q
                yId,                                                                         & ! INOUT C
                L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
-               L11_FracFPimp(s11:e11), L11_aFloodPlain(s11:e11),                            & ! INOUT L11
                L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S 
                L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1), L1_neutrons,    & ! INOUT S 
                L1_pet_calc(s1:e1),                                                          & ! INOUT X
@@ -464,7 +442,6 @@ CONTAINS
                L1_melt(s1:e1), L1_percol(s1:e1), L1_preEffect(s1:e1), L1_rain(s1:e1),       & ! INOUT X
                L1_runoffSeal(s1:e1), L1_slowRunoff(s1:e1), L1_snow(s1:e1),                  & ! INOUT X
                L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                               & ! INOUT X
-               L11_Qmod(s11:e11), L11_qOUT(s11:e11),L11_qTIN(s11:e11,:),L11_qTR(s11:e11,:), & ! INOUT X11
                L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                   & ! INOUT E1
                L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1),                     & ! INOUT E1
                L1_HarSamCoeff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),     & ! INOUT E1
@@ -473,9 +450,23 @@ CONTAINS
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
                L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
-               L1_wiltingPoint(s1:e1,:),                                                    & ! INOUT E1
-               L11_C1(s11:e11), L11_C2(s11:e11)                                             ) ! INOUT E11
+               L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 
+          ! call mRM routing
+#ifdef mrm2mhm
+          if (processMatrix(8, 1) .eq. 1) then
+             ! determine whether mpr is to be executed
+             if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
+                do_mpr = perform_mpr
+             else
+                do_mpr = .false.
+             end if
+             !
+             call mRM_routing(parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), &
+                  ii, L1_total_runoff(s1:e1), iMeteoTS, tt, simPer(ii)%julStart, LCyearId(year,ii), do_mpr, &
+                  nTstepDay)
+          end if
+#endif
 
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day
@@ -687,20 +678,6 @@ CONTAINS
           end if ! <-- if (.not. optimize)
 
           !----------------------------------------------------------------------
-          ! FOR STORING the optional arguments
-          ! 
-          ! FOR RUNOFF
-          ! NOTE:: Node ID for a given gauging station is stored at gaugeindex's
-          !        index in runoff. In consequence the gauges in runoff are 
-          !        ordered corresponing to gauge%Q(:,:)
-          !----------------------------------------------------------------------
-          if( present(runoff) ) then
-             do gg = 1, basin%nGauges(ii)
-                runoff(tt,basin%gaugeIndexList(ii,gg)) = L11_Qmod( basin%gaugeNodeList(ii,gg) + s11 - 1 )
-             end do
-          end if
-
-          !----------------------------------------------------------------------
           ! FOR SOIL MOISTURE
           ! NOTE:: modeled soil moisture is averaged according to input time step
           !        soil moisture (timeStep_sm_input)
@@ -751,45 +728,12 @@ CONTAINS
 
     end do !<< BASIN LOOP
 
-    ! --------------------------------------------------------------------------
-    ! STORE DAILY DISCHARGE TIMESERIES OF EACH GAUGING STATION 
-    ! FOR SIMULATIONS DURING THE EVALUATION PERIOD
-    !
-    !  **** AT DAILY TIME STEPS ****
-    ! Note:: Observed Q are stored only for the evaluation period and not for
-    !        the warming days
-    ! --------------------------------------------------------------------------
-    if( (.not. optimize) .AND. present(runoff) .AND. (nMeasPerDay .eq. 1) ) then
-       !
-       ii = maxval( evalPer(1:nBasins)%julEnd - evalPer(1:nBasins)%julStart + 1 )
-       allocate( d_Qmod(ii, nGaugesTotal) ) 
-       d_Qmod = 0.0_dp
-
-       ! loop over basins
-       do ii = 1, nBasins
-          ! calculate NtimeSteps for this basin
-          nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
-          !
-          iDay = 0
-          ! loop over timesteps
-          do tt = warmingDays(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
-             iS = tt
-             iE = tt + NTSTEPDAY - 1
-             iDay = iDay + 1
-             ! over gauges
-             do gg = 1, basin%nGauges(ii)
-                d_Qmod(iDay, basin%gaugeIndexList(ii,gg) ) = &
-                     sum( runoff(iS:iE, basin%gaugeIndexList(ii,gg)) )/ real(NTSTEPDAY,dp)
-             end do
-             !
-          end do
-       end do
-       ! write in an ASCII file          ! OBS[nModeling_days X nGauges_total] , SIM[nModeling_days X nGauges_total] 
-       call write_daily_obs_sim_discharge( gauge%Q(:,:), d_Qmod(:,:) )
-       ! free space
-       deallocate(d_Qmod)        
-       !
-    end if
+#ifdef mrm2mhm
+    ! =========================================================================
+    ! SET RUNOFF OUTPUT VARIABLE
+    ! =========================================================================
+    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
+#endif
 
 
   end SUBROUTINE mhm_eval

@@ -137,6 +137,7 @@
 !       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
 !                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
 !                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
+!                     Stephan Thober, Aug 2015 - removed routing related variables
 
 !
 ! --------------------------------------------------------------------------
@@ -157,7 +158,7 @@ PROGRAM mhm_driver
        optimize, opti_method,                                &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
-       dirMorpho, dirLCover, dirGauges, dirPrecipitation,    &      ! directories
+       dirMorpho, dirLCover,  dirPrecipitation,              &      ! directories
        dirTemperature, dirOut,                               &      ! directories
        dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
        dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam  (case 1)
@@ -169,8 +170,8 @@ PROGRAM mhm_driver
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       basin, processMatrix                                         ! basin information,  processMatrix
-  USE mo_global_variables,    ONLY : opti_function, dirConfigOut
+       processMatrix,                                        &      ! basin information,  processMatrix
+       opti_function, dirConfigOut
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
@@ -192,19 +193,21 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
+#ifdef mrm2mhm
+  USE mo_mrm_init,            ONLY : mrm_init
+  USE mo_mrm_write,           only : mrm_write
+#endif  
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
 
   ! local
-  integer, dimension(8)                 :: datetime         ! Date and time
+  integer(i4), dimension(8)             :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
-  integer(i4)                           :: ii, jj           ! Counters
+  integer(i4)                           :: ii               ! Counters
   integer(i4)                           :: iTimer           ! Current timer number
   integer(i4)                           :: nTimeSteps
   real(dp)                              :: funcbest         ! best objective function achivied during optimization
-  ! model output
-  real(dp), allocatable, dimension(:,:) :: riverrun         ! simulated river runoff at all gauges, timepoints
   ! mcmc
   real(dp), dimension(:,:), allocatable :: burnin_paras     ! parameter sets sampled during burnin
   real(dp), dimension(:,:), allocatable :: mcmc_paras       ! parameter sets sampled during proper mcmc
@@ -264,7 +267,6 @@ PROGRAM mhm_driver
      call message( '  --------------' )
      call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
      call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
-     call message('    Discharge directory:        ',   trim(dirGauges(ii)  ))
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
@@ -285,20 +287,6 @@ PROGRAM mhm_driver
         call message('    LAI directory:             ', trim(dirgridded_LAI(ii)) )
      end if
 
-     if (processMatrix(8,1) .GT. 0) then
-        call message('    Evaluation gauge            ', 'ID')
-        do jj = 1 , basin%nGauges(ii)
-           call message('    ',trim(adjustl(num2str(jj))),'                           ', &
-                trim(adjustl(num2str(basin%gaugeIdList(ii,jj)))))
-        end do
-     end if
-     if (basin%nInflowGauges(ii) .GT. 0) then
-        call message('    Inflow gauge              ', 'ID')
-        do jj = 1 , basin%nInflowGauges(ii)
-           call message('    ',trim(adjustl(num2str(jj))),'                         ', &
-                trim(adjustl(num2str(basin%InflowGaugeIdList(ii,jj)))))
-        end do
-     end if
      call message('')
   end do
 
@@ -369,6 +357,15 @@ PROGRAM mhm_driver
   !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+#ifdef mrm2mhm
+  ! --------------------------------------------------------------------------
+  ! READ and INITIALISE mRM ROUTING
+  ! --------------------------------------------------------------------------
+  if (processMatrix(8, 1) .eq. 1) then
+     call mrm_init()
+  end if
+#endif  
 
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
@@ -532,13 +529,7 @@ PROGRAM mhm_driver
      ! --------------------------------------------------------------------------
      call message('  Run mHM')
      call timer_start(iTimer)
-     if ( processMatrix(8,1) .eq. 0 ) then
-        ! call mhm without routing
-        call mhm_eval(global_parameters(:,3))
-     else
-        ! call mhm with routing
-        call mhm_eval(global_parameters(:,3), runoff=riverrun)
-     end if
+     call mhm_eval(global_parameters(:,3))
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
      !
@@ -556,6 +547,14 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
+
+#ifdef mrm2mhm    
+  ! --------------------------------------------------------------------------
+  ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
+  ! files are written)
+  ! --------------------------------------------------------------------------
+  if (processMatrix(8, 1) .ne. 0) call mrm_write()
+#endif
 
 
   ! --------------------------------------------------------------------------

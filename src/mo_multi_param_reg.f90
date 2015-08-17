@@ -177,6 +177,7 @@ contains
   !                   Luis Samaniego, Feb 2013 - calling sequence, initial CHECK, call mpr_runoff
   !                   Stephan Thober, Feb 2013 - added subroutine for karstic percolation loss
   !                                              removed L1_, L0_ in variable names
+  !                   Stephan Thober, Aug 2015 - moved regionalization of routing to mRM
 
   !TO DOS: all variable names have to be updated as in the mHM call and the sorted. Documentation has to be updated
 
@@ -184,7 +185,6 @@ contains
   subroutine mpr( proc_Mat, & ! IN:    determines which regionalization shall be done
        param,               & ! IN:    global parameter array
        nodata,              & ! IN:    no data value
-       TS,                  & ! IN:    [h] time step in
        mask0,               & ! IN:    mask at Level 0
        geoUnit0,            & ! IN:    geological units at level 0
        geoUnitList,         & ! IN:    List of Ids for geological units
@@ -209,9 +209,6 @@ contains
        Asp0,                & ! IN:    [degree] Aspect at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
-       length,              & ! IN:    [m] total length
-       slope,               & ! IN:    average slope
-       fFPimp,              & ! IN:    fraction of the flood plain with impervious layer
        slope_emp0,          & ! IN:    Empirical quantiles of slope at Level 0
        cell_id0,            & ! IN:    cell Ids at level 0
        upp_row_L1,          & ! IN:    upper row of L0 block within L1 cell
@@ -234,8 +231,6 @@ contains
        K2_1,                & ! INOUT:           baseflow recession parameter at level 1
        Kp1,                 & ! INOUT: [d-1]     percolation coefficient
        karstic_loss,        & ! INOUT:           karstic percolation loss parameter
-       C1,                  & ! INOUT:           routing parameter C1 (Chow, 25-41)
-       C2,                  & ! INOUT:           routing parameter C2 (")
        FC1,                 & ! INOUT: [10^-3 m] field capacity
        SMs1,                & ! INOUT: [10^-3 m] depth of saturated SM cont
        beta1,               & ! INOUT:           Parameter that determines the relative contribution to SM
@@ -251,7 +246,7 @@ contains
     use mo_mpr_soilmoist,       only: mpr_sm
     use mo_mpr_SMhorizons,      only: mpr_SMhorizons
     use mo_mpr_runoff,          only: mpr_runoff
-
+    
     implicit none
 
     ! Input ----------------------------------------------------------
@@ -288,14 +283,6 @@ contains
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
-    
-    ! Input for regionalized routing
-    real(dp),    dimension(:),               intent(in)    :: length            ! [m] total length
-    real(dp),    dimension(:),               intent(in)    :: slope             ! average slope
-    real(dp),    dimension(:),               intent(in)    :: fFPimp            ! fraction of the flood plain with
-    
-    ! impervious layer
-    integer(i4),                             intent(in)    :: TS                ! [h] time step in
 
     ! Ids of L0 cells beneath L1 cell
     real(dp),    dimension(:),               intent(in)    :: slope_emp0        ! Empirical quantiles of slope
@@ -348,10 +335,6 @@ contains
 
     ! Output of karstic percolation loss
     real(dp),    dimension(:),               intent(inout) :: karstic_loss
-
-    ! Output for regionalized routing
-    real(dp), dimension(:),                  intent(inout) :: C1                ! routing parameter C1 (Chow, 25-41)
-    real(dp), dimension(:),                  intent(inout) :: C2                ! routing parameter C2 (")
 
     ! Local Variables
     real(dp), dimension(:,:,:), allocatable :: thetaS_till
@@ -563,15 +546,7 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat( 8, 1) )
     case(0)  ! routing is off
-    case(1)
-       iStart = proc_Mat(8,3) - proc_Mat(8,2) + 1
-       iEnd   = proc_Mat(8,3) 
-       ! for a single node model run
-       if( size(length,1) .GT. 1) then
-          call reg_rout( param( iStart : iEnd ), &
-               length(: size(length,1)-1), slope(: size(slope,1)-1), fFPimp(: size(fFPimp,1)-1), &
-               real(TS,dp), C1(: size(C1,1)-1), C2(: size(C2,1)-1) )
-       end if
+    case(1)  !ST this part is moved to mRM
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist! mo_multi_param_reg')
@@ -1140,109 +1115,6 @@ contains
     deallocate( fKarArea )
 
   end subroutine karstic_layer
-
-  ! ----------------------------------------------------------------------------
-
-  !      NAME
-  !         reg_rout
-
-  !>        \brief Regionalized routing
-
-  !>        \details sets up the Regionalized Routing parameters\n
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param(1) = muskingumTravelTime_constant    \n
-  !>                    - param(2) = muskingumTravelTime_riverLength \n
-  !>                    - param(3) = muskingumTravelTime_riverSlope  \n
-  !>                    - param(4) = muskingumTravelTime_impervious  \n
-  !>                    - param(5) = muskingumAttenuation_riverSlope \n
-
-  !      INTENT(IN)
-  !>        \param[in] "real(dp) :: param(5)"  - five input parameters
-  !>        \param[in] "real(dp) :: length(:)" - [m] total length
-  !>        \param[in] "real(dp) :: slope(:)"  - average slope
-  !>        \param[in] "real(dp) :: fFPimp(:)" - fraction of the flood plain with
-  !>                                             impervious layer
-  !>        \param[in] "real(dp) :: TS"        - [h] time step in
-
-  !      INTENT(INOUT)
-  !          None
-  
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: C1(:)"    - routing parameter C1 (Chow, 25-41)
-  !>        \param[out] "real(dp) :: C2(:)"    - routing parameter C2 (")
-
-  !      INTENT(IN), OPTIONAL
-  !          None
-
-  !      INTENT(INOUT), OPTIONAL
-  !          None
-
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written Stephan Thober, Dec 2012
-
-  subroutine reg_rout( param, length, slope, fFPimp, TS, &
-       C1, C2 )
-
-    implicit none
-
-    ! Input
-    real(dp), dimension(5), intent(in)  :: param  ! input parameter
-    real(dp), dimension(:), intent(in)  :: length ! [m] total length
-    real(dp), dimension(:), intent(in)  :: slope  ! average slope
-    real(dp), dimension(:), intent(in)  :: fFPimp ! fraction of the flood plain with
-    !                                                ! impervious layer
-    real(dp),               intent(in)  :: TS     ! [h] time step in
-
-    ! Output
-    real(dp), dimension(:), intent(out) :: C1     ! routing parameter C1 (Chow, 25-41)
-    real(dp), dimension(:), intent(out) :: C2     ! routing parameter C2 (")
-
-    ! loval variables
-    real(dp)                            :: ssMax  ! stream slope max
-    real(dp), dimension(size(fFPimp,1)) :: K      ! [d] Muskingum travel time parameter
-    real(dp), dimension(size(fFPimp,1)) :: xi     ! [1] Muskingum diffusion parameter (attenuation)
-
-    ! normalize stream bed slope
-    ssMax = maxval( slope(:) )
-
-    ! New regional relationship; K = f(length, slope, & fFPimp) 
-    K = param(1) + param(2) * (length * 0.001_dp) &
-         + param(3) * (slope               ) &
-         + param(4) * fFPimp
-
-    ! Xi = f(slope)
-    xi = param(5)*(1.0_dp + slope / ssMax)
-
-    ! constraints on Xi
-    xi = merge( 0.5_dp, xi, xi > 0.5_dp )
-    xi = merge( 0.005_dp, xi, xi < 0.005_dp )
-
-    ! constrains on Ki
-    K = merge( 0.5_dp * TS / xi,            xi, K > 0.5_dp * TS / xi )
-    K = merge( 0.5_dp * TS / (1.0_dp - xi), xi, K < 0.5_dp * TS / (1.0_dp - xi))
-
-    ! Muskingum parameters
-    C1 = TS / ( K * (1.0_dp - xi) + 0.5_dp * TS )
-    C2 = 1.0_dp - C1 * K / TS
-
-  end subroutine reg_rout
 
   ! ----------------------------------------------------------------------------
 

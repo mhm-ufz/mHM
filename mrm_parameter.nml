@@ -1,0 +1,11 @@
+! Emacs: -*- mode: f90 -*-
+!global_parameters
+!PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING
+! routing                                                 
+&routing1                                                 
+muskingumTravelTime_constant       =  0.3100,      0.3500,         0.325,     1,       1
+muskingumTravelTime_riverLength    =  0.0700,      0.0800,         0.075,     1,       1
+muskingumTravelTime_riverSlope     =  1.9500,      2.1000,           2.0,     1,       1
+muskingumTravelTime_impervious     =  0.0900,      0.1100,           0.1,     1,       1
+muskingumAttenuation_riverSlope    =  0.0100,      0.5000,           0.3,     1,       1
+/

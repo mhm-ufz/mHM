@@ -11,7 +11,7 @@
 
 MODULE mo_runoff
   
-  USE mo_kind, ONLY: i4, dp
+  USE mo_kind, ONLY: dp
   USE mo_constants, ONLY: eps_dp
 
   IMPLICIT NONE
@@ -19,7 +19,7 @@ MODULE mo_runoff
   PUBLIC ::   runoff_unsat_zone
   PUBLIC ::   runoff_sat_zone
   PUBLIC ::   L1_total_runoff
-  PUBLIC ::   L11_runoff_acc
+  ! PUBLIC ::   L11_runoff_acc
 
   PRIVATE
 
@@ -309,127 +309,5 @@ CONTAINS
                    ( direct_runoff*fSealed_area_fraction )
 
   END SUBROUTINE L1_total_runoff
-  
- 
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         L11_runoff_acc
-
-  !     PURPOSE
-  !>        \brief total runoff accumulation at L11.
-
-  !>        \details Accumulates runoff in space from L1 to L11.
-  !>  
-
-  !     CALLING SEQUENCE
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp)    ::  qAll"              total runoff L1 [mm tst-1]
-  !>        \param[in] "real(dp)    ::  efecArea"          effective area in [km2] 
-  !>        \param[in] "integer(i4) ::  L11id"             L11 mapped on L1   
-  !>        \param[in] "integer(i4) ::  TS"                time step in [s]
-  !>        \param[in] "integer(i4) ::  nInflowGauges"     number of inflow points
-  !>        \param[in] "integer(i4  ::  InflowIndexList"   index of inflow points
-  !>        \param[in] "integer(i4) ::  InflowNodeList"    L11 ID of inflow points
-  !>        \param[in] "real(dp)    ::  QInflow"           inflowing water 
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: qOUT"                 aggregated runoff at L11 [m3 s-1]
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Luis Samaniego
-  !>        \date Jan 2013
-  !         Modified  Matthias Zink , Mar 2014 - added inflow from upstream areas
-  !                   Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
-
-  ! ------------------------------------------------------------------
-  SUBROUTINE L11_runoff_acc(qAll,efecArea, L11id, TS, nInflowGauges, InflowIndexList, &
-                            InflowHeadwater, InflowNodeList, QInflow, qOUT)
-
-    use mo_mhm_constants, only:   HourSecs
-
-    IMPLICIT NONE
-
-    real(dp),    dimension(:), intent(in)  :: qall            ! [mm tst-1] total runoff l1 
-    real(dp),    dimension(:), intent(in)  :: efecarea        ! [km2]      efective area at l1 
-    integer(i4), dimension(:), intent(in)  :: l11id           ! l11        mapped on l1   
-    integer(i4),               intent(in)  :: ts              ! [h]        time step 
-    integer(i4),               intent(in)  :: nInflowGauges   ! [-]        number of inflow points
-    integer(i4), dimension(:), intent(in)  :: InflowIndexList ! [-]        index of inflow points
-    logical,     dimension(:), intent(in)  :: InflowHeadwater ! [-]        if to consider headwater cells of inflow gauge
-    integer(i4), dimension(:), intent(in)  :: InflowNodeList  ! [-]        L11 ID of inflow points
-    real(dp),    dimension(:), intent(in)  :: QInflow         ! [m3 s-1]   inflowing water 
-    real(dp),    dimension(:), intent(out) :: qout            ! [m3 s-1]   aggregated runoff at l11 
-
-                                                              ! local variables
-    integer(i4)                            :: k
-    REAL(dp)                               :: TST             ! [s]        time step  
-
-    ! ------------------------------------------------------------------
-    ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
-    ! ****  NO TUH :: OFF AT A MOMENT BUT EFFECTS ARE
-    !                 INTEGRATED IN RIVER ROUTING PROCESS
-    !          TUH    Triangular Unit Hydrograph
-    ! ------------------------------------------------------------------
-
-    TST = HourSecs * real( TS, dp)   ! in [s]
-
-    !$OMP PARALLEL
-    !$OMP DO SCHEDULE( STATIC )
-    do k = 1, size(qOUT)
-      !  Estimate specific runoff at  L11
-      !  NOTE:
-      !  1) Total discharge depth aggregated at L11 level [mm/TST]
-      !  2) Transform  depth [mm/TST] to discharge [m3/s]
-      !  Total runoff should be divided by total_area to get 
-      !  specific discharge at L11. Then, to transform specific
-      !  discharge from [mm/TST] to [m3/s], it should be multiplied by
-      !  total_area [km2]*10^3 and divided by TST.
-      !  Therefore, in this operation total_area cancels out. 
-      !  The simplified equation is then:         
-      qOUT(k) = sum( qAll(:) * efecArea(:),  L11id(:) .eq. k ) * 1000.0_dp / TST
-    end do
-    !$OMP END DO
-    !$OMP END PARALLEL
-
-    ! discharge for inflow gauges (e.g. for missing upstream catchments) is added here
-    if (nInflowGauges .gt. 0) then
-       do k = 1, nInflowGauges
-          if (InflowHeadwater(k)) then 
-             ! add inflowing water to water produced by upstream/headwater cells
-             qOUT(InflowNodeList(k)) = qOUT(InflowNodeList(k)) + QInflow(InflowIndexList(k))
-          else
-             ! put only timeseries and cut upstream/headwater cells produced water for routing
-             qOUT(InflowNodeList(k)) = QInflow(InflowIndexList(k))
-          end if
-       end do
-    end if
-
-  END SUBROUTINE L11_runoff_acc
   
 END MODULE mo_runoff

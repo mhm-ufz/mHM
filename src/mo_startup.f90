@@ -89,19 +89,17 @@ CONTAINS
   !                  Rohini Kumar,   Nov 2013 - updated documentation
   !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
   !                  Stephan Thober, Jun 2014 - updated flag for read_restart
+  !                  Stephan Thober, Aug 2015 - removed initialisation of routing
 
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: processMatrix, soilDB, L0_Basin, &
+    use mo_global_variables, only: soilDB, L0_Basin, &
          read_restart, perform_mpr, dirRestartIn
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
-    USE mo_restart,          ONLY: read_restart_L11_config, read_restart_config
+    USE mo_restart,          ONLY: read_restart_config
 
-    use mo_net_startup,      only: L11_variable_init, L11_flow_direction, L11_set_network_topology,  &
-                                   L11_routing_order, L11_link_location, L11_set_drain_outlet_gauges,&
-                                   L11_stream_features, routing_dummy_alloc
     implicit none
 
     integer(i4), intent(in) :: iBasin
@@ -131,31 +129,11 @@ CONTAINS
        end if
        call L1_variable_init(iBasin)
     else
-       call read_restart_config( iBasin, soilDB%is_present, dirRestartIn(iBasin ) )
+       call read_restart_config(iBasin, soilDB%is_present, dirRestartIn(iBasin))
     end if
 
     ! L2 inialization
     call L2_variable_init(iBasin)
-
-    ! L11: network initialization
-    if ( processMatrix(8, 1) .ne. 0 ) then
-       ! check if variables should be read from restart
-       if ( .not. read_restart ) then
-          call L11_variable_init(iBasin)
-          call L11_flow_direction(iBasin)
-          call L11_set_network_topology(iBasin)
-          call L11_routing_order(iBasin)
-          call L11_link_location(iBasin)
-          call L11_set_drain_outlet_gauges(iBasin)
-          ! stream characteristics
-          call L11_stream_features(iBasin)
-       else
-          call read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
-       end if
-    else
-       ! allocate dummy space for L0 variables related to routing process
-       call routing_dummy_alloc(iBasin)
-  end if
 
     ! State variables, fluxes and parameter fields
     ! have to be allocated in any case
@@ -273,17 +251,16 @@ CONTAINS
   !                                             and changed within the code made accordingly
   !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
   !                & Stephan Thober,           to process_matrix flag
+  !                  Stephan Thober, Aug 2015 - moved check of L0 routing variables to mRM
 
   subroutine L0_check_input(iBasin)
 
     use mo_global_variables, only: basin                    , &
                                    L0_elev, L0_slope, L0_asp, &
-                                   L0_fDir, L0_fAcc         , &
                                    L0_soilId, L0_geoUnit    , &
                                    L0_LCover_LAI            , &
-                                   nLCover_scene            , &
-                                   L0_LCover, timeStep_LAI_input, &
-                                   processMatrix
+                                   nLCoverScene            , &
+                                   L0_LCover, timeStep_LAI_input
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str
@@ -314,24 +291,6 @@ CONTAINS
           stop
        end if
 
-       if( processMatrix(8, 1) .NE. 0 ) then
-         ! flow direction [-]
-         if ( L0_fDir(k) .eq. nodata_i4  ) then
-            message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-            call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
-                 trim(message_text) )
-            stop
-         end if
-         ! flow accumulation [-]
-         if ( L0_fAcc(k) .eq. nodata_i4 ) then
-            message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-            call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
-                 trim(message_text) )
-            stop
-         end if
-
-       end if
-
        ! aspect [degree]
        if ( abs( L0_asp(k) - nodata_dp ) .lt. eps_dp  ) then
           message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
@@ -357,7 +316,7 @@ CONTAINS
        end if
 
        ! landcover scenes
-       do  n = 1, nLCover_scene
+       do  n = 1, nLCoverScene
           if ( L0_LCover(k,n) .eq. nodata_i4  ) then
              message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))//','// trim(num2str(n,'(I5)'))
              call message(' Error: land cover id has missing values within the valid masked area at cell in basin and scene ', &
@@ -441,11 +400,12 @@ CONTAINS
 
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
-    use mo_global_variables, only: level0, L0_areaCell,    &
+    use mo_global_variables, only: level0,                 &
                                    L0_nCells, L0_cellCoor, &
                                    L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
                                    L0_soilId, nSoilTypes,  &
+                                   L0_areaCell,            &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
     use mo_orderpack,     only: unirnk
@@ -629,14 +589,14 @@ CONTAINS
   subroutine L1_variable_init(iBasin)
 
     use mo_global_variables, only: nBasins, basin, level0, level1, &
-                                   L0_areacell, L1_areaCell,       &
-                                   L1_nCells, L1_Id, L1_cellCoor,  &
-                                   L1_upBound_L0, L1_downBound_L0, &
-                                   L1_leftBound_L0,                &
-                                   L1_rightBound_L0, L1_nTCells_L0,&
-                                   resolutionHydrology
-     use  mo_init_states,  only : calculate_grid_properties
-     use mo_append,        only : append                      ! append vector
+         L1_nCells, L1_Id, L1_cellCoor,  &
+         L1_upBound_L0, L1_downBound_L0, &
+         L1_leftBound_L0,                &
+         L1_rightBound_L0, L1_nTCells_L0,&
+         L0_areaCell, L1_areaCell,       &
+         resolutionHydrology
+    use mo_init_states,     only: calculate_grid_properties
+    use mo_append,          only: append                      ! append vector
 
     implicit none
 
@@ -678,7 +638,7 @@ CONTAINS
 
     ! level-0 information
     call get_basin_info( iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0, &
-                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
+         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0     )
 
     if(iBasin == 1) then
        allocate( level1%nrows        (nBasins) )
@@ -691,9 +651,9 @@ CONTAINS
 
     ! grid properties
     call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,         &
-                                    resolutionHydrology(iBasin) , &
-                                    level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
-                                    level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
+         resolutionHydrology(iBasin) , &
+         level1%nrows(iBasin), level1%ncols(iBasin), level1%xllcorner(iBasin), &
+         level1%yllcorner(iBasin), level1%cellsize(iBasin), level1%nodata_value(iBasin) )
 
     ! level-1 information
     call get_basin_info( iBasin, 1, nrows1, ncols1 )
@@ -714,7 +674,6 @@ CONTAINS
           mask1(ic,jc) = .TRUE.
        end do
     end do
-
 
     ! level-0 cell area
     allocate( areaCell0_2D(nrows0,ncols0) )
@@ -810,8 +769,8 @@ CONTAINS
 
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell, &
-                cellCoor, Id, upBound, downBound,     &
-                leftBound, rightBound, nTCells        )
+         cellCoor, Id, upBound, downBound,     &
+         leftBound, rightBound, nTCells        )
 
   end subroutine L1_variable_init
 

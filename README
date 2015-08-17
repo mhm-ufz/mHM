@@ -1,3 +1,12 @@
+README for mRM
+
+TODOS
+- move writing of config from mo_write_ascii to mRM
+- write config for mRM separately within mRM
+- restart needs to be revised (after merge with trunk, L0_areaCell, and
+  L1_areaCell are should be moved to the restart of mRM)
+- openMP not running  
+
 ------------------------------------------------------------
                          README
 ------------------------------------------------------------

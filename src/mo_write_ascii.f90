@@ -21,8 +21,9 @@ MODULE mo_write_ascii
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
   ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
   ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
-  ! Modified, Stephan Thober      Jun 2014 - bug fixed: in writing network properties
+  ! Modified, Stephan Thober,     Jun 2014 - bug fixed: in writing network properties
   ! Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
+  ! Modified, Stephan Thober,     Aug 2015 - moved write_daily_obs_sim_discharge to mRM
 
   USE mo_kind, ONLY: i4, dp
   IMPLICIT NONE
@@ -30,7 +31,6 @@ MODULE mo_write_ascii
   PUBLIC :: write_configfile                   ! Writes configuration file
   PUBLIC :: write_optifile                     ! Write final OF and best parameter set
   PUBLIC :: write_optinamelist                 ! Write final OF and best parameter set in a namelist format
-  PUBLIC :: write_daily_obs_sim_discharge      ! Writes daily water balance file  
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -96,11 +96,33 @@ CONTAINS
          processMatrix,             &
          nBasins,                   &
          basin,                     &
-         gauge,                     &
-         InflowGauge,               &
          iFlag_cordinate_sys,       &
          L0_nCells,                 &
          L1_nCells,                 &
+         timeStep,                  &
+         resolutionHydrology,       &
+         read_restart,              &
+         write_restart,             &
+         dirConfigOut,              &
+         dirMorpho,                 &
+         dirLCover,                 &
+         dirPrecipitation,          &
+         dirTemperature,            &
+         dirReferenceET,            &
+         dirOut,                    &
+         dirRestartOut,             &  
+         global_parameters,         &
+         global_parameters_name,    &
+         warmPer,                   &
+         evalPer,                   &
+         SimPer,                    &
+         LCyearId,                  &
+         LCfilename
+#ifdef mrm2mhm    
+    use mo_mrm_global_variables, only: &
+         basin_mrm,                 &
+         gauge,                     &
+         InflowGauge,               &
          L11_nCells,                &
          L11_netPerm,               &
          L11_fromN,                 &
@@ -114,27 +136,10 @@ CONTAINS
          L1_areaCell,               &
          nGaugesTotal,              &
          nInflowGaugesTotal,        &
-         timeStep,                  &
-         resolutionHydrology,       &
          resolutionRouting,         &  
-         read_restart,              &
-         write_restart,             &
-         dirConfigOut,              &
-         dirMorpho,                 &
-         dirLCover,                 &
-         dirGauges,                 &
-         dirPrecipitation,          &
-         dirTemperature,            &
-         dirReferenceET,            &
-         dirOut,                    &
-         dirRestartOut,             &  
-         global_parameters,         &
-         global_parameters_name,    &
-         warmPer,                   &
-         evalPer,                   &
-         SimPer,                    &
-         LCyearId,                  &
-         LCfilename
+         dirGauges
+#endif    
+         
 
     implicit none
     !
@@ -161,27 +166,35 @@ CONTAINS
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
     write(uconfig, 103) 'Number of basins            ', nBasins
+#ifdef mrm2mhm    
     write(uconfig, 103) 'Total No. of nodes          ', L11_nCells
     write(uconfig, 103) 'Total No. of reaches        ', L11_nCells-1
+#endif    
     write(uconfig, 103) 'No. of cells L0             ', L0_nCells
     write(uconfig, 103) 'No. of cells L1             ', L1_nCells
+#ifdef mrm2mhm    
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 103) 'No. of cells L11            ', L11_nCells
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
+#endif    
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do i=1, nBasins
        select case (iFlag_cordinate_sys)
        case (0)
           write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
+#ifdef mrm2mhm
           if ( processMatrix(8,1) .ne. 0 ) then
              write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
           end if
+#endif          
        case(1)
          write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
-          if ( processMatrix(8,1) .ne. 0 ) then
-             write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
-          end if
+#ifdef mrm2mhm
+         if ( processMatrix(8,1) .ne. 0 ) then
+            write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
+         end if
+#endif         
   
        end select
     end do
@@ -233,6 +246,7 @@ CONTAINS
             i, global_parameters(i,1), global_parameters(i,2), global_parameters(i,3), &
             trim(adjustl(global_parameters_name(i)))
     end do
+#ifdef mrm2mhm    
     ! basin runoff data
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 202) '                Basin Runoff Data                '
@@ -259,27 +273,32 @@ CONTAINS
           end if
        end do
     end if
+#endif    
     ! basin config
     write(uconfig,218) 'Basin-wise Configuration'
     do n=1,nBasins
-       if ( processMatrix(8,1) .ne. 0 ) then
-          write(uconfig,103) 'Basin No.                   ', n, &
-               'No. of gauges               ', basin%nGauges(n)
-       end if
+       !ST has to be moved to the config write of mRM
+       ! if ( processMatrix(8,1) .ne. 0 ) then
+       !    write(uconfig,103) 'Basin No.                   ', n, &
+       !         'No. of gauges               ', basin%nGauges(n)
+       ! end if
 
        write(uconfig, 222)   'Directory list'
 
        write(uconfig, 224) 'Directory to morphological input         ',  dirMorpho(n)
        write(uconfig, 224) 'Directory to land cover input            ',  dirLCover(n)
+#ifdef mrm2mhm       
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
        end if
+#endif       
        write(uconfig, 224) 'Directory to precipitation input         ',  dirPrecipitation(n)
        write(uconfig, 224) 'Directory to temperature input           ',  dirTemperature(n)
        write(uconfig, 224) 'Directory to reference ET input          ',  dirReferenceET(n)
        write(uconfig, 224) 'Directory to write output by default     ',  dirOut(n)
        write(uconfig, 224) 'Directory to write output when restarted ',  dirRestartOut(n)
 
+#ifdef mrm2mhm       
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 102) 'River Network  (Routing level)'
           write(uconfig, 100) 'Label 0 = intermediate draining cell '
@@ -309,8 +328,8 @@ CONTAINS
                '      [km]', &
                '    [o/oo]'
           !
-          do j=basin%L11_iStart(n), basin%L11_iEnd(n)-1
-             i=L11_netPerm(j) + basin%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
              write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                   L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
           end do
@@ -318,7 +337,7 @@ CONTAINS
           write(uconfig, 109)  '   Overall', '     Basin', &
                '      Cell', '   Routing', &
                '        Id', '   Node Id'
-          do i=basin%L11_iStart(n), basin%L11_iEnd(n)
+          do i=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)
              write(uconfig, 110) i, L11_Id(i)
           end do
 
@@ -332,6 +351,7 @@ CONTAINS
           end do
           write(uconfig,114)  ' Total[km2]', sum(L1_areaCell(basin%L1_iStart(n): basin%L1_iEnd(n)))
        end if
+#endif       
        !
     end do
 
@@ -664,144 +684,6 @@ CONTAINS
     call message(' Optimized parameters written in namelist format to ', trim(fName) )
 
   end subroutine write_optinamelist
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         write_daily_obs_sim_discharge
-
-  !     PURPOSE
-  !>        \brief Write a file for the daily observed and simulated discharge timeseries 
-  !>                during the evaluation period for each gauging station
-
-  !>        \details Write a file for the daily observed and simulated discharge timeseries 
-  !>                during the evaluation period for each gauging station
-
-  !     CALLING SEQUENCE
-
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp), dimension(:,:)    :: Qobs"    daily time series of observed discharge 
-  !>                                                             dims = (nModeling_days , nGauges_total)
-  !>        \param[in]  "real(dp), dimension(:,:)    :: Qsim"    daily time series of modeled discharge
-  !>                                                             dims = (nModeling_days , nGauges_total)
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None 
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date August 2013
-
-  subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
-
-
-    use mo_errormeasures,       only: kge, nse
-    use mo_file,                only: file_daily_discharge, udaily_discharge
-    use mo_global_variables,    only: nBasins, basin, dirOut, gauge, evalPer
-    use mo_julian,              only: dec2date
-    use mo_message,             only: message
-    use mo_string_utils,        only: num2str
-    use mo_utils,               only: ge
-
-
-    implicit none
-
-    ! input arguments
-    real(dp), dimension(:,:), intent(in)     :: Qobs      ! observed time series  [nModeling_days X nGauges_total]
-    real(dp), dimension(:,:), intent(in)     :: Qsim      ! simulated time series [nModeling_days X nGauges_total]
-
-    ! local vars
-    character(256)                           :: fName, formHeader, formData, dummy
-    integer(i4)                              :: bb, gg, tt, err
-    integer(i4)                              :: igauge_start, igauge_end
-    integer(i4)                              :: day, month, year
-    real(dp)                                 :: newTime
-
-
-    ! initalize igauge_start
-    igauge_start = 1
-
-    ! basin loop
-    do bb = 1, nBasins
-       if( basin%nGauges(bb) .lt. 1 ) cycle
-
-       ! estimate igauge_end
-       igauge_end = igauge_start + basin%nGauges(bb) - 1
-
-       ! check the existance of file
-       fName = trim(adjustl(dirOut(bb))) // trim(adjustl(file_daily_discharge))
-       open(udaily_discharge, file=trim(fName), status='unknown', action='write', iostat=err)
-       if( err .ne. 0 ) then
-          call message ('  IOError while openening ',trim(fName))
-          call message ('  Error-Code ', num2str(err))
-          stop
-       end if
-
-       ! header
-       write(formHeader, *) '( 4a8, ' , basin%nGauges(bb),'(2X, a5, i10.10, 2X, a5, i10.10) )' 
-       write(udaily_discharge, formHeader) 'No', 'Day', 'Mon', 'Year', &
-            ( 'Qobs_', gauge%gaugeId(gg), &
-            'Qsim_', gauge%gaugeId(gg), gg=igauge_start, igauge_end )
-
-       ! form data
-       write(formData, *) '( 4I8, ' , basin%nGauges(bb),'(2X,   f15.7 , 2X,  f15.7  ) )' 
-
-       ! write data
-       newTime  = real(evalPer(bb)%julStart,dp) - 0.5_dp
-
-       do tt = 1, (evalPer(bb)%julEnd - evalPer(bb)%julStart + 1)          
-          call dec2date(newTime, yy=year, mm=month, dd=day)
-          write(udaily_discharge, formData) tt, day, month, year, ( Qobs(tt,gg), Qsim(tt,gg) , gg=igauge_start, igauge_end )
-          newTime = newTime + 1.0_dp
-       end do
-
-       ! close file
-       close(udaily_discharge)
-
-       ! screen output
-       call message()
-       write(dummy,'(I3)') bb
-       call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
-       call message('    to ',trim(fname))
-       do gg=igauge_start, igauge_end
-          call message('    KGE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
-               trim(adjustl(num2str(kge(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
-          call message('    NSE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
-               trim(adjustl(num2str(nse(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
-       end do
-
-       ! update igauge_start
-       igauge_start = igauge_end + 1
-       !
-    end do
-
-    !
-  end subroutine write_daily_obs_sim_discharge
-
 
 END MODULE mo_write_ascii
 

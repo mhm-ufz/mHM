@@ -1,4 +1,4 @@
-!> \file mo_net_startup.f90
+!> \file mo_mrm_net_startup.f90
 
 !> \brief Startup drainage network for mHM.
 
@@ -16,21 +16,9 @@
 !         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
 !                                     on a regular X-Y coordinate system
 
-MODULE mo_net_startup
-
-  ! This module sets the river network characteristics and routing order.
-
-  ! Written  Luis Samaniego, Mar 2005
-
-  USE mo_kind,          ONLY: i4, dp
-  USE mo_init_states,   ONLY: get_basin_info
-  USE mo_mhm_constants, ONLY: nodata_i4, nodata_dp
-  USE mo_append,        ONLY: append
-
-  IMPLICIT NONE
-
-  PRIVATE
-
+module mo_mrm_net_startup
+  use mo_kind, only: i4, dp
+  implicit none
   PUBLIC :: L11_variable_init
   PUBLIC :: L11_flow_direction
   PUBLIC :: L11_set_network_topology
@@ -39,16 +27,12 @@ MODULE mo_net_startup
   PUBLIC :: L11_set_drain_outlet_gauges
   PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
-  PUBLIC :: routing_dummy_alloc
   PUBLIC :: get_distance_two_lat_lon_points
-
-CONTAINS
-
-  ! --------------------------------------------------------------------------
+contains
+    ! --------------------------------------------------------------------------
 
   !     NAME
   !         L11_variable_init
-  
   !     PURPOSE
   !>        \brief Cell numbering at ROUTING LEVEL-11
 
@@ -94,17 +78,21 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! --------------------------------------------------------------------------
 
   subroutine L11_variable_init(iBasin)
-
-    use mo_global_variables, only :          &
-         nBasins, basin,                     &
-         level1, level11, resolutionRouting, &
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
+    use mo_mrm_global_variables, only: &
+         level1, &
+         basin_mrm, &
+         level11, resolutionRouting, &
+         nBasins, &
          L11_cellCoor,                       & ! cell coordinates (row,col)
          L11_nCells,                         & ! Total No. of routing cells  (= nNodes)
          L11_Id                                ! ids of grid at level-11    
-    use  mo_init_states,  only : calculate_grid_properties
 
     implicit none
 
@@ -132,7 +120,7 @@ CONTAINS
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! level-0 information
-    call get_basin_info( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
 
     if(iBasin == 1) then
        ! allocate
@@ -158,11 +146,11 @@ CONTAINS
          level11%nrows(iBasin), level11%ncols(iBasin), level11%xllcorner(iBasin),                 &
          level11%yllcorner(iBasin), level11%cellsize(iBasin), level11%nodata_value(iBasin) )
     ! level-1 information
-    call get_basin_info (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
+    call get_basin_info_mrm (iBasin, 1, nrows1, ncols1, iStart=iStart1, iEnd=iEnd1,                   &
          iStartMask=iStartMask1, iEndMask=iEndMask1, mask=mask1 ) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11) 
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11) 
 
     ! allocate and initialize
     allocate( mask11(nrows11, ncols11) )
@@ -209,36 +197,36 @@ CONTAINS
     if(iBasin == 1) then
 
        ! allocate
-       allocate(basin%L11_iStart     (nBasins))
-       allocate(basin%L11_iEnd       (nBasins))
-       allocate(basin%L11_iStartMask (nBasins))
-       allocate(basin%L11_iEndMask   (nBasins))
+       allocate(basin_mrm%L11_iStart     (nBasins))
+       allocate(basin_mrm%L11_iEnd       (nBasins))
+       allocate(basin_mrm%L11_iStartMask (nBasins))
+       allocate(basin_mrm%L11_iEndMask   (nBasins))
 
        ! initialize   
-       basin%L11_iStart(:)     = nodata_i4  
-       basin%L11_iEnd(:)       = nodata_i4 
-       basin%L11_iStartMask(:) = nodata_i4
-       basin%L11_iEndMask(:)   = nodata_i4
+       basin_mrm%L11_iStart(:)     = nodata_i4  
+       basin_mrm%L11_iEnd(:)       = nodata_i4 
+       basin_mrm%L11_iStartMask(:) = nodata_i4
+       basin_mrm%L11_iEndMask(:)   = nodata_i4
 
        ! basin information
-       basin%L11_iStart(iBasin) = 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells - 1
+       basin_mrm%L11_iStart(iBasin) = 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells - 1
 
-       basin%L11_iStartMask(iBasin) = 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     else
 
        ! basin information
-       basin%L11_iStart(iBasin) = basin%L11_iEnd(iBasin-1) + 1
-       basin%L11_iEnd  (iBasin) = basin%L11_iStart(iBasin) + nCells - 1
+       basin_mrm%L11_iStart(iBasin) = basin_mrm%L11_iEnd(iBasin-1) + 1
+       basin_mrm%L11_iEnd  (iBasin) = basin_mrm%L11_iStart(iBasin) + nCells - 1
 
-       basin%L11_iStartMask(iBasin) = basin%L11_iEndMask(iBasin-1) + 1
-       basin%L11_iEndMask  (iBasin) = basin%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
+       basin_mrm%L11_iStartMask(iBasin) = basin_mrm%L11_iEndMask(iBasin-1) + 1
+       basin_mrm%L11_iEndMask  (iBasin) = basin_mrm%L11_iStartMask(iBasin) + nrows11*ncols11 - 1
 
     end if
 
-    call append( basin%L11_Mask,  RESHAPE( mask11, (/nrows11*ncols11/)  )  )
+    call append( basin_mrm%L11_Mask,  RESHAPE( mask11, (/nrows11*ncols11/)  )  )
     ! other L11 data sets
     call append( L11_cellCoor, cellCoor )
     call append( L11_Id, Id )
@@ -285,7 +273,7 @@ CONTAINS
   !>                with the highest flow accumulation within a grid cell. The
   !>                topology of a tipical drainage routing network at level-11 is
   !>                shown in the right panel. Gray color areas denote the flood
-  !>                plains estimated in mo_net_startup, where the network
+  !>                plains estimated in mo_init_mrm, where the network
   !>                upscaling is also carried out.
 
   !>                For the sake of simplicity, it is assumed that all runoff leaving
@@ -332,14 +320,22 @@ CONTAINS
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
-
-    use mo_global_variables, only : &
-         nBasins, basin, level0, level1, level11,   &
-         L0_fAcc, L0_fDir, L0_id, &
+    use mo_mrm_constants, only: nodata_i4
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         basin_mrm, &
+         level0, &
+         level1, &
+         nBasins, &
+         level11,   &
+         L0_fAcc, L0_fDir,  &
          L0_draSC,          & ! INOUT: draining cell of each sub catchment (== cell L11)
          L0_cellCoor,       &
+         L0_id,             &
          L0_L11_Id,         & ! INOUT: mapping of L11 Id on L0
          L1_L11_Id,         & ! INOUT: mapping of L11 Id on L1
          L11_Id,            &
@@ -401,15 +397,15 @@ CONTAINS
     !--------------------------------------------------------
 
     ! level-0 information
-    call get_basin_info (iBasin, 0, nrows0, ncols0, ncells=nCells0,   &
+    call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, ncells=nCells0,   &
          iStart=iStart0, iEnd=iEnd0, mask=mask0) 
 
     ! level-1 information
-    call get_basin_info (iBasin, 1, nrows1, ncols1, ncells=nCells1,   &
+    call get_basin_info_mrm (iBasin, 1, nrows1, ncols1, ncells=nCells1,   &
          iStart=iStart1, iEnd=iEnd1, mask=mask1) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
     ! allocate
@@ -712,13 +708,13 @@ CONTAINS
 
     ! allocate space for row and col Outlet
     if(iBasin .eq. 1) then
-       allocate( basin%L0_rowOutlet(nBasins) ) 
-       allocate( basin%L0_colOutlet(nBasins) )
+       allocate( basin_mrm%L0_rowOutlet(nBasins) ) 
+       allocate( basin_mrm%L0_colOutlet(nBasins) )
     end if
 
     ! L0 data sets
-    basin%L0_rowOutlet(iBasin) = oLoc(1)
-    basin%L0_colOutlet(iBasin) = oLoc(2)
+    basin_mrm%L0_rowOutlet(iBasin) = oLoc(1)
+    basin_mrm%L0_colOutlet(iBasin) = oLoc(2)
     call append( L0_draSC,     PACK ( draSC0(:,:),  mask0)  ) 
     call append( L0_L11_Id,    PACK ( L11Id_on_L0(:,:), mask0)  )
 
@@ -799,11 +795,14 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
 
   subroutine L11_set_network_topology(iBasin)
-
-    use mo_global_variables, only: &
+    use mo_mrm_constants, only: nodata_i4
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
          L11_Id, L11_cellCoor,     &
          L11_fDir,                 &
          L11_fromN,                & ! INOUT: from node 
@@ -828,7 +827,7 @@ CONTAINS
     integer(i4), dimension(:), allocatable    :: nLinkFromN, nLinkToN 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
     !     Routing network vectors have nNodes size instead of nLinks to
@@ -933,11 +932,14 @@ CONTAINS
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Sa. Ku.         Jan 2015 - corrected initialization of nLinkSink
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
 
   subroutine L11_routing_order(iBasin)
-
-    use mo_global_variables, only: &
+    use mo_mrm_constants, only: nodata_i4
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
          L11_fromN,                & ! IN:    from node 
          L11_toN,                  & ! IN:    to node
          L11_rOrder,               & ! INOUT: network routing order
@@ -965,7 +967,7 @@ CONTAINS
     logical                                   :: flag
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
     !  Routing network vectors have nNodes size instead of nLinks to
@@ -1111,12 +1113,15 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
 
   subroutine L11_link_location(iBasin)
-
-    use mo_global_variables, only: &
-         basin,       &
+    use mo_mrm_constants, only: nodata_i4
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         basin_mrm,   & ! IN
          L0_fDir,     & ! IN:    flow direction (standard notation) L0
          L0_draSC,    & ! IN:    Index of draining cell of each sub catchment (== cell L11)
          L11_fromN,   & ! IN:    from node 
@@ -1157,13 +1162,13 @@ CONTAINS
     integer(i4), dimension(2)                 :: oLoc           ! output location in L0
 
     ! level-0 information
-    call get_basin_info (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
+    call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
 
     ! level-110 information
-    call get_basin_info (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
+    call get_basin_info_mrm (iBasin, 110, nrows110, ncols110, iStart=iStart110, iEnd=iEnd110) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
 
@@ -1206,8 +1211,8 @@ CONTAINS
       colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
       ! finding main outlet (row, col) in L0
-      oLoc(1) = basin%L0_rowOutlet(iBasin)
-      oLoc(2) = basin%L0_colOutlet(iBasin) 
+      oLoc(1) = basin_mrm%L0_rowOutlet(iBasin)
+      oLoc(2) = basin_mrm%L0_colOutlet(iBasin) 
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
@@ -1310,16 +1315,19 @@ CONTAINS
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
   !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
   subroutine L11_set_drain_outlet_gauges(iBasin)
-
-    use mo_global_variables, only: &
-         basin,       & 
+    use mo_mrm_constants, only: nodata_i4
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         basin_mrm,   & 
          L0_fDir,     &       ! IN: flow direction (standard notation) L0
          L0_draSC,    &       ! IN: Index of draining cell of each sub catchment (== cell L11)
-         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
          L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then 
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
+         L0_cellCoor, &       ! IN: cell coordinates (row,col) -> <only domain> input data
          L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then  
          !                    !     transformed into gauge running ID => [1,nGaugesTotal]
          L0_L11_Id,   &       ! IN: mapping of L11 Id on L0
@@ -1348,11 +1356,11 @@ CONTAINS
     integer(i4)                               :: iRow, jCol
 
     ! level-0 information
-    call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
     ! level-110 information (nrows110,ncols110) always equal to (nrows0,ncols0)
-    call get_basin_info ( iBasin, 110, nrows110, ncols110, &
+    call get_basin_info_mrm ( iBasin, 110, nrows110, ncols110, &
          iStart=iStart110, iEnd=iEnd110 ) 
 
     ! allocate
@@ -1402,18 +1410,18 @@ CONTAINS
        ! the routing cell at level-11
         if ( gaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! evaluation gauges
-          do ll = 1, basin%nGauges(iBasin)
+          do ll = 1, basin_mrm%nGauges(iBasin)
              ! search for gaugeID in L0 grid and save ID on L11
-             if ( basin%gaugeIdList(iBasin, ll)  .EQ. gaugeLoc0(ii,jj)) basin%gaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if (basin_mrm%gaugeIdList(iBasin, ll) .EQ. gaugeLoc0(ii,jj)) basin_mrm%gaugeNodeList(iBasin, ll) = L11Id_on_L0(ii, jj)
           end do
        end if
 
        if ( InflowGaugeLoc0(ii,jj) .NE. nodata_i4 ) then 
           ! inflow gauges
-          do ll = 1, basin%nInflowGauges(iBasin)
+          do ll = 1, basin_mrm%nInflowGauges(iBasin)
              ! search for gaugeID in L0 grid and save ID on L11
-             if ( basin%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
-                  basin%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
+             if ( basin_mrm%InflowGaugeIdList(iBasin, ll) .EQ. InflowGaugeLoc0(ii,jj)) &
+                  basin_mrm%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
   
@@ -1480,13 +1488,17 @@ CONTAINS
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  R. Kumar      , Oct 2013 - stack size increased from nNodes to 100 
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
 
   subroutine L11_stream_features(iBasin)
-
-    use mo_global_variables, only: &
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
+         iFlag_cordinate_sys, & ! IN:    coordinate system
          L0_Id,           & ! IN:    level-0 id
-         L0_elev,         & ! IN:    elevation (sinks removed)  [m]
          L0_fDir,         & ! IN:    flow direction (standard notation) L0
          L0_areaCell,     & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
          L11_fRow,        & ! IN:    from row in L0 grid 
@@ -1498,9 +1510,7 @@ CONTAINS
          L0_floodPlain,   & ! IN:    floodplains of stream i
          L11_length,      & ! IN:    total length [m] 
          L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
-     iFlag_cordinate_sys, & ! IN:    coordinate system
          L11_slope          ! INOUT: normalized average slope
-    use mo_mhm_constants, only: nodata_i4, nodata_dp
 
     implicit none
 
@@ -1538,11 +1548,11 @@ CONTAINS
     real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
 
     ! level-0 information
-    call get_basin_info ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
 
     ! level-11 information
-    call get_basin_info (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
     nLinks  = nNodes - 1
 
@@ -1596,7 +1606,7 @@ CONTAINS
     if(nNodes .GT. 1) then
       ! get L0 fields
       iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
-      elev0(:,:) =       UNPACK( L0_elev (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+      elev0(:,:) =       UNPACK( L0_elev_mRM (iStart0:iEnd0),  mask0, nodata_dp_tmp )
       fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
       areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
 
@@ -1756,13 +1766,14 @@ CONTAINS
   !>        \date    Dec 2005
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
+  !                  Stephan Thober, Aug 2015 - ported to mRM
   ! ------------------------------------------------------------------
   subroutine L11_fraction_sealed_floodplain( &
        nLinks, LCover0, floodPlain0, & ! INTENT IN
        areaCell0, nLinkAFloodPlain,  & ! INTENT IN
        LCClassImp,                   & ! INTENT IN
        nLinkFracFPimp    )             ! INTENT OUT
-    use mo_mhm_constants, only: nodata_dp
+    use mo_mrm_constants, only: nodata_dp
     implicit none
 
     integer(i4),                intent(in)  :: nLinks
@@ -1789,175 +1800,6 @@ CONTAINS
     end if
      
   end subroutine L11_fraction_sealed_floodplain
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         routing_dummy_alloc
-
-  !     PURPOSE
-  !>        \brief routing_dummy_alloc related to routing
-
-  !>        \details Allocate L0 variable that are initialized
-  !>                 for routing, when routing is switched off. This is a dummy
-  !>                 allocation required for the mhm call. No initialization is
-  !>                 performed. These variables are all the variables that would
-  !>                 would have been initialized by the net startup or restart
-  !>                 L11 config, if routing would be switched on.
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Stephan Thober
-  !>        \date    Sep 2013
-
-  ! ------------------------------------------------------------------
-  subroutine routing_dummy_alloc( iBasin )
-
-    use mo_kind,             only: i4
-    use mo_init_states,      only: get_basin_info
-    use mo_global_variables, only: &
-         L11_cellCoor,      & ! cell Coordinates at Level 11
-         L11_Id,            & ! cell Ids at Level 11
-         L11_nCells,        & ! Number of Cells at Level 11
-         L0_draSC,          &
-         L0_L11_Id,         &
-         L1_L11_Id,         &
-         L11_fDir,          &
-         L11_rowOut,        &
-         L11_colOut,        &
-         L11_upBound_L0,    &
-         L11_downBound_L0,  &
-         L11_leftBound_L0,  &
-         L11_rightBound_L0, &
-         L11_upBound_L1,    &
-         L11_downBound_L1,  &
-         L11_leftBound_L1,  &
-         L11_rightBound_L1, &
-         L11_fromN,         &
-         L11_toN,           &
-         L11_rOrder,        &
-         L11_label,         &
-         L11_sink,          &
-         L11_netPerm,       &
-         L11_fRow,          &
-         L11_fCol,          &
-         L11_tRow,          &
-         L11_tCol,          &
-         L0_draCell,        &
-         L0_streamNet,      &
-         L0_floodPlain,     &
-         L11_length,        &
-         L11_aFloodPlain,   &
-         L11_slope
-
-    implicit none
-
-    integer(i4), intent(in) :: iBasin
-
-    ! local
-    integer(i4) :: ncols0
-    integer(i4) :: nrows0
-    integer(i4) :: ncells0
-    integer(i4) :: ncols1
-    integer(i4) :: nrows1
-    integer(i4) :: ncells1
-
-    ! get L0 information
-    call get_basin_info( iBasin, 0, nrows0, ncols0, ncells=ncells0 )
-
-    ! get L1 information
-    call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 )
-
-    ! L0 variables ---------------------------------------------------
-    call extend( L0_draSC, ncells0 )
-    call extend( L0_L11_Id, ncells0 )
-    call extend( L0_draCell, ncells0 )
-    call extend( L0_streamnet, ncells0 )
-    call extend( L0_floodplain, ncells0 )
-    ! L1 variables ---------------------------------------------------
-    call extend( L1_L11_Id, ncells1 )
-    call extend( L11_upBound_L1, ncells1 )
-    call extend( L11_downBound_L1, ncells1 )
-    call extend( L11_leftBound_L1, ncells1 )
-    call extend( L11_rightBound_L1, ncells1 )
-
-    ! L11 variables --------------------------------------------------
-    if ( .not. allocated( L11_cellCoor) )        allocate( L11_cellCoor( 1, 1) )
-    if ( .not. allocated( L11_Id ) )             allocate( L11_Id( 1 ) )
-    L11_nCells = 1_i4
-    if ( .not. allocated( L11_fDir ) )           allocate( L11_fDir( 1 ) )
-    if ( .not. allocated( L11_rowOut ) )         allocate( L11_rowOut( 1 ) )
-    if ( .not. allocated( L11_colOut ) )         allocate( L11_colOut( 1 ) )
-    if ( .not. allocated( L11_upBound_L0 ) )     allocate( L11_upBound_L0( 1 ) )
-    if ( .not. allocated( L11_downBound_L0 ) )   allocate( L11_downBound_L0( 1 ) )
-    if ( .not. allocated( L11_leftBound_L0 ) )   allocate( L11_leftBound_L0( 1 ) )
-    if ( .not. allocated( L11_rightBound_L0 ) )  allocate( L11_rightBound_L0( 1 ) )
-    if ( .not. allocated( L11_fromN ) )          allocate( L11_fromN( 1 ) )
-    if ( .not. allocated( L11_toN ) )            allocate( L11_toN( 1 ) )
-    if ( .not. allocated( L11_rOrder) )          allocate( L11_rOrder( 1 ) )
-    if ( .not. allocated( L11_label) )           allocate( L11_label( 1 ) )
-    if ( .not. allocated( L11_sink) )            allocate( L11_sink( 1 ) )
-    if ( .not. allocated( L11_netPerm) )         allocate( L11_netPerm( 1 ) )
-    if ( .not. allocated( L11_fRow) )            allocate( L11_fRow( 1 ) )
-    if ( .not. allocated( L11_fCol) )            allocate( L11_fCol( 1 ) )
-    if ( .not. allocated( L11_tRow) )            allocate( L11_tRow( 1 ) )
-    if ( .not. allocated( L11_tCol) )            allocate( L11_tCol( 1 ) )
-    if ( .not. allocated( L11_length) )          allocate( L11_length( 1) )
-    if ( .not. allocated( L11_aFloodPlain) )     allocate( L11_aFloodPlain( 1) )
-    if ( .not. allocated( L11_slope) )           allocate( L11_slope( 1) )
-
-  end subroutine routing_dummy_alloc
-
-  ! -------------------------------------------------------------------
-  ! extend allocated arrays
-  ! -------------------------------------------------------------------
-  subroutine extend( arr, ext_size)
-
-    use mo_kind, only: i4
-
-    implicit none
-
-    integer(i4), dimension(:), allocatable, intent(inout) :: arr
-    integer(i4),                            intent(in)    :: ext_size
-    integer(i4)                                           :: old_size
-
-    old_size = 0_i4
-    if ( allocated( arr ) ) then
-       old_size = size( arr )
-       deallocate( arr )
-    end if
-    allocate( arr( old_size + ext_size ) )
-
-  end subroutine extend
 
   ! ------------------------------------------------------------------
   !  MOVE UPSTREAM FROM-TO
@@ -2146,8 +1988,8 @@ CONTAINS
   ! ------------------------------------------------------------------
   subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
-    use mo_constants,        only: SQRT2_dp
-    use mo_global_variables, only: level0
+    use mo_constants, only: SQRT2_dp
+    use mo_mrm_global_variables, only: level0
 
     implicit none
 
@@ -2246,6 +2088,8 @@ CONTAINS
   !     HISTORY
   !>        \author Rohini Kumar
   !>        \date   May 2014
+  !         Modified,
+  !                  Stephan Thober, Aug 2015 - ported to mRM
 
   ! --------------------------------------------------------------------------
   subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
@@ -2284,4 +2128,4 @@ CONTAINS
   end subroutine get_distance_two_lat_lon_points
 
 
-END MODULE mo_net_startup
+end module mo_mrm_net_startup
