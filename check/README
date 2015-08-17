@@ -54,7 +54,7 @@ the Makefile setting for
         TEST CASES
 ----------------------------------------
 
-case 0 :: DEFAULT
+case 0 :: DEFAULT mhm.nml and DEFAULT mrm.nml
 
 case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    nBasins                    = 2                                               (default:       1)
@@ -166,6 +166,26 @@ case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
    opti_method                = 1                                               (default:       3)
    opti_function              = 13                                              (default:       3)
    nIterations                = 6                                               (default:     400)
+
+case 7 :: mRM INDEPENDENT CONFIGURATION
+          added mRM setup in mrm.nml and mrm_parameter.nml, identical to the ones of mhm.nml with the exception of:
+   mrm_coupling_mode         = 1                                                (default:       2)
+   warming_Days(1)           = 0                                                (default:     360)
+   warming_Days(2)           = 150                                              (default:     360)
+   eval_Per(1)%yStart        = 1991                                             (default:    1990)
+   eval_Per(2)%yStart        = 1992                                             (default:    1990)
+   eval_Per(1)%mStart        = 02                                               (default:      01)
+   eval_Per(2)%mStart        = 05                                               (default:      01)
+   eval_Per(1)%dStart        = 16                                               (default:      01)
+   eval_Per(2)%dStart        = 25                                               (default:      01)
+   eval_Per(1)%yEnd          = 1992                                             (default:    1993)
+   eval_Per(2)%yEnd          = 1993                                             (default:    1993)
+   eval_Per(1)%mEnd          = 08                                               (default:      12)
+   eval_Per(2)%mEnd          = 11                                               (default:      12)
+   eval_Per(1)%dEnd          = 28                                               (default:      31)
+   eval_Per(2)%dEnd          = 09                                               (default:      31)
+   time_step_model_inputs(1) = 0                                                (default:      -2)
+   time_step_model_inputs(2) = 0                                                (default:      -2)
    
 # -------------------------------------------------------------------------------------------
 #
