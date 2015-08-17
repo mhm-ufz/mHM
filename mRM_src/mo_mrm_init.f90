@@ -218,7 +218,7 @@ CONTAINS
     call message('           Version ', trim(version))
     call message('           ', trim(version_date))
     call message()
-    call message('Written by S. Thober')
+    call message('Made available by S. Thober')
     call message()
     call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
 
