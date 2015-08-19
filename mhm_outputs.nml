@@ -62,10 +62,7 @@ outputFlxState(18)=.FALSE.
 outputFlxState(9)=.TRUE. 
 !
 ! actual evapotranspiration aET [mm/T]                                -- case 10
-outputFlxState(10)=.TRUE.
-!
-! actual evapotranspiration from the soil layers [mm/T]               -- case 19
-outputFlxState(19)=.TRUE. 
+outputFlxState(10)=.TRUE. 
 !
 ! total discharge generated per cell (L1_total_runoff) [mm/T]         -- case 11
 outputFlxState(11)=.TRUE.
@@ -86,7 +83,10 @@ outputFlxState(15)=.TRUE.
 outputFlxState(16)=.TRUE.
 !
 ! infiltration                       (L1_infilSoil)    [mm/T]         -- case 17
-outputFlxState(17)=.TRUE.
+outputFlxState(17)=.FALSE.
+!
+! actual evapotranspiration from the soil layers       [mm/T]         -- case 19
+outputFlxState(19)=.TRUE.                              
 !
 ! effective precipitation            (L1_preEffect)    [mm/T]         -- case 20
 outputFlxState(20)=.TRUE.
