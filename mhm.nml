@@ -262,29 +262,15 @@ fracSealed_cityArea = 0.6
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered 
 !> chronologically.
-nLcover_scene = 3
+nLcover_scene = 1
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
 LCoverYearStart(1) = 1975
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1989
+LCoverYearEnd(1)   = 1993
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 2
-LCoverYearStart(2) = 1990
-!> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 1993
-!> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 3
-LCoverYearStart(3) = 1994
-!> ending year of land cover scnene 3
-LCoverYearEnd(3)   = 2004
-!> name of land cover file for scnene 3
-LCoverfName(3)     = 'lc_1990.asc'
 /
 
 !******************************************************************************************

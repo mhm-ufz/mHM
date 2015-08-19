@@ -316,7 +316,6 @@ for irelease in ${release} ; do
                     fi
                     cd ..
                     echo ''
-
                     # compare NetCDF outputs in output_b1/ with reference in output_save/
                     for nc_file in ${nc_files} ; do
                         # cdo -b 16 :: precision=double=16bit
