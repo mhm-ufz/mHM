@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.9 at Matthias' Macbook Air
+# Setup file for PGI fortran compiler 15.4 at Matthias' Macbook Air
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2012 Matthias Cuntz
+#    Copyright 2015 Matthias Cuntz
 
 # The Makefile assumes the standard bin, include and lib directories
 # i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
@@ -28,33 +28,39 @@
 # Define subirectories if another structure
 
 # Paths
-GNUDIR := /usr/local
-GNULIB := $(GNUDIR)/lib
-GNUBIN := $(GNUDIR)/bin
+PGIDIR := /Applications/Program/FreePGI.app/Contents/Resources/pgi/osx86-64/15.4
+PGILIB := $(PGIDIR)/lib
+PGIBIN := $(PGIDIR)/bin
 
 # Compiling
-F90 := $(GNUBIN)/gfortran
+F90 := $(PGIBIN)/pgfortran
 FC  := $(F90)
 CC  := /usr/bin/gcc
 CPP := /usr/bin/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
+# -Ktrap=align|denorm|divz|fp|inexact|inv|none|ovf|unf
+#                     Determine IEEE Trap conditions
 ifeq ($(release),debug)
-    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
-    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
+    F90FLAGS += -C -g -Mbounds -Mchkptr -Mchkstk -traceback -Mchkfpstk -Mstandard -Mdclchk
+    FCFLAGS  += -C -g -Mbounds -Mchkptr -Mchkstk -traceback -Mchkfpstk -Mstandard -Mdclchk
     CFLAGS   += -pedantic -Wall -W -O -g -Wno-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
 else
-    F90FLAGS += -O3 -Wno-aggressive-loop-optimizations
-    FCFLAGS  += -O3 -Wno-aggressive-loop-optimizations
+    # -fast = -O2 -Munroll=c:1 -Mnoframe -Mlre -Mautoinline -Mvect=sse -Mcache_align -Mflushz -Mpre
+    # -Mipa=fast = -Mipa=align,arg,const,f90ptr,shape,libc,globals,localarg,alias,ptr,pure
+    # -Mvect=sse gives problems with xor4096, other CHS modules work with flag
+    F90FLAGS += -fast -Mipa=fast,inline -Mnovect
+    FCFLAGS  += -fast -Mipa=fast,inline -Mnovect
     CFLAGS   += -O3
 endif
-F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
-FCFLAGS  += -ffixed-form -ffixed-line-length-132
+F90FLAGS += -Mpreprocess -Mfreeform -tp=p7-64
+FCFLAGS  += -Mfixed -tp=p7-64
 CFLAGS   +=
-MODFLAG  := -J# space significant
-DEFINES  += -DGFORTRAN -DgFortran
+MODFLAG  := -module # space significant
+DEFINES  += -DpgiFortran
+LDFLAGS  += -pgf90libs
 
 # Linking
-LIBS += -L$(GNULIB)
-RPATH += -Wl,-rpath,$(GNULIB)
+LIBS += -L$(PGILIB)
+RPATH += -Wl,-rpath,$(PGILIB)
 
 # IMSL
 IMSLDIR :=
@@ -65,10 +71,10 @@ MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := /usr/local/netcdf-3.6.3-gfortran
+    NCDIR := /usr/local/netcdf-3.6.3-pgfortran
 else
     NCDIR   := /usr/local
-    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-gfortran
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.2-pgfortran
     CURLLIB := /usr/lib
     SZLIB   := /usr/local/lib
     HDF5LIB := /usr/local/lib
@@ -80,10 +86,10 @@ FPROJDIR :=
 
 # LAPACK
 LAPACKDIR   :=
-GFORTRANDIR := $(GNUDIR)
+GFORTRANDIR :=
 
 # MPI
-MPIDIR := /usr/local/openmpi-1.8.4-gfortran
+MPIDIR :=
 
 # Documentation
 DOXYGENDIR := /usr/local/bin

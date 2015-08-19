@@ -1,36 +1,30 @@
 ! Emacs: -*- mode: f90 -*-
-!> \file mhm.nml
+!> \file mrm.nml
 !
-!> \brief Namelists of mHM
+!> \brief Namelists of mRM
 !
-!> \details This files provides all namelists for mHM.
+!> \details This files provides all namelists for mRM.
 !
-!> \authors Matthias Zink, Matthias Cuntz
-!> \date Jan 2013
+!> \authors Stephan Thober
+!> \date Aug 2015
 ! Modified,
-! Rohini Kumar, Aug 2013   - added "fracSealed_cityArea" in the LCover namelist \n
-!                          - added new namelist "LAI_data_information" \n
-!                          - added new directory paths for soil and geology LUTs
-!                            which are common to all modeled basins \n
-! Luis Samaniego, Nov 2013 - process description
-! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
-! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
-! Stephan Thober, May 2014 - added switch for chunk read in
-! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
-! Rohini Kumar and
-! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
-! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
-! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
-! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
-  
+!
 !******************************************************************************************
+! COUPLING MODE
+!******************************************************************************************
+!-----------------------------------------------------------------------------
+!> coupling_mode can be either: 0 = stand-alone (NOT IMPLEMENTED YET)\n
+!>                              1 = general coupling to a hydrologic model (NOT RECOMMENDED FOR MHM)\n
+!>                              2 = copy config from mhm to mrm internally (ignores mrm.nml and mrm_parameter.nml)
+!-----------------------------------------------------------------------------
+&coupling_config
+mrm_coupling_mode = 2
+/
+!
 !
 !******************************************************************************************
 ! MAIN  
 !******************************************************************************************
-!> Main namelist
-!> Most of the variables (if not all) given in this namelist are common
-!> to all basins to be modeled.
 &mainconfig
 !-----------------------------------------------------------------------------
 !> model run timestep [h] either 1 or 24
@@ -63,7 +57,7 @@ resolution_Hydrology(1) = 12000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 12000 
+resolution_Routing(1) = 12000
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
@@ -125,10 +119,6 @@ dirConfigOut = "test_basin/"
 !> (only for *_classdefinition files)
 dirCommonFiles = "test_basin/input/morph/"
 !
-!> input format specification for the meteorological forcings: 'nc' or 'bin'.
-!> this format is common to all basins to be modeled
-inputFormat_meteo_forcings = "nc"
-!
 !-----------------------------------------------------
 !> basin wise directory paths
 !-----------------------------------------------------
@@ -140,28 +130,6 @@ dir_Morpho(1)        = "test_basin/input/morph/"
 dir_LCover(1)        = "test_basin/input/luse/"
 !> directory where discharge files are located
 dir_Gauges(1)        = "test_basin/input/gauge/"
-!> directory where meteorological input is located
-dir_Precipitation(1) = "test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
-!> paths depending on PET process (processCase(5))
-!> 0 - PET is input 
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
-!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "test_basin/input/meteo/"
-dir_MaxTemperature(1)  = "test_basin/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "test_basin/input/meteo/"
-!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "test_basin/input/meteo/"
-dir_windspeed(1)       = "test_basin/input/meteo/"
-!> directory where latitude and longitude file is located
-dir_LatLon(1)        = "test_basin/input/latlon/latlon_2.nc"
-!> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
 !> directory where restart input is located
 dir_RestartIn(1)     = "test_basin/restart/"
 !> directory where restart output should be written
@@ -169,29 +137,6 @@ dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
 /
-
-!> data which are optionally needed for optimization
-&optional_data
-!> soil moisture data
-!> currently mhm can be calibrated against the fraction of moisture
-!> down to a specific mhm soil layer (integral over the layers)
-!> here soil moisture is defined as fraction between water content within the
-!> soil column and saturated water content (porosity). \n
-!
-!> directory to soil moisture data
-dir_soil_moisture(1)   = "test_basin/input/optional_data/"
-!> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
-!> input is representative for (counted top to down)
-nSoilHorizons_sm_input = 1
-!> time stepping of the soil moisture input
-!>     -1: daily   SM values\n
-!>     -2: monthly SM values\n
-!>     -3: yearly  SM values\n
-!-----------------------------
-timeStep_sm_input = -2
-/
-     
-!
 
 &time_periods
 !-----------------------------------------------------------------------------
@@ -209,20 +154,24 @@ timeStep_sm_input = -2
 !>    period=2) to 2003/12/31 (End of the given simulation period=3) with 365 warming 
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
+!
+!>           ***CAUTION: DOUBLE CHECK AND DOUBLE CHECK THAT THESE TIMEPERIODS
+!>                       ARE WITHIN THOSE OF THE HYDROLOGIC MODEL!!!!!!!!!!!! CAUTION***
+!>                          THERE IS NO GENERAL CHECK ON THIS!
 !-----------------------------------------------------------------------------
 warming_Days(1)    = 0
 !> first year of wanted simulation period
-eval_Per(1)%yStart = 1990
+eval_Per(1)%yStart = 1991
 !> first month of wanted simulation period
-eval_Per(1)%mStart = 01
+eval_Per(1)%mStart = 03
 !> first day   of wanted simulation period
-eval_Per(1)%dStart = 01
+eval_Per(1)%dStart = 21
 !> last year   of wanted simulation period
-eval_Per(1)%yEnd   = 1993
+eval_Per(1)%yEnd   = 1992
 !> last month  of wanted simulation period
-eval_Per(1)%mEnd   = 12
+eval_Per(1)%mEnd   = 08
 !> last day    of wanted simulation period
-eval_Per(1)%dEnd   = 31
+eval_Per(1)%dEnd   = 28
 !> switch to control read input frequency of the gridded meteo input, 
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -233,21 +182,6 @@ eval_Per(1)%dEnd   = 31
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
 time_step_model_inputs(1) = 0
-/
-
-!******************************************************************************************
-! mHM SOIL LAYERING 
-!******************************************************************************************
-!> Namelist controlling the layering of the soil
-!> Variables given in this namelist are common to all basins to be modeled.
-&soilLayer
-!> [mm] soil depth down to which organic matter is possible  
-tillageDepth      = 200
-!> No. of soil horizons to be modeled
-nSoilHorizons_mHM = 2
-!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
-!> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soil_Depth(1)     = 200
 /
 
 !******************************************************************************************
@@ -262,93 +196,29 @@ fracSealed_cityArea = 0.6
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered 
 !> chronologically.
-nLcover_scene = 1
+nLcover_scene = 3
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
 LCoverYearStart(1) = 1975
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1993
+LCoverYearEnd(1)   = 1989
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
-/
 
-!******************************************************************************************
-! INFORMATION RELATED TO LAI DATA
-!******************************************************************************************
-&LAI_data_information
-!
-!-----------------------------------------------------------------------------------
-!> Flag timeStep_LAI_input identifies how LAI is read in mHM. 
-!> This flag is unique and valid for all basins.\n
-!
-!> timeStep_LAI_input
-!>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
-!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
-!>         Information regarding long-term monthly mean LAI for land cover classes
-!>         appearing in all modeled basins should be included in this LUT file. 
-!>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be   
-!>         located in each basin's morph directory.
-!> <0: Read gridded LAI files.\n
-!>     -1: gridded LAI are daily values\n
-!>     -2: gridded LAI are monthly values\n
-!>     -3: gridded LAI are yearly values\n
-!-----------------------------------------------------------------------------------
-timeStep_LAI_input = 0
-!> input file format of gridded file (if timeStep_LAI_input < 0)
-!>     bin - assume yearly files with name YYYY.bin
-!>     nc  - assume one file with name lai.nc
-inputFormat_gridded_LAI = "nc"
-/
+!> starting year of land cover scene 2
+LCoverYearStart(2) = 1990
+!> ending year of land cover scnene 2
+LCoverYearEnd(2)   = 1993
+!> name of land cover file for scnene 2
+LCoverfName(2)     = 'lc_1990.asc'
 
-!
-!******************************************************************************************
-! PROCESSES
-!******************************************************************************************
-!> This matrix manages which processes and process descriptions are used for simulation.
-!> The number of processes and its corresponding numbering are fixed. The process description can be 
-!> chosen from the options listed above the name of the particular process case. This number has to be
-!> given for processCase(*).
-!
-&processSelection
-!> interception
-!> 1 - maximum Interception 
-processCase(1) = 1
-!> snow
-!> 1 - degree-day approach
-processCase(2) = 1
-!> soil moisture
-!> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
-processCase(3) = 1
-!> directRunoff
-!> 1 - linear reservoir exceedance approach
-processCase(4) = 1
-!> potential evapotranspiration (PET)
-!> 0 - read in PET (aspect correction)
-!> 1 - Hargreaves-Samani
-!> 2 - Priestley-Taylor
-!> 3 - Penman-Monteith
-processCase(5) = 0
-!> interflow
-!> 1 - storage reservoir with one outflow threshold and nonlinear response 
-processCase(6) = 1
-!> percolation
-!> 1 - GW  assumed as linear reservoir
-processCase(7) = 1
-!> routing
-!> 0 - deactivated
-!> 1 - Muskingum approach
-processCase(8) = 1
-!> baseflow
-!> 1 - recession parameters (not regionalized yet)
-processCase(9) = 1
-!> ground albedo of cosmic-ray neutrons
-!> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
-!> 0 - deactivated
-!> 1 - inverse N0 based on Desilets et al. 2010 
-!> 2 - COSMIC forward operator by Shuttlworth et al. 2013
-processCase(10) = 0
+!> starting year of land cover scene 3
+LCoverYearStart(3) = 1994
+!> ending year of land cover scnene 3
+LCoverYearEnd(3)   = 2004
+!> name of land cover file for scnene 3
+LCoverfName(3)     = 'lc_1990.asc'
 /
 
 !******************************************************************************************
@@ -399,27 +269,6 @@ InflowGauge_filename(1,1) = ""
 InflowGauge_Headwater(1,1) = .FALSE.
 /
 
-!******************************************************************************************
-! ANNUAL CYCLE PAN EVAPORATION
-!******************************************************************************************
-&panEvapo
-! MONTH       Jan     Feb     Mar     Apr    May    Jun    Jul    Aug    Sep    Oct    Nov    Dec
-!> monthly free pan evaporation
-evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.50
-/
-
-!******************************************************************************************
-! ANNUAL CYCLE METEOROLOGICAL FORCINGS 
-!******************************************************************************************
-&nightDayRatio
-!> night ratio for precipitation
-!> only night values required because day values are the opposite
-fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
-!> night ratio for PET 
-fnight_pet   =  0.10,   0.10,   0.10,   0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10
-!> night correction factor for temperature
-fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
-/
 
 !******************************************************************************************
 ! SETTINGS FOR OPTIMIZATION
@@ -457,3 +306,4 @@ sce_npg = -9
 !> if default: nps = n+1
 sce_nps = -9
 /
+

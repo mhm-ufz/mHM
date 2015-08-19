@@ -65,7 +65,7 @@ else
     FCFLAGS  += $(F90FLAGS)
     CFLAGS   += -O3
 endif
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free # -ieee=stop -mismatch-all
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free # -ieee=stop -ieee=full -mismatch -mismatch-all
 MODFLAG  := -mdir # space significant
 FCFLAGS  += -fixed
 CFLAGS   +=
