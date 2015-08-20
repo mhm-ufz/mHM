@@ -1,7 +1,16 @@
+!> \file mo_write_fluxes_states.f90
 
+!> \brief Creates NetCDF output for different fluxes and state variables of mHM.
+
+!> \details NetCDF is first initialized and later on variables are put to the NetCDF.
+
+!  HISTORY
+!>     \authors Matthias Zink
+!>     \date Apr 2013
+!      Modified:
+!          David Schaefer, Aug 2015 - major rewrite
+!       
 module mo_write_fluxes_states
-  
-  ! This module provides all the mhm netcdf writing functionality
 
   use mo_kind             , only: i4, dp
   use mo_string_utils     , only: num2str
@@ -30,6 +39,7 @@ module mo_write_fluxes_states
   end interface OutputVariable
 
   type OutputDataset
+     integer(i4)                       :: ibasin      !> basin id
      type(NcDataset)                   :: nc          !> NcDataset to write
      type(OutputVariable), allocatable :: vars(:)     !> store all created (dynamic) variables
      integer(i4)                       :: counter = 0 !> count written time steps
@@ -215,7 +225,7 @@ contains
   !         None
   !
   !     HISTORY
-  !>        \author David Schaefer
+  !>        \author David Schafer
   !>        \date June 2015
   subroutine writeVariableTimestep(self, timestep)
     class(OutputVariable), intent(inout) :: self
@@ -276,8 +286,14 @@ contains
   !         None
   !
   !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015 
+  !>        \author Matthias Zink
+  !>        \date Apr 2013
+  !         Modified:
+  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
+  !                                               during writing of the netcdf file
+  !             Matthias Zink       , Feb. 2014 - added aditional output: pet
+  !             V. Prykhodk, J. Mai , Nov. 2014 - adding new variable infilSoil - case 16
+  !             David Schaefer      , Jun. 2015 - major rewrite
   function newOutputDataset(ibasin, mask1) result(out)
 
     use mo_global_variables,  only : outputFlxState, nSoilHorizons_mHM
@@ -484,7 +500,7 @@ contains
             tmpvars(ii), "effective precipitation", trim(unit))
     end if
 
-    out = OutputDataset(nc, tmpvars(1:ii))
+    out = OutputDataset(ibasin, nc, tmpvars(1:ii))
 
   end function newOutputDataset
   
@@ -566,9 +582,17 @@ contains
   !     LITERATURE
   !         None
   !
+  !
   !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !>        \author Matthias Zink
+  !>        \date Apr 2013
+  !         Modified:
+  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
+  !                                               during writing of the netcdf file
+  !             L. Samaniego et al.,  Dec  2013 - nullify pointer
+  !             Matthias Zink,        Feb. 2014 - added aditional output: pet
+  !             V. Prykhodk, J. Mai,  Nov. 2014 - adding new variable infilSoil - case 16
+  !             David Schaefer      , Jun. 2015 - major rewrite
   subroutine updateDataset(&
        self         , sidx         , eidx            ,    &
        L1_fSealed   , L1_fNotSealed, L1_inter        ,    &
@@ -837,11 +861,21 @@ contains
   !         None
   !
   !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !>        \author Rohini Kumar & Stephan Thober
+  !>        \date August 2013
+  !         Modified:
+  !             David Schaefer, June 2015 - adapted to new structure
   subroutine close(self)
+
+    use mo_String_utils,     only: num2str
+    use mo_message,          only: message
+    use mo_global_variables, only: dirOut 
+
     class(OutputDataset) :: self
     call self%nc%close()
+    call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
+    call message('    to ', trim(dirOut(self%ibasin)))
+
   end subroutine close
 
   !------------------------------------------------------------------
@@ -1064,8 +1098,11 @@ contains
   !         None
   !
   !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !>        \author Matthias Zink
+  !>        \date Apr 2013
+  !         Modified:
+  !             Stephan Thober, Nov 2013 - removed fproj dependency
+  !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
   subroutine mapCoordinates(ibasin, level, y, x)
 
     implicit none
@@ -1139,8 +1176,11 @@ contains
   !         None
   !
   !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !>        \author Matthias Zink
+  !>        \date Apr 2013
+  !         Modified:
+  !             Stephan Thober, Nov 2013 - removed fproj dependency
+  !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
   subroutine geoCoordinates(ibasin, level, lat, lon)
 
     use mo_global_variables, only : latitude, longitude
