@@ -96,7 +96,7 @@ contains
     ! normalize stream bed slope
     ssMax = maxval( slope(:) )
 
-    ! New regional relationship; K = f(length, slope, & fFPimp) 
+    ! New regional relationship; K = f(length, slope, & fFPimp)
     K = param(1) + param(2) * (length * 0.001_dp) &
          + param(3) * slope &
          + param(4) * fFPimp

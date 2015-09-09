@@ -192,11 +192,7 @@ contains
          !                            !      # points per subcomplex
          mrm_global_parameters, &
          basin_mrm, &
-         period, & ! structure for time periods
-         mrm_coupling_mode
-#ifdef mrm2mhm
-    use mo_file, only: file_namelist, unamelist, file_namelist_param
-#endif    
+         period ! structure for time periods
 
     implicit none
     ! input variables
@@ -248,8 +244,9 @@ contains
     ! namelist for evaluation gauges
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles, &
-         dir_Morpho, dir_LCover, dir_Gauges,             &
+    namelist /directories_mRM/ dir_Gauges
+    namelist /directories_general/ dirConfigOut, dirCommonFiles, &
+         dir_Morpho, dir_LCover,                         &
          dir_Out, dir_RestartOut,                        &
          dir_RestartIn
     namelist/LCover/ fracSealed_cityArea, nLcover_scene, LCoverYearStart, LCoverYearEnd, LCoverfName
@@ -264,10 +261,6 @@ contains
     ! INITIALIZATION
     !===============================================================
     para_file = file_namelist_param_mrm
-#ifdef mrm2mhm
-    ! set para_file to mhm para_file
-    para_file = file_namelist_param
-#endif
     is_start = .True.
     nGaugesTotal   = nodata_i4
     NoGauges_basin = nodata_i4
@@ -282,16 +275,8 @@ contains
     !===============================================================
     !  Read namelist specifying the model configuration
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm       
-       call copy_main_config_from_mhm(timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
-         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
-         write_restart, perform_mpr)
-#endif       
-    else
-       call position_nml('mainconfig', unamelist_mrm)
-       read(unamelist_mrm, nml=mainconfig)
-    end if
+    call position_nml('mainconfig', unamelist_mrm)
+    read(unamelist_mrm, nml=mainconfig)
 
     if (nBasins .GT. maxNoBasins) then
        call message()
@@ -339,14 +324,8 @@ contains
     !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       call copy_time_periods_from_mhm(warming_Days, eval_Per, time_step_model_inputs)
-#endif       
-    else
-       call position_nml('time_periods', unamelist_mrm)
-       read(unamelist_mrm, nml=time_periods)
-    end if
+    call position_nml('time_periods', unamelist_mrm)
+    read(unamelist_mrm, nml=time_periods)
     warmingDays = warming_Days(1:nBasins)
     evalPer = eval_Per(1:nBasins)
     timestep_model_inputs = time_step_model_inputs(1:nBasins)
@@ -401,17 +380,10 @@ contains
     !===============================================================
     !  Read namelist for mainpaths
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       call copy_directories_from_mhm(dirConfigOut, dirCommonFiles, &
-         dir_Morpho, dir_LCover, dir_Gauges,             &
-         dir_Out, dir_RestartOut,                        &
-         dir_RestartIn)
-#endif       
-    else
-       call position_nml('directories', unamelist_mrm)
-       read(unamelist_mrm, nml=directories)
-    end if
+    call position_nml('directories_mRM', unamelist_mrm)
+    read(unamelist_mrm, nml=directories_mRM)
+    call position_nml('directories_general', unamelist_mrm)
+    read(unamelist_mrm, nml=directories_general)
 
     dirMorpho = dir_Morpho(1:nBasins)
     dirLCover = dir_LCover(1:nBasins)
@@ -423,34 +395,14 @@ contains
     !===============================================================
     ! Read land cover information
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       ! read namelist from mhm.nml
-       call open_nml(file_namelist, unamelist, quiet=.true.)
-       call position_nml('LCover', unamelist)
-       read(unamelist, nml=LCover)
-       call close_nml(unamelist)
-#endif
-    else
-       call position_nml('LCover', unamelist_mrm)
-       read(unamelist_mrm, nml=LCover)
-    end if
+    call position_nml('LCover', unamelist_mrm)
+    read(unamelist_mrm, nml=LCover)
 
     !===============================================================
     ! READ EVALUATION GAUGES
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       ! read namelist from mhm.nml
-       call open_nml(file_namelist, unamelist,  quiet=.true.)
-       call position_nml('evaluation_gauges', unamelist)
-       read(unamelist, nml=evaluation_gauges)
-       call close_nml(unamelist)
-#endif
-    else
-       call position_nml('evaluation_gauges', unamelist_mrm)
-       read(unamelist_mrm, nml=evaluation_gauges)
-    end if
+    call position_nml('evaluation_gauges', unamelist_mrm)
+    read(unamelist_mrm, nml=evaluation_gauges)
        
     if (nGaugesTotal .GT. maxNoGauges) then
        call message()
@@ -524,18 +476,8 @@ contains
     InflowGauge_id       = nodata_i4
     InflowGauge_filename = num2str(nodata_i4)
 
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       ! read namelist from mhm.nml
-       call open_nml(file_namelist, unamelist,  quiet=.true.)
-       call position_nml('inflow_gauges', unamelist)
-       read(unamelist, nml=inflow_gauges)
-       call close_nml(unamelist)
-#endif
-    else
-       call position_nml('inflow_gauges', unamelist_mrm)
-       read(unamelist_mrm, nml=inflow_gauges)
-    end if
+    call position_nml('inflow_gauges', unamelist_mrm)
+    read(unamelist_mrm, nml=inflow_gauges)
 
     if (nInflowGaugesTotal .GT. maxNoGauges) then
        call message()
@@ -727,21 +669,12 @@ contains
     !===============================================================
     ! Settings for Optimization
     !===============================================================
-    if (mrm_coupling_mode .eq. 2) then
-#ifdef mrm2mhm
-       ! read namelist from mhm.nml
-       call open_nml(file_namelist, unamelist,  quiet=.true.)
-       call position_nml('Optimization', unamelist)
-       read(unamelist, nml=Optimization)
-       call close_nml(unamelist)
-#endif
-    else
-       call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
-       ! namelist for Optimization settings
-       call position_nml('Optimization', unamelist_mrm)
-       read(unamelist_mrm, nml=Optimization)
-       call close_nml(unamelist_mrm)
-    end if
+    call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
+    ! namelist for Optimization settings
+    call position_nml('Optimization', unamelist_mrm)
+    read(unamelist_mrm, nml=Optimization)
+    call close_nml(unamelist_mrm)
+
     ! check and set default values
     if (nIterations .le. 0_i4) then
        call message('Number of iterations for Optimization (nIterations) must be greater than zero')
@@ -882,111 +815,4 @@ contains
     end if
 
   end function in_bound
-
-#ifdef mrm2mhm
-  ! --------------------------------------------------------------------------------
-  ! SUBROUTINE FOR COUPLING WITH MHM
-  ! --------------------------------------------------------------------------------
-  ! subroutine for copying mainconfig from mhm
-  ! --------------------------------------------------------------------------------
-  subroutine copy_main_config_from_mhm(timestep_out, iFlag_cordinate_sys_out, resolution_Routing_out, resolution_Hydrology_out, &
-         L0Basin_out, optimize_out, opti_method_out, opti_function_out, nBasins_out, read_restart_out,                     &
-         write_restart_out, perform_mpr_out)
-    ! use mhm variables
-    use mo_global_variables, only: &
-         timestep, iFlag_cordinate_sys, resolutionRouting, resolutionHydrology, &
-         L0_Basin, optimize, opti_method, opti_function, nBasins, read_restart, &
-         write_restart, perform_mpr
-    implicit none
-    ! output variables
-    integer(i4), intent(out) :: timestep_out
-    integer(i4), intent(out) :: iFlag_cordinate_sys_out
-    real(dp), dimension(:), intent(out) :: resolution_Routing_out
-    real(dp), dimension(:), intent(out) :: resolution_Hydrology_out
-    integer(i4), dimension(:), intent(out) :: L0Basin_out
-    logical, intent(out) :: optimize_out
-    integer(i4), intent(out) :: opti_method_out
-    integer(i4), intent(out) :: opti_function_out
-    integer(i4), intent(out) :: nBasins_out
-    logical, intent(out) :: read_restart_out
-    logical, intent(out) :: write_restart_out
-    logical, intent(out) :: perform_mpr_out
-    ! copy variables
-    timestep_out = timestep
-    iFlag_cordinate_sys_out = iFlag_cordinate_sys
-    resolution_Routing_out(1:nBasins) = resolutionRouting
-    resolution_Hydrology_out(1:nBasins) = resolutionHydrology
-    L0Basin_out(1:nBasins) = L0_Basin
-    optimize_out = optimize
-    opti_method_out = opti_method
-    opti_function_out = opti_function
-    nBasins_out = nBasins
-    read_restart_out = read_restart
-    write_restart_out = write_restart
-    perform_mpr_out = perform_mpr
-  end subroutine copy_main_config_from_mhm
-
-  ! --------------------------------------------------------------------------------
-  ! subroutine for copying time periods from mhm
-  ! --------------------------------------------------------------------------------
-  subroutine copy_time_periods_from_mhm(warming_Days_out, eval_Per_out, time_step_model_inputs_out)
-    use mo_mrm_global_variables, only: period
-    use mo_global_variables, only: &
-         nBasins, warmingDays, evalPer, timestep_model_inputs
-    implicit none
-    ! output variables
-    integer(i4), dimension(:), intent(out) :: warming_Days_out
-    type(period), dimension(:), intent(out) :: eval_Per_out
-    integer(i4), dimension(:), intent(out) :: time_step_model_inputs_out
-    ! copy variables
-    warming_Days_out(1:nBasins) = warmingDays
-    eval_Per_out(1:nBasins)%dStart   = evalPer(:)%dStart  
-    eval_Per_out(1:nBasins)%mStart   = evalPer(:)%mStart  
-    eval_Per_out(1:nBasins)%yStart   = evalPer(:)%yStart  
-    eval_Per_out(1:nBasins)%dEnd     = evalPer(:)%dEnd    
-    eval_Per_out(1:nBasins)%mEnd     = evalPer(:)%mEnd    
-    eval_Per_out(1:nBasins)%yEnd     = evalPer(:)%yEnd    
-    eval_Per_out(1:nBasins)%julStart = evalPer(:)%julStart
-    eval_Per_out(1:nBasins)%julEnd   = evalPer(:)%julEnd  
-    ! eval_Per_out(1:nBasins)%nObs     = evalPer(:)%nObs    
-    time_step_model_inputs_out(1:nBasins) = timestep_model_inputs
-  end subroutine copy_time_periods_from_mhm
-
-  ! --------------------------------------------------------------------------------
-  ! subroutine for copying directories from mhm
-  ! --------------------------------------------------------------------------------
-  subroutine copy_directories_from_mhm(dirConfigOut_out, dirCommonFiles_out, &
-         dir_Morpho_out, dir_LCover_out, dir_Gauges_out,             &
-         dir_Out_out, dir_RestartOut_out,                        &
-         dir_RestartIn_out)
-    use mo_global_variables, only: &
-         nBasins, &
-         dirConfigOut, & ! 
-         dirCommonFiles , & ! directory where common input files should be located
-         dirMorpho , & ! Directory where morphological files are located
-         dirLCover , & ! Directory where land cover files are located
-         dirGauges , & ! Directory where discharge files are located
-         dirOut , & ! Directory where output is written to
-         dirRestartOut , & ! Directory where output of restart is written
-         dirRestartIn ! Directory where input of restart is read from
-    implicit none
-    character(256)              , intent(out) :: dirConfigOut_out  
-    character(256)              , intent(out) :: dirCommonFiles_out ! directory where common input files 
-    character(256), dimension(:), intent(out) :: dir_Morpho_out     ! Directory where morphological files are located
-    character(256), dimension(:), intent(out) :: dir_LCover_out     ! Directory where land cover files are located
-    character(256), dimension(:), intent(out) :: dir_Gauges_out     ! Directory where discharge files are located
-    character(256), dimension(:), intent(out) :: dir_Out_out        ! Directory where output is written to
-    character(256), dimension(:), intent(out) :: dir_RestartOut_out ! Directory where output of restart is written
-    character(256), dimension(:), intent(out) :: dir_RestartIn_out  ! Directory where input of restart is read from
-    ! copy variables
-    dirConfigOut_out   = dirConfigOut  
-    dirCommonFiles_out = dirCommonFiles
-    dir_Morpho_out(1:nBasins)     = dirMorpho    
-    dir_LCover_out(1:nBasins)     = dirLCover    
-    dir_Gauges_out(1:nBasins)     = dirGauges    
-    dir_Out_out(1:nBasins)        = dirOut       
-    dir_RestartOut_out(1:nBasins) = dirRestartOut
-    dir_RestartIn_out(1:nBasins)  = dirRestartIn     
-  end subroutine copy_directories_from_mhm
-#endif
 end module mo_mrm_read_config

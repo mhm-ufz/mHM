@@ -42,38 +42,60 @@ CONTAINS
   !>        and eventually routes the water in a third step. The last two steps
   !>        are only carried out if the given timestep is within the simulation
   !>        period of the routing.
-  !
+
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(5) :: global_routing_params - parameters"
-  !>        \param[in] "integer(i4) :: iBasin - Basin Id"
-  !>        \param[in] "real(dp), dimension(:) :: runoff - simulated runoff to route"
-  !>        \param[in] "integer(i4) :: iTS - current day index of given runoff"
-  !>        \param[in] "integer(i4) :: tt - current timestep index of given runoff"
-  !>        \param[in] "integer(i4) :: julStart - julian start date of given runoff"
-  !>        \param[in] "integer(i4) :: LCyearId - land cover year id of given runoff"
-  !>        \param[in] "integer(i4) :: StepDayMod - number of timesteps within one day of the given runoff"
+  !>        \param[in] "real(dp), dimension(5) :: global_routing_param - routing parameters"
+  !>        \param[in] "real(dp), dimension(:) :: L1_total_runoff - total runoff from L1 grid cells"
+  !>        \param[in] "integer(i4), dimension(:) :: L0_LCover - L0 land cover"
+  !>        \param[in] "integer(i4), dimension(:) :: L0_floodPlain - L0 fraction of flood plains"
+  !>        \param[in] "real(dp), dimension(:) :: L0_areaCell - L0 cell area"
+  !>        \param[in] "real(dp), dimension(:) :: L1_areaCell - L1 cell area"
+  !>        \param[in] "real(dp), dimension(:) :: L11_aFloodPlain - L11 area of flood plain"
+  !>        \param[in] "real(dp), dimension(:) :: L11_length - L11 link length"
+  !>        \param[in] "real(dp), dimension(:) :: L11_slope - L11 slope"
+  !>        \param[in] "integer(i4), dimension(:) :: L1_L11_Id - L1 cell ids on L11 cell ids"
+  !>        \param[in] "integer(i4), dimension(:) :: L11_netPerm - L11 routing order"
+  !>        \param[in] "integer(i4), dimension(:) :: L11_fromN - L11 source grid cell order"
+  !>        \param[in] "integer(i4), dimension(:) :: L11_toN - L11 target grid cell order"
+  !>        \param[in] "integer(i4) :: timestep - simulation timestep in [h]"
+  !>        \param[in] "integer(i4) :: nNodes - number of nodes"
+  !>        \param[in] "integer(i4) :: nInflowGauges - number of inflow gauges"
+  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList - index list of inflow gauges"
+  !>        \param[in] "logical, dimension(:) :: InflowGaugeHeadwater - flag for headwater cell of inflow gauge"
+  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList - gauge node list at L11"
+  !>        \param[in] "real(dp), dimension(:) :: InflowDischarge - inflowing discharge at discharge gauge at current day"
+  !>        \param[in] "integer(i4) :: nGauges - number of recording gauges"
+  !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList - index list for outflow gauges"
+  !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList - gauge node list at L11"
   !
   !     INTENT(INOUT)
-  !         None
+  !>        \param[inout] "real(dp), dimension(:) :: L11_C1 - L11 muskingum parameter 1"
+  !>        \param[inout] "real(dp), dimension(:) :: L11_C2 - L11 muskingum parameter 2"
+  !>        \param[inout] "real(dp), dimension(:) :: L11_qOut - total runoff from L11 grid cells"
+  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTIN - L11 inflow to the reach"
+  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTR - L11 routed outflow"
+  !>        \param[inout] "real(dp), dimension(:) :: L11_FracFPimp - L11 fraction of flood plain with impervios cover"
+  !>        \param[inout] "real(dp), dimension(:) :: L11_qMod - modelled discharge at each grid cell"
+  !>        \param[inout] "real(dp), dimension(:) :: GaugeDischarge - modelled discharge at each gauge"
 
   !     INTENT(OUT)
   !         None
-  !
+
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "logical, optional :: do_mpr_routing - indicate whether routing is to be performed"
-  !
+
   !     INTENT(INOUT), OPTIONAL
   !         None
-  !
+
   !     INTENT(OUT), OPTIONAL
   !         None
-  !
+
   !     RETURN
   !         None
-  !
+
   !     RESTRICTIONS
   !         None
-  !
+
   !     EXAMPLE
   !       None
   !
@@ -83,75 +105,88 @@ CONTAINS
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, 
+  !         Modified, Sep 2015 - using arguments instead of global variables
 
-  subroutine mRM_routing(global_routing_param, iBasin, runoff, iTS, tt, julStart, LCyearID, do_mpr_routing, &
-       StepDayMod)
+  subroutine mRM_routing( &
+       ! input variables =========================================================
+       global_routing_param, & ! routing parameters
+       L1_total_runoff, & ! total runoff from L1 grid cells
+       L0_LCover, & ! L0 land cover
+       L0_floodPlain, & ! L0 fraction of flood plains
+       L0_areaCell, & ! L0 cell area
+       L1_areaCell, & ! L1 cell area
+       L11_aFloodPlain, & ! L11 area of flood plain
+       L11_length, & ! L11 link length
+       L11_slope, & ! L11 slope
+       L1_L11_Id, & ! L1 cell ids on L11 cell ids
+       L11_netPerm, & ! L11 routing order
+       L11_fromN, & ! L11 source grid cell order
+       L11_toN, & ! L11 target grid cell order
+       timestep, & ! simulation timestep in [h]
+       nNodes, & ! number of nodes
+       nInflowGauges, & ! number of inflow gauges
+       InflowGaugeIndexList, & ! index list of inflow gauges
+       InflowGaugeHeadwater, & ! flag for headwater cell of inflow gauge
+       InflowGaugeNodeList, & ! gauge node list at L11
+       InflowDischarge, & ! inflowing discharge at discharge gauge at current day
+       nGauges, & ! number of recording gauges
+       gaugeIndexList, & ! index list for outflow gauges
+       gaugeNodeList, & ! gauge node list at L11s
+       ! input/output variables ==================================================
+       L11_C1, & ! L11 muskingum parameter 1
+       L11_C2, & ! L11 muskingum parameter 2
+       L11_qOut, & ! total runoff from L11 grid cells
+       L11_qTIN, & ! L11 inflow to the reach
+       L11_qTR, & ! L11 routed outflow
+       L11_FracFPimp, & ! L11 fraction of flood plain with impervios cover
+       L11_qMod, &
+       GaugeDischarge, &
+       ! optional input variables ================================================
+       do_mpr_routing &
+       )
     use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
     use mo_mrm_mpr, only: reg_rout
-    use mo_mrm_global_variables, only: &
-         mRM_runoff, &
-         simper, &
-         L0_LCover_mRM, &
-         timeStep, &
-         basin_mrm, &
-         is_start, &
-         L0_areaCell, &
-         L0_floodPlain, & ! flood plains at L0 level
-         L1_areaCell, &
-         L11_aFloodPlain, & ! flood plains at L11 level
-         L11_FracFPimp, & ! fraction of impervious layer at L11 scale
-         L11_length, & ! link length
-         L11_slope, &
-         L11_C1, & ! first muskingum parameter
-         L11_C2, & ! second muskigum parameter
-         L1_L11_Id, &
-         InflowGauge, &
-         L11_qOUT, & ! routed runoff flowing out of L11 cell
-         L11_netPerm, & ! routing order at L11
-         L11_fromN, & ! link source at L11
-         L11_toN, & ! link target at L11
-         L11_qTIN, & ! inflow water into the reach at L11
-         L11_qTR, & !
-         L11_qMod ! final variable containing routed water
-         
-    !
+    use mo_mrm_global_variables, only: is_start
+
     implicit none
-    ! input variables
-    real(dp), dimension(5), intent(in) :: global_routing_param
-    integer(i4), intent(in) :: iBasin
-    real(dp), dimension(:), intent(in) :: runoff ! generated runoff for this timestep
-    integer(i4), intent(in) :: LCyearID ! current land cover
-    integer(i4), intent(in) :: iTS ! current day counter
-    integer(i4), intent(in) :: tt ! current modeling timestep
-    integer(i4), intent(in) :: julStart ! julian start date
-    integer(i4), intent(in) :: StepDayMod ! number of timesteps per day of hydrologic model
-    logical, optional, intent(in) :: do_mpr_routing
-    ! local variables
-    integer(i4) :: date ! current date for inflowgauge
-    integer(i4) :: rr_idx ! current runoff index
+    ! input variables =========================================================
+    real(dp), dimension(5), intent(in) :: global_routing_param ! routing parameters
+    real(dp), dimension(:), intent(in) :: L1_total_runoff ! total runoff from L1 grid cells
+    integer(i4), dimension(:), intent(in) :: L0_LCover ! L0 land cover
+    integer(i4), dimension(:), intent(in) :: L0_floodPlain ! L0 fraction of flood plains
+    real(dp), dimension(:), intent(in) :: L0_areaCell ! L0 cell area
+    real(dp), dimension(:), intent(in) :: L1_areaCell ! L1 cell area
+    real(dp), dimension(:), intent(in) :: L11_aFloodPlain ! L11 area of flood plain
+    real(dp), dimension(:), intent(in) :: L11_length ! L11 link length
+    real(dp), dimension(:), intent(in) :: L11_slope ! L11 slope
+    integer(i4), dimension(:), intent(in) :: L1_L11_Id ! L1 cell ids on L11 cell ids
+    integer(i4), dimension(:), intent(in) :: L11_netPerm ! L11 routing order
+    integer(i4), dimension(:), intent(in) :: L11_fromN ! L11 source grid cell order
+    integer(i4), dimension(:), intent(in) :: L11_toN ! L11 target grid cell order
+    integer(i4), intent(in) :: timestep ! simulation timestep in [h]
+    integer(i4), intent(in) :: nNodes ! number of nodes
+    integer(i4), intent(in) :: nInflowGauges ! number of inflow gauges
+    integer(i4), dimension(:), intent(in) :: InflowGaugeIndexList ! index list of inflow gauges
+    logical, dimension(:), intent(in) :: InflowGaugeHeadwater ! flag for headwater cell of inflow gauge
+    integer(i4), dimension(:), intent(in) :: InflowGaugeNodeList ! gauge node list at L11
+    real(dp), dimension(:), intent(in) :: InflowDischarge ! inflowing discharge at discharge gauge at current day
+    integer(i4), intent(in) :: nGauges ! number of recording gauges
+    integer(i4), dimension(:), intent(in) :: gaugeIndexList ! index list for outflow gauges
+    integer(i4), dimension(:), intent(in) :: gaugeNodeList ! gauge node list at L11
+    ! input/output variables ==================================================
+    real(dp), dimension(:), intent(inout) :: L11_C1 ! L11 muskingum parameter 1
+    real(dp), dimension(:), intent(inout) :: L11_C2 ! L11 muskingum parameter 2
+    real(dp), dimension(:), intent(inout) :: L11_qOut ! total runoff from L11 grid cells
+    real(dp), dimension(:,:), intent(inout) :: L11_qTIN ! L11 inflow to the reach
+    real(dp), dimension(:,:), intent(inout) :: L11_qTR ! L11 routed outflow
+    real(dp), dimension(:), intent(inout) :: L11_FracFPimp ! L11 fraction of flood plain with impervios cover
+    real(dp), dimension(:), intent(inout) :: L11_qMod ! modelled discharge at each grid cell
+    real(dp), dimension(:), intent(inout) :: GaugeDischarge ! modelled discharge at each gauge
+    ! optional input variables ================================================
+    logical, optional, intent(in) :: do_mpr_routing ! flag for performing mpr
+    ! local variables =========================================================
     logical     :: do_mpr
     integer(i4) :: gg
-    integer(i4) :: nNodes
-    integer(i4) :: s11
-    integer(i4) :: e11
-    integer(i4) :: s110
-    integer(i4) :: e110
-    integer(i4) :: s1
-    integer(i4) :: e1
-    integer(i4) :: s0
-    integer(i4) :: e0
-
-    ! set helping variables
-    nNodes = basin_mrm%L11_iEnd(iBasin) - basin_mrm%L11_iStart(iBasin) + 1
-    s11 = basin_mrm%L11_iStart(iBasin)
-    e11 = basin_mrm%L11_iEnd(iBasin)
-    s110 = basin_mrm%L110_iStart(iBasin)
-    e110 = basin_mrm%L110_iEnd(iBasin)
-    s1 = basin_mrm%L1_iStart(iBasin)
-    e1 = basin_mrm%L1_iEnd(iBasin)
-    s0 = basin_mrm%L0_iStart(iBasin)
-    e0 = basin_mrm%L0_iEnd(iBasin)
 
     ! ====================================================================
     ! FIRST, EXECUTE MPR
@@ -174,62 +209,49 @@ CONTAINS
        !           only in case when routing process is ON
        !-------------------------------------------------------------------
        CALL L11_fraction_sealed_floodplain( nNodes-1, &
-            L0_LCover_mRM(s0:e0, LCyearID), &
-            L0_floodPlain(s110:e110),       &
-            ! L0_floodPlain(s0:e0),       &
-            L0_areaCell(s0:e0), &
-            L11_aFloodPlain(s11:e11), &
+            L0_LCover, &
+            L0_floodPlain,       &
+            L0_areaCell, &
+            L11_aFloodPlain, &
             2, &
-            L11_FracFPimp(s11:e11))
+            L11_FracFPimp) ! intent out
        ! for a single node model run
        if( nNodes .GT. 1) then
           call reg_rout( global_routing_param, &
-               L11_length(s11:e11 - 1), L11_slope(s11:e11 - 1), L11_FracFPimp(s11:e11 - 1), &
-               real(timeStep,dp), L11_C1(s11:e11 - 1), L11_C2(s11:e11 -1 ))
+               L11_length, L11_slope, L11_FracFPimp(:nNodes-1), &
+               real(timeStep,dp), L11_C1(:nNodes-1), L11_C2(:nNodes-1))
        end if 
     end if
 
     ! =====================================================================
     ! SECOND, EXECUTE ROUTING
     ! ====================================================================
-    !
-    ! calculate current date
-    date = julstart - 1 + iTS
-    ! check whether date is within simulation period
-    if ((date .lt. simper(iBasin)%julStart) .or. (date .gt. simper(iBasin)%julEnd)) return
-    ! update date for the current inflowgauge
-    date = date - simper(iBasin)%julStart + 1
-
-    ! execute routing
-    !-------------------------------------------------------------------
-    ! routing at L11 level
-    !-------------------------------------------------------------------
     ! runoff accumulation at L11 from L1 level
-    call L11_runoff_acc(runoff, L1_areaCell(s1:e1), L1_L11_Id(s1:e1), timeStep, & ! Intent IN
-         basin_mrm%nInflowGauges(iBasin), &
-         basin_mrm%InflowGaugeIndexList(iBasin,:), &
-         basin_mrm%InflowGaugeHeadwater(iBasin,:), &
-         basin_mrm%InflowGaugeNodeList(iBasin,:), &
-         InflowGauge%Q(date,:), & ! Intent IN
-         L11_qOUT(s11:e11) )                                                                         ! Intent OUT
+    call L11_runoff_acc(L1_total_runoff, L1_areaCell, L1_L11_Id, timeStep, & ! Intent IN
+         nInflowGauges, &
+         InflowGaugeIndexList, &
+         InflowGaugeHeadwater, &
+         InflowGaugeNodeList, &
+         InflowDischarge, & ! Intent IN
+         L11_qOUT) ! Intent OUT
     ! for a single node model run
     if( nNodes .GT. 1) then
        ! routing of water within river reaches
        call L11_routing( nNodes, nNodes-1, &
-            L11_netPerm(s11:e11), &
-            L11_fromN(s11:e11), & ! Intent IN
-            L11_toN(s11:e11), & ! Intent IN
-            L11_C1(s11:e11), & ! Intent IN
-            L11_C2(s11:e11), & ! Intent IN
-            L11_qOUT(s11:e11), & ! Intent IN
-            basin_mrm%nInflowGauges(iBasin), & ! Intent IN
-            basin_mrm%InflowGaugeHeadwater(iBasin,:), & ! Intent IN
-            basin_mrm%InflowGaugeNodeList(iBasin,:), & ! Intent IN
-            L11_qTIN(s11:e11,:), & ! Intent INOUT
-            L11_qTR(s11:e11,:), & ! Intent INOUT
-            L11_Qmod(s11:e11) ) ! Intent OUT
+            L11_netPerm, &
+            L11_fromN, & ! Intent IN
+            L11_toN, & ! Intent IN
+            L11_C1, & ! Intent IN
+            L11_C2, & ! Intent IN
+            L11_qOUT, & ! Intent IN
+            nInflowGauges, & ! Intent IN
+            InflowGaugeHeadwater, & ! Intent IN
+            InflowGaugeNodeList, & ! Intent IN
+            L11_qTIN, & ! Intent INOUT
+            L11_qTR, & ! Intent INOUT
+            L11_Qmod) ! Intent OUT
     else
-       L11_Qmod(s11:e11) = L11_qOUT(s11:e11) 
+       L11_Qmod = L11_qOUT 
     end if
 
     !----------------------------------------------------------------------
@@ -240,12 +262,8 @@ CONTAINS
     !        index in runoff. In consequence the gauges in runoff are 
     !        ordered corresponing to gauge%Q(:,:)
     !----------------------------------------------------------------------
-    ! update current runoff index
-    rr_idx = tt + (julstart - SimPer(iBasin)%julstart) * StepDayMod
-
-    do gg = 1, basin_mrm%nGauges(iBasin)
-       mRM_runoff(rr_idx,basin_mrm%gaugeIndexList(iBasin,gg)) = L11_Qmod(basin_mrm%gaugeNodeList(iBasin,gg) + &
-            basin_mrm%L11_iStart(iBasin) - 1)
+    do gg = 1, nGauges
+       GaugeDischarge(gaugeIndexList(gg)) = L11_Qmod(gaugeNodeList(gg))
     end do
     
   end subroutine mRM_routing

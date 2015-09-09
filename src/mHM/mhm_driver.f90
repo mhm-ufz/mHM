@@ -171,7 +171,10 @@ PROGRAM mhm_driver
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
        processMatrix,                                        &      ! basin information,  processMatrix
-       opti_function, dirConfigOut
+       opti_function, dirConfigOut,                          &
+       basin,                                                & ! L0_mask for mrm_init call
+       L0_elev,                                              & ! L0_elev for mrm_init call
+       L0_LCover                                               ! L0_LCover for mrm_init call
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
   USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
@@ -363,7 +366,7 @@ PROGRAM mhm_driver
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) .eq. 1) then
-     call mrm_init()
+     call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
   end if
 #endif  
 

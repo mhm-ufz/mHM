@@ -88,7 +88,7 @@ contains
     real(dp), dimension(:,:), allocatable :: d_Qmod
 
     ! --------------------------------------------------------------------------
-    ! CHECK CONDITIONS FOR WRITING ROUTING
+    ! CHECK CONDITIONS FOR WRITING ROUTING !ST check whether this condition is still valid
     ! --------------------------------------------------------------------------
     if ((optimize) .or. (nMeasPerDay .ne. 1)) return
     

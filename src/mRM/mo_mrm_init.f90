@@ -32,7 +32,9 @@ CONTAINS
   !>        \brief Initialize all mRM variables at all levels (i.e., L0, L1, and L11).
   !
   !>        \details Initialize all mRM variables at all levels (i.e., L0, L1, and L11)
-  !>        either with default values or with values from restart file
+  !>        either with default values or with values from restart file. The L0 mask (L0_mask),
+  !>        L0 elevation (L0_elev), and L0 land cover (L0_LCover) can be provided as optional
+  !>        variables to save memory because these variable will then not be read in again.
   !
   !     INTENT(IN)
   !         None
@@ -44,7 +46,9 @@ CONTAINS
   !         None
   !
   !     INTENT(IN), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(:), target, optional :: L0_mask - L0 mask"
+  !>        \param[in] "real(dp), dimension(:), target, optional :: L0_elev - L0 elevation"
+  !>        \param[in] "integer(i4), dimension(:,:), target, optional :: L0_LCover - L0 land cover"
   !
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -67,9 +71,9 @@ CONTAINS
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, 
+  !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
 
-  subroutine mrm_init()
+  subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
 
     use mo_message, only: message
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
@@ -89,7 +93,12 @@ CONTAINS
          L11_stream_features
     
     implicit none
+    ! input variables
+    logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
+    real(dp), dimension(:), target, intent(in), optional :: L0_elev ! L0 elevation
+    integer(i4), dimension(:,:), target, intent(in), optional :: L0_LCover ! L0 land cover
 
+    ! local variables
     integer(i4) :: iBasin
 
     call message(' Inititalize mRM')
@@ -121,7 +130,7 @@ CONTAINS
     ! READ DATA
     ! ----------------------------------------------------------
     ! level 0 data
-    call mrm_read_L0_data()
+    call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
     if (perform_mpr) then
        do iBasin = 1, nBasins
           if (iBasin .eq. 1) then

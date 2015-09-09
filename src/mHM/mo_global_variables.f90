@@ -26,6 +26,7 @@ MODULE mo_global_variables
   !           Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
   !           Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
   !           Matthias Zink,  Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
+  !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
 
   
   USE mo_kind,          ONLY: i4, i8, dp
@@ -117,7 +118,6 @@ MODULE mo_global_variables
   ! has the dimension of nBasins
   character(256), dimension(:), allocatable, public :: dirMorpho          ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover          ! Directory where land cover files are located
-  character(256), dimension(:), allocatable, public :: dirGauges          ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
   character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located

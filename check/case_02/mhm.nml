@@ -22,15 +22,39 @@
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
 !******************************************************************************************
 !
+
+!******************************************************************************************
+! MRM COUPLING MODE
+!******************************************************************************************
+!-----------------------------------------------------------------------------
+!> coupling_mode can be either: 0 = stand-alone (NOT IMPLEMENTED YET)\n
+!>                              1 = coupling to a hydrologic model\n
+!-----------------------------------------------------------------------------
+&coupling_config
+mrm_coupling_mode = 2
+/
+
 !******************************************************************************************
 ! DIRECTORIES 
 !******************************************************************************************
+! directories used only by mRM
+&directories_mRM
+!
+!-----------------------------------------------------
+!> basin wise directory paths
+!-----------------------------------------------------
+!
+!> directory where discharge files are located
+dir_Gauges(1)        = "../../test_basin/input/gauge/"
+dir_Gauges(2)        = "../../test_basin/input/gauge/"
+/
+
 !> Namelist with all directories for common file as well as separate file for every basin.\n 
 !> Number in brackets indicates basin number.\n
 !> This number HAS TO correspond with the number of basin given below in the "mainconfig"
 !> namelist as well as the indices given in the "gaugeinfo.txt" file.\n 
 !
-&directories
+&directories_general
 !
 !-----------------------------------------------------
 ! Directory for common files (to all basins) 
@@ -42,6 +66,32 @@ dirConfigOut = "output_b1/"
 !> (only for *_classdefinition files)
 dirCommonFiles = "../../test_basin/input/morph/"
 !
+!**** for Basin 1
+!> directory where morphological files are located
+dir_Morpho(1)        = "../../test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(1)        = "../../test_basin/input/luse/"
+!> directory where restart input is located
+dir_RestartIn(1)     = "restart/"
+!> directory where restart output should be written
+dir_RestartOut(1)    = "output_b1/"
+!> directory where output should be written
+dir_Out(1)           = "output_b1/"
+!
+!**** for Basin 2
+!> directory where morphological files are located
+dir_Morpho(2)        = "../../test_basin/input/morph/"
+!> directory where land cover files are located
+dir_LCover(2)        = "../../test_basin/input/luse/"
+!> directory where restart input is located
+dir_RestartIn(2)     = "restart/"
+!> directory where restart output should be written
+dir_RestartOut(2)    = "output_b2/"
+!> directory where output should be written
+dir_Out(2)           = "output_b2/"
+/
+
+&directories_mHM
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
 inputFormat_meteo_forcings = "nc"
@@ -50,13 +100,7 @@ inputFormat_meteo_forcings = "nc"
 !> basin wise directory paths
 !-----------------------------------------------------
 !
-!**** for Basin 1
-!> directory where morphological files are located
-dir_Morpho(1)        = "../../test_basin/input/morph/"
-!> directory where land cover files are located
-dir_LCover(1)        = "../../test_basin/input/luse/"
-!> directory where discharge files are located
-dir_Gauges(1)        = "../../test_basin/input/gauge/"
+!**** basin 1
 !> directory where meteorological input is located
 dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
@@ -79,20 +123,8 @@ dir_windspeed(1)       = "../../test_basin/input/meteo/"
 dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
-!> directory where restart input is located
-dir_RestartIn(1)     = "restart/"
-!> directory where restart output should be written
-dir_RestartOut(1)    = "output_b1/"
-!> directory where output should be written
-dir_Out(1)           = "output_b1/"
 !
-!**** for Basin 2
-!> directory where morphological files are located
-dir_Morpho(2)        = "../../test_basin/input/morph/"
-!> directory where land cover files are located
-dir_LCover(2)        = "../../test_basin/input/luse/"
-!> directory where discharge files are located
-dir_Gauges(2)        = "../../test_basin/input/gauge/"
+!**** Basin 2
 !> directory where meteorological input is located
 dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
@@ -115,12 +147,6 @@ dir_windspeed(2)       = "../../test_basin/input/meteo/"
 dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
-!> directory where restart input is located
-dir_RestartIn(2)     = "restart/"
-!> directory where restart output should be written
-dir_RestartOut(2)    = "output_b2/"
-!> directory where output should be written
-dir_Out(2)           = "output_b2/"
 /
 
 !> data which are optionally needed for optimization

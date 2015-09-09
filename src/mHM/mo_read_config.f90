@@ -130,7 +130,7 @@ CONTAINS
          resolutionHydrology,                               & ! resolutions of hydrology
          resolutionRouting,                                 & ! resolution of routing
          L0_Basin,                                          & ! L0_Basin ID
-         dirMorpho, dirLCover, dirGauges,                   & ! input directory of morphological
+         dirMorpho, dirLCover,                              & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
@@ -261,7 +261,6 @@ CONTAINS
     integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
     character(256), dimension(maxNoBasins)          :: dir_Morpho
     character(256), dimension(maxNoBasins)          :: dir_LCover
-    character(256), dimension(maxNoBasins)          :: dir_Gauges
     character(256), dimension(maxNoBasins)          :: dir_Precipitation
     character(256), dimension(maxNoBasins)          :: dir_Temperature
     character(256), dimension(maxNoBasins)          :: dir_MinTemperature
@@ -295,12 +294,14 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
-    namelist /directories/ dirConfigOut, dirCommonFiles, inputFormat_meteo_forcings, &
-         dir_Morpho, dir_LCover, dir_Gauges, dir_Precipitation,                      &
-         dir_Temperature, dir_ReferenceET, dir_MinTemperature,                       &
+    namelist /directories_general/ dirConfigOut, dirCommonFiles, &
+         dir_Morpho, dir_LCover,                                 &
+         dir_Out, dir_RestartOut,                                &
+         dir_RestartIn
+    namelist /directories_mHM/ inputFormat_meteo_forcings, &
+         dir_Precipitation, dir_Temperature, dir_ReferenceET, dir_MinTemperature,    &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
-         dir_NetRadiation, dir_Out, dir_RestartOut,                                  &
-         dir_RestartIn, dir_LatLon, dir_gridded_LAI
+         dir_NetRadiation, dir_LatLon, dir_gridded_LAI
     ! optional data used for optimization
     namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information
@@ -371,7 +372,6 @@ CONTAINS
     allocate(L0_Basin           (nBasins))
     allocate(dirMorpho          (nBasins))
     allocate(dirLCover          (nBasins))
-    allocate(dirGauges          (nBasins))
     allocate(dirPrecipitation   (nBasins))
     allocate(dirTemperature     (nBasins))
     allocate(dirwindspeed       (nBasins))
@@ -470,12 +470,13 @@ CONTAINS
     !===============================================================
     !  Read namelist for mainpaths
     !===============================================================
-    call position_nml('directories', unamelist)
-    read(unamelist, nml=directories)
+    call position_nml('directories_general', unamelist)
+    read(unamelist, nml=directories_general)
+    call position_nml('directories_mHM', unamelist)
+    read(unamelist, nml=directories_mHM)
 
     dirMorpho                 = dir_Morpho         (1:nBasins)
     dirLCover                 = dir_LCover         (1:nBasins)
-    dirGauges                 = dir_Gauges         (1:nBasins)
     dirPrecipitation          = dir_Precipitation  (1:nBasins)
     dirTemperature            = dir_Temperature    (1:nBasins)
     dirReferenceET            = dir_ReferenceET    (1:nBasins)

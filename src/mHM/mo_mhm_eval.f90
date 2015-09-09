@@ -142,13 +142,30 @@ CONTAINS
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
 #ifdef mrm2mhm
     use mo_mrm_global_variables, only: &
-         ! InflowGauge, &
-         ! L11_netPerm, L11_fromN, L11_toN, & 
-         ! L11_length, L11_slope, L11_aFloodPlain, &
-         ! L0_floodPlain, L1_L11_Id, &
-         ! , L11_qOUT, L11_qTIN, &
-         ! L11_qTR, L11_C1, L11_C2, L11_FracFPimp
-         mRM_runoff
+         ! INPUT variables for mRM routing ====================================
+         L0_LCover_mRM, & ! L0 land cover
+         L0_floodPlain, & ! flood plains at L0 level
+         L0_areaCell, &
+         L1_areaCell, &
+         L11_aFloodPlain, & ! flood plains at L11 level
+         L11_length, & ! link length
+         L11_slope, &
+         L1_L11_Id, &
+         L11_netPerm, & ! routing order at L11
+         L11_fromN, & ! link source at L11
+         L11_toN, & ! link target at L11
+         basin_mrm, & ! basin_mrm structure
+         InflowGauge, &
+         ! INPUT/OUTPUT variables for mRM routing =============================
+         L11_C1, & ! first muskingum parameter
+         L11_C2, & ! second muskigum parameter
+         L11_qOUT, & ! routed runoff flowing out of L11 cell
+         L11_qTIN, & ! inflow water into the reach at L11
+         L11_qTR, & !
+         L11_FracFPimp, & ! fraction of impervious layer at L11 scale
+         L11_qMod, &
+         mRM_runoff ! global variable containing runoff for every gauge
+    use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_routing, only: mrm_routing
 #endif
     
@@ -198,6 +215,8 @@ CONTAINS
 #ifdef mrm2mhm    
     ! for routing
     logical                                   :: do_mpr
+    integer(i4)                               :: s11, e11 ! start and end index at L11
+    integer(i4)                               :: s110, e110 ! start and end index of L11 at L0
 #endif    
     !
     ! LAI options
@@ -260,9 +279,15 @@ CONTAINS
 
        ! get basin information
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
-       ! call get_basin_info ( ii,110, nrows, ncols,                iStart=s110,iEnd=e110 ) 
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
+#ifdef mrm2mhm       
+       ! get basin information at L11 and L110 if routing is activated
+       if (processMatrix(8,1) .eq. 1) then
+          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11  ) 
+          call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 ) 
+       end if
+#endif       
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
@@ -439,9 +464,42 @@ CONTAINS
                 do_mpr = .false.
              end if
              !
-             call mRM_routing(parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), &
-                  ii, L1_total_runoff(s1:e1), iMeteoTS, tt, simPer(ii)%julStart, LCyearId(year,ii), do_mpr, &
-                  nTstepDay)
+             call mRM_routing( &
+                  ! INPUT variables
+                  parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
+                  L1_total_runoff(s1:e1), & ! L1 total runoff generated at each cell
+                  L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
+                  L0_floodPlain(s110:e110), & ! flood plains at L0 level
+                  L0_areaCell(s0:e0), &
+                  L1_areaCell(s1:e1), &
+                  L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
+                  L11_length(s11:e11 - 1), & ! link length
+                  L11_slope(s11:e11 - 1), &
+                  L1_L11_Id(s1:e1), &
+                  L11_netPerm(s11:e11), & ! routing order at L11
+                  L11_fromN(s11:e11), & ! link source at L11
+                  L11_toN(s11:e11), & ! link target at L11
+                  timeStep, & ! simulate timestep in [h]
+                  basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
+                  basin_mrm%nInflowGauges(ii), &
+                  basin_mrm%InflowGaugeIndexList(ii,:), &
+                  basin_mrm%InflowGaugeHeadwater(ii,:), &
+                  basin_mrm%InflowGaugeNodeList(ii,:), &
+                  InflowGauge%Q(iMeteoTS,:), &
+                  basin_mrm%nGauges(ii), &
+                  basin_mrm%gaugeIndexList(ii,:), &
+                  basin_mrm%gaugeNodeList(ii,:), &
+                  ! INPUT/OUTPUT variables
+                  L11_C1(s11:e11), & ! first muskingum parameter
+                  L11_C2(s11:e11), & ! second muskigum parameter
+                  L11_qOUT(s11:e11), & ! routed runoff flowing out of L11 cell
+                  L11_qTIN(s11:e11,:), & ! inflow water into the reach at L11
+                  L11_qTR(s11:e11,:), & !
+                  L11_FracFPimp(s11:e11), & ! fraction of impervious layer at L11 scale
+                  L11_qMod(s11:e11), &
+                  mRM_runoff(tt, :), &
+                  ! OPTIONAL INPUT variables
+                  do_mpr)
           end if
 #endif
 
@@ -580,7 +638,7 @@ CONTAINS
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
-    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
+    if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) runoff = mRM_runoff
 #endif
 
 

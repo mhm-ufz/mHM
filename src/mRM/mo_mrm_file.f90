@@ -18,11 +18,11 @@ MODULE mo_mrm_file
   !> Driver file
   CHARACTER(len=*), PARAMETER :: file_main               = 'mrm_driver.f90'              ! Driver
   !> Namelist file name
-  CHARACTER(len=*), PARAMETER :: file_namelist_mrm       = 'mrm.nml'                     ! Namelist
+  CHARACTER(len=*), PARAMETER :: file_namelist_mrm       = 'mhm.nml'                     ! Namelist
   !> Unit for namelist
   INTEGER,          PARAMETER :: unamelist_mrm           = 40                            ! set different from mhm
   !> Parameter namelists file name
-  CHARACTER(len=*), PARAMETER :: file_namelist_param_mrm = 'mrm_parameter.nml'           ! Parameter namelists
+  CHARACTER(len=*), PARAMETER :: file_namelist_param_mrm = 'mhm_parameter.nml'           ! Parameter namelists
   !> Unit for namelist
   INTEGER,          PARAMETER :: unamelist_param         = 41                            ! set different from mhm
 

@@ -26,8 +26,8 @@ contains
   !>        \brief read L0 data from file
   !
   !>        \details With the exception of L0_mask, L0_elev, and L0_LCover, all
-  !>        L0 variables are read from file. The former three are only read if mRM
-  !>        is not coupled to mHM, otherwise a pointer is set to the mHM variable.
+  !>        L0 variables are read from file. The former three are only read if they
+  !>        are not provided as variables.
   !
   !     INTENT(IN)
   !         None
@@ -39,7 +39,9 @@ contains
   !         None
   !
   !     INTENT(IN), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(:), target, optional :: L0_mask - L0 mask"
+  !>        \param[in] "real(dp), dimension(:), target, optional :: L0_elev - L0 elevation"
+  !>        \param[in] "integer(i4), dimension(:,:), target, optional :: L0_LCover - L0 land cover"
   !
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -62,8 +64,8 @@ contains
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, 
-  subroutine mrm_read_L0_data()
+  !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
+  subroutine mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
     use mo_mrm_constants, only: nodata_i4, nodata_dp ! mRM's global nodata vales
     use mo_append, only: append, paste
     use mo_string_utils, only: num2str
@@ -96,15 +98,11 @@ contains
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
          basin_mrm ! basin information for single basins
-#ifdef mrm2mhm
-    use mo_global_variables, only: &
-         basin, & ! to get the global mask
-         ! variables that should not be allocated twice if coupled to mhm
-         L0_mask, &
-         L0_elev, & 
-         L0_LCover
-#endif    
     implicit none
+    ! optional input variables
+    logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
+    real(dp), dimension(:), target, intent(in), optional :: L0_elev ! L0 elevation
+    integer(i4), dimension(:,:), target, intent(in), optional :: L0_LCover ! L0 land cover
     ! local variables
     integer(i4) :: iBasin
     integer(i4) :: iVar
@@ -156,22 +154,13 @@ contains
 
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
-       if (mrm_coupling_mode .ne. 2) then
-          ! only read dem data if not coupled to mhm
-          call read_spatial_data_ascii(trim(fName), udem, &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
-          ! create overall mHM mask on L0 and save indices
-          nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
-          call append( L0_mask_mRM, reshape(mask_global, (/nCells/)))
-       else
-#ifdef mrm2mhm
-          ! get mask global from mhm variables
-          mask_global = reshape(basin%L0_mask(basin%L0_iStartMask(iBasin):basin%L0_iEndMask(iBasin)), &
-               (/level0%nrows(iBasin), level0%ncols(iBasin)/))
-          nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
-#endif
-       end if
+       ! only read dem data if not coupled to mhm
+       call read_spatial_data_ascii(trim(fName), udem, &
+            level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
+            level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
+       ! create overall mHM mask on L0 and save indices
+       nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
+       if (.not. present(L0_mask)) call append( L0_mask_mRM, reshape(mask_global, (/nCells/)))
 
        ! Saving indices at Level110 irrespective of whether L0_data is shared or not
        if (iBasin .eq. 1) then
@@ -330,18 +319,21 @@ contains
     ! ----------------------------------------------------------------
     ! assign pointers for L0 variables
     ! ----------------------------------------------------------------
-    if (mrm_coupling_mode .ne. 2) then
-       L0_elev_mRM => L0_elev_read
-       L0_LCover_mRM => L0_LCover_read
-       basin_mRM%L0_mask => L0_mask_mRM
+    if (present(L0_mask)) then
+       basin_mRM%L0_mask => L0_mask
     else
-#ifdef mrm2mhm
+       basin_mRM%L0_mask => L0_mask_mRM
+    endif
+    if (present(L0_elev)) then
        L0_elev_mRM => L0_elev
-       L0_LCover_mRM => L0_LCover
-       basin_mrm%L0_mask => L0_mask
-#endif
+    else
+       L0_elev_mRM => L0_elev_read
     end if
-       
+    if (present(L0_LCover)) then
+       L0_LCover_mRM => L0_LCover
+    else
+       L0_LCover_mRM => L0_LCover
+    end if
 
   end subroutine mrm_read_L0_data
 
