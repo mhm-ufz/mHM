@@ -397,7 +397,19 @@ CONTAINS
        call message('***ERROR: coordinate system for the model run should be 0 or 1')
        stop
     end if
-    ! check for perform_mpr
+    ! check for optimize and read restart
+    if ( ( read_restart ) .and. ( optimize ) ) then
+       call message()
+       call message('***ERROR: cannot read states from restart file when optimizing')
+       stop
+    end if
+    ! check for perform_mpr and read restart
+    if ( ( read_restart ) .and. ( perform_mpr ) ) then
+       call message()
+       call message('***WARNING: perform_mpr is internally set to .FALSE.')
+       call message('***WARNING: MPR has not effect when reading states from restart file')
+       perform_mpr = .false.
+    end if
     if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
        call message()
        call message('***ERROR: cannot omit mpr when read_restart is set to .false.')

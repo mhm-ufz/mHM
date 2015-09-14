@@ -80,7 +80,7 @@ CONTAINS
          mrm_L1_variable_init, &
          mrm_L0_variable_init
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
-    use mo_mrm_restart, only: mrm_read_restart_L11_config, mrm_read_restart, mrm_read_restart_config
+    use mo_mrm_restart, only: mrm_read_restart_config
     use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
          mrm_coupling_mode
     use mo_mrm_net_startup, only: &
@@ -140,29 +140,29 @@ CONTAINS
           end if
        end do
     end if
-    
-    ! level 1 data
-    do iBasin = 1, nBasins
-       if ( .not. read_restart ) then
+
+    if (read_restart) then
+       ! ----------------------------------------------------------
+       ! READ RESTART VARIABLES
+       ! ----------------------------------------------------------
+       do iBasin = 1, nBasins
+          call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
+       end do
+    else
+       ! ----------------------------------------------------------
+       ! LEVEL 1 DATA
+       ! ----------------------------------------------------------
+       do iBasin = 1, nBasins
           if (iBasin .eq. 1) then
              call mrm_L0_variable_init(iBasin)
           else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
              call mrm_L0_variable_init(iBasin)
           end if
           call mrm_L1_variable_init(iBasin)
-       else
-          ! read from restart
-          call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
-       end if
-    end do
-    ! discharge data
-    call mrm_read_discharge()
-
-    ! ----------------------------------------------------------
-    ! INITIALIZE STREAM NETWORK
-    ! ----------------------------------------------------------
-    ! check if variables should be read from restart
-    if ( .not. read_restart ) then
+       end do
+       ! ----------------------------------------------------------
+       ! INITIALIZE STREAM NETWORK
+       ! ----------------------------------------------------------
        do iBasin = 1, nBasins
           call L11_variable_init(iBasin)
           call L11_flow_direction(iBasin)
@@ -173,32 +173,22 @@ CONTAINS
           ! stream characteristics
           call L11_stream_features(iBasin)
        end do
-    else
-       do iBasin = 1, nBasins
-          call mrm_read_restart_L11_config(iBasin, dirRestartIn(iBasin) )
-       end do
     end if
-
     ! ----------------------------------------------------------
     ! INITIALIZE STATES
     ! ----------------------------------------------------------
-    ! State variables, fluxes and parameter fields
-    ! have to be allocated in any case
     do iBasin = 1, nBasins
        call variables_alloc_routing(iBasin)
     end do
-    
-    !-------------------------------------------
-    ! L11 ROUTING STATE VARIABLES, FLUXES AND
-    !             PARAMETERS
-    !-------------------------------------------
-    if ( .not. read_restart ) then
+    if (.not. read_restart) then
+       !-------------------------------------------
+       ! L11 ROUTING STATE VARIABLES, FLUXES AND
+       !             PARAMETERS
+       !-------------------------------------------
        call variables_default_init_routing()
-    else
-       do iBasin = 1, nBasins
-          call mrm_read_restart(iBasin, dirRestartIn(iBasin))
-       end do
     end if
+    ! discharge data
+    call mrm_read_discharge()
 
     call message(' Finished Initialization of mRM')
 
@@ -380,6 +370,38 @@ CONTAINS
   end subroutine variables_default_init_routing
 
   ! --------------------------------------------------------------------------
+  ! L0_check_input_routing
+  ! --------------------------------------------------------------------------
+  subroutine L0_check_input_routing(iBasin)
+    use mo_message, only: message, message_text
+    use mo_string_utils, only: num2str
+    use mo_mrm_global_variables, only: L0_fDir, L0_fAcc, basin_mrm
+    implicit none
+    ! input variables
+    integer(i4) :: iBasin
+    ! local variables
+    integer(i4) :: k
+
+    do k = basin_mrm%L0_iStart(iBasin), basin_mrm%L0_iEnd(iBasin)
+       ! flow direction [-]
+       if ( L0_fDir(k) .eq. nodata_i4  ) then
+          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
+          call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
+               trim(message_text) )
+          stop
+       end if
+       ! flow accumulation [-]
+       if ( L0_fAcc(k) .eq. nodata_i4 ) then
+          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
+          call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
+               trim(message_text) )
+          stop
+       end if
+    end do
+    
+  end subroutine L0_check_input_routing
+
+  ! --------------------------------------------------------------------------
   ! L11 ROUTING STATE VARIABLES, FLUXES AND
   !             PARAMETERS
   ! --------------------------------------------------------------------------
@@ -446,37 +468,5 @@ CONTAINS
     if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
 
   end subroutine variables_alloc_routing
-
-  ! --------------------------------------------------------------------------
-  ! L0_check_input_routing
-  ! --------------------------------------------------------------------------
-  subroutine L0_check_input_routing(iBasin)
-    use mo_message, only: message, message_text
-    use mo_string_utils, only: num2str
-    use mo_mrm_global_variables, only: L0_fDir, L0_fAcc, basin_mrm
-    implicit none
-    ! input variables
-    integer(i4) :: iBasin
-    ! local variables
-    integer(i4) :: k
-
-    do k = basin_mrm%L0_iStart(iBasin), basin_mrm%L0_iEnd(iBasin)
-       ! flow direction [-]
-       if ( L0_fDir(k) .eq. nodata_i4  ) then
-          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-          call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
-               trim(message_text) )
-          stop
-       end if
-       ! flow accumulation [-]
-       if ( L0_fAcc(k) .eq. nodata_i4 ) then
-          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-          call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
-               trim(message_text) )
-          stop
-       end if
-    end do
-    
-  end subroutine L0_check_input_routing
 
 END MODULE mo_mrm_init

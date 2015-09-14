@@ -77,7 +77,7 @@ L0Basin(2) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
-optimize = .false.
+optimize = .FALSE.
 !> (0) MCMC                \n
 !> (1) DDS                 \n
 !> (2) Simulated Annealing \n
@@ -173,7 +173,7 @@ dir_LCover(2)        = "test_basin_2/input/luse/"
 !> directory where restart input is located
 dir_RestartIn(2)     = "test_basin_2/restart/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin_2/output/"
+dir_RestartOut(2)    = "test_basin_2/restart/"
 !> directory where output should be written
 dir_Out(2)           = "test_basin_2/output/"
 /

@@ -21,7 +21,6 @@ MODULE mo_restart
 
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: read_restart_config     ! read restart files for configuration from a given path
-  ! PUBLIC :: read_restart_L11_config ! read L11 configuration
   PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
   PRIVATE
@@ -185,8 +184,7 @@ CONTAINS
        call get_basin_info( iBasin, 1, nrows1, ncols1, iStart=s1, iEnd=e1, mask=mask1 )
 
        ! write restart file for iBasin
-       ! Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_restart.nc'
-       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'
+       Fname = trim(OutPath(iBasin)) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
        ! print a message
        call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
        
@@ -434,24 +432,9 @@ CONTAINS
           deallocate( dummy_d3 )
        end select
 
-       ! !-------------------------------------------
-       ! ! L11 ROUTING STATE VARIABLES, FLUXES AND
-       ! !             PARAMETERS
-       ! !-------------------------------------------
-       ! if ( processMatrix(8,1) .ne. 0 ) then
-       !    call write_restart_routing(iBasin, OutPath)
-       ! end if
-
-       ! -------------------------------------------------------------
-       ! config set - create new file
-       ! -------------------------------------------------------------
-       Fname = trim(OutPath(iBasin)) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc'
-       call message('    Writing Restart-file: ', trim(adjustl(Fname)),' ...')
-
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,1), mask0, nodata_i4 ), &
             dims_L0,'L0_rowCoor', &
-            long_name = 'row coordinates at Level 0', missing_value = nodata_i4, &
-            create = .true. )
+            long_name = 'row coordinates at Level 0', missing_value = nodata_i4)
 
        call var2nc( Fname, unpack( L0_cellCoor(s0:e0,2), mask0, nodata_i4 ), &
             dims_L0,'L0_colCoor', &
@@ -626,7 +609,7 @@ CONTAINS
     character(256) :: Fname
 
     ! read config
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_config.nc' ! '_restart.nc'
+    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc' ! '_restart.nc'
     call message('    Reading config from     ', trim(adjustl(Fname)),' ...')
  
     !
@@ -848,7 +831,7 @@ CONTAINS
   subroutine read_restart_states( iBasin, InPath )
 
     use mo_kind,             only: i4, dp
-    use mo_message,          only: message
+    ! use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_init_states,      only: get_basin_info
     use mo_ncread,           only: Get_NcVar
@@ -921,8 +904,8 @@ CONTAINS
     real(dp), dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension
     real(dp), dimension(:,:,:), allocatable           :: dummyD3  ! dummy, 3 dimension
 
-    Fname = trim(InPath) // trim(num2str(iBasin, '(i3.3)')) // '_states.nc'! '_restart.nc'
-    call message('    Reading states from ', trim(adjustl(Fname)),' ...')
+    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get basin information at level 1
     call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1, &

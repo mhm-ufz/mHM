@@ -166,6 +166,7 @@ CONTAINS
          L11_qMod, &
          mRM_runoff ! global variable containing runoff for every gauge
     use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
 #endif
     
@@ -282,6 +283,9 @@ CONTAINS
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
 #ifdef mrm2mhm       
+       ! read states from restart
+       if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
+       !
        ! get basin information at L11 and L110 if routing is activated
        if (processMatrix(8,1) .eq. 1) then
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11  ) 
@@ -464,6 +468,7 @@ CONTAINS
                 do_mpr = .false.
              end if
              !
+             !here the routing states have to be updated if restart is set to true because of optimization
              call mRM_routing( &
                   ! INPUT variables
                   parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
