@@ -227,6 +227,8 @@ contains
   !     HISTORY
   !>        \author David Schafer
   !>        \date June 2015
+  !         Modified:
+  !             David Schaefer, Sep. 2015 - bugfix
   subroutine writeVariableTimestep(self, timestep)
     class(OutputVariable), intent(inout) :: self
     integer(i4)          , intent(in)    :: timestep
@@ -238,7 +240,8 @@ contains
     call self%nc%setData(unpack(self%data, self%mask, nodata_dp), &
          (/1,1,timestep/))
     self%data = 0
-
+    self%counter = 0
+    
   end subroutine writeVariableTimestep
   
   !------------------------------------------------------------------
