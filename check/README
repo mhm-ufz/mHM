@@ -55,7 +55,6 @@ the Makefile setting for
 ----------------------------------------
 
 case 0 :: DEFAULT mhm.nml and mhm_outputs.nml and mhm_parameter.nml
-          DEFAULT mrm.nml and mrm_outputs.nml and mrm_parameter.nml
 
 case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    nBasins                    = 2                                               (default:       1)
