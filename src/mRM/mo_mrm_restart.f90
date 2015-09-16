@@ -634,6 +634,8 @@ contains
          L11_cellCoor,      & ! cell Coordinates at Level 11
          L11_Id,            & ! cell Ids at Level 11
          L11_nCells,        & ! Number of Cells at Level 11
+         L1_nCells,         & ! Number of Cells at Level 1
+         L0_nCells,         & ! Number of Cells at Level 0
          L0_draSC,          &
          L0_L11_Id,         &
          L1_L11_Id,         &
@@ -1058,6 +1060,10 @@ contains
     call Get_NcVar( Fname, 'L11_slope', dummyD1 )
     call append( L11_slope, dummyD1 )
     deallocate( dummyD1 )
+
+    ! update Number of cells at Level 1 and Level 0
+    L1_nCells = size(L0_areaCell, 1)
+    L0_nCells = size(L1_areaCell, 1)
 
   end subroutine mrm_read_restart_config
 end module mo_mrm_restart

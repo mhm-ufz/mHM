@@ -404,6 +404,7 @@ contains
          level0,                 &
          L0_cellCoor, &
          L0_Id, &
+         L0_nCells, &
          iFlag_cordinate_sys
     implicit none
 
@@ -487,6 +488,11 @@ contains
     call append( L0_Id, Id             )
     call append( L0_areaCell, areaCell )
 
+    ! ----------------------------------------------------------------
+    ! set number of cells at Level 0
+    ! ----------------------------------------------------------------
+    L0_nCells = size(L0_Id, 1)
+
     ! free space
     deallocate(cellCoor, Id, areaCell, areaCell_2D, mask)
 
@@ -544,6 +550,7 @@ contains
          resolutionHydrology, &
          L0_areaCell, &
          L1_areaCell, &
+         L1_nCells, &
          level1, &
          nBasins, &
          basin_mrm
@@ -682,6 +689,11 @@ contains
 
     call append( basin_mrm%L1_Mask,  RESHAPE( mask1, (/nrows1*ncols1/)  )  )
     call append( L1_areaCell, areaCell )
+
+    ! ----------------------------------------------------------------
+    ! set number of cells at Level 1
+    ! ----------------------------------------------------------------
+    L1_nCells = size(L1_areaCell, 1)
 
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell )

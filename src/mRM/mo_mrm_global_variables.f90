@@ -229,13 +229,15 @@ module mo_mrm_global_variables
   integer(i4), public, dimension(:), allocatable :: L0_draCell    !      Draining cell id at L11 of ith cell of L0
   integer(i4), public, dimension(:), allocatable :: L0_streamNet  !      Stream network
   integer(i4), public, dimension(:), allocatable :: L0_floodPlain !      Floodplains of stream i
-
+  integer(i4) :: L0_nCells ! Number of cells at level 0
+  
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L1
   integer(i4), public, dimension(:), allocatable :: L1_L11_Id ! Mapping of L11 Id on L1
   real(dp),    public, dimension(:), allocatable :: L1_areaCell ! [km2] Effective area of cell at this level
+  integer(i4) :: L1_nCells ! Number of cells at level 1
   ! -------------------------------------------------------------------
   ! L1 variables
   ! -------------------------------------------------------------------
