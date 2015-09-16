@@ -74,7 +74,7 @@ CONTAINS
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_init_states,      only: get_basin_info
-    use mo_read_meteo,       only: read_meteo_nc
+    use mo_read_forcing_nc,  only: read_forcing_nc
     use mo_timer,            only:                         &
          timer_start, timer_stop, timer_get, timer_clear     ! Timing of processes
     use mo_append,           only: append                    ! append data
@@ -104,7 +104,7 @@ CONTAINS
     !  basin characteristics and read meteo header
     call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(iBasin))),' ...')
     call timer_start(1)
-    call read_meteo_nc( dirSoil_moisture(iBasin), nRows1, nCols1, evalPer(iBasin), trim('sm'), L1_data, mask1, &
+    call read_forcing_nc( dirSoil_moisture(iBasin), nRows1, nCols1, evalPer(iBasin), trim('sm'), L1_data, mask1, &
          nctimestep=timeStep_sm_input, nocheck=.TRUE., maskout=L1_mask)
 
     ! pack variables

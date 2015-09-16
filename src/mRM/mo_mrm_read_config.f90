@@ -79,15 +79,17 @@ contains
     read(unamelist_mrm, nml=coupling_config)
     call close_nml(unamelist_mrm)
     ! check whether coupling mode is specified correctly
-    if (mrm_coupling_mode .eq. 0) then
-       call message('***ERROR: coupling mode equals 0, but stand alone version is not yet implemented')
-       stop
-    end if
     if (mrm_coupling_mode .eq. 2) then
 #ifndef mrm2mhm
        call message('***ERROR: coupling mode equals 2, but mrm2mhm preprocessor flag is not set while compiling')
        stop
 #endif       
+    end if
+    if (mrm_coupling_mode .eq. 0) then
+#ifdef mrm2mhm
+       call message('***ERROR: coupling mode equals 0, but mrm2mhm preprocessor flag is set while compiling')
+       stop
+#endif
     end if
     if (mrm_coupling_mode .gt. 2) then
        call message('***ERROR: coupling mode greater than two is not yet provided')
@@ -162,6 +164,7 @@ contains
          dirMorpho, & ! Directory where morphological files are located
          dirLCover, & ! Directory where land cover files are located
          dirGauges, & ! Directory where discharge files are located
+         dirTotalRunoff, & ! Directory where simulated runoff files are located
          dirOut, & ! Directory where output is written to
          dirRestartOut, & ! Directory where output of restart is written
          dirRestartIn, & ! Directory where input of restart is read from
@@ -216,6 +219,7 @@ contains
     character(256), dimension(maxNoBasins) :: dir_Morpho
     character(256), dimension(maxNoBasins) :: dir_LCover
     character(256), dimension(maxNoBasins) :: dir_Gauges
+    character(256), dimension(maxNoBasins) :: dir_Total_Runoff
     character(256), dimension(maxNoBasins) :: dir_Out
     character(256), dimension(maxNoBasins) :: dir_RestartOut
     character(256), dimension(maxNoBasins) :: dir_RestartIn
@@ -244,7 +248,7 @@ contains
     ! namelist for evaluation gauges
     ! define namelists
     ! namelist directories
-    namelist /directories_mRM/ dir_Gauges
+    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover,                         &
          dir_Out, dir_RestartOut,                        &
@@ -290,6 +294,7 @@ contains
     allocate(dirMorpho(nBasins))
     allocate(dirLCover(nBasins))
     allocate(dirGauges(nBasins))
+    allocate(dirTotalRunoff(nBasins))
     allocate(dirOut(nBasins))
     allocate(dirRestartOut(nBasins))
     allocate(dirRestartIn(nBasins))
@@ -364,7 +369,7 @@ contains
        call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
 
        jday_frac = real(warmPer(ii)%julEnd,dp)
-       call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd  )
+       call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd)
 
        ! sumulation Period = warming Period + evaluation Period
        simPer(ii)%dStart   = warmPer(ii)%dStart
@@ -388,6 +393,7 @@ contains
     dirMorpho = dir_Morpho(1:nBasins)
     dirLCover = dir_LCover(1:nBasins)
     dirGauges = dir_Gauges(1:nBasins)
+    dirTotalRunoff = dir_Total_Runoff(1:nBasins)
     dirOut = dir_Out(1:nBasins)
     dirRestartOut = dir_RestartOut(1:nBasins)
     dirRestartIn = dir_RestartIn(1:nBasins)
@@ -729,7 +735,9 @@ contains
     integer(i4), intent(in) :: processCase ! it is the default case should be one
     character(256), intent(in) :: file_namelist ! file name containing parameter namelist
     ! local variables
+#ifdef mrm2mhm    
     integer(i4) :: start_index ! equals sum of previous parameters
+#endif    
     real(dp), dimension(nColPars) :: muskingumTravelTime_constant
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverLength
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverSlope
@@ -745,7 +753,9 @@ contains
     read(unamelist_param, nml=routing1)
 
 #ifdef mrm2mhm
-    ! include mrm parameters in parameters of mhm
+    ! -------------------------------------------------------------------------
+    ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
+    ! -------------------------------------------------------------------------
     processMatrix(8, 1) = processCase
     processMatrix(8, 2) = 5_i4
     processMatrix(8, 3) = sum(processMatrix(1:8, 2))

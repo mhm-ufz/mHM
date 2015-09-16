@@ -138,6 +138,9 @@ mrm_coupling_mode = 2
 !> directory where discharge files are located
 dir_Gauges(1)        = "test_basin/input/gauge/"
 dir_Gauges(2)        = "test_basin_2/input/gauge/"
+!> directory where simulated runoff can be found (only required if coupling mode equals 1)
+dir_Total_Runoff(1) = 'test_basin/output_b1/'
+dir_Total_Runoff(2) = 'test_basin_2/output/'
 /
 
 ! general directories used by mRM and mHM

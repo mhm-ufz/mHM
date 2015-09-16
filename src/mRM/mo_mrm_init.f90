@@ -14,7 +14,7 @@ MODULE mo_mrm_init
   ! Written  Luis Samaniego, Mar 2005
 
   USE mo_kind,          ONLY: i4, dp
-  USE mo_mhm_constants, ONLY: nodata_i4, nodata_dp
+  USE mo_mrm_constants, ONLY: nodata_i4, nodata_dp
   USE mo_append,        ONLY: append
 
   IMPLICIT NONE
@@ -78,7 +78,8 @@ CONTAINS
     use mo_message, only: message
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
          mrm_L1_variable_init, &
-         mrm_L0_variable_init
+         mrm_L0_variable_init, &
+         mrm_read_total_runoff
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_restart, only: mrm_read_restart_config
     use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
@@ -101,7 +102,6 @@ CONTAINS
     ! local variables
     integer(i4) :: iBasin
 
-    call message(' Inititalize mRM')
     !-----------------------------------------------------------
     ! READ COUPLING MODE
     !-----------------------------------------------------------
@@ -112,6 +112,8 @@ CONTAINS
     !-----------------------------------------------------------
     if (mrm_coupling_mode .eq. 0) then
        call print_startup_message()
+    else
+       call message(' Inititalize mRM')
     end if
     
     ! ----------------------------------------------------------
@@ -186,6 +188,15 @@ CONTAINS
        !             PARAMETERS
        !-------------------------------------------
        call variables_default_init_routing()
+    end if
+    ! -------------------------------------------------------
+    ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
+    ! -------------------------------------------------------
+    ! read simulated runoff at level 1
+    if (mrm_coupling_mode .eq. 0) then
+       do iBasin = 1, nBasins
+          call mrm_read_total_runoff(iBasin)
+       end do
     end if
     ! discharge data
     call mrm_read_discharge()

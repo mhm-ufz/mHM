@@ -8,6 +8,7 @@
 !> \date Aug 2015
 module mo_mrm_global_variables
   use mo_kind, only: i4, i8, dp
+  use mo_global_structures, only: period
   implicit none
   ! Types have to be public
   PUBLIC :: gaugingStation
@@ -78,6 +79,7 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
+  character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory wherse simulated total runoff files are located
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
@@ -140,18 +142,6 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! PERIOD description
   ! -------------------------------------------------------------------
-  type period
-      integer(i4) :: dStart      ! first day
-      integer(i4) :: mStart      ! first month
-      integer(i4) :: yStart      ! first year
-      integer(i4) :: dEnd        ! last  day
-      integer(i4) :: mEnd        ! last  month
-      integer(i4) :: yEnd        ! last  year
-      integer(i4) :: julStart    ! first julian day 
-      integer(i4) :: julEnd      ! last  julian day 
-      integer(i4) :: nObs        ! total number of observations
-  end type period
-  !
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
@@ -246,6 +236,12 @@ module mo_mrm_global_variables
   ! dim1 = number grid cells L1
   integer(i4), public, dimension(:), allocatable :: L1_L11_Id ! Mapping of L11 Id on L1
   real(dp),    public, dimension(:), allocatable :: L1_areaCell ! [km2] Effective area of cell at this level
+  ! -------------------------------------------------------------------
+  ! L1 variables
+  ! -------------------------------------------------------------------
+  ! dim1 = number grid cells L1
+  ! dim2 = number of timesteps
+  real(dp), public, dimension(:,:), allocatable :: L1_total_runoff_in
 
   ! -------------------------------------------------------------------
   ! L11 DOMAIN description

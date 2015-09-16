@@ -13,6 +13,7 @@ module mo_mrm_read_data
   public :: mrm_read_L0_data
   public :: mrm_L1_variable_init
   public :: mrm_L0_variable_init
+  public :: mrm_read_total_runoff
   public :: mrm_read_discharge
   private
 contains
@@ -332,7 +333,7 @@ contains
     if (present(L0_LCover)) then
        L0_LCover_mRM => L0_LCover
     else
-       L0_LCover_mRM => L0_LCover
+       L0_LCover_mRM => L0_LCover_read
     end if
 
   end subroutine mrm_read_L0_data
@@ -687,7 +688,7 @@ contains
 
   end subroutine mrm_L1_variable_init
 
-    ! ------------------------------------------------------------------
+  ! ---------------------------------------------------------------------------
 
   !      NAME
   !          mrm_read_discharge
@@ -736,7 +737,7 @@ contains
     use mo_append, only: paste
     use mo_string_utils, only: num2str
     use mo_read_timeseries, only: read_timeseries
-    use mo_file, only: udischarge
+    use mo_mrm_file, only: udischarge
     use mo_mrm_constants, only: nodata_dp
     use mo_mrm_global_variables, only: &
          nBasins, &
@@ -819,6 +820,99 @@ contains
     end if
 
   end subroutine mrm_read_discharge
+
+  ! ---------------------------------------------------------------------------
+
+  !      NAME
+  !          mrm_read_total_runoff
+
+  !>         \brief read simulated runoff that is to be routed
+
+  !>         \details read spatio-temporal field of total runoff that has been
+  !>         simulated by a hydrologic model or land surface model. This 
+  !>         total runoff will then be aggregated to the level 11 resolution
+  !>         and then routed through the stream network.
+  
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !>        \note The file containing total runoff must be named total_runoff.nc.
+  !>        This file must contain a double precision float variable with the name
+  !>        "total_runoff". There must also be an integer variable time with the
+  !>        units hours, days, months or years.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author  Stephan Thober
+  !         \date    Sep 2015
+  subroutine mrm_read_total_runoff(iBasin)
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_constants, only: nodata_dp
+    use mo_read_forcing_nc, only: read_forcing_nc
+    use mo_mrm_global_variables, only: &
+         simPer, & ! simulation period
+         dirTotalRunoff, & ! directory of total_runoff file for each basin
+         L1_total_runoff_in ! simulated runoff at L1
+    implicit none
+    ! input variables
+    integer(i4), intent(in) :: iBasin
+    ! local variables
+    integer(i4) :: tt
+    integer(i4) :: nrows
+    integer(i4) :: ncols
+    integer(i4) :: ncells
+    integer(i4) :: nTimeSteps
+    logical, dimension(:,:), allocatable :: mask
+    real(dp), dimension(:,:,:), allocatable :: L1_data ! read data from file
+    real(dp), dimension(:,:), allocatable :: L1_data_packed     
+
+    ! get basin information at level 1
+    call get_basin_info_mrm(iBasin, 1, nrows, ncols, ncells=ncells, mask=mask)
+
+    !
+    call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
+         'total_runoff', L1_data, mask, nctimestep=-4)
+
+    ! pack variables
+    nTimeSteps = size(L1_data, 3)
+    allocate( L1_data_packed(nCells, nTimeSteps))
+    do tt = 1, nTimeSteps
+       L1_data_packed(:,tt) = pack(L1_data(:,:,tt), mask=mask) 
+    end do
+    
+    ! append
+    call append(L1_total_runoff_in, L1_data_packed(:,:), nodata_dp)
+
+    !free space
+    deallocate(L1_data, L1_data_packed)
+
+  end subroutine mrm_read_total_runoff
+
   ! ------------------------------------------------------------------
   ! Rotate fdir variable to the new coordinate system
   ! L. Samaniego & R. Kumar

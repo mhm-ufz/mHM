@@ -26,5 +26,8 @@ module mo_mrm_constants
   real(dp), public, parameter :: HourSecs = 3600.0_dp ! seconds per hour
   ! default inital values for states and fluxes as well as parameter fields
   real(dp), public, parameter :: P1_InitStateFluxes = 0.00_dp
+  !
+  ! hydrological modelling
+  real(dp), public, parameter :: deltaH = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
 
 end module mo_mrm_constants

@@ -24,7 +24,6 @@ MODULE mo_mhm_constants
   real(dp),    public, parameter :: nodata_dp          = -9999._dp ! [-]     global no data value
 
   ! hydrologic modeling
-  real(dp),    public, parameter :: deltaH             = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
   integer(i4), public, parameter :: nLCover_class      = 3_i4      ! [-]     Number of land cover class
 
   integer(i4), public, parameter :: nColPars           = 5_i4      ! number of properties of the global variables

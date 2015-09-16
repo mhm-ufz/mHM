@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/mHM ./src/lib ./src/mRM  # where are the source files; use test_??? to run a test directory
+SRCPATH    := ./src/lib ./src/mRM ./src/mHM # where are the source files; use test_??? to run a test directory
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script

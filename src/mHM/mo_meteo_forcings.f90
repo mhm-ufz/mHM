@@ -262,7 +262,8 @@ end subroutine prepare_meteo_forcings_data
     use mo_global_variables,           only: readPer, level1, level2
     use mo_mhm_constants,              only: nodata_dp
     use mo_init_states,                only: get_basin_info
-    use mo_read_meteo,                 only: read_meteo_bin, read_meteo_nc
+    use mo_read_meteo,                 only: read_meteo_bin
+    use mo_read_forcing_nc,            only: read_forcing_nc
     use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
     use mo_append,                     only: append                    ! append vector
     
@@ -318,22 +319,22 @@ end subroutine prepare_meteo_forcings_data
        end if
     case('nc')
        if( present(lower) .AND. (.not. present(upper)) ) then
-          CALL read_meteo_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
+          CALL read_forcing_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
                lower=lower )
        end if
        !
        if( present(upper) .AND. (.not. present(lower)) ) then
-          CALL read_meteo_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
+          CALL read_forcing_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
                upper=upper )
        end if
        !
        if( present(lower) .AND. present(upper) ) then
-          CALL read_meteo_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
+          CALL read_forcing_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
                lower=lower, upper=upper )
        end if
     
        if( (.not. present(lower)) .AND. (.not. present(upper)) ) then
-          CALL read_meteo_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2 )
+          CALL read_forcing_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2 )
        end if
     case DEFAULT
        stop '***ERROR: meteo_forcings_wrapper: Not recognized input format'

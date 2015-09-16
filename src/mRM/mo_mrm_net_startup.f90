@@ -1806,7 +1806,7 @@ contains
   ! ------------------------------------------------------------------
   subroutine moveUp(elev0, fDir0, fi, fj, ss, nn)
 
-    use mo_mhm_constants,    only: deltaH
+    use mo_mrm_constants,    only: deltaH
     use mo_utils,            only: le, ge
 
     implicit none

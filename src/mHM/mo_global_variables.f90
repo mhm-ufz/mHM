@@ -29,8 +29,9 @@ MODULE mo_global_variables
   !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
 
   
-  USE mo_kind,          ONLY: i4, i8, dp
-  USE mo_mhm_constants, ONLY: nOutFlxState, YearMonths, maxNoBasins, maxNLCovers
+  USE mo_kind,              ONLY: i4, i8, dp
+  use mo_global_structures, ONLY: period
+  USE mo_mhm_constants,     ONLY: nOutFlxState, YearMonths, maxNoBasins, maxNLCovers
 
   IMPLICIT NONE
 
@@ -249,18 +250,6 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! PERIOD description
   ! -------------------------------------------------------------------
-  type period
-      integer(i4) :: dStart      ! first day
-      integer(i4) :: mStart      ! first month
-      integer(i4) :: yStart      ! first year
-      integer(i4) :: dEnd        ! last  day
-      integer(i4) :: mEnd        ! last  month
-      integer(i4) :: yEnd        ! last  year
-      integer(i4) :: julStart    ! first julian day 
-      integer(i4) :: julEnd      ! last  julian day 
-      integer(i4) :: nObs        ! total number of observations
-  end type period
-
   type(period), dimension(:), allocatable, public :: warmPer     ! time period for warming
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer

@@ -79,7 +79,7 @@ CONTAINS
     use mo_init_states,                only: get_basin_info            ! get basin information
     use mo_append,                     only: append                    ! append vector
     use mo_read_meteo,                 only: read_meteo_bin            ! Read binary files
-    use mo_read_meteo,                 only: read_meteo_nc             ! Read netCDF files
+    use mo_read_forcing_nc,            only: read_forcing_nc           ! Read netCDF files
                                            
     implicit none
     ! input 
@@ -104,7 +104,7 @@ CONTAINS
 
        ! netcdf file input option
        CASE('nc')
-          CALL read_meteo_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
+          CALL read_forcing_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
                'lai', LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp, nctimestep=timeStep_LAI_input)
        ! bin file input option
        CASE('bin')
