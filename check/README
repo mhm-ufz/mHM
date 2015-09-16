@@ -54,7 +54,8 @@ the Makefile setting for
         TEST CASES
 ----------------------------------------
 
-case 0 :: DEFAULT mhm.nml and DEFAULT mrm.nml
+case 0 :: DEFAULT mhm.nml and mhm_outputs.nml and mhm_parameter.nml
+          DEFAULT mrm.nml and mrm_outputs.nml and mrm_parameter.nml
 
 case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    nBasins                    = 2                                               (default:       1)
@@ -62,15 +63,19 @@ case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    processCase(5)             = 1                                               (default:       0)
    flag: read_restart         = .TRUE.                                          (default: .FALSE.)
    flag: perform_mpr          = .FALSE.                                         (default: .TRUE. )
-  mhm|_outputs.nml:
+   -----
+   mhm_outputs.nml:
    timeStep_model_outputs     = 0                                               (default:      -1)
 
-case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly
+case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly, output written monthly
    nBasins                    = 2                                               (default:       1)
    nGaugesTotal               = 2                                               (default:       1)
    processCase(5)             = 2                                               (default:       0)
    processCase(8)             = 0                                               (default:       1)
    timestep_model_inputs      = -2                                              (default:       1)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = -2                                              (default:      -1)
 
 case 3 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
    nBasins                    = 2                                               (default:       1)
@@ -79,6 +84,9 @@ case 3 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
    optimize                   = .TRUE.                                          (default: .FALSE.)
    opti_method                = 1                                               (default:       3)
    nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
 
 case 4 :: MULTISCALE  
    nBasins                    = 6                                               (default: nBasins                 = 2)
@@ -131,8 +139,11 @@ case 4 :: MULTISCALE
    dir_LatLon(6)              = "../../test_basin_2/input/latlon/latlon.nc"     (default: )
    dir_Out(6)                 = "output_b1/b6_"                                 (default: )
    dir_RestartOut(6)          = "output_b1/b6_"                                 (default: )
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
 
-case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
+case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA, output written every 14 days
    nBasins                    = 3                                               (default:       1)
    nGaugesTotal               = 6                                               (default:       1)
    NoGauges_basin(1)          = 2                                               (default:       1)
@@ -157,6 +168,9 @@ case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA
    dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
    dir_Out(3)                 = "output_b1/b3_"                                 (default: "output_b1/")
    dir_RestartOut(3)          = "output_b1/b3_"                                 (default: "output_b1/")
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 336 (= 14*24 hours)                             (default:      -1)
 
 
 case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
@@ -166,6 +180,9 @@ case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
    opti_method                = 1                                               (default:       3)
    opti_function              = 13                                              (default:       3)
    nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
 
 case 7 :: mRM INDEPENDENT CONFIGURATION
           added mRM setup in mrm.nml and mrm_parameter.nml, identical to the ones of mhm.nml with the exception of:
@@ -186,6 +203,9 @@ case 7 :: mRM INDEPENDENT CONFIGURATION
    eval_Per(2)%dEnd          = 09                                               (default:      31)
    time_step_model_inputs(1) = 0                                                (default:      -2)
    time_step_model_inputs(2) = 0                                                (default:      -2)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
    
 # -------------------------------------------------------------------------------------------
 #
