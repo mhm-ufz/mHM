@@ -868,40 +868,64 @@ contains
   !                                                --> param(2) = delta 
   !                                                --> param(3) = aspectTresholdPET
   !                  Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
+  !                  Stephan Thober, Sep 2015 - Mapping L1 to Lo, latitude on L0
+  !                  Luis Samaniego, Sep 2015 - PET correction on the southern hemisphere
 
   subroutine pet_correct( Id0, L1_on_L0, latitude, Asp0, param, nodata, fAsp0 )
 
     implicit none
 
     ! Input
-    integer(i4), dimension(:), intent(in) :: id0  ! Level 0 cell id
-    integer(i4), dimension(:), intent(in) :: L1_on_L0
+    integer(i4), dimension(:), intent(in) :: id0      ! Level 0 cell id
+    integer(i4), dimension(:), intent(in) :: L1_on_L0 ! Mapping L1 Id on L0 to get the latitude
     real(dp),    dimension(:), intent(in) :: latitude ! latitude on l1
-    real(dp),                  intent(in) :: nodata ! no data value
-    real(dp),    dimension(3), intent(in) :: param  ! process parameters
-    real(dp),    dimension(:), intent(in) :: Asp0 ! [degree] Aspect at Level 0
+    real(dp),                  intent(in) :: nodata   ! no data value
+    real(dp),    dimension(3), intent(in) :: param    ! process parameters
+    real(dp),    dimension(:), intent(in) :: Asp0     ! [degree] Aspect at Level 0
 
     ! Output
-    real(dp),    dimension(:), intent(out):: fAsp0 ! PET correction for Aspect
+    real(dp),    dimension(:), intent(out):: fAsp0    ! PET correction for Aspect
 
     ! local
-    real(dp), dimension(size(id0, 1)) :: latitude_l0 ! latitude on l0
-    real(dp) :: tmp_maxCorrectionFactorPET
-    integer(i4) :: ii
+    real(dp), dimension(size(id0, 1)) :: latitude_l0  ! latitude on l0
+    real(dp), dimension(size(id0, 1)) :: fAsp0S       ! PET correction for Aspect, south
+
+    logical,  dimension(size(id0, 1)) :: mask_north_hemisphere_l0
+    
+    real(dp)                          :: tmp_maxCorrectionFactorPET
+    integer(i4)                       :: ii
 
     ! map latitude from level1 to level0
     do ii = 1, size(id0, 1)
        latitude_l0(ii) = latitude(L1_on_L0(ii))
     end do
-    
+
+    mask_north_hemisphere_l0 = merge(.TRUE.,.FALSE., latitude_l0 .gt. 0.0_dp)
+       
     tmp_maxCorrectionFactorPET = param(1) + param(2)
 
+    ! for cells on the northern hemisphere
     !$OMP PARALLEL
-    fAsp0 = merge( param(1) + ( tmp_maxCorrectionFactorPET - param(1)) / param(3) * asp0, &
+    fAsp0 = merge(  &
+         param(1) + ( tmp_maxCorrectionFactorPET - param(1)) / param(3) * asp0, &
          param(1) + ( tmp_maxCorrectionFactorPET - param(1) ) / (360._dp - param(3)) * (360._dp - Asp0), &
-         asp0 < param(3) )
-    fAsp0 = merge( fAsp0, nodata, Id0 /= int(nodata, i4) )
+         !         ( asp0 < param(3) ) .and. mask_north_hemisphere_l0  )
+          asp0 < param(3)   )
+    fAsp0 = merge( fAsp0, nodata, Id0 /= int(nodata, i4)  )
     !$OMP END PARALLEL
+
+    ! for cells on the southern hemisphere
+    !$OMP PARALLEL
+    fAsp0S = merge( &
+         param(1) + ( tmp_maxCorrectionFactorPET - param(1) ) / (360._dp - param(3)) * (360._dp - Asp0), &
+         param(1) + ( tmp_maxCorrectionFactorPET - param(1)) / param(3) * asp0, &
+         asp0 < param(3) )
+    fAsp0S = merge( fAsp0S, nodata, Id0 /= int(nodata, i4) )
+    !$OMP END PARALLEL
+
+    !$OMP PARALLEL
+    fAsp0 = merge( fAsp0, fAsp0S, mask_north_hemisphere_l0 )
+    !$OMP END PARALLEL 
 
   end subroutine pet_correct
 
