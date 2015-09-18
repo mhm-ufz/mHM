@@ -308,6 +308,7 @@ MODULE mo_global_variables
   integer(i4), public                              :: L0_nCells     !      Number of valid cells 
   integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor   !      Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:), allocatable   :: L0_Id         !      Level-0 id
+  integer(i4), public, dimension(:), allocatable   :: L0_L1_Id      ! L1 id on L0 grid
   real(dp), public, dimension(:), allocatable      :: L0_slope_emp  !      Empirical quantiles of slope
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0

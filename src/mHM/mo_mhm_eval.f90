@@ -107,7 +107,7 @@ CONTAINS
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
          LCyearId, LAIUnitList, LAILUT,                      & 
          GeoUnitList, GeoUnitKar, soilDB,                    &
-         L0_Id, L0_soilId,                                   & 
+         L0_L1_Id, L0_Id, L0_soilId,                         & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
          soilDB, L1_nTCells_L0,                 & 
          L0_slope_emp,                                       &
@@ -419,7 +419,7 @@ CONTAINS
                nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
-               L0_slope_emp(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
+               L0_slope_emp(s0:e0), L0_L1_Id(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
