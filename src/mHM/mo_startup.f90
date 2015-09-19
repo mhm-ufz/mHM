@@ -761,7 +761,7 @@ CONTAINS
 
     end if
 
-    call append( L0_L1_Id,    PACK ( L1Id_on_L0(:,:), mask0)  )
+    call append( L0_L1_Id,       PACK ( L1Id_on_L0(:,:), mask0)  )
     call append( basin%L1_Mask,  RESHAPE( mask1, (/nrows1*ncols1/)  )  )
     call append( L1_Id           , Id         )
     call append( L1_cellCoor     , cellCoor   )
@@ -777,7 +777,7 @@ CONTAINS
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell, &
          cellCoor, Id, upBound, downBound,     &
-         leftBound, rightBound, nTCells        )
+         leftBound, rightBound, nTCells, L1Id_on_L0 )
 
   end subroutine L1_variable_init
 
