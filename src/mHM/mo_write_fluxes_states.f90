@@ -928,9 +928,10 @@ contains
   !     HISTORY
   !>        \author David Schaefer
   !>        \date June 2015
+  !         modified, Sep 2015, Stephan Thober, provide basin mask to geoCoordinates
   function createOutputFile(ibasin) result(nc)
 
-    use mo_global_variables,  only: dirOut, evalPer, level1
+    use mo_global_variables,  only: dirOut, evalPer, level1, basin
     use mo_julian,            only: dec2date
 
     integer(i4), intent(in) :: ibasin
@@ -940,10 +941,15 @@ contains
     integer(i4)             :: day, month, year
     character(128)          :: fname, unit, date, time, datetime
     real(dp), allocatable   :: northing(:), easting(:), lat(:,:), lon(:,:)
+    logical,  allocatable   :: mask(:,:)
+
+    ! set 2d level 1 mask for this basin
+    mask = reshape(basin%L1_mask(basin%L1_iStartMask(ibasin):basin%L1_iEndMask(ibasin)), &
+         (/level1%nrows(ibasin), level1%ncols(ibasin)/))
 
     fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
-    call mapCoordinates(ibasin,level1,northing,easting)
-    call geoCoordinates(ibasin,level1,lat,lon)
+    call mapCoordinates(ibasin, level1, northing, easting)
+    call geoCoordinates(ibasin, mask, lat, lon)
 
     nc = NcDataset(trim(fname),"w")
     dimids1 = (/&
@@ -978,12 +984,14 @@ contains
     call var%setData(lon)
     call var%setAttribute("units","degerees_east")
     call var%setAttribute("long_name","longitude")
+    call var%setAttribute("missing_value","-9999.")
 
     ! lat
     var = nc%setVariable("lat","f64",dimids1(1:2))
     call var%setData(lat)
     call var%setAttribute("units","degerees_north")
     call var%setAttribute("long_name","latitude")
+    call var%setAttribute("missing_value","-9999.")
 
     ! global attributes
     call date_and_time(date=date, time=time)
@@ -1148,13 +1156,13 @@ contains
   !
   !     INTENT(IN)
   !>        \param[in] "integer(i4)      :: iBasin"    -> basin number
-  !>        \param[in] "type(geoGridRef) :: level"     -> grid reference
+  !>        \param[in] "logical          :: mask(:,:)" -> mask for unpacking
   !
   !     INTENT(INOUT)
   !         None
   !
   !     INTENT(OUT)
-  !>        \param[out] "real(:)  :: lat(:,:)"         -> lat-coordinates
+  !>        \param[out] "real(dp) :: lat(:,:)"         -> lat-coordinates
   !>        \param[out] "real(dp) :: lon(:,:)"         -> lon-coorindates
   !
   !     INTENT(IN), OPTIONAL
@@ -1184,32 +1192,28 @@ contains
   !         Modified:
   !             Stephan Thober, Nov 2013 - removed fproj dependency
   !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
-  subroutine geoCoordinates(ibasin, level, lat, lon)
+  !             Stephan Thober, Sep 2015 - using mask to unpack coordinates
+  subroutine geoCoordinates(ibasin, mask, lat, lon)
 
-    use mo_global_variables, only : latitude, longitude
+    use mo_global_variables, only : L1_latitude, L1_longitude
+    use mo_init_states,      only : get_basin_info
+    use mo_mhm_constants,    only : nodata_dp
 
     implicit none
 
     integer(i4),      intent(in)               :: iBasin
-    type(gridGeoRef), intent(in)               :: level
+    logical,          intent(in)               :: mask(:,:)
     real(dp),         intent(out), allocatable :: lat(:,:), lon(:,:)
-    integer(i4)                                :: ii, ncols, nrows, pos
+    integer(i4)                                :: ncols, nrows, s1, e1
 
-    nrows    = level%nrows(ibasin)
-    ncols    = level%ncols(ibasin)
+    call get_basin_info(ibasin, 1, nrows, ncols, iStart=s1, iEnd=e1)
 
     allocate(lat(nrows,ncols), lon(nrows,ncols))
-
-    pos = 1
-    if ( ibasin .gt. 1 ) then
-       do ii = 1, ibasin -1
-          pos = pos + level%ncols(ii) * level%nrows(ii)
-       end do
-    end if
-
-    lat = reshape( latitude(pos:pos+nrows*ncols-1),  shape(lat))
-    lon = reshape( longitude(pos:pos+nrows*ncols-1), shape(lon))
-
+    lat = nodata_dp
+    lon = nodata_dp
+    lat = unpack(L1_latitude(s1:e1), mask, lat)
+    lon = unpack(L1_longitude(s1:e1), mask, lon)
+    
   end subroutine geoCoordinates
 
   !------------------------------------------------------------------

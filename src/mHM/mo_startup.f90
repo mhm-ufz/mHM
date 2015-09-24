@@ -593,7 +593,6 @@ CONTAINS
          L1_upBound_L0, L1_downBound_L0, &
          L1_leftBound_L0,                &
          L1_rightBound_L0, L1_nTCells_L0,&
-         L0_L1_Id, &
          L0_areaCell, L1_areaCell,       &
          resolutionHydrology
     use mo_init_states,     only: calculate_grid_properties
@@ -623,7 +622,6 @@ CONTAINS
     integer(i4), dimension(:), allocatable    :: rightBound
     real(dp), dimension(:), allocatable       :: areaCell
     integer(i4), dimension(:), allocatable    :: nTCells
-    integer(i4), dimension(:,:), allocatable  :: L1Id_on_L0 ! mapping of L1 Id on L0
 
     real(dp)                                  :: cellFactorHydro
 
@@ -680,7 +678,6 @@ CONTAINS
     ! level-0 cell area
     allocate( areaCell0_2D(nrows0,ncols0) )
     areaCell0_2D(:,:) = UNPACK( L0_areaCell(iStart0:iEnd0), mask0, nodata_dp )
-    allocate ( L1Id_on_L0(nrows0, ncols0) )
 
     ! estimate ncells and initalize related variables
     nCells = count( mask1 )
@@ -710,9 +707,6 @@ CONTAINS
           idown =    ic  * nint(cellFactorHydro,i4)
           jl    = (jc-1) * nint(cellFactorHydro,i4) + 1
           jr    =    jc  * nint(cellFactorHydro,i4)
-
-          ! Delimitation of level-1 cells on level-0
-          L1Id_on_L0(iup:idown, jl:jr) = Id(k)
 
           ! constrain the range of up, down, left, and right boundaries
           if(iup   < 1      ) iup =  1
@@ -761,7 +755,6 @@ CONTAINS
 
     end if
 
-    call append( L0_L1_Id,       PACK ( L1Id_on_L0(:,:), mask0)  )
     call append( basin%L1_Mask,  RESHAPE( mask1, (/nrows1*ncols1/)  )  )
     call append( L1_Id           , Id         )
     call append( L1_cellCoor     , cellCoor   )
@@ -777,7 +770,7 @@ CONTAINS
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell, &
          cellCoor, Id, upBound, downBound,     &
-         leftBound, rightBound, nTCells, L1Id_on_L0 )
+         leftBound, rightBound, nTCells )
 
   end subroutine L1_variable_init
 

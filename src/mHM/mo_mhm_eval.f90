@@ -107,12 +107,12 @@ CONTAINS
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
          LCyearId, LAIUnitList, LAILUT,                      & 
          GeoUnitList, GeoUnitKar, soilDB,                    &
-         L0_L1_Id, L0_Id, L0_soilId,                         & 
+         L0_Id, L0_soilId,                                   & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
          soilDB, L1_nTCells_L0,                 & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
-         L1_rightBound_L0, latitude,                         &
+         L1_rightBound_L0, L0_latitude, L1_latitude,         &
          evap_coeff, fday_prec,       & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
@@ -419,7 +419,7 @@ CONTAINS
                nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
-               L0_slope_emp(s0:e0), L0_L1_Id(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
+               L0_slope_emp(s0:e0), L0_Latitude(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
@@ -427,7 +427,7 @@ CONTAINS
                L1_nTCells_L0(s1:e1),                                                        & ! IN L1
                L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
                L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1),                             & ! IN L1
-               latitude(s_p5(1):e_p5(1)),                                                   & ! IN L1
+               L1_latitude(s_p5(1):e_p5(1)),                                                & ! IN L1
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
                L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET

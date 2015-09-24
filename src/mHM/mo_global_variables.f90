@@ -244,8 +244,10 @@ MODULE mo_global_variables
   type(gridGeoRef), public                  :: level1       ! Reference of the hydrological variables
   type(gridGeoRef), public                  :: level2       ! Reference of the metereological variables
 
-  real(dp), dimension(:), allocatable, public :: longitude  ! 1d longitude array
-  real(dp), dimension(:), allocatable, public :: latitude   ! 1d latitude  array
+  real(dp), dimension(:), allocatable, public :: L0_longitude  ! 1d longitude array
+  real(dp), dimension(:), allocatable, public :: L0_latitude   ! 1d latitude  array
+  real(dp), dimension(:), allocatable, public :: L1_longitude  ! 1d longitude array
+  real(dp), dimension(:), allocatable, public :: L1_latitude   ! 1d latitude  array
   
   ! -------------------------------------------------------------------
   ! PERIOD description
@@ -267,7 +269,7 @@ MODULE mo_global_variables
      integer(i4), dimension(:), allocatable     :: L0_iEnd            ! Ending cell index of a given basin at L0
      integer(i4), dimension(:), allocatable     :: L0_iStartMask      ! Starting cell index of mask a given basin at L0
      integer(i4), dimension(:), allocatable     :: L0_iEndMask        ! Ending cell index of mask a given basin at L0
-     logical,     dimension(:), pointer         :: L0_mask        ! Mask of level0 based on DEM
+     logical,     dimension(:), pointer         :: L0_mask            ! Mask of level0 based on DEM
 
      integer(i4), dimension(:), allocatable     :: L1_iStart          ! Starting cell index of a given basin at L1
      integer(i4), dimension(:), allocatable     :: L1_iEnd            ! Ending cell index of a given basin at L1
@@ -308,7 +310,6 @@ MODULE mo_global_variables
   integer(i4), public                              :: L0_nCells     !      Number of valid cells 
   integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor   !      Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:), allocatable   :: L0_Id         !      Level-0 id
-  integer(i4), public, dimension(:), allocatable   :: L0_L1_Id      ! L1 id on L0 grid
   real(dp), public, dimension(:), allocatable      :: L0_slope_emp  !      Empirical quantiles of slope
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0

@@ -216,8 +216,7 @@ contains
        lef_col_L1,          & ! IN:    left column of L0 block within L1 cell
        rig_col_L1,          & ! IN:    right column of L0 block within L1 cell
        nL0_in_L1,           & ! IN:    Number of L0 cells in L0 block within L1 cell
-       latitude,            & ! IN:    latitude at level 1
-       L0_L1_Id,            & ! IN:
+       latitude,            & ! IN:    latitude at level 0
        alpha1,              & ! INOUT: [1]       Exponent for the upper reservoir
        IDDP1,               & ! INOUT:           increase of the degree-day factor per mm of increase in precipitation
        DDmax1,              & ! INOUT:           Maximum Degree-day factor
@@ -332,8 +331,7 @@ contains
     !                                                                           ! of the upper reservoir, upper outlet
     real(dp),    dimension(:),               intent(inout) :: K1_1              ! [10^-3 m] Recession coefficient
     !                                                                           ! of the upper reservoir, lower outlet
-    real(dp),    dimension(:),               intent(in)    :: latitude          ! latitude at level 1
-    integer(i4), dimension(:),               intent(in)    :: L0_L1_id
+    real(dp),    dimension(:),               intent(in)    :: latitude          ! latitude at level 0
     real(dp),    dimension(:),               intent(inout) :: alpha1            ! [1] Exponent for the upper reservoir
     real(dp),    dimension(:),               intent(inout) :: Kp1               ! [d-1] percolation coefficient
 
@@ -466,14 +464,14 @@ contains
     case(0) 
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
-       call pet_correct( cell_id0, L0_L1_Id, latitude, Asp0, param( iStart : iEnd), nodata, fAsp0 )
+       call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
        ! Hargreaves-Samani method   
     case(1)
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
-       call pet_correct( cell_id0, L0_L1_Id, latitude, Asp0, param( iStart : iEnd - 1), nodata, fAsp0 )
+       call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd - 1), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
        HarSamCoeff1 = param(iEnd)
@@ -871,14 +869,13 @@ contains
   !                  Stephan Thober, Sep 2015 - Mapping L1 to Lo, latitude on L0
   !                  Luis Samaniego, Sep 2015 - PET correction on the southern hemisphere
 
-  subroutine pet_correct( Id0, L1_on_L0, latitude, Asp0, param, nodata, fAsp0 )
+  subroutine pet_correct( Id0, latitude_l0, Asp0, param, nodata, fAsp0 )
 
     implicit none
 
     ! Input
     integer(i4), dimension(:), intent(in) :: id0      ! Level 0 cell id
-    integer(i4), dimension(:), intent(in) :: L1_on_L0 ! Mapping L1 Id on L0 to get the latitude
-    real(dp),    dimension(:), intent(in) :: latitude ! latitude on l1
+    real(dp),    dimension(:), intent(in) :: latitude_l0 ! latitude on l0
     real(dp),                  intent(in) :: nodata   ! no data value
     real(dp),    dimension(3), intent(in) :: param    ! process parameters
     real(dp),    dimension(:), intent(in) :: Asp0     ! [degree] Aspect at Level 0
@@ -887,18 +884,11 @@ contains
     real(dp),    dimension(:), intent(out):: fAsp0    ! PET correction for Aspect
 
     ! local
-    real(dp), dimension(size(id0, 1)) :: latitude_l0  ! latitude on l0
     real(dp), dimension(size(id0, 1)) :: fAsp0S       ! PET correction for Aspect, south
 
     logical,  dimension(size(id0, 1)) :: mask_north_hemisphere_l0
     
     real(dp)                          :: tmp_maxCorrectionFactorPET
-    integer(i4)                       :: ii
-
-    ! map latitude from level1 to level0
-    do ii = 1, size(id0, 1)
-       latitude_l0(ii) = latitude(L1_on_L0(ii))
-    end do
 
     mask_north_hemisphere_l0 = merge(.TRUE.,.FALSE., latitude_l0 .gt. 0.0_dp)
        

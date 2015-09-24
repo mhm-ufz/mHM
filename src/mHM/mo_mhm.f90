@@ -142,7 +142,7 @@ CONTAINS
       LAILUT              , & ! List of Ids for LAI
       ! Physiographic L0
       slope_emp0          , &
-      L1_On_L0            , &
+      L0_Latitude         , & ! latitude on level 0
       cellId0             , & ! cell Ids at level 0
       soilId0             , & ! soil Ids at level 0
       L0_LCover_LAI       , & ! land cover ID for LAI estimation
@@ -285,7 +285,7 @@ CONTAINS
 
     ! Physiographic L0
     real(dp),    dimension(:),     intent(in) :: slope_emp0
-    integer(i4), dimension(:),     intent(in) :: L1_on_L0 ! l1 ids of l0 cells
+    real(dp),    dimension(:),     intent(in) :: l0_latitude ! l1 ids of l0 cells
     integer(i4), dimension(:),     intent(in) :: cellId0
     integer(i4), dimension(:),     intent(in) :: soilId0
     integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
@@ -482,7 +482,7 @@ CONTAINS
                 soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
                 slope_emp0, cellId0,                                                      &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
-                L0rightBound_inL1, nTCells0_inL1, latitude, l1_on_l0,                     &
+                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                            &
                 alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
                 fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
                 surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
