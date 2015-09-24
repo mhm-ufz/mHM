@@ -887,6 +887,7 @@ contains
     use mo_mrm_constants, only: nodata_dp
     use mo_read_forcing_nc, only: read_forcing_nc
     use mo_mrm_global_variables, only: &
+         timeStep_model_inputs, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
          L1_total_runoff_in ! simulated runoff at L1
@@ -908,7 +909,7 @@ contains
 
     !
     call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
-         'total_runoff', L1_data, mask, nctimestep=-4)
+         'total_runoff', L1_data, mask, nctimestep=timeStep_model_inputs(iBasin))
 
     ! pack variables
     nTimeSteps = size(L1_data, 3)
