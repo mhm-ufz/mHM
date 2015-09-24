@@ -770,7 +770,7 @@ CONTAINS
     ! free space
     deallocate( mask0, areaCell0_2D, mask1, areaCell, &
          cellCoor, Id, upBound, downBound,     &
-         leftBound, rightBound, nTCells        )
+         leftBound, rightBound, nTCells )
 
   end subroutine L1_variable_init
 
