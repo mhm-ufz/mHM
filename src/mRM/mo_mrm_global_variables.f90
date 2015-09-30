@@ -224,19 +224,20 @@ module mo_mrm_global_variables
   !
   ! mRM derived variables
   ! dim1 = number grid cells L0
-  integer(i4), public, dimension(:), allocatable :: L0_draSC      !      Index of draining cell of each sub catchment 
-  !                                                               !      i.e. a routing cell L11
-  integer(i4), public, dimension(:), allocatable :: L0_draCell    !      Draining cell id at L11 of ith cell of L0
-  integer(i4), public, dimension(:), allocatable :: L0_streamNet  !      Stream network
-  integer(i4), public, dimension(:), allocatable :: L0_floodPlain !      Floodplains of stream i
+  integer(i4), public, dimension(:), allocatable :: L0_draSC      ! Index of draining cell of each sub catchment 
+  !                                                               ! i.e. a routing cell L11
+  integer(i4), public, dimension(:), allocatable :: L0_draCell    ! Draining cell id at L11 of ith cell of L0
+  integer(i4), public, dimension(:), allocatable :: L0_streamNet  ! Stream network
+  integer(i4), public, dimension(:), allocatable :: L0_floodPlain ! Floodplains of stream i
   integer(i4) :: L0_nCells ! Number of cells at level 0
   
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L1
-  integer(i4), public, dimension(:), allocatable :: L1_L11_Id ! Mapping of L11 Id on L1
+  integer(i4), public, dimension(:), allocatable :: L11_L1_ID  ! Mapping of L11 Id on L1
   real(dp),    public, dimension(:), allocatable :: L1_areaCell ! [km2] Effective area of cell at this level
+  integer(i4), public, dimension(:), allocatable :: L1_Id ! Ids of grid at level-11           
   integer(i4) :: L1_nCells ! Number of cells at level 1
   ! -------------------------------------------------------------------
   ! L1 variables
@@ -253,6 +254,8 @@ module mo_mrm_global_variables
   integer(i4), public :: L11_nCells ! No. of routing cells  (= nSC = nNodes)
   integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor ! Cell coordinates (row,col)
   !                                                                ! -> <only domain> Routing
+  integer(i4), public, dimension(:), allocatable :: L1_L11_ID  ! Mapping of L1 Id on L11
+  real(dp),    public, dimension(:), allocatable :: L11_areaCell ! [km2] Effective area of cell at this level
   integer(i4), public, dimension(:), allocatable :: L11_Id ! Ids of grid at level-11           
   integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
 

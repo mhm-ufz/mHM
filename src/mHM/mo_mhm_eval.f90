@@ -86,6 +86,7 @@ CONTAINS
   !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
   !                                                    included routing related variables from mRM
   !                   David Schaefer,       Aug 2015 - changed to new netcdf-writing scheme
+  !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
 
     use mo_init_states,         only : get_basin_info
@@ -141,16 +142,21 @@ CONTAINS
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
 #ifdef mrm2mhm
+    use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
          ! INPUT variables for mRM routing ====================================
+         resolutionRouting, &
+         resolutionHydrology, &
          L0_LCover_mRM, & ! L0 land cover
          L0_floodPlain, & ! flood plains at L0 level
          L0_areaCell, &
          L1_areaCell, &
+         L1_L11_Id, &
+         L11_areaCell, &
+         L11_L1_Id, &
          L11_aFloodPlain, & ! flood plains at L11 level
          L11_length, & ! link length
          L11_slope, &
-         L1_L11_Id, &
          L11_netPerm, & ! routing order at L11
          L11_fromN, & ! link source at L11
          L11_toN, & ! link target at L11
@@ -477,10 +483,12 @@ CONTAINS
                   L0_floodPlain(s110:e110), & ! flood plains at L0 level
                   L0_areaCell(s0:e0), &
                   L1_areaCell(s1:e1), &
+                  L1_L11_Id(s1:e1), &
+                  L11_areaCell(s11:e11), &
+                  L11_L1_Id(s11:e11), &
                   L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
                   L11_length(s11:e11 - 1), & ! link length
                   L11_slope(s11:e11 - 1), &
-                  L1_L11_Id(s1:e1), &
                   L11_netPerm(s11:e11), & ! routing order at L11
                   L11_fromN(s11:e11), & ! link source at L11
                   L11_toN(s11:e11), & ! link target at L11
@@ -494,6 +502,7 @@ CONTAINS
                   basin_mrm%nGauges(ii), &
                   basin_mrm%gaugeIndexList(ii,:), &
                   basin_mrm%gaugeNodeList(ii,:), &
+                  ge(resolutionRouting(ii), resolutionHydrology(ii)), &
                   ! INPUT/OUTPUT variables
                   L11_C1(s11:e11), & ! first muskingum parameter
                   L11_C2(s11:e11), & ! second muskigum parameter

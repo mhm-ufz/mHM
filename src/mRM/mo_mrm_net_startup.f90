@@ -38,10 +38,6 @@ contains
 
   !>        \details Cell numbering at ROUTING LEVEL-11  \n
   !>                 List of Level- 0 and 1 cells contained within a given Level-11 cell.\n
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)    ::  iBasin"        Basin Id
@@ -79,9 +75,11 @@ contains
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Stephan Thober, Aug 2015 - ported to mRM
+  !                  Stephan Thober, Sep 2015 - create L11 mask based on Level 0 not based on Level 1
   ! --------------------------------------------------------------------------
 
   subroutine L11_variable_init(iBasin)
+    use mo_utils, only: ge
     use mo_mrm_constants, only: nodata_i4, nodata_dp
     use mo_append, only: append
     use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
@@ -90,9 +88,18 @@ contains
          basin_mrm, &
          level11, resolutionRouting, &
          nBasins, &
-         L11_cellCoor,                       & ! cell coordinates (row,col)
-         L11_nCells,                         & ! Total No. of routing cells  (= nNodes)
-         L11_Id                                ! ids of grid at level-11    
+         L0_areaCell,       &
+         L1_Id,             &
+         L1_L11_ID,         & ! INOUT: mapping of L1 Id on L11 in case L11 > L1
+         L11_L1_ID,         & ! INOUT: mapping of L11 Id on L1 in case L1 > L11
+         L11_areaCell,      & ! INOUT: cell area in [km2] at L11
+         L11_cellCoor,      & ! cell coordinates (row,col)
+         L11_nCells,        & ! Total No. of routing cells  (= nNodes)
+         L11_Id,            & ! ids of grid at level-11    
+         L11_upBound_L1,    & ! INOUT: row start at finer level-1 scale 
+         L11_downBound_L1,  & ! INOUT: row end at finer level-1 scale 
+         L11_leftBound_L1,  & ! INOUT: col start at finer level-1 scale 
+         L11_rightBound_L1    ! INOUT: col end at finer level-1 scale 
 
     implicit none
 
@@ -106,21 +113,32 @@ contains
     integer(i4)                              :: nrows1, ncols1
     integer(i4)                              :: nrows11, ncols11
     integer(i4)                              :: ncells
+    integer(i4)                              :: iStart0, iEnd0
     integer(i4)                              :: iStart1, iEnd1
     integer(i4)                              :: iStartMask1, iEndMask1
-    logical,     dimension(:,:), allocatable :: mask1, mask11
+    logical,     dimension(:,:), allocatable :: mask0, mask1, mask11
+    integer(i4), dimension(:),   allocatable :: upBound1, downBound1, leftBound1, rightBound1 
     integer(i4), dimension(:,:), allocatable :: cellCoor
     integer(i4)                              :: kk
     integer(i4)                              :: ic, jc, icc, jcc
+    integer(i4)                              :: iu, id, jl, jr
+    integer(i4), dimension(:,:), allocatable :: L11Id_on_L1 ! mapping of L11 Id on L1
+    integer(i4), dimension(:,:), allocatable :: L1Id_on_L11 ! mapping of L1 Id on L11
+    integer(i4), dimension(:,:), allocatable :: Id11        ! ids of grid at level-11     
+    integer(i4), dimension(:,:), allocatable :: Id1         ! ids of grid at level-1
+    real(dp), dimension(:,:), allocatable    :: areaCell0_2D
+    real(dp), dimension(:), allocatable      :: areaCell
+    real(dp)                                 :: cellFactorR
     real(dp)                                 :: cellFactorRbyH
-    integer(i4), dimension(:),   allocatable :: Id                         ! old Id11  ids of grid at level-11               
+    integer(i4)                              :: cellFactorRbyH_inv
     !--------------------------------------------------------
     ! STEPS::
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! level-0 information
-    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0) 
+    call get_basin_info_mrm( iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, &
+         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0, mask=mask0) 
 
     if(iBasin == 1) then
        ! allocate
@@ -156,28 +174,50 @@ contains
     allocate( mask11(nrows11, ncols11) )
     mask11(:,:) = .FALSE.
 
-    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
-
-    ! create a mask: Id
-    do jc = 1, ncols1
-       jcc = ceiling ( real(jc, dp)/cellFactorRbyH )
-       do ic = 1, nrows1
-          if ( .not. mask1(ic,jc) ) cycle
+    cellFactorR    = level11%cellsize(iBasin) / cellsize0
+    ! create a mask: Id with respect to Level 0
+    do jc = 1, ncols11
+       jcc = jc * cellfactorR
+       do ic = 1, nrows11
+          icc = ic * cellfactorR
+          ! ceiling ( real(jc, dp)/cellFactorR )
+          if ( .not. any(mask0(icc - int(cellFactorR,i4) + 1:icc, jcc - int(cellfactorR,i4) + 1:jcc)) ) cycle
           ! Identify grids (of level-1) which will take part at the routing level-11
-          icc = ceiling ( real(ic, dp)/cellFactorRbyH )
-          mask11(icc, jcc) = .TRUE.
+          mask11(ic, jc) = .TRUE.
        end do
     end do
 
+    ! set number of cells (equals nNodes)
     ncells = count( mask11 )
+
+    ! initialize areacell
+    allocate ( areacell(ncells) )
+    areacell = nodata_i4
+    ! allocate bounds
+    allocate ( upBound1    (ncells) )
+    allocate ( downBound1  (ncells) )
+    allocate ( leftBound1  (ncells) )
+    allocate ( rightBound1 (ncells) )
+    upBound1(:)    = nodata_i4   
+    downBound1(:)  = nodata_i4 
+    leftBound1(:)  = nodata_i4 
+    rightBound1(:) = nodata_i4 
+
+    ! allocate variables for mapping L11 Ids and L1 Ids
+    allocate ( L11Id_on_L1  (nrows1, ncols1 ) )
+    allocate ( L1Id_on_L11  (nrows11, ncols11 ) )
+    allocate ( Id11         (nrows11, ncols11 ) )
+    allocate ( Id1          (nrows1, ncols1 ) )
+    L11Id_on_L1(:,:) = nodata_i4
+    L1Id_on_L11(:,:) = nodata_i4
+    Id11(:,:)        = nodata_i4
+    Id1(:,:)         = nodata_i4
 
     ! allocate
     allocate ( cellCoor(nCells,2) )
-    allocate ( Id( ncells) )
 
     ! initialize
     cellCoor(:,:) = nodata_i4
-    Id(:)         = nodata_i4
 
     ! counting valid cells at level 11
     kk = 0
@@ -185,14 +225,14 @@ contains
        do icc = 1, nrows11
           if ( .not. mask11(icc,jcc) ) cycle
           kk = kk + 1
-          Id(kk)         = kk
+          Id11(icc,jcc)  = kk
           cellCoor(kk,1) = icc
           cellCoor(kk,2) = jcc
        end do
     end do
 
     !--------------------------------------------------------
-    ! Start padding up local variables to global variables
+    ! UPDATE BASIN_MRM VARIABLE
     !--------------------------------------------------------
     if(iBasin == 1) then
 
@@ -226,16 +266,100 @@ contains
 
     end if
 
+    !--------------------------------------------------------
+    ! CALCULATE L11_AREACELL AND CELL ID MAPPING WITH L1
+    !--------------------------------------------------------
+    ! level-0 cell area
+    allocate( areaCell0_2D(nrows0,ncols0) )
+    areaCell0_2D(:,:) = UNPACK( L0_areaCell(iStart0:iEnd0), mask0, nodata_dp )
+
+    ! set cell factor for routing
+    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
+    cellFactorR    = level11%cellsize(iBasin) / cellsize0
+    
+    kk = 0
+    do jcc = 1, ncols11
+       do icc = 1, nrows11
+          if( .not. mask11(icc,jcc)) cycle
+          kk = kk + 1
+
+          ! coord. of all corners L11 -> of finer scale level-0
+          iu = (icc-1) * nint(cellFactorR,i4) + 1
+          id =     icc * nint(cellFactorR,i4)
+          jl = (jcc-1) * nint(cellFactorR,i4) + 1
+          jr =     jcc * nint(cellFactorR,i4)
+          ! effective area [km2] & total no. of L0 cells within a given L1 cell
+          areaCell(kk) = sum( areacell0_2D(iu:id, jl:jr), mask0(iu:id, jl:jr) )*1.0E-6
+
+          ! coord. of all corners L11 -> of finer scale level-1
+          iu = (icc-1) * nint(cellFactorRbyH,i4) + 1
+          id =     icc * nint(cellFactorRbyH,i4)
+          jl = (jcc-1) * nint(cellFactorRbyH,i4) + 1
+          jr =     jcc * nint(cellFactorRbyH,i4)
+
+          ! constrain the range of up, down, left, and right boundaries
+          if( iu < 1   ) iu =  1
+          if( id > nrows1 ) id =  nrows1
+          if( jl < 1   ) jl =  1
+          if( jr > ncols1 ) jr =  ncols1
+          
+          upBound1   (kk) = iu
+          downBound1 (kk) = id
+          leftBound1 (kk) = jl
+          rightBound1(kk) = jr
+
+          ! set mapping
+          if (ge(cellFactorRbyH, 1._dp)) then 
+             ! Delimitation of level-11 cells on level-1 for L11 resolution lower than L1 resolution
+             L11Id_on_L1(iu:id, jl:jr) = Id11(icc, jcc)
+          end if
+       end do
+    end do
+
+    ! create mapping between L11 and L1 for L11 resolution higher than L1 resolution
+    if (cellFactorRbyH .lt. 1._dp) then
+       cellFactorRbyH_inv = int(1. / cellFactorRbyH, i4)
+       kk = 0
+       do jcc = 1, ncols1
+          do icc = 1, nrows1
+             if( .not. mask1(icc,jcc)) cycle
+             kk = kk + 1
+             !
+             iu = (icc - 1) * cellFactorRbyH_inv + 1
+             id =       icc * cellFactorRbyH_inv
+             jl = (jcc - 1) * cellFactorRbyH_inv + 1
+             jr =       jcc * cellFactorRbyH_inv
+             !
+             Id1(icc,jcc) = kk
+             L1Id_on_L11(iu:id, jl:jr) = merge(Id1(icc,jcc), nodata_i4, mask11(iu:id, jl:jr))
+          end do
+       end do
+    end if
+
+
+    ! L1 data sets
+    call append( L1_id, pack ( Id1(:,:), mask1 ) )
+    call append( L1_L11_Id, pack ( L11Id_on_L1(:,:), mask1 ) )
+
+    ! L11 data sets
+    call append( L11_L1_Id, PACK ( L1Id_on_L11(:,:), mask11)  )
     call append( basin_mrm%L11_Mask,  RESHAPE( mask11, (/nrows11*ncols11/)  )  )
     ! other L11 data sets
     call append( L11_cellCoor, cellCoor )
-    call append( L11_Id, Id )
+    call append( L11_Id, pack(Id11, mask11) )
+    call append( L11_areaCell, areacell)
+    call append( L11_upBound_L1, upBound1(:) )
+    call append( L11_downBound_L1, downBound1(:) )
+    call append( L11_leftBound_L1, leftBound1(:) )
+    call append( L11_rightBound_L1, rightBound1(:) )
 
     L11_nCells = size( L11_Id, 1 )
 
     ! free space
-    deallocate(Id, mask1, mask11, cellCoor)
-
+    deallocate(Id11, mask1, mask11, cellCoor, areacell, &
+         upBound1, downBound1, leftBound1, rightBound1, &
+         L11Id_on_L1, L1Id_on_L11)
+    
   end subroutine L11_variable_init
 
   ! --------------------------------------------------------------------------
@@ -321,6 +445,8 @@ contains
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
   !                  Stephan Thober, Aug 2015 - ported to mRM
+  !                  Stephan Thober, Sep 2015 - create mapping between L11 and L1 if L11 resolution
+  !                                             is higher than L1 resolution
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
     use mo_mrm_constants, only: nodata_i4
@@ -329,7 +455,6 @@ contains
     use mo_mrm_global_variables, only: &
          basin_mrm, &
          level0, &
-         level1, &
          nBasins, &
          level11,   &
          L0_fAcc, L0_fDir,  &
@@ -337,7 +462,6 @@ contains
          L0_cellCoor,       &
          L0_id,             &
          L0_L11_Id,         & ! INOUT: mapping of L11 Id on L0
-         L1_L11_Id,         & ! INOUT: mapping of L11 Id on L1
          L11_Id,            &
          L11_cellCoor,      &
          L11_rowOut,        & ! INOUT: grid vertical location of the Outlet
@@ -346,11 +470,7 @@ contains
          L11_upBound_L0,    & ! INOUT: row start at finer level-0 scale 
          L11_downBound_L0,  & ! INOUT: row end at finer level-0 scale 
          L11_leftBound_L0,  & ! INOUT: col start at finer level-0 scale 
-         L11_rightBound_L0, & ! INOUT: col end at finer level-0 scale 
-         L11_upBound_L1,    & ! INOUT: row start at finer level-1 scale 
-         L11_downBound_L1,  & ! INOUT: row end at finer level-1 scale 
-         L11_leftBound_L1,  & ! INOUT: col start at finer level-1 scale 
-         L11_rightBound_L1    ! INOUT: col end at finer level-1 scale 
+         L11_rightBound_L0    ! INOUT: col end at finer level-0 scale 
 
     implicit none
 
@@ -358,28 +478,23 @@ contains
 
     ! local
     integer(i4)                              :: nCells0
-    integer(i4)                              :: nCells1
-    integer(i4)                              :: nNodes      ! =  ncells11
     integer(i4)                              :: nrows0, ncols0
-    integer(i4)                              :: nrows1, ncols1
     integer(i4)                              :: nrows11, ncols11
+    integer(i4)                              :: nNodes      ! =  ncells11
     integer(i4)                              :: iStart0, iEnd0
-    integer(i4)                              :: iStart1, iEnd1
     integer(i4)                              :: iStart11, iEnd11
-    logical,     dimension(:,:), allocatable :: mask0, mask1, mask11
-    integer(i4), dimension(:),   allocatable :: upBound1, downBound1, leftBound1, rightBound1 
+    logical,     dimension(:,:), allocatable :: mask0, mask11
     integer(i4), dimension(:),   allocatable :: upBound0, downBound0, leftBound0, rightBound0 
-    real(dp)                                 :: cellFactorR, cellFactorRbyH
+    real(dp)                                 :: cellFactorR
     integer(i4)                              :: icc, jcc
     integer(i4)                              :: ii, jj, kk, ic, jc 
     integer(i4)                              :: iu, id
     integer(i4)                              :: jl, jr
     integer(i4), dimension(:,:), allocatable :: L11Id_on_L0 ! mapping of L11 Id on L0
-    integer(i4), dimension(:,:), allocatable :: L11Id_on_L1 ! mapping of L11 Id on L1
-    integer(i4), dimension(:,:), allocatable :: Id11        ! ids of grid at level-11     
     integer(i4), dimension(:,:), allocatable :: iD0            
     integer(i4), dimension(:,:), allocatable :: fDir0          
     integer(i4), dimension(:,:), allocatable :: fAcc0          
+    integer(i4), dimension(:,:), allocatable :: Id11        ! ids of grid at level-11     
     integer(i4), dimension(:,:), allocatable :: fDir11         
     integer(i4), dimension(:,:), allocatable :: cellCoor0
     integer(i4), dimension(:,:), allocatable :: cellCoor11
@@ -400,13 +515,12 @@ contains
     call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, ncells=nCells0,   &
          iStart=iStart0, iEnd=iEnd0, mask=mask0) 
 
-    ! level-1 information
-    call get_basin_info_mrm (iBasin, 1, nrows1, ncols1, ncells=nCells1,   &
-         iStart=iStart1, iEnd=iEnd1, mask=mask1) 
-
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, &
          iStart=iStart11, iEnd=iEnd11, mask=mask11)
+
+    ! set cell factors
+    cellFactorR = level11%cellsize(iBasin) / level0%cellsize(iBasin)
 
     ! allocate
     allocate ( upBound0    (nNodes) )
@@ -414,14 +528,8 @@ contains
     allocate ( leftBound0  (nNodes) )
     allocate ( rightBound0 (nNodes) )
 
-    allocate ( upBound1    (nNodes) )
-    allocate ( downBound1  (nNodes) )
-    allocate ( leftBound1  (nNodes) )
-    allocate ( rightBound1 (nNodes) )
-
     allocate ( L11Id_on_L0  (nrows0, ncols0 ) )
-    allocate ( L11Id_on_L1  (nrows1, ncols1 ) )
-    allocate ( Id11         (nrows11, ncols11 ) )
+    allocate ( Id11(nrows11, ncols11) )
 
     ! initialize
     upBound0(:)    = nodata_i4
@@ -429,20 +537,11 @@ contains
     leftBound0(:)  = nodata_i4
     rightBound0(:) = nodata_i4
 
-    upBound1(:)    = nodata_i4   
-    downBound1(:)  = nodata_i4 
-    leftBound1(:)  = nodata_i4 
-    rightBound1(:) = nodata_i4 
-
     L11Id_on_L0(:,:) = nodata_i4
-    L11Id_on_L1(:,:) = nodata_i4
     Id11(:,:)        = nodata_i4
-
-    cellFactorR    = level11%cellsize(iBasin) / level0%cellsize(iBasin)
-    cellFactorRbyH = level11%cellsize(iBasin) / level1%cellsize(iBasin)
-
+    
     ! get Ids of L11 
-    Id11(:,:) =  UNPACK( L11_Id(iStart11:iEnd11),  mask11, nodata_i4 )
+    Id11(:,:) = unpack( L11_Id(iStart11:iEnd11),  mask11, nodata_i4 )
 
     kk   = 0
     do jcc = 1, ncols11
@@ -451,7 +550,6 @@ contains
           kk = kk + 1
 
           ! coord. of all corners L11 -> on finer scale level-0
-
           iu = (icc-1) * nint(cellFactorR,i4) + 1
           id =    icc  * nint(cellFactorR,i4)
           jl = (jcc-1) * nint(cellFactorR,i4) + 1
@@ -470,26 +568,6 @@ contains
 
           ! Delimitation of level-11 cells on level-0
           L11Id_on_L0(iu:id, jl:jr) = Id11(icc, jcc)
-
-          ! coord. of all corners L11 -> of finer scale level-1
-          iu = (icc-1) * nint(cellFactorRbyH,i4) + 1
-          id =     icc * nint(cellFactorRbyH,i4)
-          jl = (jcc-1) * nint(cellFactorRbyH,i4) + 1
-          jr =     jcc * nint(cellFactorRbyH,i4)
-
-          ! constrain the range of up, down, left, and right boundaries
-          if( iu < 1   ) iu =  1
-          if( id > nrows1 ) id =  nrows1
-          if( jl < 1   ) jl =  1
-          if( jr > ncols1 ) jr =  ncols1
-
-          upBound1   (kk) = iu
-          downBound1 (kk) = id
-          leftBound1 (kk) = jl
-          rightBound1(kk) = jr
-
-          ! Delimitation of level-11 cells on level-1
-          L11Id_on_L1(iu:id, jl:jr) = Id11(icc, jcc)
 
        end do
     end do
@@ -590,7 +668,6 @@ contains
          fAccMax = -9
          idMax   =  0
          side    = -1
-
          ! searching on side 4
          do jj = jl,jr
             if ( ( fAcc0(iu,jj) > fAccMax       )  .and. &
@@ -715,11 +792,8 @@ contains
     ! L0 data sets
     basin_mrm%L0_rowOutlet(iBasin) = oLoc(1)
     basin_mrm%L0_colOutlet(iBasin) = oLoc(2)
-    call append( L0_draSC,     PACK ( draSC0(:,:),  mask0)  ) 
-    call append( L0_L11_Id,    PACK ( L11Id_on_L0(:,:), mask0)  )
-
-    ! L1 data sets
-    call append( L1_L11_Id,    PACK ( L11Id_on_L1(:,:), mask1)  )
+    call append( L0_draSC, PACK ( draSC0(:,:),  mask0)  ) 
+    call append( L0_L11_Id, PACK ( L11Id_on_L0(:,:), mask0)  )
 
     ! L11 data sets
     call append( L11_fDir,     PACK ( fDir11(:,:),      mask11) )
@@ -729,16 +803,11 @@ contains
     call append( L11_downBound_L0    ,  downBound0(:)           )
     call append( L11_leftBound_L0    ,  leftBound0(:)           )
     call append( L11_rightBound_L0   ,  rightBound0(:)          )
-    call append( L11_upBound_L1      ,  upBound1(:)             )
-    call append( L11_downBound_L1    ,  downBound1(:)           )
-    call append( L11_leftBound_L1    ,  leftBound1(:)           )
-    call append( L11_rightBound_L1   ,  rightBound1(:)          )
 
     ! free space
-    deallocate(mask0, mask1, mask11, &
-         upBound1, downBound1, leftBound1, rightBound1, & 
+    deallocate(mask0, mask11, &
          upBound0, downBound0, leftBound0, rightBound0, & 
-         L11Id_on_L0, L11Id_on_L1, Id11,                &      
+         L11Id_on_L0, Id11,                             &
          iD0, fDir0, fAcc0, fDir11, cellCoor0,          &
          cellCoor11, rowOut, colOut, draSC0         )   
 

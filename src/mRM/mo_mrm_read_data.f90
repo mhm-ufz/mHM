@@ -205,17 +205,23 @@ contains
           basin_mrm%L0_iStartMask(iBasin) = basin_mrm%L0_iEndMask(iBasin-1) + 1
           basin_mrm%L0_iEndMask  (iBasin) = basin_mrm%L0_iStartMask(iBasin) + nCells - 1
        end if
-       ! Read L0 data, if restart is false
+
+       ! ----------------------------------------------------------------------
+       ! READ L0 DATA
+       ! ----------------------------------------------------------------------
+       ! always read elev
+       if (mrm_coupling_mode .ne. 2) then
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
+          ! put data in variable
+          call append(L0_elev_read, pack(data_dp_2d, mask_global))
+          ! deallocate arrays
+          deallocate(data_dp_2d)
+       end if
+       
+       ! Read additional L0 data, if restart is false
        read_L0_data: if ( perform_mpr ) then
           !
-          if (mrm_coupling_mode .ne. 2) then
-             ! put global nodata value into array (probably not all grid cells have values)
-             data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
-             ! put data in variable
-             call append( L0_elev_read, pack(data_dp_2d, mask_global) )
-             ! deallocate arrays
-             deallocate(data_dp_2d)
-          end if
 
           ! read fAcc, fDir, gaugeLoc
           do iVar = 1, 3
@@ -318,7 +324,7 @@ contains
     end do basin_loop
 
     ! ----------------------------------------------------------------
-    ! assign pointers for L0 variables
+    ! assign pointers for L0 variables if mpr is switched on
     ! ----------------------------------------------------------------
     if (present(L0_mask)) then
        basin_mRM%L0_mask => L0_mask
@@ -653,7 +659,7 @@ contains
           if(jr    > ncols0 ) jr =  ncols0
 
           ! effective area [km2] & total no. of L0 cells within a given L1 cell
-          areaCell(k) =   sum( areacell0_2D(iup:idown, jl:jr), mask0(iup:idown, jl:jr) )*1.0E-6
+          areaCell(k) = sum( areacell0_2D(iup:idown, jl:jr), mask0(iup:idown, jl:jr) )*1.0E-6
 
        end do
     end do

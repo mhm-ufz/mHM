@@ -56,6 +56,7 @@ contains
   !>        \date Sep 2015
   subroutine mrm_eval(parameterset, runoff)
     use mo_kind, only: i4, dp
+    use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
          nBasins, &
          read_restart, & ! flag for reading restart
@@ -71,15 +72,19 @@ contains
          L0_floodPlain, & ! flood plains at L0 level
          L0_areaCell, &
          L1_areaCell, &
+         L1_L11_ID, &
+         L11_areaCell, &
          L11_aFloodPlain, & ! flood plains at L11 level
          L11_length, & ! link length
          L11_slope, &
-         L1_L11_Id, &
+         L11_L1_ID, &
          L11_netPerm, & ! routing order at L11
          L11_fromN, & ! link source at L11
          L11_toN, & ! link target at L11
          basin_mrm, & ! basin_mrm structure
          InflowGauge, &
+         resolutionRouting, &
+         resolutionHydrology, &
          ! INPUT/OUTPUT variables for mRM routing =============================
          L11_C1, & ! first muskingum parameter
          L11_C2, & ! second muskigum parameter
@@ -123,12 +128,12 @@ contains
        if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
        !
        ! get basin information at L11 and L110 if routing is activated
-       call get_basin_info_mrm ( ii,   0, nrows, ncols,   iStart=s0,  iEnd=e0   ) 
-       call get_basin_info_mrm ( ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1   ) 
-       call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11  ) 
-       call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 ) 
+       call get_basin_info_mrm(ii,   0, nrows, ncols,   iStart=s0,  iEnd=e0  ) 
+       call get_basin_info_mrm(ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1  ) 
+       call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11 ) 
+       call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110) 
        ! calculate NtimeSteps for this basin
-       nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
+       nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
        newTime = real(simPer(ii)%julStart,dp)
        ! initialize land cover year id
@@ -139,7 +144,7 @@ contains
        hour = -timestep
        do tt = 1, nTimeSteps
           ! set discharge timestep
-          iDischargeTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
+          iDischargeTS = ceiling(real(tt,dp) / real(NTSTEPDAY,dp))
           ! calculate current timestep
           call caldat(int(newTime), yy=year, mm=month, dd=day)
           ! determine whether mpr is to be executed
@@ -149,8 +154,9 @@ contains
           else
              do_mpr = .false.
           end if
-          !
-          !here the routing states have to be updated if restart is set to true because of optimization
+          ! -------------------------------------------------------------------
+          ! PERFORM ROUTING
+          ! -------------------------------------------------------------------
           call mRM_routing( &
                ! INPUT variables
                parameterset, & ! routing par.
@@ -159,10 +165,12 @@ contains
                L0_floodPlain(s110:e110), & ! flood plains at L0 level
                L0_areaCell(s0:e0), &
                L1_areaCell(s1:e1), &
+               L1_L11_Id(s1:e1), &
+               L11_areaCell(s11:e11), &
+               L11_L1_Id(s11:e11), &
                L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
                L11_length(s11:e11 - 1), & ! link length
                L11_slope(s11:e11 - 1), &
-               L1_L11_Id(s1:e1), &
                L11_netPerm(s11:e11), & ! routing order at L11
                L11_fromN(s11:e11), & ! link source at L11
                L11_toN(s11:e11), & ! link target at L11
@@ -176,6 +184,7 @@ contains
                basin_mrm%nGauges(ii), &
                basin_mrm%gaugeIndexList(ii,:), &
                basin_mrm%gaugeNodeList(ii,:), &
+               ge(resolutionRouting(ii), resolutionHydrology(ii)), &
                ! INPUT/OUTPUT variables
                L11_C1(s11:e11), & ! first muskingum parameter
                L11_C2(s11:e11), & ! second muskigum parameter
@@ -187,7 +196,9 @@ contains
                mRM_runoff(tt, :), &
                ! OPTIONAL INPUT variables
                do_mpr)
-          ! increment time
+          ! -------------------------------------------------------------------
+          ! INCREMENT TIME
+          ! -------------------------------------------------------------------
           hour = mod(hour+timestep, 24)
           newTime = julday(day,month,year) + real(hour+timestep,dp)/24._dp
        end do

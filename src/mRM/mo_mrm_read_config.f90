@@ -142,7 +142,8 @@ contains
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, 
+  !         Modified,
+  !         Sep 2015, Stephan Thober - removed stop condition when routing resolution is smaller than hydrologic resolution
   subroutine read_mrm_config()
     use mo_julian, only: dec2date, date2dec
     use mo_message, only: message
@@ -630,7 +631,6 @@ contains
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing
     !===============================================================
-    !
     do ii = 1, nBasins
        cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii)
        call message()
@@ -643,12 +643,6 @@ contains
        if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
           call message()
           call message('Resolution of routing and hydrological modeling are equal!')
-
-       else if ( nint(cellFactorRbyH * 100.0_dp) .lt. 100) then
-          call message()
-          call message('***ERROR: Resolution of routing is smaller than hydrological model resolution!')
-          call message('   FILE: mhm.nml, namelist: mainconfig, variable: resolutionRouting')
-          STOP
 
        else if ( nint(cellFactorRbyH * 100.0_dp) .gt. 100) then
           if( nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then

@@ -62,6 +62,8 @@ contains
   !>        \author Stephan Thober
   !>        \date Aug 2015
   !         modified, Sep 2015, Stephan Thober - added all write restart commands in this subroutine
+  !                   Sep 2015, Stephan Thober - added L11_areaCell L1_ID and L1_L11_Id for routing
+  !                                              resolution higher than hydrology resolution
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
     use mo_ncwrite, only: var2nc
@@ -73,7 +75,9 @@ contains
          L0_cellCoor, &
          L0_Id, &
          L0_areaCell, &
+         L1_Id, &
          L1_areaCell, &
+         L1_L11_Id, &
          L11_Qmod, &
          L11_qOUT, &
          L11_qTIN, &
@@ -85,12 +89,13 @@ contains
          L11_FracFPimp, &
          L11_cellCoor, &
          L11_Id, &
+         L11_areaCell, &
          L0_draSC, &
          L0_draCell, &
          L0_streamNet, &
          L0_floodPlain, &
          L0_L11_Id, &
-         L1_L11_Id, &
+         L11_L1_Id, &
          L11_rowOut, &
          L11_colOut, &
          L11_fDir, &
@@ -204,11 +209,19 @@ contains
          (/nrows1,ncols1/)) ),&
          dims_L1(1:2), 'L1_basin_Mask', &
          long_name = 'Mask at Level 1', missing_value = nodata_i4 )
-    
+
+    call var2nc( Fname, unpack( L1_Id(s1:e1), mask1, nodata_i4 ), &
+         dims_L1(1:2),'L1_Id', &
+         long_name = 'cell IDs at level 1', missing_value = nodata_i4 )
+
     call var2nc( Fname, unpack( L1_areaCell(s1:e1), mask1, nodata_dp ), &
          dims_L1(1:2),'L1_areaCell', &
          long_name = 'Effective area of cell at this level [km2]', missing_value = nodata_dp )
     
+    call var2nc( Fname, unpack( L1_L11_Id(s1:e1), mask1, nodata_i4 ), &
+         dims_L1(1:2), 'L1_L11_Id', &
+         long_name = 'Mapping of L1 Id on L11',missing_value=nodata_i4)
+
     call var2nc( Fname, unpack( L11_Qmod(s11:e11), mask11, nodata_dp ), &
          dims_L11(1:2), 'L11_Qmod', &
          long_name = 'simulated discharge at each node at level 11', missing_value = nodata_dp)
@@ -253,7 +266,7 @@ contains
          long_name = 'Fraction of the flood plain with impervious cover at level 11', missing_value = nodata_dp)
 
     ! ----------------------------------------------------------
-    ! L11 config set - create new file
+    ! L11 config set
     ! ----------------------------------------------------------
     call var2nc( Fname, &
          merge( 1_i4, 0_i4,  &
@@ -273,6 +286,10 @@ contains
     call var2nc( Fname, unpack( L11_Id(s11:e11), mask11, nodata_i4 ), &
          dims_L11(1:2), 'L11_Id', &
          long_name = 'cell Ids at Level 11', missing_value = nodata_i4 )
+
+    call var2nc( Fname, unpack( L11_areaCell(s11:e11), mask11, nodata_dp ), &
+         dims_L11(1:2), 'L11_areaCell', &
+         long_name = 'cell area at Level 11', missing_value = nodata_dp )
 
     call var2nc( Fname, unpack( L11_fDir(s11:e11), mask11, nodata_i4 ), &
          dims_L11(1:2), 'L11_fDir', &
@@ -374,9 +391,9 @@ contains
          dims_L0, 'L0_L11_Id', &
          long_name = 'Mapping of L11 Id on L0',missing_value=nodata_i4)
 
-    call var2nc( Fname, unpack( L1_L11_Id(s1:e1), mask1, nodata_i4 ), &
-         dims_L1(1:2), 'L1_L11_Id', &
-         long_name = 'Mapping of L11 Id on L1',missing_value=nodata_i4)
+    call var2nc( Fname, unpack( L11_L1_Id(s11:e11), mask11, nodata_i4 ), &
+         dims_L11(1:2), 'L11_L1_Id', &
+         long_name = 'Mapping of L1 Id on L11',missing_value=nodata_i4)
 
     call var2nc( Fname, unpack( L11_upBound_L1(s11:e11), mask11, nodata_i4 ), &
          dims_L11(1:2), 'L11_upBound_L1', &
@@ -610,6 +627,8 @@ contains
   !         Modified Apr 2014, Matthias Zink - added inflow gauge
   !                  Aug 2015, Stephan Thober - adapted for mRM
   !                  Sep 2015, Stephan Thober - added all read restart commands in this subroutine
+  !                  Sep 2015, Stephan Thober - added L11_areaCell, L1_ID and L1_L11_Id for routing
+  !                                             resolution higher than hydrology resolution
   subroutine mrm_read_restart_config( iBasin, InPath )
     use mo_kind, only: i4, dp
     use mo_message, only: message
@@ -630,15 +649,18 @@ contains
          L0_cellCoor   , & 
          L0_Id         , & ! Ids of grid at level-0 
          L0_areaCell, & ! Ids of grid at level-0
+         L1_Id, &
          L1_areaCell, & ! [km2] Effective area of cell at this level
+         L1_L11_Id,         &
          L11_cellCoor,      & ! cell Coordinates at Level 11
          L11_Id,            & ! cell Ids at Level 11
+         L11_areaCell,      &
          L11_nCells,        & ! Number of Cells at Level 11
          L1_nCells,         & ! Number of Cells at Level 1
          L0_nCells,         & ! Number of Cells at Level 0
          L0_draSC,          &
          L0_L11_Id,         &
-         L1_L11_Id,         &
+         L11_L1_Id,         &
          L11_fDir,          &
          L11_rowOut,        &
          L11_colOut,        &
@@ -825,7 +847,13 @@ contains
     end if
     ! get level1 information including mask
     call get_basin_info_mrm( iBasin, 1, nrows1, ncols1, mask=mask1 )
-    ! 
+    !
+    call Get_NcVar( Fname, 'L1_Id', dummyI2)
+    call append( L1_Id, pack(dummyI2, mask1) )
+
+    call Get_NcVar( Fname, 'L1_L11_Id', dummyI2)
+    call append( L1_L11_Id, pack(dummyI2, mask1) )
+    
     allocate( dummyD2( nrows1, ncols1 ) )
     call Get_NcVar( Fname, 'L1_areaCell', dummyD2 )
     call append( L1_areaCell, pack( dummyD2, mask1)   )
@@ -886,6 +914,11 @@ contains
     call append( L11_Id, pack( dummyI2, mask11) )
     deallocate( dummyI2 )
 
+    allocate(dummyD2(nrows11, ncols11))
+    call Get_NcVar( Fname, 'L11_areaCell', dummyD2 )
+    call append( L11_areaCell, pack( dummyD2, mask11) )
+    deallocate(dummyD2)
+
     ! update Number of cells at Level 11
     L11_nCells = size( L11_Id, 1 )
 
@@ -915,22 +948,17 @@ contains
     call append( L0_L11_Id,    PACK ( dummyI2, mask0)  )
     deallocate( dummyI2 )
 
-    ! L1 data sets
-    ! Mapping of L11 Id on L1
-    allocate( dummyI2( nrows1, ncols1 ) )
-    call Get_NcVar( Fname, 'L1_L11_Id', dummyI2 )
-    call append( L1_L11_Id,    PACK ( dummyI2, mask1)  )
-    deallocate( dummyI2 )
-
     ! L11 data sets
-    ! Flow direction (standard notation)
     allocate( dummyI2( nrows11, ncols11) )
+    ! Mapping of L1 Ids on L1
+    call Get_NcVar( Fname, 'L11_L1_Id', dummyI2 )
+    call append( L11_L1_Id,     PACK ( dummyI2,      mask11) )
+
+    ! Flow direction (standard notation)
     call Get_NcVar( Fname, 'L11_fDir', dummyI2 )
     call append( L11_fDir,     PACK ( dummyI2,      mask11) )
-    deallocate( dummyI2 )
 
     ! Grid vertical location of the Outlet
-    allocate( dummyI2( nrows11, ncols11 ) )
     call Get_NcVar( Fname, 'L11_rowOut', dummyI2 )
     call append( L11_rowOut, pack( dummyI2, mask11 ) )
 

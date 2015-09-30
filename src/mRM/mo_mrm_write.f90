@@ -181,9 +181,11 @@ contains
   !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
   !                   Stephan Thober, Jun 2014 - updated read_restart
   !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
+  !                   Stephan Thober, Sep 2015 - updated write of stream network
 
     Subroutine write_configfile()
 
+    use mo_utils,            only: ge
     use mo_kind,             only: i4, dp
     use mo_mrm_constants,    only: nodata_dp
     use mo_message,          only: message
@@ -204,8 +206,9 @@ contains
          L11_length,                 &         
          L11_slope,                  &
          L11_ID,                     &
-         L1_L11_ID,                  &
+         L11_L1_Id,                  &
          L1_areaCell,                &
+         L1_L11_Id,                  &
          L0_nCells,                  &
          L1_nCells,                  &
          nGaugesTotal,               &
@@ -407,10 +410,15 @@ contains
        write(uconfig, 111)  '  Modeling', '   Routing', ' Effective', &
             '      Cell', '   Cell Id', '      Area', &
             '        Id', '       [-]', '     [km2]'
-       
-       do i=basin_mrm%L1_iStart(n), basin_mrm%L1_iEnd(n)
-          write(uconfig,113) i, L1_L11_Id(i), L1_areaCell(i)
-       end do
+       if (ge(resolutionRouting(n), resolutionHydrology(n))) then
+          do i=basin_mrm%L1_iStart(n), basin_mrm%L1_iEnd(n)
+             write(uconfig,113) i, L1_L11_Id(i), L1_areaCell(i)
+          end do
+       else
+          do i=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)
+             write(uconfig,113) i, L11_L1_Id(i) !, L1_areaCell(i)
+          end do
+       end if
        write(uconfig,114)  ' Total[km2]', sum(L1_areaCell(basin_mrm%L1_iStart(n): basin_mrm%L1_iEnd(n)))
     end do
 
