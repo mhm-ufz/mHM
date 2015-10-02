@@ -557,4 +557,13 @@ sce_npg = -9
 !> Points per Sub-Complex (default: -9)
 !> if default: nps = n+1
 sce_nps = -9
+!  -------------------------------------
+!> MCMC specific: \n
+!  -------------------------------------
+!> .true.:  use MCMC for optimisation and estimation of parameter uncertainty 
+!> .false.: use MCMC for estimation of parameter uncertainty 
+mcmc_opti = .false.
+!> Parameters of error model if mcmc_opti=.false.
+!> e.g. for opti_function=8: two parameters a and b: err = a + b*Q
+mcmc_error_params = 0.01, 0.6
 /

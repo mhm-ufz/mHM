@@ -987,7 +987,7 @@ CONTAINS
        Ipos(:) = 0_i4   ! positive accepted
        Ineg(:) = 0_i4   ! negative accepted
 
-       ! if all parameters converged: Sqrt(R_i) < 1.1 (see Gelman et. al: Baysian Data Analysis, p. 331ff
+       ! if all parameters converged: Sqrt(R_i) < 1.1 (see Gelman et. al: Baysian Data Analysis, p. 331ff)
        converged = .False.
 
        ! transfer all array-like variables in namelist to fixed-size dummy-arrays
@@ -1057,17 +1057,18 @@ CONTAINS
        parabest             = dummy_parabest(1:size(para,1))
        initial_paraset_mcmc = dummy_initial_paraset_mcmc(1:size(para,1))
 
+       ! resize mcmc_paras_3d
        ! iter_mcmc was increased  --> indicates new length of mcmc_paras_3d
        ! Minval(Ipos+Ineg)        --> indicates old length of mcmc_paras_3d
-       idummy = Minval(Ipos+Ineg)
-       
-       ! resize mcmc_paras_3d
-       allocate(tmp(idummy,size(para),chains))
-       tmp(:,:,:) = mcmc_paras_3d(1:idummy,:,:)
-       deallocate(mcmc_paras_3d)
-       allocate(mcmc_paras_3d(iter_mcmc,size(para),chains))
-       mcmc_paras_3d(1:idummy,:,:) = tmp(:,:,:)
-       deallocate(tmp)
+       idummy = minval(Ipos+Ineg)
+       if ((iter_mcmc-idummy) > 0) then
+          allocate(tmp(idummy,size(para),chains))
+          tmp(:,:,:) = mcmc_paras_3d(1:idummy,:,:)
+          deallocate(mcmc_paras_3d)
+          allocate(mcmc_paras_3d(iter_mcmc,size(para),chains))
+          mcmc_paras_3d(1:idummy,:,:) = tmp(:,:,:)
+          deallocate(tmp)
+       endif
 
        !$OMP parallel default(shared) &
        !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara)
