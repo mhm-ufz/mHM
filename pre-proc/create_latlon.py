@@ -159,7 +159,7 @@ if headerfile_l0 != '':
 if headerfile_l1 != '':
     # get lat lon for level 1 header file
     lons, lats, xx, yy, missVal = header_to_latlon(headerfile_l1, coord_sys)
-    suffix = ['_l1', ' at level 1']
+    suffix = ['', ' at level 1']
     # write lat and lon for level 1 to file
     latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix)
 #

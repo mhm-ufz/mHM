@@ -74,11 +74,13 @@ CONTAINS
   !>        \author Stephan Thober
   !>        \date   Nov 2013
   !         modified, Stephan Thober, Sep 2015 - added latitude and longitude for level 0
+  !                   Stephan Thober, Oct 2015 - added L1_rect_latitude and L1_rect_longitude
 
   subroutine read_latlon(ii)
     
     USE mo_global_variables, ONLY: dirLatLon, L1_latitude, L1_longitude, level1, &
-         L0_latitude, L0_longitude, level0, basin, L0_Basin
+         L0_latitude, L0_longitude, level0, basin, L0_Basin, &
+         L1_rect_latitude, L1_rect_longitude
     USE mo_append,           ONLY: append
     USE mo_message,          ONLY: message
     USE mo_ncread,           ONLY: get_NcVar, get_NcDim
@@ -208,7 +210,8 @@ CONTAINS
     ! READ LEVEL 1 LATITUDE / LONGITUDE
     ! -------------------------------------------------------------------------
     ! read dimension length of variable in netcdf File
-    dl = get_NcDim( trim(fname), 'lat_l1' )
+    print*, trim(fname)
+    dl = get_NcDim( trim(fname), 'lat' )
     
     ! consistency check
     if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
@@ -224,14 +227,15 @@ CONTAINS
     allocate(dummy(dl(1), dl(2)))
     
     ! read dummy variable
-    call get_NcVar( trim(fname), 'lat_l1', dummy )
+    call get_NcVar( trim(fname), 'lat', dummy )
 
     ! append it to global variables
+    call append( L1_rect_latitude, pack(dummy, .true.))
     call append( L1_latitude, pack( dummy, mask ))
     deallocate(dummy)
 
     ! read dimension length of variable in netcdf File
-    dl = get_NcDim( trim(fname), 'lon_l1' )
+    dl = get_NcDim( trim(fname), 'lon' )
     
     ! consistency check
     if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
@@ -247,9 +251,10 @@ CONTAINS
     allocate(dummy(dl(1), dl(2)))
     
     ! read dummy variable
-    call get_NcVar( trim(fname), 'lon_l1', dummy )
+    call get_NcVar( trim(fname), 'lon', dummy )
 
     ! append it to global variables
+    call append( L1_rect_longitude, pack(dummy, .true.))
     call append( L1_longitude, pack( dummy, mask ))
     deallocate(dummy, mask)
 
