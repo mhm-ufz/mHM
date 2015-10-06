@@ -252,8 +252,10 @@ MODULE mo_global_variables
 
   real(dp), dimension(:), allocatable, public :: L0_longitude  ! 1d longitude array
   real(dp), dimension(:), allocatable, public :: L0_latitude   ! 1d latitude  array
-  real(dp), dimension(:), allocatable, public :: L1_longitude  ! 1d longitude array
-  real(dp), dimension(:), allocatable, public :: L1_latitude   ! 1d latitude  array
+  real(dp), dimension(:), allocatable, public :: L1_longitude  ! 1d longitude array for active grid cells
+  real(dp), dimension(:), allocatable, public :: L1_latitude   ! 1d latitude  array for active grid cells
+  real(dp), dimension(:), allocatable, public :: L1_rect_longitude  ! 1d longitude array for whole basin rectangle
+  real(dp), dimension(:), allocatable, public :: L1_rect_latitude   ! 1d latitude  array for whole basin rectangle
   
   ! -------------------------------------------------------------------
   ! PERIOD description

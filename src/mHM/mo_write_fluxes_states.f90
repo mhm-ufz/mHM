@@ -928,10 +928,10 @@ contains
   !     HISTORY
   !>        \author David Schaefer
   !>        \date June 2015
-  !         modified, Sep 2015, Stephan Thober, provide basin mask to geoCoordinates
+  !         modified,
   function createOutputFile(ibasin) result(nc)
 
-    use mo_global_variables,  only: dirOut, evalPer, level1, basin
+    use mo_global_variables,  only: dirOut, evalPer, level1
     use mo_julian,            only: dec2date
 
     integer(i4), intent(in) :: ibasin
@@ -941,15 +941,10 @@ contains
     integer(i4)             :: day, month, year
     character(128)          :: fname, unit, date, time, datetime
     real(dp), allocatable   :: northing(:), easting(:), lat(:,:), lon(:,:)
-    logical,  allocatable   :: mask(:,:)
-
-    ! set 2d level 1 mask for this basin
-    mask = reshape(basin%L1_mask(basin%L1_iStartMask(ibasin):basin%L1_iEndMask(ibasin)), &
-         (/level1%nrows(ibasin), level1%ncols(ibasin)/))
 
     fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
     call mapCoordinates(ibasin, level1, northing, easting)
-    call geoCoordinates(ibasin, mask, lat, lon)
+    call geoCoordinates(ibasin, level1, lat, lon)
 
     nc = NcDataset(trim(fname),"w")
     dimids1 = (/&
@@ -1156,7 +1151,7 @@ contains
   !
   !     INTENT(IN)
   !>        \param[in] "integer(i4)      :: iBasin"    -> basin number
-  !>        \param[in] "logical          :: mask(:,:)" -> mask for unpacking
+  !>        \param[in] "type(gridGeoRef) :: level"     -> grid reference 
   !
   !     INTENT(INOUT)
   !         None
@@ -1193,26 +1188,31 @@ contains
   !             Stephan Thober, Nov 2013 - removed fproj dependency
   !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
   !             Stephan Thober, Sep 2015 - using mask to unpack coordinates
-  subroutine geoCoordinates(ibasin, mask, lat, lon)
+  !             Stephan Thober, Oct 2015 - writing full lat/lon again
+  subroutine geoCoordinates(ibasin, level, lat, lon)
 
-    use mo_global_variables, only : L1_latitude, L1_longitude
-    use mo_init_states,      only : get_basin_info
-    use mo_mhm_constants,    only : nodata_dp
+    use mo_global_variables, only : L1_rect_latitude, L1_rect_longitude
 
     implicit none
 
     integer(i4),      intent(in)               :: iBasin
-    logical,          intent(in)               :: mask(:,:)
+    type(gridGeoRef), intent(in)               :: level
     real(dp),         intent(out), allocatable :: lat(:,:), lon(:,:)
-    integer(i4)                                :: ncols, nrows, s1, e1
-
-    call get_basin_info(ibasin, 1, nrows, ncols, iStart=s1, iEnd=e1)
-
-    allocate(lat(nrows,ncols), lon(nrows,ncols))
-    lat = nodata_dp
-    lon = nodata_dp
-    lat = unpack(L1_latitude(s1:e1), mask, lat)
-    lon = unpack(L1_longitude(s1:e1), mask, lon)
+    integer(i4)                                :: ncols, nrows
+    integer(i4)                                :: ii, pos 
+ 	 
+    nrows = level%nrows(ibasin) 
+    ncols = level%ncols(ibasin)
+      
+    pos = 1 
+    if ( ibasin .gt. 1 ) then 
+       do ii = 1, ibasin -1 
+          pos = pos + level%ncols(ii) * level%nrows(ii) 
+       end do
+    end if
+    
+    lat = reshape(L1_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/)) 
+    lon = reshape(L1_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/)) 
     
   end subroutine geoCoordinates
 
