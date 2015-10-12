@@ -97,6 +97,7 @@ contains
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
+    use mo_mrm_init, only: variables_default_init_routing
     use mo_julian, only: caldat, julday
     implicit none
     ! input variables
@@ -119,6 +120,14 @@ contains
     integer(i4) :: iDischargeTS ! discharge timestep
     real(dp) :: newTime
     logical :: do_mpr
+
+    if (.not. read_restart) then
+       !-------------------------------------------
+       ! L11 ROUTING STATE VARIABLES, FLUXES AND
+       !             PARAMETERS
+       !-------------------------------------------
+       call variables_default_init_routing()
+    end if
 
     ! ----------------------------------------
     ! loop over basins

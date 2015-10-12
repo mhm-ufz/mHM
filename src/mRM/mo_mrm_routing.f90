@@ -395,7 +395,7 @@ CONTAINS
     ! Input - Output
     real(dp),    dimension(:,:),    intent(inout) :: netNode_qTIN  ! [m3 s-1] Total inputs at t-1 and t
     real(dp),    dimension(:,:),    intent(inout) :: netNode_qTR   ! [m3 s-1] Transformed outflow leaving 
-    !                                                                !          node I (Muskingum)
+    !                                                              !          node I (Muskingum)
     ! Output
     real(dp),    dimension(nNodes), intent(out)   :: netNode_Qmod  ! [m3 s-1] Simulated routed discharge  
 
@@ -408,8 +408,7 @@ CONTAINS
                                                                           !   netNode_qTIN(iNode,:)
                                                                           !   netNode_qTR(iNode,:)
                                                                           ! which store current and past states of
-                                                                          ! incoming and outgoing of discharge at iNode 
-
+                                                                          ! incoming and outgoing of discharge at iNode
 
 
     !--------------------------------------------------------------------------
@@ -462,18 +461,13 @@ CONTAINS
     ! save modeled discharge at time step tt then shift flow storages
     ! (NOTE aggregation to daily values to be done outside)
     !--------------------------------------------------------------------------
-    ! ST - decent parallelization has to be done!!!
-    !!$OMP parallel
-    !!$OMP do schedule( static )
-    do i = 1, nNodes
-       ! store generated discharge
-       netNode_Qmod(i) = netNode_qTIN(i,IT)
-       ! backflow t-> t-1
-       netNode_qTR(i,IT1) = netNode_qTR(i,IT)
-       netNode_qTIN(i,IT1)= netNode_qTIN(i,IT)
-    end do
-    !!$OMP end do
-    !!$OMP end parallel
+    ! !!$OMP parallel
+    ! store generated discharge
+    netNode_Qmod(1:nNodes) = netNode_qTIN(1:nNodes,IT)
+    ! backflow t-> t-1
+    netNode_qTR(1:nNodes,IT1) = netNode_qTR(1:nNodes,IT)
+    netNode_qTIN(1:nNodes,IT1)= netNode_qTIN(1:nNodes,IT)
+    ! !!$OMP end parallel
 
   end subroutine L11_routing
   ! ------------------------------------------------------------------

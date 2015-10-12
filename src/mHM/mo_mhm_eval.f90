@@ -174,6 +174,7 @@ CONTAINS
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
+    use mo_mrm_init, only: variables_default_init_routing
 #endif
     
     implicit none
@@ -261,6 +262,15 @@ CONTAINS
        ! as default values, 
        ! all cells for all modeled basins are simultenously initalized ONLY ONCE
        call variables_default_init()
+#ifdef mrm2mhm
+       if (processMatrix(8, 1) .eq. 1) then
+          !-------------------------------------------
+          ! L11 ROUTING STATE VARIABLES, FLUXES AND
+          !             PARAMETERS
+          !-------------------------------------------
+          call variables_default_init_routing()
+       end if
+#endif  
     else 
        ! read from restart files, basin wise ...
        do ii = 1, nBasins
@@ -289,11 +299,11 @@ CONTAINS
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
 
 #ifdef mrm2mhm       
-       ! read states from restart
-       if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
-       !
-       ! get basin information at L11 and L110 if routing is activated
        if (processMatrix(8,1) .eq. 1) then
+          ! read states from restart
+          if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
+          !
+          ! get basin information at L11 and L110 if routing is activated
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11  ) 
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 ) 
        end if
