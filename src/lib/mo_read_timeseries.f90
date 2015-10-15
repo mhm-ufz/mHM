@@ -24,15 +24,15 @@ CONTAINS
 
   !     PURPOSE
   !>        \brief Reads time series in ASCII format.
-                 
+
   !>        \details Reads time series in ASCII format.
   !>        Needs specific header lines:\n
   !>        \verbatim
-  !>           <description> 
-  !>           nodata  <nodata value> 
-  !>           n  <number of measurements per day>  measurements per day [1, 1440] 
-  !>           start  <YYYY_i4> <MM_i4> <DD_i4> <HH_i4> <MM_i4> (YYYY MM DD HH MM) 
-  !>           end    <YYYY_i4> <MM_i4> <DD_i4> <HH_i4> <MM_i4> (YYYY MM DD HH MM) 
+  !>           <description>
+  !>           nodata  <nodata value>
+  !>           n  <number of measurements per day>  measurements per day [1, 1440]
+  !>           start  <YYYY_i4> <MM_i4> <DD_i4> <HH_i4> <MM_i4> (YYYY MM DD HH MM)
+  !>           end    <YYYY_i4> <MM_i4> <DD_i4> <HH_i4> <MM_i4> (YYYY MM DD HH MM)
   !>        \endverbatim
   !>        Line 6 is the first line with data in the following format:\n
   !>        \verbatim
@@ -51,7 +51,7 @@ CONTAINS
   !>        \param[in] "character(len=*)                              :: filename"     File name
   !>        \param[in] "integer(i4)                                   :: fileunit"     Unit to open file
   !>        \param[in] "integer(i4), dimension(3)                     :: periodStart"  Start day of reading (YYYY,MM,DD)
-  !>        \param[in] "integer(i4), dimension(3)                     :: periodEnd"    End   day of reading (YYYY,MM,DD) 
+  !>        \param[in] "integer(i4), dimension(3)                     :: periodEnd"    End   day of reading (YYYY,MM,DD)
   !>        \param[in] "logical                                       :: optimize"     optimization flag
 
   !     INTENT(INOUT)
@@ -71,7 +71,7 @@ CONTAINS
   !>        \param[out] "integer(i4), optional                        :: nMeasPerDay"  Number of data points per day
 
   !     RETURN
-  !         None 
+  !         None
 
   !     RESTRICTIONS
   !>        \note Routine reads in only whole days with equidistant time steps between data points.\n
@@ -82,7 +82,7 @@ CONTAINS
   !         call read_timeseries('old_code/sub_00020/input/gauge/0000411.txt', 127, &
   !                              (/1901, 01, 03/), &
   !                              (/1901, 01, 08/), optimize, opti_function, &
-  !                              data, mask=maske, nMeasPerDay=nMeasPerDay) 
+  !                              data, mask=maske, nMeasPerDay=nMeasPerDay)
 
   !     LITERATURE
   !         None
@@ -90,7 +90,7 @@ CONTAINS
   !     HISTORY
   !>        \authors Matthias Zink, Juliane Mai
   !>        \date Jan 2013
-  !          Modified, 
+  !          Modified,
   !                    Stephan Thober,             Mar 2014: read data even if shorter than model period
   !                    MatthiasZink,               Mar 2014: enable    read in of nodata periods, e.g. forecast mode
   !                    Matthias Zink, Juliane Mai  Jan 2015: corrected read in of nodata periods, e.g. forecast mode
@@ -107,7 +107,8 @@ CONTAINS
     integer(i4), dimension(3),                        intent(in)  :: periodStart      ! format (/YYYY, MM, DD/)
     integer(i4), dimension(3),                        intent(in)  :: periodEnd        ! format (/YYYY, MM, DD/)
     logical,                                          intent(in)  :: optimize         ! optimization on or off (.TRUE. or .FALSE.)
-    integer(i4),                                      intent(in)  :: opti_function    ! number of opti function that determines type of data
+    ! number of optimization function in mHM determining the type of data used
+    integer(i4),                                      intent(in)  :: opti_function
     real(dp),    dimension(:), allocatable,           intent(out) :: data             ! time series output (periodStart:periodEnd)
     logical,     dimension(:), allocatable, optional, intent(out) :: mask             ! indicating valid data (false
     !                                                                                 ! at no data value points)
@@ -124,7 +125,7 @@ CONTAINS
     integer(i4)                                                   :: i, j
     integer(i4)                                                   :: idx_st_period    ! index to put data from file to data
     integer(i4)                                                   :: idx_en_period    ! index to put data from file to data
-    integer(i4)                                                   :: idx_st_file      ! index to put data from file to data 
+    integer(i4)                                                   :: idx_st_file      ! index to put data from file to data
     integer(i4)                                                   :: idx_en_file      ! index to put data from file to data
     integer(i4)                                                   :: startJul_file    ! start julian day of available data
     integer(i4)                                                   :: endJul_file      ! end   julian day of available data
@@ -144,7 +145,7 @@ CONTAINS
       read(fileunit,*)        dummy, (periodStart_file(i), i = 1, 3)
       read(fileunit,*)        dummy, (periodEnd_file(i),   i = 1, 3)
       dummy = dummy//''   ! only to avoid warning
-      if ((timestep_file .lt. 1_i4) .or. (timestep_file .gt. 1440_i4)) then 
+      if ((timestep_file .lt. 1_i4) .or. (timestep_file .gt. 1440_i4)) then
          call message('***ERROR: Number of measurements per day has to be between 1 (daily) and 1440 (every minute)! ',&
                        trim(filename))
          stop
@@ -163,7 +164,7 @@ CONTAINS
          stop
       end if
 
-      ! allocation of arrays 
+      ! allocation of arrays
       allocate( data     (      (endJul_period - startJul_period + 1_i4) * timestep_file))
       data      = nodata_file
       allocate( data_file(      (endJul_file   - startJul_file + 1_i4)   * timestep_file))
