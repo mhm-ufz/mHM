@@ -94,7 +94,11 @@ CONTAINS
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
          L11_stream_features
-    
+    use mo_mrm_constants, only: nodata_i4, &
+         maxNoGauges, & ! maximum number of allowed gauges
+         maxNLcovers, & ! maximum number of allowed LCover scenes
+         maxNoBasins ! maximum number of allowed basins
+
     implicit none
     ! input variables
     logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask

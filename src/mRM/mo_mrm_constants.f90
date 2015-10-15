@@ -19,7 +19,11 @@ module mo_mrm_constants
   !                                                    ! (1 - past)
   !                                                    ! (2 - current)
   integer(i4), public, parameter :: nColPars = 5_i4 ! number of properties of the global variables
+#ifdef CYGWIN
+  integer(i4), public, parameter :: maxNoGauges = 50_i4 ! maximal number of gauges allowed
+#else
   integer(i4), public, parameter :: maxNoGauges = 200_i4 ! maximal number of gauges allowed
+#endif
   integer(i4), public, parameter :: maxNoBasins = 50_i4 ! maximum number of allowed basins
   integer(i4), public, parameter :: maxNLcovers = 50_i4 ! maximum number of allowed LCover scenes
   ! temporal

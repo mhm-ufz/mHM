@@ -212,10 +212,10 @@ contains
     ! local variables
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
-    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoBasins,maxNoGauges) :: Gauge_filename
     integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
-    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
+    character(256), dimension(maxNoBasins,maxNoGauges) :: InflowGauge_filename
     logical,        dimension(maxNoBasins,maxNoGauges) :: InflowGauge_Headwater
     integer(i4)                                        :: iBasin
     integer(i4)                                        :: iGauge
