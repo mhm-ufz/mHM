@@ -162,6 +162,10 @@ CONTAINS
          L11_toN, & ! link target at L11
          basin_mrm, & ! basin_mrm structure
          InflowGauge, &
+         outputFlxState_mrm, &
+         ! INPUT variables for writing output =================================
+         warmingDays_mrm, &
+         timeStep_model_outputs_mrm, &
          ! INPUT/OUTPUT variables for mRM routing =============================
          L11_C1, & ! first muskingum parameter
          L11_C2, & ! second muskigum parameter
@@ -174,6 +178,7 @@ CONTAINS
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
+    use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_mrm_init, only: variables_default_init_routing
 #endif
     
@@ -225,6 +230,7 @@ CONTAINS
     logical                                   :: do_mpr
     integer(i4)                               :: s11, e11 ! start and end index at L11
     integer(i4)                               :: s110, e110 ! start and end index of L11 at L0
+    logical, allocatable                      :: mask11(:,:)
 #endif    
     !
     ! LAI options
@@ -304,7 +310,7 @@ CONTAINS
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
           !
           ! get basin information at L11 and L110 if routing is activated
-          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11  ) 
+          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  ) 
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 ) 
        end if
 #endif       
@@ -531,13 +537,33 @@ CONTAINS
           if (day_counter   .NE. day  ) day_counter   = day
           if (month_counter .NE. month) month_counter = month
           if (year_counter  .NE. year)  year_counter  = year
-
+             
           ! increment of timestep
           newTime = julday(day,month,year) + real(hour+timestep,dp)/24._dp
+          ! calculate new year, month and day
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
           if (.not. optimize) then
-
+#ifdef mrm2mhm
+             if (any(outputFlxState_mrm)) then
+                call mrm_write_output_fluxes( &
+                     ! basin id
+                     ii, &
+                     ! output specification
+                     timeStep_model_outputs_mrm, &
+                     ! time specification
+                     warmingDays_mrm(ii), newTime, nTimeSteps, nTStepDay, &
+                     tt, &
+                     ! parse previous date to mRM writer
+                     day_counter, month_counter, year_counter, &
+                     timestep, &
+                     ! mask specification
+                     mask11, &
+                     ! output variables
+                     L11_qmod(s11:e11))
+             end if
+#endif
+             
              ! output only for evaluation period
              tIndex_out = (tt-warmingDays(ii)*NTSTEPDAY) ! tt if write out of warming period
 

@@ -81,6 +81,7 @@ CONTAINS
          mrm_L1_variable_init, &
          mrm_L0_variable_init, &
          mrm_read_total_runoff
+    use mo_mrm_read_latlon, only: read_latlon
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_restart, only: mrm_read_restart_config
     use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
@@ -93,7 +94,11 @@ CONTAINS
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
          L11_stream_features
-    
+    use mo_mrm_constants, only: nodata_i4, &
+         maxNoGauges, & ! maximum number of allowed gauges
+         maxNLcovers, & ! maximum number of allowed LCover scenes
+         maxNoBasins ! maximum number of allowed basins
+
     implicit none
     ! input variables
     logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
@@ -102,6 +107,7 @@ CONTAINS
 
     ! local variables
     integer(i4) :: iBasin
+    logical :: ReadLatLon
 
     !-----------------------------------------------------------
     ! READ COUPLING MODE
@@ -120,8 +126,8 @@ CONTAINS
     ! ----------------------------------------------------------
     ! READ CONFIG
     ! ----------------------------------------------------------
-    call read_mrm_config()
-    
+    call read_mrm_config(ReadLatLon)
+
     !-----------------------------------------------------------
     ! CONFIG OUTPUT
     !-----------------------------------------------------------
@@ -177,12 +183,14 @@ CONTAINS
           call L11_stream_features(iBasin)
        end do
     end if
+
     ! ----------------------------------------------------------
     ! INITIALIZE STATES
     ! ----------------------------------------------------------
     do iBasin = 1, nBasins
        call variables_alloc_routing(iBasin)
     end do
+
     ! -------------------------------------------------------
     ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
     ! -------------------------------------------------------
@@ -194,6 +202,15 @@ CONTAINS
     end if
     ! discharge data
     call mrm_read_discharge()
+
+    ! ----------------------------------------------------------
+    ! READ LAT & LON IF OUTPUT SHALL BE WRITTEN
+    ! ----------------------------------------------------------
+    if (ReadLatLon) then
+       do iBasin = 1, nBasins
+          call read_latlon(iBasin)
+       end do
+    end if
 
     call message(' Finished Initialization of mRM')
 
@@ -210,7 +227,8 @@ CONTAINS
          version_date, &
          file_main, &
          file_namelist_mrm, &
-         file_namelist_param_mrm
+         file_namelist_param_mrm, &
+         file_defOutput
     implicit none
     ! local variables
     integer(i4), dimension(8) :: datetime ! Date and time
@@ -237,6 +255,7 @@ CONTAINS
     call message('Using main file ', trim(file_main), ' and namelists: ')
     call message('     ',trim(file_namelist_mrm))
     call message('     ',trim(file_namelist_param_mrm))
+    call message('     ', trim(file_defOutput), ' (if it is given)')
     call message()
 
   end subroutine print_startup_message
@@ -249,7 +268,8 @@ CONTAINS
     use mo_message, only: message
     use mo_mrm_file, only: &
          file_namelist_mrm, &
-         file_namelist_param_mrm
+         file_namelist_param_mrm, &
+         file_defOutput
     use mo_mrm_global_variables, only: &
          dirMorpho, &
          dirLCover, &
@@ -265,6 +285,7 @@ CONTAINS
     call message()
     call message('Read namelist file: ', trim(file_namelist_mrm))
     call message('Read namelist file: ', trim(file_namelist_param_mrm))
+    call message('Read namelist file: ', trim(file_defOutput), ' (if it is given)')
 
     call message()
     call message('  # of basins:         ', trim(num2str(nbasins)))

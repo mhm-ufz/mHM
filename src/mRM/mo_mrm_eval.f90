@@ -85,6 +85,10 @@ contains
          InflowGauge, &
          resolutionRouting, &
          resolutionHydrology, &
+         ! INPUT variables for writing output =================================
+         outputFlxState_mrm, & ! output Fluxes
+         warmingDays_mrm, & ! warmingDays for each basin
+         timeStep_model_outputs_mrm, &
          ! INPUT/OUTPUT variables for mRM routing =============================
          L11_C1, & ! first muskingum parameter
          L11_C2, & ! second muskigum parameter
@@ -98,6 +102,7 @@ contains
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
     use mo_mrm_init, only: variables_default_init_routing
+    use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_julian, only: caldat, julday
     implicit none
     ! input variables
@@ -120,6 +125,7 @@ contains
     integer(i4) :: iDischargeTS ! discharge timestep
     real(dp) :: newTime
     logical :: do_mpr
+    logical, allocatable :: mask11(:,:)
 
     if (.not. read_restart) then
        !-------------------------------------------
@@ -139,7 +145,7 @@ contains
        ! get basin information at L11 and L110 if routing is activated
        call get_basin_info_mrm(ii,   0, nrows, ncols,   iStart=s0,  iEnd=e0  ) 
        call get_basin_info_mrm(ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1  ) 
-       call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11 ) 
+       call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 ) 
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110) 
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
@@ -210,6 +216,24 @@ contains
           ! -------------------------------------------------------------------
           hour = mod(hour+timestep, 24)
           newTime = julday(day,month,year) + real(hour+timestep,dp)/24._dp
+          ! -------------------------------------------------------------------
+          ! WRITE OUTPUT
+          ! -------------------------------------------------------------------
+          ! if (.not. optimize) then
+          if (.True. .and. any(outputFlxState_mrm)) then
+             call mrm_write_output_fluxes( &
+                  ! basin id
+                  ii, &
+                  ! output specification
+                  timeStep_model_outputs_mrm, &
+                  ! time specification
+                  warmingDays_mrm(ii), newTime, nTimeSteps, nTStepDay, &
+                  tt, day, month, year, timestep, &
+                  ! mask specification
+                  mask11, &
+                  ! output variables
+                  L11_qmod(s11:e11))
+          end if
        end do
     end do
     ! =========================================================================

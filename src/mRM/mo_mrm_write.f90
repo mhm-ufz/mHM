@@ -11,11 +11,19 @@
 module mo_mrm_write
 
   use mo_kind, only: i4, dp
+  use mo_mrm_write_fluxes_states, only : OutputDataset
   
   implicit none
 
   public :: mrm_write
+  public :: mrm_write_output_fluxes
   private
+  ! counters for write_output_fluxes
+  integer(i4) :: day_counter ! for daily output
+  integer(i4) :: month_counter ! for monthly output
+  integer(i4) :: year_counter ! for yearly output
+  integer(i4) :: average_counter ! for averaging output
+  type(OutputDataset) :: nc ! netcdf Output Dataset
 
 contains
 
@@ -71,7 +79,7 @@ contains
 
     use mo_mrm_global_variables, only: &
          mRM_runoff, &
-         gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays, simPer, &
+         gauge, nGaugesTotal, basin_mrm, nBasins, evalPer, warmingDays_mrm, simPer, &
          ntstepday, write_restart, dirRestartOut, mrm_coupling_mode
     use mo_mrm_restart,  only: mrm_write_restart
 
@@ -117,7 +125,7 @@ contains
        nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
        iDay = 0
        ! loop over timesteps
-       do tt = warmingDays(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
+       do tt = warmingDays_mrm(ii)*NTSTEPDAY+1, nTimeSteps, NTSTEPDAY
           iS = tt
           iE = tt + NTSTEPDAY - 1
           iDay = iDay + 1
@@ -522,17 +530,19 @@ contains
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
 
-    use mo_errormeasures,       only: kge, nse
-    use mo_julian,              only: dec2date
-    use mo_message,             only: message
-    use mo_string_utils,        only: num2str
-    use mo_utils,               only: ge
-    use mo_mrm_file,            only: file_daily_discharge, udaily_discharge
+    use mo_errormeasures, only: kge, nse
+    use mo_julian, only: dec2date
+    use mo_message, only: message
+    use mo_string_utils, only: num2str
+    use mo_utils, only: ge
+    use mo_mrm_file, only: file_daily_discharge, udaily_discharge, &
+         ncfile_discharge
     use mo_mrm_global_variables, only: &
          nBasins, &
          basin_mrm, &
-          dirOut, evalPer, &
+         dirOut, evalPer, &
          gauge
+    use mo_ncwrite, only: var2nc
 
     implicit none
 
@@ -541,11 +551,14 @@ contains
     real(dp), dimension(:,:), intent(in) :: Qsim      ! simulated time series [nModeling_days X nGauges_total]
 
     ! local vars
-    character(256) :: fName, formHeader, formData, dummy
+    character(256) :: fName, formHeader, formData, dummy, dnames(1)
     integer(i4) :: bb, gg, tt, err
     integer(i4) :: igauge_start, igauge_end
     integer(i4) :: day, month, year
+    integer(i4) :: tlength
+    integer(i4), allocatable :: taxis(:) ! time axis
     real(dp) :: newTime
+    logical :: create
 
 
     ! initalize igauge_start
@@ -588,7 +601,40 @@ contains
        ! close file
        close(udaily_discharge)
 
+       ! ======================================================================
+       ! write netcdf file
+       ! ======================================================================
+       dnames(1) = 'time'
+       ! dnames(2) = 'gauges'
+       fName = trim(adjustl(dirOut(bb))) // trim(adjustl(ncfile_discharge))
+       tlength = evalPer(bb)%julEnd - evalPer(bb)%julStart + 1
+       create = .true.
+       do gg = igauge_start, igauge_end
+          ! write simulated discharge at that gauge
+          call var2nc(trim(fName), Qsim(1:tlength, gg), &
+               dnames(1:1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
+               units='m3 s-1', long_name='simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+          create = .false.
+          ! write observed discharge at that gauge
+          call var2nc(trim(fName), Qobs(1:tlength, gg), &
+               dnames(1:1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
+               units='m3 s-1', long_name='observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+       end do
+       ! add time axis
+       allocate(taxis(tlength))
+       forall(tt = 1:tlength) taxis(tt) = tt * 24 - 1
+       call dec2date(real(evalPer(bb)%julStart,dp) - 0.5_dp, yy=year, mm=month, dd=day)
+       call var2nc(trim(fName), taxis, &
+            dnames(1:1), dnames(1), &
+            units='hours since '// &
+            trim(num2str(year))//'-'//trim(num2str(month, '(i2.2)'))//'-'//trim(num2str(day, '(i2.2)'))// &
+            ' 00:00:00', &
+            long_name='time in hours')
+       deallocate(taxis)
+
+       ! ======================================================================
        ! screen output
+       ! ======================================================================
        call message()
        write(dummy,'(I3)') bb
        call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
@@ -606,5 +652,149 @@ contains
     end do
     !
   end subroutine write_daily_obs_sim_discharge
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         mrm_write_output_fluxes
+
+  !     PURPOSE
+  !>        \brief write fluxes to netcdf output files
+  !
+  !>        \details This subroutine creates a netcdf data set
+  !>        for writing L11_QTIN for different time averages.
+  !
+  !     INTENT(IN)
+  !         None
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !       None
+  !
+  !     LITERATURE
+  !       None
+
+  !     HISTORY
+  !>        \author Stephan Thober
+  !>        \date Aug 2015
+  !         Modified, 
+
+  subroutine mrm_write_output_fluxes( &
+       iBasin, &
+       timeStep_model_outputs, & ! timestep of model outputs
+       warmingDays_mrm, & ! number of warming days
+       newTime, & ! julian date of next time step
+       nTimeSteps, & ! number of total timesteps
+       nTStepDay, & ! number of timesteps per day
+       tt, & ! current model timestep
+       day, & ! current day of the year
+       month, & ! current month of the year
+       year, & ! current year
+       timestep, & ! current model time resolution
+       mask11, & ! mask at level 11
+       L11_qmod & ! current routed streamflow
+       )
+    use mo_kind, only: i4, dp
+    use mo_julian, only: caldat
+    implicit none
+    ! input variables
+    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: timeStep_model_outputs
+    integer(i4), intent(in) :: warmingDays_mrm
+    real(dp), intent(in) :: newTime
+    integer(i4), intent(in) :: nTimeSteps
+    integer(i4), intent(in) :: nTStepDay
+    integer(i4), intent(in) :: tt
+    integer(i4), intent(in) :: day
+    integer(i4), intent(in) :: month
+    integer(i4), intent(in) :: year
+    integer(i4), intent(in) :: timestep
+    logical, intent(in) :: mask11(:,:)
+    real(dp), intent(in) :: L11_qMod(:)
+    ! local variables
+    integer(i4) :: tIndex_out
+    logical :: writeout
+    integer(i4) :: new_year ! year of next timestep (newTime)
+    integer(i4) :: new_month ! month of next timestep (newTime)
+    integer(i4) :: new_day ! day of next timestep (newTime)
+    !
+    if ( tt .EQ. 1 ) then
+       day_counter   = day
+       month_counter = month
+       year_counter  = year
+       average_counter = 0_i4
+    end if
+    
+    ! update the counters
+    if (day_counter   .NE. day  ) day_counter   = day
+    if (month_counter .NE. month) month_counter = month
+    if (year_counter  .NE. year)  year_counter  = year
+    call caldat(int(newTime), yy=new_year, mm=new_month, dd=new_day)
+
+    ! output only for evaluation period
+    tIndex_out = (tt-warmingDays_mrm*NTSTEPDAY) ! tt if write out of warming period
+
+    if ((tIndex_out .gt. 0_i4)) then
+       average_counter = average_counter + 1
+
+       ! create output dataset 
+       if ( tIndex_out .EQ. 1 ) nc = OutputDataset(iBasin, mask11)
+       
+       ! update Dataset
+       call nc%updateDataset( &
+            1               , &
+            size(L11_Qmod)  , &
+            L11_Qmod          &
+            )
+                
+       ! determine write flag
+       writeout = .false.
+       if (timeStep_model_outputs .gt. 0) then
+          if ((mod(tIndex_out, timeStep_model_outputs) .eq. 0) .or. (tt .eq. nTimeSteps)) writeout = .true.
+       else
+          select case(timeStep_model_outputs)
+          case(0) ! only at last time step
+             if (tt .eq. nTimeSteps) writeout = .true.
+          case(-1) ! daily
+             if (((tIndex_out .gt. 1) .and. (day_counter .ne. new_day)) .or. (tt .eq. nTimeSteps))     writeout = .true.
+          case(-2) ! monthly
+             if (((tIndex_out .gt. 1) .and. (month_counter .ne. new_month)) .or. (tt .eq. nTimeSteps)) writeout = .true.
+          case(-3) ! yearly
+             if (((tIndex_out .gt. 1) .and. (year_counter .ne. new_year)) .or. (tt .eq. nTimeSteps))   writeout = .true.
+          case default ! no output at all
+             continue
+          end select
+       endif
+
+       ! write data
+       if (writeout) call nc%writeTimestep(tIndex_out*timestep-1)
+
+       ! close dataset
+       if (tt .eq. nTimeSteps) call nc%close()
+
+    end if
+    
+  end subroutine mrm_write_output_fluxes
+    
 
 end module mo_mrm_write

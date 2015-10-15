@@ -8,6 +8,7 @@
 !> \date Aug 2015
 module mo_mrm_global_variables
   use mo_kind, only: i4, i8, dp
+  use mo_mrm_constants, only: nOutFlxState
   use mo_global_structures, only: period
   implicit none
   ! Types have to be public
@@ -89,7 +90,8 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
- 
+  character(256), dimension(:), allocatable, public :: dirLatLon ! Directory where the Lat Lon Files are located
+  
   ! ------------------------------------------------------------------
   ! CONSTANT 
   ! ------------------------------------------------------------------
@@ -112,6 +114,11 @@ module mo_mrm_global_variables
   type(gridGeoRef), public :: level1 ! grid information at runoff level
   type(gridGeoRef), public :: level11 ! Reference of the routing variables
   type(gridGeoRef), public :: level110 ! Reference of the routing variables at L0 scale (e.g., L0_floodPlain)
+  !
+  real(dp), dimension(:), allocatable, public :: L0_longitude  ! 1d longitude array
+  real(dp), dimension(:), allocatable, public :: L0_latitude   ! 1d latitude  array
+  real(dp), dimension(:), allocatable, public :: L11_rect_longitude  ! 1d longitude array for whole basin rectangle
+  real(dp), dimension(:), allocatable, public :: L11_rect_latitude   ! 1d latitude  array for whole basin rectangle
 
   ! -----------------------------------------------------------------
   ! RUNOFF variable
@@ -152,7 +159,7 @@ module mo_mrm_global_variables
   type(period), dimension(:), allocatable, public :: evalPer     ! time period for model evaluation
   type(period), dimension(:), allocatable, public :: simPer      ! warmPer + evalPer
   type(period), dimension(:), allocatable, public :: readPer     ! start and end dates of read period
-  integer(i4), dimension(:), allocatable, public :: warmingDays ! number of days for warm up period
+  integer(i4), dimension(:), allocatable, public :: warmingDays_mrm ! number of days for warm up period
 
   ! -------------------------------------------------------------------
   ! BASIN general description
@@ -315,5 +322,13 @@ module mo_mrm_global_variables
   !                                                                  !                (attenuation).
   real(dp), public, dimension(:), allocatable     :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
   real(dp), public, dimension(:), allocatable     :: L11_C2          ! [-]     Routing parameter C2 (")
+
+  ! -------------------------------------------------------------------
+  ! DEFINE OUTPUTS 
+  ! -------------------------------------------------------------------
+  !
+  integer(i4)                      :: timeStep_model_outputs_mrm ! timestep for writing model outputs
+  logical, dimension(nOutFlxState) :: outputFlxState_mrm         ! Define model outputs see "mhm_outputs.nml"
+  !                                                            dim1 = number of output variables to be written 
 
 end module mo_mrm_global_variables

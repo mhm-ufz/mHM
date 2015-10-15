@@ -51,7 +51,7 @@ F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
 FCFLAGS  += -ffixed-form -ffixed-line-length-132
 CFLAGS   +=
 MODFLAG  := -J# space significant
-DEFINES  += -DGFORTRAN -DgFortran
+DEFINES  += -DGFORTRAN -DgFortran -DCYGWIN
 
 # Linking
 LIBS  += -L$(GNULIB)

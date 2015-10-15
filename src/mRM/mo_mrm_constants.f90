@@ -6,8 +6,8 @@
 module mo_mrm_constants
   use mo_kind, only: i4, dp
   implicit none
-  ! natural 
-  integer(i4), public, parameter :: fourtytwo = 42_i4 ! constant for universal results
+  ! maximum number of outputs (fluxes states) for mHM
+  integer(i4), public, parameter :: nOutFlxState       = 1_i4     ! max. number of outputs to write into a netcdf file
   ! computational
   integer(i4), public, parameter :: nodata_i4 = -9999_i4  ! [-]     global no data value
   real(dp),    public, parameter :: nodata_dp = -9999._dp ! [-]     global no data value
@@ -19,7 +19,11 @@ module mo_mrm_constants
   !                                                    ! (1 - past)
   !                                                    ! (2 - current)
   integer(i4), public, parameter :: nColPars = 5_i4 ! number of properties of the global variables
+#ifdef CYGWIN
+  integer(i4), public, parameter :: maxNoGauges = 50_i4 ! maximal number of gauges allowed
+#else
   integer(i4), public, parameter :: maxNoGauges = 200_i4 ! maximal number of gauges allowed
+#endif
   integer(i4), public, parameter :: maxNoBasins = 50_i4 ! maximum number of allowed basins
   integer(i4), public, parameter :: maxNLcovers = 50_i4 ! maximum number of allowed LCover scenes
   ! temporal

@@ -144,7 +144,9 @@ contains
   !>        \date Aug 2015
   !         Modified,
   !         Sep 2015, Stephan Thober - removed stop condition when routing resolution is smaller than hydrologic resolution
-  subroutine read_mrm_config()
+  !         Oct 2015, Stephan Thober - added NLoutputResults namelist, dirLatLon to directories_general namelist,
+  !                                    and readLatLon flag
+  subroutine read_mrm_config(readLatLon)
     use mo_julian, only: dec2date, date2dec
     use mo_message, only: message
     use mo_nml, only: open_nml, position_nml, close_nml
@@ -152,7 +154,8 @@ contains
          maxNoGauges, & ! maximum number of allowed gauges
          maxNLcovers, & ! maximum number of allowed LCover scenes
          maxNoBasins ! maximum number of allowed basins
-    use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm
+    use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm, &
+         file_defOutput, udefOutput
     use mo_string_utils, only: num2str
     use mo_mrm_global_variables, only : &
          nTstepDay, & ! # of time steps per day
@@ -169,6 +172,7 @@ contains
          dirOut, & ! Directory where output is written to
          dirRestartOut, & ! Directory where output of restart is written
          dirRestartIn, & ! Directory where input of restart is read from
+         dirLatLon, & ! directories where LatLon file is located
          is_start, & ! flag for first timestep
          resolutionRouting, & ! resolution of routing
          resolutionHydrology, & ! resolution of Hydrology
@@ -182,7 +186,7 @@ contains
          nBasins, & ! number of basins
          simPer, &
          evalPer, &
-         warmingDays, &
+         warmingdays_mrm, &
          warmPer, &
          timestep_model_inputs, &
          fracSealed_cityArea, nLcoverScene, & ! land cover information
@@ -198,18 +202,22 @@ contains
          mcmc_error_params,         & !       parameters of error model used in likelihood 
          mrm_global_parameters, &
          basin_mrm, &
+         timeStep_model_outputs_mrm, & ! timestep for writing model outputs
+         outputFlxState_mrm, & ! definition which output to write
          period ! structure for time periods
 
     implicit none
     ! input variables
+    ! output variables
+    logical, intent(out) :: readLatLon
     !
     ! local variables
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
-    character(256), dimension(maxNoGauges,maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoBasins,maxNoGauges) :: Gauge_filename
     integer(i4),    dimension(maxNoBasins)             :: NoInflowGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: InflowGauge_id
-    character(256), dimension(maxNoGauges,maxNoGauges) :: InflowGauge_filename
+    character(256), dimension(maxNoBasins,maxNoGauges) :: InflowGauge_filename
     logical,        dimension(maxNoBasins,maxNoGauges) :: InflowGauge_Headwater
     integer(i4)                                        :: iBasin
     integer(i4)                                        :: iGauge
@@ -226,6 +234,7 @@ contains
     character(256), dimension(maxNoBasins) :: dir_Out
     character(256), dimension(maxNoBasins) :: dir_RestartOut
     character(256), dimension(maxNoBasins) :: dir_RestartIn
+    character(256), dimension(maxNoBasins) :: dir_LatLon
     ! namelist variables: mainconfig
     real(dp), dimension(maxNoBasins) :: resolution_Routing
     real(dp), dimension(maxNoBasins) :: resolution_Hydrology
@@ -241,6 +250,8 @@ contains
     type(period), dimension(maxNoBasins) :: eval_Per
     integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
     character(256) :: para_file ! filename of parameter namelist
+    ! for output file namelist
+    logical :: file_exists
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
@@ -255,7 +266,7 @@ contains
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover,                         &
          dir_Out, dir_RestartOut,                        &
-         dir_RestartIn
+         dir_RestartIn, dir_LatLon
     namelist/LCover/ fracSealed_cityArea, nLcover_scene, LCoverYearStart, LCoverYearEnd, LCoverfName
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
@@ -263,6 +274,8 @@ contains
          InflowGauge_filename, InflowGauge_Headwater
     ! namelist for optimization settings
     namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps, mcmc_opti, mcmc_error_params
+    ! namelist defining mRM outputs
+    namelist/NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
 
     !===============================================================
     ! INITIALIZATION
@@ -301,6 +314,7 @@ contains
     allocate(dirOut(nBasins))
     allocate(dirRestartOut(nBasins))
     allocate(dirRestartIn(nBasins))
+    allocate(dirLatLon(nBasins))
     resolutionRouting = resolution_Routing(1:nBasins)
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     L0_Basin = L0Basin(1:nBasins)
@@ -322,7 +336,7 @@ contains
     ! allocate time periods
     allocate(simPer(nBasins))
     allocate(evalPer(nBasins))
-    allocate(warmingDays(nBasins))
+    allocate(warmingdays_mrm(nBasins))
     allocate(warmPer(nBasins))
     allocate(timestep_model_inputs(nBasins))
 
@@ -334,7 +348,7 @@ contains
     !===============================================================
     call position_nml('time_periods', unamelist_mrm)
     read(unamelist_mrm, nml=time_periods)
-    warmingDays = warming_Days(1:nBasins)
+    warmingDays_mrm = warming_Days(1:nBasins)
     evalPer = eval_Per(1:nBasins)
     timestep_model_inputs = time_step_model_inputs(1:nBasins)
 
@@ -365,7 +379,7 @@ contains
        evalPer(ii)%julEnd  = nint(jday_frac, i4 )
 
        ! determine warming period
-       warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays(ii)
+       warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays_mrm(ii)
        warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1
 
        jday_frac = real(warmPer(ii)%julStart,dp)
@@ -400,6 +414,7 @@ contains
     dirOut = dir_Out(1:nBasins)
     dirRestartOut = dir_RestartOut(1:nBasins)
     dirRestartIn = dir_RestartIn(1:nBasins)
+    dirLatLon = dir_LatLon(1:nBasins)
 
     !===============================================================
     ! Read land cover information
@@ -705,7 +720,38 @@ contains
        call message ('equal number of points per sub-complex (sce_nps)')
        stop
     end if
-    
+
+    !===============================================================
+    ! Read Output specifications for mRM
+    !===============================================================
+    outputFlxState_mrm = .FALSE.
+    timeStep_model_outputs_mrm = -2
+    inquire(file=file_defOutput, exist=file_exists)
+    if (file_exists) then
+       ! file exists
+       call open_nml(file_defOutput, udefOutput, quiet=.true.)
+       call position_nml('NLoutputResults', udefOutput)
+       read(udefOutput, nml=NLoutputResults)
+       call close_nml(udefOutput)
+    else
+       call message('')
+       call message('No file specifying mRM output fluxes exists')
+    end if
+    readLatLon = any(outputFlxState_mrm)
+
+    if (any(outputFlxState_mrm)) then
+       call message( '' )
+       call message( 'Following output will be written:' )
+
+       call message( '  FLUXES:' )
+       if (outputFlxState_mrm(1)) then
+          call message( '    routed streamflow      (L11_qMod)                [mm]')
+       end if
+    end if
+
+    call message( '' )
+    call message( 'FINISHED reading config' )
+
   end subroutine read_mrm_config
   
   ! ---------------------------------------------------------------------------
@@ -728,11 +774,13 @@ contains
 
     implicit none
     ! input variables
-    integer(i4), intent(in) :: processCase ! it is the default case should be one
+    integer(i4), intent(in) :: processCase ! it is the default case, should be one
     character(256), intent(in) :: file_namelist ! file name containing parameter namelist
     ! local variables
 #ifdef mrm2mhm    
     integer(i4) :: start_index ! equals sum of previous parameters
+#else
+    integer(i4) :: dummy ! dummy variable to always use processCase
 #endif    
     real(dp), dimension(nColPars) :: muskingumTravelTime_constant
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverLength
@@ -776,6 +824,8 @@ contains
             trim(adjustl(file_namelist)))
        stop
     end if
+#else
+    dummy = processCase ! dummy line to prevent compiler warning
 #endif
 
     ! set variables of mrm (redundant in case of coupling to mhm)

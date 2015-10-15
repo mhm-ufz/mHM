@@ -90,8 +90,9 @@ coord_sys = 'epsg:31467'
 #   specifies the grid properties
 #   for example, use a copy of the header.txt
 #   and adapt cellsize, ncols, nrows to your hydrologic resolution
-headerfile_l1 = ''
-headerfile_l0 = ''
+headerfile_l11 = ''
+headerfile_l1  = ''
+headerfile_l0  = ''
 
 # OUTPUT FILE
 #   path to the output file, latlon.nc is hard-coded in mHM
@@ -117,16 +118,20 @@ parser.add_option('-f', '--header_l0', action='store', dest='headerfile_l0', typ
 parser.add_option('-g', '--header_l1', action='store', dest='headerfile_l1', type='string',
                   default=headerfile_l1, metavar='Header file for level 1',
                   help='Header file containing information about e.g. number of rows and columns at level 1. (default: header.txt).')
+parser.add_option('-e', '--header_l11', action='store', dest='headerfile_l11', type='string',
+                  default=headerfile_l11, metavar='Header file for level 11',
+                  help='Header file containing information about e.g. number of rows and columns at level 1. (default: header.txt).')
 parser.add_option('-o', '--outfile', action='store', dest='outfile', type='string',
                   default=outfile, metavar='NetCDF file',
                   help='Name of NetCDF file. (default: latlon.nc).')
 
 (opts, args) = parser.parse_args()
 
-headerfile_l1 = opts.headerfile_l1
-headerfile_l0 = opts.headerfile_l0
-outfile       = opts.outfile   
-coord_sys     = opts.coord_sys
+headerfile_l11 = opts.headerfile_l11
+headerfile_l1  = opts.headerfile_l1
+headerfile_l0  = opts.headerfile_l0
+outfile        = opts.outfile   
+coord_sys      = opts.coord_sys
 
 # check whether any headerfiles are given
 if headerfile_l0 == '' and headerfile_l1 == '':
@@ -162,6 +167,14 @@ if headerfile_l1 != '':
     suffix = ['', ' at level 1']
     # write lat and lon for level 1 to file
     latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix)
+#
+if headerfile_l11 != '':
+    # get lat lon for level 1 header file
+    lons, lats, xx, yy, missVal = header_to_latlon(headerfile_l1, coord_sys)
+    suffix = ['_l11', ' at level 11']
+    # write lat and lon for level 1 to file
+    latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix)
+
 #
 # close netcdf dataset
 fhandle.close()
