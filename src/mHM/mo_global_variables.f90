@@ -455,4 +455,5 @@ MODULE mo_global_variables
   logical, dimension(nOutFlxState) :: outputFlxState         ! Define model outputs see "mhm_outputs.nml"
   !                                                            dim1 = number of output variables to be written 
   !
+  
 END MODULE mo_global_variables

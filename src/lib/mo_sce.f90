@@ -122,6 +122,9 @@ MODULE mo_sce
   !>                                                             2, no printing (DEFAULT)
   !>                                                             3, same as 0 but print progress '.' on every function call
   !>                                                             4, same as 1 but print progress '.' on every function call
+  !>        \param[in] "logical, optional       :: mymask(size(pini))"
+  !>                                                        parameter included in optimization (true) or discarded (false)
+  !>                                                             DEFAULT: .true.
   !>        \param[in] "real(dp),    optional :: myalpha"   parameter for reflection  of points in complex\n
   !>                                                             DEFAULT: 0.8_dp
   !>        \param[in] "real(dp),    optional :: mybeta"    parameter for contraction of points in complex\n
@@ -800,6 +803,11 @@ CONTAINS
 
              if (icall .ge. maxn) then
                 npt1 = ii
+                if (iprint .lt. 2) then
+                   ! maximum trials reached
+                   call write_termination_case(1)
+                   call write_best_final()
+                end if
                 exit
              end if
           end do
@@ -1190,7 +1198,14 @@ CONTAINS
                 call sort_matrix(cx(1:npg,1:nn),cf(1:npg))
                 !
                 !  if maximum number of runs exceeded, break out of the loop
-                if (icall .ge. maxn) exit
+                if (icall .ge. maxn) then
+                   if (iprint .lt. 2) then
+                      ! maximum trials reached
+                      call write_termination_case(1)
+                      call write_best_final()
+                   end if
+                   exit
+                endif
                 !
              end do subcomploop ! <alpha loop>
              !
@@ -1202,7 +1217,14 @@ CONTAINS
                 end do
                 xf(k2) = cf(k1)
              end do
-             if (icall .ge. maxn) exit
+             if (icall .ge. maxn) then
+                if (iprint .lt. 2) then
+                   ! maximum trials reached
+                   call write_termination_case(1)
+                   call write_best_final()
+                end if
+                exit
+             endif
              !
              !  end loop on complexes
           end do comploop  ! <beta loop>
