@@ -20,6 +20,7 @@ MODULE mo_mrm_init
   IMPLICIT NONE
 
   public :: mrm_init
+  public :: variables_default_init_routing
 
 CONTAINS
 
@@ -182,13 +183,6 @@ CONTAINS
     do iBasin = 1, nBasins
        call variables_alloc_routing(iBasin)
     end do
-    if (.not. read_restart) then
-       !-------------------------------------------
-       ! L11 ROUTING STATE VARIABLES, FLUXES AND
-       !             PARAMETERS
-       !-------------------------------------------
-       call variables_default_init_routing()
-    end if
     ! -------------------------------------------------------
     ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
     ! -------------------------------------------------------
