@@ -32,6 +32,7 @@ ABSOFT := /Applications/Absoft11.1
 ABSOFTBIN := $(ABSOFT)/bin
 ABSOFTINC := $(ABSOFT)/f90includes64
 ABSOFTLIB := $(ABSOFT)/lib64
+export ABSOFT
 
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib

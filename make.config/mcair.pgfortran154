@@ -32,6 +32,23 @@ PGIDIR := /Applications/Program/FreePGI.app/Contents/Resources/pgi/osx86-64/15.4
 PGILIB := $(PGIDIR)/lib
 PGIBIN := $(PGIDIR)/bin
 
+# export for compilation, from $(PGIBIN)/launch_pgi.sh
+PGI_PGI_PATH   := $(dir $(dir $(dir "${PGIDIR}")))
+PGI_LOCALDEFS  := $(shell "${PGIBIN}/makelocalrc" -op LOCALDEFS -x "$(ROOT)")
+PGI_OEM_INFO   := $(shell "${PGIBIN}/makelocalrc" -op OEM_INFO -x "$(ROOT)")
+PGI_GCCVERSION := $(shell "${PGIBIN}/makelocalrc" -op GCCVERSION -x "$(ROOT)")
+PGI_GCCDIR     := $(shell "${PGIBIN}/makelocalrc" -op GCCDIR -x "$(ROOT)")
+PGI_GCCINC     := $(shell "${PGIBIN}/makelocalrc" -op GCCINC -x "$(ROOT)")
+PGI_GCCDIR64   := $(shell "${PGIBIN}/makelocalrc" -op GCCDIR64 -x "$(ROOT)")
+PGI_MINOSX     := $(shell "${PGIBIN}/makelocalrc" -op MINOSX -x "$(ROOT)")
+PGI_MINOSXNUM  := $(shell "${PGIBIN}/makelocalrc" -op MINOSXNUM -x "$(ROOT)")
+PGI_HASGCC_EH  := $(shell "${PGIBIN}/makelocalrc" -op LC -x "$(ROOT)")
+# Mac OS X 10.9
+PGI_ISCLANG31  := $(shell "${PGIBIN}/makelocalrc" -op ISCLANG31 -x "$(ROOT)")
+# Mac OS X 10.10
+# PGI_ISCLANG31  := $(shell "${PGIBIN}/makelocalrc" -op ISCLANG31 -x "$(ROOT)" | cut -d ' ' -f 4)
+export PGI_PGI_PATH PGI_LOCALDEFS PGI_OEM_INFO PGI_GCCVERSION PGI_GCCDIR PGI_GCCINC PGI_GCCDIR64 PGI_MINOSX PGI_MINOSXNUM PGI_HASGCC_EH PGI_ISCLANG31
+
 # Compiling
 F90 := $(PGIBIN)/pgfortran
 FC  := $(F90)

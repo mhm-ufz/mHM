@@ -45,6 +45,7 @@ MODULE mo_string_utils
   PUBLIC :: separator     ! Format string: '-----...-----'
   PUBLIC :: splitString   ! splits string at given delimiter
   PUBLIC :: startsWith    ! checks if string starts with a certain string
+  PUBLIC :: str2num       ! Converts string into an array of its numerical representation
   PUBLIC :: tolower       ! Conversion   : 'ABCXYZ' -> 'abcxyz'
   PUBLIC :: toupper       ! Conversion   : 'abcxyz' -> 'ABCXYZ'
   

@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/mRM ./src/mHM # where are the source files; use test_??? to run a test directory
+SRCPATH    := ./src/lib ./src/common ./src/mHM ./src/mRM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
@@ -644,7 +644,7 @@ endif
 ifeq ($(lapack),true)
     # Mac OS X uses frameworks
     ifneq (,$(findstring $(iOS),Darwin))
-        iLIBS += -framework veclib
+        iLIBS += -framework Accelerate
     else
         ifeq ("$(wildcard $(LAPACKDIR)*)","")
             $(error Error: LAPACK path '$(LAPACKDIR)' not found.)
@@ -785,10 +785,7 @@ ifeq (,$(findstring $(iOS),Darwin))
     LIBS += $(iRPATH)
 endif
 
-# The Absoft compiler needs that ABSOFT is set to the Absoft base path
-ifneq ($(ABSOFT),)
-    export ABSOFT
-endif
+# export LD_LIBRARY_PATH of make.config files
 ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)

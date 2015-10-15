@@ -17,6 +17,7 @@ MODULE mo_moment
 
   ! Written Nov 2011, Matthias Cuntz
   !         Modified, MC, Dec 2011 - mod. correlation, covariance
+  !         Modified by M. Schroen, Sep 2015, average/mean for single value
 
   ! License
   ! -------
@@ -927,7 +928,6 @@ CONTAINS
        maske(:) = .true.
        n = real(size(dat),dp)
     endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'average_dp: n must be at least 2'
 
     ! Average
     average_dp  = sum(dat(:), mask=maske)/n
@@ -954,7 +954,6 @@ CONTAINS
        maske(:) = .true.
        n = real(size(dat),sp)
     endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'average_sp: n must be at least 2'
 
     ! Average
     average_sp  = sum(dat(:), mask=maske)/n
@@ -1358,7 +1357,6 @@ CONTAINS
        maske(:) = .true.
        n = real(size(dat),dp)
     endif
-    if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'mean_dp: n must be at least 2'
 
     ! Mean
     mean_dp  = sum(dat(:), mask=maske)/n
@@ -1386,7 +1384,6 @@ CONTAINS
        maske(:) = .true.
        n = real(size(dat),sp)
     endif
-    if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'mean_sp: n must be at least 2'
 
     ! Mean
     mean_sp  = sum(dat(:), mask=maske)/n
