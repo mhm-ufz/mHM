@@ -326,7 +326,7 @@ CONTAINS
     integer(i4)                           :: nmeas
     real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
     real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c, vary, vary1, ln2pi
+    real(dp)                              :: a, b, c, vary, vary1, ln2pi, tmp
     integer(i4)                           :: npara
 
     npara = size(parameterset)
@@ -370,8 +370,6 @@ CONTAINS
          - real(nmeas-1,dp)*log(sqrt(2.0_dp*pi_dp*vary)) &
          - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1) - sum(log(sigma(2:nmeas)))
 
-    write(*,*) '-loglikelihood_evin2013_2.1 = ', -loglikelihood_evin2013_2
-
     ! penalty term due to parameter sets which are out of bound
     ! penalty term = 0, if parameter set is in bound
     penalty = penalty_out_of_bound(        &
@@ -380,9 +378,10 @@ CONTAINS
          global_parameters(1:npara-2,1:2), &        ! bounds
          eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
 
-    loglikelihood_evin2013_2 = loglikelihood_evin2013_2 + penalty
+    tmp = loglikelihood_evin2013_2 + penalty
+    write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, tmp/real(nmeas,dp)
 
-    write(*,*) '-loglikelihood_evin2013_2.2 = ', -loglikelihood_evin2013_2
+    loglikelihood_evin2013_2 = tmp
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
