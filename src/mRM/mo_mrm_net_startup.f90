@@ -177,9 +177,9 @@ contains
     cellFactorR    = level11%cellsize(iBasin) / cellsize0
     ! create a mask: Id with respect to Level 0
     do jc = 1, ncols11
-       jcc = jc * cellfactorR
+       jcc = jc * nint(cellfactorR,i4)
        do ic = 1, nrows11
-          icc = ic * cellfactorR
+          icc = ic * nint(cellfactorR,i4)
           ! ceiling ( real(jc, dp)/cellFactorR )
           if ( .not. any(mask0(icc - int(cellFactorR,i4) + 1:icc, jcc - int(cellfactorR,i4) + 1:jcc)) ) cycle
           ! Identify grids (of level-1) which will take part at the routing level-11

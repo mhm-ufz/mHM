@@ -473,7 +473,7 @@ contains
 224 format (a40, 5x, a256)
 
 301 format (a7, i2, a32,f15.0)
-302 format (a7, i2, a32,es20.8)
+! 302 format (a7, i2, a32,es20.8)
   end Subroutine write_configfile
 
   ! ------------------------------------------------------------------

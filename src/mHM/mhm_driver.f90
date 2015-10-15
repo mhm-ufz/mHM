@@ -169,6 +169,7 @@ PROGRAM mhm_driver
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        nIterations, seed,                                    &      ! settings for optimization algorithms
        dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
+       mcmc_opti, mcmc_error_params,                         &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
        processMatrix,                                        &      ! basin information,  processMatrix
        opti_function, dirConfigOut,                          &
@@ -176,11 +177,11 @@ PROGRAM mhm_driver
        L0_elev,                                              & ! L0_elev for mrm_init call
        L0_LCover                                               ! L0_LCover for mrm_init call
   USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
-  USE mo_mcmc,                ONLY : mcmc_stddev                    ! Monte Carlo Markov Chain method
+  USE mo_mcmc,                ONLY : mcmc, mcmc_stddev              ! Monte Carlo Markov Chain method
   USE mo_message,             ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
-  USE mo_objective_function,  ONLY : objective, loglikelihood       ! objective functions and likelihoods
+  USE mo_objective_function,  ONLY : objective, loglikelihood, loglikelihood_stddev ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
   USE mo_read_optional_data,  ONLY : read_soil_moisture             ! optional soil moisture reader
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
@@ -196,6 +197,7 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
+  USE mo_xor4096,             ONLY : get_timeseed                   ! generating a seed from clock
 #ifdef mrm2mhm
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
@@ -216,9 +218,12 @@ PROGRAM mhm_driver
   real(dp), dimension(:,:), allocatable :: mcmc_paras       ! parameter sets sampled during proper mcmc
   logical,  dimension(:),   allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
   !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
+  ! setting step sizes manually
+  ! real(dp), dimension(:),   allocatable :: step            ! pre-determined stepsize 
   integer(i4)                           :: npara
   real(dp), dimension(:,:), allocatable :: local_parameters ! global_parameters but includes a and b for likelihood
   logical,  dimension(:),   allocatable :: local_maskpara   ! maskpara but includes a and b for likelihood
+  integer(i8)                           :: iseed            ! local seed used for optimization
   character(256)                        :: tFile            ! file for temporal optimization outputs
   character(256)                        :: pFile            ! file for temporal SCE optimization outputs
   
@@ -365,9 +370,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .eq. 1) then
-     call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
-  end if
+  if (processMatrix(8, 1) .eq. 1) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
 #endif  
 
   !this call may be moved to another position as it writes the master config out file for all basins
@@ -398,6 +401,8 @@ PROGRAM mhm_driver
      if (opti_function == 8) then
         allocate(local_parameters(npara+2,size(global_parameters,2)))
         allocate(local_maskpara(npara+2))
+        ! setting step sizes manually
+        ! allocate(step(npara+2))
         local_parameters(1:npara,:) = global_parameters(:,:)
         local_maskpara(1:npara)     = maskpara(:)
         local_parameters(npara+1,1) = 0.001_dp
@@ -411,11 +416,23 @@ PROGRAM mhm_driver
         local_parameters(npara+2,4) = 1._dp
         local_parameters(npara+2,5) = 0._dp
         local_maskpara(npara+1:)    = .true.
+        if ((opti_method == 0) .and. (.not. mcmc_opti)) then ! MCMC but only for parameter uncertainties
+           local_parameters(npara+1,3) = mcmc_error_params(1)
+           local_parameters(npara+2,3) = mcmc_error_params(2)
+           local_maskpara(npara+1:)    = .false.
+        endif
      else
         allocate(local_parameters(npara,size(global_parameters,2)))
         allocate(local_maskpara(npara))
         local_parameters = global_parameters
         local_maskpara   = maskpara
+     endif
+
+     ! Seed for random numbers in optimisation
+     if (seed .gt. 0_i8) then    ! fixed user-defined seed
+        iseed = seed
+     else                        ! flexible clock-time seed
+        call get_timeseed(iseed)
      endif
 
      select case (opti_method)
@@ -424,64 +441,50 @@ PROGRAM mhm_driver
         
         tFile = trim(adjustl(dirConfigOut)) // 'mcmc_tmp_parasets.nc'
 
-        if (seed .gt. 0_i8) then
-           ! use fixed user-defined seed
-           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras,&
-                burnin_paras, ParaSelectMode_in=2_i4, tmp_file=tFile, &
-                maskpara_in=local_maskpara,                           &
-                seed_in=seed, loglike_in=.true., printflag_in=.true.)
+        ! setting step sizes manually
+        ! step=(/ 1.00000000000000,  ... , /)
+        
+        if (opti_function == 8) then
+           call message('    Use MCMC')
+           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+                ParaSelectMode_in=2_i4, tmp_file=tFile,                                      &
+                maskpara_in=local_maskpara,                                                                   &
+                restart=.false., restart_file='mo_mcmc.restart',                                               &
+                ! stepsize_in=step,                                                                            &
+                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
         else
-           ! use flexible clock-time seed
-           call mcmc_stddev(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras,&
-                burnin_paras, ParaSelectMode_in=2_i4,tmp_file=tFile,                                  &
-                maskpara_in=local_maskpara,                                                           &
-                loglike_in=.true., printflag_in=.true.)
-        end if
+           call message('    Use MCMC_STDDEV')
+           call mcmc_stddev(loglikelihood_stddev, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
+                ParaSelectMode_in=2_i4, tmp_file=tFile,                                                    &
+                maskpara_in=local_maskpara,                                                                                 &
+                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
+        endif
+
      case (1)
         call message('    Use DDS')
 
         tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
         
-        if (seed .gt. 0_i8) then
-           ! use fixed user-defined seed
-           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-                maxiter=int(nIterations,i8), r=dds_r, seed=seed,                                      &
-                tmp_file=tFile, mask=local_maskpara,                                                  &
-                funcbest=funcbest)
-        else
-           ! use flexible clock-time seed
-           local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-                maxiter=int(nIterations,i8), r=dds_r,                                                 &
-                tmp_file=tFile, mask=local_maskpara,                                                  &
-                funcbest=funcbest)
-        end if
+        ! use fixed user-defined seed
+        local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+             maxiter=int(nIterations,i8), r=dds_r, seed=iseed,                                      &
+             tmp_file=tFile, mask=local_maskpara,                                                  &
+             funcbest=funcbest)
      case (2)
         call message('    Use Simulated Annealing')
 
         tFile = trim(adjustl(dirConfigOut)) // 'anneal_results.out'
         
-        if (seed .gt. 0_i8 .and. sa_temp .gt. 0.0_dp) then
+        if (sa_temp .gt. 0.0_dp) then
            ! use fixed user-defined seed and user-defined initial temperature
            local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                temp=sa_temp, seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,       &
-                tmp_file=tFile, maskpara=local_maskpara,                                              &
-                funcbest=funcbest)
-        else if (seed .gt. 0_i8) then
-           ! use fixed user-defined seed and adaptive initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                seeds=(/seed, seed+1000_i8, seed+2000_i8/), nITERmax=nIterations,                     &
-                tmp_file=tFile, maskpara=local_maskpara,                                              &
-                funcbest=funcbest)
-        else if (sa_temp .gt. 0.0_dp) then
-           ! use flexible clock-time seed and user-defined initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                temp=sa_temp, nITERmax=nIterations,                                                   &
+                temp=sa_temp, seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,       &
                 tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         else
-           ! use flexible clock-time seed and adaptive initial temperature
+           ! use fixed user-defined seed and adaptive initial temperature
            local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                nITERmax=nIterations,                                                                 &
+                seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,                     &
                 tmp_file=tFile, maskpara=local_maskpara,                                              &
                 funcbest=funcbest)
         end if
@@ -491,21 +494,12 @@ PROGRAM mhm_driver
         tFile = trim(adjustl(dirConfigOut)) // 'sce_results.out'
         pFile =  trim(adjustl(dirConfigOut)) // 'sce_population.out'
         
-        if (seed .gt. 0_i8) then
-           ! use fixed user-defined seed
-           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-                mymaxn=int(nIterations,i8), myseed=seed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps, &
-                parallel=.false., mymask=local_maskpara,                                              &
-                tmp_file=tFile, popul_file=pFile,                                                     &
-                bestf=funcbest)
-        else
-           ! use flexible clock-time seed
-           local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-                mymaxn=int(nIterations,i8), myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps,              &
-                parallel=.false., mymask=local_maskpara,                                              &
-                tmp_file=tFile, popul_file=pFile,                                                     &
-                bestf=funcbest)
-        end if
+        ! use fixed user-defined seed
+        local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
+             mymaxn=int(nIterations,i8), myseed=iseed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps, &
+             parallel=.false., mymask=local_maskpara,                                              &
+             tmp_file=tFile, popul_file=pFile,                                                     &
+             bestf=funcbest)
      case default
         call finish('mHM','This optimization method is not implemented.')
      end select
@@ -524,7 +518,8 @@ PROGRAM mhm_driver
      deallocate(local_parameters)
      deallocate(local_maskpara)
 
-  else
+  else ! if (optimize)
+     
      ! --------------------------------------------------------------------------
      ! call mHM
      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
@@ -535,8 +530,8 @@ PROGRAM mhm_driver
      call mhm_eval(global_parameters(:,3))
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
-     !
-  end if
+
+  end if ! if (optimize)
 
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files

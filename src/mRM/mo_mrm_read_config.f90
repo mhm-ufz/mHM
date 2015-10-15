@@ -198,6 +198,8 @@ contains
          sa_temp, & ! SA: initial temperature
          sce_ngs, sce_npg, sce_nps, & ! SCE: # complexes, # points per complex,
          !                            !      # points per subcomplex
+         mcmc_opti,                 & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
+         mcmc_error_params,         & !       parameters of error model used in likelihood 
          mrm_global_parameters, &
          basin_mrm, &
          timeStep_model_outputs_mrm, & ! timestep for writing model outputs
@@ -271,7 +273,7 @@ contains
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
          InflowGauge_filename, InflowGauge_Headwater
     ! namelist for optimization settings
-    namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps
+    namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps, mcmc_opti, mcmc_error_params
     ! namelist defining mRM outputs
     namelist/NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
 

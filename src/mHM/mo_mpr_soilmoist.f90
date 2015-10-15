@@ -623,6 +623,11 @@ contains
        ! Put constrains on theta_S 
        thetaS = 0.01_dp
     end if
+    if (thetaS > 1.0_dp) then
+       write(*,*) 'thetaS above 1, reset.'
+       ! Put constrains on theta_S 
+       thetaS = 1.0_dp
+    end if
     if (Genu_Mual_n < 1.01000_dp) then
        write(*,*) 'Genu_Mual_n below threshold limit 1.01, reset.'
        Genu_Mual_n = 1.01000_dp

@@ -196,8 +196,7 @@ shift $((${OPTIND} - 1))
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
 if [[ "${compilers}" == "all" ]] ; then
-    compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | grep -v 'sun12' | cut -d '/' -f 3 | cut -d '.' -f 2)
-    # compilers=$(\ls ../make.config/${system}.* | grep -v 'alias' | grep -v 'gnu41' | grep -v 'gnu44' | cut -d '/' -f 3 | cut -d '.' -f 2)
+    compilers=$(\ls ../make.config/${system}.* | grep -Ev '(alias|gnu41|gnu44|sun12|pgfortran154)' | cut -d '.' -f 5)
 fi
 
 # argument
@@ -216,10 +215,7 @@ if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
-        if [[ $(hostname) == 'frontend1' ]]; then
-            module load cdo
-        fi
-        if [[ $(hostname) == 'frontend2' ]]; then
+        if [[ $(hostname) == 'frontend1' || $(hostname) == 'frontend2' ]] ; then
             module load cdo
         fi
         icdo=$(which cdo)

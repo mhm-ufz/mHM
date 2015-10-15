@@ -35,8 +35,9 @@ MODULE mo_objective_function
 
   PRIVATE
 
-  PUBLIC :: loglikelihood    ! loglikelihood with errormodel including linear trend and lag(1)-correlation
-  PUBLIC :: objective        ! objective function wrapper
+  PUBLIC :: loglikelihood        ! loglikelihood with errormodel including linear trend and lag(1)-correlation
+  PUBLIC :: loglikelihood_stddev ! loglikelihood where error is computed from difference of obs vs model
+  PUBLIC :: objective            ! objective function wrapper
 
   ! ------------------------------------------------------------------
 
@@ -46,6 +47,74 @@ CONTAINS
 
   !      NAME
   !          loglikelihood
+
+  !>        \brief Wrapper for loglikelihood functions.
+
+  !>        \details This wrapper picks the loglikelihood function selected from the namelist parameter
+  !>                 \e opti\_function. \n
+  !>                 It returns the return value of the selected loglikelihood function.
+  !>
+  !>                 This routine assumes that the wrapped function is a real likelihood
+  !>                 where the errors are known or modelled.
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: loglikelihood &mdash; loglikelihood function value
+
+  !     RESTRICTIONS
+  !>       \note The wrapped functions must return real loglikelihoods, i.e. 
+  !>        errors are either known from observations or modelled.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = loglikelihood(para)
+
+  !     LITERATURE
+
+  !     HISTORY
+  !>        \author Juliane Mai
+  !>        \date Dec 2012
+  !         Modified, 
+  FUNCTION loglikelihood(parameterset)
+
+    USE mo_global_variables, ONLY: opti_function
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+    REAL(dp)                           :: loglikelihood
+
+    select case (opti_function)
+    case (8)
+       ! Approach 2 of Evin et al. (2013), i.e. linear error model with lag(1)-autocorrelation on relative errors
+       loglikelihood = loglikelihood_evin2013_2(parameterset)
+    case default
+       stop "Error loglikelihood: chosen opti_function is no loglikelihood."
+    end select
+    
+  END FUNCTION loglikelihood
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          loglikelihood_stddev
 
   !>        \brief Logarithmic likelihood function with removed linear trend and Lag(1)-autocorrelation.
 
@@ -75,7 +144,7 @@ CONTAINS
   !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
 
   !     RETURN
-  !>       \return     real(dp) :: loglikelihood &mdash; logarithmic likelihood using given stddev 
+  !>       \return     real(dp) :: loglikelihood_stddev &mdash; logarithmic likelihood using given stddev 
   !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors 
   !>                                                     (absolute between running model with parameterset and observation) 
 
@@ -85,7 +154,7 @@ CONTAINS
   !     EXAMPLE
   !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
   !         stddev = 0.5_dp
-  !         log_likeli = loglikelihood(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
+  !         log_likeli = loglikelihood_stddev(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
 
   !     LITERATURE
 
@@ -96,7 +165,7 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood( parameterset, stddev, stddev_new, likeli_new)
+  FUNCTION loglikelihood_stddev(parameterset, stddev, stddev_new, likeli_new)
     use mo_moment,           only: mean, correlation
     use mo_linfit,           only: linfit
     use mo_mhm_eval,         only: mhm_eval
@@ -108,7 +177,7 @@ CONTAINS
     real(dp),               intent(in)            :: stddev           ! standard deviation of data
     real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
     real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
-    real(dp)                                      :: loglikelihood
+    real(dp)                                      :: loglikelihood_stddev
 
     ! local
     real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
@@ -154,10 +223,10 @@ CONTAINS
 
     ! you have to take stddev=const because otherwise loglikelihood is always N
     ! in MCMC stddev gets updated only when a better likelihood is found.
-    loglikelihood = sum( errors(:) * errors(:) / stddev**2 )
-    loglikelihood = -0.5_dp * loglikelihood
+    loglikelihood_stddev = sum( errors(:) * errors(:) / stddev**2 )
+    loglikelihood_stddev = -0.5_dp * loglikelihood_stddev
 
-    write(*,*) '-loglikelihood = ', -loglikelihood
+    write(*,*) '-loglikelihood_stddev = ', -loglikelihood_stddev
 
     stddev_tmp = sqrt(sum( (errors(:) - mean(errors)) * (errors(:) - mean(errors))) / real(nmeas-1,dp))
     if (present(stddev_new)) then
@@ -171,12 +240,12 @@ CONTAINS
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors)
     
-  END FUNCTION loglikelihood
+  END FUNCTION loglikelihood_stddev
 
   ! ------------------------------------------------------------------
 
   !      NAME
-  !          loglikelihood_kavetski
+  !          loglikelihood_evin2013_2
 
   !>        \brief Logarithmised likelihood with linear error model and lag(1)-autocorrelation
   !>               of the relative errors.
@@ -184,7 +253,7 @@ CONTAINS
   !>        \details This loglikelihood uses a linear error model and a lag(1)-autocorrelation
   !>                 on the relative errors. This is approach 2 of the paper Evin et al. (WRR, 2013).
   !>
-  !>                 This is opti_method = 8.
+  !>                 This is opti_function = 8.
   !>
   !>                 mHM then adds two extra (local) parameters for the error model in mhm_driver,
   !>                 which get optimised together with the other, global parameters.
@@ -211,7 +280,7 @@ CONTAINS
   !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
 
   !     RETURN
-  !>       \return     real(dp) :: loglikelihood_kavetski &mdash; logarithmic likelihood using given stddev 
+  !>       \return     real(dp) :: loglikelihood_evin2013_2 &mdash; logarithmic likelihood using given stddev 
   !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors 
   !>                                                     (absolute between running model with parameterset and observation) 
 
@@ -220,7 +289,7 @@ CONTAINS
 
   !     EXAMPLE
   !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !         log_likeli = loglikelihood_kavetski(para, 1.0_dp)
+  !         log_likeli = loglikelihood_evin2013_2(para, 1.0_dp)
 
   !     LITERATURE
   !         Evin et al., WRR 49, 4518-4524, 2013
@@ -232,23 +301,24 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood_kavetski( parameterset, stddev_old, stddev_new, likeli_new)
+  FUNCTION loglikelihood_evin2013_2(parameterset)
+
     use mo_constants,        only: pi_dp
-    use mo_moment,           only: stddev, correlation
+    use mo_moment,           only: correlation
     use mo_mhm_eval,         only: mhm_eval
+    use mo_global_variables, only: global_parameters ! for parameter ranges --> col1=min, col2=max
+    use mo_utils,            only: eq
     use mo_append,           only: append
 
     implicit none
 
     real(dp), dimension(:), intent(in)            :: parameterset
-    real(dp),               intent(in)            :: stddev_old       ! standard deviation of data
-    real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
-    real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
-    real(dp)                                      :: loglikelihood_kavetski
+    real(dp)                                      :: loglikelihood_evin2013_2
 
     ! local
     real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    real(dp)                              :: penalty                  ! penalty term due to a parmeter set out of bound
     integer(i4)                           :: gg                       ! gauges counter
     real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
     real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
@@ -256,13 +326,11 @@ CONTAINS
     integer(i4)                           :: nmeas
     real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
     real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c, vary, vary1
-    real(dp)                              :: stddev_tmp
+    real(dp)                              :: a, b, c, vary, vary1, ln2pi, tmp
     integer(i4)                           :: npara
 
     npara = size(parameterset)
     call mhm_eval(parameterset(1:npara-2), runoff=runoff)
-
   
     ! extract runoff and append it to obs and calc
     do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
@@ -294,33 +362,69 @@ CONTAINS
     y(1) = 0.0_dp ! only for completeness
     y(2:nmeas) = eta(2:nmeas) - c*eta(1:nmeas-1)
 
-    ! likelihood of residual errors (leave out ln(1/sqrt(2*pi)))
+    ! likelihood of residual errors
+    ln2pi = log(sqrt(2.0_dp*pi_dp))
     vary  = 1.0_dp - c*c
     vary1 = 1.0_dp / vary
-    loglikelihood_kavetski = real(nmeas-1,dp)*log(1.0_dp/sqrt(2.0_dp*pi_dp*vary)) &
-         - log(sigma(1)) - 0.5_dp*eta(1)*eta(1) &
-         - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1 + log(sigma(2:nmeas)))
+    loglikelihood_evin2013_2 = -ln2pi - 0.5_dp*eta(1)*eta(1) - log(sigma(1)) & ! li(eta(1))/sigma(1)
+         - real(nmeas-1,dp)*log(sqrt(2.0_dp*pi_dp*vary)) &
+         - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1) - sum(log(sigma(2:nmeas)))
 
-    write(*,*) '-loglikelihood_kavetski = ', -loglikelihood_kavetski
+    ! penalty term due to parameter sets which are out of bound
+    ! penalty term = 0, if parameter set is in bound
+    penalty = penalty_out_of_bound(        &
+         parameterset(1:npara-2),          &        ! current parameter set 
+         global_parameters(1:npara-2,3),   &        ! prior/initial parameter set
+         global_parameters(1:npara-2,1:2), &        ! bounds
+         eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
 
-    ! This is for the interface of MCMC
-    stddev_tmp = stddev_old   ! this is for the compiler so that stddev_old gets used
-    stddev_tmp = 1.0_dp  ! initialization
-    if (present(stddev_new) .or. present(likeli_new)) then
-       stddev_tmp = stddev(errors(:))
-    end if
-    if (present(stddev_new)) then
-       stddev_new = stddev_tmp
-    end if
-    if (present(likeli_new)) then
-       likeli_new = sum( errors(:) * errors(:) / stddev_tmp**2 )
-       likeli_new = -0.5_dp * likeli_new
-    end if
+    tmp = loglikelihood_evin2013_2 + penalty
+    write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, tmp/real(nmeas,dp)
+
+    loglikelihood_evin2013_2 = tmp
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
     
-  END FUNCTION loglikelihood_kavetski
+  END FUNCTION loglikelihood_evin2013_2
+
+  FUNCTION penalty_out_of_bound(paraset, prior, bounds, mask)
+
+    use mo_constants,        only: pi_dp
+
+    implicit none
+
+    real(dp), dimension(:),               intent(in) :: paraset
+    real(dp), dimension(size(paraset)),   intent(in) :: prior
+    real(dp), dimension(size(paraset),2), intent(in) :: bounds                      ! (min, max)
+    logical,  dimension(size(paraset)),   intent(in) :: mask
+    real(dp)                                         :: penalty_out_of_bound
+
+    ! local variables
+    integer(i4) :: ipara
+    integer(i4) :: npara
+    real(dp), parameter :: onetwelveth = 1._dp/12._dp
+    real(dp), dimension(size(paraset)) :: sigma
+
+    npara = size(paraset,1)
+
+    sigma = sqrt(onetwelveth*(bounds(:,2)-bounds(:,1))**2)
+    penalty_out_of_bound = -sum(log(sqrt(2.0_dp*pi_dp)*sigma), mask=mask)
+
+    do ipara=1,npara
+       if (mask(ipara)) then
+          ! if ((paraset(ipara) .lt. bounds(ipara,1)) .or. (paraset(ipara) .gt. bounds(ipara,2))) then
+          !    ! outside bounds
+             penalty_out_of_bound = penalty_out_of_bound - &
+                  0.5_dp*((paraset(ipara)-prior(ipara))/sigma(ipara))**2
+          ! else
+          !    ! in bound
+          !    penalty_out_of_bound = 0.0_dp
+          ! end if
+       endif
+    end do
+
+  END FUNCTION penalty_out_of_bound
 
   ! ------------------------------------------------------------------
 
@@ -502,8 +606,8 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(DP), DIMENSION(:), INTENT(IN)  :: parameterset
-    REAL(DP)                            :: objective
+    REAL(dp), DIMENSION(:), INTENT(IN)  :: parameterset
+    REAL(dp)                            :: objective
 
     !write(*,*) 'parameterset: ',parameterset(:)
     select case (opti_function)
@@ -518,7 +622,7 @@ CONTAINS
        objective = objective_equal_nse_lnnse(parameterset)
     case (4)
        ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
-       objective = - loglikelihood(parameterset, 1.0_dp)
+       objective = - loglikelihood_stddev(parameterset, 1.0_dp)
     case (5)
        ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
        objective = objective_power6_nse_lnnse(parameterset)
@@ -529,8 +633,9 @@ CONTAINS
        ! -loglikelihood with trend removed from absolute errors
        objective = -loglikelihood_trend_no_autocorr(parameterset, 1.0_dp)
     case (8)
-       ! -loglikelihood with trend removed from relative errors and then lag(1)-autocorrelation removed
-       objective = -loglikelihood_kavetski(parameterset, 1.0_dp)
+       ! -loglikelihood of approach 2 of Evin et al. (2013),
+       !  i.e. linear error model with lag(1)-autocorrelation on relative errors
+       objective = -loglikelihood_evin2013_2(parameterset)
     case (9)
        ! KGE
        objective = objective_kge(parameterset)

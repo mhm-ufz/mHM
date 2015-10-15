@@ -155,6 +155,8 @@ CONTAINS
          sa_temp,                                           & ! SA: initial temperature
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
          !                                                    !      # points per subcomplex
+         mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
+         mcmc_error_params,                                 & !       parameters of error model used in likelihood 
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -348,7 +350,7 @@ CONTAINS
     ! name list regarding output
     namelist/NLoutputResults/timeStep_model_outputs, outputFlxState
     ! namelist for optimization settings
-    namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps
+    namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps, mcmc_opti, mcmc_error_params
 
     !===============================================================
     !  Read namelist main directories

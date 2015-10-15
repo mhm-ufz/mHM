@@ -310,14 +310,13 @@ contains
     ! local
     integer(i4)             :: ii, ncols, nrows, ncells
     character(3)            :: dtype
-    character(16)           :: dims1(3), unit
+    character(16)           :: dims1(3)
     type(NcDataset)         :: nc
     type(OutputVariable)    :: tmpvars(size(outputFlxState_mrm))
 
     call get_basin_info_mrm (ibasin, 11, ncols, nrows, ncells=ncells)
 
     dtype = "f64"
-    unit  = fluxesUnit(ibasin)
     dims1 = (/"easting ", "northing","time    "/)
     nc    = createOutputFile(ibasin)
     

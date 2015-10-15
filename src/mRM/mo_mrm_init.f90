@@ -13,10 +13,6 @@ MODULE mo_mrm_init
 
   ! Written  Luis Samaniego, Mar 2005
 
-  USE mo_kind,          ONLY: i4, dp
-  USE mo_mrm_constants, ONLY: nodata_i4, nodata_dp
-  USE mo_append,        ONLY: append
-
   IMPLICIT NONE
 
   public :: mrm_init
@@ -76,6 +72,7 @@ CONTAINS
 
   subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
 
+    use mo_kind,    only: i4, dp
     use mo_message, only: message
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
          mrm_L1_variable_init, &
@@ -94,10 +91,6 @@ CONTAINS
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
          L11_stream_features
-    use mo_mrm_constants, only: nodata_i4, &
-         maxNoGauges, & ! maximum number of allowed gauges
-         maxNLcovers, & ! maximum number of allowed LCover scenes
-         maxNoBasins ! maximum number of allowed basins
 
     implicit none
     ! input variables
@@ -216,10 +209,13 @@ CONTAINS
 
   end subroutine mrm_init
 
+  
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================
   subroutine print_startup_message()
+
+    use mo_kind,    only: i4
     use mo_message, only: message, message_text
     use mo_string_utils, only: num2str, separator
     use mo_mrm_file, only: &
@@ -260,10 +256,13 @@ CONTAINS
 
   end subroutine print_startup_message
 
+  
   !---------------------------------------------------------------
   ! Config output
   !---------------------------------------------------------------
   subroutine config_output()
+
+    use mo_kind,    only: i4
     use mo_string_utils, only: num2str
     use mo_message, only: message
     use mo_mrm_file, only: &
@@ -365,6 +364,7 @@ CONTAINS
   !         Modified
 
   subroutine variables_default_init_routing()
+
     use mo_mrm_global_variables, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
          L11_FracFPimp
@@ -395,13 +395,17 @@ CONTAINS
     L11_FracFPimp = P1_InitStateFluxes
   end subroutine variables_default_init_routing
 
+  
   ! --------------------------------------------------------------------------
   ! L0_check_input_routing
   ! --------------------------------------------------------------------------
   subroutine L0_check_input_routing(iBasin)
+    
+    use mo_kind,    only: i4
     use mo_message, only: message, message_text
     use mo_string_utils, only: num2str
     use mo_mrm_global_variables, only: L0_fDir, L0_fAcc, basin_mrm
+    USE mo_mrm_constants, ONLY: nodata_i4
     implicit none
     ! input variables
     integer(i4) :: iBasin
@@ -427,11 +431,14 @@ CONTAINS
     
   end subroutine L0_check_input_routing
 
+  
   ! --------------------------------------------------------------------------
   ! L11 ROUTING STATE VARIABLES, FLUXES AND
   !             PARAMETERS
   ! --------------------------------------------------------------------------
   subroutine variables_alloc_routing(iBasin)
+    
+    use mo_kind,    only: i4, dp
     use mo_mrm_constants,    only: nRoutingStates
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
