@@ -5,7 +5,7 @@
 !> \authors Stephan Thober
 !> \date Nov 2013
 
-MODULE mo_read_latlon
+MODULE mo_mrm_read_latlon
 
   ! This module provides routines for reading latitude and longitude coordinates
   ! from file.
@@ -75,12 +75,13 @@ CONTAINS
   !>        \date   Nov 2013
   !         modified, Stephan Thober, Sep 2015 - added latitude and longitude for level 0
   !                   Stephan Thober, Oct 2015 - added L1_rect_latitude and L1_rect_longitude
+  !                   Stephan Thober, Oct 2015 - adapted to mRM
 
   subroutine read_latlon(ii)
     
-    USE mo_global_variables, ONLY: dirLatLon, L1_latitude, L1_longitude, level1, &
-         L0_latitude, L0_longitude, level0, basin, L0_Basin, &
-         L1_rect_latitude, L1_rect_longitude
+    USE mo_mrm_global_variables, ONLY: dirLatLon, level11, &
+         L0_latitude, L0_longitude, level0, basin_mrm, L0_Basin, &
+         L11_rect_latitude, L11_rect_longitude
     USE mo_append,           ONLY: append
     USE mo_message,          ONLY: message
     USE mo_ncread,           ONLY: get_NcVar, get_NcDim
@@ -104,7 +105,7 @@ CONTAINS
     ! -------------------------------------------------------------------------
     if (ii .eq. 1) then
        ! create mask for level 0
-       mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
+       mask = reshape(basin_mrm%L0_mask(basin_mrm%L0_iStartMask(ii):basin_mrm%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
        dl = get_NcDim( trim(fname), 'lat_l0' )
@@ -153,7 +154,7 @@ CONTAINS
        deallocate(dummy)
     else if (L0_Basin(ii) .ne. L0_Basin(ii - 1)) then
        ! create mask for level 0
-       mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
+       mask = reshape(basin_mrm%L0_mask(basin_mrm%L0_iStartMask(ii):basin_mrm%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
        dl = get_NcDim( trim(fname), 'lat_l0' )
@@ -203,60 +204,58 @@ CONTAINS
     end if
     ! clean up
     if (allocated(mask)) deallocate(mask)
-    mask = reshape(basin%L1_mask(basin%L1_iStartMask(ii):basin%L1_iEndMask(ii)), &
-         (/level1%nrows(ii), level1%ncols(ii)/))
+    mask = reshape(basin_mrm%L11_mask(basin_mrm%L11_iStartMask(ii):basin_mrm%L11_iEndMask(ii)), &
+         (/level11%nrows(ii), level11%ncols(ii)/))
 
     ! -------------------------------------------------------------------------
-    ! READ LEVEL 1 LATITUDE / LONGITUDE
+    ! READ LEVEL 11 LATITUDE / LONGITUDE
     ! -------------------------------------------------------------------------
     ! read dimension length of variable in netcdf File
-    dl = get_NcDim( trim(fname), 'lat' )
+    dl = get_NcDim( trim(fname), 'lat_l11' )
     
     ! consistency check
-    if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
-         (dl(2) .NE. level1%ncols(ii) ) ) then
+    if ( (dl(1) .NE. level11%nrows(ii) ) .or. &
+         (dl(2) .NE. level11%ncols(ii) ) ) then
        call message( '   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!')
-       call message( '  Latlon expected to have following dimensions ... level1%nrows(ii):',               &
-            trim(adjustl(num2str(level1%nrows(ii)))),', level1%ncols(ii):', trim(adjustl(num2str(level1%ncols(ii)))))
-       call message( '  Latlon provided ... level1%nrows(ii):',               &
-            trim(adjustl(num2str(dl(1)))),', level1%ncols(ii):', trim(adjustl(num2str(dl(2)))))
+       call message( '  Latlon expected to have following dimensions ... level11%nrows(ii):',               &
+            trim(adjustl(num2str(level11%nrows(ii)))),', level11%ncols(ii):', trim(adjustl(num2str(level11%ncols(ii)))))
+       call message( '  Latlon provided ... level11%nrows(ii):',               &
+            trim(adjustl(num2str(dl(1)))),', level11%ncols(ii):', trim(adjustl(num2str(dl(2)))))
        stop '    ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!' 
     end if
     
     allocate(dummy(dl(1), dl(2)))
     
     ! read dummy variable
-    call get_NcVar( trim(fname), 'lat', dummy )
+    call get_NcVar( trim(fname), 'lat_l11', dummy )
 
     ! append it to global variables
-    call append( L1_rect_latitude, pack(dummy, .true.))
-    call append( L1_latitude, pack( dummy, mask ))
+    call append( L11_rect_latitude, pack(dummy, .true.))
     deallocate(dummy)
 
     ! read dimension length of variable in netcdf File
-    dl = get_NcDim( trim(fname), 'lon' )
+    dl = get_NcDim( trim(fname), 'lon_l11' )
     
     ! consistency check
-    if ( (dl(1) .NE. level1%nrows(ii) ) .or. &
-         (dl(2) .NE. level1%ncols(ii) ) ) then
+    if ( (dl(1) .NE. level11%nrows(ii) ) .or. &
+         (dl(2) .NE. level11%ncols(ii) ) ) then
          call message( '   ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!')
-         call message( '  Latlon expected to have following dimensions ... level1%nrows(ii):',               &
-              trim(adjustl(num2str(level1%nrows(ii)))),', level1%ncols(ii):', trim(adjustl(num2str(level1%ncols(ii)))))
-         call message( '  Latlon provided ... level1%nrows(ii):',               &
-              trim(adjustl(num2str(dl(1)))),', level1%ncols(ii):', trim(adjustl(num2str(dl(2)))))
+         call message( '  Latlon expected to have following dimensions ... level11%nrows(ii):',               &
+              trim(adjustl(num2str(level11%nrows(ii)))),', level11%ncols(ii):', trim(adjustl(num2str(level11%ncols(ii)))))
+         call message( '  Latlon provided ... level11%nrows(ii):',               &
+              trim(adjustl(num2str(dl(1)))),', level11%ncols(ii):', trim(adjustl(num2str(dl(2)))))
          stop '    ***ERROR: subroutine mo_read_latlon: size mismatch in latlon file!'
     end if
     
     allocate(dummy(dl(1), dl(2)))
     
     ! read dummy variable
-    call get_NcVar( trim(fname), 'lon', dummy )
+    call get_NcVar( trim(fname), 'lon_l11', dummy )
 
     ! append it to global variables
-    call append( L1_rect_longitude, pack(dummy, .true.))
-    call append( L1_longitude, pack( dummy, mask ))
+    call append( L11_rect_longitude, pack(dummy, .true.))
     deallocate(dummy, mask)
 
   end subroutine read_latlon
 
-END MODULE mo_read_latlon
+END MODULE mo_mrm_read_latlon

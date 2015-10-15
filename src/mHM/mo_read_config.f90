@@ -297,11 +297,11 @@ CONTAINS
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover,                                 &
          dir_Out, dir_RestartOut,                                &
-         dir_RestartIn
+         dir_RestartIn, dir_LatLon
     namelist /directories_mHM/ inputFormat_meteo_forcings, &
          dir_Precipitation, dir_Temperature, dir_ReferenceET, dir_MinTemperature,    &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
-         dir_NetRadiation, dir_LatLon, dir_gridded_LAI
+         dir_NetRadiation, dir_gridded_LAI
     ! optional data used for optimization
     namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
     ! namelist spatial & temporal resolution, otmization information

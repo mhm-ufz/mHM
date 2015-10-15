@@ -1877,7 +1877,7 @@ CONTAINS
 subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
 
 #ifdef mrm2mhm
-  use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer, warmingDays, nTstepDay
+  use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer, warmingDays_mrm, nTstepDay
   use mo_message,          only: message
   use mo_utils,            only: ge
 #endif  
@@ -1943,7 +1943,7 @@ subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_m
   ! remove warming days
   length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_sim
   allocate( dummy( length ) )
-  dummy = runoff( warmingDays(iBasin)*TPD_sim + 1:warmingDays(iBasin)*TPD_sim + length, gaugeId )
+  dummy = runoff( warmingDays_mrm(iBasin)*TPD_sim + 1:warmingDays_mrm(iBasin)*TPD_sim + length, gaugeId )
   ! aggregate runoff
   length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
   forall(tt=1:length) runoff_agg(tt) = sum( dummy( (tt-1)*factor+1: tt*factor ) ) / &

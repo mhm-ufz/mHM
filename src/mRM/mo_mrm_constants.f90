@@ -6,8 +6,8 @@
 module mo_mrm_constants
   use mo_kind, only: i4, dp
   implicit none
-  ! natural 
-  integer(i4), public, parameter :: fourtytwo = 42_i4 ! constant for universal results
+  ! maximum number of outputs (fluxes states) for mHM
+  integer(i4), public, parameter :: nOutFlxState       = 1_i4     ! max. number of outputs to write into a netcdf file
   ! computational
   integer(i4), public, parameter :: nodata_i4 = -9999_i4  ! [-]     global no data value
   real(dp),    public, parameter :: nodata_dp = -9999._dp ! [-]     global no data value

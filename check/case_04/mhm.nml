@@ -73,6 +73,8 @@ dir_RestartIn(1)     = "../../test_basin/restart/"
 dir_RestartOut(1)    = "output_b1/b1_"
 !> directory where output should be written
 dir_Out(1)           = "output_b1/b1_"
+!> directory where latitude and longitude file is located
+dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !
 !**** for Basin 2
 !> directory where morphological files are located
@@ -85,6 +87,8 @@ dir_RestartIn(2)     = "../../test_basin/restart/"
 dir_RestartOut(2)    = "output_b1/b2_"
 !> directory where output should be written
 dir_Out(2)           = "output_b1/b2_"
+!> directory where latitude and longitude file is located
+dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_2.nc"
 !
 !**** for Basin 3
 !> directory where morphological files are located
@@ -97,6 +101,8 @@ dir_RestartIn(3)     = "../../test_basin_2/restart/"
 dir_RestartOut(3)    = "output_b1/b3_"
 !> directory where output should be written
 dir_Out(3)           = "output_b1/b3_"
+!> directory where latitude and longitude file is located
+dir_LatLon(3)        = "../../test_basin_2/input/latlon/latlon.nc"
 !
 !**** for Basin 4
 !> directory where morphological files are located
@@ -109,6 +115,8 @@ dir_RestartIn(4)     = "../../test_basin/restart/"
 dir_RestartOut(4)    = "output_b1/b4_"
 !> directory where output should be written
 dir_Out(4)           = "output_b1/b4_"
+!> directory where latitude and longitude file is located
+dir_LatLon(4)        = "../../test_basin/input/latlon/latlon_1.nc"
 !
 !**** for Basin 5
 !> directory where morphological files are located
@@ -121,6 +129,8 @@ dir_RestartIn(5)     = "../../test_basin/restart/"
 dir_RestartOut(5)    = "output_b1/b5_"
 !> directory where output should be written
 dir_Out(5)           = "output_b1/b5_"
+!> directory where latitude and longitude file is located
+dir_LatLon(5)        = "../../test_basin/input/latlon/latlon_2.nc"
 !
 !**** for Basin 6
 !> directory where morphological files are located
@@ -133,6 +143,8 @@ dir_RestartIn(6)     = "../../test_basin_2/restart/"
 dir_RestartOut(6)    = "output_b1/b6_"
 !> directory where output should be written
 dir_Out(6)           = "output_b1/b6_"
+!> directory where latitude and longitude file is located
+dir_LatLon(6)        = "../../test_basin_2/input/latlon/latlon.nc"
 /
 
 &directories_mHM
@@ -154,8 +166,6 @@ inputFormat_meteo_forcings = "nc"
 dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(1)   = "../../test_basin/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
 !
@@ -164,8 +174,6 @@ dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
 dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(2)   = "../../test_basin/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_2.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 !
@@ -174,8 +182,6 @@ dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 dir_Precipitation(3) = "../../test_basin_2/input/meteo/pre/"
 dir_Temperature(3)   = "../../test_basin_2/input/meteo/tavg/"
 dir_ReferenceET(3)   = "../../test_basin_2/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(3)        = "../../test_basin_2/input/latlon/latlon.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(3)   = "../../test_basin/input/lai/"
 !
@@ -184,8 +190,6 @@ dir_gridded_LAI(3)   = "../../test_basin/input/lai/"
 dir_Precipitation(4) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(4)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(4)   = "../../test_basin/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(4)        = "../../test_basin/input/latlon/latlon_1.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(4)   = "../../test_basin/input/lai/"
 !
@@ -194,8 +198,6 @@ dir_gridded_LAI(4)   = "../../test_basin/input/lai/"
 dir_Precipitation(5) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(5)   = "../../test_basin/input/meteo/tavg/"
 dir_ReferenceET(5)   = "../../test_basin/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(5)        = "../../test_basin/input/latlon/latlon_2.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(5)   = "../../test_basin/input/lai/"
 !
@@ -204,8 +206,6 @@ dir_gridded_LAI(5)   = "../../test_basin/input/lai/"
 dir_Precipitation(6) = "../../test_basin_2/input/meteo/pre/"
 dir_Temperature(6)   = "../../test_basin_2/input/meteo/tavg/"
 dir_ReferenceET(6)   = "../../test_basin_2/input/meteo/pet/"
-!> directory where latitude and longitude file is located
-dir_LatLon(6)        = "../../test_basin_2/input/latlon/latlon.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(6)   = "../../test_basin/input/lai/"
 /

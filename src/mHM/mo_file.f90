@@ -73,11 +73,6 @@ MODULE mo_file
   !> Unit for  LCover input data file
   INTEGER,          PARAMETER :: ulcoverclass           = 61                            ! 
 
-  ! !> gauge location input data file
-  ! CHARACTER(len=*), PARAMETER :: file_gaugeloc          = 'idgauges.asc'                ! gauge location
-  ! !> Unit for  gauge location input data file
-  ! INTEGER,          PARAMETER :: ugaugeloc              = 62                            ! 
-
   !> geological formation lookup table file
   CHARACTER(len=*), PARAMETER :: file_geolut            = 'geology_classdefinition.txt' ! geolog. formation lookup table
   !> Unit for geological formation lookup table file
@@ -96,9 +91,9 @@ MODULE mo_file
   !> Unit for file defining mHM's outputs
   INTEGER,          PARAMETER :: udefOutput             = 67                            ! 
 
-  !> file defining mHM's outputs
+  !> file containing mHM configuration
   CHARACTER(len=*), PARAMETER :: file_config            = 'ConfigFile.log'              ! configuration
-  !> Unit for file defining mHM's outputs
+  !> Unit for file containing mHM configuration
   INTEGER,          PARAMETER :: uconfig                = 68                            ! 
 
   !> file defining optimization outputs (objective and parameter set)

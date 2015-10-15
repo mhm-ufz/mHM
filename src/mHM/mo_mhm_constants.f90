@@ -16,7 +16,6 @@ MODULE mo_mhm_constants
   PRIVATE
    
   ! natural 
-  integer(i4), public, parameter :: fourtytwo          = 42_i4     ! constant for universal results
   real(dp),    public, parameter :: H2Odens            = 1000.0_dp ! Density of water (kg/m3)
 
   ! computational

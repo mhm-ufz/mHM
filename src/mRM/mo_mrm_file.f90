@@ -49,6 +49,11 @@ MODULE mo_mrm_file
   !> unit for discharge time series 
   INTEGER,          PARAMETER :: udischarge              = 66                            ! 
 
+  !> file defining mRM's outputs
+  CHARACTER(len=*), PARAMETER :: file_defOutput         = 'mrm_outputs.nml'             ! output states and fluxes
+  !> Unit for file defining mRM's outputs
+  INTEGER,          PARAMETER :: udefOutput             = 67                            ! 
+
   !> file defining mHM's outputs
   CHARACTER(len=*), PARAMETER :: file_config             = 'ConfigFile.log'              ! configuration
   !> Unit for file defining mHM's outputs
@@ -67,5 +72,11 @@ MODULE mo_mrm_file
   CHARACTER(len=*), PARAMETER :: file_daily_discharge    = 'daily_discharge.out'         ! daily discharge file
   !> Unit for file optimazation outputs
   INTEGER,          PARAMETER :: udaily_discharge        = 74                            ! 
-  
+  !> file defining optimazation outputs
+  CHARACTER(len=*), PARAMETER :: ncfile_discharge        = 'discharge.nc'                ! discharge file as netcdf
+
+  !> file containing mrm output
+  character(len=*), PARAMETER :: file_mrm_output         = 'mRM_Fluxes_States.nc'
+
+
 END MODULE mo_mrm_file
