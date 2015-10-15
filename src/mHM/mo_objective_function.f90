@@ -94,7 +94,7 @@ CONTAINS
   !         Modified, 
   FUNCTION loglikelihood(parameterset)
 
-    USE mo_global_variables, ONLY: opti_function
+    USE mo_global_variables, ONLY: opti_function, opti_method
 
     IMPLICIT NONE
 
@@ -103,8 +103,12 @@ CONTAINS
 
     select case (opti_function)
     case (8)
-       ! Approach 2 of Evin et al. (2013), i.e. linear error model with lag(1)-autocorrelation on relative errors
-       loglikelihood = loglikelihood_evin2013_2(parameterset)
+       if (opti_method == 0) then
+          ! Approach 2 of Evin et al. (2013), i.e. linear error model with lag(1)-autocorrelation on relative errors
+          loglikelihood = loglikelihood_evin2013_2(parameterset, regularize=.true.)
+       else
+          loglikelihood = loglikelihood_evin2013_2(parameterset)
+       endif
     case default
        stop "Error loglikelihood: chosen opti_function is no loglikelihood."
     end select
@@ -301,7 +305,7 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood_evin2013_2(parameterset)
+  FUNCTION loglikelihood_evin2013_2(parameterset, regularize)
 
     use mo_constants,        only: pi_dp
     use mo_moment,           only: correlation
@@ -313,6 +317,7 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in)            :: parameterset
+    logical,  optional,     intent(in)            :: regularize
     real(dp)                                      :: loglikelihood_evin2013_2
 
     ! local
@@ -328,7 +333,11 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: obs, calc, out
     real(dp)                              :: a, b, c, vary, vary1, ln2pi, tmp
     integer(i4)                           :: npara
+    logical                               :: iregularize
 
+    iregularize = .false.
+    if (present(regularize)) iregularize = regularize
+    
     npara = size(parameterset)
     call mhm_eval(parameterset(1:npara-2), runoff=runoff)
   
@@ -370,27 +379,30 @@ CONTAINS
          - real(nmeas-1,dp)*log(sqrt(2.0_dp*pi_dp*vary)) &
          - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1) - sum(log(sigma(2:nmeas)))
 
-    ! penalty term due to parameter sets which are out of bound
-    ! penalty term = 0, if parameter set is in bound
-    penalty = penalty_out_of_bound(        &
-         parameterset(1:npara-2),          &        ! current parameter set 
-         global_parameters(1:npara-2,3),   &        ! prior/initial parameter set
-         global_parameters(1:npara-2,1:2), &        ! bounds
-         eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
+    if (iregularize) then
+       ! Regularistion term as deviation from initial parameter value
+       penalty = parameter_regularization(        &
+            parameterset(1:npara-2),          &        ! current parameter set 
+            global_parameters(1:npara-2,3),   &        ! prior/initial parameter set
+            global_parameters(1:npara-2,1:2), &        ! bounds
+            eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
 
-    tmp = loglikelihood_evin2013_2 + penalty
-    write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, tmp/real(nmeas,dp)
-
-    loglikelihood_evin2013_2 = tmp
+       tmp = loglikelihood_evin2013_2 + penalty
+       write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, tmp/real(nmeas,dp)
+       loglikelihood_evin2013_2 = tmp
+    else
+       write(*,*) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, loglikelihood_evin2013_2/real(nmeas,dp)
+    endif
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
     
   END FUNCTION loglikelihood_evin2013_2
 
-  FUNCTION penalty_out_of_bound(paraset, prior, bounds, mask)
+  ! Regularisation function sum(((para-ini)/sigma)**2)
+  FUNCTION parameter_regularization(paraset, prior, bounds, mask)
 
-    use mo_constants,        only: pi_dp
+    use mo_constants, only: pi_dp
 
     implicit none
 
@@ -398,7 +410,7 @@ CONTAINS
     real(dp), dimension(size(paraset)),   intent(in) :: prior
     real(dp), dimension(size(paraset),2), intent(in) :: bounds                      ! (min, max)
     logical,  dimension(size(paraset)),   intent(in) :: mask
-    real(dp)                                         :: penalty_out_of_bound
+    real(dp)                                         :: parameter_regularization
 
     ! local variables
     integer(i4) :: ipara
@@ -408,23 +420,23 @@ CONTAINS
 
     npara = size(paraset,1)
 
-    sigma = sqrt(onetwelveth*(bounds(:,2)-bounds(:,1))**2)
-    penalty_out_of_bound = -sum(log(sqrt(2.0_dp*pi_dp)*sigma), mask=mask)
+    sigma = sqrt(onetwelveth*(bounds(:,2)-bounds(:,1))**2) ! standard deviation of uniform distribution 
+    parameter_regularization = -sum(log(sqrt(2.0_dp*pi_dp)*sigma), mask=mask)
 
     do ipara=1,npara
        if (mask(ipara)) then
           ! if ((paraset(ipara) .lt. bounds(ipara,1)) .or. (paraset(ipara) .gt. bounds(ipara,2))) then
           !    ! outside bounds
-             penalty_out_of_bound = penalty_out_of_bound - &
+             parameter_regularization = parameter_regularization - &
                   0.5_dp*((paraset(ipara)-prior(ipara))/sigma(ipara))**2
           ! else
           !    ! in bound
-          !    penalty_out_of_bound = 0.0_dp
+          !    parameter_regularization = 0.0_dp
           ! end if
        endif
     end do
 
-  END FUNCTION penalty_out_of_bound
+  END FUNCTION parameter_regularization
 
   ! ------------------------------------------------------------------
 
