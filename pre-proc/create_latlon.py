@@ -111,7 +111,7 @@ parser = optparse.OptionParser(usage='%prog [options]',
 
 parser.add_option('-c', '--coord_sys', action='store', dest='coord_sys', type='string',
                   default=coord_sys, metavar='Property',
-                  help='Coordinate system specifier according to http://www.spatialreference.org. (default: epsg:31467)')
+                  help='Coordinate system specifier according to http://www.spatialreference.org. (default: epsg:31467), give empty string for regular latlon grid')
 parser.add_option('-f', '--header_l0', action='store', dest='headerfile_l0', type='string',
                   default=headerfile_l0, metavar='Header file for level 0',
                   help='Header file containing information about e.g. number of rows and columns. (default: header.txt).')
@@ -134,7 +134,7 @@ outfile        = opts.outfile
 coord_sys      = opts.coord_sys
 
 # check whether any headerfiles are given
-if headerfile_l0 == '' and headerfile_l1 == '':
+if headerfile_l0 == '' and headerfile_l1 == '' and headerfile_l11 == '':
     raise ValueError('***ERROR: no headerfile specified, use -h switch for more information')
 
 #############################################
@@ -170,7 +170,7 @@ if headerfile_l1 != '':
 #
 if headerfile_l11 != '':
     # get lat lon for level 1 header file
-    lons, lats, xx, yy, missVal = header_to_latlon(headerfile_l1, coord_sys)
+    lons, lats, xx, yy, missVal = header_to_latlon(headerfile_l11, coord_sys)
     suffix = ['_l11', ' at level 11']
     # write lat and lon for level 1 to file
     latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix)
