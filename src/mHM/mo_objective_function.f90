@@ -388,10 +388,10 @@ CONTAINS
             eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
 
        tmp = loglikelihood_evin2013_2 + penalty
-       write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, tmp/real(nmeas,dp)
+       write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, -tmp/real(nmeas,dp)
        loglikelihood_evin2013_2 = tmp
     else
-       write(*,*) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, loglikelihood_evin2013_2/real(nmeas,dp)
+       write(*,*) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, -loglikelihood_evin2013_2/real(nmeas,dp)
     endif
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
