@@ -167,6 +167,8 @@ dir_RestartIn(1)     = "test_basin/restart/"
 dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
+!> directory where latitude and longitude file is located
+dir_LatLon(1)        = "test_basin/input/latlon/latlon_2.nc"
 
 ! **** for Basin 2
 !> directory where morphological files are located
@@ -179,6 +181,8 @@ dir_RestartIn(2)     = "test_basin_2/restart/"
 dir_RestartOut(2)    = "test_basin_2/restart/"
 !> directory where output should be written
 dir_Out(2)           = "test_basin_2/output/"
+!> directory where latitude and longitude file is located
+dir_LatLon(2)        = "test_basin_2/input/latlon/latlon.nc"
 /
 
 ! directories used only by mhm
@@ -211,8 +215,6 @@ dir_NetRadiation(1)    = "test_basin/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(1)  = "test_basin/input/meteo/"
 dir_windspeed(1)       = "test_basin/input/meteo/"
-!> directory where latitude and longitude file is located
-dir_LatLon(1)        = "test_basin/input/latlon/latlon_2.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "test_basin/input/lai/"
 !
@@ -235,8 +237,6 @@ dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
 dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
 dir_windspeed(2)       = "test_basin_2/input/meteo/"
-!> directory where latitude and longitude file is located
-dir_LatLon(2)        = "test_basin_2/input/latlon/latlon.nc"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(2)   = "test_basin/input/lai/"
 /
