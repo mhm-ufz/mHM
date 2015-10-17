@@ -12,6 +12,10 @@ set -e
 # This script has to be run successfully without failure statements before
 # a new feature is merged back to the trunk of mHM.
 #
+# Use 
+#     $ ./check_mhm_cases -h
+# for options.
+#
 # -------------------------------------------------------------------------------------------
 # DETAILS
 # -------------------------------------------------------------------------------------------
@@ -82,10 +86,11 @@ set -e
 #          May 2014 Matthias Cuntz                 - specify compiler during clean
 #          Jul 2014 Juliane Mai                    - checking daily_discharge files added
 #          Mar 2015 Matthias Zink                  - added soil moisture calibration test
+#          Oct 2015 Matthias Cuntz                 - added multi-job make
 
 # -------------------------------------------------------------------------------------------
 #
-# Copyright 2014 Juliane Mai, Matthias Cuntz, Stephan Thober
+# Copyright 2014-2015 Juliane Mai, Matthias Cuntz, Stephan Thober
 #
 # License
 # This file is part of the UFZ CHS mesoscale hydrologic model mHM.
@@ -104,10 +109,6 @@ set -e
 # Start
 #
 
-#
-# Perform a cleanup if script is interupted
-# trap cleanup 1 2 3 6  # output and error messages will be lost
-#
 prog=$0
 pprog=$(basename ${prog})
 dprog=$(dirname ${prog})
@@ -119,7 +120,7 @@ pid=$$
 #
 
 function usage () {
-    printf "${pprog} [-h] [-c compiler] [-r release] [-s system] [-t threads] [clean]\n"
+    printf "${pprog} [-h] [-c compiler] [-j jobs] [-r release] [-s system] [-t threads] [clean]\n"
     printf "Check mHM for different scenarios (case_* folders).\n"
     printf "The settings (s)ystem, (c)ompiler and (r)elease, which are used by the Makefile, can be specified optionally.\n"
     printf "\n"
@@ -131,6 +132,7 @@ function usage () {
     printf "    -c     Compilers used to generate a mHM executable, e.g. 'gnu'\n"
     printf "           'all' loops over all compilers found on the system\n"
     printf "           (Default: all)\n"
+    printf "    -j     Specifies the number of jobs (commands) to run simultaneously, for make only."
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           'all' or 'both' loop over debug and release\n"
     printf "           (Default: all)\n"
@@ -141,7 +143,7 @@ function usage () {
     printf "           (Default: '0 2').\n"
     printf "\n"
     printf "Example\n"
-    printf "    ${pprog} -c gnu45 -s eve2 -r debug -t '0 2'\n"
+    printf "    ${pprog} -j 12 -c gnu45 -s eve2 -r debug -t '0 2'\n"
 }
 
 # cleanup at end and when interupted
@@ -178,13 +180,15 @@ mhm_exe='mhm_for_check'
 
 # switches
 compilers='all'
-system='eve2'
+ijobs=0
 release='all'
+system='eve2'
 threads='0 2'
-while getopts "c:hr:s:t:" Option ; do
+while getopts "c:hj:r:s:t:" Option ; do
     case ${Option} in
-        h) usage 1>&2; exit 0;;
         c) compilers="${OPTARG}";;
+        h) usage 1>&2; exit 0;;
+        j) ijobs="${OPTARG}";;
         r) release="${OPTARG}";;
         s) system="${OPTARG}";;
         t) threads="${OPTARG}";;
@@ -236,6 +240,9 @@ fi
 # system
 system=$(echo ${system} | tr [A-Z] [a-z])
 
+# make jobs
+if [[ ${ijobs} -eq 0 ]] ; then mjobs='' ; else mjobs="-j ${ijobs}" ; fi
+    
 # ---------------------------------------------------------------------------------------------------------------------
 # Do Tests
 #
@@ -251,13 +258,13 @@ for irelease in ${release} ; do
 	    
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
+                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
+                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
-                make system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
+                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
                 export OMP_NUM_THREADS=${thread}
             fi
 
