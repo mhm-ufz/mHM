@@ -889,7 +889,7 @@ $(COBJS):
 
 # Helper Targets
 clean:
-	rm -f $(DOBJS) $(FDOBJS) $(CDOBJS) $(OBJS) $(FOBJS) $(COBJS) $(addsuffix /*.mod, $(OBJPATH))
+	rm -f $(DOBJS) $(FDOBJS) $(CDOBJS) $(OBJS) $(FOBJS) $(COBJS) $(addsuffix /*.mod, $(OBJPATH)) $(addsuffix /*.pre, $(SRCPATH))
 ifeq (False,$(islib))
 	rm -f "$(PROGNAME)"
 endif
