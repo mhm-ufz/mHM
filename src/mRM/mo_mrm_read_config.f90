@@ -158,6 +158,7 @@ contains
          file_defOutput, udefOutput
     use mo_string_utils, only: num2str
     use mo_mrm_global_variables, only : &
+         mrm_coupling_mode, &
          nTstepDay, & ! # of time steps per day
          timestep, & ! timestep of routing [h]
          iFlag_cordinate_sys, & ! model run cordinate system
@@ -177,9 +178,6 @@ contains
          resolutionRouting, & ! resolution of routing
          resolutionHydrology, & ! resolution of Hydrology
          L0_Basin, & ! L0_Basin ID
-         optimize, & ! if mhm runs in optimization mode or not
-         opti_method, & ! optimization algorithm used
-         opti_function, & ! objective function to be optimized
          read_restart, & ! flag reading restart
          write_restart, & ! flag writing restart
          perform_mpr, & ! switch for performing mpr
@@ -192,6 +190,14 @@ contains
          fracSealed_cityArea, nLcoverScene, & ! land cover information
          LCYearId, &
          LCfilename, &
+         basin_mrm, &
+         timeStep_model_outputs_mrm, & ! timestep for writing model outputs
+         outputFlxState_mrm, & ! definition which output to write
+         period ! structure for time periods
+    use mo_common_variables, only: &
+         optimize, & ! if mhm runs in optimization mode or not
+         opti_method, & ! optimization algorithm used
+         opti_function, & ! objective function to be optimized
          nIterations, & ! number of iterations in optimization
          seed, & ! seed used for optimization
          dds_r, & ! DDS: perturbation rate
@@ -200,12 +206,7 @@ contains
          !                            !      # points per subcomplex
          mcmc_opti,                 & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
          mcmc_error_params,         & !       parameters of error model used in likelihood 
-         mrm_global_parameters, &
-         basin_mrm, &
-         timeStep_model_outputs_mrm, & ! timestep for writing model outputs
-         outputFlxState_mrm, & ! definition which output to write
-         period ! structure for time periods
-
+         global_parameters
     implicit none
     ! input variables
     ! output variables
@@ -686,11 +687,14 @@ contains
     !===============================================================
     ! Settings for Optimization
     !===============================================================
-    call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
-    ! namelist for Optimization settings
-    call position_nml('Optimization', unamelist_mrm)
-    read(unamelist_mrm, nml=Optimization)
-    call close_nml(unamelist_mrm)
+    if (mrm_coupling_mode .ne. 2) then
+       ! if mRM is coupled to mHM; the latter already read the optimization
+       call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
+       ! namelist for Optimization settings
+       call position_nml('Optimization', unamelist_mrm)
+       read(unamelist_mrm, nml=Optimization)
+       call close_nml(unamelist_mrm)
+    end if
 
     ! check and set default values
     if (nIterations .le. 0_i4) then
@@ -707,12 +711,12 @@ contains
     end if
     ! number of points in each complex: default = 2n+1
     if (sce_npg .lt. 0_i4) then
-       n_true_pars = count(nint(mrm_global_parameters(:,4)) .eq. 1)
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
        sce_npg = 2 * n_true_pars + 1_i4
     end if
     ! number of points in each sub-complex: default = n+1
     if (sce_nps .lt. 0_i4) then
-       n_true_pars = count(nint(mrm_global_parameters(:,4)) .eq. 1)
+       n_true_pars = count(nint(global_parameters(:,4)) .eq. 1)
        sce_nps = n_true_pars + 1_i4
     end if
     if (sce_npg .lt. sce_nps) then
@@ -763,13 +767,11 @@ contains
     use mo_nml, only: open_nml, position_nml, close_nml
     use mo_message, only: message
     use mo_mrm_constants, only: nColPars ! number of properties of the global variables
-    use mo_mrm_global_variables, only: &
-         mrm_global_parameters, &
-         mrm_global_parameters_name
-#ifdef mrm2mhm    
-    use mo_global_variables, only :  processMatrix, & ! process configuration
+    use mo_common_variables, only: &
          global_parameters, & ! global parameters
          global_parameters_name ! clear names of global parameters
+#ifdef mrm2mhm    
+    use mo_global_variables, only :  processMatrix ! process configuration
 #endif
 
     implicit none
@@ -817,33 +819,26 @@ contains
          'muskingumTravelTime_riverSlope ', &
          'muskingumTravelTime_impervious ', &
          'muskingumAttenuation_riverSlope'/)
-
-    ! check if parameter are in range
-    if ( .not. in_bound(global_parameters) ) then
-       call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
-            trim(adjustl(file_namelist)))
-       stop
-    end if
 #else
     dummy = processCase ! dummy line to prevent compiler warning
-#endif
 
     ! set variables of mrm (redundant in case of coupling to mhm)
-    call append(mrm_global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
-    call append(mrm_global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
-    call append(mrm_global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
-    call append(mrm_global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
-    call append(mrm_global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
+    call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
+    call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
+    call append(global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
+    call append(global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
+    call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
 
-    call append(mrm_global_parameters_name, (/ &
+    call append(global_parameters_name, (/ &
          'muskingumTravelTime_constant   ', &
          'muskingumTravelTime_riverLength', &
          'muskingumTravelTime_riverSlope ', &
          'muskingumTravelTime_impervious ', &
          'muskingumAttenuation_riverSlope'/))
+#endif
 
     ! check if parameter are in range
-    if ( .not. in_bound(mrm_global_parameters) ) then
+    if ( .not. in_bound(global_parameters) ) then
        call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
             trim(adjustl(file_namelist)))
        stop

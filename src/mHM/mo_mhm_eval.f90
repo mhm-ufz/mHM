@@ -135,12 +135,14 @@ CONTAINS
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
          L1_wiltingPoint, L1_neutrons,                       &
-         warmingDays, optimize,                              &
+         warmingDays,                                        &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+    use mo_common_variables, only: &
+         optimize
 #ifdef mrm2mhm
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &

@@ -138,14 +138,13 @@
 !                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
 !                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
 !                     Stephan Thober, Aug 2015 - removed routing related variables
+!                     Stephan Thober, Oct 2015 - reorganized optimization (now compatible with mRM)
 
 !
 ! --------------------------------------------------------------------------
 
 PROGRAM mhm_driver
 
-  USE mo_anneal,              ONLY : anneal                         ! Optimise with Simulated Annealing SA
-  USE mo_dds,                 ONLY : dds                            ! Optimise with Dynam. Dimens. Search DDS
   USE mo_file,                ONLY :                         &
        version, version_date, file_main,                     &      ! main info
        file_namelist,                                        &      ! filename of namelist: main setup
@@ -155,8 +154,6 @@ PROGRAM mhm_driver
   USE mo_global_variables,    ONLY :                         &
        nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
        write_restart,                                        &      ! restart writing flags
-       optimize, opti_method,                                &      ! optimization on/off and optimization method
-       global_parameters, global_parameters_name,            &      ! mhm parameters (gamma) and their clear names
        dirRestartOut,                                        &      ! directories
        dirMorpho, dirLCover,  dirPrecipitation,              &      ! directories
        dirTemperature, dirOut,                               &      ! directories
@@ -167,28 +164,25 @@ PROGRAM mhm_driver
        dirgridded_LAI,                                       &      ! directories
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
-       nIterations, seed,                                    &      ! settings for optimization algorithms
-       dds_r, sa_temp, sce_ngs, sce_npg, sce_nps,            &      ! settings for optimization algorithms
-       mcmc_opti, mcmc_error_params,                         &      ! settings for optimization algorithms
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
        processMatrix,                                        &      ! basin information,  processMatrix
-       opti_function, dirConfigOut,                          &
+       dirConfigOut,                                         &
        basin,                                                & ! L0_mask for mrm_init call
        L0_elev,                                              & ! L0_elev for mrm_init call
        L0_LCover                                               ! L0_LCover for mrm_init call
-  USE mo_kind,                ONLY : i4, i8, dp                     ! number precision
-  USE mo_mcmc,                ONLY : mcmc, mcmc_stddev              ! Monte Carlo Markov Chain method
+  USE mo_common_variables,    ONLY : &
+       optimize, opti_function,                              &      ! optimization on/off and optimization method
+       global_parameters, global_parameters_name                    ! mhm parameters (gamma) and their clear names
+  USE mo_kind,                ONLY : i4, dp                         ! number precision
   USE mo_message,             ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
-  USE mo_objective_function,  ONLY : objective, loglikelihood, loglikelihood_stddev ! objective functions and likelihoods
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
   USE mo_read_optional_data,  ONLY : read_soil_moisture             ! optional soil moisture reader
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
   USE mo_restart,             ONLY : write_restart_files
-  USE mo_sce,                 ONLY : sce                            ! Optimize with Shuffled Complex Evolution SCE
   USE mo_startup,             ONLY : initialise
   USE mo_string_utils,        ONLY : num2str, separator             ! String magic
   USE mo_timer,               ONLY :                         &
@@ -197,8 +191,10 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
-  USE mo_xor4096,             ONLY : get_timeseed                   ! generating a seed from clock
+  USE mo_objective_function_sm, ONLY : objective_sm                 ! objective functions and likelihoods for SM
+  USE mo_optimization,        ONLY : optimization
 #ifdef mrm2mhm
+  USE mo_mrm_objective_function_runoff, only: objective_runoff
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
 #endif  
@@ -213,20 +209,8 @@ PROGRAM mhm_driver
   integer(i4)                           :: iTimer           ! Current timer number
   integer(i4)                           :: nTimeSteps
   real(dp)                              :: funcbest         ! best objective function achivied during optimization
-  ! mcmc
-  real(dp), dimension(:,:), allocatable :: burnin_paras     ! parameter sets sampled during burnin
-  real(dp), dimension(:,:), allocatable :: mcmc_paras       ! parameter sets sampled during proper mcmc
   logical,  dimension(:),   allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
   !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
-  ! setting step sizes manually
-  ! real(dp), dimension(:),   allocatable :: step            ! pre-determined stepsize 
-  integer(i4)                           :: npara
-  real(dp), dimension(:,:), allocatable :: local_parameters ! global_parameters but includes a and b for likelihood
-  logical,  dimension(:),   allocatable :: local_maskpara   ! maskpara but includes a and b for likelihood
-  integer(i8)                           :: iseed            ! local seed used for optimization
-  character(256)                        :: tFile            ! file for temporal optimization outputs
-  character(256)                        :: pFile            ! file for temporal SCE optimization outputs
-  
   
   ! --------------------------------------------------------------------------
   ! START
@@ -382,143 +366,33 @@ PROGRAM mhm_driver
   iTimer = iTimer + 1
   call message()
   if ( optimize ) then
-     call message('  Start optimization')
-     call timer_start(iTimer)
-
-     ! mask parameter which have a FLAG=0 in mhm_parameter.nml
-     ! maskpara = true : parameter will be optimized
-     ! maskpara = false : parameter is discarded during optimization
-     npara = size(global_parameters,1)
-     allocate(maskpara(npara))
-     maskpara = .true.
-     do ii=1, npara
-        if ( nint(global_parameters(ii,4),i4) .eq. 0_i4 ) then
-           maskpara(ii) = .false.
-        end if
-     end do
-
-     ! add two extra parameter for optimisation of likelihood
-     if (opti_function == 8) then
-        allocate(local_parameters(npara+2,size(global_parameters,2)))
-        allocate(local_maskpara(npara+2))
-        ! setting step sizes manually
-        ! allocate(step(npara+2))
-        local_parameters(1:npara,:) = global_parameters(:,:)
-        local_maskpara(1:npara)     = maskpara(:)
-        local_parameters(npara+1,1) = 0.001_dp
-        local_parameters(npara+1,2) = 100._dp
-        local_parameters(npara+1,3) = 1._dp
-        local_parameters(npara+1,4) = 1._dp
-        local_parameters(npara+1,5) = 0._dp
-        local_parameters(npara+2,1) = 0.001_dp
-        local_parameters(npara+2,2) = 10._dp
-        local_parameters(npara+2,3) = 0.1_dp
-        local_parameters(npara+2,4) = 1._dp
-        local_parameters(npara+2,5) = 0._dp
-        local_maskpara(npara+1:)    = .true.
-        if ((opti_method == 0) .and. (.not. mcmc_opti)) then ! MCMC but only for parameter uncertainties
-           local_parameters(npara+1,3) = mcmc_error_params(1)
-           local_parameters(npara+2,3) = mcmc_error_params(2)
-           local_maskpara(npara+1:)    = .false.
-        endif
-     else
-        allocate(local_parameters(npara,size(global_parameters,2)))
-        allocate(local_maskpara(npara))
-        local_parameters = global_parameters
-        local_maskpara   = maskpara
-     endif
-
-     ! Seed for random numbers in optimisation
-     if (seed .gt. 0_i8) then    ! fixed user-defined seed
-        iseed = seed
-     else                        ! flexible clock-time seed
-        call get_timeseed(iseed)
-     endif
-
-     select case (opti_method)
-     case (0)
-        call message('    Use MCMC')
-        
-        tFile = trim(adjustl(dirConfigOut)) // 'mcmc_tmp_parasets.nc'
-
-        ! setting step sizes manually
-        ! step=(/ 1.00000000000000,  ... , /)
-        
-        if (opti_function == 8) then
-           call message('    Use MCMC')
-           call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-                ParaSelectMode_in=2_i4, tmp_file=tFile,                                      &
-                maskpara_in=local_maskpara,                                                                   &
-                restart=.false., restart_file='mo_mcmc.restart',                                               &
-                ! stepsize_in=step,                                                                            &
-                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
-        else
-           call message('    Use MCMC_STDDEV')
-           call mcmc_stddev(loglikelihood_stddev, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-                ParaSelectMode_in=2_i4, tmp_file=tFile,                                                    &
-                maskpara_in=local_maskpara,                                                                                 &
-                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
-        endif
-
-     case (1)
-        call message('    Use DDS')
-
-        tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
-        
-        ! use fixed user-defined seed
-        local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-             maxiter=int(nIterations,i8), r=dds_r, seed=iseed,                                      &
-             tmp_file=tFile, mask=local_maskpara,                                                  &
-             funcbest=funcbest)
-     case (2)
-        call message('    Use Simulated Annealing')
-
-        tFile = trim(adjustl(dirConfigOut)) // 'anneal_results.out'
-        
-        if (sa_temp .gt. 0.0_dp) then
-           ! use fixed user-defined seed and user-defined initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                temp=sa_temp, seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,       &
-                tmp_file=tFile, maskpara=local_maskpara,                                              &
-                funcbest=funcbest)
-        else
-           ! use fixed user-defined seed and adaptive initial temperature
-           local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-                seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,                     &
-                tmp_file=tFile, maskpara=local_maskpara,                                              &
-                funcbest=funcbest)
-        end if
-     case (3)
-        call message('    Use SCE')
-
-        tFile = trim(adjustl(dirConfigOut)) // 'sce_results.out'
-        pFile =  trim(adjustl(dirConfigOut)) // 'sce_population.out'
-        
-        ! use fixed user-defined seed
-        local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-             mymaxn=int(nIterations,i8), myseed=iseed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps, &
-             parallel=.false., mymask=local_maskpara,                                              &
-             tmp_file=tFile, popul_file=pFile,                                                     &
-             bestf=funcbest)
-     case default
-        call finish('mHM','This optimization method is not implemented.')
-     end select
-     call timer_stop(iTimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-
-     global_parameters(:,:) = local_parameters(1:npara,:)
-     maskpara(:)    = local_maskpara(1:npara)
+#ifdef mrm2mhm     
+     ! call optimization for runoff
+     if ((opti_function .eq. 1) .or. &
+         (opti_function .eq. 2) .or. &
+         (opti_function .eq. 3) .or. &
+         (opti_function .eq. 4) .or. &
+         (opti_function .eq. 5) .or. &
+         (opti_function .eq. 6) .or. &
+         (opti_function .eq. 7) .or. &
+         (opti_function .eq. 8) .or. &
+         (opti_function .eq. 9) .or. &
+         (opti_function .eq. 14)) &
+         call optimization(objective_runoff, dirConfigOut, funcBest, maskpara)
+#endif     
+     ! call optimization for SM
+     if ((opti_function .eq. 10) .or. &
+         (opti_function .eq. 11) .or. &
+         (opti_function .eq. 12) .or. &
+         (opti_function .eq. 13)) &
+         call optimization(objective_sm, dirConfigOut, funcBest, maskpara)
 
      ! write a file with final objective function and the best parameter set
      call write_optifile(funcbest, global_parameters(:,3), global_parameters_name(:))
      ! write a file with final best parameter set in a namlist format
      call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
-
      deallocate(maskpara)
-     deallocate(local_parameters)
-     deallocate(local_maskpara)
-
-  else ! if (optimize)
+  else 
      
      ! --------------------------------------------------------------------------
      ! call mHM
@@ -531,7 +405,7 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
 
-  end if ! if (optimize)
+  end if 
 
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files

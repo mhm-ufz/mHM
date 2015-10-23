@@ -107,11 +107,11 @@ contains
 
   subroutine read_forcing_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, nocheck, maskout)
 
-    use mo_kind,              only: i4, dp
-    use mo_global_structures, only: period
-    use mo_julian,            only: caldat, julday
-    use mo_message,           only: message
-    use mo_ncread,            only: Get_NcDim, Get_NcVar, Get_NcVarAtt
+    use mo_kind,             only: i4, dp
+    use mo_common_variables, only: period
+    use mo_julian,           only: caldat, julday
+    use mo_message,          only: message
+    use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
 
     use mo_string_utils,      only: num2str
     use mo_utils,             only: eq, ne
@@ -328,7 +328,7 @@ contains
     real(dp) :: nTStepDay ! number of timesteps per day
     !
     ! check optional nctimestep
-    inctimestep = -1
+    inctimestep = -1 !ST: to do inctimestep should be determined from file
     nTStepDay = -1.
     if (present(nctimestep)) inctimestep = nctimestep
 

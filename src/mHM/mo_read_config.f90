@@ -146,17 +146,6 @@ CONTAINS
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
          dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
-         optimize,                                          & ! if mhm runs in optimization mode or not
-         opti_method,                                       & ! optimization algorithm used
-         opti_function,                                     & ! objective function to be optimized
-         nIterations,                                       & ! number of iterations in optimization
-         seed,                                              & ! seed used for optimization
-         dds_r,                                             & ! DDS: perturbation rate
-         sa_temp,                                           & ! SA: initial temperature
-         sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
-         !                                                    !      # points per subcomplex
-         mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
-         mcmc_error_params,                                 & !       parameters of error model used in likelihood 
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -173,14 +162,27 @@ CONTAINS
          nProcesses, processMatrix,                         & ! process configuration
          nGeoUnits,                                         & ! number of geological classes
                                 !                                                    ! for parameter read-in
-         global_parameters,                                 & ! global parameters
-         global_parameters_name,                            & ! clear names of global parameters
          timeStep_model_outputs,                            & ! timestep for writing model outputs
          outputFlxState,                                    & ! definition which output to write
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
          timeStep_LAI_input,                                & ! time step of gridded LAI input
          iFlag_cordinate_sys                                  ! model run cordinate system
-
+    use mo_common_variables, only: &
+         global_parameters,                                 & ! global parameters
+         global_parameters_name,                            & ! clear names of global parameters
+         optimize,                                          & ! if mhm runs in optimization mode or not
+         opti_method,                                       & ! optimization algorithm used
+         opti_function,                                     & ! objective function to be optimized
+         nIterations,                                       & ! number of iterations in optimization
+         seed,                                              & ! seed used for optimization
+         dds_r,                                             & ! DDS: perturbation rate
+         sa_temp,                                           & ! SA: initial temperature
+         sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
+         !                                                    !      # points per subcomplex
+         mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
+         mcmc_error_params                                    !       parameters of error model used in likelihood 
+         
+    
     implicit none
 
     ! LOCAL variables

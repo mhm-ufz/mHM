@@ -108,12 +108,12 @@ CONTAINS
   subroutine read_meteo_bin(folder, nRows, nCols, periode, data, mask, &
        lower, upper )
 
-    use mo_kind,              only: i4, dp, sp
-    use mo_global_structures, only: period
-    use mo_julian,            only: date2dec
-    use mo_message,           only: message
-    use mo_string_utils,      only: num2str
-    use mo_file,              only: file_meteo_header, umeteo_header, &
+    use mo_kind,             only: i4, dp, sp
+    use mo_common_variables, only: period
+    use mo_julian,           only: date2dec
+    use mo_message,          only: message
+    use mo_string_utils,     only: num2str
+    use mo_file,             only: file_meteo_header, umeteo_header, &
          file_meteo_binary_end, umeteo
 
     implicit none

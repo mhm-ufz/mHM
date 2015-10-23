@@ -111,13 +111,14 @@ CONTAINS
          dirReferenceET,            &
          dirOut,                    &
          dirRestartOut,             &  
-         global_parameters,         &
-         global_parameters_name,    &
          warmPer,                   &
          evalPer,                   &
          SimPer,                    &
          LCyearId,                  &
          LCfilename
+    use mo_common_variables, only: &
+         global_parameters,         &
+         global_parameters_name
 #ifdef mrm2mhm    
     use mo_mrm_global_variables, only: &
          basin_mrm,                 &

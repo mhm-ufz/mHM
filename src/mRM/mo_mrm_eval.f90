@@ -98,6 +98,7 @@ contains
          L11_FracFPimp, & ! fraction of impervious layer at L11 scale
          L11_qMod, &
          mRM_runoff ! global variable containing runoff for every gauge
+    use mo_common_variables, only: optimize
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
@@ -219,8 +220,7 @@ contains
           ! -------------------------------------------------------------------
           ! WRITE OUTPUT
           ! -------------------------------------------------------------------
-          ! if (.not. optimize) then
-          if (.True. .and. any(outputFlxState_mrm)) then
+          if (.not. optimize .and. any(outputFlxState_mrm)) then
              call mrm_write_output_fluxes( &
                   ! basin id
                   ii, &
