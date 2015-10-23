@@ -27,7 +27,7 @@ MODULE mo_global_variables
   !           Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
   !           Matthias Zink,  Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
   !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
-
+  !           Oldrich Rakovec,Oct 2015 - added definition of basin averaged TWS data
   
   USE mo_kind,             ONLY: i4, i8, dp
   use mo_common_variables, ONLY: period
@@ -103,6 +103,7 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
 
   character(256), dimension(:), allocatable, public :: dirSoil_moisture   ! File of monthly soil moisture
+  character(256), dimension(:), allocatable, public :: fileTWS            ! File of tws data
   
   ! directory common to all basins 
   character(256),                            public :: dirConfigOut       ! Directory where config run output is written to
@@ -170,7 +171,21 @@ MODULE mo_global_variables
      real(dp), dimension(:,:,:), allocatable    :: Ks                 ! [cm/d]     Saturated hydaulic conductivity
   end type soilType
   type(soilType), public                        :: soilDB             !            The soil database
-  
+
+  ! ------------------------------------------------------------------
+  ! BASIN AVERAGED TOTAL WATER STORAGE DATA
+  ! ------------------------------------------------------------------
+  type TWSstructure
+     integer(i4),    dimension(:),     allocatable :: basinId            ! Basin Id
+     character(256), dimension(:),     allocatable :: fname              ! file name
+     real(dp),       dimension(:,:),   allocatable :: TWS                ! [mm]
+  end type TWSstructure
+  type(TWSstructure), public                       :: basin_avg_TWS_obs   ! [mm] basin average TWS observational data
+
+  real(dp), public, dimension(:,:), allocatable    :: basin_avg_TWS_sim  ! variable containing basin average TWS for each basin
+  integer(i4), public                              :: nMeasPerDay_TWS    ! Number of WTS observations per day,
+  !                                                                      ! e.g. 24 -> hourly, 1 -> daily
+
   ! -----------------------------------------------------------------
   ! GEOLOGICAL FORMATION data
   ! -----------------------------------------------------------------

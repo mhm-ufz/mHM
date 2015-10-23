@@ -15,7 +15,7 @@ MODULE mo_read_optional_data
 
   PRIVATE
 
-  PUBLIC :: read_soil_moisture
+  PUBLIC :: read_soil_moisture, read_basin_avg_TWS
  
   ! ------------------------------------------------------------------
 
@@ -131,5 +131,105 @@ CONTAINS
     call timer_clear(1)
     
   end subroutine read_soil_moisture
-  
+
+  ! ---------------------------------------------------------------------------
+
+  !      NAME
+  !          read_basin_avg_TWS
+
+  !>        \brief Read basin average TWS timeseries from file, the same way runoff is read
+
+  !>        \details Read basin average TWS timeseries 
+  !>        Allocate global basin_avg_TWS variable that contains the simulated values after the simulation.
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         \author  Oldrich Rakovec, based on modification of mrm_read_discharge by S. Thober 
+  !         \date    Oct 2015
+  !
+  subroutine read_basin_avg_TWS()
+    use mo_message, only: message
+    use mo_append, only: paste
+    use mo_string_utils, only: num2str
+    use mo_read_timeseries, only: read_timeseries
+    use mo_file, only: utws
+    use mo_mhm_constants, only: nodata_dp
+    use mo_global_variables, only: &
+         nBasins, &
+         basin_avg_TWS_sim,basin_avg_TWS_obs, & ! variable storing tws simulated and data per each basin
+         nMeasPerDay_TWS, & ! nMeasPerDay for tws data
+         evalPer, & ! model evaluation period (for tws read in)
+         nTstepDay, &
+         simPer ! model simulation period (for inflow read in)
+    use mo_common_variables, only: optimize, &   ! optimization flag for some error checks
+                                   opti_function ! opti_function that determines to what data to calibrate
+    !
+    implicit none
+    ! input variables
+    !
+    ! local variables
+    integer(i4) :: iBasin
+    integer(i4) :: maxTimeSteps
+    character(256) :: fName ! file name of file to read
+    integer(i4), dimension(3) :: start_tmp, end_tmp
+    real(dp), dimension(:), allocatable :: data_dp_1d
+    logical, dimension(:), allocatable :: mask_1d
+
+    ! ************************************************
+    ! INITIALIZE TWS
+    ! ************************************************
+    maxTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * nTstepDay
+    allocate( basin_avg_TWS_sim(maxTimeSteps, nBasins) )
+    basin_avg_TWS_sim = nodata_dp
+     
+    ! ************************************************
+    ! READ basin average TWS TIME SERIES
+    ! ************************************************
+    !
+    do iBasin = 1, nBasins
+       call message('  Reading basin average TWS for basin:     ', trim(adjustl(num2str(iBasin))),' ...')
+
+       ! get start and end dates
+       start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
+       end_tmp   = (/evalPer(iBasin)%yEnd,   evalPer(iBasin)%mEnd,   evalPer(iBasin)%dEnd  /)
+       fName = trim(adjustl(basin_avg_TWS_obs%fname(iBasin)))
+       call read_timeseries(trim(fName), utws, &
+            start_tmp, end_tmp,optimize, opti_function, &
+            data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay_TWS)
+       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
+       call paste(basin_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
+       deallocate (data_dp_1d)
+    end do
+       
+  end subroutine read_basin_avg_TWS
+    
 END MODULE mo_read_optional_data

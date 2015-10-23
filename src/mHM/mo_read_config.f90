@@ -102,6 +102,7 @@ CONTAINS
   !                  Matthias Zink,  Mar  2015 - added optional soil moisture read in for calibration
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
   !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
+  !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
 
 
   subroutine read_config()
@@ -146,6 +147,7 @@ CONTAINS
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
          dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
+         fileTWS,basin_avg_TWS_obs,                         & ! directory with basin average tws data, basin avg TWS data itself
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -167,6 +169,7 @@ CONTAINS
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
          timeStep_LAI_input,                                & ! time step of gridded LAI input
          iFlag_cordinate_sys                                  ! model run cordinate system
+
     use mo_common_variables, only: &
          global_parameters,                                 & ! global parameters
          global_parameters_name,                            & ! clear names of global parameters
@@ -181,7 +184,6 @@ CONTAINS
          !                                                    !      # points per subcomplex
          mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
          mcmc_error_params                                    !       parameters of error model used in likelihood 
-         
     
     implicit none
 
@@ -280,6 +282,8 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
+    character(256), dimension(maxNoBasins)          :: file_TWS                  ! total water storage input file
+
     !
   integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
   integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover 
@@ -307,7 +311,7 @@ CONTAINS
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
          dir_NetRadiation, dir_gridded_LAI
     ! optional data used for optimization
-    namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input
+    namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input, file_TWS
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
          L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
@@ -390,6 +394,7 @@ CONTAINS
     allocate(dirLatLon          (nBasins))
     allocate(dirgridded_LAI     (nBasins))
     allocate(dirSoil_Moisture   (nBasins))
+    allocate(fileTWS            (nBasins))
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -537,6 +542,32 @@ CONTAINS
        stop
     end if
 
+    !===============================================================
+    ! Read evaluation basin average TWS data
+    !===============================================================
+
+    fileTWS = file_TWS (1:nBasins)
+    
+    ! if (opti_function .EQ. 15) then !OROROR
+       allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
+       allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
+      
+       do iBasin = 1, nBasins
+           if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then 
+                call message()
+                call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
+                                 ' for subbasin ', trim(adjustl(num2str(iBasin))), &
+                                 ' is not defined!')
+                call message('          Error occured in namelist: evaluation_tws')
+                stop
+           end if
+           
+           basin_avg_TWS_obs%basinId(iBasin) = iBasin
+           basin_avg_TWS_obs%fname(iBasin)   = trim(file_TWS(iBasin)) 
+       end do
+   ! end if !OROROR
+    
+    
     !===============================================================
     ! Read process selection list
     !===============================================================

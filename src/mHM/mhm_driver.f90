@@ -139,7 +139,8 @@
 !                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
 !                     Stephan Thober, Aug 2015 - removed routing related variables
 !                     Stephan Thober, Oct 2015 - reorganized optimization (now compatible with mRM)
-
+!      Oldrich Rakovec, Rohini Kumar, Oct 2015 - added reading of basin averaged TWS and objective function 15
+!                                                for simultaneous calibration based on runoff and TWS 
 !
 ! --------------------------------------------------------------------------
 
@@ -178,7 +179,7 @@ PROGRAM mhm_driver
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
-  USE mo_read_optional_data,  ONLY : read_soil_moisture             ! optional soil moisture reader
+  USE mo_read_optional_data,  ONLY : read_soil_moisture, read_basin_avg_TWS ! optional soil moisture reader, basin_avg_TWS reader
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
@@ -338,6 +339,14 @@ PROGRAM mhm_driver
 
   end do
 
+  ! read optional basin average TWS data at once, therefore outside of the basin loop to ensure same time for all basins
+  ! note this is similar to how the runoff is read using mrm below
+     if ( (opti_function .EQ. 15) .AND. optimize ) then
+        call read_basin_avg_TWS()
+        call message('  basin_avg TWS data read')
+     endif
+
+  
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
   ! if ( write_restart ) then
   !    itimer = itimer + 1
@@ -377,9 +386,11 @@ PROGRAM mhm_driver
          (opti_function .eq. 7) .or. &
          (opti_function .eq. 8) .or. &
          (opti_function .eq. 9) .or. &
-         (opti_function .eq. 14)) &
+         (opti_function .eq. 14) .or. &
+         (opti_function .eq. 15)) &
          call optimization(objective_runoff, dirConfigOut, funcBest, maskpara)
-#endif     
+#endif
+     
      ! call optimization for SM
      if ((opti_function .eq. 10) .or. &
          (opti_function .eq. 11) .or. &

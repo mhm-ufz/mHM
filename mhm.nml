@@ -98,6 +98,7 @@ opti_method = 1
 !> (12) SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture \n
 !> (13) SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
+!> (15) Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
@@ -260,9 +261,12 @@ nSoilHorizons_sm_input = 1
 !>     -3: yearly  SM values\n
 !-----------------------------
 timeStep_sm_input = -2
-/
-     
 !
+!> basin average total water storage (tws) \n
+!> file name including path with timeseries of GRACE-based data
+file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
+file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
+/
 
 &time_periods
 !-----------------------------------------------------------------------------

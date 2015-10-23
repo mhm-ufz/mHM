@@ -118,5 +118,8 @@ MODULE mo_file
   CHARACTER(len=*), PARAMETER :: file_lai_binary_end    = '.bin'                        ! Gridded LAI
   !> Unit for binary LAI files
   INTEGER,          PARAMETER :: ulai                   = 76                            ! 
+  !> unit for tws time series 
+  INTEGER,          PARAMETER :: utws                   = 77                            ! 
 
+  
 END MODULE mo_file

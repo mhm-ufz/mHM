@@ -51,6 +51,8 @@ CONTAINS
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti" 
   !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: basin_avg_tws" 
+  !>           returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
 
   !     RETURN
   !         None
@@ -87,7 +89,9 @@ CONTAINS
   !                                                    included routing related variables from mRM
   !                   David Schaefer,       Aug 2015 - changed to new netcdf-writing scheme
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti)
+  !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
+
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws)
 
     use mo_init_states,         only : get_basin_info
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
@@ -110,11 +114,11 @@ CONTAINS
          GeoUnitList, GeoUnitKar, soilDB,                    &
          L0_Id, L0_soilId,                                   & 
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
-         soilDB, L1_nTCells_L0,                 & 
+         soilDB, L1_nTCells_L0,                              & 
          L0_slope_emp,                                       &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
          L1_rightBound_L0, L0_latitude, L1_latitude,         &
-         evap_coeff, fday_prec,       & 
+         evap_coeff, fday_prec,                              & 
          fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
          L1_absvappress, L1_windspeed,                       &
@@ -135,6 +139,7 @@ CONTAINS
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
          L1_wiltingPoint, L1_neutrons,                       &
+         basin_avg_TWS_sim,                                  &
          warmingDays,                                        &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
@@ -142,7 +147,7 @@ CONTAINS
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
          nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
     use mo_common_variables, only: &
-         optimize
+         optimize   
 #ifdef mrm2mhm
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
@@ -189,6 +194,7 @@ CONTAINS
     real(dp), dimension(:),                          intent(in)  :: parameterset
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: basin_avg_tws! dim1=time dim2=nBasins
 
     ! -------------------------------------
     ! local variables
@@ -235,11 +241,17 @@ CONTAINS
     logical, allocatable                      :: mask11(:,:)
 #endif    
     !
+
+    ! for basin average tws timeseries
+    integer(i4)                               :: gg
+    real(dp), dimension(:), allocatable       :: TWS_field      ! field of TWS
+    real(dp)                                  :: area_basin
+    
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-
+   
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -260,6 +272,8 @@ CONTAINS
     ! add other optionals...
 
 
+
+    
     !-------------------------------------------------------------------
     ! Initalize State variables either to the default value or 
     ! from the restrat_files.
@@ -320,6 +334,12 @@ CONTAINS
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
 
+       ! allocate space for local tws field
+       if (present(basin_avg_tws)) then
+          allocate(TWS_field(s1:e1))
+          TWS_field(s1:e1) = nodata_dp
+       end if
+       
        ! Loop over time
        average_counter  = 0
        writeout_counter = 0
@@ -679,11 +699,26 @@ CONTAINS
              end if
           end if
 
+          !----------------------------------------------------------------------
+          ! FOR TOTAL WATER STORAGE
+          if( present(basin_avg_tws) ) then
+               area_basin = sum(L1_areaCell(s1:e1) )
+               TWS_field(s1:e1) = L1_inter(s1:e1) + L1_snowPack(s1:e1) + L1_sealSTW(s1:e1) + &
+                                        L1_unsatSTW(s1:e1) + L1_satSTW(s1:e1)             
+               do gg = 1, nSoilHorizons_mHM
+                  TWS_field(s1:e1) =   TWS_field(s1:e1) + L1_soilMoist (s1:e1,gg)   
+               end do
+               basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )  
+            end if
+            !----------------------------------------------------------------------
+          
        end do !<< TIME STEPS LOOP
 
        ! deallocate space for temprory LAI fields
        deallocate(LAI)
-
+       ! deallocate TWS field temporal variable
+       if (allocated (TWS_field) ) deallocate(TWS_field)
+       
     end do !<< BASIN LOOP
 
 #ifdef mrm2mhm
@@ -693,6 +728,10 @@ CONTAINS
     if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) runoff = mRM_runoff
 #endif
 
+    ! =========================================================================
+    ! SET TWS OUTPUT VARIABLE
+    ! =========================================================================
+    if( present(basin_avg_tws) ) basin_avg_tws = basin_avg_TWS_sim   
 
   end SUBROUTINE mhm_eval
 
