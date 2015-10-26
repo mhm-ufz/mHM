@@ -185,7 +185,7 @@ CONTAINS
     use mo_mhm_constants, only: nodata_dp
     use mo_global_variables, only: &
          nBasins, &
-         basin_avg_TWS_sim,basin_avg_TWS_obs, & ! variable storing tws simulated and data per each basin
+         basin_avg_TWS_sim, basin_avg_TWS_obs, & ! variable storing tws simulated and data per each basin
          nMeasPerDay_TWS, & ! nMeasPerDay for tws data
          evalPer, & ! model evaluation period (for tws read in)
          nTstepDay, &

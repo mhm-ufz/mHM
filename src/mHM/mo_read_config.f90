@@ -147,7 +147,8 @@ CONTAINS
          dirgridded_LAI,                                    & ! directory where gridded LAI is located
          dirSoil_moisture, timeStep_sm_input,               & ! directory and time stepping of soil moisture data
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
-         fileTWS,basin_avg_TWS_obs,                         & ! directory with basin average tws data, basin avg TWS data itself
+         basin_avg_TWS_obs,                                 & ! basin avg TWS data
+         fileTWS,                                           & ! directory with basin average tws data
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !

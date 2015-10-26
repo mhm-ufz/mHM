@@ -192,7 +192,7 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
-  USE mo_objective_function_sm, ONLY : objective_sm                 ! objective functions and likelihoods for SM
+  USE mo_objective_function_sm, ONLY : objective                 ! objective functions and likelihoods 
   USE mo_optimization,        ONLY : optimization
 #ifdef mrm2mhm
   USE mo_mrm_objective_function_runoff, only: objective_runoff
@@ -376,7 +376,7 @@ PROGRAM mhm_driver
   call message()
   if ( optimize ) then
 #ifdef mrm2mhm     
-     ! call optimization for runoff
+     ! call optimization against only runoff (no other variables)
      if ((opti_function .eq. 1) .or. &
          (opti_function .eq. 2) .or. &
          (opti_function .eq. 3) .or. &
@@ -386,17 +386,17 @@ PROGRAM mhm_driver
          (opti_function .eq. 7) .or. &
          (opti_function .eq. 8) .or. &
          (opti_function .eq. 9) .or. &
-         (opti_function .eq. 14) .or. &
-         (opti_function .eq. 15)) &
+         (opti_function .eq. 14)) &
          call optimization(objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
      
-     ! call optimization for SM
+     ! call optimization for other variables
      if ((opti_function .eq. 10) .or. &
          (opti_function .eq. 11) .or. &
          (opti_function .eq. 12) .or. &
-         (opti_function .eq. 13)) &
-         call optimization(objective_sm, dirConfigOut, funcBest, maskpara)
+         (opti_function .eq. 13) .or. &
+         (opti_function .eq. 15)) &
+         call optimization(objective, dirConfigOut, funcBest, maskpara)
 
      ! write a file with final objective function and the best parameter set
      call write_optifile(funcbest, global_parameters(:,3), global_parameters_name(:))
