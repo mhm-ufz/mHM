@@ -15,12 +15,10 @@
 !> (9)  Q:  1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> (10-13) SM: These objective functions are reserved for soil moisture (see mo_objective_function_sm.f90 in mHM source)\n
 !> (14) Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm\n
-!> (15) Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
 !  Modified, Oct 2015, Stehan Thober - adapted for mRM
-!  Modified, Oct 2015, Oldrich Rakovec - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
 
 MODULE mo_mrm_objective_function_runoff
 

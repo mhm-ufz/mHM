@@ -1,9 +1,9 @@
-!> \file mo_objective_function_sm.f90
+!> \file mo_objective_function.f90
 
-!> \brief Objective Functions for Optimization of mHM against soil moisture.
+!> \brief Objective Functions for Optimization of mHM.
 
-!> \details This module provides a wrapper for several objective functions used to optimize mHM against soil moisture.\n
-!>          Objective functions for optimzation agains runoff can be found in mo_mrm_objective_function_runoff.f90.\n
+!> \details This module provides a wrapper for several objective functions used to optimize mHM against various variables..\n
+!>          Objective functions for optimzation agains only runoff and no other variable can be found in mo_mrm_objective_function_runoff.f90.\n
 !>          All the objective functions are supposed to be minimized! \n
 !> (1)  Q:   1.0 - NSE  \n
 !> (2)  Q:   1.0 - lnNSE  \n
@@ -19,11 +19,13 @@
 !> (12) SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture \n
 !> (13) SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm\n
+!> (15) Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
+!  Modified, Oct 2015, Oldrich Rakovec - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
 
-MODULE mo_objective_function_sm
+MODULE mo_objective_function
 
   ! This module provides objective functions for optimization of the UFZ CHS mesoscale hydrologic model mHM.
 
@@ -1036,4 +1038,4 @@ CONTAINS
 
   end subroutine extract_basin_avg_tws
 
-END MODULE mo_objective_function_sm
+END MODULE mo_objective_function

@@ -192,7 +192,7 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
-  USE mo_objective_function_sm, ONLY : objective                 ! objective functions and likelihoods 
+  USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods 
   USE mo_optimization,        ONLY : optimization
 #ifdef mrm2mhm
   USE mo_mrm_objective_function_runoff, only: objective_runoff
