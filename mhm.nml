@@ -127,7 +127,7 @@ mrm_coupling_mode = 2
 !> Namelist with all directories for common file as well as separate file for every basin.\n 
 !> Number in brackets indicates basin number.\n
 !> This number HAS TO correspond with the number of basin given below in the "mainconfig"
-!> namelist as well as the indices given in the "gaugeinfo.txt" file.\n 
+!> namelist as well as the indices given in "evaluation_gauges" namelist.\n 
 
 ! directories used only by mRM
 &directories_mRM
