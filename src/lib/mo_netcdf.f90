@@ -1,15 +1,15 @@
-!> \file mo_netcdf.f90
+!>  \file mo_netcdf.f90
 
-!> \brief NetCDF Fortran 90 interface wrapper
+!>  \brief NetCDF Fortran 90 interface wrapper
 
-!> \details A thin wrapper around the NetCDF Fortran 90 interface.
-!>          Provided are currently 3 user facing derived Types:
-!>             1. NcDataset
-!>             2. NcDimension
-!>             3. NcVariable
+!>  \details A thin wrapper around the NetCDF Fortran 90 interface.
+!>           Provided are currently 3 user facing derived Types:
+!>              1. NcDataset
+!>              2. NcDimension
+!>              3. NcVariable
 !
-!> \authors David Schaefer
-!> \date Jun 2015
+!>  \authors David Schaefer
+!>  \date Jun 2015
 
 
 module mo_netcdf
@@ -57,20 +57,20 @@ module mo_netcdf
   !         NcDataset
   !
   !     PURPOSE
-  !>        \brief Provides basic file modification functionality
-  !>        \details Bound to this derived type is the basic file level create/retrieve
-  !>                 functionality, i.e. functions/subroutines to create/retrieve 
-  !>                 dimensions, variables and global attributes.
-  !>                 All files created by this derived type and its procedures are
-  !>                 are NF90_NETCDF4 only.
-  !>                 The supported modes are:  
-  !>                     r: read
-  !>                     w: write/create
-  !<                     a: alter
+  !>         \brief Provides basic file modification functionality
+  !>         \details Bound to this derived type is the basic file level create/retrieve
+  !>                  functionality, i.e. functions/subroutines to create/retrieve 
+  !>                  dimensions, variables and global attributes.
+  !>                  All files created by this derived type and its procedures are
+  !>                  are NF90_NETCDF4 only.
+  !>                  The supported modes are: \n  
+  !>                      r: read              \n
+  !>                      w: write/create      \n
+  !>                      a: alter             \n
   !
   !     INTENT(IN)
-  !>        \param[in] "character(*) :: fname"
-  !>        \param[in] "character(1) :: mode"
+  !>         \param[in] "character(*) :: fname" !  Filename of the opened dataset
+  !>         \param[in] "character(1) :: mode"  !  File open mode
   !
   !     INTENT(INOUT)
   !         None
@@ -79,21 +79,21 @@ module mo_netcdf
   !         None
   !
   !     RETURN
-  !>        \return "type(NcDataset)"
+  !>         \return "type(NcDataset)"
   !
   !     EXAMPLE
   !         See test file
   !
   !     HISTORY
-  !         \author David Schaefer
-  !         \date June 2015
+  !>         \author David Schaefer
+  !>         \date June 2015
   !
   ! --------------------------------------------------------------------------------------
   type NcDataset
 
-     character(256)                       :: fname !> Filename of the opened dataset
-     character(1)                         :: mode  !> File open mode
-     integer(i4)                          :: id    !> NetCDF id
+     character(256)                       :: fname !  Filename of the opened dataset
+     character(1)                         :: mode  !  File open mode
+     integer(i4)                          :: id    !  NetCDF id
 
    contains
 
@@ -128,7 +128,7 @@ module mo_netcdf
      !     PURPOSE
      !>        \brief Check if variable exists
      !>        \details Returns true if a variable with the given name exists, false 
-     !>                 otherwise.
+     !>                  otherwise.
      !
      !     INTENT(IN)
      !>        \param[in] "character(*) :: name"
@@ -146,8 +146,8 @@ module mo_netcdf
      !         See test file
      !
      !     HISTORY
-     !>        \author David Schaefer
-     !>        \date June 2015
+     !>         \author David Schaefer
+     !>         \date June 2015
      !     
      ! -----------------------------------------------------------------------------------     
      procedure, public  :: hasVariable
@@ -160,7 +160,7 @@ module mo_netcdf
      !     PURPOSE
      !>        \brief Check if dimension exists
      !>        \details Returns true if a dimension with the given name exists, false 
-     !>                 otherwise.
+     !                  otherwise.
      !
      !     INTENT(IN)
      !>        \param[in] "character(*) :: name"
@@ -195,7 +195,7 @@ module mo_netcdf
      !     PURPOSE
      !>        \brief Return the unlimited dimension of the dataset
      !>        \details Returns the NcDimension derived type of the unlimited dimension. 
-     !>                 The program will teminate abruptly if no such dimension exists.
+     !                  The program will teminate abruptly if no such dimension exists.
      !
      !     INTENT(IN)
      !>        \param[in] "character(*) :: name"
@@ -441,10 +441,10 @@ module mo_netcdf
      !>                 The program will teminate abruptly if the variable cannot be 
      !>                 created.
      !>                 Supported data types and their string encodings:
-     !>                     NF90_SHORT  -> "i16"
-     !>                     NF90_INT    -> "i32"
-     !>                     NF90_FLOAT  -> "f32"
-     !>                     NF90_DOUBLE -> "f64"
+     !>                     NF90_SHORT  -> "i16" \n
+     !>                     NF90_INT    -> "i32" \n
+     !>                     NF90_FLOAT  -> "f32" \n
+     !>                     NF90_DOUBLE -> "f64" \n
      !
      !     INTENT(IN)
      !>        \param[in] "character(*) :: name"
@@ -552,15 +552,15 @@ module mo_netcdf
   !         See test file
   !
   !     HISTORY
-  !         \author David Schaefer
-  !         \date June 2015
+  !>        \author David Schaefer
+  !>        \date June 2015
   !
   ! --------------------------------------------------------------------------------------
   type NcDimension
 
-     integer(i4)     :: id      !> The NetCDF dimension id
-     type(NcDataset) :: parent  !> The dimension's parent
-     character(16)   :: name    !> The dimension's name 
+     integer(i4)     :: id      !  The NetCDF dimension id
+     type(NcDataset) :: parent  !  The dimension's parent
+     character(16)   :: name    !  The dimension's name 
 
    contains
 
@@ -585,14 +585,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "integer(i4)"
+     !>        \return "integer(i4)"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------     
      procedure, public :: getLength   => getDimensionLength
@@ -668,15 +668,15 @@ module mo_netcdf
   !         See test file
   !
   !     HISTORY
-  !         \author David Schaefer
-  !         \date June 2015
+  !>        \author David Schaefer
+  !>        \date June 2015
   !
   ! --------------------------------------------------------------------------------------  
   type NcVariable
 
-     character(32)   :: name     !> Variable name
-     integer(i4)     :: id       !> Variable id
-     type(NcDataset) :: parent   !> The variables's parent
+     character(32)   :: name     !  Variable name
+     integer(i4)     :: id       !  Variable id
+     type(NcDataset) :: parent   !  The variables's parent
 
    contains
 
@@ -773,14 +773,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "integer(i4)"
+     !>        \return "integer(i4)"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------          
      procedure, public  :: getNoDimensions
@@ -804,14 +804,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "integer(i4), alloctable, dimension(:)"
+     !>        \return "integer(i4), alloctable, dimension(:)"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------          
      procedure, public  :: getDimensions => getVariableDimensions
@@ -835,14 +835,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "integer(i4), alloctable, dimension(:)"
+     !>        \return "integer(i4), alloctable, dimension(:)"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------               
      procedure, public  :: getShape      => getVariableShape
@@ -856,11 +856,11 @@ module mo_netcdf
      !>        \brief Retrieve the variable data type
      !>        \details Return the encoded data type of the variable.
      !>                 Data type encodeings
-     !>                     "f32" -> NF90_FLOAT  
-     !>                     "f64" -> NF90_DOUBLE 
-     !>                     "i16" -> NF90_SHORT  
-     !>                     "i32" -> NF90_INT    
-     !>                     "i64" -> NF90_INT64  
+     !>                     "f32" -> NF90_FLOAT  \n
+     !>                     "f64" -> NF90_DOUBLE \n
+     !>                     "i16" -> NF90_SHORT  \n
+     !>                     "i32" -> NF90_INT    \n
+     !>                     "i64" -> NF90_INT64  \n
      !
      !     INTENT(IN)
      !         None
@@ -872,14 +872,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "character(3)"
+     !>        \return "character(3)"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------
      procedure, public  :: getDtype      => getVariableDtype
@@ -895,7 +895,7 @@ module mo_netcdf
      !>                 otherwise.
      !
      !     INTENT(IN)
-     !         \param[in] "character(*) :: name"
+     !>        \param[in] "character(*) :: name"
      !
      !     INTENT(INOUT)
      !         None
@@ -904,14 +904,14 @@ module mo_netcdf
      !         None
      !
      !     RETURN
-     !         \return "logical"
+     !>        \return "logical"
      !
      !     EXAMPLE
      !         See test file
      !
      !     HISTORY
-     !         \author David Schaefer
-     !         \date June 2015
+     !>        \author David Schaefer
+     !>        \date June 2015
      !
      ! -----------------------------------------------------------------------------------
      procedure, public  :: hasAttribute
@@ -924,7 +924,7 @@ module mo_netcdf
      !     PURPOSE
      !>        \brief Check if the variable is unlimited
      !>        \details Returns true if the variable has an unlimited dimension,
-     !>                 false otherwise.
+     !                  false otherwise.
      !
      !     INTENT(IN)
      !         None
@@ -2461,4 +2461,3 @@ contains
   end subroutine check
 
 end module mo_netcdf
-
