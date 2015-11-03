@@ -3,7 +3,8 @@
 !> \brief Objective Functions for Optimization of mHM.
 
 !> \details This module provides a wrapper for several objective functions used to optimize mHM against various variables..\n
-!>          Objective functions for optimzation agains only runoff and no other variable can be found in mo_mrm_objective_function_runoff.f90.\n
+!>          Objective functions for optimzation agains only runoff and no other variable can be found \n
+!>          in mo_mrm_objective_function_runoff.f90.\n
 !>          All the objective functions are supposed to be minimized! \n
 !> (1)  Q:   1.0 - NSE  \n
 !> (2)  Q:   1.0 - lnNSE  \n
@@ -799,10 +800,10 @@ CONTAINS
 
        ! check for whether to proceed with this basin or not
        ! potentially 5 years of data
-       gg = count(tws_sim .ge. 0.0_dp )
-       if (gg .lt.  365*5 ) then    
+       if (count(tws_obs_mask) .lt.  365*5 ) then    
           deallocate (tws_sim, tws_obs, tws_obs_mask)
-          call message('objective_kge_q_rmse_tws: Length of TWS data is less than 5 years: this is not enough')
+          call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(ii)))  , &
+                       ' less than 5 years: these data are not considered')
           cycle         
        else         
           ! get initial time of the evaluation period
@@ -825,8 +826,13 @@ CONTAINS
 
           allocate ( month_classes(  nMonths ) )
           allocate ( tws_obs_m_mask( nMonths ) )
+          allocate ( tws_obs_m_anom( nMonths ) )
+          allocate ( tws_sim_m_anom( nMonths ) )         
+
           month_classes(:) = 0
           tws_obs_m_mask(:) = .TRUE.
+          tws_obs_m_anom(:) = nodata_dp
+          tws_sim_m_anom(:) = nodata_dp
 
           ! define months' classes
           mmm = month
@@ -845,13 +851,14 @@ CONTAINS
           ! calculate standard score
           tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask) 
           tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask) 
-
           rmse_tws(ii) = rmse(tws_sim_m_anom,tws_obs_m_anom,  mask = tws_obs_m_mask)
 
           deallocate ( month_classes )
           deallocate ( tws_obs_m )
           deallocate ( tws_sim_m )
           deallocate ( tws_obs_m_mask )
+          deallocate ( tws_sim_m_anom )
+          deallocate ( tws_obs_m_anom )         
           deallocate (tws_sim, tws_obs, tws_obs_mask)
        endif
       
@@ -966,7 +973,8 @@ CONTAINS
 
     use mo_global_variables, only: basin_avg_TWS_obs, nMeasPerDay_TWS, evalPer, warmingDays, nTstepDay
     use mo_message,          only: message
-    use mo_utils,            only: ge
+    use mo_constants,        only: eps_dp    
+    use mo_mrm_constants,    only: nodata_dp
 
     implicit none
 
@@ -1019,8 +1027,8 @@ CONTAINS
     ! create mask of observed tws
     if ( allocated( tws_obs_mask ) ) deallocate( tws_obs_mask )
     allocate( tws_obs_mask( length ) )
-    tws_obs_mask = .false.
-    forall(tt=1:length) tws_obs_mask(tt) = ge( tws_obs(tt), 0.0_dp)    
+    tws_obs_mask = .TRUE.
+    where( abs( tws_obs - nodata_dp) .lt. eps_dp ) tws_obs_mask = .FALSE.
 
     ! extract and aggregate simulated tws
     if ( allocated( tws_sim ) ) deallocate( tws_sim )
