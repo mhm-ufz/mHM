@@ -17,7 +17,7 @@ module mo_mrm_write_fluxes_states
   use mo_string_utils         , only: num2str
   use mo_mrm_global_variables , only: gridGeoRef
   use mo_mrm_constants        , only: nodata_dp
-  use mo_netcdf               , only: NcDataset, NcDimension, NcVariable
+  use mo_netcdf               , only: newNcDataset, NcDataset, NcDimension, NcVariable
 
   implicit none
 
@@ -613,7 +613,7 @@ contains
     call mapCoordinates(ibasin, level11, northing, easting)
     call geoCoordinates(ibasin, level11, lat, lon)
 
-    nc = NcDataset(trim(fname),"w")
+    nc = newNcDataset(trim(fname),"w")
     dimids1 = (/&
          nc%setDimension("easting",  size(easting)), &
          nc%setDimension("northing", size(northing)), &
