@@ -1028,7 +1028,11 @@ CONTAINS
        allocate(Ipos(chains), Ineg(chains), accRatio(chains))
        allocate(vDotJ(chains), s2(chains))
        allocate(sqrtR(size(para)))
-       allocate(mcmc_paras_3d(iter_mcmc,size(para),chains))
+       if (present(iter_mcmc_in)) then
+          allocate(mcmc_paras_3d(iter_mcmc-iter_mcmc_in,size(para),chains))
+       else
+          allocate(mcmc_paras_3d(iter_mcmc-1000_i4*n,size(para),chains))
+       end if
 
     endif
 
