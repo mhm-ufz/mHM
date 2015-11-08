@@ -24,14 +24,14 @@ contains
   !>        It return the objective function value for a specific parameter set.
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp) :: objective" - objective function used in the optimization
+  !>        \param[in] "real(dp)         :: objective"    - objective function used in the optimization
   !>        \param[in] "character(len=*) :: dirConfigOut" - directory where to write ascii output
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: funcBest" - best objective function value obtained during optimization
+  !>        \param[out] "real(dp)             :: funcBest"     - best objective function value obtained during optimization
   !>        \param[out] "logical, allocatable :: maskpara(:) " - mask of optimized parameters
 
   !     INTENT(IN), OPTIONAL
@@ -59,32 +59,38 @@ contains
   !>        \date Oct 2015
 
   subroutine optimization(objective, dirConfigOut, funcBest, maskpara)
-    use mo_kind, only: i4, i8, dp
-    use mo_anneal, only: anneal ! Optimise with Simulated Annealing SA
-    use mo_dds, only: dds ! Optimise with Dynam. Dimens. Search DDS
-    use mo_string_utils, only: num2str
-    use mo_common_variables, only: &
-         opti_method, &
-         opti_function, &
-         mcmc_opti, &
-         mcmc_error_params, &
-         seed, &
-         sa_temp, &
-         DDS_R, &
-         global_parameters, &
-         nIterations, &
-         sce_ngs, &
-         sce_npg, &
-         sce_nps
-    USE mo_mcmc, only: mcmc, mcmc_stddev ! Monte Carlo Markov Chain method
-    use mo_sce, only: sce
-    use mo_message, only: message
-    use mo_finish, only: finish
-    use mo_timer, only: timer_start, timer_stop, timer_get ! Timing of processes
-    use mo_xor4096, only: get_timeseed ! generating a seed from clock
+    use mo_kind,                          only: i4, i8, dp
+    use mo_anneal,                        only: anneal                             ! Optimize with Simulated Annealing SA
+    use mo_dds,                           only: dds                                ! Optimize with Dynam. Dimens. Search DDS
+    use mo_string_utils,                  only: num2str
+    use mo_common_variables,              only: &
+         opti_method,                           &                                  ! Optimization algorithm used
+         opti_function,                         &                                  ! Objective function used
+         global_parameters,                     &                                  ! Matrix of global parameters (former: gamma)
+         !                                                                         !     col1: min,  col2: max, col3: initial, 
+         !                                                                         !     col4: flag, col5: scaling
+         nIterations,                           &                                  ! number of iterations for optimization
+         seed,                                  &                                  ! seed used for optimization
+         mcmc_opti,                             &                                  ! MCMC: Optimization (.true. ) or
+         !                                                                         !       Only parameter uncertainty (.false.)
+         mcmc_error_params,                     &                                  !       Parameters of error model if mcmc_opti=.false.
+         !                                                                         !       e.g. for opti_function=8: 0.01, 0.3
+         sa_temp,                               &                                  ! SA:  initial temperature
+         dds_r,                                 &                                  ! DDS: perturbation rate
+         sce_ngs,                               &                                  ! SCE: # of complexes
+         sce_npg,                               &                                  ! SCE: # of points per complex
+         sce_nps                                                                   ! SCE: # of points per subcomplex
+    USE mo_mcmc,                          only: mcmc, mcmc_stddev                  ! Monte Carlo Markov Chain method
+    use mo_sce,                           only: sce                                ! Optimize with Shuffled Complex evolution
+    use mo_message,                       only: message
+    use mo_finish,                        only: finish
+    use mo_timer,                         only: timer_start, timer_stop, timer_get ! Timing of processes
+    use mo_xor4096,                       only: get_timeseed                       ! generating a seed from clock
     ! objective functions and likelihood for runoff only
     use mo_mrm_objective_function_runoff, only: loglikelihood, loglikelihood_stddev
+    
     implicit none
+    
     ! -------------------------------------------------------------------------
     ! INPUT VARIABLES
     ! -------------------------------------------------------------------------
@@ -97,28 +103,30 @@ contains
       end function objective
     end interface 
     character(len=*), intent(in) :: dirConfigOut
+    
     ! -------------------------------------------------------------------------
     ! OUTPUT VARIABLES
     ! -------------------------------------------------------------------------
     real(dp), intent(out)              :: funcbest    ! best objective function achivied during optimization
     logical,  intent(out), allocatable :: maskpara(:) ! true  = parameter will be optimized     = parameter(i,4) = 1
     !                                                 ! false = parameter will not be optimized = parameter(i,4) = 0
+    
     ! -------------------------------------------------------------------------
     ! LOCAL VARIABLES
     ! -------------------------------------------------------------------------
-    integer(i4) :: ii
-    integer(i4) :: iTimer ! current timer number
-    ! mcmc
-    real(dp), allocatable :: burnin_paras(:,:) ! parameter sets sampled during burnin
-    real(dp), allocatable :: mcmc_paras(:,:)   ! parameter sets sampled during proper mcmc
-    ! setting step sizes manually
-    ! real(dp), dimension(:),   allocatable :: step            ! pre-determined stepsize 
-    integer(i4)           :: npara
-    real(dp), allocatable :: local_parameters(:,:) ! global_parameters but includes a and b for likelihood
-    logical,  allocatable :: local_maskpara(:)   ! maskpara but includes a and b for likelihood
-    integer(i8)           :: iseed ! local seed used for optimization
-    character(256)        :: tFile ! file for temporal optimization outputs
-    character(256)        :: pFile ! file for temporal SCE optimization outputs
+    integer(i4)                             :: ii
+    integer(i4)                             :: iTimer                ! current timer number
+                                                                     ! mcmc
+    real(dp), allocatable                   :: burnin_paras(:,:)     ! parameter sets sampled during burnin
+    real(dp), allocatable                   :: mcmc_paras(:,:)       ! parameter sets sampled during proper mcmc
+                                                                     ! setting step sizes manually
+    ! real(dp), dimension(:),   allocatable :: step                  ! pre-determined stepsize 
+    integer(i4)                             :: npara
+    real(dp), allocatable                   :: local_parameters(:,:) ! global_parameters but includes a and b for likelihood
+    logical,  allocatable                   :: local_maskpara(:)     ! maskpara but includes a and b for likelihood
+    integer(i8)                             :: iseed                 ! local seed used for optimization
+    character(256)                          :: tFile                 ! file for temporal optimization outputs
+    character(256)                          :: pFile                 ! file for temporal SCE optimization outputs
 
     ! -------------------------------------------------------------------------
     ! START
