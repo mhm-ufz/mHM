@@ -152,35 +152,35 @@ CONTAINS
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
          ! INPUT variables for mRM routing ====================================
-         resolutionRouting, &
-         resolutionHydrology, &
-         L0_LCover_mRM, & ! L0 land cover
-         L0_floodPlain, & ! flood plains at L0 level
-         L0_areaCell, &
-         L1_areaCell, &
-         L1_L11_Id, &
-         L11_areaCell, &
-         L11_L1_Id, &
-         L11_aFloodPlain, & ! flood plains at L11 level
-         L11_length, & ! link length
-         L11_slope, &
-         L11_netPerm, & ! routing order at L11
-         L11_fromN, & ! link source at L11
-         L11_toN, & ! link target at L11
-         basin_mrm, & ! basin_mrm structure
-         InflowGauge, &
-         outputFlxState_mrm, &
+         resolutionRouting,          &
+         resolutionHydrology,        &
+         L0_LCover_mRM,              & ! L0 land cover
+         L0_floodPlain,              & ! flood plains at L0 level
+         L0_areaCell,                &
+         L1_areaCell,                &
+         L1_L11_Id,                  &
+         L11_areaCell,               &
+         L11_L1_Id,                  &
+         L11_aFloodPlain,            & ! flood plains at L11 level
+         L11_length,                 & ! link length
+         L11_slope,                  &
+         L11_netPerm,                & ! routing order at L11
+         L11_fromN,                  & ! link source at L11
+         L11_toN,                    & ! link target at L11
+         basin_mrm,                  & ! basin_mrm structure
+         InflowGauge,                &
+         outputFlxState_mrm,         &
          ! INPUT variables for writing output =================================
-         warmingDays_mrm, &
+         warmingDays_mrm,            &
          timeStep_model_outputs_mrm, &
          ! INPUT/OUTPUT variables for mRM routing =============================
-         L11_C1, & ! first muskingum parameter
-         L11_C2, & ! second muskigum parameter
-         L11_qOUT, & ! routed runoff flowing out of L11 cell
-         L11_qTIN, & ! inflow water into the reach at L11
-         L11_qTR, & !
-         L11_FracFPimp, & ! fraction of impervious layer at L11 scale
-         L11_qMod, &
+         L11_C1,                     & ! first muskingum parameter
+         L11_C2,                     & ! second muskigum parameter
+         L11_qOUT,                   & ! routed runoff flowing out of L11 cell
+         L11_qTIN,                   & ! inflow water into the reach at L11
+         L11_qTR,                    & !
+         L11_FracFPimp,              & ! fraction of impervious layer at L11 scale
+         L11_qMod,                   &
          mRM_runoff ! global variable containing runoff for every gauge
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
@@ -463,7 +463,8 @@ CONTAINS
                nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
-               L0_slope_emp(s0:e0), L0_Latitude(s0:e0), L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),   & ! IN L0
+               L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                     & ! IN L0
+               L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),                        & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
