@@ -119,39 +119,39 @@ CONTAINS
   !>        \details Calculates the flow duration curves for a given data vector. The Flow duration curve at a
   !>                 certain quantile x is the data point p where x% of the data points are above the value p.\n
   !>                 Hence the function percentile of the module mo_percentile is used. But percentile is
-  !>                 detemining the point p where x% of the data points are below that value. Therfore, the
+  !>                 determining the point p where x% of the data points are below that value. Therfore, the
   !>                 given quantiles are transformed by (1.0-quantile) to get the percentiles of exceedance probabilities.\n
   !>
   !>                 Optionally, the concavity index CI can be calculated [Zhang2014]. CI is defined by
   !>                         \f[ CI = \frac{q_{10\%}-q_{99\%}}{q_{1\%}-q_{99\%}} \f]
   !>                 where \f$ q_{x} \f$ is the data point where x% of the data points are above that value.
-  !>                 Hence, exeedance probabilities are used.\n
+  !>                 Hence, exceedance probabilities are used.\n
   !>
   !>                 Optionally, the FDC mid-segment slope \f$FDC_{MSS}\f$ as used by Shafii et. al (2014) can be returned. 
   !>                 The \f$FDC_{MSS}\f$ is defined as
   !>                         \f[ FDC_{MSS} = \log(q_{m_1})-\log(q_{m_2}) \f]
-  !>                 where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exeedance probabilities within the 
+  !>                 where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exceedance probabilities within the 
   !>                 midsegment of FDC. The settings \f$m_1=0.2\f$ and \f$0.7\f$ are used by Shafii et. al (2014) and are 
   !>                 implemented like that.\n
     !>
   !>                 Optionally, the FDC medium high-segment volume \f$FDC_{MHSV}\f$ as used by Shafii et. al (2014) can be 
   !>                 returned. The \f$FDC_{MHSV}\f$ is defined as
   !>                         \f[ FDC_{MHSV} = \sum_{h=1}^{H} q_h \f]
-  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exeedance probabilities  
+  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities  
   !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.2\f$ is used here  
   !>                 to be consistent with the definitions of the low-segment (0.7-1.0) and the mid-segment (0.2-0.7).\n
   !>
   !>                 Optionally, the FDC high-segment volume \f$FDC_{HSV}\f$ as used by Shafii et. al (2014) can be returned. 
   !>                 The \f$FDC_{HSV}\f$ is defined as
   !>                         \f[ FDC_{HSV} = \sum_{h=1}^{H} q_h \f]
-  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exeedance probabilities  
+  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities  
   !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.02\f$ is used by  
   !>                 Shafii et. al (2014) and is implemented like that.\n
   !>
   !>                 Optionally, the FDC low-segment volume \f$FDC_{LSV}\f$ as used by Shafii et. al (2014) can be returned. 
   !>                 The \f$FDC_{LSV}\f$ is defined as
   !>                         \f[ FDC_{LSV} = -\sum_{l=1}^{L} (\log(q_l) - \log(q_L)) \f]
-  !>                 where \f$ l=1,2,...,L \f$ are flow indeces located within the low-flow segment (exeedance probabilities  
+  !>                 where \f$ l=1,2,...,L \f$ are flow indeces located within the low-flow segment (exceedance probabilities  
   !>                 larger than \f$m_1\f$). \f$L\f$ is the index of the minimum flow. The settings \f$m_1=0.7\f$ is used by  
   !>                 Shafii et. al (2014) and is implemented like that.\n
   !>
@@ -162,7 +162,7 @@ CONTAINS
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), dimension(:) :: data"              data series
-  !>        \param[in] "real(dp), dimension(:) :: Quantiles"         Percentages of exeedance
+  !>        \param[in] "real(dp), dimension(:) :: Quantiles"         Percentages of exceedance
 
   !     INTENT(INOUT)
   !         None
@@ -202,7 +202,7 @@ CONTAINS
   !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
   !            rainfall-runoff modelling.
   !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
-  !         Concavity index is defined using exeedance probabilities by
+  !         Concavity index is defined using exceedance probabilities by
   !            Sauquet, E., & Catalogne, C. (2011).
   !            Comparison of catchment grouping methods for flow duration curve estimation at ungauged sites in France.
   !            Hydrology and Earth System Sciences, 15(8), 2421–2435. doi:10.5194/hess-15-2421-2011
@@ -230,7 +230,7 @@ CONTAINS
     IMPLICIT NONE
 
     real(dp), dimension(:),                           intent(in) :: data                 ! data series
-    real(dp), dimension(:),                           intent(in) :: quantiles            ! Percentages of exeedance (x-axis of FDC)
+    real(dp), dimension(:),                           intent(in) :: quantiles            ! Percentages of exceedance (x-axis of FDC)
     logical,  dimension(:),                optional, intent(in)  :: mask                 ! mask for data
     real(dp),                              optional, intent(out) :: concavity_index      ! Concavity index as defined by
     !                                                                                    ! Sauquet et al. (2011)
@@ -741,11 +741,14 @@ CONTAINS
   !     PURPOSE
   !>        \brief   Calculates the peak distribution.
 
-  !>        \details Calculates the peak distribution at the quantiles given using percentile. Since the
-  !>                 exeedance probabilities are usually used in hydrology the function percentile
-  !>                 is used with (1.0-quantiles). \n
+  !>        \details First, the peaks of the time series given are identified. For the peak distribution
+  !>                 only this subset of data points are considered. Second, the peak distribution at the
+  !>                 quantiles given is calculated. Calculates the peak distribution at the quantiles given
+  !>                 using mo_percentile. Since the exceedance probabilities are usually used in 
+  !>                 hydrology the function percentile is used with (1.0-quantiles). \n
+  !>                 
   !>                 Optionally, the slope of the peak distribution between 10th and 50th percentile, i.e.
-  !>                    \f[ peaks= \frac{(peak\_data_{10%}-peak\_data_{50%}}{0.9-0.5} \f]
+  !>                    \f[ slope = \frac{\text{peak\_data}_{0.1}-\text{peak\_data}_{0.5}}{0.9-0.5} \f]
   !>                 can be returned.\n
   !>                 An optional mask for the data points can be given.
 
@@ -867,7 +870,7 @@ CONTAINS
   !>        \brief   Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d]).
 
   !>        \details The runoff ratio is defined as
-  !>                       \f[ runoff_ratio = frac{\sum_{t=1}^{N} q_t}/{\sum_{t=1}^{N} p_t}\f]
+  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}/{\sum_{t=1}^{N} p_t}\f]
   !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
   !>                 Therefore, precipitation over the entire basin is required and both discharge and precipitation
   !>                 have to be converted to the same units [mm/d].\n
@@ -881,7 +884,7 @@ CONTAINS
   !>
   !>                 Optionally, a mask for the data (=discharge) can be given. If optional "log_data" is set to .true.
   !>                 the runoff ratio will be calculated as
-  !>                       \f[ runoff_ratio = frac{\sum_{t=1}^{N} \log(q_t)}/{\sum_{t=1}^{N} p_t}\f]
+  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}/{\sum_{t=1}^{N} p_t}\f]
   !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
 
   !     CALLING SEQUENCE
@@ -989,9 +992,9 @@ CONTAINS
     ! => [m**3/(s km**2) * 86.4 ] = [mm/d]
     ! => discharge value [m**3/s] / catchment area [km**2] * 86.4 [km**2 s/m**3 * mm/d]
     if (log_dat) then
-       sum_discharge = sum(log(data)*86.4/basin_area,mask=maske)
+       sum_discharge = sum(log(data)*86.4_dp/basin_area,mask=maske)
     else
-       sum_discharge = sum(data*86.4/basin_area,mask=maske)
+       sum_discharge = sum(data*86.4_dp/basin_area,mask=maske)
     end if
 
     if (present(precip_sum)) then
