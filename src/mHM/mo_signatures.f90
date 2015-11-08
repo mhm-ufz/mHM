@@ -4,177 +4,66 @@
 
 !> \details This module contains calculations for hydrological signatures.
 !> It contains:\n
-!> * Mean annual runoff
 !> * Autocorrelation
-!> * Autocorrelation for low flows
-!> * Autocorrelation for high flows
-!> * Rising and declining lomb densities
+!> * Rising and declining limb densities
 !> * Flow duration curves
-!> * Flow duration curves low flows
-!> * Flow duration curves high flows
-!> * Peak distribution parameter
-!> * Peaks for low flows
-!> * Peaks for high flows
+!> * Peak distribution
 
 !> \authors Remko Nijzink,
 !> \date March 2014
 !  modified, Stephan Thober, Jan 2015 - uncommented unused subroutines that are incompatible
 !                                       with multiple time periods
+!            Juliane Mai,    Jun 2015 - revising all routines
+!                                     - removing routines which are specially low flow or high flow
+!                                     - adding optional mask argument to all routines
+!                                     - using CHS routines like percentile and autocorr
 
 MODULE mo_signatures
 
-  ! Module with calculations for several hydrological signatures.
-
-  ! Written  Remko Nijzink, March 2014
   USE mo_kind, ONLY: i4, sp, dp
 
   IMPLICIT NONE
 
   PUBLIC :: Autocorrelation         ! Autocorrelation function
-  !PUBLIC :: Autocorrelation_low     ! Autocorrelation for low flows
-  !PUBLIC :: Autocorrelation_high    ! Autocorrelation for high flows
-  PUBLIC :: FlowDurationCurves      ! Flow duration curves
-  !PUBLIC :: FlowDurationCurves_high ! Flow duration curves high flows
-  !PUBLIC :: FlowDurationCurves_low  ! Flow duration curves low flows
+  PUBLIC :: FlowDurationCurve       ! Flow duration curve (i.e. CDF of runoff)
   PUBLIC :: Limb_densities          ! Rising and declining limb densities
+  PUBLIC :: Moments                 ! Moments of data and log-transformed data, e.g. mean and standard deviation.
   PUBLIC :: PeakDistribution        ! Peak distribution parameter
-  !PUBLIC :: PeakDistribution_high   ! Peaks for high flows
-  !PUBLIC :: PeakDistribution_low    ! Peaks for low flows
-  !PUBLIC :: Q_MeanAnnual            ! Autocorrelation function
-
+  PUBLIC :: RunoffRatio             ! Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d])
+  PUBLIC :: ZeroFlowRatio           ! Ratio of zero flow days to total observation days                             
 
   ! ------------------------------------------------------------------
 
 CONTAINS
-
-  ! ------------------------------------------------------------------
-  !     NAME
-  !         Q_MeanAnnual
-
-  !     PURPOSE
-  !>        \brief The mean annual runoff
-
-  !>        \details Calculates the mean annual runoff
-
-  !     CALLING SEQUENCE
-  !         call Q_Meannual(Q_serie,Q_MA)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"        ! Discharge series
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: Q_MA"        Mean annual runoff
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  ! SUBROUTINE Q_MeanAnnual(Q_serie,Q_MA)
-
-  !   USE mo_julian,              only : caldat
-  !   USE mo_global_variables,    only : evalPer
-
-  !   IMPLICIT NONE
-
-  !   real(dp), dimension(:), intent(in)     :: Q_serie    ! simulated  daily river flow, 
-  !   real(dp),               intent(out)    :: Q_MA       ! Mean annual discharge
-
-  !   ! local variables
-  !   integer(i4)                            :: dd         ! day
-  !   integer(i4)                            :: mm         ! month
-  !   integer(i4)                            :: numYears   ! number of years
-  !   real(dp)                               :: Qsum       ! sum of discharge 
-  !   real(dp), allocatable, dimension(:)    :: Q_Ann      ! Annual discharge
-  !   integer(i4)                            :: ii,jj      ! Counters
-  !   integer(i4)                            :: year_new   ! new year
-  !   integer(i4)                            :: year_old   ! old year
-  !   integer(i4)                            :: yy         ! year
-
-  !   !initialize
-  !   year_old    = evalPer%yStart
-  !   year_new    = year_old
-  !   Qsum        = 0.0_dp
-  !   jj          = 0_i4
-  !   numYears    = evalPer%yEnd-evalPer%yStart+1_i4 
-  !   allocate(Q_Ann(numYears))
-  !   ! evalPerDate = evalPer%julStart        
-
-  !   !loop over time series and sum discharge per year
-  !   do ii=1, size(Q_serie,1)
-
-  !      if(year_new .eq. year_old) then
-  !         Qsum=Qsum+Q_serie(ii)
-  !         if(ii .eq. size(Q_serie,1)) then !exception for end of timeseries
-  !            jj=jj+1_i4
-  !            Q_Ann(jj)=Qsum
-  !         end if
-  !      else
-  !         !store value when next year is reached and initialize for new year
-  !         jj=jj+1_i4
-  !         Q_Ann(jj)=Qsum
-  !         Qsum=Q_serie(ii)
-  !      end if
-
-  !      !update counters
-  !      year_old=year_new
-  !      call caldat(evalPer%julStart+ii, dd, mm, yy)
-  !      year_new=yy
-  !   end do
-
-  !   !determine the mean of the annual discharge sums
-  !   Q_MA=sum(Q_Ann)/real(size(Q_Ann,1),dp)
-
-  !   deallocate(Q_Ann)
-
-  ! END SUBROUTINE Q_MeanAnnual
 
   !-------------------------------------------------------------------------------
   !     NAME
   !         Autocorrelation
 
   !     PURPOSE
-  !>        \brief Calculates autocorrelation
+  !>        \brief   Autocorrelation of a given data series.
 
-  !>        \details Calculates autocorrelation serie with lag times to 200 timesteps
+  !>        \details Calculates the autocorrelation of a data series at given lags.
+  !>                 An optional  argument for masking data points can be given.
+  !>                 The function is basically a wrapper of the function autocorr
+  !>                 from the module mo_corr.\n
+  !>                 An optional mask of data points can be specified.
 
   !     CALLING SEQUENCE
-  !         call Autocorrelation(Q_serie, maxlag, AC)
+  !         auto_correlation = Autocorrelation(data, lags, mask=mask)
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"        ! Discharge series
+  !>        \param[in] "real(dp), dimension(:)     :: data"   Array of data
+  !>        \param[in] "integer(i4), dimension(:)  :: lags"   Array of lags where autocorrelation is requested 
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)
-  !>        \param[out] "real(dp), allocatable, dimension(:) :: AC"        ! Autocorrelation function
+  !         None
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "integer(i4) ,optional                :: maxlag"    ! maximum lag of series
+  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   Mask for data points given
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -183,725 +72,438 @@ CONTAINS
   !         None
 
   !     RETURN
-  !         None
+  !         \return     real(dp), dimension(size(lags,1)) :: Autocorrelation &mdash; autocorrelation of data at given lags
 
   !     RESTRICTIONS
-  !         None
+  !>        Works only with 1d double precision input data.
 
   !     EXAMPLE
   !         None
 
   !     LITERATURE
-  !         None
+  !         Used as hydrologic signature with lag 1 in
+  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !            A framework to assess the realism of model structures using hydrological signatures.
+  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
 
   !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
+  !>        \author Juliane Mai
+  !>        \date Jun 2015
 
-  SUBROUTINE Autocorrelation(Q_serie, AC, maxlag_in)
+  FUNCTION Autocorrelation(data, lags, mask)
 
-    USE mo_template
+    use mo_corr, only: autocorr
 
     IMPLICIT NONE
 
-    real(dp),              dimension(:),           intent(in)  :: Q_serie    ! Simulated  daily river flow
-    real(dp), allocatable, dimension(:),           intent(out) :: AC         ! Autocorrelation serie
-    integer(i4),                         optional, intent(in)  :: maxlag_in  ! maximum lag in autocorrelation
+    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
+    integer(i4), dimension(:),                      intent(in)  :: lags            ! Lags for autocorrelation
+    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
+    real(dp),    dimension(size(lags,1))                        :: autocorrelation ! Autocorrelation of data at given lags
 
-    ! local variables
-    real(dp)    :: AC_up          ! Nominator 
-    real(dp)    :: AC_down        ! Denominator
-    integer(i4) :: tlag           ! lag time
-    integer(i4) :: ii             ! Counter
-    integer(i4) :: maxlag         ! maximum lag in autocorrelation
-    real(dp)    :: Qmean          ! Mean discharge
-
-    ! check optional
-    if( present(maxlag_in) ) then
-       maxlag = maxlag_in
+    if (present(mask)) then
+       autocorrelation = autocorr(data, lags, mask=mask)
     else
-       maxlag = 200_i4
+       autocorrelation = autocorr(data, lags)
     end if
 
-    !initialize
-    AC_up=0.0_dp
-    if(.not. allocated(AC)) allocate( AC(  maxlag) )
-
-    !determine mean
-    Qmean=mean(Q_serie(:))
-
-    do tlag=1, maxlag
-       AC_down=sum((Q_serie-mean(Q_serie(1:(size(Q_serie,1)-tlag))))**2)
-
-       do ii=1, (size(Q_serie,1)-tlag)
-          AC_up=AC_up+(Q_serie(ii)-Qmean)*(Q_serie(ii+tlag)-Qmean)
-       end do
-
-       AC(tlag)=AC_up/AC_down
-       AC_up=0.0_dp
-    end do
-
-  END SUBROUTINE Autocorrelation
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         Autocorrelation_low
-
-  !     PURPOSE
-  !>        \brief Calculates autocorrelation for low flows
-
-  !>        \details Calculates autocorrelation for low flows with delay of 1
-
-  !     CALLING SEQUENCE
-  !         call Autocorrelation_low(Q_serie, mm_low, mm_high, AC_low)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"       ! Discharge series
-  !>        \param[in] "real(dp), dimension(:) :: mm_low"        ! month where low flow starts
-  !>        \param[in] "real(dp), dimension(:) :: mm_high"       ! month where high flow starts
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:) :: AC_low"        Autocorrelation function
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         NONE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  ! SUBROUTINE Autocorrelation_low(Q_serie, mm_low, mm_high, AC_low)
-
-  !   USE mo_global_variables,            only : evalPer
-  !   USE mo_julian,                      only : caldat
-
-  !   IMPLICIT NONE
-
-  !   real(dp), dimension(:), intent(in)  :: Q_serie ! River flow
-  !   integer(i4),            intent(in)  :: mm_low  ! month where low flow starts
-  !   integer(i4),            intent(in)  :: mm_high ! month where high flow starts
-  !   real(dp),               intent(out) :: AC_low  ! Autocorrelation 1 day low flows
-
-  !   ! local variables
-  !   real(dp)    :: AC_up   ! Nominator 
-  !   real(dp)    :: AC_down ! Denominator
-  !   integer(i4) :: date    ! date in julian day
-  !   integer(i4) :: dd      ! day
-  !   integer(i4) :: dd1     ! another day
-  !   integer(i4) :: mm      ! month
-  !   integer(i4) :: mm1     ! another month
-  !   integer(i4) :: jj      ! Counters
-  !   integer(i4) :: n_low   ! Number of low flow days
-  !   real(dp)    :: Qmean   ! Mean discharge
-  !   real(dp)    :: Qsum    ! Sum of discharge
-  !   integer(i4) :: yy      ! year
-  !   integer(i4) :: yy1     ! another year
-
-  !   !initialize
-  !   AC_down = 0.0_dp
-  !   AC_up   = 0.0_dp
-  !   Qsum    = 0.0_dp
-  !   n_low   = 0_i4
-
-  !   !calculate the total mean of the low flows
-
-  !   if(mm_low .lt. mm_high) then
-
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            n_low=n_low+1_i4
-  !            Qsum=Qsum+Q_serie(jj)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !      Qmean=Qsum/real(n_low,dp)
-
-  !      !calculate AClow
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            call caldat(date+1, dd=dd1, mm=mm1, yy=yy1)
-  !            if( (mm1 .ge. mm_low) .and. (mm1 .lt. mm_high) ) then
-  !               AC_down=AC_down+(Q_serie(jj)-Qmean)**2
-  !               AC_up=AC_up+(Q_serie(jj)-Qmean)*(Q_serie(jj+1)-Qmean)
-  !            end if
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   else
-
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            n_low=n_low+1_i4
-  !            Qsum=Qsum+Q_serie(jj)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !      Qmean=Qsum/real(n_low,dp)
-
-  !      !calculate AClow
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            call caldat(date+1, dd=dd1, mm=mm1, yy=yy1)
-  !            if( (mm1 .ge. mm_low) .or. (mm1 .lt. mm_high) ) then
-  !               AC_down=AC_down+(Q_serie(jj)-Qmean)**2
-  !               AC_up=AC_up+(Q_serie(jj)-Qmean)*(Q_serie(jj+1)-Qmean)
-  !            end if
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   end if
-
-  !   AC_low=AC_up/AC_down
-
-  ! END SUBROUTINE Autocorrelation_low
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         Autocorrelation_high
-
-  !     PURPOSE
-  !>        \brief Calculates autocorrelation for high flows
-
-  !>        \details Calculates autocorrelation for high flows with delay of 1
-
-  !     CALLING SEQUENCE
-  !         call Autocorrelation_high(Q_serie, mm_low, mm_high, AC_high)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"       ! Discharge series
-  !>        \param[in] "real(dp), dimension(:) :: mm_low"        ! month where low flow starts
-  !>        \param[in] "real(dp), dimension(:) :: mm_high"       ! month where high flow starts
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:) :: AC_high"        Autocorrelation function
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  ! SUBROUTINE Autocorrelation_high(Q_serie, mm_low, mm_high, AC_high)
-
-  !   USE mo_julian,                      only : caldat
-  !   USE mo_global_variables,            only : evalPer
-
-  !   IMPLICIT NONE
-
-  !   real(dp), dimension(:), intent(in)  :: Q_serie ! River flow
-  !   integer(i4),            intent(in)  :: mm_low  ! month where low flow starts
-  !   integer(i4),            intent(in)  :: mm_high ! month where high flow starts   
-  !   real(dp),               intent(out) :: AC_high ! Autocorrelation 1 day low flows
-
-  !   ! local variables
-  !   real(dp)    :: AC_up   ! Nominator 
-  !   real(dp)    :: AC_down ! Denominator
-  !   integer(i4) :: date    ! date in julian day
-  !   integer(i4) :: dd      ! day
-  !   integer(i4) :: dd1     ! another day
-  !   integer(i4) :: mm      ! month
-  !   integer(i4) :: mm1     ! another month
-
-  !   integer(i4) :: jj      ! Counters
-  !   integer(i4) :: n_high  ! Number of low flow days
-  !   real(dp)    :: Qmean   ! Mean discharge
-  !   real(dp)    :: Qsum    ! Sum of discharge
-  !   integer(i4) :: yy      ! year
-  !   integer(i4) :: yy1     ! another year
-
-  !   !initialize
-  !   AC_down = 0.0_dp
-  !   AC_up   = 0.0_dp
-  !   Qsum    = 0.0_dp
-  !   n_high  = 0_i4
-
-  !   !calculate the total mean of the high flows
-
-  !   if(mm_low .lt. mm_high) then  !middle of year is low flow period
-
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .or. (mm .ge. mm_high) ) then
-  !            n_high=n_high+1_i4
-  !            Qsum=Qsum+Q_serie(jj)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !      Qmean=Qsum/real(n_high,dp)
-
-  !      !calculate AChigh
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)-1_i4
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .or. (mm .ge. mm_high) ) then
-  !            call caldat(date+1, dd=dd1, mm=mm1, yy=yy1)
-  !            if( (mm .lt. mm_low .and. mm1 .lt. mm_low) .or. (mm .ge. mm_high .and. mm1 .ge. mm_high) ) then
-  !               AC_down=AC_down+(Q_serie(jj)-Qmean)**2
-  !               AC_up=AC_up+(Q_serie(jj)-Qmean)*(Q_serie(jj+1)-Qmean)
-  !            end if
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   else  !low flows in begin and end of year
-
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .and. (mm .ge. mm_high) ) then
-  !            n_high=n_high+1_i4
-  !            Qsum=Qsum+Q_serie(jj)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !      Qmean=Qsum/real(n_high,dp)
-
-  !      !calculate AChigh
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)-1_i4
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .and. (mm .ge. mm_high) ) then
-  !            call caldat(date+1, dd=dd1, mm=mm1, yy=yy1)
-  !            if( (mm .lt. mm_low .and. mm1 .lt. mm_low) .and. (mm .ge. mm_high .and. mm1 .ge. mm_high) ) then
-  !               AC_down=AC_down+(Q_serie(jj)-Qmean)**2
-  !               AC_up=AC_up+(Q_serie(jj)-Qmean)*(Q_serie(jj+1)-Qmean)
-  !            end if
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   end if
-
-  !   AC_high=AC_up/AC_down
-
-  ! END SUBROUTINE Autocorrelation_high
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         Limb_densities
-
-  !     PURPOSE
-  !>        \brief Calculates limb densities
-
-  !>        \details Calculates rising and declinging limb densities
-  !>                     \f[ RLD=t_rise/n_peak \f]
-  !>                 Duration the hydrograph increases divided by the number of peaks, 
-  !>                 i.e. timestep before and after have lower values
-  !>                     \f[ DLD=t_fall/n_peak \f]
-  !>                 Duration the hydrograph decreases divided by the number of peaks,
-  !>                 i.e. timestep before and after have lower values
-
-  !     CALLING SEQUENCE
-  !         call Limb_densities(Q_serie,RLD,DLD)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"        ! Discharge series
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: RLD"        Rising    limb density
-  !>        \param[out] "real(dp) :: DLD"        Declining limb density
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  SUBROUTINE Limb_densities(Q_serie, RLD, DLD)
-
-    IMPLICIT NONE
-
-    real(dp), dimension(:), intent(in)  :: Q_serie ! River flow,    
-    real(dp),               intent(out) :: RLD     ! Rising limb density
-    real(dp),               intent(out) :: DLD     ! Declining limb density
-
-                                                   ! local variables
-    integer(i4)                         :: jj      ! Counter
-    integer(i4)                         :: n_peak  ! Number of peaks
-    real(dp)                            :: t_fall  ! Duration of the hydrograph declining
-    real(dp)                            :: t_rise  ! Duration of the hydrograph rising 
-
-    !initialize
-    t_fall=0.0_dp
-    t_rise=0.0_dp
-    n_peak=0_i4
-
-    !calculate the total mean of the high flows
-
-    do jj=2, size(Q_serie,1)-1
-
-       !check for peak
-       if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) ) then
-          n_peak=n_peak+1_i4
-       end if
-
-       !check if hydrograph rises
-       if(Q_serie(jj-1) .lt. Q_serie(jj)) then
-          t_rise=t_rise+1.0_dp
-       end if
-
-       !check if hydrograph falls
-       if(Q_serie(jj-1) .gt. Q_serie(jj)) then
-          t_fall=t_fall+1.0_dp
-       end if
-
-    end do
-
-    RLD = t_rise/real(n_peak,dp)
-    DLD = t_fall/real(n_peak,dp)
-
-  END SUBROUTINE Limb_densities
+  END FUNCTION Autocorrelation
 
   !-------------------------------------------------------------------------------
   !     NAME
   !         FlowDurationCurves
 
   !     PURPOSE
-  !>        \brief Calculates the flow duration curves
+  !>        \brief   Flow duration curves.
 
-  !>        \details Calculates the flow duration curves for discharge time series
+  !>        \details Calculates the flow duration curves for a given data vector. The Flow duration curve at a
+  !>                 certain quantile x is the data point p where x% of the data points are above the value p.\n
+  !>                 Hence the function percentile of the module mo_percentile is used. But percentile is
+  !>                 detemining the point p where x% of the data points are below that value. Therfore, the
+  !>                 given quantiles are transformed by (1.0-quantile) to get the percentiles of exceedance probabilities.\n
+  !>
+  !>                 Optionally, the concavity index CI can be calculated [Zhang2014]. CI is defined by
+  !>                         \f[ CI = \frac{q_{10\%}-q_{99\%}}{q_{1\%}-q_{99\%}} \f]
+  !>                 where \f$ q_{x} \f$ is the data point where x% of the data points are above that value.
+  !>                 Hence, exeedance probabilities are used.\n
+  !>
+  !>                 Optionally, the FDC mid-segment slope \f$FDC_{MSS}\f$ as used by Shafii et. al (2014) can be returned. 
+  !>                 The \f$FDC_{MSS}\f$ is defined as
+  !>                         \f[ FDC_{MSS} = \log(q_{m_1})-\log(q_{m_2}) \f]
+  !>                 where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exeedance probabilities within the 
+  !>                 midsegment of FDC. The settings \f$m_1=0.2\f$ and \f$0.7\f$ are used by Shafii et. al (2014) and are 
+  !>                 implemented like that.\n
+    !>
+  !>                 Optionally, the FDC medium high-segment volume \f$FDC_{MHSV}\f$ as used by Shafii et. al (2014) can be 
+  !>                 returned. The \f$FDC_{MHSV}\f$ is defined as
+  !>                         \f[ FDC_{MHSV} = \sum_{h=1}^{H} q_h \f]
+  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exeedance probabilities  
+  !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.2\f$ is used here  
+  !>                 to be consistent with the definitions of the low-segment (0.7-1.0) and the mid-segment (0.2-0.7).\n
+  !>
+  !>                 Optionally, the FDC high-segment volume \f$FDC_{HSV}\f$ as used by Shafii et. al (2014) can be returned. 
+  !>                 The \f$FDC_{HSV}\f$ is defined as
+  !>                         \f[ FDC_{HSV} = \sum_{h=1}^{H} q_h \f]
+  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exeedance probabilities  
+  !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.02\f$ is used by  
+  !>                 Shafii et. al (2014) and is implemented like that.\n
+  !>
+  !>                 Optionally, the FDC low-segment volume \f$FDC_{LSV}\f$ as used by Shafii et. al (2014) can be returned. 
+  !>                 The \f$FDC_{LSV}\f$ is defined as
+  !>                         \f[ FDC_{LSV} = -\sum_{l=1}^{L} (\log(q_l) - \log(q_L)) \f]
+  !>                 where \f$ l=1,2,...,L \f$ are flow indeces located within the low-flow segment (exeedance probabilities  
+  !>                 larger than \f$m_1\f$). \f$L\f$ is the index of the minimum flow. The settings \f$m_1=0.7\f$ is used by  
+  !>                 Shafii et. al (2014) and is implemented like that.\n
+  !>
+  !>                 An optional mask of data points can be specified.
 
   !     CALLING SEQUENCE
-  !         call FlowDurationCurves(Q_serie, Quantiles, FDC_serie, Q_quantiles)
+  !         flow_duration_curve = FlowDurationCurves(data, quantiles, mask=mask)
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"     ! Discharge series
+  !>        \param[in] "real(dp), dimension(:) :: data"              data series
+  !>        \param[in] "real(dp), dimension(:) :: Quantiles"         Percentages of exeedance
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)  
-  !>        \param[out] "real(dp), allocatable, dimension(:,:) :: FDC_serie" !serie (ordened discharge)
-
-
+  !         None
+  
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(dp), dimension(:) :: Quantiles"    ! Percentages of occurrence
+  !>        \param[in] "logical, dimension(size(data,1)) :: mask"    mask of data array
 
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), allocatable, dimension(:)   :: Q_quantiles"  !Q with p=10% and 50%   
+  !>        \param[out] "real(dp), optional :: concavity_index"      concavity index as defined by Sauquet et al. (2011)
+  !>        \param[out] "real(dp), optional :: mid_segment_slope"    mid-segment slope as defined by Shafii et al. (2014)
+  !>        \param[out] "real(dp), optional :: mhigh_segment_volume" medium high-segment volume 
+  !>        \param[out] "real(dp), optional :: high_segment_volume"  high-segment volume as defined by Shafii et al. (2014)
+  !>        \param[out] "real(dp), optional :: low_segment_volume"   low-segment volume as defined by Shafii et al. (2014)
 
   !     RETURN
-  !         None
+  !>        \return real(dp), dimension(size(quantiles,1)) :: FlowDurationCurve &mdash; Flow Duration Curve value at resp. quantile
 
   !     RESTRICTIONS
-  !         None
+  !         Thresholds in mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume are hard coded.
 
   !     EXAMPLE
   !         None
 
   !     LITERATURE
-  !         None
-
+  !         FDC is used as hydrologic signature (quantiles not specified) in
+  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !            A framework to assess the realism of model structures using hydrological signatures.
+  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+  !         Concavity Index used as hydrologic signature in
+  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !            rainfall-runoff modelling.
+  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+  !         Concavity index is defined using exeedance probabilities by
+  !            Sauquet, E., & Catalogne, C. (2011).
+  !            Comparison of catchment grouping methods for flow duration curve estimation at ungauged sites in France.
+  !            Hydrology and Earth System Sciences, 15(8), 2421–2435. doi:10.5194/hess-15-2421-2011
+  !         mid_segment_slope, high_segment_volume, low_segment_volume used as hydrologic signature in
+  !            Shafii, M., & Tolson, B. A. (2015).
+  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
+  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+  
   !     HISTORY
-  !>        \author Remko Nijzink
+  !>        \author Remko Nijzink, Juliane Mai
   !>        \date March 2014
+  !         Modified   Juliane Mai, Jun 2015  - mask added
+  !                                           - function instead of subroutine
+  !                                           - use of percentile
+  !                                           - add concavity_index
+  !                    Juliane Mai, Jun 2015  - add mid_segment_slope, mhigh_segment_volume, high_segment_volume,
+  !                                             low_segment_volume
 
-  SUBROUTINE FlowDurationCurves(Q_serie, FDC_serie, Quantiles, Q_quantiles)
+  FUNCTION FlowDurationCurve(data, quantiles, mask, concavity_index, &
+       mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume)
 
-    use mo_orderpack, only: sort_index
+    use mo_percentile, only: percentile
+    use mo_utils,      only: ge, le
 
     IMPLICIT NONE
 
-    real(dp), dimension(:),                        intent(in)  :: Q_serie      ! River flow,
-    real(dp), allocatable, dimension(:,:),         intent(out) :: FDC_serie    ! ordened Q
-    real(dp),              dimension(:), optional, intent(in)  :: Quantiles    ! Percentages of occurrence,
-    real(dp), allocatable, dimension(:), optional, intent(out) :: Q_quantiles  ! Q with p=10% and 50%
+    real(dp), dimension(:),                           intent(in) :: data                 ! data series
+    real(dp), dimension(:),                           intent(in) :: quantiles            ! Percentages of exeedance (x-axis of FDC)
+    logical,  dimension(:),                optional, intent(in)  :: mask                 ! mask for data
+    real(dp),                              optional, intent(out) :: concavity_index      ! Concavity index as defined by
+    !                                                                                    ! Sauquet et al. (2011)
+    real(dp),                              optional, intent(out) :: mid_segment_slope    ! mid-segment slope as defined by
+    !                                                                                    ! Shafii et al. (2014)
+    real(dp),                              optional, intent(out) :: mhigh_segment_volume ! medium-high-segment volume
+    !                                                                                    ! 0.0 <= exceed. prob. <= 0.2
+    real(dp),                              optional, intent(out) :: high_segment_volume  ! high-segment volume as defined by
+    !                                                                                    ! Shafii et al. (2014)
+    !                                                                                    ! 0.0 <= exceed. prob. <= 0.02
+    real(dp),                              optional, intent(out) :: low_segment_volume   ! low-segment volume as defined by
+    !                                                                                    ! Shafii et al. (2014)
+    !                                                                                    ! 0.7 <= exceed. prob. <= 1.0
+    real(dp), dimension(size(quantiles,1))                       :: FlowDurationCurve    ! data point where x% of the data points
+    !                                                                                    ! are above that value
 
-    !local variables
-    integer(i4)                             :: ii         ! Counter
-    integer(i4), dimension(size(Q_serie,1)) :: ind_sort   ! indexes
-    integer(i4)                             :: n          ! Size of array
-    real(dp),    dimension(size(Q_serie,1)) :: per        ! percentages and sorted Q
-    real(dp),    dimension(size(Q_serie,1)) :: Q_sort     ! percentages and sorted Q
+    ! local variables
+    logical, dimension(size(data,1)) :: maske            ! mask for data points
+    real(dp)                         :: min_flow_value   ! minimal flow value
+    real(dp)                         :: flow_value_thres ! flow value at a threshold quantile
+    
+    ! checking optionals
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
+    
+    FlowDurationCurve = percentile(data, (1._dp-quantiles)*100._dp, mask=maske, mode_in=5)
 
-    ind_sort = sort_index(Q_serie)
-    Q_sort   = Q_serie(ind_sort)
+    if (present(concavity_index)) then
+       concavity_index = &
+            ( percentile(data, (1._dp-0.10_dp)*100._dp, mask=maske, mode_in=5) - &
+            percentile(data, (1._dp-0.99_dp)*100._dp, mask=maske, mode_in=5) ) / &
+            ( percentile(data, (1._dp-0.01_dp)*100._dp, mask=maske, mode_in=5) - &
+            percentile(data, (1._dp-0.99_dp)*100._dp, mask=maske, mode_in=5) )
+    end if
 
-    do ii=1, size(Q_serie,1)
-       per(ii)=real(ii,dp)/size(Q_serie,1)*100_dp
+    if (present(mid_segment_slope)) then
+       ! mid-flows are defined to be between 0.2 and 0.7 by Shafii et. al (2014)
+       mid_segment_slope = &
+            log( percentile(data, (1._dp-0.2_dp)*100._dp, mask=maske, mode_in=5) ) - &
+            log( percentile(data, (1._dp-0.7_dp)*100._dp, mask=maske, mode_in=5) ) 
+    end if
+
+    if (present(mhigh_segment_volume)) then
+       ! medium high-flows are defined to be between 0.0 and 0.2 as to be constistent
+       ! with the mid-segment (0.2-0.7) and low-segment (0.7-1.0) definitions
+       flow_value_thres = percentile(data, (1._dp-0.2_dp)*100._dp, mask=maske, mode_in=5)
+       mhigh_segment_volume = sum(data,mask=(maske .and. ge(data,flow_value_thres)))
+       ! print*, 'flow_value_thres     = ',flow_value_thres
+       ! print*, 'mhigh_segment_volume = ',mhigh_segment_volume
+    end if
+
+    if (present(high_segment_volume)) then
+       ! high-flows are defined to be between 0.0 and 0.02 by Shafii et. al (2014)
+       flow_value_thres = percentile(data, (1._dp-0.02_dp)*100._dp, mask=maske, mode_in=5)
+       high_segment_volume = sum(data,mask=(maske .and. ge(data,flow_value_thres)))
+    end if
+
+    if (present(low_segment_volume)) then
+       ! low-flows are defined to be between 0.7 and 1.0 by Shafii et. al (2014)
+       min_flow_value   = minval(data, mask=maske)
+       flow_value_thres = percentile(data, (1._dp-0.7)*100._dp, mask=maske, mode_in=5)
+       low_segment_volume = -1.0_dp * &
+            sum( log(data) - log(min_flow_value), mask=(maske .and. le(data,flow_value_thres)))
+    end if
+
+  END FUNCTION FlowDurationCurve
+
+  !-------------------------------------------------------------------------------
+  !     NAME
+  !         Limb_densities
+
+  !     PURPOSE
+  !>        \brief   Calculates limb densities
+
+  !>        \details Calculates rising and declinging limb densities. The peaks of the given series are
+  !>                 first determined by looking for points where preceding and subsequent datapoint are lower.
+  !>                 Second, the number of datapoints with rising values (nrise) and declining values (ndecline)
+  !>                 are counted basically by comparing neighbors.\n
+
+  !>                 The duration the data increase (nrise) divided by the number of peaks (npeaks)
+  !>                 gives the rising limb density RLD
+  !>                     \f[ RLD=t_rise/n_peak \f]
+  !>                 whereas the duration the data decrease (ndecline) divided by the number of peaks (npeaks)
+  !>                 gives the declining limb density DLD
+  !>                     \f[ DLD=t_fall/n_peak. \f]
+  
+  !>                 An optional mask of data points can be specified.
+
+  !     CALLING SEQUENCE
+  !         call Limb_densities(data, mask=mask, RLD=rising_limb_density, DLD=declining_limb_density)
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(:)           :: data"    data series
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "logical, dimension(size(data,1)) :: mask"    mask for data series
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !>        \param[out] "real(dp), optional              :: RLD"     rising    limb density
+  !>        \param[out] "real(dp), optional              :: DLD"     declining limb density
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         Rising limb density used as hydrologic signature in
+  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !            A framework to assess the realism of model structures using hydrological signatures.
+  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+
+  !     HISTORY
+  !>        \author Remko Nijzink
+  !>        \date March 2014
+  !         Modified   Juliane Mai, Jun 2015  - RLD and DLD as optional
+  !                                           - optional mask for data can be given
+
+  SUBROUTINE Limb_densities(data, mask, RLD, DLD)
+
+    use mo_message,          only : message
+
+    IMPLICIT NONE
+
+    real(dp), dimension(:),                      intent(in)  :: data    ! data series (with rising and declining limbs)
+    logical,  dimension(size(data,1)), optional, intent(in)  :: mask    ! mask for data series    
+    real(dp),                          optional, intent(out) :: RLD     ! rising limb density
+    real(dp),                          optional, intent(out) :: DLD     ! declining limb density
+
+    ! local variables
+    logical, dimension(size(data,1))    :: maske      ! mask for data points
+    integer(i4)                         :: jj         ! Counter
+    integer(i4)                         :: n_peak     ! Number of peaks
+    integer(i4)                         :: n_decline  ! Number of declining data points
+    integer(i4)                         :: n_rise     ! Number of rising data points
+    logical, dimension(size(data,1))    :: goes_up    ! True if rising, False if declining or contains masked values
+    real(dp)                            :: thres_rise ! Threshold that is has to rise at least to be detected as rising value
+
+    ! checking optionals
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
+
+    if ( (.not. present(RLD)) .and. (.not. present(DLD)) ) then
+       call message('mo_signatures: limb_densities: Neither RLD or DLD is specified in calling sequence.')
+       stop
+    end if
+    
+    ! initialize
+    n_rise    = 0_i4
+    n_decline = 0_i4
+    n_peak    = 0_i4
+
+    goes_up    = .False.
+    thres_rise = 1.0_dp
+    do jj=1, size(data,1)-1
+       if (maske(jj) .and. maske(jj+1)) then
+          if (data(jj) < data(jj+1) - thres_rise) then
+             goes_up(jj) = .true.
+             ! print*, jj, '  ', data(jj), '  ', data(jj+1)
+          end if
+       end if
+    end do
+    n_rise    = count(goes_up)
+    n_decline = count(maske) - count(goes_up)
+
+    ! write(*,*) 'goes_up = ', goes_up(1:178)
+
+    ! peak is where goes_up switches from true to false
+    n_peak = 0_i4
+    do jj=1, size(data,1)-1
+       if (maske(jj) .and. maske(jj+1)) then
+          if (goes_up(jj) .and. .not.(goes_up(jj+1)) ) then
+             n_peak = n_peak+1_i4
+             ! print*, jj
+          end if
+       end if
     end do
 
-    n=size(Q_sort,1)
-    Q_sort=Q_sort(n:1:-1)
+    ! do jj=2, size(data,1)-1
 
-    if ( present( Quantiles ) .and. present(Q_quantiles) )  call Quantile(Q_sort, Quantiles, Q_quantiles)
+    !    ! check for peak
+    !    if (maske(jj-1) .and. maske(jj) .and. maske(jj+1)) then
+    !       if ( (data(jj-1) .lt. data(jj)-1.0_dp) .and. (data(jj+1) .lt. data(jj)-1.0_dp) ) then
+    !          n_peak = n_peak+1_i4
+    !          write(*,*) jj-1
+    !       end if
+    !    end if
 
-    allocate( FDC_serie(n, 2) )
+    !    ! check if data has rised
+    !    if (maske(jj-1) .and. maske(jj)) then
+    !       if (data(jj-1) .lt. data(jj)-1.0_dp) then
+    !          n_rise = n_rise+1_i4
+    !       else
+    !          n_decline = n_decline+1_i4
+    !       end if
+    !    end if
 
-    FDC_serie(:,1)=per(:)
-    FDC_serie(:,2)=Q_sort
+    !    ! ! check if data has declined
+    !    ! if (maske(jj-1) .and. maske(jj)) then
+    !    !    if (data(jj-1) .gt. data(jj)) then
+    !    !       n_decline = n_decline+1_i4
+    !    !    end if
+    !    ! end if
+       
+    ! end do
 
-  END SUBROUTINE FlowDurationCurves
+    ! write(*,*) 'n_peak = ', n_peak
 
-  !-------------------------------------------------------------------------------
+    if (present(RLD)) then
+       if (n_peak>0_i4) then
+          RLD = real(n_rise,dp)/   real(n_peak,dp)
+       else
+          RLD = 0.0_dp
+       end if
+    end if
+    
+    if (present(DLD)) then
+       if (n_peak>0_i4) then
+          DLD = real(n_decline,dp)/real(n_peak,dp)
+       else
+          DLD = 0.0_dp
+       end if
+    end if
+    
+  END SUBROUTINE Limb_densities
+
+    !-------------------------------------------------------------------------------
   !     NAME
-  !         FlowDurationCurves_low
+  !         MaximumMonthlyFlow
 
   !     PURPOSE
-  !>        \brief Calculates the flow duration curves for low flow periods
+  !>        \brief   Maximum of average flows per months.
 
-  !>        \details Calculates the flow duration curves for discharge time series during low flow periods
+  !>        \details Maximum of average flow per month is defined as
+  !>                    \f[ max_monthly_flow = Max( F(i), i=1,..12 ) \f]
+  !>                 where $f F(i) $f is the average flow of month i.
 
   !     CALLING SEQUENCE
-  !         call FlowDurationCurves_low(Q_serie, Quantiles, mm_low, mm_high, FDClow_serie, Q_quantiles)
+  !         max_monthly_flow = MaximumMonthlyFlow(data, yr_start=yr_start, mo_start=1, dy_start=1, mask=mask)
 
   !     INTENT(IN)
-  !>         \param[in]  real(dp), dimension(:)          :: Q_serie         ! River flow,
-  !>         \param[in]  integer(i4)                     :: mm_low          ! low flow month
-  !>         \param[in]  integer(i4)                     :: mm_high         ! high flow month 
+  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)
-  !>         \param[out]  real(dp),allocatable, dimension(:,:) :: FDClow_serie    ! ordened Q
+  !         None
 
   !     INTENT(IN), OPTIONAL
-  !>         \param[in]  real(dp), dimension(:)          :: Quantiles       ! Percentages of occurrence,
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>         \param[out]  real(dp),allocatable, dimension(:)   :: Q_quantiles     ! Q with different 
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  ! SUBROUTINE FlowDurationCurves_low(Q_serie, mm_low, mm_high, FDClow_serie, Quantiles, Q_quantiles)
-
-  !   USE mo_julian,           only : caldat
-  !   USE mo_global_variables, only : evalPer
-  !   USE mo_orderpack,        only : sort_index
-
-  !   IMPLICIT NONE
-
-  !   real(dp), dimension(:),                       intent(in)  :: Q_serie         ! River flow,
-  !   integer(i4),                                  intent(in)  :: mm_low          ! low flow month
-  !   integer(i4),                                  intent(in)  :: mm_high         ! high flow month 
-  !   real(dp), allocatable,dimension(:,:),         intent(out) :: FDClow_serie    ! ordened Q
-  !   real(dp), dimension(:),             optional, intent(in)  :: Quantiles       ! Percentages of occurrence,
-  !   real(dp), allocatable,dimension(:), optional, intent(out) :: Q_quantiles     ! Q with different occurences
-
-  !   !local variables
-  !   integer(i4)                            :: date         ! date
-  !   integer(i4)                            :: dd           ! day
-  !   integer(i4)                            :: ii           ! Counters
-  !   integer(i4), allocatable, dimension(:) :: ind_sort     ! indexes
-  !   integer(i4)                            :: jj           ! Counters
-  !   integer(i4)                            :: kk           ! Counters
-  !   integer(i4)                            :: mm           ! month
-  !   integer(i4)                            :: m_low        ! Array sizes
-  !   integer(i4)                            :: n_low        ! Array sizes
-  !   real(dp),    allocatable, dimension(:) :: per          ! percentages
-  !   real(dp),    allocatable, dimension(:) :: Qlow         ! discharge in low flow period
-  !   real(dp),    allocatable, dimension(:) :: Q_sort       ! percentages and sorted Q
-  !   integer(i4)                            :: yy           ! year
-
-  !   n_low=0_i4
-  !   m_low=0_i4
-
-  !   if(mm_low .lt. mm_high) then
-
-  !      !determine number of low flow days
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            n_low=n_low+1_i4
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !      !Create low flow array
-  !      allocate(Qlow(n_low))
-
-  !      date=evalPer%julStart
-  !      do ii=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            m_low=m_low+1
-  !            Qlow(m_low)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !   else
-
-  !      !determine number of low flow days
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            n_low=n_low+1_i4
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !      !Create low flow array
-  !      allocate(Qlow(n_low))
-
-  !      date=evalPer%julStart
-  !      do ii=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            m_low=m_low+1
-  !            Qlow(m_low)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !   end if
-
-  !   allocate( ind_sort(n_low) ) 
-  !   allocate( per(n_low) ) 
-  !   allocate( Q_sort(n_low) ) 
-  !   allocate( FDClow_serie(n_low,2)) 
-
-  !   !Create low flow duration curve
-  !   ind_sort=sort_index(Qlow)
-  !   Q_sort=Qlow(ind_sort)
-
-  !   do kk=1, n_low
-  !      per(kk)=real(kk,dp)/real(n_low,dp)*100_dp
-  !   end do
-
-  !   Q_sort=Q_sort(n_low:1:-1)
-
-  !   FDClow_serie(:,1)=per
-  !   FDClow_serie(:,2)=Q_sort
-
-  !   if(present( Quantiles )) call Quantile(Q_sort, Quantiles, Q_quantiles)
-
-  !   deallocate( ind_sort ) 
-  !   deallocate( per ) 
-  !   deallocate( Q_sort ) 
-
-  ! END SUBROUTINE FlowDurationCurves_low
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         FlowDurationCurves_high
-
-  !     PURPOSE
-  !>        \brief Calculates the flow duration curves for high flow periods
-
-  !>        \details Calculates the flow duration curves for discharge time series during high flow periods
-
-  !     CALLING SEQUENCE
-  !         call FlowDurationCurves_high(Q_serie, Quantiles, mm_low, mm_high, FDClow_serie, Q_quantiles)
-
-  !     INTENT(IN)
-  !>         \param[in]  real(dp), dimension(:)          :: Q_serie         ! River flow,
-  !>         \param[in]  real(dp), dimension(:)          :: Quantiles       ! Percentages of occurrence,
-  !>         \param[in]  integer(i4)                     :: mm_low          ! low flow month
-  !>         \param[in]  integer(i4)                     :: mm_high         ! high flow month 
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>         \param[out]  real(dp), allocatable, dimension(:,:) :: FDChigh_serie ! ordened Q
-  !>         \param[out]  real(dp), allocatable, dimension(:)   :: Q_quantiles   ! Q with different probabilities   
-
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
+  !>        \param[in] "integer(i4)  :: yr_start"   year  of date of first data point given 
+  !>        \param[in] "integer(i4)  :: mo_start"   month of date of first data point given (default: 1)
+  !>        \param[in] "integer(i4)  :: dy_start"   month of date of first data point given (default: 1)
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -910,169 +512,269 @@ CONTAINS
   !         None
 
   !     RETURN
-  !         None
+  !>        \return real(dp) :: MaximumMonthlyFlow &mdash; Maximum of average flow per month
 
   !     RESTRICTIONS
-  !         None
+  !>        Works only with 1d double precision input data.\n
+  !>        Assumes data are daily values.
 
   !     EXAMPLE
   !         None
 
   !     LITERATURE
-  !         None
+  !         used as hydrologic signature in
+  !            Shafii, M., & Tolson, B. A. (2015).
+  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
+  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
 
   !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
+  !>        \author Juliane Mai
+  !>        \date Jun 2015
 
-  ! SUBROUTINE FlowDurationCurves_high(Q_serie, mm_low, mm_high, FDChigh_serie, Quantiles, Q_quantiles)
+  FUNCTION MaximumMonthlyFlow(data, mask, yr_start, mo_start, dy_start)
 
-  !   USE mo_julian,                      only : caldat
-  !   USE mo_global_variables,            only : evalPer
-  !   USE mo_orderpack,                   only: sort_index
+    use mo_julian,  only: date2dec, dec2date
+    use mo_message, only: message
 
-  !   IMPLICIT NONE
+    IMPLICIT NONE
 
-  !   real(dp),              dimension(:),           intent(in)  :: Q_serie         ! River flow,
-  !   integer(i4),                                   intent(in)  :: mm_low          ! low flow month
-  !   integer(i4),                                   intent(in)  :: mm_high         ! high flow month 
-  !   real(dp), allocatable, dimension(:,:),         intent(out) :: FDChigh_serie   ! ordened Q
-  !   real(dp),              dimension(:), optional, intent(in)  :: Quantiles       ! Percentages of occurrence,
-  !   real(dp), allocatable, dimension(:), optional, intent(out) :: Q_quantiles     ! Q with different occurences
+    real(dp),    dimension(:),                      intent(in)  :: data               ! Data series
+    logical,     dimension(size(data,1)), optional, intent(in)  :: mask               ! mask for data points
+    integer(i4),                          optional, intent(in)  :: yr_start           ! year  of date of first data point given
+    integer(i4),                          optional, intent(in)  :: mo_start           ! month of date of first data point given
+    !                                                                                 ! DEFAULT: 1
+    integer(i4),                          optional, intent(in)  :: dy_start           ! day   of date of first data point given
+    !                                                                                 ! DEFAULT: 1
+    real(dp)                                                    :: MaximumMonthlyFlow ! return: maximum of average monthly flow
+    
+    ! local variables
+    logical,     dimension(size(data,1)) :: maske
+    integer(i4)                          :: ii               ! counter
+    integer(i4)                          :: yr, mo, dy, imo  ! date variables
+    integer(i4), dimension(12)           :: counter          ! number of data points per month
+    real(dp),    dimension(12)           :: flow_month       ! summed data points per months
+    real(dp)                             :: ref_jul_day      ! julian day of one day before start day
 
-  !   !local variables
-  !   integer(i4)                            :: date         ! date
-  !   integer(i4)                            :: dd           ! day
-  !   integer(i4)                            :: ii           ! Counters
-  !   integer(i4), allocatable, dimension(:) :: ind_sort     ! indexes
-  !   integer(i4)                            :: jj           ! Counters
-  !   integer(i4)                            :: kk           ! Counters
-  !   integer(i4)                            :: mm           ! month
-  !   integer(i4)                            :: m_high       ! Array sizes
-  !   integer(i4)                            :: n_high       ! Array sizes
-  !   real(dp),   allocatable, dimension(:)  :: per          ! percentages
-  !   real(dp),   allocatable, dimension(:)  :: Qhigh        ! discharge in high flow period
-  !   real(dp),   allocatable, dimension(:)  :: Q_sort       ! percentages and sorted Q
-  !   integer(i4)                            :: yy           ! year
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
 
-  !   n_high=0_i4
-  !   m_high=0_i4
+    if (.not. present(yr_start)) then
+       call message('mo_signatures: MaximumMonthlyFlow: Year of of data point has to be given!')
+       stop
+    else
+       yr = yr_start
+    end if
 
-  !   if(mm_low .lt. mm_high) then
+    if (present(mo_start)) then
+       mo = mo_start
+    else
+       mo = 1
+    end if
 
-  !      !determine number of high flow days
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .or. (mm .ge. mm_high) ) then
-  !            n_high=n_high+1_i4
-  !         end if
-  !         date=date+1_4
-  !      end do
+    if (present(dy_start)) then
+       dy = dy_start
+    else
+       dy = 1
+    end if
 
-  !      !Create high flow array
-  !      allocate(Qhigh(n_high))
+    flow_month = 0.0_dp
+    counter    = 0_i4
+    ref_jul_day = date2dec(yy=yr, mm=mo, dd=dy) - 1.0_dp 
+    
+    do ii=1, size(data,1)
+       if (maske(ii)) then
+          ! determine current month
+          call dec2date(ref_jul_day+real(ii,dp), mm=imo)
+          ! add value
+          counter(imo)    = counter(imo) + 1
+          flow_month(imo) = flow_month(imo) + data(ii)
+       end if
+    end do
 
-  !      date=evalPer%julStart
-  !      do ii=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .or. (mm .ge. mm_high) ) then
-  !            m_high=m_high+1_i4
-  !            Qhigh(m_high)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
+    if (any(counter == 0_i4)) then
+       call message('mo_signatures: MaximumMonthlyFlow: There are months with no data points!')
+       call message('                                   Aborted!')
+       stop
+    end if
 
-  !   else
+    ! average
+    MaximumMonthlyFlow = maxval(flow_month / real(counter,dp))
 
-  !      !determine number of high flow days
-  !      date=evalPer%julStart
-  !      do jj=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .and. (mm .ge. mm_high) ) then
-  !            n_high=n_high+1_i4
-  !         end if
-  !         date=date+1_4
-  !      end do
+  END FUNCTION MaximumMonthlyFlow
+  
+  !-------------------------------------------------------------------------------
+  !     NAME
+  !         Moments
 
-  !      !Create high flow array
-  !      allocate(Qhigh(n_high))
+  !     PURPOSE
+  !>        \brief   Moments of data and log-transformed data, e.g. mean and standard deviation.
 
-  !      date=evalPer%julStart
-  !      do ii=1, size(Q_serie,1)
-  !         call caldat(date, dd, mm, yy)
-  !         if( (mm .lt. mm_low) .and. (mm .ge. mm_high) ) then
-  !            m_high=m_high+1_i4
-  !            Qhigh(m_high)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
+  !>        \details Returns several moments of data series given, i.e.\n
+  !>                     * mean               of data \n
+  !>                     * standard deviation of data \n
+  !>                     * median             of data \n
+  !>                     * maximum/ peak      of data \n
+  !>                     * mean               of log-transformed data \n
+  !>                     * standard deviation of log-transformed data \n
+  !>                     * median             of log-transformed data \n
+  !>                     * maximum/ peak      of log-transformed data \n
+  !>                 An optional mask of data points can be specified.
 
-  !   end if
+  !     CALLING SEQUENCE
+  !         call moments(data, mask=mask, mean_data=mean_data, stddev_data=stddev_data, median_data=median_data, max_data=max_data,&
+  !                                       mean_log=mean_log,   stddev_log=stddev_log,   median_log=median_log,   max_log=max_log)
 
-  !   allocate( ind_sort(n_high) ) 
-  !   allocate( per(n_high) ) 
-  !   allocate( Q_sort(n_high) ) 
-  !   allocate( FDChigh_serie(n_high,2)) 
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
 
-  !   !Create high flow duration curve
-  !   ind_sort=sort_index(Qhigh)
-  !   Q_sort=Qhigh(ind_sort)
+  !     INTENT(INOUT)
+  !         None
 
-  !   do kk=1, n_high
-  !      per(kk)=real(kk,dp)/real(n_high,dp)*100_dp
-  !   end do
+  !     INTENT(OUT)
+  !         None
 
-  !   Q_sort=Q_sort(n_high:1:-1)
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
 
-  !   if(present( Quantiles ))     call Quantile(Q_sort, Quantiles, Q_quantiles)
+  !     INTENT(INOUT), OPTIONAL
+  !         None
 
-  !   FDChigh_serie(:,1) = per
-  !   FDChigh_serie(:,2) = Q_sort
+  !     INTENT(OUT), OPTIONAL
+  !>        \param[in] "real(dp)  :: mean_data"    mean               of data
+  !>        \param[in] "real(dp)  :: stddev_data"  standard deviation of data
+  !>        \param[in] "real(dp)  :: median_data"  median             of data
+  !>        \param[in] "real(dp)  :: max_data"     maximum/ peak      of data
+  !>        \param[in] "real(dp)  :: mean_log"     mean               of log-transformed data
+  !>        \param[in] "real(dp)  :: stddev_log"   standard deviation of log-transformed data
+  !>        \param[in] "real(dp)  :: median_log"   median             of log-transformed data
+  !>        \param[in] "real(dp)  :: max_log"      maximum/ peak      of log-transformed data
 
-  !   deallocate( ind_sort ) 
-  !   deallocate( per ) 
-  !   deallocate( Q_sort ) 
+  !     RETURN
+  !         None
 
-  ! END SUBROUTINE FlowDurationCurves_high
+  !     RESTRICTIONS
+  !>        Works only with 1d double precision input data.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         mean_log and stddev_log used as hydrologic signature in
+  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !            rainfall-runoff modelling.
+  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+  !         mean_data, stddev_data, median_data, max_data, mean_log, and stddev_log used as hydrologic signature in
+  !            Shafii, M., & Tolson, B. A. (2015).
+  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
+  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+
+  !     HISTORY
+  !>        \author Juliane Mai
+  !>        \date Jun 2015
+
+  SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, max_log)
+
+    use mo_message,    only: message
+    use mo_moment,     only: mean, stddev
+    use mo_percentile, only: median
+
+    IMPLICIT NONE
+
+    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
+    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
+    real(dp),                             optional, intent(out) :: mean_data       ! mean               of data                
+    real(dp),                             optional, intent(out) :: stddev_data     ! standard deviation of data
+    real(dp),                             optional, intent(out) :: median_data     ! median             of data                
+    real(dp),                             optional, intent(out) :: max_data        ! max/ peak          of data                
+    real(dp),                             optional, intent(out) :: mean_log        ! mean               of log-transformed data
+    real(dp),                             optional, intent(out) :: stddev_log      ! standard deviation of log-transformed data
+    real(dp),                             optional, intent(out) :: median_log      ! median             of log-transformed data
+    real(dp),                             optional, intent(out) :: max_log         ! max/ peak          of log-transformed data
+
+    ! local variables
+    logical,     dimension(size(data,1)) :: maske
+    real(dp),    dimension(size(data,1)) :: logdata
+
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
+
+    if ( .not.(present(mean_data)) .and. .not.(present(stddev_data)) .and. &
+         .not.(present(median_data)) .and. .not.(present(max_data)) .and. &
+         .not.(present(mean_log))  .and. .not.(present(stddev_log)) .and. &
+         .not.(present(median_log))  .and. .not.(present(max_log)) ) then
+       call message('mo_signatures: Moments: None of the optional output arguments is specified')
+       stop
+    end if
+
+    if (present(mean_data))   mean_data   = mean(data, mask=maske)
+    if (present(stddev_data)) stddev_data = stddev(data, mask=maske)
+    if (present(median_data)) median_data = median(data, mask=maske)
+    if (present(max_data))    max_data    = maxval(data, mask=maske)
+
+    if (present(mean_log) .or. present(stddev_log)) then 
+       where (data > 0.0_dp)
+          logdata = log(data)
+       elsewhere
+          logdata = -9999.0_dp  ! will not be used, since mask is set to .false.
+          maske    = .false.
+       end where
+    
+       if (present(mean_log))   mean_log   = mean(logdata, mask=maske)
+       if (present(stddev_log)) stddev_log = stddev(logdata, mask=maske)
+       if (present(median_log)) median_log = median(logdata, mask=maske)
+       if (present(max_log))    max_log    = maxval(logdata, mask=maske)
+    end if
+
+  END SUBROUTINE Moments
 
   !-------------------------------------------------------------------------------
   !     NAME
   !         PeakDistribution
 
   !     PURPOSE
-  !>        \brief Calculates the peak distributions
+  !>        \brief   Calculates the peak distribution.
 
-  !>        \details Calculates the peak distributions according to 
-  !>                    peaks= (Qpeaks_10%-Qpeaks_50%)/(0.9-0.5)
-  !>                 It therefore represents the slope between the peak flow 
-  !>                 duration curve between the 10th and 50th percentile.
+  !>        \details Calculates the peak distribution at the quantiles given using percentile. Since the
+  !>                 exeedance probabilities are usually used in hydrology the function percentile
+  !>                 is used with (1.0-quantiles). \n
+  !>                 Optionally, the slope of the peak distribution between 10th and 50th percentile, i.e.
+  !>                    \f[ peaks= \frac{(peak\_data_{10%}-peak\_data_{50%}}{0.9-0.5} \f]
+  !>                 can be returned.\n
+  !>                 An optional mask for the data points can be given.
 
   !     CALLING SEQUENCE
-  !         call PeakDistribution(Q_serie, Quantiles, peaks, Q_quantiles)
+  !         peak_distr_at_quantiles = PeakDistribution(data, quantiles, peaks, Q_quantiles)
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"        ! Discharge series
-  !>        \param[in] "real(dp), dimension(:) :: Quantiles"      ! Probabilities
+  !>        \param[in] "real(dp), dimension(:)  :: data"                       data array
+  !>        \param[in] "real(dp), dimension(:)  :: quantiles"                  requested quantiles for distribution
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)
-  !         \param[out] real(dp)                          :: peaks       ! slope between 50th and 10t peal flow percentile
-  !>        \param[out] real(dp),allocatable,dimension(:) :: Q_quantiles ! 50% peak river flow 
+  !         None
 
   !     INTENT(IN), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(size(data,1)), optional  :: mask"   mask of data array
 
   !     INTENT(INOUT), OPTIONAL
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !         None
+  !>        \param[in] "real(dp), optional :: slope_peak_distribution"         slope of the Peak distribution between \n
+  !>                                                                           10th and 50th percentile
 
   !     RETURN
-  !         None
+  !>        \return real(dp), dimension(size(quantiles,1)) :: PeakDistribution &mdash; Distribution of peak values \n
+  !>                                                                                   at resp. quantiles
 
   !     RESTRICTIONS
   !         None
@@ -1081,115 +783,128 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !         None
+  !         slope_peak_distribution used as hydrologic signature in
+  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !            A framework to assess the realism of model structures using hydrological signatures.
+  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
 
   !     HISTORY
   !>        \author Remko Nijzink
   !>        \date March 2014
+  !         Modified   Juliane Mai, Jun 2015  - mask added
+  !                                           - function instead of subroutine
+  !                                           - use of percentile
 
-  SUBROUTINE PeakDistribution(Q_serie, Quantiles, peaks, Q_quantiles)
+  FUNCTION PeakDistribution(data, quantiles, mask, slope_peak_distribution)
 
-    USE mo_orderpack, only: sort_index
+    USE mo_percentile, only: percentile
 
     IMPLICIT NONE
 
-    real(dp),              dimension(:), intent(in)  :: Q_serie     ! River flow, 
-    real(dp),              dimension(:), intent(in)  :: Quantiles   ! Percentages of occurence,       
-    real(dp),                            intent(out) :: peaks       ! slope of peak flow duration curve
-    real(dp), allocatable, dimension(:), intent(out) :: Q_quantiles ! Q with p=10% and 50%
+    real(dp), dimension(:),                          intent(in)  :: data                      ! data points      
+    real(dp), dimension(:),                          intent(in)  :: quantiles                 ! percentages of occurence
+    logical,  dimension(size(data,1)),     optional, intent(in)  :: mask                      ! mask of data points
+    real(dp),                              optional, intent(out) :: slope_peak_distribution   ! slope of peak flow duration curve
+    real(dp), dimension(size(quantiles,1))                       :: PeakDistribution          ! distribution of peaks in data
+    !                                                                                         ! returns values of distribution at
+    !                                                                                         ! given quantiles
 
     ! local variables
-    integer(i4)                              :: ii          ! counters
-    integer(i4), allocatable, dimension(:)   :: ind_sort    ! indexes
-    integer(i4)                              :: jj          ! counters
-    integer(i4)                              :: kk          ! counters
-    integer(i4)                              :: nn          ! counters
+    integer(i4)                              :: ii, jj      ! counters
+    logical, dimension(size(data,1))         :: maske       ! mask of data 
     integer(i4)                              :: n_peak      ! Number of peaks
-    real(dp),                 dimension(2)   :: p           ! prob. of p=10% and 50%
-    real(dp),    allocatable, dimension(:)   :: per         ! percentages
-    real(dp),    allocatable, dimension(:)   :: Q_p         ! Q with p=10% and 50%
-    real(dp) ,   allocatable, dimension(:)   :: Qpeak       ! peak distribution discharge
-    real(dp),    allocatable, dimension(:)   :: Q_sort      ! sorted Q
+    real(dp),                 dimension(2)   :: pp          ! array containing some quantiles
+    real(dp),                 dimension(2)   :: data_pp     ! data points of quantiles pp 
+    real(dp) ,   allocatable, dimension(:)   :: data_peak   ! series containing only peak values of original series data
 
+    ! checking optionals
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
+    
+    ! count peaks
     n_peak=0_i4
-
-    !calculate the total mean of the high flows and count peaks
-    do jj=2, size(Q_serie,1)-1
-       if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) ) then
-          n_peak=n_peak+1_i4
+    do jj=2, size(data,1)-1
+       if (maske(jj-1) .and. maske(jj) .and. maske(jj+1)) then
+          if ( (data(jj-1) .le. data(jj)) .and. (data(jj+1) .le. data(jj)) ) then
+             n_peak = n_peak+1_i4
+          end if
        end if
     end do
 
-    allocate(Qpeak(n_peak))
+    allocate(data_peak(n_peak))
 
     ! find peaks
-    kk=0
-    do ii=2, size(Q_serie,1)-1
-       if( (Q_serie(ii-1) .le. Q_serie(ii)) .and. (Q_serie(ii+1) .le. Q_serie(ii)) ) then
-          kk=kk+1_i4       
-          Qpeak(kk)=Q_serie(ii)
+    jj=0
+    do ii=2, size(data,1)-1
+       if (maske(ii-1) .and. maske(ii) .and. maske(ii+1)) then
+          if( (data(ii-1) .le. data(ii)) .and. (data(ii+1) .le. data(ii)) ) then
+             jj=jj+1_i4       
+             data_peak(jj)=data(ii)
+          end if
        end if
     end do
 
-    allocate( ind_sort(n_peak) ) 
-    allocate( per(n_peak) ) 
-    allocate( Q_sort(n_peak) ) 
+    if (present(slope_peak_distribution)) then
+       ! calculate slope between 10% and 50% quantiles, per definition
+       pp      = (/ 0.1_dp, 0.5_dp /)
+       data_pp = percentile(data_peak,(1.0_dp-pp)*100._dp, mode_in=5)   ! (1-p) because exceedence probability is required
+       slope_peak_distribution = (data_pp(1)-data_pp(2))/(0.9_dp-0.5_dp)
+    end if
 
-    !Create peak flow duration curve
-    ind_sort=sort_index(Qpeak)
-    Q_sort=Qpeak(ind_sort)
+    PeakDistribution = percentile(data_peak,(1.0_dp-Quantiles)*100._dp, mode_in=5) 
+    deallocate( data_peak)
 
-    do nn=1, size(Q_sort,1)
-       per(nn)=real(nn,dp)/real(n_peak,dp)*100_dp
-    end do
+  END FUNCTION PeakDistribution
 
-    Q_sort=Q_sort(n_peak:1:-1)
-
-    !calculate slope between 10 and 50 percent quantiles, per definition
-    p=(/0.1_dp,0.5_dp/)
-    call Quantile(Q_sort,p,Q_p)
-
-    peaks=(Q_p(1)-Q_p(2))/(0.9_dp-0.5_dp)
-
-    call Quantile(Q_sort,Quantiles,Q_quantiles)
-
-    deallocate( ind_sort ) 
-    deallocate( per ) 
-    deallocate( Q_sort ) 
-    deallocate( Qpeak)
-
-  END SUBROUTINE PeakDistribution
-
-  !-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
   !     NAME
-  !         PeakDistribution_low
+  !         RunoffRatio
 
   !     PURPOSE
-  !>        \brief Calculates the peak distributions
+  !>        \brief   Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d]).
 
-  !>        \details Calculates the peak distributions according to 
-  !>                    peaks= (Qpeaks_10%-Qpeaks_50%)/(0.9-0.5)
-  !>                 It therefore represents the slope between the peak flow
-  !>                 duration curve between the 10th and 50th percentile.
+  !>        \details The runoff ratio is defined as
+  !>                       \f[ runoff_ratio = frac{\sum_{t=1}^{N} q_t}/{\sum_{t=1}^{N} p_t}\f]
+  !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
+  !>                 Therefore, precipitation over the entire basin is required and both discharge and precipitation
+  !>                 have to be converted to the same units [mm/d].\n
+  !>  
+  !>                 Input discharge is given in [m**3/s] as this is mHM default while precipitation has to be given
+  !>                 in [mm/km**2 / day].\n
+  !>                 
+  !>                 Either "precip_sum" or "precip_series" has to be specified.
+  !>                 If "precip_series" is used the optional mask is also applied to precipitation values.
+  !>                 The "precip_sum" is the accumulated "precip_series".\n
+  !>
+  !>                 Optionally, a mask for the data (=discharge) can be given. If optional "log_data" is set to .true.
+  !>                 the runoff ratio will be calculated as
+  !>                       \f[ runoff_ratio = frac{\sum_{t=1}^{N} \log(q_t)}/{\sum_{t=1}^{N} p_t}\f]
+  !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
 
   !     CALLING SEQUENCE
-  !         call PeakDistribution_low(Q_serie, Quantiles, mm_low, mm_high, peaks_low, Q_quantiles)
+  !         Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_sum=precip_sum,       log_data=.False.)
+  !            OR
+  !         Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_series=precip_series, log_data=.False.)
 
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"    !River flow, 
-  !>        \param[in] "real(dp),allocatable, dimension(:) :: Quantiles"  !Percentages of occurence, 
-  !>        \param[in] "integer(i4)            :: mm_low      !start month of low flow period  
-  !>        \param[in] "integer(i4)            :: mm_high     !start month of high flow
+  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data   [m**3/s]
+  !>        \param[in] "real(dp)                   :: basin_area"    area of basin   [km**2]
 
   !     INTENT(INOUT)
   !         None
 
   !     INTENT(OUT)
-  !>        \param[out] real(dp) :: peaks_low        ! slope between 50th and 10th low flow percentile, 
-  !>        \param[out] real(dp) :: Q_quantiles      ! Q for prob. p 
+  !         None
 
   !     INTENT(IN), OPTIONAL
-  !         None
+  !>        \param[in] "logical, dimension(size(data,1))  :: mask"            mask for data points given
+  !>        \param[in] "real(dp)                          :: precip_sum"      sum of daily precip. values of whole period 
+  !>                                                                          [mm/km**2 / day]
+  !>        \param[in] "real(dp), dimension(size(data,1)) :: precip_series"   daily precipitation values [mm/km**2 / day]
+  !>        \param[in] "logical                           :: log_data"        ratio using logarithmic data
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -1198,388 +913,181 @@ CONTAINS
   !         None
 
   !     RETURN
-  !         None
+  !         \return     real(dp), dimension(size(lags,1)) :: RunoffRation &mdash; Ratio of discharge and precipitation
 
   !     RESTRICTIONS
-  !         None
+  !>        Works only with 1d double precision input data.
 
   !     EXAMPLE
   !         None
 
   !     LITERATURE
-  !         None
+  !         Used as hydrologic signature in
+  !            Shafii, M., & Tolson, B. A. (2015).
+  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
+  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
 
   !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
+  !>        \author Juliane Mai
+  !>        \date Jun 2015
 
-  ! SUBROUTINE PeakDistribution_low(Q_serie, Quantiles, mm_low, mm_high, peaks_low, Q_quantiles)
+  FUNCTION RunoffRatio(data, basin_area, mask, precip_series, precip_sum, log_data)
 
-  !   USE mo_julian,                      only: caldat
-  !   USE mo_global_variables,            only: evalPer
-  !   USE mo_orderpack,                   only: sort_index
-
-  !   IMPLICIT NONE
-
-  !   real(dp),              dimension(:), intent(in)  :: Q_serie     ! River flow, 
-  !   real(dp),              dimension(:), intent(in)  :: Quantiles   ! Percentages of occurence, 
-  !   integer(i4),                         intent(in)  :: mm_low      ! start month of low flow period  
-  !   integer(i4),                         intent(in)  :: mm_high     ! start month of high flow period     
-  !   real(dp),                            intent(out) :: peaks_low   ! slope of peak flow duration curve
-  !   real(dp), allocatable, dimension(:), intent(out) :: Q_quantiles ! Q with p=10% and 50%
-
-  !   !local variables
-  !   integer(i4)                              :: date        ! date
-  !   integer(i4)                              :: dd          ! day
-  !   integer(i4)                              :: ii          ! counters
-  !   integer(i4), allocatable, dimension(:)   :: ind_sort    ! indexes
-  !   integer(i4)                              :: jj          ! counters
-  !   integer(i4)                              :: kk          ! counters
-  !   integer(i4)                              :: nn          ! counters
-  !   integer(i4)                              :: n_peak      ! Number of peaks
-  !   integer(i4)                              :: mm          ! month
-  !   real(dp),                 dimension(2)   :: p           ! prob. of p=10% and 50%
-  !   real(dp),    allocatable, dimension(:)   :: per         ! percentages
-  !   real(dp),    allocatable, dimension(:)   :: Q_p         ! Q with p=10% and 50%
-  !   real(dp),    allocatable, dimension(:)   :: Qpeak       ! peak distribution discharge
-  !   real(dp),    allocatable, dimension(:)   :: Q_sort      ! sorted Q
-  !   integer(i4)                              :: yy          ! day, month, year
-
-  !   n_peak=0_i4
-  !   date=evalPer%julStart+1_i4
-
-  !   if(mm_low .lt. mm_high) then
-
-  !      do jj=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) &
-  !              .and. (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            n_peak=n_peak+1_i4
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !      allocate(Qpeak(n_peak))
-
-  !      kk=0_i4
-  !      date=evalPer%julStart+1_i4
-
-  !      ! now fill Qpeak
-  !      do ii=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(ii-1) .le. Q_serie(ii)) .and. (Q_serie(ii+1) .le. Q_serie(ii)) &
-  !              .and. (mm .ge. mm_low) .and. (mm .lt. mm_high) ) then
-  !            kk=kk+1_i4       
-  !            Qpeak(kk)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !   else
-
-  !      do jj=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) &
-  !              .and. (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            n_peak=n_peak+1_i4
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !      allocate(Qpeak(n_peak))
-
-  !      kk=0_i4
-  !      date=evalPer%julStart+1_i4
-
-  !      ! now fill Qpeak
-  !      do ii=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(ii-1) .le. Q_serie(ii)) .and. (Q_serie(ii+1) .le. Q_serie(ii)) &
-  !              .and. (mm .ge. mm_low) .or. (mm .lt. mm_high) ) then
-  !            kk=kk+1_i4       
-  !            Qpeak(kk)=Q_serie(ii)
-  !         end if
-  !         date=date+1_i4
-  !      end do
-
-  !   end if
-
-  !   allocate( ind_sort(n_peak) ) 
-  !   allocate( per(n_peak) ) 
-  !   allocate( Q_sort(n_peak) ) 
-
-  !   !Create peak flow duration curve
-
-  !   ind_sort=sort_index(Qpeak)
-  !   Q_sort=Qpeak(ind_sort)
-
-  !   do nn=1, n_peak
-  !      per(nn)=real(nn,dp)/real(n_peak,dp)*100_dp
-  !   end do
-
-  !   Q_sort=Q_sort(n_peak:1:-1)
-
-  !   !calculate slope between 10 and 50 percent quantiles, per definition
-  !   p=(/0.1_dp,0.5_dp/)
-  !   call Quantile(Q_sort, p, Q_p)
-
-  !   peaks_low=(Q_p(1)-Q_p(2))/(0.9_dp-0.5_dp)
-
-  !   call Quantile(Q_sort, Quantiles, Q_quantiles)
-
-  !   deallocate( ind_sort ) 
-  !   deallocate( per ) 
-  !   deallocate( Q_sort ) 
-  !   deallocate( Qpeak )
-
-  ! END SUBROUTINE PeakDistribution_low
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         PeakDistribution_high
-
-  !     PURPOSE
-  !>        \brief   Calculates the peak distributions
-
-  !>        \details Calculates the peak distributions according to 
-  !>                    peaks= (Qpeaks_10%-Qpeaks_50%)/(0.9-0.5)
-  !>                 It therefore represents the slope between the peak flow 
-  !>                 duration curve between the 10th and 50th percentile.
-
-  !     CALLING SEQUENCE
-  !         call PeakDistribution_high(Q_serie, Quantiles, mm_low, mm_high, peaks_high, Q_quantiles)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: Q_serie"    !River flow, 
-  !>        \param[in] "real(dp), allocatable, dimension(:) :: Quantiles"  !Percentages of occurence, 
-  !>        \param[in] "integer(i4)            :: mm_low      !start month of low flow period  
-  !>        \param[in] "integer(i4)            :: mm_high     !start month of high flow
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] real(dp) :: peaks_high       ! slope between 50th and 10th low flow percentile, 
-  !>        \param[out] real(dp) :: Q_quantiles      ! Q for prob. p 
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  ! SUBROUTINE PeakDistribution_high(Q_serie, Quantiles, mm_low, mm_high, peaks_high, Q_quantiles)
-
-  !   USE mo_julian,                      only : caldat
-  !   USE mo_global_variables,            only : evalPer
-  !   USE mo_orderpack,                   only: sort_index
-
-  !   IMPLICIT NONE       
-
-  !   real(dp),              dimension(:), intent(in)  :: Q_serie     ! River flow, 
-  !   real(dp),              dimension(:), intent(in)  :: Quantiles   ! Percentages of occurence, 
-  !   integer(i4),                         intent(in)  :: mm_low      ! start month of low flow period  
-  !   integer(i4),                         intent(in)  :: mm_high     ! start month of high flow period     
-  !   real(dp),                            intent(out) :: peaks_high  ! slope of peak flow duration curve
-  !   real(dp), allocatable, dimension(:), intent(out) :: Q_quantiles ! Q with p=10% and 50%
-
-  !   !local variables
-  !   integer(i4)                              :: date        ! date
-  !   integer(i4)                              :: dd          ! day
-  !   integer(i4)                              :: ii          ! counters
-  !   integer(i4), allocatable, dimension(:)   :: ind_sort    ! indexes
-  !   integer(i4)                              :: jj          ! counters
-  !   integer(i4)                              :: kk          ! counters
-  !   integer(i4)                              :: nn          ! counters
-  !   integer(i4)                              :: n_peak      ! Number of peaks
-  !   integer(i4)                              :: mm          ! month
-  !   real(dp),                 dimension(2)   :: p           ! prob. of p=10% and 50%
-  !   real(dp),    allocatable, dimension(:)   :: per         ! percentages
-  !   real(dp),    allocatable, dimension(:)   :: Q_p         ! Q with p=10% and 50%
-  !   real(dp),    allocatable, dimension(:)   :: Qpeak       ! peak distribution discharge
-  !   real(dp),    allocatable, dimension(:)   :: Q_sort      ! sorted Q
-  !   integer(i4)                              :: yy          ! day, month, year
-
-  !   n_peak=0_i4
-  !   date=evalPer%julStart+1_i4
-
-  !   if(mm_low .lt. mm_high) then
-  !      ! count peaks
-  !      do jj=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) &
-  !              .and. ((mm .lt. mm_low) .or. (mm .ge. mm_high)) ) then
-  !            n_peak=n_peak+1_i4
-  !         end if
-  !         date=date+1_4
-  !      end do
-
-  !      allocate(Qpeak(n_peak))
-
-  !      kk=0_i4
-  !      date=evalPer%julStart+1
-
-  !      ! now fill Qpeak
-  !      do ii=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(ii-1) .le. Q_serie(ii)) .and. (Q_serie(ii+1) .le. Q_serie(ii)) &
-  !              .and. ((mm .lt. mm_low) .or. (mm .ge. mm_high)) ) then
-  !            kk=kk+1_i4       
-  !            Qpeak(kk)=Q_serie(ii)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   else
-  !      ! count peaks
-  !      do jj=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(jj-1) .le. Q_serie(jj)) .and. (Q_serie(jj+1) .le. Q_serie(jj)) &
-  !              .and. ((mm .lt. mm_low) .and. (mm .ge. mm_high)) ) then
-  !            n_peak=n_peak+1_i4
-  !         end if
-  !         date=date+1_4
-  !      end do
-
-  !      allocate(Qpeak(n_peak))
-
-  !      kk=0_i4
-  !      date=evalPer%julStart+1
-
-  !      ! now fill Qpeak
-  !      do ii=2, size(Q_serie,1)-1
-  !         call caldat(date, dd, mm, yy)
-  !         if( (Q_serie(ii-1) .le. Q_serie(ii)) .and. (Q_serie(ii+1) .le. Q_serie(ii)) &
-  !              .and. ((mm .lt. mm_low) .and. (mm .ge. mm_high)) ) then
-  !            kk=kk+1_i4       
-  !            Qpeak(kk)=Q_serie(ii)
-  !         end if
-  !         date=date+1
-  !      end do
-
-  !   end if
-
-  !   allocate( ind_sort(n_peak) ) 
-  !   allocate( per(n_peak) ) 
-  !   allocate( Q_sort(n_peak) ) 
-
-  !   !Create peak flow duration curve
-
-  !   ind_sort=sort_index(Qpeak)
-  !   Q_sort=Qpeak(ind_sort)
-
-  !   do nn=1, n_peak
-  !      per(nn)=real(nn,dp)/real(n_peak,dp)*100_dp
-  !   end do
-
-  !   Q_sort=Q_sort(n_peak:1:-1)
-
-  !   !calculate slope between 10 and 50 percent quantiles
-  !   p=(/0.1_dp,0.5_dp/)
-  !   call Quantile(Q_sort,p,Q_p)
-
-  !   peaks_high=(Q_p(1)-Q_p(2))/(0.9_dp-0.5_dp)
-
-  !   call Quantile(Q_sort,Quantiles,Q_quantiles)
-
-  !   deallocate( ind_sort ) 
-  !   deallocate( per ) 
-  !   deallocate( Q_sort ) 
-  !   deallocate( Qpeak )
-
-  ! END SUBROUTINE PeakDistribution_high
-
-  !-------------------------------------------------------------------------------
-  !     NAME
-  !         Quantile
-
-  !     PURPOSE
-  !>        \brief   Calculates quantiles of a series
-
-  !>        \details Calculates the quantiles of a series
-  !>         
-
-  !     CALLING SEQUENCE
-  !         call PeakDistribution_high(Q_serie, peaks_high, Qhighpeak10, Qhighpeak50)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: x        ! Input series
-  !>        \param[in] "real(dp), dimension(:) :: p        ! Array of probabilities
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] real(dp),allocatable, dimension(:)  :: Q     ! Quantiles 
-
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-
-  SUBROUTINE Quantile(x,p,Q)
+    use mo_message, only: message
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),             intent(in)  ::x   ! input serie
-    real(dp),    dimension(:),             intent(in)  ::p   ! probability array
-    real(dp),    dimension(:),allocatable, intent(out) ::Q   ! quantiles
+    real(dp),    dimension(:),                      intent(in)  :: data            ! Discharge series [m**3/s]
+    real(dp),                                       intent(in)  :: basin_area      ! Basin area       [km**2]
+    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
+    real(dp),    dimension(size(data,1)), optional, intent(in)  :: precip_series   ! series of daily precip. [mm/km**2 / d]
+    !                                                                              ! optional mask will be applied
+    real(dp),                             optional, intent(in)  :: precip_sum      ! sum    of daily precip. [mm/km**2 / d]
+    !                                                                              ! optional mask will not be applied
+    logical,                              optional, intent(in)  :: log_data        ! if log(data) is used in ratio
+    !                                                                              ! DEFAULT: .false.
+    real(dp)                                                    :: RunoffRatio     ! sum(data) / sum(precip)
 
     ! local variables
-    real(dp),    dimension(size(p,1)) :: g   ! temp variables
-    integer(i4), dimension(size(p,1)) :: j   ! indexes
-    real(dp),    dimension(size(p,1)) :: m   ! temp variables
-    integer(i4)                       :: n   ! length of x
+    logical, dimension(size(data,1)) :: maske    ! mask of data 
+    logical                          :: log_dat  ! if logarithmic data are used --> sum(log(data)) / sum(precip)
+    real(dp)                         :: sum_discharge
+    real(dp)                         :: sum_precip
 
-    allocate( Q(size(p,1)))
+    ! checking optionals
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
 
-    n=size(x,1)
+    if (present(log_data)) then
+       log_dat = log_data
+    else
+       log_dat = .false.
+    end if
 
-    m=1-p
-    j=floor(n*p+m)
-    g=n*p+m-real(j,dp)
-    Q=(1-g)*x(j)+g*x(j+1) 
+    if ( (present(precip_series) .and. present(precip_sum)) .or. &
+         (.not. present(precip_series) .and. .not. present(precip_sum)) ) then
+       call message('mo_signatures: RunoffRatio: Exactly one precipitation information')
+       call message('                            (precipitation series or sum of precipitation) ')
+       call message('                            has to be specified!')
+       stop
+    end if
 
-  END SUBROUTINE Quantile
+    if (present(mask) .and. present(precip_sum)) then
+       call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and' )
+       call message('                            mask can not be used together.')
+       call message('                            Precip_series should be used instead!')
+       stop
+    end if
+
+    ! mhm output [m**3/s]  --> required [mm/d]
+    !    [m**3/s] / [km**2] = [m**3/(s km**2)]
+    ! => [m**3/(s km**2) * 60*60*24/1000**2] = [m/d]
+    ! => [m**3/(s km**2) * 60*60*24*1000/1000**2] = [mm/d]
+    ! => [m**3/(s km**2) * 86.4 ] = [mm/d]
+    ! => discharge value [m**3/s] / catchment area [km**2] * 86.4 [km**2 s/m**3 * mm/d]
+    if (log_dat) then
+       sum_discharge = sum(log(data)*86.4/basin_area,mask=maske)
+    else
+       sum_discharge = sum(data*86.4/basin_area,mask=maske)
+    end if
+
+    if (present(precip_sum)) then
+       sum_precip = precip_sum
+    else
+       sum_precip = sum(precip_series,mask=maske)
+    end if
+
+    RunoffRatio = sum_discharge / sum_precip
+
+  END FUNCTION RunoffRatio
+
+  !-------------------------------------------------------------------------------
+  !     NAME
+  !         ZeroFlowRatio
+
+  !     PURPOSE
+  !>        \brief   Ratio of zero values to total number of data points.
+
+  !>        \details Ratio of zero values to total number of data points.
+  !>                 An optional mask of data points can be specified.
+
+  !     CALLING SEQUENCE
+  !         Zero_Flow_Ratio = ZeroFlowRatio(data, mask=mask)
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         \return     real(dp), dimension(size(lags,1)) :: ZeroFlowRatio &mdash; Ratio of zero values to total number of data points
+
+  !     RESTRICTIONS
+  !>        Works only with 1d double precision input data.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         Used as hydrologic signature in
+  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !            rainfall-runoff modelling.
+  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+
+  !     HISTORY
+  !>        \author Juliane Mai
+  !>        \date Jun 2015
+
+  FUNCTION ZeroFlowRatio(data, mask)
+
+    use mo_message, only: message
+    use mo_utils,   only: eq
+
+    IMPLICIT NONE
+
+    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
+    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
+    real(dp)                                                    :: ZeroFlowRatio   ! Autocorrelation of data at given lags
+
+    ! local variables
+    logical, dimension(size(data,1)) :: maske   ! mask of data 
+    integer(i4)                      :: nall    ! total number of data points
+    integer(i4)                      :: nzero   ! number of zero data points
+
+    ! checking optionals
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    end if
+
+    nall  = count(maske)
+    nzero = count(maske .and. (eq(data, 0.0_dp)))
+
+    if (nall > 0) then
+       ZeroFlowRatio = real(nzero, dp) / real(nall, dp)
+    else
+       call message('mo_signatures: ZeroFlowRatio: all data points are masked')
+       stop
+    end if
+
+  END FUNCTION ZeroFlowRatio
 
 END MODULE mo_signatures
