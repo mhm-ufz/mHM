@@ -7,11 +7,16 @@
 
 !> \authors Stephan Thober
 !> \date Aug 2015
+
 module mo_mrm_read_config
+  
   use mo_kind, only : i4, dp
+  
   implicit none
+  
   public :: read_mrm_config_coupling
   public :: read_mrm_config
+  
 contains
 
   ! ------------------------------------------------------------------
@@ -147,67 +152,73 @@ contains
   !         Oct 2015, Stephan Thober - added NLoutputResults namelist, dirLatLon to directories_general namelist,
   !                                    and readLatLon flag
   subroutine read_mrm_config(readLatLon)
-    use mo_julian, only: dec2date, date2dec
-    use mo_message, only: message
-    use mo_nml, only: open_nml, position_nml, close_nml
-    use mo_mrm_constants, only: nodata_i4, &
-         maxNoGauges, & ! maximum number of allowed gauges
-         maxNLcovers, & ! maximum number of allowed LCover scenes
-         maxNoBasins ! maximum number of allowed basins
-    use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm, &
+    use mo_julian,               only: dec2date, date2dec
+    use mo_message,              only: message
+    use mo_nml,                  only: open_nml, position_nml, close_nml
+    use mo_mrm_constants,        only: nodata_i4, &
+         maxNoGauges,                             & ! maximum number of allowed gauges
+         maxNLcovers,                             & ! maximum number of allowed LCover scenes
+         maxNoBasins                                ! maximum number of allowed basins
+    use mo_mrm_file,             only:            &
+         file_namelist_mrm,                       &
+         unamelist_mrm, file_namelist_param_mrm,  &
          file_defOutput, udefOutput
-    use mo_string_utils, only: num2str
-    use mo_mrm_global_variables, only : &
-         mrm_coupling_mode, &
-         nTstepDay, & ! # of time steps per day
-         timestep, & ! timestep of routing [h]
-         iFlag_cordinate_sys, & ! model run cordinate system
-         nGaugesTotal, gauge, & ! number of evaluation gauges and gauge informations 
-         nInflowGaugesTotal, InflowGauge, & ! number of inflow gauges and gauge informations
-         dirCommonFiles, & ! directory where common input files should be located for all modeled basins
-         dirConfigOut, &
-         dirMorpho, & ! Directory where morphological files are located
-         dirLCover, & ! Directory where land cover files are located
-         dirGauges, & ! Directory where discharge files are located
-         dirTotalRunoff, & ! Directory where simulated runoff files are located
-         dirOut, & ! Directory where output is written to
-         dirRestartOut, & ! Directory where output of restart is written
-         dirRestartIn, & ! Directory where input of restart is read from
-         dirLatLon, & ! directories where LatLon file is located
-         is_start, & ! flag for first timestep
-         resolutionRouting, & ! resolution of routing
-         resolutionHydrology, & ! resolution of Hydrology
-         L0_Basin, & ! L0_Basin ID
-         read_restart, & ! flag reading restart
-         write_restart, & ! flag writing restart
-         perform_mpr, & ! switch for performing mpr
-         nBasins, & ! number of basins
-         simPer, &
-         evalPer, &
-         warmingdays_mrm, &
-         warmPer, &
-         timestep_model_inputs, &
-         fracSealed_cityArea, nLcoverScene, & ! land cover information
-         LCYearId, &
-         LCfilename, &
-         basin_mrm, &
-         timeStep_model_outputs_mrm, & ! timestep for writing model outputs
-         outputFlxState_mrm, & ! definition which output to write
-         period ! structure for time periods
-    use mo_common_variables, only: &
-         optimize, & ! if mhm runs in optimization mode or not
-         opti_method, & ! optimization algorithm used
-         opti_function, & ! objective function to be optimized
-         nIterations, & ! number of iterations in optimization
-         seed, & ! seed used for optimization
-         dds_r, & ! DDS: perturbation rate
-         sa_temp, & ! SA: initial temperature
-         sce_ngs, sce_npg, sce_nps, & ! SCE: # complexes, # points per complex,
-         !                            !      # points per subcomplex
-         mcmc_opti,                 & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
-         mcmc_error_params,         & !       parameters of error model used in likelihood 
+    use mo_string_utils,         only: num2str
+    use mo_mrm_global_variables, only :           &
+         mrm_coupling_mode,                       &
+         nTstepDay,                               & ! # of time steps per day
+         timestep,                                & ! timestep of routing [h]
+         iFlag_cordinate_sys,                     & ! model run cordinate system
+         nGaugesTotal, gauge,                     & ! number of evaluation gauges and gauge informations 
+         nInflowGaugesTotal, InflowGauge,         & ! number of inflow gauges and gauge informations
+         dirCommonFiles,                          & ! directory where common input files should be located for all modeled basins
+         dirConfigOut,                            &
+         dirMorpho,                               & ! Directory where morphological files are located
+         dirLCover,                               & ! Directory where land cover files are located
+         dirGauges,                               & ! Directory where discharge files are located
+         dirTotalRunoff,                          & ! Directory where simulated runoff files are located
+         dirOut,                                  & ! Directory where output is written to
+         dirRestartOut,                           & ! Directory where output of restart is written
+         dirRestartIn,                            & ! Directory where input of restart is read from
+         dirLatLon,                               & ! directories where LatLon file is located
+         is_start,                                & ! flag for first timestep
+         resolutionRouting,                       & ! resolution of routing
+         resolutionHydrology,                     & ! resolution of Hydrology
+         L0_Basin,                                & ! L0_Basin ID
+         read_restart,                            & ! flag reading restart
+         write_restart,                           & ! flag writing restart
+         perform_mpr,                             & ! switch for performing mpr
+         nBasins,                                 & ! number of basins
+         simPer,                                  &
+         evalPer,                                 &
+         warmingdays_mrm,                         &
+         warmPer,                                 &
+         timestep_model_inputs,                   &
+         fracSealed_cityArea, nLcoverScene,       & ! land cover information
+         LCYearId,                                &
+         LCfilename,                              &
+         basin_mrm,                               &
+         timeStep_model_outputs_mrm,              & ! timestep for writing model outputs
+         outputFlxState_mrm,                      & ! definition which output to write
+         period                                     ! structure for time periods
+    use mo_common_variables,     only:            &
+         optimize,                                & ! if mhm runs in optimization mode or not
+         optimize_restart,                        & ! Optimization will be restarted from
+         !                                          ! mo_<opti_method>.restart file (.true.)
+         opti_method,                             & ! optimization algorithm used
+         opti_function,                           & ! objective function to be optimized
+         nIterations,                             & ! number of iterations in optimization
+         seed,                                    & ! seed used for optimization
+         dds_r,                                   & ! DDS: perturbation rate
+         sa_temp,                                 & ! SA: initial temperature
+         sce_ngs, sce_npg, sce_nps,               & ! SCE: # complexes, # points per complex,
+         !                                          !      # points per subcomplex
+         mcmc_opti,                               & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
+         mcmc_error_params,                       & !       parameters of error model used in likelihood 
          global_parameters
+    
     implicit none
+    
     ! input variables
     ! output variables
     logical, intent(out) :: readLatLon
@@ -225,38 +236,38 @@ contains
     integer(i4)                                        :: idx
     integer(i4)                                        :: ii
     integer(i4)                                        :: n_true_pars
-    real(dp)                                           :: cellFactorRbyH ! conversion factor L11 to L1
+    real(dp)                                           :: cellFactorRbyH  ! conversion factor L11 to L1
 
     ! namelist variables: direcoteries
-    character(256), dimension(maxNoBasins) :: dir_Morpho
-    character(256), dimension(maxNoBasins) :: dir_LCover
-    character(256), dimension(maxNoBasins) :: dir_Gauges
-    character(256), dimension(maxNoBasins) :: dir_Total_Runoff
-    character(256), dimension(maxNoBasins) :: dir_Out
-    character(256), dimension(maxNoBasins) :: dir_RestartOut
-    character(256), dimension(maxNoBasins) :: dir_RestartIn
-    character(256), dimension(maxNoBasins) :: dir_LatLon
+    character(256), dimension(maxNoBasins)             :: dir_Morpho
+    character(256), dimension(maxNoBasins)             :: dir_LCover
+    character(256), dimension(maxNoBasins)             :: dir_Gauges
+    character(256), dimension(maxNoBasins)             :: dir_Total_Runoff
+    character(256), dimension(maxNoBasins)             :: dir_Out
+    character(256), dimension(maxNoBasins)             :: dir_RestartOut
+    character(256), dimension(maxNoBasins)             :: dir_RestartIn
+    character(256), dimension(maxNoBasins)             :: dir_LatLon
     ! namelist variables: mainconfig
-    real(dp), dimension(maxNoBasins) :: resolution_Routing
-    real(dp), dimension(maxNoBasins) :: resolution_Hydrology
-    integer(i4), dimension(maxNoBasins) :: L0Basin
+    real(dp), dimension(maxNoBasins)                   :: resolution_Routing
+    real(dp), dimension(maxNoBasins)                   :: resolution_Hydrology
+    integer(i4), dimension(maxNoBasins)                :: L0Basin
     ! namelist variables: LCover
-    integer(i4) :: nLcover_scene
-    integer(i4), dimension(maxNLCovers) :: LCoverYearStart ! starting year of LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearEnd ! ending year  of LCover
-    character(256), dimension(maxNLCovers) :: LCoverfName ! filename of Lcover file
+    integer(i4)                                        :: nLcover_scene
+    integer(i4), dimension(maxNLCovers)                :: LCoverYearStart ! starting year of LCover
+    integer(i4), dimension(maxNLCovers)                :: LCoverYearEnd   ! ending year  of LCover
+    character(256), dimension(maxNLCovers)             :: LCoverfName     ! filename of Lcover file
     ! namelist variables: time_periods
-    real(dp) :: jday_frac
-    integer(i4), dimension(maxNoBasins) :: warming_Days
-    type(period), dimension(maxNoBasins) :: eval_Per
-    integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
-    character(256) :: para_file ! filename of parameter namelist
+    real(dp)                                           :: jday_frac
+    integer(i4), dimension(maxNoBasins)                :: warming_Days
+    type(period), dimension(maxNoBasins)               :: eval_Per
+    integer(i4), dimension(maxNoBasins)                :: time_step_model_inputs
+    character(256)                                     :: para_file       ! filename of parameter namelist
     ! for output file namelist
-    logical :: file_exists
+    logical                                            :: file_exists
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
-         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
+         L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
          write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
@@ -264,14 +275,14 @@ contains
     ! define namelists
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
-    namelist /directories_general/ dirConfigOut, dirCommonFiles, &
-         dir_Morpho, dir_LCover,                         &
-         dir_Out, dir_RestartOut,                        &
+    namelist /directories_general/ dirConfigOut, dirCommonFiles,                                   &
+         dir_Morpho, dir_LCover,                                                                   &
+         dir_Out, dir_RestartOut,                                                                  &
          dir_RestartIn, dir_LatLon
     namelist/LCover/ fracSealed_cityArea, nLcover_scene, LCoverYearStart, LCoverYearEnd, LCoverfName
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id,             &
          InflowGauge_filename, InflowGauge_Headwater
     ! namelist for optimization settings
     namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps, mcmc_opti, mcmc_error_params

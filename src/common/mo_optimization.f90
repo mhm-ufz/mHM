@@ -66,6 +66,8 @@ contains
     use mo_common_variables,              only: &
          opti_method,                           &                                  ! Optimization algorithm used
          opti_function,                         &                                  ! Objective function used
+         optimize_restart,                      &                                  ! Optimization will be restarted from
+         !                                                                         ! mo_<opti_method>.restart file (.true.)
          global_parameters,                     &                                  ! Matrix of global parameters (former: gamma)
          !                                                                         !     col1: min,  col2: max, col3: initial, 
          !                                                                         !     col4: flag, col5: scaling
@@ -196,16 +198,20 @@ contains
 
        if (opti_function == 8) then
           call message('    Use MCMC')
-          call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-               ParaSelectMode_in=2_i4, tmp_file=tFile,                                      &
-               maskpara_in=local_maskpara,                                                                   &
-               restart=.false., restart_file='mo_mcmc.restart',                                               &
-                                ! stepsize_in=step,                                                                            &
+          call mcmc(loglikelihood, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras,               &
+               ParaSelectMode_in=2_i4, tmp_file=tFile,                                                                     &
+               maskpara_in=local_maskpara,                                                                                 &
+               restart=optimize_restart, restart_file='mo_mcmc.restart',                                                   &
+               ! stepsize_in=step,                                                                                         &
                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
        else
+          if (optimize_restart) then
+             call message('ERROR: A restart of this optimization method is not implemented yet!')
+             stop
+          end if
           call message('    Use MCMC_STDDEV')
           call mcmc_stddev(loglikelihood_stddev, local_parameters(:,3), local_parameters(:,1:2), mcmc_paras, burnin_paras, &
-               ParaSelectMode_in=2_i4, tmp_file=tFile,                                                    &
+               ParaSelectMode_in=2_i4, tmp_file=tFile,                                                                     &
                maskpara_in=local_maskpara,                                                                                 &
                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
        endif
@@ -215,27 +221,37 @@ contains
 
        tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
 
+       if (optimize_restart) then
+          call message('ERROR: A restart of this optimization method is not implemented yet!')
+          stop
+       end if
+       
        ! use fixed user-defined seed
-       local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-            maxiter=int(nIterations,i8), r=dds_r, seed=iseed,                                      &
-            tmp_file=tFile, mask=local_maskpara,                                                  &
+       local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),                              &
+            maxiter=int(nIterations,i8), r=dds_r, seed=iseed,                                                              &
+            tmp_file=tFile, mask=local_maskpara,                                                                           &
             funcbest=funcbest)
     case (2)
        call message('    Use Simulated Annealing')
 
        tFile = trim(adjustl(dirConfigOut)) // 'anneal_results.out'
 
+       if (optimize_restart) then
+          call message('ERROR: A restart of this optimization method is not implemented yet!')
+          stop
+       end if
+
        if (sa_temp .gt. 0.0_dp) then
           ! use fixed user-defined seed and user-defined initial temperature
-          local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-               temp=sa_temp, seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,       &
-               tmp_file=tFile, maskpara=local_maskpara,                                              &
+          local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),                        &
+               temp=sa_temp, seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,                          &
+               tmp_file=tFile, maskpara=local_maskpara,                                                                    &
                funcbest=funcbest)
        else
           ! use fixed user-defined seed and adaptive initial temperature
-          local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),  &
-               seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,                     &
-               tmp_file=tFile, maskpara=local_maskpara,                                              &
+          local_parameters(:,3) = anneal(objective, local_parameters(:,3), local_parameters(:,1:2),                        &
+               seeds=(/iseed, iseed+1000_i8, iseed+2000_i8/), nITERmax=nIterations,                                        &
+               tmp_file=tFile, maskpara=local_maskpara,                                                                    &
                funcbest=funcbest)
        end if
     case (3)
@@ -245,10 +261,11 @@ contains
        pFile =  trim(adjustl(dirConfigOut)) // 'sce_population.out'
 
        ! use fixed user-defined seed
-       local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),     &
-            mymaxn=int(nIterations,i8), myseed=iseed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps, &
-            parallel=.false., mymask=local_maskpara,                                              &
-            tmp_file=tFile, popul_file=pFile,                                                     &
+       local_parameters(:,3) = sce(objective, local_parameters(:,3), local_parameters(:,1:2),                              &
+            mymaxn=int(nIterations,i8), myseed=iseed, myngs=sce_ngs, mynpg=sce_npg, mynps=sce_nps,                         &
+            parallel=.false., mymask=local_maskpara,                                                                       &
+            restart=optimize_restart, restart_file='mo_sce.restart',                                                       &
+            tmp_file=tFile, popul_file=pFile,                                                                              &
             bestf=funcbest)
     case default
        call finish('mRM','This optimization method is not implemented.')

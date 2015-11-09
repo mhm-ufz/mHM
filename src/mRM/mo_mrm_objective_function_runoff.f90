@@ -4,17 +4,26 @@
 
 !> \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against runoff.\n
 !>          All the objective functions are supposed to be minimized! \n
-!> (1)  Q:   1.0 - NSE  \n
-!> (2)  Q:   1.0 - lnNSE  \n
-!> (3)  Q:   1.0 - 0.5*(NSE+lnNSE)  \n
-!> (4)  Q:  -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
-!> (5)  Q:   ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
-!> (6)  Q:   SSE  \n
-!> (7)  Q:  -1.0 * loglikelihood with trend removed from absolute errors  \n
-!> (8)  Q:  -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed \n
-!> (9)  Q:  1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (10-13) SM: These objective functions are reserved for soil moisture (see mo_objective_function_sm.f90 in mHM source)\n
-!> (14) Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm\n
+!>               (1)  SO: Q:        1.0 - NSE  \n
+!>               (2)  SO: Q:        1.0 - lnNSE  \n
+!>               (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)  \n
+!>               (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
+!>                                        then lag(1)-autocorrelation removed  \n
+!>               (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
+!>               (6)  SO: Q:        SSE  \n
+!>               (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors  \n
+!>               (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
+!>                                        then lag(1)-autocorrelation removed \n
+!>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)  \n
+!>               (10) SO: SM:       1.0 - KGE of catchment average soilmoisture \n
+!>               (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture \n
+!>               (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
+!>                                        of soil moisture \n
+!>               (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture \n
+!>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging
+!>                                        station based on a power-6 norm \n
+!>               (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
+!>                                        (standard score) TWS\n
 
 !> \authors Juliane Mai
 !> \date Dec 2012

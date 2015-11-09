@@ -37,6 +37,8 @@ module mo_common_variables
    !                                                                       ! 3 - 1.0-0.5*(NSE+lnNSE)
    logical,     public                              :: optimize            ! Optimization   (.true. ) or
    !                                                                       ! Evaluation run (.false.)
+   logical,     public                              :: optimize_restart    ! Optimization will be restarted from
+   !                                                                       ! mo_<opti_method>.restart file (.true.)
    ! settings for optimization algorithms: 
    integer(i8), public                              :: seed                ! seed used for optimization
    !                                                                       ! default: -9 --> system time 

@@ -6,12 +6,15 @@
 
 !> \authors Stephan Thober
 !> \date Aug 2015
+
 module mo_mrm_global_variables
-  use mo_kind, only: i4, i8, dp
-  use mo_mrm_constants, only: nOutFlxState
-  use mo_global_structures, only: period
+  
+  use mo_kind,             only: i4, i8, dp
+  use mo_mrm_constants,    only: nOutFlxState
+  use mo_common_variables, only: period
+  
   implicit none
-  ! Types have to be public
+  
   PUBLIC :: gaugingStation
 
   ! -------------------------------------------------------------------
@@ -38,49 +41,52 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! OPTIMIZATION
   ! -------------------------------------------------------------------
-  integer(i4), public :: opti_method   ! Optimization algorithm:
-  !                                    ! 1 - DDS
-  !                                    ! 2 - Simulated Annealing
-  !                                    ! 3 - SCE
-  integer(i4), public :: opti_function ! Objective function:
-  !                                    ! 1 - 1.0-NSE
-  !                                    ! 2 - 1.0-lnNSE
-  !                                    ! 3 - 1.0-0.5*(NSE+lnNSE)
-  logical,     public :: optimize      ! Optimization   (.true. ) or
-  !                                    ! Evaluation run (.false.)
+  integer(i4), public                          :: opti_method       ! Optimization algorithm:
+  !                                                                 ! 0 - MCMC
+  !                                                                 ! 1 - DDS
+  !                                                                 ! 2 - Simulated Annealing
+  !                                                                 ! 3 - SCE
+  integer(i4), public                          :: opti_function     ! Objective function:
+  !                                                                 ! 1 - 1.0-NSE
+  !                                                                 ! 2 - 1.0-lnNSE
+  !                                                                 ! 3 - 1.0-0.5*(NSE+lnNSE)
+  logical,     public                          :: optimize          ! Optimization   (.true. ) or
+  !                                                                 ! Evaluation run (.false.)
+  logical,     public                          :: optimize_restart  ! Optimization will be restarted from
+  !                                                                 ! mo_<opti_method>.restart file (.true.)
   ! settings for optimization algorithms: 
-  integer(i8), public :: seed          ! seed used for optimization
-  !                                    ! default: -9 --> system time 
-  integer(i4), public :: nIterations   ! number of iterations for optimization
-  real(dp),    public :: dds_r         ! DDS: perturbation rate
-  !                                    !      default: 0.2
-  real(dp),    public :: sa_temp       ! SA:  initial temperature
-  !                                    !      default: -9.0 --> estimated
-  integer(i4), public :: sce_ngs       ! SCE: # of complexes
-  !                                    !      default: 2
-  integer(i4), public :: sce_npg       ! SCE: # of points per complex
-  !                                    !      default: -9 --> 2n+1
-  integer(i4), public :: sce_nps       ! SCE: # of points per subcomplex
-  !                                    !      default: -9 --> n+1
-  integer(i4), public                              :: padds_maxtrial      ! PA-DDS: number of trials for PA-DDS
-  !                                                                       !      default: 1
-  real(dp),    public                              :: padds_r             ! PA-DDS: perturbation rate
-  !                                                                       !      default: 0.2
-  integer(i4), public                              :: padds_select_mode   ! PA-DDS: Selection mode
-  !                                                                       !      (0) Random 
-  !                                                                       !      (1) Crowding distance 
-  !                                                                       !      (2) Hypervolume Contribution 
-  !                                                                       !      (3) Convex Hull Contribution 
-  !                                                                       !      default: 2
-  logical,     public                          :: mcmc_opti           ! MCMC: Optimization (.true. ) or
-  !                                                                   !       Only parameter uncertainty (.false.)
-  integer(i4), public, parameter               :: nerror_model = 2    !       # possible parameters in error model
-  !                                                                   !       e.g. for opti_function=8: 2
-  real(dp),    public, dimension(nerror_model) :: mcmc_error_params   !       Parameters of error model if mcmc_opti=.false.
-  !                                                                   !       e.g. for opti_function=8: 0.01, 0.3
+  integer(i8), public                          :: seed              ! seed used for optimization
+  !                                                                 ! default: -9 --> system time 
+  integer(i4), public                          :: nIterations       ! number of iterations for optimization
+  real(dp),    public                          :: dds_r             ! DDS: perturbation rate
+  !                                                                 !      default: 0.2
+  real(dp),    public                          :: sa_temp           ! SA:  initial temperature
+  !                                                                 !      default: -9.0 --> estimated
+  integer(i4), public                          :: sce_ngs           ! SCE: # of complexes
+  !                                                                 !      default: 2
+  integer(i4), public                          :: sce_npg           ! SCE: # of points per complex
+  !                                                                 !      default: -9 --> 2n+1
+  integer(i4), public                          :: sce_nps           ! SCE: # of points per subcomplex
+  !                                                                 !      default: -9 --> n+1
+  integer(i4), public                          :: padds_maxtrial    ! PA-DDS: number of trials for PA-DDS
+  !                                                                 !      default: 1
+  real(dp),    public                          :: padds_r           ! PA-DDS: perturbation rate
+  !                                                                 !      default: 0.2
+  integer(i4), public                          :: padds_select_mode ! PA-DDS: Selection mode
+  !                                                                 !      (0) Random 
+  !                                                                 !      (1) Crowding distance 
+  !                                                                 !      (2) Hypervolume Contribution 
+  !                                                                 !      (3) Convex Hull Contribution 
+  !                                                                 !      default: 2
+  logical,     public                          :: mcmc_opti         ! MCMC: Optimization (.true. ) or
+  !                                                                 !       Only parameter uncertainty (.false.)
+  integer(i4), public, parameter               :: nerror_model = 2  !       # possible parameters in error model
+  !                                                                 !       e.g. for opti_function=8: 2
+  real(dp),    public, dimension(nerror_model) :: mcmc_error_params !       Parameters of error model if mcmc_opti=.false.
+  !                                                                 !       e.g. for opti_function=8: 0.01, 0.3
 
   ! -------------------------------------------------------------------
-  ! PARAMETER description
+  ! Parameter description
   ! -------------------------------------------------------------------
   real(dp), dimension(:,:), allocatable, public :: mrm_global_parameters ! Matrix of global parameters 
   !                                                                      ! col1: min, col2: max, col3: initial, 

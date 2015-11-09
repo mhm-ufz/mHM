@@ -175,6 +175,8 @@ CONTAINS
          global_parameters,                                 & ! global parameters
          global_parameters_name,                            & ! clear names of global parameters
          optimize,                                          & ! if mhm runs in optimization mode or not
+         optimize_restart,                                  & ! Optimization will be restarted from
+         !                                                    ! mo_<opti_method>.restart file (.true.)
          opti_method,                                       & ! optimization algorithm used
          opti_function,                                     & ! objective function to be optimized
          nIterations,                                       & ! number of iterations in optimization
@@ -315,7 +317,7 @@ CONTAINS
     namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input, file_TWS
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
-         L0Basin, optimize, opti_method, opti_function, nBasins, read_restart,                     &
+         L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
          write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
