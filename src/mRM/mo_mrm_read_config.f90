@@ -73,10 +73,12 @@ contains
   !         Modified, 
 
   subroutine read_mrm_config_coupling()
-    use mo_message, only: message
-    use mo_nml, only: open_nml, position_nml, close_nml
-    use mo_mrm_file, only: file_namelist_mrm, unamelist_mrm
+
+    use mo_mrm_file,             only: file_namelist_mrm, unamelist_mrm
     use mo_mrm_global_variables, only: mrm_coupling_mode
+    use mo_message,              only: message
+    use mo_nml,                  only: open_nml, position_nml, close_nml
+    
     implicit none
     namelist /coupling_config/ mrm_coupling_mode
     call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
@@ -152,9 +154,23 @@ contains
   !         Oct 2015, Stephan Thober - added NLoutputResults namelist, dirLatLon to directories_general namelist,
   !                                    and readLatLon flag
   subroutine read_mrm_config(readLatLon)
+    use mo_common_variables,     only:            &
+         optimize,                                & ! if mhm runs in optimization mode or not
+         optimize_restart,                        & ! Optimization will be restarted from
+         !                                          ! mo_<opti_method>.restart file (.true.)
+         opti_method,                             & ! optimization algorithm used
+         opti_function,                           & ! objective function to be optimized
+         nIterations,                             & ! number of iterations in optimization
+         seed,                                    & ! seed used for optimization
+         dds_r,                                   & ! DDS: perturbation rate
+         sa_temp,                                 & ! SA: initial temperature
+         sce_ngs, sce_npg, sce_nps,               & ! SCE: # complexes, # points per complex,
+         !                                          !      # points per subcomplex
+         mcmc_opti,                               & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
+         mcmc_error_params,                       & !       parameters of error model used in likelihood 
+         global_parameters
     use mo_julian,               only: dec2date, date2dec
     use mo_message,              only: message
-    use mo_nml,                  only: open_nml, position_nml, close_nml
     use mo_mrm_constants,        only: nodata_i4, &
          maxNoGauges,                             & ! maximum number of allowed gauges
          maxNLcovers,                             & ! maximum number of allowed LCover scenes
@@ -163,7 +179,6 @@ contains
          file_namelist_mrm,                       &
          unamelist_mrm, file_namelist_param_mrm,  &
          file_defOutput, udefOutput
-    use mo_string_utils,         only: num2str
     use mo_mrm_global_variables, only :           &
          mrm_coupling_mode,                       &
          nTstepDay,                               & ! # of time steps per day
@@ -201,21 +216,8 @@ contains
          timeStep_model_outputs_mrm,              & ! timestep for writing model outputs
          outputFlxState_mrm,                      & ! definition which output to write
          period                                     ! structure for time periods
-    use mo_common_variables,     only:            &
-         optimize,                                & ! if mhm runs in optimization mode or not
-         optimize_restart,                        & ! Optimization will be restarted from
-         !                                          ! mo_<opti_method>.restart file (.true.)
-         opti_method,                             & ! optimization algorithm used
-         opti_function,                           & ! objective function to be optimized
-         nIterations,                             & ! number of iterations in optimization
-         seed,                                    & ! seed used for optimization
-         dds_r,                                   & ! DDS: perturbation rate
-         sa_temp,                                 & ! SA: initial temperature
-         sce_ngs, sce_npg, sce_nps,               & ! SCE: # complexes, # points per complex,
-         !                                          !      # points per subcomplex
-         mcmc_opti,                               & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
-         mcmc_error_params,                       & !       parameters of error model used in likelihood 
-         global_parameters
+    use mo_nml,                  only: open_nml, position_nml, close_nml
+    use mo_string_utils,         only: num2str
     
     implicit none
     
@@ -285,7 +287,11 @@ contains
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id,             &
          InflowGauge_filename, InflowGauge_Headwater
     ! namelist for optimization settings
-    namelist/Optimization/ nIterations, seed, dds_r, sa_temp, sce_ngs, sce_npg, sce_nps, mcmc_opti, mcmc_error_params
+    namelist/Optimization/ nIterations, seed, &
+         dds_r, &
+         sa_temp, &
+         sce_ngs, sce_npg, sce_nps, &
+         mcmc_opti, mcmc_error_params
     ! namelist defining mRM outputs
     namelist/NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
 

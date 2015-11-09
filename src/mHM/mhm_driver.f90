@@ -195,7 +195,7 @@ PROGRAM mhm_driver
   USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods 
   USE mo_optimization,        ONLY : optimization
 #ifdef mrm2mhm
-  USE mo_mrm_objective_function_runoff, only: objective_runoff
+  USE mo_mrm_objective_function_runoff, only: single_objective_runoff
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
 #endif  
@@ -387,7 +387,7 @@ PROGRAM mhm_driver
          (opti_function .eq. 8) .or. &
          (opti_function .eq. 9) .or. &
          (opti_function .eq. 14)) &
-         call optimization(objective_runoff, dirConfigOut, funcBest, maskpara)
+         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
      
      ! call optimization for other variables

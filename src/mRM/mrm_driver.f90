@@ -1,17 +1,21 @@
 !> \file mrm_driver.f90
 #ifndef mrm2mhm
 program mrm_driver
-  use mo_kind, only: dp
-  use mo_mrm_init, only: mrm_init
-  use mo_mrm_eval, only: mrm_eval
-  use mo_mrm_write, only: mrm_write, mrm_write_optifile, mrm_write_optinamelist
-  use mo_finish, only: finish
-  use mo_mrm_objective_function_runoff, only: objective_runoff
-  use mo_optimization, only: optimization
-  use mo_timer, only: timers_init
-  use mo_mrm_global_variables, only: dirConfigOut
-  use mo_common_variables, only: global_parameters, global_parameters_name, optimize
+
+  use mo_common_variables,              only: global_parameters, global_parameters_name, optimize
+  use mo_finish,                        only: finish
+  use mo_kind,                          only: dp
+  use mo_mrm_eval,                      only: mrm_eval
+  use mo_mrm_global_variables,          only: dirConfigOut
+  use mo_mrm_init,                      only: mrm_init
+  use mo_mrm_objective_function_runoff, only: single_objective_runoff
+  use mo_mrm_write,                     only: mrm_write, mrm_write_optifile, mrm_write_optinamelist
+  use mo_optimization,                  only: optimization_single
+  use mo_timer,                         only: timers_init
+
+  
   implicit none
+  
   ! variables for optimization
   real(dp)             :: funcbest    ! best objective function achivied during optimization
   logical, allocatable :: maskpara(:) ! true  = parameter will be optimized     = parameter(i,4) = 1
@@ -27,7 +31,7 @@ program mrm_driver
      ! -----------------------------------------------------------------------
      ! OPTIMIZE
      ! -----------------------------------------------------------------------
-     call optimization(objective_runoff, dirConfigOut, funcbest, maskpara)
+     call optimization_single(single_objective_runoff, dirConfigOut, funcbest, maskpara)
      ! write a file with final objective function and the best parameter set
      call mrm_write_optifile(funcbest, global_parameters(:,3), global_parameters_name(:))
      ! write a file with final best parameter set in a namelist format

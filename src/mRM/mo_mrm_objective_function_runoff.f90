@@ -3,6 +3,9 @@
 !> \brief Objective Functions for Optimization of mHM/mRM against runoff.\n
 
 !> \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against runoff.\n
+!>          If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
+!>          If it is only regarding runoff implement it here.\n
+!>
 !>          All the objective functions are supposed to be minimized! \n
 !>               (1)  SO: Q:        1.0 - NSE  \n
 !>               (2)  SO: Q:        1.0 - lnNSE  \n
@@ -15,19 +18,17 @@
 !>               (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
 !>                                        then lag(1)-autocorrelation removed \n
 !>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!>               (10) SO: SM:       1.0 - KGE of catchment average soilmoisture \n
-!>               (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture \n
-!>               (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
-!>                                        of soil moisture \n
-!>               (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture \n
 !>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging
 !>                                        station based on a power-6 norm \n
-!>               (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
-!>                                        (standard score) TWS\n
+!>               (16) (reserved) not used yet
+!>                    MO: Q:        1st objective: (1) = 1.0 - NSE  
+!>                                  2nd objective: (2) = 1.0 - lnNSE
 
 !> \authors Juliane Mai
 !> \date Dec 2012
-!  Modified, Oct 2015, Stehan Thober - adapted for mRM
+!  Modified, Oct 2015, Stephan Thober - adapted for mRM
+!            Nov 2015, Juliane Mai    - introducing multi- and single-objective
+!                                     - first multi-objective function (16), but not used yet
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -43,10 +44,11 @@ MODULE mo_mrm_objective_function_runoff
 
   PRIVATE
 
-  PUBLIC :: loglikelihood        ! loglikelihood with errormodel including linear trend and lag(1)-correlation
-  PUBLIC :: loglikelihood_stddev ! loglikelihood where error is computed from difference of obs vs model
-  PUBLIC :: objective_runoff     ! objective function wrapper
-  PUBLIC :: extract_runoff
+  PUBLIC :: loglikelihood           ! loglikelihood with errormodel including linear trend and lag(1)-correlation
+  PUBLIC :: loglikelihood_stddev    ! loglikelihood where error is computed from difference of obs vs model
+  PUBLIC :: single_objective_runoff ! single-objective function wrapper
+  PUBLIC :: multi_objective_runoff  ! multi-objective function wrapper
+  PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series 
 
   ! ------------------------------------------------------------------
 
@@ -100,54 +102,120 @@ CONTAINS
   !         Modified,
   !               Oct 2015, Stephan Thober - only runoff objective functions
 
-  FUNCTION objective_runoff(parameterset)
+  FUNCTION single_objective_runoff(parameterset)
 
     USE mo_common_variables, ONLY: opti_function
 
     IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN)  :: parameterset
-    REAL(dp)                            :: objective_runoff
+    REAL(dp)                            :: single_objective_runoff
 
     !write(*,*) 'parameterset: ',parameterset(:)
     select case (opti_function)
     case (1)
        ! 1.0-nse
-       objective_runoff = objective_nse(parameterset)
+       single_objective_runoff = objective_nse(parameterset)
     case (2)
        ! 1.0-lnnse
-       objective_runoff = objective_lnnse(parameterset)
+       single_objective_runoff = objective_lnnse(parameterset)
     case (3)
        ! 1.0-0.5*(nse+lnnse)
-       objective_runoff = objective_equal_nse_lnnse(parameterset)
+       single_objective_runoff = objective_equal_nse_lnnse(parameterset)
     case (4)
        ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
-       objective_runoff = - loglikelihood_stddev(parameterset, 1.0_dp)
+       single_objective_runoff = - loglikelihood_stddev(parameterset, 1.0_dp)
     case (5)
        ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
-       objective_runoff = objective_power6_nse_lnnse(parameterset)
+       single_objective_runoff = objective_power6_nse_lnnse(parameterset)
     case (6)
        ! SSE
-       objective_runoff = objective_sse(parameterset)
+       single_objective_runoff = objective_sse(parameterset)
     case (7)
        ! -loglikelihood with trend removed from absolute errors
-       objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, 1.0_dp)
+       single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, 1.0_dp)
     case (8)
        ! -loglikelihood of approach 2 of Evin et al. (2013),
        !  i.e. linear error model with lag(1)-autocorrelation on relative errors
-       objective_runoff = -loglikelihood_evin2013_2(parameterset)
+       single_objective_runoff = -loglikelihood_evin2013_2(parameterset)
     case (9)
        ! KGE
-       objective_runoff = objective_kge(parameterset)
+       single_objective_runoff = objective_kge(parameterset)
     case (14)
        ! combination of KGE of every gauging station based on a power-6 norm \n
        ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) 
-       objective_runoff = objective_multiple_gauges_kge_power6(parameterset)
+       single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset)
     case default
-       stop "Error objective: opti_function not implemented yet."
+       stop "Error objective: This opti_function is either not implemented yet or is not a single-objective one."
     end select
-    
-  END FUNCTION objective_runoff
+
+  END FUNCTION single_objective_runoff
+
+  ! ------------------------------------------------------------------ 
+
+  !      NAME 
+  !          multi_objective_runoff 
+
+  !>        \brief Wrapper for multi-objective functions where at least one is regarding runoff. 
+
+  !>        \details The functions selects the objective function case defined in a namelist,  
+  !>        i.e. the global variable \e opti\_function.\n 
+  !>        It return the multiple objective function values for a specific parameter set. 
+
+  !     INTENT(IN) 
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+
+  !     INTENT(INOUT) 
+  !         None 
+
+  !     INTENT(OUT) 
+  !>        \param[out] "real(dp) :: multi_objectives(:)"   1D-array with multiple objective function values 
+
+  !     INTENT(IN), OPTIONAL 
+  !         None 
+
+  !     INTENT(INOUT), OPTIONAL 
+  !         None 
+
+  !     INTENT(OUT), OPTIONAL 
+  !         None 
+
+  !     RETURN 
+  !        None 
+
+  !     RESTRICTIONS 
+  !>       \note Input values must be floating points. 
+
+  !     EXAMPLE 
+  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
+  !         obj_value = objective(para) 
+
+  !     LITERATURE 
+
+  !     HISTORY 
+  !>        \author Juliane Mai 
+  !>        \date Oct 2015 
+  !         Modified,  
+
+  SUBROUTINE multi_objective_runoff(parameterset, multi_objectives) 
+
+    USE mo_common_variables, ONLY: opti_function 
+
+    IMPLICIT NONE 
+
+    REAL(dp), DIMENSION(:),              INTENT(IN)  :: parameterset 
+    REAL(dp), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: multi_objectives 
+
+    select case (opti_function) 
+    case (16) 
+       ! 1st objective: 1.0-nse 
+       ! 2nd objective: 1.0-lnnse 
+       multi_objectives = multi_objective_nse_lnnse(parameterset) 
+    case default 
+       stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one." 
+    end select
+
+  END SUBROUTINE multi_objective_runoff
 
   ! ------------------------------------------------------------------
 
@@ -218,7 +286,7 @@ CONTAINS
     case default
        stop "Error loglikelihood: chosen opti_function is no loglikelihood."
     end select
-    
+
   END FUNCTION loglikelihood
 
   ! ------------------------------------------------------------------
@@ -278,7 +346,7 @@ CONTAINS
   FUNCTION loglikelihood_stddev(parameterset, stddev, stddev_new, likeli_new)
     use mo_moment,           only: mean, correlation
     use mo_linfit,           only: linfit
-        use mo_append,           only: append
+    use mo_append,           only: append
 
     implicit none
 
@@ -310,12 +378,12 @@ CONTAINS
        ! append it to variables
        call append( obs,  runoff_obs )
        call append( calc, runoff_agg )
-       
+
     end do
     ! ----------------------------------------
 
     nmeas     = size(obs, dim = 1)
-    
+
     allocate(out(nmeas), errors(nmeas))
     errors(:) = abs( calc(:) - obs(:) )
 
@@ -348,7 +416,7 @@ CONTAINS
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors)
-    
+
   END FUNCTION loglikelihood_stddev
 
   ! ------------------------------------------------------------------
@@ -441,10 +509,10 @@ CONTAINS
 
     iregularize = .false.
     if (present(regularize)) iregularize = regularize
-    
+
     npara = size(parameterset)
     call eval(parameterset(1:npara-2), runoff=runoff)
-  
+
     ! extract runoff and append it to obs and calc
     do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
        ! extract runoff
@@ -458,7 +526,7 @@ CONTAINS
     ! ----------------------------------------
 
     nmeas     = size(obs, dim = 1 )
-    
+
     allocate( out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
     ! residual errors
     errors(:) = calc(:) - obs(:)
@@ -500,7 +568,7 @@ CONTAINS
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
-    
+
   END FUNCTION loglikelihood_evin2013_2
 
   ! Regularisation function sum(((para-ini)/sigma)**2)
@@ -531,8 +599,8 @@ CONTAINS
        if (mask(ipara)) then
           ! if ((paraset(ipara) .lt. bounds(ipara,1)) .or. (paraset(ipara) .gt. bounds(ipara,2))) then
           !    ! outside bounds
-             parameter_regularization = parameter_regularization - &
-                  0.5_dp*((paraset(ipara)-prior(ipara))/sigma(ipara))**2
+          parameter_regularization = parameter_regularization - &
+               0.5_dp*((paraset(ipara)-prior(ipara))/sigma(ipara))**2
           ! else
           !    ! in bound
           !    parameter_regularization = 0.0_dp
@@ -598,7 +666,7 @@ CONTAINS
   FUNCTION loglikelihood_trend_no_autocorr(parameterset, stddev_old, stddev_new, likeli_new)
     use mo_moment,           only: stddev
     use mo_linfit,           only: linfit
-        use mo_append,           only: append
+    use mo_append,           only: append
 
     implicit none
 
@@ -665,7 +733,7 @@ CONTAINS
 
     deallocate(runoff, runoff_agg, runoff_obs, runoff_obs_mask)
     deallocate(obs, calc, out, errors)
-    
+
   END FUNCTION loglikelihood_trend_no_autocorr
 
   ! ------------------------------------------------------------------
@@ -725,8 +793,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_lnnse(parameterset)
-    
-        use mo_errormeasures,    only: lnnse
+
+    use mo_errormeasures,    only: lnnse
 
     implicit none
 
@@ -760,7 +828,7 @@ CONTAINS
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_lnnse
 
   ! ------------------------------------------------------------------
@@ -818,8 +886,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_sse(parameterset)
-    
-        use mo_errormeasures,    only: sse
+
+    use mo_errormeasures,    only: sse
 
     implicit none
 
@@ -853,7 +921,7 @@ CONTAINS
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_sse
 
   ! ------------------------------------------------------------------
@@ -913,8 +981,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_nse(parameterset)
-    
-        use mo_errormeasures,    only: nse
+
+    use mo_errormeasures,    only: nse
 
     implicit none
 
@@ -948,7 +1016,7 @@ CONTAINS
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_nse
 
   ! ------------------------------------------------------------------
@@ -1011,8 +1079,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_equal_nse_lnnse(parameterset)
-    
-        use mo_errormeasures,    only: nse, lnnse
+
+    use mo_errormeasures,    only: nse, lnnse
 
     implicit none
 
@@ -1038,10 +1106,10 @@ CONTAINS
        !
        ! NSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-          nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask )
+            nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask )
        ! lnNSE
        objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-          lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask )
+            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask )
     end do
     ! objective function value which will be minimized
     objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal,dp)
@@ -1051,8 +1119,112 @@ CONTAINS
     ! clean up
     deallocate( runoff_agg, runoff_obs )
     deallocate( runoff_obs_mask )
-    
+
   END FUNCTION objective_equal_nse_lnnse
+
+
+  ! ------------------------------------------------------------------ 
+
+  !      NAME 
+  !          multi_objective_nse_lnnse 
+
+  !>        \brief Multi-objective function with NSE and lnNSE. 
+
+  !>        \details The objective function only depends on a parameter vector.  
+  !>        The model will be called with that parameter vector and  
+  !>        the model output is subsequently compared to observed data. 
+  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$ 
+  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2} 
+  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f] 
+  !>        and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$ 
+  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] 
+  !>        are calculated and both returned. 
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+
+  !     INTENT(IN) 
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+
+  !     INTENT(INOUT) 
+  !         None 
+
+  !     INTENT(OUT) 
+  !         None 
+
+  !     INTENT(IN), OPTIONAL 
+  !         None 
+
+  !     INTENT(INOUT), OPTIONAL 
+  !         None 
+
+  !     INTENT(OUT), OPTIONAL 
+  !         None 
+
+  !     RETURN 
+  !>       \return     real(dp), dimension(2) :: multi_objective_nse_lnnse &mdash; objective function value  
+  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
+
+  !     RESTRICTIONS 
+  !>       \note Input values must be floating points. \n 
+  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
+
+  !     EXAMPLE 
+  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
+  !         obj_value = objective_equal_nse_lnnse(para) 
+
+  !     LITERATURE 
+
+  !     HISTORY 
+  !>        \author Juliane Mai 
+  !>        \date Oct 2015 
+  !         Modified,  
+
+  FUNCTION multi_objective_nse_lnnse(parameterset) 
+
+    ! use mo_mhm_eval,         only: mhm_eval 
+    use mo_errormeasures,    only: nse, lnnse 
+
+    implicit none 
+
+    real(dp), dimension(:), intent(in) :: parameterset 
+    real(dp), dimension(2)             :: multi_objective_nse_lnnse 
+
+    ! local 
+    real(dp), allocatable, dimension(:,:) :: runoff             ! modelled runoff for a given parameter set 
+    !                                                           ! dim2=nGauges 
+    integer(i4)                           :: gg                 ! gauges counter 
+    integer(i4)                           :: nGaugesTotal 
+    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
+    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
+    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff 
+
+    ! call mhm_eval(parameterset, runoff=runoff) 
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2) 
+
+    multi_objective_nse_lnnse = 0.0_dp 
+    do gg=1, nGaugesTotal 
+       ! extract runoff 
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask ) 
+       ! 
+       ! NSE 
+       multi_objective_nse_lnnse(1) = multi_objective_nse_lnnse(1) + & 
+            nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask ) 
+       ! lnNSE 
+       multi_objective_nse_lnnse(2) = multi_objective_nse_lnnse(2) + & 
+            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask ) 
+    end do
+    ! objective function value which will be minimized 
+    multi_objective_nse_lnnse(:) = 1.0_dp - multi_objective_nse_lnnse(:) / real(nGaugesTotal,dp) 
+
+    ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse 
+
+    ! clean up 
+    deallocate( runoff_agg, runoff_obs ) 
+    deallocate( runoff_obs_mask ) 
+
+  END FUNCTION multi_objective_nse_lnnse
 
   ! ------------------------------------------------------------------
 
@@ -1117,8 +1289,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_power6_nse_lnnse(parameterset)
-    
-        use mo_errormeasures,    only: nse, lnnse
+
+    use mo_errormeasures,    only: nse, lnnse
 
     implicit none
 
@@ -1145,7 +1317,7 @@ CONTAINS
        ! NSE + lnNSE
        objective_power6_nse_lnnse = objective_power6_nse_lnnse + &
             ( (1.0_dp-nse(  runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 + &
-              (1.0_dp-lnnse(runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 )**onesixth
+            (1.0_dp-lnnse(runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 )**onesixth
     end do
     ! objective function value which will be minimized
     objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal,dp)
@@ -1154,7 +1326,7 @@ CONTAINS
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_power6_nse_lnnse
 
   ! ------------------------------------------------------------------
@@ -1225,8 +1397,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_kge(parameterset)
-    
-        use mo_errormeasures,    only: kge
+
+    use mo_errormeasures,    only: kge
 
     implicit none
 
@@ -1261,7 +1433,7 @@ CONTAINS
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_kge
 
   ! ------------------------------------------------------------------
@@ -1334,8 +1506,8 @@ CONTAINS
   !                                              to not interfere with mRM
 
   FUNCTION objective_multiple_gauges_kge_power6(parameterset)
-    
-        use mo_errormeasures,    only: kge
+
+    use mo_errormeasures,    only: kge
 
     implicit none
 
@@ -1362,67 +1534,67 @@ CONTAINS
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
        ! KGE
        objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
-           ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6 
+            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6 
     end do
     objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth 
     write(*,*) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
+
   END FUNCTION objective_multiple_gauges_kge_power6
 
- 
+
   ! ------------------------------------------------------------------
-  
+
   ! NAME
   !         extract_runoff
-  
+
   !>        \brief extracts runoff data from global variables
-  
+
   !>        \details extracts simulated and measured runoff from global variables,
   !>                 such that they overlay exactly. For measured runoff, only the runoff
   !>                 during the evaluation period are cut, not succeeding nodata values.
   !>                 For simulated runoff, warming days as well as succeeding nodata values
   !>                 are neglected and the simulated runoff is aggregated to the resolution
   !>                 of the observed runoff.\n
-  
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4) :: gaugeID"   - ID of the current gauge to process
   !>        \param[in] "real(dp)    :: runoff(:)" - simulated runoff at this gauge
-  
+
   !     INTENT(INOUT)
   !         None
-  
+
   !     INTENT(OUT)
   !>        \param[out] "real(dp)   :: runoff_agg(:)"      - aggregated simulated runoff at this gauge\n
   !>        \param[out] "real(dp)   :: runoff_obs(:)"      - extracted observed runoff\n
   !>        \param[out] "logical    :: runoff_obs_mask(:)" - masking non-negative values in runoff_obs\n
-  
+
   !     INTENT(IN), OPTIONAL
   !         None
-  
+
   !     INTENT(INOUT), OPTIONAL
   !         None
-  
+
   !     INTENT(OUT), OPTIONAL
   !         None
-  
+
   !     RETURN
   !         None
-  
+
   !     RESTRICTIONS
   !         None
-  
+
   !     EXAMPLE
   !         see use in this module above
-  
+
   !     LITERATURE
   !         None
-  
+
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Jan 2015
-  
+
   ! ------------------------------------------------------------------
   subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
 
@@ -1499,55 +1671,55 @@ CONTAINS
     deallocate( dummy )
 
   end subroutine extract_runoff
-  
+
   ! ==================================================================
   ! PRIVATE ROUTINES =================================================
   ! ==================================================================
 
   ! ------------------------------------------------------------------
-  
+
   ! NAME
   !         eval
-  
+
   !>        \brief returns mHM_eval or mRM_eval given preprocessor flag
-  
+
   !>        \details call mHM_eval if mrm2mhm preprocessor flag is used while
   !>                 compilation or mRM_eval otherwise
-  
+
   !     INTENT(IN)
   !>        \param[in] "integer(i4) :: parameterset" - mHM or mRM parameter set
-  
+
   !     INTENT(INOUT)
   !         None
-  
+
   !     INTENT(OUT)
   !         None
-  
+
   !     INTENT(IN), OPTIONAL
   !         None
-  
+
   !     INTENT(INOUT), OPTIONAL
   !>        \param[out] "real(dp), optional :: runoff(:)" - simulated runoff
-  
+
   !     INTENT(OUT), OPTIONAL
   !         None
-  
+
   !     RETURN
   !         None
-  
+
   !     RESTRICTIONS
   !         None
-  
+
   !     EXAMPLE
   !         see use in this module above
-  
+
   !     LITERATURE
   !         None
-  
+
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Oct 2015
-  
+
   ! ------------------------------------------------------------------
   subroutine eval(parameterset, runoff, basin_avg_tws)
 #ifdef mrm2mhm
@@ -1569,5 +1741,4 @@ CONTAINS
 #endif
   end subroutine eval
 
-  
 END MODULE mo_mrm_objective_function_runoff

@@ -101,6 +101,7 @@ opti_method = 1
 !> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
 !> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
+!> (16) (reserved) please use the next number when implementing a new one
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
