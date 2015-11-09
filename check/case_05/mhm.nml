@@ -267,6 +267,8 @@ L0Basin(3)            = 1
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
 optimize = .false.
+!> Optimization shall be restarted from mo_<opti_method>.restart file
+optimize_restart = .FALSE.
 !> (0) MCMC                \n
 !> (1) DDS                 \n
 !> (2) Simulated Annealing \n
