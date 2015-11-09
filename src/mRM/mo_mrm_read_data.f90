@@ -763,10 +763,11 @@ contains
          nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
          nInflowGaugesTotal, InflowGauge, & ! inflow stations information
          evalPer, & ! model evaluation period (for discharge read in)
-         optimize, & ! optimizeation flag for some error checks
-         opti_function, & ! opti_function that determines to what data to calibrate
          nTstepDay, &
          simPer ! model simulation period (for inflow read in)
+    use mo_common_variables, only: &
+         optimize,     & ! optimizeation flag for some error checks
+         opti_function   ! opti_function that determines to what data to calibrate
     !
     implicit none
     ! input variables
@@ -915,7 +916,7 @@ contains
 
     !
     call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
-         'total_runoff', L1_data, mask, nctimestep=timeStep_model_inputs(iBasin))
+         'total_runoff', L1_data, mask, nctimestep=-4)!ST: timeStep should be read from file timeStep_model_inputs(iBasin))
 
     ! pack variables
     nTimeSteps = size(L1_data, 3)

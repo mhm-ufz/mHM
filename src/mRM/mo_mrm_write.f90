@@ -17,7 +17,11 @@ module mo_mrm_write
 
   public :: mrm_write
   public :: mrm_write_output_fluxes
+  public :: mrm_write_optinamelist
+  public :: mrm_write_optifile
+  
   private
+  
   ! counters for write_output_fluxes
   integer(i4) :: day_counter ! for daily output
   integer(i4) :: month_counter ! for monthly output
@@ -233,14 +237,15 @@ contains
          dirLCover,                  &
          dirOut,                     &
          dirRestartOut,              &  
-         mrm_global_parameters,      &
-         mrm_global_parameters_name, &
          warmPer,                    &
          evalPer,                    &
          SimPer,                     &
          LCyearId,                   &
          LCfilename
-         
+
+    use mo_common_variables, only: &
+         global_parameters,      &
+         global_parameters_name 
 
     implicit none
     !
@@ -327,10 +332,10 @@ contains
     write(uconfig,122)      &
          '         i', '            min', '            max', '        current', &
          '                               name'
-    do i=1, size(mrm_global_parameters,1)
+    do i=1, size(global_parameters,1)
        write(uconfig,123) &
-            i, mrm_global_parameters(i,1), mrm_global_parameters(i,2), mrm_global_parameters(i,3), &
-            trim(adjustl(mrm_global_parameters_name(i)))
+            i, global_parameters(i,1), global_parameters(i,2), global_parameters(i,3), &
+            trim(adjustl(global_parameters_name(i)))
     end do
     ! basin runoff data
     write(uconfig, 202) '                Basin Runoff Data                '
@@ -795,6 +800,219 @@ contains
     end if
     
   end subroutine mrm_write_output_fluxes
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         write_optifile
+
+  !     PURPOSE
+  !>        \brief Write briefly final optimization results.
+
+  !>        \details Write overall best objective function and the best optimized parameter set to a file_opti.
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in]  "real(dp)                   :: best_OF"         best objective function value as returned 
+  !>                                                                    by the optimization routine
+  !>        \param[in]  "real(dp), dimension(:)     :: best_paramSet"   best associated global parameter set
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !>        Called only when optimize is .TRUE.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author David Schaefer
+  !>        \date July 2013
+
+  !         Modified, Rohini Kumar,   Aug 2013 - change in structure of the code including call statements
+  !                   Juliane Mai,    Oct 2013 - clear parameter names added
+  !                                            - double precision written
+  !                   Stephan Thober, Oct 2015 - ported to mRM
+
+  subroutine mrm_write_optifile(best_OF, best_paramSet, param_names)
+
+    use mo_mrm_file,             only: file_opti, uopti
+    use mo_mrm_global_variables, only: dirConfigOut
+    use mo_message,              only: message
+    use mo_string_utils,         only: num2str
+
+    implicit none
+
+    real(dp),                       intent(in)     :: best_OF     
+    real(dp),         dimension(:), intent(in)     :: best_paramSet
+    character(len=*), dimension(:), intent(in)     :: param_names
+
+    ! local variables
+    character(256)                         :: fName, formHeader, formParams
+    integer(i4)                            :: ii, err, n_params
+
+    ! number of parameters
+    n_params = size(best_paramSet)
+
+    ! open file
+    fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti))
+    open(uopti, file=fName, status='unknown', action='write', iostat=err, recl=(n_params+1)*40)
+    if( err .ne. 0 ) then
+       call message ('  IOError while openening ',trim(fName))
+       call message ('  Error-Code ', num2str(err))
+       stop
+    end if
+
+    ! header 
+    write(formHeader, *) '(a40,',n_params,'a40)'
+    ! len(param_names(1))=256 but only 39 characters taken here
+    ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)
+    write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii)(1:39))), ii=1, n_params)
+
+    ! output
+    write(formParams, *) '( es40.14, ', n_params,'(es40.14) )' 
+    write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1, n_params)
+
+    ! close file
+    close(uopti)
+
+    ! screen output
+    call message()
+    call message(' Optimized parameters written to ', trim(fName) )
+
+  end subroutine mrm_write_optifile
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         write_optinamelist
+
+  !     PURPOSE
+  !>        \brief Write final, optimized parameter set in a namelist format.
+
+  !>        \details  Write final, optimized parameter set in a namelist format. 
+
+  !     CALLING SEQUENCE
+  !         None
+
+  !     INTENT(IN)
+  !>        \param[in]  "real(dp)         :: parameters(:,:)"      information about parameter (min, max, opti)
+  !>        \param[in]  "logical          :: maskpara(:)"          infomation which parameter where optimized
+  !>        \param[in]  "character(len=*) :: parameters_name(:)"   clear names of parameters
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !>        Called only when optimize is .TRUE.
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Juliane Mai
+  !>        \date Dec 2013
+
+  !         Modified,
+  !               Oct 2015, Stephan Thober - adapted to mRM
+
+  subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
+
+    use mo_mrm_file,             only: file_opti_nml, uopti_nml
+    use mo_mrm_global_variables, only: dirConfigOut
+    use mo_message,              only: message
+    use mo_string_utils,         only: num2str
+
+    implicit none
+
+    real(dp),         dimension(:,:),                intent(in) :: parameters        ! (min, max, opti)
+    logical,          dimension(size(parameters,1)), intent(in) :: maskpara          ! .true. if parameter was calibrated
+    character(len=*), dimension(size(parameters,1)), intent(in) :: parameters_name   ! clear names of parameters
+
+    ! local variables
+    character(256)                           :: fName
+    character(3)                             :: flag
+    integer(i4)                              :: err
+    integer(i4)                              :: iPar
+
+    ! open file
+    fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
+    open(uopti_nml, file=fName, status='unknown', action='write', iostat=err)
+    if( err .ne. 0 ) then
+       call message ('  IOError while openening ',trim(fName))
+       call message ('  Error-Code ', num2str(err))
+       stop
+    end if
+
+    write(uopti_nml,*) '!global_parameters'
+    write(uopti_nml,*) '!PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING'
+
+    write(uopti_nml,*) '! ', trim(adjustl('routing'))
+
+    write(uopti_nml,*) '&routing1'
+    
+    do iPar=1, size(parameters,1)
+       if (maskpara(iPar)) then
+          flag=' 1 '
+       else
+          flag=' 0 '
+       end if
+       write(uopti_nml,*) trim(adjustl(parameters_name(iPar))), ' = ', &
+            parameters(iPar,1), ' , ', &
+            parameters(iPar,2), ' , ', &
+            parameters(iPar,3), ' , ', &
+            flag, ', 1 '
+    end do
+
+    write(uopti_nml,*) '/'
+    write(uopti_nml,*) ' '
+
+    ! close file
+    close(uopti_nml)
+
+    ! screen output
+    call message()
+    call message(' Optimized parameters written in namelist format to ', trim(fName) )
+
+  end subroutine mrm_write_optinamelist
     
 
 end module mo_mrm_write
