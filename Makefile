@@ -422,12 +422,21 @@ endif
 
 # --- COMPILER ---------------------------------------------------
 ifneq (,$(findstring $(icompiler),$(gnucompilers)))
-    ifeq ($(strip $(GFORTRANDIR)),)
-        $(error Error: GFORTRAN path '$(GFORTRANDIR)' not found.)
+    ifneq ($(strip $(GFORTRANLIB)),)
+        GFLIB := $(GFORTRANLIB)
+    else
+        ifneq ($(strip $(GFORTRANDIR)),)
+            GFLIB := $(GFORTRANDIR)/lib
+        else
+            ifneq ($(strip $(GNULIB)),)
+                GFLIB := $(GNULIB)
+            else
+                $(error Error: GFORTRAN path not found.)
+            endif
+        endif
     endif
-    GFORTRANLIB ?= $(GFORTRANDIR)/lib
-    iLIBS       += -L$(GFORTRANLIB) -lgfortran
-    RPATH       += -Wl,-rpath,$(GFORTRANLIB)
+    iLIBS       += -L$(GFLIB) -lgfortran
+    RPATH       += -Wl,-rpath,$(GFLIB)
 endif
 
 # --- LINKER ---------------------------------------------------
