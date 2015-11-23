@@ -55,7 +55,7 @@ contains
   !     LITERATURE
 
   !     HISTORY
-  !>        \author Stephan Thober
+  !>        \author Matthias Cuntz, Luis Samaniego, Juliane Mai, Matthias Zink and Stephan Thober
   !>        \date Oct 2015
 
   subroutine optimization(objective, dirConfigOut, funcBest, maskpara)

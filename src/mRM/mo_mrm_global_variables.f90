@@ -4,7 +4,7 @@
 
 !> \details 
 
-!> \authors Stephan Thober
+!> \authors Luis Samaniego, Stephan Thober
 !> \date Aug 2015
 
 module mo_mrm_global_variables

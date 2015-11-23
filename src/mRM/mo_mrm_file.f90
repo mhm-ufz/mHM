@@ -4,7 +4,7 @@
 
 !> \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
 
-!> \author Stephan Thober
+!> \author Matthias Cuntz, Stephan Thober
 !> \date Aug 2015
 
 MODULE mo_mrm_file

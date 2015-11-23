@@ -75,7 +75,7 @@ contains
   !       None
 
   !     HISTORY
-  !>        \author Stephan Thober
+  !>        \author Juliane Mai, Rohini Kumar & Stephan Thober
   !>        \date Aug 2015
   !         Modified, 
 

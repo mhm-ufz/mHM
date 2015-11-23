@@ -63,7 +63,7 @@ contains
   !       None
 
   !     HISTORY
-  !>        \author Stephan Thober
+  !>        \author Juliane Mai, Matthias Zink, and Stephan Thober
   !>        \date Aug 2015
   !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
   subroutine mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
@@ -545,7 +545,7 @@ contains
   !         None
 
   !     HISTORY
-  !         \author  Stephan Thober
+  !         \author  Rohini Kumar & Stephan Thober
   !         \date    Aug 2015
   subroutine mrm_L1_variable_init(iBasin)
     use mo_mrm_constants, only: nodata_dp
@@ -748,7 +748,7 @@ contains
   !         None
 
   !     HISTORY
-  !         \author  Stephan Thober
+  !         \author  Matthias Zink & Stephan Thober
   !         \date    Aug 2015
   subroutine mrm_read_discharge()
     use mo_message, only: message

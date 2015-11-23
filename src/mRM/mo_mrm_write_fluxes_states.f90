@@ -325,7 +325,7 @@ contains
     if (outputFlxState_mrm(1)) then
        ii = ii + 1
        tmpvars(ii) = OutputVariable( &
-            nc%setVariable("L11_qMod", dtype, dims1), &
+            nc%setVariable("Qrouted", dtype, dims1), &
             ncells, mask, .true.)
        call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if

@@ -4,7 +4,7 @@
 
 !> \details Calling all routines to initialize all mRM variables
 
-!> \authors Stephan Thober
+!> \authors Luis Samaniego, Rohini Kumar and Stephan Thober
 !> \date Aug 2015
 
 MODULE mo_mrm_init
