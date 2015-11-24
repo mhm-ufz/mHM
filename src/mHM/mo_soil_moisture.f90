@@ -37,12 +37,17 @@ CONTAINS
   !>        \f[ I[k] = I[k-1] (\theta[k] / \theta_{sat}[k])^{\beta[k]} \f]
   !>        Then soil moisture can be calculated as (omit \f$k\f$)
   !>        \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
-  !>        with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being \f$ \mathit{PET} \f$ if
-  !>        \f$ \theta > \theta_\mathit{thresh} \f$ else
-  !>        \f[ \mathit{ET} = f_\mathrm{roots} \mathit{PET} \f]
+  !>        with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being 
+  !>        \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f]
   !>        and
-  !>        \f[ f_\mathrm{roots} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f]
-
+  !>        \f[ f_{SM} = \left\{
+  !>          \begin{array}{lr}
+  !>             1 & if \theta \ge \theta_{fc}\\
+  !>             \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} &
+  !>              if \theta < \theta_{fc}
+  !>          \end{array}
+  !>        \right. \f]
+  
   !     CALLING SEQUENCE
   !         subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
   !             evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &

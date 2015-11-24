@@ -78,7 +78,8 @@ L0Basin(2) = 2
 !>                    or .FALSE.: no optimazition 
 !-----------------------------------------------------------------------------
 optimize = .FALSE.
-!> Optimization shall be restarted from mo_<opti_method>.restart file
+!> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
+!> should be located next to the mhm executable (mhm)
 optimize_restart = .FALSE.
 !> (0) MCMC                (requires single-objective (SO) function) \n
 !> (1) DDS                 (requires single-objective (SO) function) \n

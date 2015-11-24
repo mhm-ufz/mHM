@@ -315,10 +315,10 @@ CONTAINS
 
   !>                 The duration the data increase (nrise) divided by the number of peaks (npeaks)
   !>                 gives the rising limb density RLD
-  !>                     \f[ RLD=t_rise/n_peak \f]
+  !>                     \f[ RLD=t_{rise}/n_{peak} \f]
   !>                 whereas the duration the data decrease (ndecline) divided by the number of peaks (npeaks)
   !>                 gives the declining limb density DLD
-  !>                     \f[ DLD=t_fall/n_peak. \f]
+  !>                     \f[ DLD=t_{fall}/n_{peak}. \f]
   
   !>                 An optional mask of data points can be specified.
 
@@ -484,8 +484,8 @@ CONTAINS
   !>        \brief   Maximum of average flows per months.
 
   !>        \details Maximum of average flow per month is defined as
-  !>                    \f[ max_monthly_flow = Max( F(i), i=1,..12 ) \f]
-  !>                 where $f F(i) $f is the average flow of month i.
+  !>                    \f[ max_{monthly flow} = Max( F(i), i=1,..12 ) \f]
+  !>                 where \$f F(i) $\f is the average flow of month i.
 
   !     CALLING SEQUENCE
   !         max_monthly_flow = MaximumMonthlyFlow(data, yr_start=yr_start, mo_start=1, dy_start=1, mask=mask)
@@ -612,15 +612,15 @@ CONTAINS
   !     PURPOSE
   !>        \brief   Moments of data and log-transformed data, e.g. mean and standard deviation.
 
-  !>        \details Returns several moments of data series given, i.e.\n
-  !>                     * mean               of data \n
-  !>                     * standard deviation of data \n
-  !>                     * median             of data \n
-  !>                     * maximum/ peak      of data \n
-  !>                     * mean               of log-transformed data \n
-  !>                     * standard deviation of log-transformed data \n
-  !>                     * median             of log-transformed data \n
-  !>                     * maximum/ peak      of log-transformed data \n
+  !>        \details Returns several moments of data series given, i.e.
+  !>                     * mean               of data 
+  !>                     * standard deviation of data 
+  !>                     * median             of data 
+  !>                     * maximum/ peak      of data 
+  !>                     * mean               of log-transformed data 
+  !>                     * standard deviation of log-transformed data 
+  !>                     * median             of log-transformed data 
+  !>                     * maximum/ peak      of log-transformed data 
   !>                 An optional mask of data points can be specified.
 
   !     CALLING SEQUENCE
@@ -643,14 +643,14 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[in] "real(dp)  :: mean_data"    mean               of data
-  !>        \param[in] "real(dp)  :: stddev_data"  standard deviation of data
-  !>        \param[in] "real(dp)  :: median_data"  median             of data
-  !>        \param[in] "real(dp)  :: max_data"     maximum/ peak      of data
-  !>        \param[in] "real(dp)  :: mean_log"     mean               of log-transformed data
-  !>        \param[in] "real(dp)  :: stddev_log"   standard deviation of log-transformed data
-  !>        \param[in] "real(dp)  :: median_log"   median             of log-transformed data
-  !>        \param[in] "real(dp)  :: max_log"      maximum/ peak      of log-transformed data
+  !>        \param[in]  "real(dp)  :: mean_data"    mean               of data
+  !>        \param[in]  "real(dp)  :: stddev_data"  standard deviation of data
+  !>        \param[out] "real(dp)  :: median_data"  median             of data
+  !>        \param[out] "real(dp)  :: max_data"     maximum/ peak      of data
+  !>        \param[out] "real(dp)  :: mean_log"     mean               of log-transformed data
+  !>        \param[out] "real(dp)  :: stddev_log"   standard deviation of log-transformed data
+  !>        \param[out] "real(dp)  :: median_log"   median             of log-transformed data
+  !>        \param[out] "real(dp)  :: max_log"      maximum/ peak      of log-transformed data
 
   !     RETURN
   !         None
@@ -748,7 +748,7 @@ CONTAINS
   !>                 hydrology the function percentile is used with (1.0-quantiles). \n
   !>                 
   !>                 Optionally, the slope of the peak distribution between 10th and 50th percentile, i.e.
-  !>                    \f[ slope = \frac{\text{peak\_data}_{0.1}-\text{peak\_data}_{0.5}}{0.9-0.5} \f]
+  !>                    \f[ slope = \frac{\mathrm{peak\_{data}}_{0.1}-\mathrm{peak\_{data}}_{0.5}}{0.9-0.5} \f]
   !>                 can be returned.\n
   !>                 An optional mask for the data points can be given.
 
@@ -870,7 +870,7 @@ CONTAINS
   !>        \brief   Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d]).
 
   !>        \details The runoff ratio is defined as
-  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}/{\sum_{t=1}^{N} p_t}\f]
+  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}{\sum_{t=1}^{N} p_t}\f]
   !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
   !>                 Therefore, precipitation over the entire basin is required and both discharge and precipitation
   !>                 have to be converted to the same units [mm/d].\n
@@ -884,7 +884,7 @@ CONTAINS
   !>
   !>                 Optionally, a mask for the data (=discharge) can be given. If optional "log_data" is set to .true.
   !>                 the runoff ratio will be calculated as
-  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}/{\sum_{t=1}^{N} p_t}\f]
+  !>                       \f[ runoff\_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}{\sum_{t=1}^{N} p_t}\f]
   !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
 
   !     CALLING SEQUENCE
@@ -1014,8 +1014,7 @@ CONTAINS
   !     PURPOSE
   !>        \brief   Ratio of zero values to total number of data points.
 
-  !>        \details Ratio of zero values to total number of data points.
-  !>                 An optional mask of data points can be specified.
+  !>        \details An optional mask of data points can be specified.
 
   !     CALLING SEQUENCE
   !         Zero_Flow_Ratio = ZeroFlowRatio(data, mask=mask)
