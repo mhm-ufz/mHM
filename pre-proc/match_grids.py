@@ -135,8 +135,16 @@ class NetcdfGrid(BaseGrid):
         self.ncvar = self._ncfile.split('/')[-1].split('.')[0]
         self.ncarr = readnc(self._ncfile, var=self.ncvar)
         self.ncatt = readnc(self._ncfile, var=self.ncvar, attributes=True)
+        # read netcdf time
         self.nctime = readnc(self._ncfile, var='time')
         self.nctimeatt = readnc(self._ncfile, var='time', attributes=True)
+        # read lat and lon
+        self.nclon = readnc(self._ncfile, var='lon')
+        self.nclonatt = readnc(self._ncfile, var='lon', attributes=True)
+        self.nclonatt['missing_value'] = float(self.nodata_value)
+        self.nclat = readnc(self._ncfile, var='lat')
+        self.nclatatt = readnc(self._ncfile, var='lat', attributes=True)
+        self.nclatatt['missing_value'] = float(self.nodata_value)
 
     def write(self,filename):
         from ufz import dumpnetcdf
@@ -146,6 +154,8 @@ class NetcdfGrid(BaseGrid):
                    'cellsize': self.cellsize, 'NODATA_value': self.nodata_value, 'history': 'Created ' + asctime()}
         # add time to netcdf file
         dumpnetcdf(filename, dims=['time'], fileattributes=fileatt, time=(self.nctime, self.nctimeatt))
+        # add lat/lon to netcdf file
+        dumpnetcdf(filename, dims=['yc', 'xc'], create=False, lon=(self.nclon, self.nclonatt), lat=(self.nclat, self.nclatatt))
         # write netcdf data set
         dumpnetcdf(filename,**{'dims': ['time', 'yc', 'xc'], 'create': False, self.ncvar: (self.data, self.ncatt)}) 
  
@@ -162,6 +172,13 @@ class NetcdfGrid(BaseGrid):
         # paste 3d field
         print('***CAUTION: grid cell at (0,0) index is assumed to be in the North-West')
         self.data[:, top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.ncarr
+        # also extend lat and lon
+        dummy = zeros((self.nrows, self.ncols)) + self.nodata_value
+        dummy[top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.nclon
+        self.nclon = dummy
+        dummy = zeros((self.nrows, self.ncols)) + self.nodata_value
+        dummy[top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.nclat
+        self.nclat = dummy
                
 
 def usage(prog_name):
