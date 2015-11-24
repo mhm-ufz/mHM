@@ -643,8 +643,8 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[in]  "real(dp)  :: mean_data"    mean               of data
-  !>        \param[in]  "real(dp)  :: stddev_data"  standard deviation of data
+  !>        \param[out] "real(dp)  :: mean_data"    mean               of data
+  !>        \param[out] "real(dp)  :: stddev_data"  standard deviation of data
   !>        \param[out] "real(dp)  :: median_data"  median             of data
   !>        \param[out] "real(dp)  :: max_data"     maximum/ peak      of data
   !>        \param[out] "real(dp)  :: mean_log"     mean               of log-transformed data
