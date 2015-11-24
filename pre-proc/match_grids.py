@@ -21,29 +21,16 @@ Written:
 import sys,os
 from math import floor, ceil
 
-class AsciiGrid(object):
-    
-    def __init__(self, filename, ncfile=None, headerlines=6):
+class BaseGrid(object):
+    def __init__(self, filename, headerlines=6):
         self._filename = filename
         self._headerlines = headerlines
-        self._nodata_value = None
-        self._ncfile = ncfile
-        self.read()
-        if ncfile != None:
-            self.readnc()
-
-    @property
-    def nodata_value(self):
-        return self._nodata_value
-
-    @nodata_value.setter
-    def nodata_value(self,value):
-        try:
-            self.data = self.data.replace(str(self._nodata_value),str(value))
-        except AttributeError:
-            pass
-        self._nodata_value = value
-            
+        self.nrows = None
+        self.ncols = None
+        self.cellsize = None
+        self.xllcorner = None
+        self.yllcorner = None
+        self.nodata_value = None
         
     def read(self):
         with open(self._filename,"r") as f:
@@ -55,9 +42,9 @@ class AsciiGrid(object):
             end = data.find("\n",start)
             k,v = [e.strip().lower() for e in data[start:end].split()]
             try:
-                self.__setattr__(k,int(v))
+                setattr(self,k,int(v))
             except ValueError:
-                self.__setattr__(k,float(v))
+                setattr(self,k,float(v))
             start = end + 1
         self.data = data[start:].strip()
 
@@ -69,16 +56,6 @@ class AsciiGrid(object):
         except AttributeError:
             pass
 
-    def readnc(self):
-        from ufz import readnc
-        # read netcdf variable, array and attributes
-        self.ncvar = self._ncfile.split('/')[-1].split('.')[0]
-        self.ncarr = readnc(self._ncfile, var=self.ncvar)
-        self.ncatt = readnc(self._ncfile, var=self.ncvar, attributes=True)
-        self.nctime = readnc(self._ncfile, var='time')
-        self.nctimeatt = readnc(self._ncfile, var='time', attributes=True)
-
-        
     def getBbox(self):
         return {"ymin":self.yllcorner,
                 "ymax":self.yllcorner + self.nrows * self.cellsize,
@@ -86,29 +63,6 @@ class AsciiGrid(object):
                 "xmax":self.xllcorner + self.ncols * self.cellsize}
 
     
-    def write(self,filename):
-        if hasattr(self, 'ncarr'):
-            from ufz import dumpnetcdf
-            from time import asctime
-            # set file attributes
-            fileatt = {'ncols': self.ncols, 'nrows': self.nrows, 'xllcorner': self.xllcorner, 'yllcorner': self.yllcorner,
-                       'cellsize': self.cellsize, 'NODATA_value': self.nodata_value, 'history': 'Created ' + asctime()}
-            # add time to netcdf file
-            dumpnetcdf(filename, dims=['time'], fileattributes=fileatt, time=(self.nctime, self.nctimeatt))
-            # write netcdf data set
-            eval("dumpnetcdf(filename, dims=['time', 'yc', 'xc'], create=False, " + self.ncvar + " = (self.data, self.ncatt))")
-        else:
-            # write ascii dataset
-            with open(filename,"w") as f:
-                f.write("ncols\t{:}\n".format(str(self.ncols)))
-                f.write("nrows\t{:}\n".format(str(self.nrows)))
-                f.write("xllcorner\t{:}\n".format(str(self.xllcorner)))
-                f.write("yllcorner\t{:}\n".format(str(self.yllcorner)))
-                f.write("cellsize\t{:}\n".format(str(self.cellsize)))
-                f.write("NODATA_value\t{:}\n".format(str(self.nodata_value)))
-                f.write(self.data.strip() + "\n")
-
-            
     def enlargeGrid(self,grid):
         self_bbox = self.getBbox()
         bbox = grid.getBbox()
@@ -124,33 +78,6 @@ class AsciiGrid(object):
 
         self.padGrid(top,left,bottom,right)
 
-        
-    def padGrid(self=0,top=0,left=0,bottom=0,right=0):
-
-        self.nrows += top + bottom
-        self.ncols += left + right        
-        self.yllcorner -= bottom*self.cellsize
-        self.xllcorner -= left*self.cellsize
-
-        if hasattr(self, 'ncarr'):
-            from numpy import zeros
-            # initialize 3d field
-            self.data = zeros((self.ncarr.shape[0], self.nrows, self.ncols)) + self._nodata_value
-            # paste 3d field
-            print('***CAUTION: grid cell at (0,0) index is assumed to be in the North-West')
-            self.data[:, top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.ncarr
-        else:
-        
-            empty_row = " ".join([str(self.nodata_value),]*self.ncols)
-            left_pad = " ".join([str(self.nodata_value),]*left)
-            right_pad = " ".join([str(self.nodata_value),]*right)
-    
-            data = ["{0} {1} {2}".format(left_pad,row,right_pad)
-                    for row in self.data.split("\n")]
-
-            self.data = "\n".join([empty_row,]*top + data + [empty_row,]*bottom)
-
-                
     def snapGrid(self,grid):
         delta_y = (grid.yllcorner - self.yllcorner)/float(self.cellsize)
         delta_x = (grid.xllcorner - self.xllcorner)/float(self.cellsize)
@@ -161,6 +88,81 @@ class AsciiGrid(object):
         self.yllcorner += self.cellsize * y_offset
         self.xllcorner += self.cellsize * x_offset
 
+class AsciiGrid(BaseGrid):
+    def __init__(self, *args, **kwargs):
+        super(AsciiGrid, self).__init__(*args, **kwargs)
+        self.read()
+
+    def padGrid(self=0,top=0,left=0,bottom=0,right=0):
+        
+        self.nrows += top + bottom
+        self.ncols += left + right        
+        self.yllcorner -= bottom*self.cellsize
+        self.xllcorner -= left*self.cellsize
+
+        empty_row = " ".join([str(self.nodata_value),]*self.ncols)
+        left_pad = " ".join([str(self.nodata_value),]*left)
+        right_pad = " ".join([str(self.nodata_value),]*right)
+        
+        data = ["{0} {1} {2}".format(left_pad,row,right_pad)
+                for row in self.data.split("\n")]
+
+        self.data = "\n".join([empty_row,]*top + data + [empty_row,]*bottom)
+
+    def write(self,filename):
+        # write ascii dataset
+        with open(filename,"w") as f:
+            f.write("ncols\t{:}\n".format(str(self.ncols)))
+            f.write("nrows\t{:}\n".format(str(self.nrows)))
+            f.write("xllcorner\t{:}\n".format(str(self.xllcorner)))
+            f.write("yllcorner\t{:}\n".format(str(self.yllcorner)))
+            f.write("cellsize\t{:}\n".format(str(self.cellsize)))
+            f.write("NODATA_value\t{:}\n".format(str(self.nodata_value)))
+            f.write(self.data.strip() + "\n")
+
+        
+class NetcdfGrid(BaseGrid):
+    def __init__(self, fname, *args, **kwargs):
+        super(NetcdfGrid, self).__init__(*args, **kwargs)
+        self._ncfile = fname
+        self.read()
+
+    def read(self):
+        from ufz import readnc
+
+        super(NetcdfGrid,self).read() # call read of ascci header
+        # read netcdf variable, array and attributes
+        self.ncvar = self._ncfile.split('/')[-1].split('.')[0]
+        self.ncarr = readnc(self._ncfile, var=self.ncvar)
+        self.ncatt = readnc(self._ncfile, var=self.ncvar, attributes=True)
+        self.nctime = readnc(self._ncfile, var='time')
+        self.nctimeatt = readnc(self._ncfile, var='time', attributes=True)
+
+    def write(self,filename):
+        from ufz import dumpnetcdf
+        from time import asctime
+        # set file attributes
+        fileatt = {'ncols': self.ncols, 'nrows': self.nrows, 'xllcorner': self.xllcorner, 'yllcorner': self.yllcorner,
+                   'cellsize': self.cellsize, 'NODATA_value': self.nodata_value, 'history': 'Created ' + asctime()}
+        # add time to netcdf file
+        dumpnetcdf(filename, dims=['time'], fileattributes=fileatt, time=(self.nctime, self.nctimeatt))
+        # write netcdf data set
+        dumpnetcdf(filename,**{'dims': ['time', 'yc', 'xc'], 'create': False, self.ncvar: (self.data, self.ncatt)}) 
+ 
+    def padGrid(self=0,top=0,left=0,bottom=0,right=0):
+
+        self.nrows += top + bottom
+        self.ncols += left + right        
+        self.yllcorner -= bottom*self.cellsize
+        self.xllcorner -= left*self.cellsize
+
+        from numpy import zeros
+        # initialize 3d field
+        self.data = zeros((self.ncarr.shape[0], self.nrows, self.ncols)) + self.nodata_value
+        # paste 3d field
+        print('***CAUTION: grid cell at (0,0) index is assumed to be in the North-West')
+        self.data[:, top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.ncarr
+               
 
 def usage(prog_name):
     return "\n".join(
@@ -187,11 +189,12 @@ if __name__== "__main__":
         sys.exit(2)
 
     # initialize ncfile
-    ncfile = None
     if len(sys.argv) == 5:
-        ncfile = sys.argv.pop(1)
-    
-    source_grid = AsciiGrid(sys.argv[1], ncfile=ncfile)
+        fname = sys.argv.pop(1)
+        source_grid = NetcdfGrid(fname,sys.argv[1])
+    else:
+        source_grid = AsciiGrid(sys.argv[1])
+
     target_grid = AsciiGrid(sys.argv[2])
 
     if target_grid.cellsize%source_grid.cellsize != 0:
