@@ -172,8 +172,8 @@ dir_RestartIn(1)     = "test_basin/restart/"
 dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
-!> directory where latitude and longitude file is located
-dir_LatLon(1)        = "test_basin/input/latlon/latlon_2.nc"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(1)       = "test_basin/input/latlon/latlon_2.nc"
 
 ! **** for Basin 2
 !> directory where morphological files are located
@@ -186,8 +186,8 @@ dir_RestartIn(2)     = "test_basin_2/restart/"
 dir_RestartOut(2)    = "test_basin_2/restart/"
 !> directory where output should be written
 dir_Out(2)           = "test_basin_2/output/"
-!> directory where latitude and longitude file is located
-dir_LatLon(2)        = "test_basin_2/input/latlon/latlon.nc"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 /
 
 ! directories used only by mhm

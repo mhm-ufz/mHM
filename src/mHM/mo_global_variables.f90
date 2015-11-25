@@ -100,7 +100,7 @@ MODULE mo_global_variables
   character(256), dimension(:), allocatable, public :: dirRestartIn       ! Directory where input of restart is read from
   character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! Directory where gridded LAI is located
                                                                           ! used when timeStep_LAI_input < 0
-  character(256), dimension(:), allocatable, public :: dirLatLon          ! directory to lat lon files
+  character(256), dimension(:), allocatable, public :: fileLatLon          ! directory to lat lon files
 
   character(256), dimension(:), allocatable, public :: dirSoil_moisture   ! File of monthly soil moisture
   character(256), dimension(:), allocatable, public :: fileTWS            ! File of tws data

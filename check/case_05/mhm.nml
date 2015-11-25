@@ -72,8 +72,8 @@ dir_RestartIn(1)     = "restart/"
 dir_RestartOut(1)    = "output_b1/b1_"
 !> directory where output should be written
 dir_Out(1)           = "output_b1/b1_"
-!> directory where latitude and longitude file is located
-dir_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
 !
 !**** for Basin 2
 !> directory where morphological files are located
@@ -86,8 +86,8 @@ dir_RestartIn(2)     = "restart/"
 dir_RestartOut(2)    = "output_b1/b2_"
 !> directory where output should be written
 dir_Out(2)           = "output_b1/b2_"
-!> directory where latitude and longitude file is located
-dir_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 !
 !**** for Basin 3
 !> directory where morphological files are located
@@ -100,8 +100,8 @@ dir_RestartIn(3)     = "restart/"
 dir_RestartOut(3)    = "output_b1/b3_"
 !> directory where output should be written
 dir_Out(3)           = "output_b1/b3_"
-!> directory where latitude and longitude file is located
-dir_LatLon(3)        = "../../test_basin/input/latlon/latlon_1.nc"
+!> file containing latitude and longitude on the resolution_Hydrology
+file_LatLon(3)        = "../../test_basin/input/latlon/latlon_1.nc"
 /
 !> Namelist with all directories for common file as well as separate file for every basin.\n 
 !> Number in brackets indicates basin number.\n

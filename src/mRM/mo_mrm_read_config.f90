@@ -151,7 +151,7 @@ contains
   !>        \date Aug 2015
   !         Modified,
   !         Sep 2015, Stephan Thober - removed stop condition when routing resolution is smaller than hydrologic resolution
-  !         Oct 2015, Stephan Thober - added NLoutputResults namelist, dirLatLon to directories_general namelist,
+  !         Oct 2015, Stephan Thober - added NLoutputResults namelist, fileLatLon to directories_general namelist,
   !                                    and readLatLon flag
   subroutine read_mrm_config(readLatLon)
     use mo_common_variables,     only:            &
@@ -195,7 +195,7 @@ contains
          dirOut,                                  & ! Directory where output is written to
          dirRestartOut,                           & ! Directory where output of restart is written
          dirRestartIn,                            & ! Directory where input of restart is read from
-         dirLatLon,                               & ! directories where LatLon file is located
+         fileLatLon,                               & ! directories where LatLon file is located
          is_start,                                & ! flag for first timestep
          resolutionRouting,                       & ! resolution of routing
          resolutionHydrology,                     & ! resolution of Hydrology
@@ -248,7 +248,7 @@ contains
     character(256), dimension(maxNoBasins)             :: dir_Out
     character(256), dimension(maxNoBasins)             :: dir_RestartOut
     character(256), dimension(maxNoBasins)             :: dir_RestartIn
-    character(256), dimension(maxNoBasins)             :: dir_LatLon
+    character(256), dimension(maxNoBasins)             :: file_LatLon
     ! namelist variables: mainconfig
     real(dp), dimension(maxNoBasins)                   :: resolution_Routing
     real(dp), dimension(maxNoBasins)                   :: resolution_Hydrology
@@ -280,7 +280,7 @@ contains
     namelist /directories_general/ dirConfigOut, dirCommonFiles,                                   &
          dir_Morpho, dir_LCover,                                                                   &
          dir_Out, dir_RestartOut,                                                                  &
-         dir_RestartIn, dir_LatLon
+         dir_RestartIn, file_LatLon
     namelist/LCover/ fracSealed_cityArea, nLcover_scene, LCoverYearStart, LCoverYearEnd, LCoverfName
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
@@ -332,7 +332,7 @@ contains
     allocate(dirOut(nBasins))
     allocate(dirRestartOut(nBasins))
     allocate(dirRestartIn(nBasins))
-    allocate(dirLatLon(nBasins))
+    allocate(fileLatLon(nBasins))
     resolutionRouting = resolution_Routing(1:nBasins)
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     L0_Basin = L0Basin(1:nBasins)
@@ -432,7 +432,7 @@ contains
     dirOut = dir_Out(1:nBasins)
     dirRestartOut = dir_RestartOut(1:nBasins)
     dirRestartIn = dir_RestartIn(1:nBasins)
-    dirLatLon = dir_LatLon(1:nBasins)
+    fileLatLon = file_LatLon(1:nBasins)
 
     !===============================================================
     ! Read land cover information

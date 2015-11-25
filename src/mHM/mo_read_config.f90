@@ -138,7 +138,7 @@ CONTAINS
          dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
          dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon (case 3)
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
-         dirLatLon,                                         & ! directory of latitude and longitude files
+         fileLatLon,                                         & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles,                                    & ! directory where common files are located
          dirOut,                                            & ! output directory basin wise
@@ -281,7 +281,7 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_Out
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
-    character(256), dimension(maxNoBasins)          :: dir_LatLon
+    character(256), dimension(maxNoBasins)          :: file_LatLon
     character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
@@ -308,7 +308,7 @@ CONTAINS
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover,                                 &
          dir_Out, dir_RestartOut,                                &
-         dir_RestartIn, dir_LatLon
+         dir_RestartIn, file_LatLon
     namelist /directories_mHM/ inputFormat_meteo_forcings, &
          dir_Precipitation, dir_Temperature, dir_ReferenceET, dir_MinTemperature,    &
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
@@ -394,7 +394,7 @@ CONTAINS
     allocate(dirOut             (nBasins))
     allocate(dirRestartOut      (nBasins))
     allocate(dirRestartIn       (nBasins))
-    allocate(dirLatLon          (nBasins))
+    allocate(fileLatLon          (nBasins))
     allocate(dirgridded_LAI     (nBasins))
     allocate(dirSoil_Moisture   (nBasins))
     allocate(fileTWS            (nBasins))
@@ -512,7 +512,7 @@ CONTAINS
     dirOut                    = dir_Out            (1:nBasins)
     dirRestartOut             = dir_RestartOut     (1:nBasins)
     dirRestartIn              = dir_RestartIn      (1:nBasins)
-    dirLatLon                 = dir_LatLon         (1:nBasins)
+    fileLatLon                 = file_LatLon         (1:nBasins)
 
     dirgridded_LAI  = dir_gridded_LAI(1:nBasins)
     ! counter checks -- soil horizons

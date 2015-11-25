@@ -51,7 +51,7 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
-  character(256), dimension(:), allocatable, public :: dirLatLon ! Directory where the Lat Lon Files are located
+  character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
   
   ! ------------------------------------------------------------------
   ! CONSTANT 

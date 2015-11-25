@@ -79,7 +79,7 @@ CONTAINS
 
   subroutine read_latlon(ii)
     
-    USE mo_mrm_global_variables, ONLY: dirLatLon, level11, &
+    USE mo_mrm_global_variables, ONLY: fileLatLon, level11, &
          L0_latitude, L0_longitude, level0, basin_mrm, L0_Basin, &
          L11_rect_latitude, L11_rect_longitude
     USE mo_append,           ONLY: append
@@ -98,7 +98,7 @@ CONTAINS
     logical, dimension(:,:), allocatable  :: mask
 
     ! construct filename
-    fname = trim( dirLatLon(ii) ) 
+    fname = trim( fileLatLon(ii) ) 
 
     ! -------------------------------------------------------------------------
     ! READ LEVEL 0 LATITUDE / LONGITUDE
