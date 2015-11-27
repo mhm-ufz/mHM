@@ -189,7 +189,7 @@ contains
           end if
        end if
        !
-       call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
+       call message('      Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
        !
        ! Saving indices of mask and packed data
        if(iBasin .eq. 1) then

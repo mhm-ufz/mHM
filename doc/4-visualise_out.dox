@@ -3,8 +3,11 @@
 
 mHM usually writes two files into the output directory specified in mhm.nml:
 \code
+    ConfigFile.log
     daily_discharge.out
+    dischage.nc
     mHM_Fluxes_States.nc
+    mRM_Fluxes_States.nc
 \endcode
 
 In addition to these, three restart files are saved into the restart directory also specified in mhm.nml:
@@ -14,9 +17,7 @@ In addition to these, three restart files are saved into the restart directory a
     001_states.nc
 \endcode
 
-The first file  daily_discharge.out is ASCII type and can be read by any standard editor or ASCII interpreting scripts.
-In mHM_Fluxes_States.nc all the spatial and temporal output is written.
-This is a binary NETCDF file which can be visualised with NCVIEW (part of the NETCDF library), VISIT (LLNL Software) or analysis scripts based on Python (PyNGL).
+The first file ConfigFile.log is ASCII type and summarizes the main configuration of mHM. The second file daily_discharge.out is ASCII type and can be read by any standard editor or ASCII interpreting scripts. It contains the simulated and observed discharge. The same timeseries are stored for all gauges in discharge.nc (the third file), but in NETCDF format. In mHM_Fluxes_States.nc all the spatial and temporal output is written, with the exception of routed discharge which can be found in mRM_Fluxes_States.nc (also a NETCDF file).  These binary NETCDF files can be visualised with NCVIEW (part of the NETCDF library), VISIT (LLNL Software) or analysis scripts based on Python (PyNGL). Please note that daily_discharge.out, discharge.nc and mRM_Fluxes_States will only be written if the routing is switched on (i.e., process_case 8 equals one).
 
 The restarting files are mainly intended for improving model performance (i.e,. to avoid spin-up time) rather than for visualization purposes. The xxx prefix indicate the basin number. Since these files are also written into a binary NETCDF file, some remarks will be make below for the right interpretation of their content.  
 

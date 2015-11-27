@@ -113,13 +113,14 @@ CONTAINS
     if (mrm_coupling_mode .eq. 0) then
        call print_startup_message()
     else
-       call message(' Inititalize mRM')
+       call message('')
+       call message('  Inititalize mRM')
     end if
     
     ! ----------------------------------------------------------
     ! READ CONFIG
     ! ----------------------------------------------------------
-    call read_mrm_config(ReadLatLon)
+    call read_mrm_config((mrm_coupling_mode .ne. 2), ReadLatLon)
 
     !-----------------------------------------------------------
     ! CONFIG OUTPUT
@@ -205,7 +206,8 @@ CONTAINS
        end do
     end if
 
-    call message(' Finished Initialization of mRM')
+    call message('')
+    call message('  Finished Initialization of mRM')
 
   end subroutine mrm_init
 

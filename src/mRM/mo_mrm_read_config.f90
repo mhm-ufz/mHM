@@ -117,13 +117,13 @@ contains
   !>        mrm_parameter.nml or copied from mHM.
   !
   !     INTENT(IN)
-  !         None
+  !>        \param[in] "logical :: do_message" - flag for writing mHM standard messages
   !
   !     INTENT(INOUT)
   !         None
-
+  !
   !     INTENT(OUT)
-  !         None
+  !>        \param[out] "logical :: readLatLon" - flag for reading LatLon file
   !
   !     INTENT(IN), OPTIONAL
   !         None
@@ -153,7 +153,7 @@ contains
   !         Sep 2015, Stephan Thober - removed stop condition when routing resolution is smaller than hydrologic resolution
   !         Oct 2015, Stephan Thober - added NLoutputResults namelist, fileLatLon to directories_general namelist,
   !                                    and readLatLon flag
-  subroutine read_mrm_config(readLatLon)
+  subroutine read_mrm_config(do_message, readLatLon)
     use mo_common_variables,     only:            &
          optimize,                                & ! if mhm runs in optimization mode or not
          optimize_restart,                        & ! Optimization will be restarted from
@@ -222,6 +222,7 @@ contains
     implicit none
     
     ! input variables
+    logical, intent(in) :: do_message
     ! output variables
     logical, intent(out) :: readLatLon
     !
@@ -659,8 +660,10 @@ contains
           stop
        end if
     else
-       call message()
-       call message('***WARNING: No check on missing land cover period is performed!')
+       if (do_message) then
+          call message()
+          call message('***WARNING: No check on missing land cover period is performed!')
+       end if
     end if
 
     !===============================================================
@@ -668,16 +671,20 @@ contains
     !===============================================================
     do ii = 1, nBasins
        cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii)
-       call message()
-       call message('Basin ', trim(adjustl(num2str(ii))), ': ')
-       call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
-            trim(adjustl(num2str(resolutionHydrology(ii)))))
-       call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
-            trim(adjustl(num2str(resolutionRouting(ii)))))
+       if (do_message) then
+          call message()
+          call message('Basin ', trim(adjustl(num2str(ii))), ': ')
+          call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
+               trim(adjustl(num2str(resolutionHydrology(ii)))))
+          call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
+               trim(adjustl(num2str(resolutionRouting(ii)))))
+       end if
        !
        if(       nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
-          call message()
-          call message('Resolution of routing and hydrological modeling are equal!')
+          if (do_message) then
+             call message()
+             call message('Resolution of routing and hydrological modeling are equal!')
+          end if
 
        else if ( nint(cellFactorRbyH * 100.0_dp) .gt. 100) then
           if( nint(mod(cellFactorRbyH, 2.0_dp) * 100.0_dp) .ne. 0) then
@@ -687,9 +694,11 @@ contains
              STOP
           end if
           !
-          call message()
-          call message('Resolution of routing is bigger than hydrological model resolution by ', &
-               trim(adjustl(num2str(nint(cellFactorRbyH)))), ' times !')
+          if (do_message) then
+             call message()
+             call message('Resolution of routing is bigger than hydrological model resolution by ', &
+                  trim(adjustl(num2str(nint(cellFactorRbyH)))), ' times !')
+          end if
        end if
        !
     end do
@@ -762,16 +771,17 @@ contains
 
     if (any(outputFlxState_mrm)) then
        call message( '' )
-       call message( 'Following output will be written:' )
+       call message( '    Following output will be written:' )
 
-       call message( '  FLUXES:' )
+       call message( '    FLUXES:' )
        if (outputFlxState_mrm(1)) then
-          call message( '    routed streamflow      (L11_qMod)                [mm]')
+          call message( '      routed streamflow      (L11_qMod)                [mm]')
        end if
     end if
 
     call message( '' )
-    call message( 'FINISHED reading config' )
+    call message( '    FINISHED reading config' )
+    call message( '' )
 
   end subroutine read_mrm_config
   
