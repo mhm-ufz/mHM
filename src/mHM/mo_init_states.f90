@@ -2,7 +2,7 @@
 
 !> \brief Initialization of all state variables of mHM.
 
-!> \details This module initializes all state variables required to run mHM. 
+!> \details This module initializes all state variables required to run mHM.
 !> Two options are provided:
 !>     - (1) default values
 !>     - (2) from nc file
@@ -38,14 +38,14 @@ CONTAINS
   !>        \brief Allocation of space for mHM related L1 and L11 variables.
 
   !>        \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>                 fluxes, and parameters) for a given basin. Variables allocated here is 
+  !>                 fluxes, and parameters) for a given basin. Variables allocated here is
   !>                 defined in them mo_global_variables.f90 file. After allocating any variable
-  !>                 in this routine, initalize them in the following variables_default_init 
+  !>                 in this routine, initalize them in the following variables_default_init
   !>                 subroutine:
-  !>                 
+  !>
   !
   !     CALLING SEQUENCE
-  !         call variables_alloc(iBasin) 
+  !         call variables_alloc(iBasin)
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4) :: iBasin"        - basin id
@@ -78,18 +78,18 @@ CONTAINS
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
   !                   S. Thober, Aug 2015  - removed routing related variables
 
-  subroutine variables_alloc(iBasin) 
+  subroutine variables_alloc(iBasin)
 
     use mo_global_variables, only: nSoilHorizons_mHM,            &
-         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &  
+         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &
          L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
          L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
-         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &        
-         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
-         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &
+         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &
+         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      &
          L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
          L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
-         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
+         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
@@ -109,7 +109,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable     :: dummy_Matrix_months
 
     ! level-1 information
-    call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 ) 
+    call get_basin_info( iBasin, 1, nrows1, ncols1, ncells=ncells1 )
 
     ! for appending and intialization
     allocate( dummy_Vector        (nCells1)                        )
@@ -139,7 +139,7 @@ CONTAINS
     dummy_Vector(:) = 0.0_dp
     call append( L1_sealSTW,  dummy_Vector )
 
-    ! Soil moisture of each horizon    
+    ! Soil moisture of each horizon
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_soilMoist, dummy_Matrix )
 
@@ -150,7 +150,7 @@ CONTAINS
     ! groundwater storage
     dummy_Vector(:) = 0.0_dp
     call append( L1_satSTW,  dummy_Vector )
-    
+
     ! ground albedo neutrons
     dummy_Vector(:) = 0.0_dp
     call append( L1_neutrons,  dummy_Vector )
@@ -162,7 +162,7 @@ CONTAINS
     ! calculated / corrected potential evapotranspiration
     dummy_Vector(:) = 0.0_dp
     call append( L1_pet_calc,  dummy_Vector )
-    
+
     !  soil actual ET
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_aETSoil,  dummy_Matrix )
@@ -207,19 +207,19 @@ CONTAINS
     dummy_Vector(:) = 0.0_dp
     call append( L1_runoffSeal,  dummy_Vector )
 
-    ! slow runoff 
+    ! slow runoff
     dummy_Vector(:) = 0.0_dp
     call append( L1_slowRunoff,  dummy_Vector )
 
-    ! snow (solid water) 
+    ! snow (solid water)
     dummy_Vector(:) = 0.0_dp
     call append( L1_snow,  dummy_Vector )
 
-    ! throughfall 
+    ! throughfall
     dummy_Vector(:) = 0.0_dp
     call append( L1_Throughfall,  dummy_Vector )
 
-    ! throughfall 
+    ! throughfall
     dummy_Vector(:) = 0.0_dp
     call append( L1_total_runoff,  dummy_Vector )
 
@@ -235,7 +235,7 @@ CONTAINS
     dummy_Vector(:) = 0.0_dp
     call append( L1_degDayInc,  dummy_Vector )
 
-    ! maximum degree-day factor 
+    ! maximum degree-day factor
     dummy_Vector(:) = 0.0_dp
     call append( L1_degDayMax,  dummy_Vector )
 
@@ -271,27 +271,27 @@ CONTAINS
     dummy_Matrix_months = 0.0_dp
     call append( L1_surfResist,   dummy_Matrix_months )
 
-    ! Fraction of roots in soil horizons  
+    ! Fraction of roots in soil horizons
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_fRoots,  dummy_Matrix )
 
-    ! Maximum interception 
+    ! Maximum interception
     dummy_Vector(:) = 0.0_dp
     call append( L1_maxInter,  dummy_Vector(:) )
 
-    ! fast interflow recession coefficient 
+    ! fast interflow recession coefficient
     dummy_Vector(:) = 0.0_dp
     call append( L1_kfastFlow,  dummy_Vector )
 
-    ! slow interflow recession coefficient 
+    ! slow interflow recession coefficient
     dummy_Vector(:) = 0.0_dp
     call append( L1_kSlowFlow,  dummy_Vector )
 
-    ! baseflow recession coefficient 
+    ! baseflow recession coefficient
     dummy_Vector(:) = 0.0_dp
     call append( L1_kBaseFlow,  dummy_Vector )
 
-    ! percolation coefficient 
+    ! percolation coefficient
     dummy_Vector(:) = 0.0_dp
     call append( L1_kPerco,  dummy_Vector )
 
@@ -307,7 +307,7 @@ CONTAINS
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_soilMoistExp,  dummy_Matrix )
 
-    ! Threshold temperature for snow/rain 
+    ! Threshold temperature for snow/rain
     dummy_Vector(:) = 0.0_dp
     call append( L1_tempThresh,  dummy_Vector )
 
@@ -324,27 +324,27 @@ CONTAINS
     call append( L1_wiltingPoint,  dummy_Matrix )
 
     ! free space
-    if ( allocated( dummy_Vector          ) ) deallocate( dummy_Vector          )  
+    if ( allocated( dummy_Vector          ) ) deallocate( dummy_Vector          )
     if ( allocated( dummy_Matrix          ) ) deallocate( dummy_Matrix          )
     if ( allocated( dummy_Matrix_months   ) ) deallocate( dummy_Matrix_months   )
 
   end subroutine variables_alloc
-  
+
   ! ------------------------------------------------------------------
 
   !      NAME
   !          variables_default_init
 
   !>        \brief Default initalization mHM related L1 variables
-  
+
   !>        \details Default initalization of mHM related L1 variables (e.g., states,
   !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>                 Variables initalized here is defined in the mo_global_variables.f90 file. 
-  !>                 Only Variables that are defined in the variables_alloc subroutine are 
+  !>                 Variables initalized here is defined in the mo_global_variables.f90 file.
+  !>                 Only Variables that are defined in the variables_alloc subroutine are
   !>                 intialized here.
   !
   !>                 If a variable is added or removed here, then it also has to be added or removed
-  !>                 in the subroutine state_variables_set in the module mo_restart and in the 
+  !>                 in the subroutine state_variables_set in the module mo_restart and in the
   !>                 subroutine set_state in the module mo_set_netcdf_restart.
   !
   !     CALLING SEQUENCE
@@ -384,15 +384,15 @@ CONTAINS
 
     use mo_global_variables, only:                                              &
          nSoilHorizons_mHM, HorizonDepth_mHM,                                   &
-         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &  
+         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &
          L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
          L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
          L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &
-         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &   
-         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      & 
-         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &         
+         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &
+         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      &
+         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
          L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
-         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &  
+         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
@@ -410,7 +410,7 @@ CONTAINS
     !-------------------------------------------
     ! LAND COVER variables
     !-------------------------------------------
-    L1_fSealed = P1_InitStateFluxes 
+    L1_fSealed = P1_InitStateFluxes
     L1_fForest = P1_InitStateFluxes
     L1_fPerm   = P1_InitStateFluxes
 
@@ -426,7 +426,7 @@ CONTAINS
     !Retention storage of impervious areas
     L1_sealSTW = P1_InitStateFluxes
 
-    ! Soil moisture of each horizon    
+    ! Soil moisture of each horizon
     do i = 1, nSoilHorizons_mHM-1
        if (i .eq. 1) then
           L1_soilMoist(:,i) = HorizonDepth_mHM(i)*C1_InitStateSM
@@ -442,7 +442,7 @@ CONTAINS
 
     ! groundwater storage
     L1_satSTW = P4_InitStateFluxes
-    
+
     ! ground albedo neutrons, initially zero
     L1_neutrons = P1_InitStateFluxes
 
@@ -452,7 +452,7 @@ CONTAINS
 
     ! corrected / calculated potential ET
     L1_pet_calc = P1_InitStateFluxes
-    
+
     !  soil actual ET
     L1_aETSoil = P1_InitStateFluxes
 
@@ -486,16 +486,16 @@ CONTAINS
     ! runoff from impervious area
     L1_runoffSeal = P1_InitStateFluxes
 
-    ! slow runoff 
+    ! slow runoff
     L1_slowRunoff = P1_InitStateFluxes
 
-    ! snow (solid water) 
+    ! snow (solid water)
     L1_snow = P1_InitStateFluxes
 
-    ! throughfall 
+    ! throughfall
     L1_Throughfall = P1_InitStateFluxes
 
-    ! throughfall 
+    ! throughfall
     L1_total_runoff = P1_InitStateFluxes
 
     !-------------------------------------------
@@ -508,7 +508,7 @@ CONTAINS
     ! increase of the Degree-day factor per mm of increase in precipitation
     L1_degDayInc = P1_InitStateFluxes
 
-    ! maximum degree-day factor 
+    ! maximum degree-day factor
     L1_degDayMax = P1_InitStateFluxes
 
     ! degree-day factor with no precipitation
@@ -529,29 +529,29 @@ CONTAINS
     ! PET Priestley Taylor coefficient
     L1_PrieTayAlpha = P1_InitStateFluxes
 
-    ! PET aerodynamical resistance 
+    ! PET aerodynamical resistance
     L1_aeroResist = P1_InitStateFluxes
 
-    ! PET bulk surface resistance 
+    ! PET bulk surface resistance
     L1_surfResist = P1_InitStateFluxes
 
 
-    ! Fraction of roots in soil horizons  
+    ! Fraction of roots in soil horizons
     L1_fRoots = P1_InitStateFluxes
 
-    ! Maximum interception 
+    ! Maximum interception
     L1_maxInter = P1_InitStateFluxes
 
-    ! fast interflow recession coefficient 
+    ! fast interflow recession coefficient
     L1_kfastFlow = P1_InitStateFluxes
 
-    ! slow interflow recession coefficient 
+    ! slow interflow recession coefficient
     L1_kSlowFlow = P1_InitStateFluxes
 
-    ! baseflow recession coefficient 
+    ! baseflow recession coefficient
     L1_kBaseFlow = P1_InitStateFluxes
 
-    ! percolation coefficient 
+    ! percolation coefficient
     L1_kPerco = P1_InitStateFluxes
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
@@ -563,7 +563,7 @@ CONTAINS
     ! Exponential parameter to how non-linear is the soil water retention
     L1_soilMoistExp = P1_InitStateFluxes
 
-    ! Threshold temperature for snow/rain 
+    ! Threshold temperature for snow/rain
     L1_tempThresh = P1_InitStateFluxes
 
     ! Threshhold water depth controlling fast interflow
@@ -582,13 +582,13 @@ CONTAINS
   !          get_basin_info
 
   !>        \brief Get basic basin information (e.g., nrows, ncols, indices, mask)
-  
+
   !>        \details Get basic basin information (e.g., nrows, ncols, indices, mask) for
   !>                 different levels (L0, L1, and L2).
   !
   !     CALLING SEQUENCE
   !         call get_basin_info(iBasin, iLevel,nrows,ncols, ncells, iStart, iEnd, &
-  !                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
+  !                             iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize)
 
   !     INTENT(IN)
   !>        \param[in] "integer(i4)             :: iBasin"    basin id
@@ -601,7 +601,7 @@ CONTAINS
   !>        \param[out] "integer(i4)             :: nRows"      no. of rows
   !>        \param[out] "integer(i4)             :: nCols"      no. of coloums
   !>        \param[out] "integer(i4)             :: ncells"     no. of cells
-  !>        \param[out] "integer(i4)             :: iStart"     start cell index of a given basin at a given level 
+  !>        \param[out] "integer(i4)             :: iStart"     start cell index of a given basin at a given level
   !>        \param[out] "integer(i4)             :: iEnd"       end cell index of a given basin at a given level
   !>        \param[out] "integer(i4)             :: iStartMask" start cell index of mask a given basin at a given level
   !>        \param[out] "integer(i4)             :: iEndMask"   end cell index of mask a given basin at a given level
@@ -612,7 +612,7 @@ CONTAINS
   !     INTENT(INOUT), OPTIONAL
   !         None
 
-  !     INTENT(OUT), OPTIONAL                   
+  !     INTENT(OUT), OPTIONAL
   !>        \param[out] "logical, optional       :: mask"       Mask at a given level
   !>        \param[out] "real(dp), optional      :: xllcorner"  x coordinate of the lowerleft corner at a given level
   !>        \param[out] "real(dp), optional      :: yllcorner"  y coordinate of the lowerleft corner at a given level
@@ -633,7 +633,7 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - moved L11 and L110 to mRM
 
   subroutine get_basin_info(iBasin, iLevel, nrows, ncols, ncells, iStart, iEnd, &
-                            iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize) 
+                            iStartMask, iEndMask, mask, xllcorner, yllcorner, cellsize)
 
     use mo_message, only: message
     use mo_global_variables, only: basin, level0, level1, level2
@@ -724,19 +724,19 @@ CONTAINS
   !         calculate_grid_properties
 
   !     PURPOSE
-  !>        \brief Calculates basic grid properties at a required coarser level using 
+  !>        \brief Calculates basic grid properties at a required coarser level using
   !>              information of a given finer level.
 
-  !>        \brief Calculates basic grid properties at a required coarser level (e.g., L11) using 
-  !>              information of a given finer level (e.g., L0). Basic grid properties such as 
+  !>        \brief Calculates basic grid properties at a required coarser level (e.g., L11) using
+  !>              information of a given finer level (e.g., L0). Basic grid properties such as
   !>              nrows, ncols, xllcorner, yllcorner cellsize are estimated in this
-  !>              routine. 
+  !>              routine.
 
   !     CALLING SEQUENCE
   !         call calculate_grid_properties( nrowsIn, ncolsIn,  xllcornerIn,                     &
   !                                         yllcornerIn,  cellsizeIn, nodata_valueIn,           &
   !                                         aimingResolution, nrowsOut, ncolsOut, xllcornerOut, &
-  !                                         yllcornerOut, cellsizeOut, nodata_valueOut ) 
+  !                                         yllcornerOut, cellsizeOut, nodata_valueOut )
   !     INTENT(IN)
   !>        \param[in] "integer(i4)             :: nrowsIn"           no. of rows at an input level
   !>        \param[in] "integer(i4)             :: ncolsIn"           no. of cols at an input level
@@ -786,7 +786,7 @@ CONTAINS
   subroutine calculate_grid_properties( &
        nrowsIn, ncolsIn,  xllcornerIn,  yllcornerIn,  cellsizeIn, nodata_valueIn,  &
        aimingResolution,                                                           &
-       nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut, nodata_valueOut ) 
+       nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut, nodata_valueOut )
 
     use mo_message,      only: message       ! for print out
     use mo_string_utils, only: num2str
@@ -805,7 +805,7 @@ CONTAINS
     integer(i4), intent(out) :: ncolsOut
     real(dp), intent(out)    :: xllcornerOut
     real(dp), intent(out)    :: yllcornerOut
-    real(dp), intent(out)    :: cellsizeOut    
+    real(dp), intent(out)    :: cellsizeOut
     real(dp), intent(out)    :: nodata_valueOut
 
     ! local variables
@@ -824,8 +824,8 @@ CONTAINS
     cellsizeOut     = cellsizeIn * cellFactor
     ncolsOut        = ceiling( real(ncolsIn, dp) / cellFactor)
     nrowsOut        = ceiling( real(nrowsIn, dp) / cellFactor)
-    xllcornerOut    = xllcornerIn + real(ncolsIn,dp) * cellsizeIn - real(ncolsOut,dp) * cellsizeOut  
-    yllcornerOut    = yllcornerIn + real(nrowsIn,dp) * cellsizeIn - real(nrowsOut,dp) * cellsizeOut  
+    xllcornerOut    = xllcornerIn + real(ncolsIn,dp) * cellsizeIn - real(ncolsOut,dp) * cellsizeOut
+    yllcornerOut    = yllcornerIn + real(nrowsIn,dp) * cellsizeIn - real(nrowsOut,dp) * cellsizeOut
     nodata_valueOut  = nodata_valueIn
 
   end subroutine calculate_grid_properties

@@ -149,6 +149,7 @@ CONTAINS
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
          basin_avg_TWS_obs,                                 & ! basin avg TWS data
          fileTWS,                                           & ! directory with basin average tws data
+         dirNeutrons, timeStep_neutrons_input,           & ! directory where neutron data is located
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -186,8 +187,8 @@ CONTAINS
          sce_ngs, sce_npg, sce_nps,                         & ! SCE: # complexes, # points per complex,
          !                                                    !      # points per subcomplex
          mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
-         mcmc_error_params                                    !       parameters of error model used in likelihood 
-    
+         mcmc_error_params                                    !       parameters of error model used in likelihood
+
     implicit none
 
     ! LOCAL variables
@@ -286,11 +287,12 @@ CONTAINS
     !                                                                            ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
     character(256), dimension(maxNoBasins)          :: file_TWS                  ! total water storage input file
+    character(256), dimension(maxNoBasins)          :: dir_neutrons              ! ground albedo neutron input
 
     !
   integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
-  integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover 
-  integer(i4),    dimension(maxNLCovers)            :: LCoverYearEnd   ! ending year LCover 
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover
+  integer(i4),    dimension(maxNLCovers)            :: LCoverYearEnd   ! ending year LCover
   character(256), dimension(maxNLCovers)            :: LCoverfName     ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
     !
@@ -314,7 +316,12 @@ CONTAINS
          dir_MaxTemperature, dir_absVapPressure, dir_windspeed,                      &
          dir_NetRadiation, dir_gridded_LAI
     ! optional data used for optimization
-    namelist /optional_data/ dir_soil_moisture, nSoilHorizons_sm_input, timeStep_sm_input, file_TWS
+    namelist /optional_data/ &
+        dir_soil_moisture, &
+        nSoilHorizons_sm_input, &
+        timeStep_sm_input, &
+        file_TWS, &
+        dir_neutrons
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
          L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
@@ -544,19 +551,21 @@ CONTAINS
        call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
        stop
     end if
+    dirNeutrons = dir_neutrons(1:nBasins)
+    timeStep_neutrons_input = -1 ! daily, hard-coded, to be flexibilized
 
     !===============================================================
     ! Read evaluation basin average TWS data
     !===============================================================
 
     fileTWS = file_TWS (1:nBasins)
-    
+
     ! if (opti_function .EQ. 15) then !OROROR
        allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
        allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
-      
+
        do iBasin = 1, nBasins
-           if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then 
+           if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then
                 call message()
                 call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
                                  ' for subbasin ', trim(adjustl(num2str(iBasin))), &
@@ -564,13 +573,13 @@ CONTAINS
                 call message('          Error occured in namelist: evaluation_tws')
                 stop
            end if
-           
+
            basin_avg_TWS_obs%basinId(iBasin) = iBasin
-           basin_avg_TWS_obs%fname(iBasin)   = trim(file_TWS(iBasin)) 
+           basin_avg_TWS_obs%fname(iBasin)   = trim(file_TWS(iBasin))
        end do
    ! end if !OROROR
-    
-    
+
+
     !===============================================================
     ! Read process selection list
     !===============================================================
@@ -1088,13 +1097,13 @@ CONTAINS
 #ifndef mrm2mhm
        call message('***ERROR processCase(8) equals 1, but mrm2mhm preprocessor flag is not given in Makefile')
        stop
-#endif       
+#endif
        processMatrix(8, 1) = processCase(8)
        processMatrix(8, 2) = 5_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
        call append(global_parameters, dummy_2d_dp)
        call append(global_parameters_name, (/'dummy', 'dummy', 'dummy', 'dummy', 'dummy'/))
-       
+
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')

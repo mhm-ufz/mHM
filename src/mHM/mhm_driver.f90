@@ -140,7 +140,7 @@
 !                     Stephan Thober, Aug 2015 - removed routing related variables
 !                     Stephan Thober, Oct 2015 - reorganized optimization (now compatible with mRM)
 !      Oldrich Rakovec, Rohini Kumar, Oct 2015 - added reading of basin averaged TWS and objective function 15
-!                                                for simultaneous calibration based on runoff and TWS 
+!                                                for simultaneous calibration based on runoff and TWS
 !
 ! --------------------------------------------------------------------------
 
@@ -179,7 +179,9 @@ PROGRAM mhm_driver
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
-  USE mo_read_optional_data,  ONLY : read_soil_moisture, read_basin_avg_TWS ! optional soil moisture reader, basin_avg_TWS reader
+  USE mo_read_optional_data,  ONLY : read_soil_moisture,     &      ! optional soil moisture reader, basin_avg_TWS reader
+                                     read_basin_avg_TWS,     &
+                                     read_neutrons
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
@@ -192,13 +194,13 @@ PROGRAM mhm_driver
        write_configfile,                                     &      ! Writing Configuration file
        write_optifile,                                       &      ! Writing optimized parameter set and objective
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
-  USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods 
+  USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods
   USE mo_optimization,        ONLY : optimization
 #ifdef mrm2mhm
   USE mo_mrm_objective_function_runoff, only: single_objective_runoff
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
-#endif  
+#endif
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
@@ -212,7 +214,7 @@ PROGRAM mhm_driver
   real(dp)                              :: funcbest         ! best objective function achivied during optimization
   logical,  dimension(:),   allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
   !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
-  
+
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -224,7 +226,7 @@ PROGRAM mhm_driver
   call message('           ', trim(version_date))
   call message()
   call message('Originally by L. Samaniego & R. Kumar')
-  
+
   call message(separator)
 
   call message()
@@ -264,16 +266,16 @@ PROGRAM mhm_driver
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
      case(0)
-        call message('    PET directory:              ', trim(dirReferenceET(ii)  )) 
+        call message('    PET directory:              ', trim(dirReferenceET(ii)  ))
      case(1)
-        call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  )) 
-        call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  )) 
+        call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  ))
+        call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  ))
      case(2)
         call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
      case(3)
         call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-        call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  )) 
-        call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  )) 
+        call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  ))
+        call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  ))
      end select
      call message('    Output directory:           ',   trim(dirOut(ii) ))
      if (timeStep_LAI_input < 0) then
@@ -337,6 +339,12 @@ PROGRAM mhm_driver
         call read_soil_moisture(ii)
      endif
 
+     ! read optional spatio-temporal neutrons data
+    if ( (opti_function .EQ. 17) .AND. optimize ) then
+        call read_neutrons(ii)
+        call message('  neutrons data read')
+    endif
+
   end do
 
   ! read optional basin average TWS data at once, therefore outside of the basin loop to ensure same time for all basins
@@ -346,7 +354,6 @@ PROGRAM mhm_driver
         call message('  basin_avg TWS data read')
      endif
 
-  
   ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
   ! if ( write_restart ) then
   !    itimer = itimer + 1
@@ -364,7 +371,7 @@ PROGRAM mhm_driver
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) .eq. 1) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
-#endif  
+#endif
 
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
@@ -375,7 +382,7 @@ PROGRAM mhm_driver
   iTimer = iTimer + 1
   call message()
   if ( optimize ) then
-#ifdef mrm2mhm     
+#ifdef mrm2mhm
      ! call optimization against only runoff (no other variables)
      if ((opti_function .eq. 1) .or. &
          (opti_function .eq. 2) .or. &
@@ -389,13 +396,14 @@ PROGRAM mhm_driver
          (opti_function .eq. 14)) &
          call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     
+
      ! call optimization for other variables
      if ((opti_function .eq. 10) .or. &
          (opti_function .eq. 11) .or. &
          (opti_function .eq. 12) .or. &
          (opti_function .eq. 13) .or. &
-         (opti_function .eq. 15)) &
+         (opti_function .eq. 15) .or. &
+         (opti_function .eq. 17)) &
          call optimization(objective, dirConfigOut, funcBest, maskpara)
 
      ! write a file with final objective function and the best parameter set
@@ -403,8 +411,8 @@ PROGRAM mhm_driver
      ! write a file with final best parameter set in a namlist format
      call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
      deallocate(maskpara)
-  else 
-     
+  else
+
      ! --------------------------------------------------------------------------
      ! call mHM
      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
@@ -416,7 +424,7 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
 
-  end if 
+  end if
 
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
@@ -431,7 +439,7 @@ PROGRAM mhm_driver
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
 
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
   ! --------------------------------------------------------------------------
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)

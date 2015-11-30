@@ -9,26 +9,26 @@
 !>          The processes are executed in ascending order. At the moment only
 !>          process 5 and 8 have options.\n
 !>          The MPR technique is only called either if the land cover has been
-!>          changed or for very first time step.\n 
+!>          changed or for very first time step.\n
 !>
 !>          Currently the following processes are implemented: \n
 !>
-!>          Process    | Name                      | Flag  | Description                         
+!>          Process    | Name                      | Flag  | Description
 !>          ---------- | ------------------------- | ----- | ------------------------------------------
-!>          1          | interception              | 1     | Maximum interception     
+!>          1          | interception              | 1     | Maximum interception
 !>          2          | snow and melting          | 1     | Degree-day
-!>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey  
-!>          4          | direct runoff             | 1     | Linear reservoir exceedance 
-!>          5          | PET                       | 0     | PET is read as input 
+!>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey
+!>          4          | direct runoff             | 1     | Linear reservoir exceedance
+!>          5          | PET                       | 0     | PET is read as input
 !>          5          |         ''                | 1     | Hargreaves-Samani
 !>          5          |         ''                | 2     | Priestley-Taylor
 !>          5          |         ''                | 3     | Penman-Monteith
 !>          6          | interflow                 | 1     | Nonlinear reservoir with saturation excess
-!>          7          | percolation and base flow | 1     | GW linear reservoir     
+!>          7          | percolation and base flow | 1     | GW linear reservoir
 !>          8          | routing                   | 0     | no routing
-!>          8          |         ''                | 1     | use mRM i.e. Muskingum 
+!>          8          |         ''                | 1     | use mRM i.e. Muskingum
 !>
-  
+
 !> \author Luis Samaniego
 !> \date Dec 2012
 
@@ -36,9 +36,9 @@ MODULE mo_mHM
 
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
-  use mo_message,       only: message 
+  use mo_message,       only: message
   !$ USE omp_lib
- 
+
   IMPLICIT NONE
 
   PUBLIC :: mHM      ! initialization sequence
@@ -94,18 +94,18 @@ CONTAINS
 
   !         Modified Luis Samaniego, Rohini Kumar,   Dec 2012 - modularization
   !                  Luis Samaniego,                 Feb 2013 - call routine
-  !                  Rohini Kumar,                   Feb 2013 - MPR call and other pre-requisite 
+  !                  Rohini Kumar,                   Feb 2013 - MPR call and other pre-requisite
   !                                                             variables for this call
   !                  Rohini Kumar,                   May 2013 - Error checks
   !                  Rohini Kumar,                   Jun 2013 - sealed area correction in total runoff
   !                                                           - initalization of soil moist. at first timestep
-  !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within 
+  !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within
   !                                                             the code made accordingly (e.g., canopy intecpt.)
   !                                                           - max. canopy interception is estimated outside of MPR
   !                                                             call
   !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
   !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
-  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith 
+  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
   !                                                             and its parameterization (Process 5)
   !                  Rohini Kumar,                   Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
   !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
@@ -238,7 +238,7 @@ CONTAINS
       unsat_thresh        , & ! Threshold water depth in upper reservoir
       water_thresh_sealed , & ! Threshold water depth in impervious areas
       wilting_point         ) ! Permanent wilting point for each horizon
-    
+
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
@@ -250,11 +250,11 @@ CONTAINS
     use mo_soil_moisture,           only: soil_moisture
     use mo_neutrons,                only: DesiletsN0, COSMIC
     use mo_runoff,                  only: runoff_unsat_zone
-    use mo_runoff,                  only: runoff_sat_zone, L1_total_runoff 
+    use mo_runoff,                  only: runoff_sat_zone, L1_total_runoff
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-                                          
+
     implicit none
 
     ! Intent
@@ -263,8 +263,8 @@ CONTAINS
     real(dp),                    intent(in) :: fSealedInCity        ! fraction of perfectly sealed area within cities
     integer(i4),                 intent(in) :: timeStep_LAI_input   ! time step of gridded LAI input
     integer(i4),                 intent(in) :: counter_year         ! counter to tackle the change of year
-    integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month 
-    integer(i4),                 intent(in) :: counter_day          ! counter to tackle the change of day 
+    integer(i4),                 intent(in) :: counter_month        ! counter to tackle the change of month
+    integer(i4),                 intent(in) :: counter_day          ! counter to tackle the change of day
     integer(i4),                 intent(in) :: tt
     real(dp),                    intent(in) :: time
     integer(i4), dimension(:,:), intent(in) :: processMatrix
@@ -280,7 +280,7 @@ CONTAINS
     integer(i4),                   intent(in) :: LCyearId
     integer(i4), dimension(:),     intent(in) :: GeoUnitList
     integer(i4), dimension(:),     intent(in) :: GeoUnitKar
-    integer(i4), dimension(:),     intent(in) :: LAIUnitList 
+    integer(i4), dimension(:),     intent(in) :: LAIUnitList
     real(dp),    dimension(:,:),   intent(in) :: LAILUT
 
     ! Physiographic L0
@@ -398,8 +398,8 @@ CONTAINS
     integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
 
-    real(dp)               :: pet         ! 
-    real(dp)               :: prec        ! 
+    real(dp)               :: pet         !
+    real(dp)               :: prec        !
     real(dp)               :: temp        !
 
     ! temporary arrays so that inout of routines is contiguous array
@@ -414,9 +414,9 @@ CONTAINS
 
    !-------------------------------------------------------------------
     ! MPR CALL
-    !   -> call only when LC had changed 
-    !   -> or for very first time step  
-    !   
+    !   -> call only when LC had changed
+    !   -> or for very first time step
+    !
     ! Variables required prior to the MPR call:
     ! 1) LC fractions
     !      --> time independent variable: to be initalized every time
@@ -426,7 +426,7 @@ CONTAINS
     !          with landcover change
     !-------------------------------------------------------------------
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
-        
+
        ! abort if land cover change is there and mpr is switched off
        if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
           call message()
@@ -434,9 +434,9 @@ CONTAINS
           stop
        end if
 
-        ! update yId to keep track of LC change         
-        yId = LCyearId        
-  
+        ! update yId to keep track of LC change
+        yId = LCyearId
+
         ! estimate land cover fractions for dominant landcover class
         ! --> time independent variable: to be initalized every time
         !     with landcover change
@@ -459,7 +459,7 @@ CONTAINS
                                                 L0rightBound_inL1, &
                                                 nTCells0_inL1      )
         !---------------------------------------------------------
-        ! Update fractions of sealed area fractions 
+        ! Update fractions of sealed area fractions
         ! based on the sealing fraction[0-1] in cities
         !---------------------------------------------------------
         fSealed1(:) = fSealedInCity*fSealed1(:)
@@ -469,7 +469,7 @@ CONTAINS
         fForest1(:) = fForest1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
         fSealed1(:) = fSealed1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
         fPerm1(:)   = fPerm1(:)   / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
- 
+
         !-------------------------------------------------------------------
         ! NOW call MPR
         !-------------------------------------------------------------------
@@ -490,8 +490,8 @@ CONTAINS
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
         !-------------------------------------------------------------------
-        ! Update the inital states of soil water content for the first time 
-        ! step and when perform_mpr = FALSE 
+        ! Update the inital states of soil water content for the first time
+        ! step and when perform_mpr = FALSE
         ! based on the half of the derived values of Field capacity
         ! other states are kept at their inital values
         !-------------------------------------------------------------------
@@ -500,7 +500,7 @@ CONTAINS
         end if
 
     end if
-    
+
     !-------------------------------------------------------------------
     ! CALL regionalization of parameters related to LAI
     ! IT is now outside of mHM since LAI is now dynamic variable
@@ -509,18 +509,18 @@ CONTAINS
     case(0)
        ! Estimate max. intecept. capacity based on long term monthly mean LAI values
        ! Max. interception is updated every month rather than every day
-       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then 
+       if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               ) 
+               nodata_dp,  interc_max               )
        end if
        ! Estimate max. inteception based on daily LAI values
     case(-1) ! daily
        if ( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
@@ -528,7 +528,7 @@ CONTAINS
     case(-2) ! monthly
        if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
@@ -536,7 +536,7 @@ CONTAINS
     case(-3) ! yearly
        if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1, & 
+               LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
@@ -549,9 +549,9 @@ CONTAINS
     ! flag for day or night depending on hours of the day
     !-------------------------------------------------------------------
     isday = ( hour .gt. 6 ) .AND. ( hour .le. 18 )
-    
+
     !-------------------------------------------------------------------
-    ! HYDROLOGICAL PROCESSES at L1-LEVEL 
+    ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
 
     !$OMP parallel default(shared) &
@@ -570,19 +570,19 @@ CONTAINS
           !
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
-          
+
           pet = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   &
-               tmin_in(k), latitude(k), doy)                                                
+               tmin_in(k), latitude(k), doy)
 
        case(2) ! Priestley-Taylor
            ! Priestley Taylor is not defined for values netrad < 0.0_dp
-          pet = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))  
+          pet = pet_priestly( PrieTayAlpha(k,month), max(netrad_in(k), 0.0_dp), temp_in(k))
 
        case(3) ! Penman-Monteith
           pet = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
                aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
        end select
-       
+
        ! temporal disaggreagtion of forcing variables
        call temporal_disagg_forcing( isday, ntimesteps_day, prec_in(k),                        & ! Intent IN
             pet, temp_in(k), fday_prec(month), fday_pet(month),                                & ! Intent IN
@@ -615,7 +615,7 @@ CONTAINS
             infiltration(k, nHorizons_mHM),  unsat_thresh(k),                                  & ! Intent IN
             satStorage(k), unsatStorage(k),                                                    & ! Intent INOUT
             slow_interflow(k), fast_interflow(k), perc(k) )                                      ! Intent OUT
-            
+
        call runoff_sat_zone( k2(k),                                                            & ! Intent IN
             satStorage(k),                                                                     & ! Intent INOUT
             baseflow(k) )                                                                        ! Intent OUT
@@ -631,8 +631,8 @@ CONTAINS
     !-------------------------------------------------------------------
     ! Nested model: Neutrons state variable, related to soil moisture   
     !-------------------------------------------------------------------
-    
-    ! based on soilMoisture 
+
+    ! based on soilMoisture
     ! TODO they again loop over all cells. Maybe move this to line 680 in the loop used above?
     if ( processMatrix(10, 1) .eq. 1 ) &
         call DesiletsN0( soilMoisture(:,:), horizon_depth(:), &
@@ -642,16 +642,7 @@ CONTAINS
         call COSMIC( soilMoisture(:,:), horizon_depth(:), &
                     global_parameters(processMatrix(10,3)-processMatrix(10,2)+2:processMatrix(10,3)), &
                     neutrons(:))
-    
+
   end subroutine mHM
 
 END MODULE mo_mHM
-
-
-
-
-
-
-
-
-  

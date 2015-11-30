@@ -19,7 +19,7 @@ MODULE mo_write_ascii
 
   ! Written  Christoph Schneider, May 2013
   ! Modified, Juliane Mai,        May 2013 - module version and documentation
-  ! Modified, Luis Samaniego,     Nov 2013 - improving all formats  
+  ! Modified, Luis Samaniego,     Nov 2013 - improving all formats
   ! Modified, Luis Samaniego,     Mar 2014 - added inflow gauge information write out
   ! Modified, Stephan Thober,     Jun 2014 - bug fixed: in writing network properties
   ! Modified, Rohini Kumar,       Jun 2014 - bug fixed: writing of max and min value of discharge
@@ -39,7 +39,7 @@ MODULE mo_write_ascii
   !     PURPOSE
   !>        \brief This modules writes the results of the configuration into an ASCII-file
 
-  !>        \details 
+  !>        \details
 
   !     INTENT(IN)
   !         None
@@ -66,16 +66,16 @@ MODULE mo_write_ascii
   !         None
 
   !     EXAMPLE
-  !         
+  !
 
   !     LITERATURE
-  !         
+  !
 
   !     HISTORY
   !>        \author Christoph Schneider
   !>        \date May 2013
   !         Modified, Juliane Mai,    May 2013 - module version and documentation
-  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
+  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out
   !                   Stephan Thober, Jun 2014 - updated read_restart
   !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
 
@@ -110,7 +110,7 @@ CONTAINS
          dirTemperature,            &
          dirReferenceET,            &
          dirOut,                    &
-         dirRestartOut,             &  
+         dirRestartOut,             &
          warmPer,                   &
          evalPer,                   &
          SimPer,                    &
@@ -119,7 +119,7 @@ CONTAINS
     use mo_common_variables, only: &
          global_parameters,         &
          global_parameters_name
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
     use mo_mrm_global_variables, only: &
          basin_mrm,                 &
          gauge,                     &
@@ -130,17 +130,17 @@ CONTAINS
          L11_toN,                   &
          L11_rOrder,                &
          L11_label,                 &
-         L11_length,                &         
+         L11_length,                &
          L11_slope,                 &
          L11_ID,                    &
          L1_L11_ID,                 &
          L1_areaCell,               &
          nGaugesTotal,              &
          nInflowGaugesTotal,        &
-         resolutionRouting,         &  
+         resolutionRouting,         &
          dirGauges
-#endif    
-         
+#endif
+
 
     implicit none
     !
@@ -159,26 +159,26 @@ CONTAINS
        call message('  Error-Code', num2str(err) )
        stop
     end if
-    write(uconfig, 200) 
+    write(uconfig, 200)
     write(uconfig, 100) 'mHM-UFZ v-'//trim(version)
     write(uconfig, 100) 'L. Samaniego & R. Kumar, UFZ'
-    write(uconfig, 200) 
+    write(uconfig, 200)
     write(uconfig, 100)
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
     write(uconfig, 103) 'Number of basins            ', nBasins
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
     write(uconfig, 103) 'Total No. of nodes          ', L11_nCells
     write(uconfig, 103) 'Total No. of reaches        ', L11_nCells-1
-#endif    
+#endif
     write(uconfig, 103) 'No. of cells L0             ', L0_nCells
     write(uconfig, 103) 'No. of cells L1             ', L1_nCells
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 103) 'No. of cells L11            ', L11_nCells
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
     end if
-#endif    
+#endif
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do i=1, nBasins
        select case (iFlag_cordinate_sys)
@@ -188,22 +188,22 @@ CONTAINS
           if ( processMatrix(8,1) .ne. 0 ) then
              write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
           end if
-#endif          
+#endif
        case(1)
          write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
 #ifdef mrm2mhm
          if ( processMatrix(8,1) .ne. 0 ) then
             write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
          end if
-#endif         
-  
+#endif
+
        end select
     end do
     write(uconfig, 126)    'Flag READ  restart            ', read_restart
     write(uconfig, 126)    'Flag WRITE restart            ', write_restart
     !
     !******************
-    ! Model Run period 
+    ! Model Run period
     !******************
     do j = 1, nBasins
        write(uconfig, 115) '                      Model Run Periods for Basin ', num2str(j)
@@ -212,10 +212,10 @@ CONTAINS
             '   Day Month  Year   Day Month  Year'
        write(uconfig,117)  &
             'Warming Period (1)            ',&
-            warmPer(j)%dStart, warmPer(j)%mStart, warmPer(j)%yStart  ,& 
+            warmPer(j)%dStart, warmPer(j)%mStart, warmPer(j)%yStart  ,&
             warmPer(j)%dEnd  , warmPer(j)%mEnd  , warmPer(j)%yEnd    ,&
             'Evaluation Period (2)         ',&
-            evalPer(j)%dStart   ,evalPer(j)%mStart   , evalPer(j)%yStart      ,& 
+            evalPer(j)%dStart   ,evalPer(j)%mStart   , evalPer(j)%yStart      ,&
             evalPer(j)%dEnd     ,evalPer(j)%mEnd     , evalPer(j)%yEnd        ,&
             'Simulation Period (1)+(2)     ',&
             SimPer(j)%dStart  , SimPer(j)%mStart  , SimPer(j)%yStart  ,&
@@ -223,7 +223,7 @@ CONTAINS
     end do
 
     !*********************************
-    ! Model Land Cover Observations 
+    ! Model Land Cover Observations
     !*********************************
     do j = 1, nBasins
        write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
@@ -247,11 +247,11 @@ CONTAINS
             i, global_parameters(i,1), global_parameters(i,2), global_parameters(i,3), &
             trim(adjustl(global_parameters_name(i)))
     end do
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
     ! basin runoff data
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 202) '                Basin Runoff Data                '
-       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
+       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
        do i=1, nGaugesTotal
           if( any(gauge%Q(:,i) > nodata_dp) ) then
              write(uconfig,108) i, gauge%basinId(i), maxval(gauge%Q(:,i), gauge%Q(:,i) > nodata_dp), &
@@ -264,7 +264,7 @@ CONTAINS
     ! inflow gauge data
     if ( nInflowGaugesTotal .GT. 0 ) then
        write(uconfig, 202) '                Basin Inflow Data                 '
-       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'         
+       write(uconfig, 107) ' Gauge No.', '  Basin Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
        do i=1, nInflowGaugesTotal
           if( all(InflowGauge%Q(:,i) > nodata_dp) ) then
              write(uconfig,108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:,i), InflowGauge%Q(:,i) > nodata_dp), &
@@ -274,7 +274,7 @@ CONTAINS
           end if
        end do
     end if
-#endif    
+#endif
     ! basin config
     write(uconfig,218) 'Basin-wise Configuration'
     do n=1,nBasins
@@ -288,18 +288,18 @@ CONTAINS
 
        write(uconfig, 224) 'Directory to morphological input         ',  dirMorpho(n)
        write(uconfig, 224) 'Directory to land cover input            ',  dirLCover(n)
-#ifdef mrm2mhm       
+#ifdef mrm2mhm
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
        end if
-#endif       
+#endif
        write(uconfig, 224) 'Directory to precipitation input         ',  dirPrecipitation(n)
        write(uconfig, 224) 'Directory to temperature input           ',  dirTemperature(n)
        write(uconfig, 224) 'Directory to reference ET input          ',  dirReferenceET(n)
        write(uconfig, 224) 'Directory to write output by default     ',  dirOut(n)
        write(uconfig, 224) 'Directory to write output when restarted ',  dirRestartOut(n)
 
-#ifdef mrm2mhm       
+#ifdef mrm2mhm
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 102) 'River Network  (Routing level)'
           write(uconfig, 100) 'Label 0 = intermediate draining cell '
@@ -352,12 +352,12 @@ CONTAINS
           end do
           write(uconfig,114)  ' Total[km2]', sum(L1_areaCell(basin%L1_iStart(n): basin%L1_iEnd(n)))
        end if
-#endif       
+#endif
        !
     end do
 
     write(uconfig,*)
-    close(uconfig)  
+    close(uconfig)
 
     !! Formats
 100 format (a80)
@@ -416,7 +416,7 @@ CONTAINS
   !     CALLING SEQUENCE
 
   !     INTENT(IN)
-  !>        \param[in]  "real(dp)                   :: best_OF"         best objective function value as returned 
+  !>        \param[in]  "real(dp)                   :: best_OF"         best objective function value as returned
   !>                                                                    by the optimization routine
   !>        \param[in]  "real(dp), dimension(:)     :: best_paramSet"   best associated global parameter set
 
@@ -464,7 +464,7 @@ CONTAINS
 
     implicit none
 
-    real(dp),                       intent(in)     :: best_OF     
+    real(dp),                       intent(in)     :: best_OF
     real(dp),         dimension(:), intent(in)     :: best_paramSet
     character(len=*), dimension(:), intent(in)     :: param_names
 
@@ -484,14 +484,14 @@ CONTAINS
        stop
     end if
 
-    ! header 
+    ! header
     write(formHeader, *) '(a40,',n_params,'a40)'
     ! len(param_names(1))=256 but only 39 characters taken here
     ! write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii))), ii=1, n_params)
     write(uopti, formHeader) 'OF', (trim(adjustl(param_names(ii)(1:39))), ii=1, n_params)
 
     ! output
-    write(formParams, *) '( es40.14, ', n_params,'(es40.14) )' 
+    write(formParams, *) '( es40.14, ', n_params,'(es40.14) )'
     write(uopti, formParams) best_OF, (best_paramSet(ii), ii=1, n_params)
 
     ! close file
@@ -511,8 +511,8 @@ CONTAINS
   !     PURPOSE
   !>        \brief Write final, optimized parameter set in a namelist format.
 
-  !>        \details  Write final, optimized parameter set in a namelist format. 
-  !>                  Only parameters of processes which were switched on are written to the namelist. 
+  !>        \details  Write final, optimized parameter set in a namelist format.
+  !>                  Only parameters of processes which were switched on are written to the namelist.
   !>                  All others are discarded.
 
   !     CALLING SEQUENCE
@@ -555,7 +555,7 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date Dec 2013
 
-  !         Modified, 
+  !         Modified,
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
@@ -566,7 +566,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4),      dimension(nProcesses, 3),      intent(in) :: processMatrix     ! information about which process 
+    integer(i4),      dimension(nProcesses, 3),      intent(in) :: processMatrix     ! information about which process
     !                                                                                ! case was used
     real(dp),         dimension(:,:),                intent(in) :: parameters        ! (min, max, opti)
     logical,          dimension(size(parameters,1)), intent(in) :: maskpara          ! .true. if parameter was calibrated
@@ -652,17 +652,19 @@ CONTAINS
              write(uopti_nml,*) '&geoparameter'
           end if
        case(10)
-          if (processMatrix(iProc,1) .eq. 1) then
+          if (processMatrix(iProc,1) .ge. 1) then
              write(uopti_nml,*) '&neutrons1'
           end if
        end select
 
        do iPar=iPar_Start, processMatrix(iProc, 3)
+
           if (maskpara(iPar)) then
              flag=' 1 '
           else
              flag=' 0 '
           end if
+
           write(uopti_nml,*) trim(adjustl(parameters_name(iPar))), ' = ', &
                parameters(iPar,1), ' , ', &
                parameters(iPar,2), ' , ', &
@@ -687,6 +689,3 @@ CONTAINS
   end subroutine write_optinamelist
 
 END MODULE mo_write_ascii
-
-
-

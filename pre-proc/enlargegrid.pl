@@ -20,6 +20,7 @@ else {
   {
     local $^I = ".bak"; # backup files
     local @ARGV = glob("*.asc");
+    print "$_\n" foreach @ARGV;
     while (<>) {
       if (/^ncols/) { $datastart=0;$xdiff=-1;$ydiff=-1; print STDOUT "$ARGV\n"; }
       if ($datastart) { s/[\r\n]+//; print $_.(" $NODATA" x $xdiff)."\n";  }

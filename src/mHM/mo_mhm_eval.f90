@@ -15,7 +15,7 @@ MODULE mo_mhm_eval
 
   PRIVATE
 
-  PUBLIC :: mhm_eval               
+  PUBLIC :: mhm_eval
 
   ! ------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ CONTAINS
   !>        \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
   !     INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:)    :: parameterset" 
+  !>       \param[in] "real(dp), dimension(:)    :: parameterset"
   !>          a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
 
   !     INTENT(INOUT)
@@ -47,11 +47,11 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff" 
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff"
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
-  !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti" 
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti"
   !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
-  !>        \param[out] "real(dp), dimension(:,:), optional  :: basin_avg_tws" 
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: basin_avg_tws"
   !>           returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
 
   !     RETURN
@@ -70,7 +70,7 @@ CONTAINS
   !>        \author Juliane Mai, Rohini Kumar
   !>        \date Feb 2013
   !         Modified, R. Kumar,             Jun 2013 - restart_flag_states_read is passed to mhm call
-  !                                                    for the soil moisture initalisation 
+  !                                                    for the soil moisture initalisation
   !                   R. Kumar,             Jun 2013 - frac_sealed_city_area is added
   !                   R. Kumar & S. Thober, Aug 2013 - code change to incorporate output timestep
   !                                                    during writing of the netcdf file
@@ -91,7 +91,7 @@ CONTAINS
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
   !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
     use mo_init_states,         only : get_basin_info
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
@@ -108,46 +108,47 @@ CONTAINS
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
          timeStep, nBasins, simPer, readPer,                 & ! [h] simulation time step, No. of basins
-         processMatrix, c2TSTu, HorizonDepth_mHM,            & 
-         nSoilHorizons_mHM, NTSTEPDAY, timeStep,             & 
-         LCyearId, LAIUnitList, LAILUT,                      & 
+         processMatrix, c2TSTu, HorizonDepth_mHM,            &
+         nSoilHorizons_mHM, NTSTEPDAY, timeStep,             &
+         LCyearId, LAIUnitList, LAILUT,                      &
          GeoUnitList, GeoUnitKar, soilDB,                    &
-         L0_Id, L0_soilId,                                   & 
+         L0_Id, L0_soilId,                                   &
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
-         soilDB, L1_nTCells_L0,                              & 
+         soilDB, L1_nTCells_L0,                              &
          L0_slope_emp,                                       &
-         L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    & 
+         L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,    &
          L1_rightBound_L0, L0_latitude, L1_latitude,         &
-         evap_coeff, fday_prec,                              & 
-         fnight_prec, fday_pet, fnight_pet, fday_temp,       & 
+         evap_coeff, fday_prec,                              &
+         fnight_prec, fday_pet, fnight_pet, fday_temp,       &
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
          L1_absvappress, L1_windspeed,                       &
-         L1_pre, L1_temp , L1_fForest,                       & 
-         L1_fPerm, L1_fSealed, L1_inter,                     & 
-         L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, & 
+         L1_pre, L1_temp , L1_fForest,                       &
+         L1_fPerm, L1_fSealed, L1_inter,                     &
+         L1_snowPack, L1_sealSTW, L1_soilMoist, L1_unsatSTW, &
          L1_satSTW, L1_pet_calc,                             &
          L1_aETSoil, L1_aETCanopy, L1_aETSealed,             &
-         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,  & 
-         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal,    & 
-         L1_slowRunoff, L1_snow, L1_Throughfall,             & 
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,  &
+         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal,    &
+         L1_slowRunoff, L1_snow, L1_Throughfall,             &
          L1_total_runoff, L1_alpha, L1_degDayInc,            &
-         L1_degDayMax,                                       & 
-         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, & 
+         L1_degDayMax,                                       &
+         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff, &
          L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,      &
-         L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, & 
-         L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              & 
-         L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   & 
-         L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     & 
+         L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, &
+         L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              &
+         L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   &
+         L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     &
          L1_wiltingPoint, L1_neutrons,                       &
          basin_avg_TWS_sim,                                  &
          warmingDays,                                        &
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
-         nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input 
-         nTimeSteps_L1_sm                                      ! total number of timesteps in soil moisture input
+         nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input
+         nTimeSteps_L1_sm,                                   & ! total number of timesteps in soil moisture input
+         nTimeSteps_L1_neutrons                                ! total number of timesteps in neutrons input
     use mo_common_variables, only: &
-         optimize   
+         optimize
 #ifdef mrm2mhm
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
@@ -188,18 +189,19 @@ CONTAINS
     use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_mrm_init, only: variables_default_init_routing
 #endif
-    
+
     implicit none
 
     real(dp), dimension(:),                          intent(in)  :: parameterset
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti      ! dim1=ncells, dim2=time
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: basin_avg_tws! dim1=time dim2=nBasins
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
 
     ! -------------------------------------
     ! local variables
     !
-    ! FOR WRITING GRIDDED STATES AND FLUXES 
+    ! FOR WRITING GRIDDED STATES AND FLUXES
     integer(i4)                               :: tIndex_out          ! for writing netcdf file
     real(dp), dimension(size(L1_fSealed))     :: L1_fNotSealed
     type(OutputDataset)                       :: nc
@@ -233,25 +235,25 @@ CONTAINS
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
     !
-#ifdef mrm2mhm    
+#ifdef mrm2mhm
     ! for routing
     logical                                   :: do_mpr
     integer(i4)                               :: s11, e11 ! start and end index at L11
     integer(i4)                               :: s110, e110 ! start and end index of L11 at L0
     logical, allocatable                      :: mask11(:,:)
-#endif    
+#endif
     !
 
     ! for basin average tws timeseries
     integer(i4)                               :: gg
     real(dp), dimension(:), allocatable       :: TWS_field      ! field of TWS
     real(dp)                                  :: area_basin
-    
+
     ! LAI options
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-   
+
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -269,19 +271,27 @@ CONTAINS
        allocate(sm_opti(size(L1_pre, dim=1), nTimeSteps_L1_sm))
        sm_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
     end if
+    ! neutrons optimization
+    !--------------------------
+    if ( present(neutrons_opti) ) then
+       !                ! total No of cells, No of timesteps
+       !                ! of all basins    , in neutrons input
+       allocate(neutrons_opti(size(L1_pre, dim=1), nTimeSteps_L1_neutrons))
+       neutrons_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
+    end if
     ! add other optionals...
 
 
 
-    
+
     !-------------------------------------------------------------------
-    ! Initalize State variables either to the default value or 
+    ! Initalize State variables either to the default value or
     ! from the restrat_files.
-    ! All variables to be initalized had been allocated to the required 
+    ! All variables to be initalized had been allocated to the required
     ! space before this point (see, mo_startup: initialise)
     !-------------------------------------------------------------------
     if (.NOT. read_restart ) then
-       ! as default values, 
+       ! as default values,
        ! all cells for all modeled basins are simultenously initalized ONLY ONCE
        call variables_default_init()
 #ifdef mrm2mhm
@@ -292,8 +302,8 @@ CONTAINS
           !-------------------------------------------
           call variables_default_init_routing()
        end if
-#endif  
-    else 
+#endif
+    else
        ! read from restart files, basin wise ...
        do ii = 1, nBasins
           call read_restart_states(ii, dirRestartIn(ii) )
@@ -308,28 +318,28 @@ CONTAINS
 
        ! calculate NtimeSteps for this basin
        nTimeSteps = ( simPer(ii)%julEnd - simPer(ii)%julStart + 1 ) * NTSTEPDAY
-       
+
        ! reinitialize time counter for LCover and MPR
-       ! -0.5 is due to the fact that dec2date routine 
+       ! -0.5 is due to the fact that dec2date routine
        !   changes the day at 12:00 in NOON
        ! Whereas mHM needs day change at 00:00 h
        newTime = real(simPer(ii)%julStart,dp)
        yId     = 0
 
        ! get basin information
-       call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 ) 
-       call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 ) 
+       call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 )
+       call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 )
 
-#ifdef mrm2mhm       
+#ifdef mrm2mhm
        if (processMatrix(8,1) .eq. 1) then
           ! read states from restart
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
           !
           ! get basin information at L11 and L110 if routing is activated
-          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  ) 
-          call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 ) 
+          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
+          call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
        end if
-#endif       
+#endif
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
@@ -339,7 +349,7 @@ CONTAINS
           allocate(TWS_field(s1:e1))
           TWS_field(s1:e1) = nodata_dp
        end if
-       
+
        ! Loop over time
        average_counter  = 0
        writeout_counter = 0
@@ -354,16 +364,16 @@ CONTAINS
              s_meteo = s1
              e_meteo = e1
              ! time step for meteorological variable (daily values)
-             iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )             
+             iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) )
           else
-             ! read chunk of meteorological forcings data (reading, upscaling/downscaling) 
+             ! read chunk of meteorological forcings data (reading, upscaling/downscaling)
              call prepare_meteo_forcings_data(ii, tt)
              ! set start and end of meteo position
              s_meteo = 1
              e_meteo = e1 - s1 + 1
              ! time step for meteorological variable (daily values)
              iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
-                  - ( readPer%julStart - simPer(ii)%julStart )             
+                  - ( readPer%julStart - simPer(ii)%julStart )
           end if
 
           hour = mod(hour+timestep, 24)
@@ -392,7 +402,7 @@ CONTAINS
 
           ! customize iMeteoTS for process 5 - PET
           select case (processMatrix(5,1))
-          !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)  
+          !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)
           case(0) ! PET is input
              iMeteo_p5 = (/iMeteoTS,        1,        1,        1,        1,        1 /)
           case(1) ! HarSam
@@ -402,7 +412,7 @@ CONTAINS
           case(3) ! PenMon
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
           end select
-             
+
           !--------------------------------------------------------------------
           ! call LAI function to get LAI fields for this timestep and basin
           !--------------------------------------------------------------------
@@ -412,18 +422,18 @@ CONTAINS
              month_counter = month
              year_counter  = year
           end if
-          ! 
+          !
           select case(timeStep_LAI_input)
           case(0)
              ! create gridded fields of LAI using long term monthly mean LAI values
-             ! and the corresponding LC file 
+             ! and the corresponding LC file
              ! update LAI --> for 1st timestep and when month changes
              if( (tt .EQ. 1) .OR. (month_counter .NE. month) ) then
                 do ll = 1, size(LAIUnitList)
                    where( L0_LCover_LAI(s0:e0) .EQ. LAIUnitList(ll) ) LAI(:) = LAILUT(ll, month)
                 end do
              end if
-             !              
+             !
           case(-1) ! daily
              if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
@@ -458,9 +468,9 @@ CONTAINS
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
-               timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C          
+               timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
-               nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C 
+               nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                     & ! IN L0
@@ -481,12 +491,13 @@ CONTAINS
                L1_netrad(s_p5(4):e_p5(4), iMeteo_p5(4)),                                    & ! IN F:PET
                L1_absvappress(s_p5(5):e_p5(5), iMeteo_p5(5)),                               & ! IN F:PET
                L1_windspeed(s_p5(6):e_p5(6), iMeteo_p5(6)),                                 & ! IN F:PET
-               L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN F:Pre 
+               L1_pre(s_meteo:e_meteo,iMeteoTS),                                            & ! IN F:Pre
                L1_temp(s_meteo:e_meteo,iMeteoTS),                                           & ! IN F:Temp
                yId,                                                                         & ! INOUT C
-               L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1 
-               L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S 
-               L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1), L1_neutrons,    & ! INOUT S 
+               L1_fForest(s1:e1), L1_fPerm(s1:e1),  L1_fSealed(s1:e1),                      & ! INOUT L1
+               L1_inter(s1:e1), L1_snowPack(s1:e1), L1_sealSTW(s1:e1),                      & ! INOUT S
+               L1_soilMoist(s1:e1,:), L1_unsatSTW(s1:e1), L1_satSTW(s1:e1),                 & ! INOUT S
+               L1_neutrons(s1:e1),                                                          & ! INOUT S
                L1_pet_calc(s1:e1),                                                          & ! INOUT X
                L1_aETSoil(s1:e1,:), L1_aETCanopy(s1:e1), L1_aETSealed(s1:e1),               & ! INOUT X
                L1_baseflow(s1:e1), L1_infilSoil(s1:e1,:), L1_fastRunoff(s1:e1),             & ! INOUT X
@@ -560,7 +571,7 @@ CONTAINS
           if (day_counter   .NE. day  ) day_counter   = day
           if (month_counter .NE. month) month_counter = month
           if (year_counter  .NE. year)  year_counter  = year
-             
+
           ! increment of timestep
           newTime = julday(day,month,year) + real(hour+timestep,dp)/24._dp
           ! calculate new year, month and day
@@ -586,7 +597,7 @@ CONTAINS
                      L11_qmod(s11:e11))
              end if
 #endif
-             
+
              ! output only for evaluation period
              tIndex_out = (tt-warmingDays(ii)*NTSTEPDAY) ! tt if write out of warming period
 
@@ -598,7 +609,7 @@ CONTAINS
                    L1_fNotSealed = 1.0_dp - L1_fSealed
                    nc = OutputDataset(ii, mask1)
                 end if
-                
+
                 call nc%updateDataset( &
                      s1              , &
                      e1              , &
@@ -625,7 +636,7 @@ CONTAINS
                      L1_infilSoil    , &
                      L1_preEffect      &
                      )
-                
+
                 ! write data
                 writeout = .false.
                 if (timeStep_model_outputs .gt. 0) then
@@ -705,21 +716,47 @@ CONTAINS
           if( present(basin_avg_tws) ) then
                area_basin = sum(L1_areaCell(s1:e1) )
                TWS_field(s1:e1) = L1_inter(s1:e1) + L1_snowPack(s1:e1) + L1_sealSTW(s1:e1) + &
-                                        L1_unsatSTW(s1:e1) + L1_satSTW(s1:e1)             
+                                        L1_unsatSTW(s1:e1) + L1_satSTW(s1:e1)
                do gg = 1, nSoilHorizons_mHM
-                  TWS_field(s1:e1) =   TWS_field(s1:e1) + L1_soilMoist (s1:e1,gg)   
+                  TWS_field(s1:e1) =   TWS_field(s1:e1) + L1_soilMoist (s1:e1,gg)
                end do
-               basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )  
+               basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )
             end if
             !----------------------------------------------------------------------
-          
+
+            !----------------------------------------------------------------------
+            ! FOR NEUTRONS
+            ! NOTE:: modeled neutrons are averaged daily
+            !----------------------------------------------------------------------
+            if (present(neutrons_opti)) then
+               if ( tt .EQ. 1 ) writeout_counter = 1
+               ! only for evaluation period - ignore warming days
+               if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
+                  ! decide for daily, monthly or yearly aggregation
+                  ! daily
+                  if (day   .NE. day_counter)   then
+                     neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                     writeout_counter = writeout_counter + 1
+                     average_counter = 0
+                  end if
+
+                  ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
+                  if (.not. (tt .eq. nTimeSteps) ) then
+                     ! aggregate neutrons to needed time step for optimization
+                     neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) + L1_neutrons(s1:e1)
+                  end if
+
+                  average_counter = average_counter + 1
+               end if
+            end if
+
        end do !<< TIME STEPS LOOP
 
        ! deallocate space for temprory LAI fields
        deallocate(LAI)
        ! deallocate TWS field temporal variable
        if (allocated (TWS_field) ) deallocate(TWS_field)
-       
+
     end do !<< BASIN LOOP
 
 #ifdef mrm2mhm
@@ -732,7 +769,7 @@ CONTAINS
     ! =========================================================================
     ! SET TWS OUTPUT VARIABLE
     ! =========================================================================
-    if( present(basin_avg_tws) ) basin_avg_tws = basin_avg_TWS_sim   
+    if( present(basin_avg_tws) ) basin_avg_tws = basin_avg_TWS_sim
 
   end SUBROUTINE mhm_eval
 

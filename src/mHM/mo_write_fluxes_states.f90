@@ -9,7 +9,7 @@
 !>     \date Apr 2013
 !      Modified:
 !          David Schaefer, Aug 2015 - major rewrite
-!       
+!
 module mo_write_fluxes_states
 
   use mo_kind             , only: i4, dp
@@ -26,7 +26,7 @@ module mo_write_fluxes_states
      logical,  pointer     :: mask(:,:)          !> mask to reconstruct data
      real(dp), allocatable :: data(:)            !> store the data between writes
      integer(i4)           :: counter = 0        !> count the number of updateVariable calls
-     
+
    contains
      procedure, public :: updateVariable
      procedure, public :: writeVariableTimestep
@@ -56,13 +56,13 @@ module mo_write_fluxes_states
      procedure newOutputDataset
   end interface OutputDataset
 
-  
+
   private
-  
+
   public :: OutputDataset
 
 contains
-  
+
   !------------------------------------------------------------------
   !     NAME
   !         newOutputVariable
@@ -129,12 +129,12 @@ contains
   !
   !     PURPOSE
   !>        \brief Update OutputVariable
-  !>        \details Add the array given as actual argument 
+  !>        \details Add the array given as actual argument
   !>                 to the derived type's component 'data'
   !
   !     CALLING SEQUENCE
   !         -> with nc of type(OutputVariable):
-  !         call var%updateVariable(data)              
+  !         call var%updateVariable(data)
   !
   !     INTENT(IN)
   !>        \param[in] "type(NcDataset)   :: nc"        -> NcDataset which contains the variable
@@ -191,10 +191,10 @@ contains
   !
   !     CALLING SEQUENCE
   !         -> with var of type(OutputVariable):
-  !         call var%updateVariable(data)              
+  !         call var%updateVariable(data)
   !
   !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: timestep" 
+  !>        \param[in] "integer(i4) :: timestep"
   !>            -> index along the time dimension of the netcdf variable
   !
   !     INTENT(INOUT)
@@ -241,9 +241,9 @@ contains
          (/1,1,timestep/))
     self%data = 0
     self%counter = 0
-    
+
   end subroutine writeVariableTimestep
-  
+
   !------------------------------------------------------------------
   !     NAME
   !         newOutputDataset
@@ -258,7 +258,7 @@ contains
   !         nc = OutputDataset(ibasin, mask1)
   !
   !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: ibasin" -> basin id 
+  !>        \param[in] "integer(i4) :: ibasin" -> basin id
   !>        \param[in] "logical     :: mask1"  -> L1 mask to reconstruct the data
   !
   !     INTENT(INOUT)
@@ -304,7 +304,7 @@ contains
 
     integer(i4), intent(in) :: ibasin
     logical, target         :: mask1(:,:)
-    type(OutputDataset)     :: out 
+    type(OutputDataset)     :: out
     ! local
     integer(i4)             :: ii, nn, ncols, nrows, ncells
     character(3)            :: dtype
@@ -318,9 +318,9 @@ contains
     unit  = fluxesUnit(ibasin)
     dims1 = (/"easting ", "northing","time    "/)
     nc    = createOutputFile(ibasin)
-    
+
     ii = 0
-    
+
     if (outputFlxState(1)) then
        ii = ii + 1
        tmpvars(ii) = OutputVariable(                      &
@@ -375,7 +375,7 @@ contains
             ncells, mask1, .true.)
        call writeVariableAttributes(tmpvars(ii), "reservoir of sealed areas (sealedSTW)", "mm")
     end if
-    
+
     if (outputFlxState(7)) then
        ii = ii + 1
        tmpvars(ii) = OutputVariable(                  &
@@ -395,7 +395,7 @@ contains
     if (outputFlxState(18)) then
        ii = ii + 1
        tmpvars(ii) = OutputVariable(                  &
-            nc%setVariable("Neutrons", dtype, dims1), &
+            nc%setVariable("neutrons", dtype, dims1), &
             ncells, mask1, .true.)
        call writeVariableAttributes(tmpvars(ii), "ground albedo neutrons", "cph")
     end if
@@ -506,7 +506,7 @@ contains
     out = OutputDataset(ibasin, nc, tmpvars(1:ii))
 
   end function newOutputDataset
-  
+
   !------------------------------------------------------------------
   !     NAME
   !         updateDataset
@@ -530,33 +530,33 @@ contains
   !             L1_runoffSeal, L1_fastRunoff, L1_slowRunoff   ,    &
   !             L1_baseflow  , L1_percol    , L1_infilSoil    ,    &
   !             L1_preEffect                )
-  !             
+  !
   !
   !     INTENT(IN)
   !>             \param[in] "sidx"        -> start index of the basin related data in L1_* arguments
   !>             \param[in] "eidx"        -> end index of the basin related data in L1_* arguments
-  !>             \param[in] "L1_fSealed"      
-  !>             \param[in] "L1_fNotSealed"   
-  !>             \param[in] "L1_inter"        
-  !>             \param[in] "L1_snowPack"     
-  !>             \param[in] "L1_soilMoist"    
-  !>             \param[in] "L1_soilMoistSat" 
-  !>             \param[in] "L1_sealSTW"      
-  !>             \param[in] "L1_unsatSTW"     
-  !>             \param[in] "L1_satSTW"       
-  !>             \param[in] "L1_neutrons"     
-  !>             \param[in] "L1_pet"          
-  !>             \param[in] "L1_aETSoil"      
-  !>             \param[in] "L1_aETCanopy"    
-  !>             \param[in] "L1_aETSealed"    
-  !>             \param[in] "L1_total_runoff" 
-  !>             \param[in] "L1_runoffSeal"   
-  !>             \param[in] "L1_fastRunoff"   
-  !>             \param[in] "L1_slowRunoff"   
-  !>             \param[in] "L1_baseflow"     
-  !>             \param[in] "L1_percol"       
-  !>             \param[in] "L1_infilSoil"    
-  !>             \param[in] "L1_preEffect"    
+  !>             \param[in] "L1_fSealed"
+  !>             \param[in] "L1_fNotSealed"
+  !>             \param[in] "L1_inter"
+  !>             \param[in] "L1_snowPack"
+  !>             \param[in] "L1_soilMoist"
+  !>             \param[in] "L1_soilMoistSat"
+  !>             \param[in] "L1_sealSTW"
+  !>             \param[in] "L1_unsatSTW"
+  !>             \param[in] "L1_satSTW"
+  !>             \param[in] "L1_neutrons"
+  !>             \param[in] "L1_pet"
+  !>             \param[in] "L1_aETSoil"
+  !>             \param[in] "L1_aETCanopy"
+  !>             \param[in] "L1_aETSealed"
+  !>             \param[in] "L1_total_runoff"
+  !>             \param[in] "L1_runoffSeal"
+  !>             \param[in] "L1_fastRunoff"
+  !>             \param[in] "L1_slowRunoff"
+  !>             \param[in] "L1_baseflow"
+  !>             \param[in] "L1_percol"
+  !>             \param[in] "L1_infilSoil"
+  !>             \param[in] "L1_preEffect"
   !
   !     INTENT(INOUT)
   !         None
@@ -606,7 +606,7 @@ contains
        L1_runoffSeal, L1_fastRunoff, L1_slowRunoff   ,    &
        L1_baseflow  , L1_percol    , L1_infilSoil    ,    &
        L1_preEffect                )
-    
+
     use mo_global_variables,  only : outputFlxState, nSoilHorizons_mHM
 
     class(OutputDataset), intent(inout), target :: self
@@ -642,7 +642,7 @@ contains
 
     ii = 0
     vars  => self%vars
-    
+
     if (outputFlxState(1)) then
        ii = ii + 1
        call vars(ii)%updateVariable(L1_inter(sidx:eidx))
@@ -678,7 +678,7 @@ contains
        ii = ii + 1
        call vars(ii)%updateVariable(L1_sealSTW(sidx:eidx))
     end if
-    
+
     if (outputFlxState(7)) then
        ii = ii + 1
        call vars(ii)%updateVariable(L1_unsatSTW(sidx:eidx))
@@ -753,7 +753,7 @@ contains
        ii = ii + 1
        call vars(ii)%updateVariable(L1_preEffect(sidx:eidx))
     end if
-    
+
   end subroutine updateDataset
 
   !------------------------------------------------------------------
@@ -767,7 +767,7 @@ contains
   !
   !     CALLING SEQUENCE
   !         -> with nc of type(OutputDataset)
-  !         call nc%writeTimestep(timestep)     
+  !         call nc%writeTimestep(timestep)
   !
   !     INTENT(IN)
   !>        \param[in] "integer(i4) :: timestep" The model timestep to write
@@ -817,7 +817,7 @@ contains
     do ii = 1, size(self%vars)
        call self%vars(ii)%writeVariableTimestep(self%counter)
     end do
-    
+
   end subroutine writeTimestep
 
   !------------------------------------------------------------------
@@ -831,7 +831,7 @@ contains
   !
   !     CALLING SEQUENCE
   !         -> with nc of type(OutputDataset):
-  !         call nc%close()     
+  !         call nc%close()
   !
   !     INTENT(IN)
   !         None
@@ -872,7 +872,7 @@ contains
 
     use mo_String_utils,     only: num2str
     use mo_message,          only: message
-    use mo_global_variables, only: dirOut 
+    use mo_global_variables, only: dirOut
 
     class(OutputDataset) :: self
     call self%nc%close()
@@ -1011,10 +1011,10 @@ contains
   !>        \brief Write output variable attributes
   !
   !     CALLING SEQUENCE
-  !         call writeVariableAttributes(var, long_name, unit) 
+  !         call writeVariableAttributes(var, long_name, unit)
   !
   !     INTENT(IN)
-  !>        \param[in] "type(OutputVariable) :: var" 
+  !>        \param[in] "type(OutputVariable) :: var"
   !>        \param[in] "character(*)         :: long_name"    -> variable name
   !>        \param[in] "character(*)         :: unit"         -> physical unit
   !
@@ -1060,7 +1060,7 @@ contains
     call var%nc%setAttribute("coordinates","lat lon")
 
   end subroutine writeVariableAttributes
-  
+
 
   !------------------------------------------------------------------
   !     NAME
@@ -1153,7 +1153,7 @@ contains
   !
   !     INTENT(IN)
   !>        \param[in] "integer(i4)      :: iBasin"    -> basin number
-  !>        \param[in] "type(gridGeoRef) :: level"     -> grid reference 
+  !>        \param[in] "type(gridGeoRef) :: level"     -> grid reference
   !
   !     INTENT(INOUT)
   !         None
@@ -1201,21 +1201,21 @@ contains
     type(gridGeoRef), intent(in)               :: level
     real(dp),         intent(out), allocatable :: lat(:,:), lon(:,:)
     integer(i4)                                :: ncols, nrows
-    integer(i4)                                :: ii, pos 
- 	 
-    nrows = level%nrows(ibasin) 
+    integer(i4)                                :: ii, pos
+
+    nrows = level%nrows(ibasin)
     ncols = level%ncols(ibasin)
-      
-    pos = 1 
-    if ( ibasin .gt. 1 ) then 
-       do ii = 1, ibasin -1 
-          pos = pos + level%ncols(ii) * level%nrows(ii) 
+
+    pos = 1
+    if ( ibasin .gt. 1 ) then
+       do ii = 1, ibasin -1
+          pos = pos + level%ncols(ii) * level%nrows(ii)
        end do
     end if
-    
-    lat = reshape(L1_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/)) 
-    lon = reshape(L1_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/)) 
-    
+
+    lat = reshape(L1_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/))
+    lon = reshape(L1_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/))
+
   end subroutine geoCoordinates
 
   !------------------------------------------------------------------
