@@ -285,11 +285,10 @@ The NSE for a given time interval \f$t'\f$ is given by
                       {\displaystyle \sum_{t'} \left(y_k(t') - \overline{y}_k(t')\right)^2 }
 \f]
 
-where \f$\overline{y}_k(t')\f$ is the mean value of the observations
-time series over the calibration period. The index \f$k\f$ denotes here
-the daily, monthly, yearly, and the transformed \f$\ln y(t)\f$
-streamflow discharges. \f$y\f$ and \f$\hat{y}\f$ denote the observed and
-simulated streamflows at a given time scale.
+where \f$\overline{y}_k(t')\f$ is the mean value of the observations time series over the calibration period. The index
+\f$k\f$ denotes here the daily, monthly, yearly, and the transformed \f$\ln y(t)\f$ streamflow discharges. \f$y\f$ and
+\f$\hat{y}\f$ denote the observed and simulated streamflows at a given time scale. Fruther details about mHM's
+calibration options can be found in the section \ref paramopt "Calibration Options".
 
 \section links Helpful links
 

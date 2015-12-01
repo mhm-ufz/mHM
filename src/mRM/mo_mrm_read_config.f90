@@ -790,7 +790,6 @@ contains
   ! ---------------------------------------------------------------------------
   subroutine read_mrm_routing_params(processCase, file_namelist)
     use mo_mrm_file, only: unamelist_param ! file containing parameter values
-    use mo_append, only: append
     use mo_nml, only: open_nml, position_nml, close_nml
     use mo_message, only: message
     use mo_mrm_constants, only: nColPars ! number of properties of the global variables
@@ -799,6 +798,8 @@ contains
          global_parameters_name ! clear names of global parameters
 #ifdef mrm2mhm    
     use mo_global_variables, only :  processMatrix ! process configuration
+#else
+    use mo_append, only: append
 #endif
 
     implicit none

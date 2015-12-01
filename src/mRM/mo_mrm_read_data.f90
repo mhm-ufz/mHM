@@ -99,11 +99,14 @@ contains
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
          basin_mrm ! basin information for single basins
+    
     implicit none
+    
     ! optional input variables
     logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
     real(dp), dimension(:), target, intent(in), optional :: L0_elev ! L0 elevation
     integer(i4), dimension(:,:), target, intent(in), optional :: L0_LCover ! L0 land cover
+    
     ! local variables
     integer(i4) :: iBasin
     integer(i4) :: iVar
@@ -412,6 +415,7 @@ contains
          L0_Id, &
          L0_nCells, &
          iFlag_cordinate_sys
+    
     implicit none
 
     integer(i4), intent(in) :: iBasin
@@ -562,6 +566,7 @@ contains
          basin_mrm
     
     implicit none
+    
     ! input variables
     integer(i4), intent(in) :: iBasin
     ! local variables
@@ -768,10 +773,9 @@ contains
     use mo_common_variables, only: &
          optimize,     & ! optimizeation flag for some error checks
          opti_function   ! opti_function that determines to what data to calibrate
-    !
+    
     implicit none
-    ! input variables
-    !
+
     ! local variables
     integer(i4) :: iGauge
     integer(i4) :: iBasin
@@ -893,14 +897,16 @@ contains
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_constants, only: nodata_dp
     use mo_read_forcing_nc, only: read_forcing_nc
-    use mo_mrm_global_variables, only: &
-         timeStep_model_inputs, &
+    use mo_mrm_global_variables, only: & ! timeStep_model_inputs, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
          L1_total_runoff_in ! simulated runoff at L1
+    
     implicit none
+    
     ! input variables
     integer(i4), intent(in) :: iBasin
+
     ! local variables
     integer(i4) :: tt
     integer(i4) :: nrows
@@ -943,6 +949,7 @@ contains
     implicit none
 
     integer(i4), dimension(:,:), intent(INOUT) :: x
+    
     ! local
     integer(i4)                                :: i, j
 

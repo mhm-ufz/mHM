@@ -1116,7 +1116,7 @@ CONTAINS
     use mo_string_utils,     only : num2str
     !
     use mo_global_variables, only: nBasins,             & ! number of basins
-                                   L1_neutronsdata, L1_neutronsdata_mask      ! packed measured neutrons, neutrons-mask (dim1=ncells, dim2=time)
+         L1_neutronsdata, L1_neutronsdata_mask      ! packed measured neutrons, neutrons-mask (dim1=ncells, dim2=time)
     use mo_mhm_constants,    only: nodata_dp              ! global nodata value
 
     implicit none
