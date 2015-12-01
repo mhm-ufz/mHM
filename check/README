@@ -194,6 +194,17 @@ case 7 :: Q + TWS BASIN AVERAGE OPTIMIZATION ACTIVATED
    mhm_outputs.nml:
    timeStep_model_outputs     = 0                                               (default:      -1)
 
+case 8 :: NEUTRON OPTIMIZATION ACTIVATED
+   nBasins                    = 1                                               (default:       1)
+   nGaugesTotal               = 1                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 17                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
 # -------------------------------------------------------------------------------------------
 #
 # Copyright 2014 Juliane Mai
