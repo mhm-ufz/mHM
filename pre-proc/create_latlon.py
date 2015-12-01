@@ -84,7 +84,8 @@ def latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix):
 #   code 31463 defines GK (DHDN3 Zone 3)
 #   [website: http://www.spatialreference.org/ref/epsg/31463/]
 #   equal +proj=tmerc +ellps=bessel +lon_0=12 +x_0=3,500,000 +y_0=0
-coord_sys = 'epsg:31467'
+# coord_sys = 'epsg:31467' # coordinate system for test basin 2
+coord_sys = 'epsg:3035' # coordinate system for test basin 1
 
 # HEADER FILE
 #   specifies the grid properties
