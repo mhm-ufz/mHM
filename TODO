@@ -1,6 +1,6 @@
                     ====================================
-                               TODO for mHM v5.4
-                     NEXT RELEASE :: Dec 1st, 2015
+                               TODO for mHM v5.5
+                     NEXT RELEASE :: Jun 1st, 2016
                     ====================================
 
 
@@ -9,8 +9,6 @@
                         -- Technical --
 =================================================================================================
 
-Transfer mo_file to a namelist to allow for more flexible filenames
-(Resp.: NA)
 
 =================================================================================================
                      TASKS FOR NEXT RELEASE

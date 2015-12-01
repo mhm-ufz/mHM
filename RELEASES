@@ -3,6 +3,35 @@
 ------------------------------------------------------------
 
 ----------------------------------------
+     New Features of mHM v5.4
+     (released at Dec 1st, 2015)
+----------------------------------------
+
+New Features:
+- The routing of mHM can be used as a stand alone version/independent software called multiscale Routing Model mRM, e.g. for coupling to other environmental models.
+- A new output, i.e. fields of routed discharge, can be written now. They are stored in mRM_fluxes_and_states.nc and are controlled by a new namelist contained in the 'mrm_outputs.nml' file, which is an optional file.
+- New calibration objectives have been incorporated. It is possible, additionally to the former objectives, to calibrate mHM with
+* total water storage data (e.g. GRACE) data and discharge simultaneously (opti_function=15) and/or
+* cosmic ray neutron counts (opti_function=17).
+Therefore additional input is needed, respectively.
+- New post-processing: a mHM python class for reading all inputs and outputs of a model run can be found in ./post-proc/.
+- Reorganization of the NetCDF writing in mHM to simply future implementations of additional outputs.
+
+Bugs resolved:
+- Calibration with catchment average soil moisture (opti_function=10) works properly now.
+- Discharge output for multi basin runs with different time periods for each basin works properly now.
+- Hargreaves-Samani PET calculation (processCase(5)=1) is valid on southern hemisphere too now.
+
+Known bugs:
+None.
+
+Restrictions:
+1. For gfortran compilers mHM supports only v4.8 and higher.
+2. If you wish to use a special process description of evapotranspiration (processCase(4)) please contact Matthias Zink (matthias.zink@ufz.de).
+3. If you wish to use features connected to neutron counts (processCase(8)) please contact Martin Schrön (martin.schroen@ufz.de).
+4. If you wish to use the multi-scale Routing Model as stand-alone version, please contact Stephan Thober (stephan.thober@ufz.de)
+
+----------------------------------------
      New Features of mHM v5.3
      (released at Jun 1st, 2015)
 ----------------------------------------

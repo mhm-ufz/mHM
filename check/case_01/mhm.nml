@@ -56,7 +56,7 @@ dir_Gauges(2)        = "../../test_basin/input/gauge/"
 ! Directory for common files (to all basins) 
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "../../test_basin/"
+dirConfigOut = "output_b1/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)

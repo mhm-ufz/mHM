@@ -151,7 +151,7 @@ dir_Total_Runoff(1) = '../../test_basin/output_b1/'
 ! Directory for common files (to all basins)
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "../../test_basin/"
+dirConfigOut = "output_b1/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
@@ -165,9 +165,9 @@ dir_LCover(1)        = "../../test_basin/input/luse/"
 !> directory where restart input is located
 dir_RestartIn(1)     = "../../test_basin/restart/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "../../test_basin/restart/"
+dir_RestartOut(1)    = "output_b1/"
 !> directory where output should be written
-dir_Out(1)           = "../../test_basin/output_b1/"
+dir_Out(1)           = "output_b1/b1_"
 !> file containing latitude and longitude on the resolution_Hydrology
 file_LatLon(1)       = "../../test_basin/input/latlon/latlon_2.nc"
 /
