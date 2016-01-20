@@ -104,6 +104,10 @@ CONTAINS
     ! -------------------------------------------------------------------------
     if (ii .eq. 1) then
        ! create mask for level 0
+#ifdef pgiFortran       
+       if (allocated(mask)) deallocate(mask)
+       allocate(mask(level0%nrows(ii), level0%ncols(ii)))
+#endif
        mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
@@ -123,10 +127,10 @@ CONTAINS
        allocate(dummy(dl(1), dl(2)))
        
        ! read dummy variable
-       call get_NcVar( trim(fname), 'lat_l0', dummy )
+       call get_NcVar(trim(fname), 'lat_l0', dummy)
        
        ! append it to global variables
-       call append( L0_latitude, pack( dummy, mask ))
+       call append(L0_latitude, pack(dummy, mask))
        deallocate(dummy)
        
        ! read dimension length of variable in netcdf File
@@ -153,6 +157,10 @@ CONTAINS
        deallocate(dummy)
     else if (L0_Basin(ii) .ne. L0_Basin(ii - 1)) then
        ! create mask for level 0
+#ifdef pgiFortran       
+       if (allocated(mask)) deallocate(mask)
+       allocate(mask(level0%nrows(ii), level0%ncols(ii)))
+#endif
        mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
@@ -172,10 +180,10 @@ CONTAINS
        allocate(dummy(dl(1), dl(2)))
        
        ! read dummy variable
-       call get_NcVar( trim(fname), 'lat_l0', dummy )
+       call get_NcVar(trim(fname), 'lat_l0', dummy )
        
        ! append it to global variables
-       call append( L0_latitude, pack( dummy, mask ))
+       call append(L0_latitude, pack(dummy, mask))
        deallocate(dummy)
        
        ! read dimension length of variable in netcdf File
@@ -195,14 +203,17 @@ CONTAINS
        allocate(dummy(dl(1), dl(2)))
 
        ! read dummy variable
-       call get_NcVar( trim(fname), 'lon_l0', dummy )
+       call get_NcVar(trim(fname), 'lon_l0', dummy )
 
        ! append it to global variables
-       call append( L0_longitude, pack( dummy, mask ))
+       call append(L0_longitude, pack(dummy, mask))
        deallocate(dummy)
     end if
     ! clean up
     if (allocated(mask)) deallocate(mask)
+#ifdef pgiFortran       
+    allocate(mask(level1%nrows(ii), level1%ncols(ii)))
+#endif
     mask = reshape(basin%L1_mask(basin%L1_iStartMask(ii):basin%L1_iEndMask(ii)), &
          (/level1%nrows(ii), level1%ncols(ii)/))
 
@@ -226,11 +237,11 @@ CONTAINS
     allocate(dummy(dl(1), dl(2)))
     
     ! read dummy variable
-    call get_NcVar( trim(fname), 'lat', dummy )
+    call get_NcVar(trim(fname), 'lat', dummy)
 
     ! append it to global variables
-    call append( L1_rect_latitude, pack(dummy, .true.))
-    call append( L1_latitude, pack( dummy, mask ))
+    call append(L1_rect_latitude, pack(dummy, .true.))
+    call append(L1_latitude, pack(dummy, mask))
     deallocate(dummy)
 
     ! read dimension length of variable in netcdf File
@@ -255,7 +266,8 @@ CONTAINS
     ! append it to global variables
     call append( L1_rect_longitude, pack(dummy, .true.))
     call append( L1_longitude, pack( dummy, mask ))
-    deallocate(dummy, mask)
+    deallocate(dummy)
+    deallocate(mask)
 
   end subroutine read_latlon
 

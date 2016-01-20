@@ -878,7 +878,11 @@ contains
           pos = pos + level%ncols(ii) * level%nrows(ii) 
        end do
     end if
-    
+
+#ifdef pgiFortran       
+    allocate(lat(nrows, ncols))
+    allocate(lon(nrows, ncols))
+#endif
     lat = reshape(L11_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/)) 
     lon = reshape(L11_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/)) 
     
