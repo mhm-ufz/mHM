@@ -1,0 +1,5 @@
+# Set aliases so that one can, for example, say gnu to invoke standard gnu52 on msys2
+ifneq (,$(findstring $(compiler),gnu gfortran gcc))
+    icompiler := gnu52
+endif
+
