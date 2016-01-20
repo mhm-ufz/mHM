@@ -177,8 +177,9 @@ contains
     class(OutputVariable), intent(inout) :: self
     real(dp)             , intent(in)    :: data(:)
 
-    self%data = self%data + data
+    self%data    = self%data + data
     self%counter = self%counter + 1
+
   end subroutine updateVariable
 
   !------------------------------------------------------------------
@@ -314,12 +315,12 @@ contains
     type(NcDataset)         :: nc
     type(OutputVariable)    :: tmpvars(size(outputFlxState_mrm))
 
-    call get_basin_info_mrm (ibasin, 11, ncols, nrows, ncells=ncells)
+    call get_basin_info_mrm(ibasin, 11, ncols, nrows, ncells=ncells)
 
     dtype = "f64"
     dims1 = (/"easting ", "northing","time    "/)
     nc    = createOutputFile(ibasin)
-    
+
     ii = 0
 
     if (outputFlxState_mrm(1)) then
@@ -412,10 +413,20 @@ contains
 
     ii = 0
     vars  => self%vars
-    
+
     if (outputFlxState_mrm(1)) then
        ii = ii + 1
+#ifdef pgiFortran
+       call updateVariable(vars(ii), L11_Qmod(sidx:eidx))
+#else
        call vars(ii)%updateVariable(L11_Qmod(sidx:eidx))
+#endif
+! #ifdef pgiFortran
+!        vars(ii)%data    = vars(ii)%data + L11_Qmod(sidx:eidx)
+!        vars(ii)%counter = vars(ii)%counter + 1
+! #else       
+!        call vars(ii)%updateVariable(L11_Qmod(sidx:eidx))
+! #endif
     end if
 
   end subroutine updateDataset

@@ -282,8 +282,6 @@ CONTAINS
     ! add other optionals...
 
 
-
-
     !-------------------------------------------------------------------
     ! Initalize State variables either to the default value or
     ! from the restrat_files.
@@ -755,7 +753,7 @@ CONTAINS
        ! deallocate space for temprory LAI fields
        deallocate(LAI)
        ! deallocate TWS field temporal variable
-       if (allocated (TWS_field) ) deallocate(TWS_field)
+       if (allocated(TWS_field) ) deallocate(TWS_field)
 
     end do !<< BASIN LOOP
 
