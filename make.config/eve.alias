@@ -8,3 +8,6 @@ endif
 ifneq (,$(findstring $(compiler),nag nagfor))
     icompiler := nag60
 endif
+ifneq (,$(findstring $(compiler),pgi pgfortran pgfortran159))
+    icompiler := pgi159
+endif
