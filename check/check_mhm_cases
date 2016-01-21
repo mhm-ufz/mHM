@@ -16,6 +16,16 @@ set -e
 #     $ ./check_mhm_cases -h
 # for options.
 #
+# Examples
+#     PGI compiler on Eve in debug mode without OpenMP
+#     $ ./check_mhm_cases -c pgi -j 4 -s eve2 -t '0' -r debug
+#
+#     Only check cases 2 and 3 for GNU compiler on Eve in debug and release mode with and without OpenMP
+#     $ ./check_mhm_cases -c gnu -j 4 -s eve2 case_02 case_03
+#
+#     All check cases with all compiler for release mode on Eve
+#     $ ./check_mhm_cases -j 4 -s eve2 -r release
+#
 # -------------------------------------------------------------------------------------------
 # DETAILS
 # -------------------------------------------------------------------------------------------
@@ -87,6 +97,7 @@ set -e
 #          Jul 2014 Juliane Mai                    - checking daily_discharge files added
 #          Mar 2015 Matthias Zink                  - added soil moisture calibration test
 #          Oct 2015 Matthias Cuntz                 - added multi-job make
+#          Jan 2016 Matthias Cuntz                 - run only specific test cases
 
 # -------------------------------------------------------------------------------------------
 #
@@ -125,14 +136,14 @@ function usage () {
     printf "The settings (s)ystem, (c)ompiler and (r)elease, which are used by the Makefile, can be specified optionally.\n"
     printf "\n"
     printf "Input\n"
-    printf "    clean | cleanup | cleanclean    Runs only the cleanup function.\n"
+    printf "    #number | clean | cleanup | cleanclean    Runs a specific check case or only the cleanup function.\n"
     printf "\n"
     printf "Options\n"
     printf "    -h     Prints this help screen.\n"
     printf "    -c     Compilers used to generate a mHM executable, e.g. 'gnu'\n"
     printf "           'all' loops over all compilers found on the system\n"
     printf "           (Default: all)\n"
-    printf "    -j     Specifies the number of jobs (commands) to run simultaneously, for make only."
+    printf "    -j     Specifies the number of jobs (commands) to run simultaneously, for make only.\n"
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           'all' or 'both' loop over debug and release\n"
     printf "           (Default: all)\n"
@@ -204,17 +215,21 @@ if [[ "${compilers}" == "all" ]] ; then
 fi
 
 # argument
+case_dirs=""
 if [ $# -gt 0 ] ; then
-    # currently the only argument possible is "clean"
-    case ${1} in
-        clean*) cleanup; exit 0;;
-        *) printf "Error ${pprog}: unknown argument.\n\n";  usage 1>&2; exit 1;;
-    esac
+    # case directory or "clean"
+    for ii in $@ ; do
+        case ${ii} in
+    	    case_[0-9][0-9]) case_dirs="${case_dirs} ${ii}";;
+            clean*)          cleanup; exit 0;;
+            *)               printf "Error ${pprog}: unknown argument.\n\n";  usage 1>&2; exit 1;;
+        esac
+    done
 fi
 
 # check for cdo
 set +e
-icdo=$(which cdo)
+icdo=$(which cdo 2> /dev/null)
 if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
@@ -222,7 +237,7 @@ if [[ "${icdo}z" == "z" ]] ; then
         if [[ $(hostname) == 'frontend1' || $(hostname) == 'frontend2' ]] ; then
             module load cdo
         fi
-        icdo=$(which cdo)
+        icdo=$(which cdo 2> /dev/null)
     fi
 fi
 set -e
@@ -270,8 +285,7 @@ for irelease in ${release} ; do
 
             # run checks
             cd check
-            case_dirs=$(\ls -d case_*)
-            #case_dirs=$(\ls -d case_02)
+	    if [[ "${case_dirs}z" == "z" ]] ; then case_dirs=$(\ls -d case_*) ; fi
 
             nRecordsDiffer_allCases=0
             for case_dir in ${case_dirs} ; do
