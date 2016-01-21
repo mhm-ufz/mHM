@@ -761,13 +761,27 @@ CONTAINS
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
+#ifdef pgiFortran
+    if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) then
+       allocate(runoff(size(mRM_runoff,1), size(mRM_runoff,2)))
+       runoff = mRM_runoff
+    endif
+#else
     if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) runoff = mRM_runoff
+#endif
 #endif
 
     ! =========================================================================
     ! SET TWS OUTPUT VARIABLE
     ! =========================================================================
+#ifdef pgiFortran
+    if( present(basin_avg_tws) ) then
+       allocate(basin_avg_tws(size(basin_avg_TWS_sim,1), size(basin_avg_TWS_sim,2)))
+       basin_avg_tws = basin_avg_TWS_sim
+    endif
+#else
     if( present(basin_avg_tws) ) basin_avg_tws = basin_avg_TWS_sim
+#endif
 
   end SUBROUTINE mhm_eval
 

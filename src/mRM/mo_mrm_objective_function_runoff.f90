@@ -1722,23 +1722,29 @@ CONTAINS
 
   ! ------------------------------------------------------------------
   subroutine eval(parameterset, runoff, basin_avg_tws)
+
 #ifdef mrm2mhm
     use mo_mhm_eval, only: mHM_eval
 #else
     use mo_mrm_eval, only: mRM_eval
     use mo_message, only: message
 #endif
+
     implicit none
+
     ! input variables
     real(dp), intent(in) :: parameterset(:)
+
     ! output variables
     real(dp), allocatable, optional, intent(out) :: runoff(:,:)
     real(dp), allocatable, optional, intent(out) :: basin_avg_tws(:,:)
+
 #ifdef mrm2mhm
     call mHM_eval(parameterset, runoff=runoff, basin_avg_tws=basin_avg_tws)
 #else
     call mRM_eval(parameterset, runoff=runoff)
 #endif
+
   end subroutine eval
 
 END MODULE mo_mrm_objective_function_runoff

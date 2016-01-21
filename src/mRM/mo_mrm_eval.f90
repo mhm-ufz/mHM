@@ -7,9 +7,13 @@
 !> \authors Stephan Thober
 !> \date Sep 2015
 module mo_mrm_eval
+
   implicit none
+
   public :: mrm_eval
+
 contains
+
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -20,7 +24,7 @@ contains
   !>        \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
   !     INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:)    :: parameterset" 
+  !>       \param[in] "real(dp), dimension(:)    :: parameterset"
   !>          a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
 
   !     INTENT(INOUT)
@@ -36,7 +40,7 @@ contains
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff" 
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff"
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
 
   !     RETURN
@@ -55,6 +59,7 @@ contains
   !>        \author Stephan Thober
   !>        \date Sep 2015
   subroutine mrm_eval(parameterset, runoff)
+
     use mo_kind, only: i4, dp
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
@@ -105,10 +110,13 @@ contains
     use mo_mrm_init, only: variables_default_init_routing
     use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_julian, only: caldat, julday
+
     implicit none
+
     ! input variables
     real(dp), dimension(:), intent(in) :: parameterset
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
+
     ! local variables
     integer(i4) :: ii
     integer(i4) :: tt
@@ -144,10 +152,10 @@ contains
        if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
        !
        ! get basin information at L11 and L110 if routing is activated
-       call get_basin_info_mrm(ii,   0, nrows, ncols,   iStart=s0,  iEnd=e0  ) 
-       call get_basin_info_mrm(ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1  ) 
-       call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 ) 
-       call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110) 
+       call get_basin_info_mrm(ii,   0, nrows, ncols,   iStart=s0,  iEnd=e0  )
+       call get_basin_info_mrm(ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1  )
+       call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 )
+       call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
@@ -236,9 +244,18 @@ contains
           end if
        end do
     end do
+
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE IF REQUIRED
     ! =========================================================================
+#ifdef pgiFortran
+    if (present(runoff)) then
+       allocate(runoff(size(mRM_runoff,1), size(mRM_runoff,2)))
+       runoff = mRM_runoff
+    endif
+#else
     if (present(runoff)) runoff = mRM_runoff
+#endif
   end subroutine mrm_eval
+
 end module mo_mrm_eval
