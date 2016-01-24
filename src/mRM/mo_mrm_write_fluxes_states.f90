@@ -421,12 +421,6 @@ contains
 #else
        call vars(ii)%updateVariable(L11_Qmod(sidx:eidx))
 #endif
-! #ifdef pgiFortran
-!        vars(ii)%data    = vars(ii)%data + L11_Qmod(sidx:eidx)
-!        vars(ii)%counter = vars(ii)%counter + 1
-! #else       
-!        call vars(ii)%updateVariable(L11_Qmod(sidx:eidx))
-! #endif
     end if
 
   end subroutine updateDataset
@@ -890,10 +884,6 @@ contains
        end do
     end if
 
-#ifdef pgiFortran       
-    allocate(lat(nrows, ncols))
-    allocate(lon(nrows, ncols))
-#endif
     lat = reshape(L11_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/)) 
     lon = reshape(L11_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/)) 
     

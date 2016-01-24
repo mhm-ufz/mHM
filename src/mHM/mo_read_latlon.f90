@@ -104,10 +104,6 @@ CONTAINS
     ! -------------------------------------------------------------------------
     if (ii .eq. 1) then
        ! create mask for level 0
-#ifdef pgiFortran       
-       if (allocated(mask)) deallocate(mask)
-       allocate(mask(level0%nrows(ii), level0%ncols(ii)))
-#endif
        mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
@@ -157,10 +153,6 @@ CONTAINS
        deallocate(dummy)
     else if (L0_Basin(ii) .ne. L0_Basin(ii - 1)) then
        ! create mask for level 0
-#ifdef pgiFortran       
-       if (allocated(mask)) deallocate(mask)
-       allocate(mask(level0%nrows(ii), level0%ncols(ii)))
-#endif
        mask = reshape(basin%L0_mask(basin%L0_iStartMask(ii):basin%L0_iEndMask(ii)), &
             (/level0%nrows(ii), level0%ncols(ii)/))
        ! read dimension length of variable in netcdf File
@@ -211,9 +203,6 @@ CONTAINS
     end if
     ! clean up
     if (allocated(mask)) deallocate(mask)
-#ifdef pgiFortran       
-    allocate(mask(level1%nrows(ii), level1%ncols(ii)))
-#endif
     mask = reshape(basin%L1_mask(basin%L1_iStartMask(ii):basin%L1_iEndMask(ii)), &
          (/level1%nrows(ii), level1%ncols(ii)/))
 

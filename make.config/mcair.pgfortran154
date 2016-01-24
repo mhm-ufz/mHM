@@ -64,15 +64,15 @@ else
     # -fast = -O2 -Munroll=c:1 -Mnoframe -Mlre -Mautoinline -Mvect=sse -Mcache_align -Mflushz -Mpre
     # -Mipa=fast = -Mipa=align,arg,const,f90ptr,shape,libc,globals,localarg,alias,ptr,pure
     # -Mvect=sse gives problems with xor4096, other CHS modules work with flag
-    F90FLAGS += -fast -Mipa=fast,inline -Mnovect
+    F90FLAGS += -fast -Mipa=fast,inline -Mnovect # for SCE remove -Mipa=
     FCFLAGS  += -fast -Mipa=fast,inline -Mnovect
     CFLAGS   += -O3
 endif
-F90FLAGS += -Mpreprocess -Mfreeform -tp=p7-64
+F90FLAGS += -Mpreprocess -Mfreeform -tp=p7-64 -Mallocatable=03
 FCFLAGS  += -Mfixed -tp=p7-64
 CFLAGS   +=
 MODFLAG  := -module # space significant
-DEFINES  += -DpgiFortran
+DEFINES  += -DpgiFortran -DpgiFortran154
 LDFLAGS  += -pgf90libs
 
 # Linking
@@ -103,7 +103,7 @@ FPROJDIR :=
 
 # LAPACK
 LAPACKDIR   :=
-GFORTRANDIR :=
+GFORTRANDIR := /usr/local/gfortran
 
 # MPI
 MPIDIR :=

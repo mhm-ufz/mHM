@@ -60,7 +60,10 @@ module mo_write_fluxes_states
   private
 
   public :: OutputDataset
-
+#ifdef pgiFortran154
+  public :: newOutputDataset
+#endif
+  
 contains
 
   !------------------------------------------------------------------
@@ -1297,10 +1300,6 @@ contains
        end do
     end if
 
-#ifdef pgiFortran       
-    allocate(lat(nrows, ncols))
-    allocate(lon(nrows, ncols))
-#endif
     lat = reshape(L1_rect_latitude(pos:pos+nrows*ncols-1),  (/nrows, ncols/))
     lon = reshape(L1_rect_longitude(pos:pos+nrows*ncols-1), (/nrows, ncols/))
 

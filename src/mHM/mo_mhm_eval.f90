@@ -102,6 +102,9 @@ CONTAINS
     use mo_restart,             only : read_restart_states      ! read initial values of variables
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
     use mo_write_fluxes_states, only : OutputDataset
+#ifdef pgiFortran154
+    use mo_write_fluxes_states, only : newOutputDataset
+#endif
     use mo_global_variables,    only : &
          nTstepDay,                                          &
          timeStep_model_outputs, outputFlxState,             &  ! definition which output to write
@@ -605,7 +608,11 @@ CONTAINS
 
                 if ( tIndex_out .EQ. 1 ) then
                    L1_fNotSealed = 1.0_dp - L1_fSealed
+#ifdef pgiFortran154
+                   nc = newOutputDataset(ii, mask1)
+#else
                    nc = OutputDataset(ii, mask1)
+#endif
                 end if
 
                 call nc%updateDataset( &
@@ -761,27 +768,13 @@ CONTAINS
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
-#ifdef pgiFortran
-    if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) then
-       allocate(runoff(size(mRM_runoff,1), size(mRM_runoff,2)))
-       runoff = mRM_runoff
-    endif
-#else
     if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) runoff = mRM_runoff
-#endif
 #endif
 
     ! =========================================================================
     ! SET TWS OUTPUT VARIABLE
     ! =========================================================================
-#ifdef pgiFortran
-    if( present(basin_avg_tws) ) then
-       allocate(basin_avg_tws(size(basin_avg_TWS_sim,1), size(basin_avg_TWS_sim,2)))
-       basin_avg_tws = basin_avg_TWS_sim
-    endif
-#else
     if( present(basin_avg_tws) ) basin_avg_tws = basin_avg_TWS_sim
-#endif
 
   end SUBROUTINE mhm_eval
 

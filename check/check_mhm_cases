@@ -152,6 +152,7 @@ function usage () {
     printf "    -t     Number of threads for OpenMP, e.g. '6'\n"
     printf "           Set to '0' for deactivation of parallel test\n"
     printf "           (Default: '0 2').\n"
+    printf "    -v     Verbose. Show make, run and diff outputs.\n"
     printf "\n"
     printf "Example\n"
     printf "    ${pprog} -j 12 -c gnu45 -s eve2 -r debug -t '0 2'\n"
@@ -179,7 +180,7 @@ function cleanup ()
     # make cleanclean
     cd ..
     if [[ "z${compiler}" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
-    make system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean > /dev/null
+    eval make system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean ${devnull}
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -195,7 +196,8 @@ ijobs=0
 release='all'
 system='eve2'
 threads='0 2'
-while getopts "c:hj:r:s:t:" Option ; do
+verbose=0
+while getopts "c:hj:r:s:t:v" Option ; do
     case ${Option} in
         c) compilers="${OPTARG}";;
         h) usage 1>&2; exit 0;;
@@ -203,10 +205,14 @@ while getopts "c:hj:r:s:t:" Option ; do
         r) release="${OPTARG}";;
         s) system="${OPTARG}";;
         t) threads="${OPTARG}";;
+        v) verbose=1;;
         *) printf "Error ${pprog}: unimplemented option.\n\n";  usage 1>&2; exit 1;;
     esac
 done
 shift $((${OPTIND} - 1))
+
+# verbose
+if [[ ${verbose} -eq 1 ]] ; then devnull="" ; else devnull="> /dev/null" ; fi
 
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
@@ -273,13 +279,13 @@ for irelease in ${release} ; do
 	    
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
-                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean > /dev/null
-                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= > /dev/null
+                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean ${devnull}
+                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= ${devnull}
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
-                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean > /dev/null
-                make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true > /dev/null
+                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean ${devnull}
+                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true ${devnull}
                 export OMP_NUM_THREADS=${thread}
             fi
 
@@ -305,8 +311,12 @@ for irelease in ${release} ; do
                 if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
-                echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out' 
-                ./${mhm_exe} > mhm_terminal.${pid}.out
+                echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out'
+		if [[ ${verbose} -eq 1 ]] ; then
+                    ./${mhm_exe} | tee mhm_terminal.${pid}.out
+		else
+                    ./${mhm_exe} > mhm_terminal.${pid}.out
+		fi
 
                 # mhm was running till the end?
                 set +e
@@ -337,7 +347,11 @@ for irelease in ${release} ; do
                     for nc_file in ${nc_files} ; do
                         # cdo -b 16 :: precision=double=16bit
                         echo '   *  cdo diff output_save/'${nc_file}' output_b1/'${nc_file}
-                        ${icdo} -s diffn output_save/${nc_file} output_b1/${nc_file} > cdo.${pid}.terminal
+			if [[ ${verbose} -eq 1 ]] ; then
+                            ${icdo} -s diffn output_save/${nc_file} output_b1/${nc_file} | tee cdo.${pid}.terminal
+			else
+			    ${icdo} -s diffn output_save/${nc_file} output_b1/${nc_file} > cdo.${pid}.terminal
+			fi
                         iRecordsDiffer=$(grep -i 'differ' cdo.${pid}.terminal | tail -1 | cut -f 1 -d 'o')
                         nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
                         nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
@@ -356,7 +370,11 @@ for irelease in ${release} ; do
                     for discharge_file in ${discharge_files} ; do
                         echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
                         set +e
-                        diff output_save/${discharge_file} output_b1/${discharge_file} > diff1.${pid}.terminal
+			if [[ ${verbose} -eq 1 ]] ; then
+                            diff output_save/${discharge_file} output_b1/${discharge_file} | tee diff1.${pid}.terminal
+			else
+                            diff output_save/${discharge_file} output_b1/${discharge_file} > diff1.${pid}.terminal
+			fi
                         set -e
                         iRecordsDiffer=$(echo $(wc -l diff1.${pid}.terminal) | cut -d ' ' -f 1)
                         if [[ ${iRecordsDiffer} -gt 0 ]] ; then
@@ -382,7 +400,11 @@ for irelease in ${release} ; do
                     for finalpara_file in ${finalpara_files} ; do
                         echo '   *  diff output_save/'${finalpara_file}' output_b1/'${finalpara_file}
                         set +e
-                        diff output_save/${finalpara_file} output_b1/${finalpara_file} > diff2.${pid}.terminal
+			if [[ ${verbose} -eq 1 ]] ; then
+                            diff output_save/${finalpara_file} output_b1/${finalpara_file} | tee diff2.${pid}.terminal
+			else
+                            diff output_save/${finalpara_file} output_b1/${finalpara_file} > diff2.${pid}.terminal
+			fi
                         set -e
                         iRecordsDiffer=$(echo $(wc -l diff2.${pid}.terminal) | cut -d ' ' -f 1)
                         if [[ ${iRecordsDiffer} -gt 0 ]] ; then

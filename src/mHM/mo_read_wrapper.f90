@@ -241,7 +241,7 @@ CONTAINS
        read_L0_data: if ( perform_mpr ) then
           !
           ! put global nodata value into array (probably not all grid cells have values)
-          data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
+          data_dp_2d = merge(data_dp_2d, nodata_dp, mask_global)
           ! put data in variable
           call append( L0_elev, pack(data_dp_2d, mask_global) )
           ! deallocate arrays
@@ -304,7 +304,7 @@ CONTAINS
                   level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
 
              ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
 
              ! put data into global L0 variable
              select case (iVar)

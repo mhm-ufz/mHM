@@ -430,10 +430,6 @@ CONTAINS
     integer(i4)                      :: i
     logical                          :: equalStrings
 
-#ifdef pgiFortran
-    allocate(array1(len(string1)))
-    allocate(array2(len(string2)))
-#endif
     array1 = str2num(trim(string1))
     array2 = str2num(trim(string2))
     equalStrings = .false.
@@ -573,10 +569,6 @@ CONTAINS
     integer(i4)                           :: i, start
     !
     if (allocated(out)) deallocate(out)
-#ifdef pgiFortran
-    allocate(string_array(len(string//delim)))
-    allocate(delim_array(len(delim)))
-#endif
     string_array = str2num(string//delim)
     delim_array = str2num(delim)
     start = 1
@@ -646,10 +638,6 @@ CONTAINS
     integer(i4), allocatable         :: string_array(:), start_array(:)
     logical                          :: startsWith
 
-#ifdef pgiFortran
-    allocate(string_array(len(string)))
-    allocate(start_array(len(start)))
-#endif
     string_array = str2num(string)
     start_array = str2num(start)
 

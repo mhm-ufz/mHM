@@ -248,14 +248,8 @@ contains
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE IF REQUIRED
     ! =========================================================================
-#ifdef pgiFortran
-    if (present(runoff)) then
-       allocate(runoff(size(mRM_runoff,1), size(mRM_runoff,2)))
-       runoff = mRM_runoff
-    endif
-#else
     if (present(runoff)) runoff = mRM_runoff
-#endif
+
   end subroutine mrm_eval
 
 end module mo_mrm_eval
