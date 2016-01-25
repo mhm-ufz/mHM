@@ -65,7 +65,7 @@ else
     FCFLAGS  += -fast -Mipa=fast,inline -Mnovect
     CFLAGS   += -O3
 endif
-F90FLAGS += -Mpreprocess -Mfreeform -tp=p7-64
+F90FLAGS += -Mpreprocess -Mfreeform -tp=p7-64 -Mallocatable=03
 FCFLAGS  += -Mfixed -tp=p7-64
 CFLAGS   +=
 MODFLAG  := -module # space significant

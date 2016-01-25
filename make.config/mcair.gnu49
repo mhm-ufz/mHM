@@ -80,7 +80,7 @@ FPROJDIR :=
 
 # LAPACK
 LAPACKDIR   :=
-GFORTRANDIR := $(GNUDIR)
+GFORTRANDIR := /usr/local/gfortran
 
 # MPI
 MPIDIR := /usr/local/openmpi-1.8.4-gfortran

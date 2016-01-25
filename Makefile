@@ -373,7 +373,7 @@ CC       :=
 CFLAGS   := $(EXTRA_CFLAGS)
 CPP      :=
 DEFINES  := $(EXTRA_DEFINES)
-INCLUDES := $(EXTRA_INCLUDES)
+INCLUDES := $(EXTRA_INCLUDES) $(addprefix -I,$(SRCPATH))
 # and link, and therefore set below
 LD       :=
 LDFLAGS  := $(EXTRA_LDFLAGS)

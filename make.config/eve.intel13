@@ -47,6 +47,7 @@ ifeq ($(release),debug)
     FCFLAGS  += -g -debug -traceback -fp-stack-check -O0 -debug
     CFLAGS   += -g -debug -traceback -fp-stack-check -O0 -debug -Wall -Wcheck
 else
+    # -fast (=-ipo -O3 -static) Multifile interprocedure optimization
     # -vec-report1 to see vectorized loops; -vec-report2 to see also non-vectorized loops
     F90FLAGS += -O3 -vec-report0 -override-limits
     FCFLAGS  += -O3 -vec-report0 -override-limits
