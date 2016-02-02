@@ -393,10 +393,11 @@ CONTAINS
   !         \author  Rohini Kumar
   !         \date    Jan 2013
   !         Modified
-  !         Rohini Kumar & Matthias Cuntz, May 2014 - cell area calulation based on a regular lat-lon grid or
-  !                                                   on a regular X-Y coordinate system
-  !         Matthias Cuntz,                May 2014 - changed empirical distribution function
-  !                                                   so that doubles get the same value
+  !         Rohini Kumar & Matthias Cuntz,  May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                                    on a regular X-Y coordinate system
+  !         Matthias Cuntz,                 May 2014 - changed empirical distribution function
+  !                                                    so that doubles get the same value
+  !         Matthias Zink & Matthias Cuntz, Feb 2016 - code speed up due to reformulation of CDF calculation
 
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
@@ -408,8 +409,8 @@ CONTAINS
                                    L0_areaCell,            &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
-    use mo_orderpack,     only: unirnk
-    use mo_utils,         only: le, eq
+    use mo_orderpack,     only: sort, sort_index
+    use mo_utils,         only: eq
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
 
     implicit none
@@ -428,14 +429,11 @@ CONTAINS
     integer(i4)                               :: iStart, iEnd
     logical, dimension(:,:), allocatable      :: mask
 
-    real(dp), dimension(:), allocatable       :: slope_val, slope_emp
+    real(dp), dimension(:), allocatable       :: slope_val, slope_emp, temp
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
-    integer(i4)                               :: nuni
-
+    
     integer(i4)                               :: i, j, k
     real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
-    logical, dimension(:), allocatable        :: smask
-    real(dp)                                  :: emp
 
     !--------------------------------------------------------
     ! STEPS::
@@ -497,16 +495,51 @@ CONTAINS
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
-    allocate( slope_val(nCells), slope_sorted_index(nCells), slope_emp(nCells), smask(nCells) )
+    allocate( slope_val(nCells), slope_emp(nCells), slope_sorted_index(nCells), temp(nCells))
     slope_val(:) = L0_slope(iStart:iEnd)
+    
+    ! get sorted data and sorted indexes to remap later
+    slope_sorted_index = sort_index(slope_val)
+    call sort(slope_val)
 
     ! empirical distribution of slopes = cumulated number points with slopes that are <= the slope at this point
-    call unirnk(slope_val, slope_sorted_index, nuni) ! unique values = slope_val(slope_sorted_index(1:nuni))
-    do i=1, nuni
-       emp = count(le(slope_val(:), slope_val(slope_sorted_index(i)))) / real(nCells+1,dp) ! # <= unique value
-       where (eq(slope_val(:), slope_val(slope_sorted_index(i)))) slope_emp(:) = emp       ! assign to == unique value
+    ! 
+    !       sorted data                     emp. CDF
+    ! 9 |             x x       7/8 |             x x  
+    !   |                           |                  
+    ! 8 |           x           5/8 |           x      
+    !   |                           |                  
+    ! 5 |     x x x             4/8 |     x x x        
+    !   |                           |                  
+    ! 2 |  x                    1/8 |  x               
+    !   |__________________         |__________________
+    !
+    ! highest slope value = highest rank or No. of data points / (data points + 1) 
+    temp(nCells) = real(nCells, dp) / real(nCells+1,dp)
+
+    ! backward loop to check if the preceding data point has the same slope value
+    do i=nCells-1,1,-1
+       if (eq(slope_val(i), slope_val(i+1))) then
+          ! if yes: assign the same probabitity
+          temp(i) = temp(i+1)
+       else 
+          ! if not: assign rank / (data points + 1)
+          temp(i) = real(i, dp) / real(nCells+1,dp)
+       endif
     end do
 
+    ! EXAMPLE
+    ! in      = [  7, 20, 31, 31, 12, 31, 42 ] 
+    ! sorted  = [  7, 12, 20, 31, 31, 31, 42 ]
+    ! index   = [  1,  5,  2,  3,  4,  6,  7 ]
+    ! temp    = [  1,  2,  3,  6,  6,  6,  7 ]
+    ! out     = [  1,  3,  6,  6,  2,  6,  7 ] / (len(out) + 1 )
+    
+    ! remap probabilities to its position in original data
+    do i = 1, nCells
+       slope_emp(slope_sorted_index(i))  = temp(i)
+    end do
+    
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
@@ -531,7 +564,7 @@ CONTAINS
     end do
 
     ! free space
-    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index)
+    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index, temp)
 
   end subroutine L0_variable_init
 
