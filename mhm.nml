@@ -476,7 +476,7 @@ nGaugesTotal = 2
 !> basin 1
 !> number of gauges for subbasin (1)
 NoGauges_basin(1)   = 1
-!> id of gauge(1) for subbasin(1) --> (1,1)
+!> in subbasin(1), this is the id of gauge(1)  --> (1,1)
 Gauge_id(1,1)       = 398
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1)
 gauge_filename(1,1) = "00398.txt"
@@ -484,7 +484,7 @@ gauge_filename(1,1) = "00398.txt"
 !> basin 2
 !> number of gauges for subbasin (2)
 NoGauges_basin(2)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1)
+!> in subbasin(2), this is the id of gauge(1) --> (2,1)
 Gauge_id(2,1)           = 45
 !> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1)
 Gauge_filename(2,1)     = "45.txt"
