@@ -170,7 +170,7 @@ class NetcdfGrid(BaseGrid):
         # initialize 3d field
         self.data = zeros((self.ncarr.shape[0], self.nrows, self.ncols)) + self.nodata_value
         # paste 3d field
-        print('***CAUTION: grid cell at (0,0) index is assumed to be in the North-West')
+        print('***CAUTION: grid cell at (0,0) coordinate is assumed to be in the North-West corner')
         self.data[:, top: top + self.ncarr.shape[1], left: left + self.ncarr.shape[2]] = self.ncarr
         # also extend lat and lon
         dummy = zeros((self.nrows, self.ncols)) + self.nodata_value
