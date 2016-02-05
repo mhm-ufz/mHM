@@ -22,7 +22,7 @@ import sys,os
 from math import floor, ceil
 
 class BaseGrid(object):
-    def __init__(self, filename, headerlines=6):
+    def __init__(self, filename, headerlines=6, *args, **kwargs):
         self._filename = filename
         self._headerlines = headerlines
         self.nrows = None
@@ -125,15 +125,19 @@ class NetcdfGrid(BaseGrid):
     def __init__(self, fname, *args, **kwargs):
         super(NetcdfGrid, self).__init__(*args, **kwargs)
         self._ncfile = fname
-        self.read()
+        self.read(**kwargs)
 
-    def read(self):
+    def read(self, mirror_y_axis=False, **kwargs):
         from ufz import readnc
 
         super(NetcdfGrid,self).read() # call read of ascci header
         # read netcdf variable, array and attributes
         self.ncvar = self._ncfile.split('/')[-1].split('.')[0]
         self.ncarr = readnc(self._ncfile, var=self.ncvar)
+        # mirror along second dimension if required
+        if mirror_y_axis:
+            print('***CAUTION: mirroring along second axis, assumed to be y axis')
+            self.ncarr = self.ncarr[:, ::-1, :]
         self.ncatt = readnc(self._ncfile, var=self.ncvar, attributes=True)
         # read netcdf time
         self.nctime = readnc(self._ncfile, var='time')
@@ -208,7 +212,7 @@ if __name__== "__main__":
     # initialize ncfile
     if len(sys.argv) == 5:
         fname = sys.argv.pop(1)
-        source_grid = NetcdfGrid(fname,sys.argv[1])
+        source_grid = NetcdfGrid(fname, sys.argv[1], mirror_y_axis=False)
     else:
         source_grid = AsciiGrid(sys.argv[1])
 
