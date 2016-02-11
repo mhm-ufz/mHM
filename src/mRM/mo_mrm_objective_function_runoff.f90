@@ -20,15 +20,29 @@
 !>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging
 !>                                        station based on a power-6 norm \n
-!>               (16) (reserved) not used yet
-!>                    MO: Q:        1st objective: (1) = 1.0 - NSE  
-!>                                  2nd objective: (2) = 1.0 - lnNSE
+!>               (16) MO: Q:        1st objective: 1.0 - NSE  \n
+!>                                  2nd objective: 1.0 - lnNSE\n
+!>               (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)\n  
+!>                                  2nd objective: 1.0 - lnNSE(Q_lowflow)\n
+!>                                  where \n
+!>                                  highflows timepoints are determined
+!>                                  using 95% percentile of Q_obs as lower threshold for Q \n
+!>                                  lowflow   timepoints are determined
+!>                                  using min(Q_obs) + 0.05*(max(Q_obs)-min(Q_obs)) as upper threshold for Q
+!>               (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)\n  
+!>                                  2nd objective: 1.0 - lnNSE(Q_lowflow)\n
+!>                                  where \n
+!>                                  lowflow   timepoints are determined
+!>                                  using min(Q_obs) + 0.05*(max(Q_obs)-min(Q_obs)) as upper threshold for Q
+!>                                  highflows timepoints are the remaining
 
 !> \authors Juliane Mai
 !> \date Dec 2012
 !  Modified, Oct 2015, Stephan Thober - adapted for mRM
 !            Nov 2015, Juliane Mai    - introducing multi- and single-objective
 !                                     - first multi-objective function (16), but not used yet
+!            Feb 2016, Juliane Mai    - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -210,7 +224,15 @@ CONTAINS
     case (16) 
        ! 1st objective: 1.0-nse 
        ! 2nd objective: 1.0-lnnse 
-       multi_objectives = multi_objective_nse_lnnse(parameterset) 
+       multi_objectives = multi_objective_nse_lnnse(parameterset)
+    case (18) 
+       ! 1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
+       ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+       multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow(parameterset)
+    case (19) 
+       ! 1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
+       ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+       multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset) 
     case default 
        stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one." 
     end select
@@ -1225,6 +1247,281 @@ CONTAINS
     deallocate( runoff_obs_mask ) 
 
   END FUNCTION multi_objective_nse_lnnse
+
+  ! ------------------------------------------------------------------ 
+
+  !      NAME 
+  !          multi_objective_lnnse_highflow_lnnse_lowflow
+
+  !>        \brief Multi-objective function with NSE and lnNSE. 
+
+  !>        \details The objective function only depends on a parameter vector.  
+  !>        The model will be called with that parameter vector and  
+  !>        the model output is subsequently compared to observed data.\n
+  !>
+  !>        A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if 
+  !>        \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
+  !>        and a timepoint \f$t\f$ of the observed data is marked as a highflow timepoint \f$t_{high}\f$ if 
+  !>        \f[ t_{high} if Q_{obs}(i) > percentile(Q_{obs},95.)\f]
+  !>        This timepoint identification is only performed for the observed data.\n
+  !>
+  !>        The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
+  !>        of discharge values at high-flow timepoints
+  !>        \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>        The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
+  !>        of discharge values at low-flow timepoints
+  !>        \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>        Both objectives are returned.
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+
+  !     INTENT(IN) 
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+
+  !     INTENT(INOUT) 
+  !         None 
+
+  !     INTENT(OUT) 
+  !         None 
+
+  !     INTENT(IN), OPTIONAL 
+  !         None 
+
+  !     INTENT(INOUT), OPTIONAL 
+  !         None 
+
+  !     INTENT(OUT), OPTIONAL 
+  !         None 
+
+  !     RETURN 
+  !>       \return     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow &mdash; objective function value  
+  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
+
+  !     RESTRICTIONS 
+  !>       \note Input values must be floating points. \n 
+  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
+
+  !     EXAMPLE 
+  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
+  !         obj_value = objective_equal_nse_lnnse(para) 
+
+  !     LITERATURE 
+
+  !     HISTORY 
+  !>        \author Juliane Mai 
+  !>        \date Oct 2015 
+  !         Modified,  
+
+  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow(parameterset) 
+
+    ! use mo_mhm_eval,         only: mhm_eval 
+    use mo_errormeasures,    only: lnnse
+    use mo_percentile,       only: percentile
+
+    implicit none 
+
+    real(dp), dimension(:), intent(in) :: parameterset 
+    real(dp), dimension(2)             :: multi_objective_lnnse_highflow_lnnse_lowflow 
+
+    ! local 
+    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
+    integer(i4)                           :: gg                 ! gauges counter 
+    integer(i4)                           :: nGaugesTotal 
+    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
+    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
+    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
+    real(dp)                              :: q_high             ! lower discharge value to determine highflow timepoints
+    integer(i4)                           :: nrunoff            ! total number of discharge values
+    integer(i4)                           :: tt                 ! timepoint counter
+    logical,  dimension(:),   allocatable :: lowflow_mask       ! mask to get lowflow values
+    logical,  dimension(:),   allocatable :: highflow_mask      ! mask to get highflow values
+
+    ! call mhm_eval(parameterset, runoff=runoff) 
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2) 
+
+    multi_objective_lnnse_highflow_lnnse_lowflow = 0.0_dp 
+    do gg=1, nGaugesTotal
+       !
+       ! extract runoff 
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       nrunoff = size(runoff_obs,dim=1)
+       !print*, 'nrunoff = ',nrunoff
+       !
+       ! mask for highflow timepoints
+       if ( allocated(highflow_mask) ) deallocate(highflow_mask)
+       allocate( highflow_mask( nrunoff ) )
+       highflow_mask = .false.
+       q_high = percentile(runoff_obs,95._dp,mask=runoff_obs_mask)
+       forall(tt=1:nrunoff) highflow_mask(tt) = ( runoff_obs(tt) > q_high .and. runoff_obs_mask(tt))
+       !print*, 'nhigh = ',count(highflow_mask)
+       !
+       ! mask for lowflow timepoints
+       if ( allocated(lowflow_mask) ) deallocate(lowflow_mask)
+       allocate( lowflow_mask( nrunoff ) )
+       lowflow_mask = .false.
+       q_low  = minval(runoff_obs,mask=runoff_obs_mask) &
+            + 0.05_dp * (maxval(runoff_obs,mask=runoff_obs_mask) - minval(runoff_obs,mask=runoff_obs_mask))
+       forall(tt=1:nrunoff) lowflow_mask(tt) = ( runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
+       !print*, 'nlow  = ',count(lowflow_mask)
+       ! 
+       ! lnNSE highflows 
+       multi_objective_lnnse_highflow_lnnse_lowflow(1) = multi_objective_lnnse_highflow_lnnse_lowflow(1) + & 
+            lnnse(   runoff_obs, runoff_agg, mask=highflow_mask )
+       !
+       ! lnNSE lowflows
+       multi_objective_lnnse_highflow_lnnse_lowflow(2) = multi_objective_lnnse_highflow_lnnse_lowflow(2) + & 
+            lnnse( runoff_obs, runoff_agg, mask=lowflow_mask ) 
+    end do
+    ! objective function value which will be minimized 
+    multi_objective_lnnse_highflow_lnnse_lowflow(:) = 1.0_dp &
+         - multi_objective_lnnse_highflow_lnnse_lowflow(:) / real(nGaugesTotal,dp) 
+
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow 
+
+    ! clean up 
+    deallocate( runoff_agg, runoff_obs ) 
+    deallocate( runoff_obs_mask ) 
+
+  END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow
+
+  ! ------------------------------------------------------------------ 
+
+  !      NAME 
+  !          multi_objective_lnnse_highflow_lnnse_lowflow_2
+
+  !>        \brief Multi-objective function with NSE and lnNSE. 
+
+  !>        \details The objective function only depends on a parameter vector.  
+  !>        The model will be called with that parameter vector and  
+  !>        the model output is subsequently compared to observed data.\n
+  !>
+  !>        A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if 
+  !>        \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
+  !>        and all other timepoints are marked as a highflow timepoints \f$t_{high}\f$.
+  !>        This timepoint identification is only performed for the observed data.\n
+  !>
+  !>        The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
+  !>        of discharge values at high-flow timepoints
+  !>        \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>        The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
+  !>        of discharge values at low-flow timepoints
+  !>        \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
+  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>        Both objectives are returned.
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+
+  !     INTENT(IN) 
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+
+  !     INTENT(INOUT) 
+  !         None 
+
+  !     INTENT(OUT) 
+  !         None 
+
+  !     INTENT(IN), OPTIONAL 
+  !         None 
+
+  !     INTENT(INOUT), OPTIONAL 
+  !         None 
+
+  !     INTENT(OUT), OPTIONAL 
+  !         None 
+
+  !     RETURN 
+  !>       \return     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow_2 &mdash; objective function value  
+  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
+
+  !     RESTRICTIONS 
+  !>       \note Input values must be floating points. \n 
+  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
+
+  !     EXAMPLE 
+  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
+  !         obj_value = objective_equal_nse_lnnse(para) 
+
+  !     LITERATURE 
+
+  !     HISTORY 
+  !>        \author Juliane Mai 
+  !>        \date Oct 2015 
+  !         Modified,  
+
+  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset) 
+
+    ! use mo_mhm_eval,         only: mhm_eval 
+    use mo_errormeasures,    only: lnnse
+
+    implicit none 
+
+    real(dp), dimension(:), intent(in) :: parameterset 
+    real(dp), dimension(2)             :: multi_objective_lnnse_highflow_lnnse_lowflow_2 
+
+    ! local 
+    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
+    integer(i4)                           :: gg                 ! gauges counter 
+    integer(i4)                           :: nGaugesTotal 
+    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
+    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
+    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
+    integer(i4)                           :: nrunoff            ! total number of discharge values
+    integer(i4)                           :: tt                 ! timepoint counter
+    logical,  dimension(:),   allocatable :: lowflow_mask       ! mask to get lowflow values
+    logical,  dimension(:),   allocatable :: highflow_mask      ! mask to get highflow values
+
+    ! call mhm_eval(parameterset, runoff=runoff) 
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2) 
+
+    multi_objective_lnnse_highflow_lnnse_lowflow_2 = 0.0_dp 
+    do gg=1, nGaugesTotal
+       !
+       ! extract runoff 
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       nrunoff = size(runoff_obs,dim=1)
+       !print*, 'nrunoff = ',nrunoff
+       !
+       ! mask for lowflow timepoints
+       if ( allocated(lowflow_mask) ) deallocate(lowflow_mask)
+       allocate( lowflow_mask( nrunoff ) )
+       lowflow_mask = .false.
+       q_low  = minval(runoff_obs,mask=runoff_obs_mask) &
+            + 0.05_dp * (maxval(runoff_obs,mask=runoff_obs_mask) - minval(runoff_obs,mask=runoff_obs_mask))
+       forall(tt=1:nrunoff) lowflow_mask(tt) = ( runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
+       !print*, 'nlow  = ',count(lowflow_mask)
+       !
+       ! mask for highflow timepoints
+       if ( allocated(highflow_mask) ) deallocate(highflow_mask)
+       allocate( highflow_mask( nrunoff ) )
+       highflow_mask = .not. lowflow_mask
+       !print*, 'nhigh = ',count(highflow_mask)
+       ! 
+       ! lnNSE highflows 
+       multi_objective_lnnse_highflow_lnnse_lowflow_2(1) = multi_objective_lnnse_highflow_lnnse_lowflow_2(1) + & 
+            lnnse(   runoff_obs, runoff_agg, mask=highflow_mask )
+       !
+       ! lnNSE lowflows
+       multi_objective_lnnse_highflow_lnnse_lowflow_2(2) = multi_objective_lnnse_highflow_lnnse_lowflow_2(2) + & 
+            lnnse( runoff_obs, runoff_agg, mask=lowflow_mask ) 
+    end do
+    ! objective function value which will be minimized 
+    multi_objective_lnnse_highflow_lnnse_lowflow_2(:) = 1.0_dp &
+         - multi_objective_lnnse_highflow_lnnse_lowflow_2(:) / real(nGaugesTotal,dp) 
+
+    ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2 
+
+    ! clean up 
+    deallocate( runoff_agg, runoff_obs ) 
+    deallocate( runoff_obs_mask ) 
+
+  END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2
 
   ! ------------------------------------------------------------------
 

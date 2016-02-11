@@ -384,27 +384,23 @@ PROGRAM mhm_driver
   if ( optimize ) then
 #ifdef mrm2mhm
      ! call optimization against only runoff (no other variables)
-     if ((opti_function .eq. 1) .or. &
-         (opti_function .eq. 2) .or. &
-         (opti_function .eq. 3) .or. &
-         (opti_function .eq. 4) .or. &
-         (opti_function .eq. 5) .or. &
-         (opti_function .eq. 6) .or. &
-         (opti_function .eq. 7) .or. &
-         (opti_function .eq. 8) .or. &
-         (opti_function .eq. 9) .or. &
-         (opti_function .eq. 14)) &
-         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
+     select case(opti_function) 
+     case(1:9,14) 
+        call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
+     case default 
+        call message('mhm_driver: The kind (SO or MO) is not specified for the given objective function!') 
+        stop 
+     end select
 #endif
 
      ! call optimization for other variables
-     if ((opti_function .eq. 10) .or. &
-         (opti_function .eq. 11) .or. &
-         (opti_function .eq. 12) .or. &
-         (opti_function .eq. 13) .or. &
-         (opti_function .eq. 15) .or. &
-         (opti_function .eq. 17)) &
-         call optimization(objective, dirConfigOut, funcBest, maskpara)
+     select case(opti_function) 
+     case(10:13,15,17) 
+        call optimization(objective, dirConfigOut, funcBest, maskpara)
+     case default 
+        call message('mhm_driver: The kind (SO or MO) is not specified for the given objective function!') 
+        stop 
+     end select
 
      ! write a file with final objective function and the best parameter set
      call write_optifile(funcbest, global_parameters(:,3), global_parameters_name(:))

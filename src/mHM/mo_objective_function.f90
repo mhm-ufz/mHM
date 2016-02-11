@@ -14,6 +14,7 @@
 !>               (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture \n
 !>               (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
 !>                                        (standard score) TWS\n
+!>               (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
