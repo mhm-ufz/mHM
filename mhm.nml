@@ -102,10 +102,16 @@ opti_method = 1
 !> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
 !> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
 !> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
-!> (16) MO: (reserved) please use the next number when implementing a new one
+!> (16) (reserved) please use the next number when implementing a new one
+!>      MO: Q:  1st objective: (1) = 1.0 - NSE  
+!>          Q:  2nd objective: (2) = 1.0 - lnNSE
 !> (17) SO: N:  1.0 - KGE of spatio-temporal neutron data, catchment-average
-!> (18) MO: (reserved) please use the next number when implementing a new one
-!> (19) MO: (reserved) please use the next number when implementing a new one
+!> (18) (reserved) please use the next number when implementing a new one
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+!> (19) (reserved) please use the next number when implementing a new one
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
+!>      MO: Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
