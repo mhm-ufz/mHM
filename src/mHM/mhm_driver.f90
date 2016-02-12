@@ -382,23 +382,18 @@ PROGRAM mhm_driver
   iTimer = iTimer + 1
   call message()
   if ( optimize ) then
-#ifdef mrm2mhm
-     ! call optimization against only runoff (no other variables)
-     select case(opti_function) 
-     case(1:9,14) 
-        call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
-     case default 
-        call message('mhm_driver: The kind (SO or MO) is not specified for the given objective function!') 
-        stop 
-     end select
-#endif
 
-     ! call optimization for other variables
      select case(opti_function) 
+#ifdef mrm2mhm
+     case(1:9,14) 
+        ! call optimization against only runoff (no other variables)
+        call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
+#endif
      case(10:13,15,17) 
+        ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
      case default 
-        call message('mhm_driver: The kind (SO or MO) is not specified for the given objective function!') 
+        call message('mhm_driver: 1: The kind (SO or MO) is not specified for the given objective function!') 
         stop 
      end select
 
