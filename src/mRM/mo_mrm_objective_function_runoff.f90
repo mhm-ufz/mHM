@@ -1034,7 +1034,7 @@ CONTAINS
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
     objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal,dp)
 
-    write(*,*) 'objective_nse = ',objective_nse
+    write(*,*) 'objective_nse (i.e., 1 - NSE) = ',objective_nse
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
@@ -1726,7 +1726,7 @@ CONTAINS
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
     objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal,dp)
 
-    write(*,*) 'objective_kge = ', objective_kge
+    write(*,*) 'objective_kge (i.e., 1 - KGE) = ', objective_kge
     ! pause
 
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )

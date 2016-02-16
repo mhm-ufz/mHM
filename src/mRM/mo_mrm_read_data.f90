@@ -892,6 +892,7 @@ contains
   !     HISTORY
   !         \author  Stephan Thober
   !         \date    Sep 2015
+  !     MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
   subroutine mrm_read_total_runoff(iBasin)
     use mo_append, only: append
     use mo_mrm_tools, only: get_basin_info_mrm
@@ -930,12 +931,14 @@ contains
     do tt = 1, nTimeSteps
        L1_data_packed(:,tt) = pack(L1_data(:,:,tt), mask=mask) 
     end do
+    ! free space immediately
+    deallocate(L1_data)
     
     ! append
     call append(L1_total_runoff_in, L1_data_packed(:,:), nodata_dp)
 
     !free space
-    deallocate(L1_data, L1_data_packed)
+    deallocate(L1_data_packed)
 
   end subroutine mrm_read_total_runoff
 

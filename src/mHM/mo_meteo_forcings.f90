@@ -256,6 +256,7 @@ end subroutine prepare_meteo_forcings_data
   !>        \author Rohini Kumar
   !>        \date Jan 2013
   !         Modified, Stephan Thober, Jun 2014 -- changed to readPer
+  !                   Stephan Thober, Feb 2016 -- refactored deallocate statements
 
   subroutine meteo_forcings_wrapper(iBasin, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
   
@@ -353,7 +354,9 @@ end subroutine prepare_meteo_forcings_data
     else
       allocate( L1_data( size(L2_data,1), size(L2_data,2), size(L2_data,3) ) )
       L1_data(:,:,:) = L2_data(:,:,:)
-    end if
+   end if
+   ! free memory immediately
+   deallocate(L2_data)
     
     ! pack variables
     nTimeSteps = size(L1_data, 3)
@@ -361,12 +364,14 @@ end subroutine prepare_meteo_forcings_data
     do t = 1, nTimeSteps
        L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) ) 
     end do
+    ! free memory immediately
+    deallocate(L1_data)
     
     ! append
     call append( dataOut1, L1_data_packed(:,:), nodata_dp )
 
     !free space
-    deallocate(L1_data, L2_data, L1_data_packed) 
+    deallocate(L1_data_packed) 
     
   end subroutine meteo_forcings_wrapper
 
