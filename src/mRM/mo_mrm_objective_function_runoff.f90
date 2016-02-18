@@ -6,35 +6,28 @@
 !>          If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
 !>          If it is only regarding runoff implement it here.\n
 !>
-!>          All the objective functions are supposed to be minimized! \n
-!>               (1)  SO: Q:        1.0 - NSE  \n
-!>               (2)  SO: Q:        1.0 - lnNSE  \n
-!>               (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)  \n
+!>          All the objective functions are supposed to be minimized!                                      \n
+!>               (1)  SO: Q:        1.0 - NSE                                                              \n
+!>               (2)  SO: Q:        1.0 - lnNSE                                                            \n
+!>               (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)                                                  \n
 !>               (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
-!>                                        then lag(1)-autocorrelation removed  \n
-!>               (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
-!>               (6)  SO: Q:        SSE  \n
-!>               (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors  \n
+!>                                        then lag(1)-autocorrelation removed                              \n
+!>               (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                       \n
+!>               (6)  SO: Q:        SSE                                                                    \n
+!>               (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors            \n
 !>               (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
-!>                                        then lag(1)-autocorrelation removed \n
-!>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging
-!>                                        station based on a power-6 norm \n
-!>               (16) MO: Q:        1st objective: 1.0 - NSE  \n
-!>                                  2nd objective: 1.0 - lnNSE\n
-!>               (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)\n  
-!>                                  2nd objective: 1.0 - lnNSE(Q_lowflow)\n
-!>                                  where \n
-!>                                  highflows timepoints are determined
-!>                                  using 95% percentile of Q_obs as lower threshold for Q \n
-!>                                  lowflow   timepoints are determined
-!>                                  using min(Q_obs) + 0.05*(max(Q_obs)-min(Q_obs)) as upper threshold for Q
-!>               (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)\n  
-!>                                  2nd objective: 1.0 - lnNSE(Q_lowflow)\n
-!>                                  where \n
-!>                                  lowflow   timepoints are determined
-!>                                  using min(Q_obs) + 0.05*(max(Q_obs)-min(Q_obs)) as upper threshold for Q
-!>                                  highflows timepoints are the remaining
+!>                                        then lag(1)-autocorrelation removed                              \n
+!>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)                             \n
+!>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of 
+!>                                        every gauging station based on a power-6 norm                    \n
+!>               (16) MO: Q:        1st objective: 1.0 - NSE                                               \n
+!>                        Q:        2nd objective: 1.0 - lnNSE                                             \n
+!>               (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)               \n
+!>                        Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)             \n
+!>               (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                 \n
+!>                        Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q \n
+!>               (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume         \n
+!>                        Q:        2nd objective: 1.0 - NSE of discharge of months DJF                    \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -43,6 +36,7 @@
 !                                     - first multi-objective function (16), but not used yet
 !            Feb 2016, Juliane Mai    - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
+!                                     - multi-objective function (20) using FDC and discharge of months DJF
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -233,6 +227,10 @@ CONTAINS
        ! 1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
        ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
        multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset) 
+    case (20) 
+       ! 1st objective: 1.0 - difference in FDC's low-segment volume
+       ! 2nd objective: 1.0 - NSE of discharge of months DJF
+       multi_objectives = multi_objective_ae_fdc_lsv_nse_djf(parameterset) 
     case default 
        stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one." 
     end select
@@ -1523,6 +1521,148 @@ CONTAINS
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2
 
+  ! ------------------------------------------------------------------ 
+
+  !      NAME 
+  !          multi_objective_ae_fdc_lsv_nse_djf
+
+  !>        \brief Multi-objective function with absolute error of Flow Duration Curves
+  !>               low-segment volume and nse of DJF's discharge. 
+
+  !>        \details The objective function only depends on a parameter vector.  
+  !>        The model will be called with that parameter vector and  
+  !>        the model output is subsequently compared to observed data.\n
+  !>
+  !>        The first objective is using the routine "FlowDurationCurves" from "mo_signatures" to determine the
+  !>        low-segment volume of the FDC. The objective is the absolute difference between the observed volume
+  !>        and the simulated volume.\n
+  !>
+  !>        For the second objective the discharge of the winter months December, January and February are extracted
+  !>        from the time series. The objective is then the Nash-Sutcliffe efficiency NSE of the observed winter
+  !>        discharge against the simulated winter discharge.\n
+  !>
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+
+  !     INTENT(IN) 
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+
+  !     INTENT(INOUT) 
+  !         None 
+
+  !     INTENT(OUT) 
+  !         None 
+
+  !     INTENT(IN), OPTIONAL 
+  !         None 
+
+  !     INTENT(INOUT), OPTIONAL 
+  !         None 
+
+  !     INTENT(OUT), OPTIONAL 
+  !         None 
+
+  !     RETURN 
+  !>       \return     real(dp), dimension(2) :: multi_objective_ae_fdc_lsv_nse_djf &mdash; objective function value  
+  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
+
+  !     RESTRICTIONS 
+  !>       \note Input values must be floating points. \n 
+  !>             Actually, \f$ 1-ae \f$ and \f$1-nse\f$ will be returned such that it can be minimized. 
+
+  !     EXAMPLE 
+  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
+  !         obj_value = objective_equal_nse_lnnse(para) 
+
+  !     LITERATURE 
+
+  !     HISTORY 
+  !>        \author Juliane Mai 
+  !>        \date Feb 2016
+  !         Modified,  
+
+  FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset) 
+
+    use mo_errormeasures,        only: nse
+    use mo_julian,               only: dec2date
+    use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer
+    use mo_signatures,           only: FlowDurationCurve
+
+    implicit none 
+
+    real(dp), dimension(:), intent(in) :: parameterset 
+    real(dp), dimension(2)             :: multi_objective_ae_fdc_lsv_nse_djf 
+
+    ! local 
+    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
+    integer(i4)                           :: gg                 ! gauges counter 
+    integer(i4)                           :: nGaugesTotal       ! total number of gauges
+    integer(i4)                           :: iBasin             ! basin ID of gauge
+    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
+    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
+    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
+    integer(i4)                           :: nrunoff            ! total number of discharge values
+    integer(i4)                           :: tt                 ! timepoint counter
+    integer(i4)                           :: month              ! month of current time step
+    real(dp)                              :: current_time       ! Fractional Julian day of current time step
+    logical,  dimension(:),   allocatable :: djf_mask           ! mask to get lowflow values
+    real(dp), dimension(10)               :: quantiles          ! quantiles for FDC
+    integer(i4)                           :: nquantiles         ! number of quantiles
+    real(dp), dimension(size(quantiles))  :: fdc_mod            ! FDC of simulated discharge
+    real(dp), dimension(size(quantiles))  :: fdc_obs            ! FDC of observed  discharge
+    real(dp)                              :: lsv_mod            ! low-segment volume of FDC of simulated discharge
+    real(dp)                              :: lsv_obs            ! low-segment volume of FDC of observed  discharge
+
+    ! call mhm_eval(parameterset, runoff=runoff) 
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2) 
+    nquantiles   = size(quantiles)
+    forall(tt=1:nquantiles) quantiles(tt) = real(tt,dp) / real(nquantiles,dp)
+
+    multi_objective_ae_fdc_lsv_nse_djf = 0.0_dp 
+    do gg=1, nGaugesTotal
+       !
+       ! extract runoff 
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       nrunoff = size(runoff_obs,dim=1)
+       !
+       ! mask DJF timepoints
+       if ( allocated(djf_mask) ) deallocate(djf_mask)
+       allocate( djf_mask( nrunoff ) )
+       djf_mask = .false.
+
+       iBasin = gauge%basinId( gg )
+       do tt=1, nrunoff
+          current_time = evalPer( iBasin )%julStart + (tt-1) * 1.0_dp/real(nMeasPerDay,dp)
+          call dec2date(current_time, mm=month)
+          if ( (month == 1 .or. month == 2 .or. month == 12) .and. runoff_obs_mask(tt) ) djf_mask(tt) = .True.
+       end do
+       !
+       ! Absolute error of low-segment volume of FDC
+       fdc_obs = FlowDurationCurve(runoff_obs, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_obs)
+       fdc_mod = FlowDurationCurve(runoff_agg, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_mod) 
+       multi_objective_ae_fdc_lsv_nse_djf(1) = multi_objective_ae_fdc_lsv_nse_djf(1) + & 
+            abs( lsv_obs - lsv_mod )
+       !
+       ! NSE of DJF discharge
+       multi_objective_ae_fdc_lsv_nse_djf(2) = multi_objective_ae_fdc_lsv_nse_djf(2) + & 
+            nse( runoff_obs, runoff_agg, mask=djf_mask ) 
+    end do
+    ! objective function value which will be minimized 
+    multi_objective_ae_fdc_lsv_nse_djf(1) = &
+         multi_objective_ae_fdc_lsv_nse_djf(1) / real(nGaugesTotal,dp) 
+    multi_objective_ae_fdc_lsv_nse_djf(2) = 1.0_dp &
+         - multi_objective_ae_fdc_lsv_nse_djf(2) / real(nGaugesTotal,dp) 
+
+    write(*,*) 'multi_objective_ae_fdc_lsv_nse_djf = ',multi_objective_ae_fdc_lsv_nse_djf 
+
+    ! clean up 
+    deallocate( runoff_agg, runoff_obs ) 
+    deallocate( runoff_obs_mask ) 
+
+  END FUNCTION multi_objective_ae_fdc_lsv_nse_djf
+
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -1896,8 +2036,8 @@ CONTAINS
   subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
 
     use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer, warmingDays_mrm, nTstepDay
-    use mo_message,          only: message
-    use mo_utils,            only: ge
+    use mo_message,              only: message
+    use mo_utils,                only: ge
 
     implicit none
 

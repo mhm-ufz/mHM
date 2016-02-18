@@ -111,7 +111,10 @@ opti_method = 1
 !>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
 !> (19) (reserved) please use the next number when implementing a new one
 !>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
-!>      MO: Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+!> (20) (reserved) please use the next number when implementing a new one
+!>      MO: Q:  1st objective: absolute difference in FDC's low-segment volume
+!>          Q:  2nd objective: 1.0 - NSE of discharge of months DJF
 !> further functions can be implemented in mo_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
