@@ -1601,7 +1601,6 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
     real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
     logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
     integer(i4)                           :: nrunoff            ! total number of discharge values
     integer(i4)                           :: tt                 ! timepoint counter
     integer(i4)                           :: month              ! month of current time step
@@ -1609,8 +1608,7 @@ CONTAINS
     logical,  dimension(:),   allocatable :: djf_mask           ! mask to get lowflow values
     real(dp), dimension(10)               :: quantiles          ! quantiles for FDC
     integer(i4)                           :: nquantiles         ! number of quantiles
-    real(dp), dimension(size(quantiles))  :: fdc_mod            ! FDC of simulated discharge
-    real(dp), dimension(size(quantiles))  :: fdc_obs            ! FDC of observed  discharge
+    real(dp), dimension(size(quantiles))  :: fdc                ! FDC of simulated or observed discharge
     real(dp)                              :: lsv_mod            ! low-segment volume of FDC of simulated discharge
     real(dp)                              :: lsv_obs            ! low-segment volume of FDC of observed  discharge
 
@@ -1640,8 +1638,11 @@ CONTAINS
        end do
        !
        ! Absolute error of low-segment volume of FDC
-       fdc_obs = FlowDurationCurve(runoff_obs, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_obs)
-       fdc_mod = FlowDurationCurve(runoff_agg, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_mod) 
+       fdc = FlowDurationCurve(runoff_obs, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_obs)
+       fdc = FlowDurationCurve(runoff_agg, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_mod) 
+       fdc = fdc * 1.0_dp ! only to avoid warning of unused variable
+       !
+       ! Absolute distance between low-segment volumes
        multi_objective_ae_fdc_lsv_nse_djf(1) = multi_objective_ae_fdc_lsv_nse_djf(1) + & 
             abs( lsv_obs - lsv_mod )
        !
