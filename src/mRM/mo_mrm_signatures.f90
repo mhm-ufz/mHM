@@ -1,4 +1,4 @@
-!> \file mo_signatures.f90
+!> \file mo_mrm_signatures.f90
 
 !> \brief Module with calculations for several hydrological signatures.
 
@@ -17,8 +17,9 @@
 !                                     - removing routines which are specially low flow or high flow
 !                                     - adding optional mask argument to all routines
 !                                     - using CHS routines like percentile and autocorr
+!            Stephan Thober, Feb 2016 - moved to mRM and renamed to mo_mrm_signatures
 
-MODULE mo_signatures
+MODULE mo_mrm_signatures
 
   USE mo_kind, ONLY: i4, sp, dp
 
@@ -1092,4 +1093,4 @@ CONTAINS
 
   END FUNCTION ZeroFlowRatio
 
-END MODULE mo_signatures
+END MODULE mo_mrm_signatures

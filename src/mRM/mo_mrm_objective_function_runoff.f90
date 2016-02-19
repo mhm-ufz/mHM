@@ -1586,7 +1586,7 @@ CONTAINS
     use mo_errormeasures,        only: nse
     use mo_julian,               only: dec2date
     use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer
-    use mo_signatures,           only: FlowDurationCurve
+    use mo_mrm_signatures,       only: FlowDurationCurve
 
     implicit none 
 
