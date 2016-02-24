@@ -109,8 +109,8 @@ contains
     xi = merge( 0.005_dp, xi, xi < 0.005_dp )
 
     ! constrains on Ki
-    K = merge( 0.5_dp * TS / xi,            xi, K > 0.5_dp * TS / xi )
-    K = merge( 0.5_dp * TS / (1.0_dp - xi), xi, K < 0.5_dp * TS / (1.0_dp - xi))
+    K = merge( 0.5_dp * TS / xi,            K, K > 0.5_dp * TS / xi )
+    K = merge( 0.5_dp * TS / (1.0_dp - xi), K, K < 0.5_dp * TS / (1.0_dp - xi))
 
     ! Muskingum parameters
     C1 = TS / ( K * (1.0_dp - xi) + 0.5_dp * TS )
