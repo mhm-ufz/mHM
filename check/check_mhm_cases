@@ -244,7 +244,9 @@ if [[ "${icdo}z" == "z" ]] ; then
         if [[ $(hostname) == 'frontend1' || $(hostname) == 'frontend2' ]] ; then
             module load cdo
         fi
+	set +ex
         icdo=$(which cdo 2> /dev/null)
+	set -ex
     fi
 fi
 #set -ex
