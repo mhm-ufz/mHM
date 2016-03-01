@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 #
 # -------------------------------------------------------------------------------------------
 # BRIEF
@@ -234,19 +234,21 @@ if [ $# -gt 0 ] ; then
 fi
 
 # check for cdo
-set +ex
+set +e
 icdo=$(which cdo 2> /dev/null)
-set -ex
+set -e
 if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
-        if [[ $(hostname) == 'frontend1' || $(hostname) == 'frontend2' ]] ; then
+        if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
             module load cdo
+	else
+	    echo "Host not specified!"
         fi
-	set +ex
+	set +e
         icdo=$(which cdo 2> /dev/null)
-	set -ex
+	set -e
     fi
 fi
 #set -ex
