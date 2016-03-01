@@ -234,8 +234,9 @@ if [ $# -gt 0 ] ; then
 fi
 
 # check for cdo
-set +e
+set +ex
 icdo=$(which cdo 2> /dev/null)
+set -ex
 if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
@@ -246,7 +247,7 @@ if [[ "${icdo}z" == "z" ]] ; then
         icdo=$(which cdo 2> /dev/null)
     fi
 fi
-set -e
+#set -ex
 if [[ "${icdo}z" == "z" ]] ; then printf "Error ${pprog}: cdo not found.\n\n" ; exit 1 ; fi
 
 # rm coloured ls
