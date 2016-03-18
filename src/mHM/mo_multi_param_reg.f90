@@ -14,6 +14,7 @@
 !           update  Ku   04.10.2010 vector version
 !           update  Th   20.12.2012 modular version
 !           update  MZ   27.11.2014 added parameterization of PET
+!                   Ku   Mar 2016 - changes for handling multiple soil database options
 
 MODULE mo_multi_param_reg
 
@@ -61,6 +62,7 @@ contains
   !>                                            indicates the position of the first parameter
   !>                                            for this process in the array param
   !>       \param[in] "real(dp)    :: param(:)"         - given global parameter array
+  !>       \param[in] "integer(i4) :: iFlag_soil"       - flags for handling multiple soil databases
   !>       \param[in] "real(dp)    :: nodata"           - given nodata value
   !>       \param[in] "integer(i4) :: geoUnit0(:,:)"    - geological units at Level 0
   !>       \param[in] "integer(i4) :: geo_unit_list(:)" - index list of geological units
@@ -80,7 +82,8 @@ contains
   !>       \param[in] "real(dp)    :: fForest1(:)"      - fraction of forest cover at scale L1
   !>       \param[in] "real(dp)    :: fIperm1(:)"       - fraction of sealed area at scale L1
   !>       \param[in] "real(dp)    :: fPerm1(:)"        - fraction of permeable area at scale L1
-  !>       \param[in] "integer(i4) :: soilID0(:)"       - [1] soil IDs at level 0
+  !>       \param[in] "integer(i4) :: soilID0(:)"           - [1] soil IDs at level 0
+  !>       \param[in] "integer(i4) :: soilHorizonId0(:,:)"  - [1] Horizon specific soil Ids at level 0  [ncells,nhorizons]
   !>       \param[in] "real(dp)    :: Asp0(:,:)"        - [degree] Aspect at Level 0
   !>       \param[in] "real(dp)    :: LCover_LAI0(:)    - [1] land cover ID for LAI estimation
   !>       \param[in] "integer(i4) :: LCover0(:)"       - [1] land use cover at level 0 
@@ -178,11 +181,13 @@ contains
   !                   Stephan Thober, Feb 2013 - added subroutine for karstic percolation loss
   !                                              removed L1_, L0_ in variable names
   !                   Stephan Thober, Aug 2015 - moved regionalization of routing to mRM
+  !                  Rohini Kumar,    Mar 2016 - changes for handling multiple soil database options
 
   !TO DOS: all variable names have to be updated as in the mHM call and the sorted. Documentation has to be updated
 
 
   subroutine mpr( proc_Mat, & ! IN:    determines which regionalization shall be done
+       iFlag_soil,          & ! IN:    flag to handle different soil database
        param,               & ! IN:    global parameter array
        nodata,              & ! IN:    no data value
        mask0,               & ! IN:    mask at Level 0
@@ -206,6 +211,7 @@ contains
        fIperm1,             & ! IN:    fraction of sealed area at scale L1
        fPerm1,              & ! IN:    fraction of permeable area at scale L1
        soilId0,             & ! IN:    soil Ids at level 0
+       soilHorizonId0,      & ! IN:    horizon specific soil Ids at level 0
        Asp0,                & ! IN:    [degree] Aspect at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
@@ -252,6 +258,7 @@ contains
 
     ! Input ----------------------------------------------------------
     integer(i4), dimension(:,:),             intent(in)    :: proc_Mat          ! indicate processes
+    integer(i4),                             intent(in)    :: iFlag_soil        ! flag to handle different soil database
     real(dp), dimension(:),                  intent(in)    :: param             ! array of global parameters
     real(dp),                                intent(in)    :: nodata            ! nodata value
 
@@ -281,6 +288,7 @@ contains
     real(dp),    dimension(:),               intent(in)    :: fIperm1           ! [1] fraction of sealed area
     real(dp),    dimension(:),               intent(in)    :: fPerm1            ! [1] fraction of permeable area
     integer(i4), dimension(:),               intent(in)    :: soilId0           ! soil Ids at level 0
+    integer(i4), dimension(:,:),             intent(in)    :: soilHorizonId0    ! horizon specific soil Ids at level 0
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
@@ -387,43 +395,58 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat(3,1) )
     case(1)
+       
        msoil =   size(SDB_is_present,1)
-       mtill = maxval(SDB_nTillHorizons, (SDB_nTillHorizons /= int(nodata,i4) ))
-       mHor  = maxval(SDB_nHorizons,     (SDB_nHorizons /= int(nodata,i4)     ))
-       mLC   = maxval(LCover0,           (LCover0 /= int(nodata,i4)           ))
-
-       allocate( thetaS_till(  msoil, mtill, mLC )) 
+       mLC   = maxval(LCover0, ( LCover0 .ne. int(nodata,i4) )  )
+       
+       ! depending on which kind of soil database processing is to be performed
+       if( iFlag_soil .eq. 0 )then
+          mtill = maxval(SDB_nTillHorizons, ( SDB_nTillHorizons .ne. int(nodata,i4) )    )
+          mHor  = maxval(SDB_nHorizons,     ( SDB_nHorizons     .ne. int(nodata,i4) )    )
+       else if(iFlag_soil .eq. 1) then
+          ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
+          ! since a given soil type can lie in any horizon (till or non-till ones)
+          ! adopt it in a way that it do not break the consistency of iFlag_soil = 0
+          mtill = 1
+          mHor  = 1
+       end if
+       
+       allocate(  thetaS_till( msoil, mtill, mLC )) 
        allocate( thetaFC_till( msoil, mtill, mLC )) 
        allocate( thetaPW_till( msoil, mtill, mLC )) 
-       allocate( thetaS(       msoil, mHor )) 
-       allocate( thetaFC(      msoil, mHor )) 
-       allocate( thetaPW(      msoil, mHor ))
+       allocate(       thetaS( msoil, mHor       )) 
+       allocate(      thetaFC( msoil, mHor       )) 
+       allocate(      thetaPW( msoil, mHor       ))
+       allocate(           Ks( msoil, mHor, mLC  ))
+       allocate(           Db( msoil, mHor, mLC  ))       
 
-       allocate( KsVar_H0( size(soilId0,1) ) )
-       allocate( KsVar_V0( size(soilId0,1) ) )
-       allocate( SMs_tot0( size(soilId0,1) ) )
-       allocate(  SMs_FC0( size(soilId0,1) ) )
-       allocate(       Ks(msoil, mHor, mLC) )
-       allocate(       Db(msoil, mHor, mLC) )       
-
+       ! earlier these variables were allocated with  size(soilId0,1)
+       ! in which the variable "soilId0" changes according to the iFlag_soil
+       ! so better to use other variable which is common to 0 AND 1 flags
+       allocate( KsVar_H0( size(cell_id0,1) ) )
+       allocate( KsVar_V0( size(cell_id0,1) ) )
+       allocate( SMs_tot0( size(cell_id0,1) ) )
+       allocate(  SMs_FC0( size(cell_id0,1) ) )
+       
        ! first thirteen parameters go to this routine
        iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
        iEnd   = proc_Mat(3,3) - 4    
 
-       call mpr_sm( param(iStart:iEnd), nodata, &
-            SDB_is_present, SDB_nHorizons, SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, cell_id0, soilId0, LCOVER0,&
-            thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, &
-            KsVar_H0, KsVar_V0, SMs_tot0, SMs_FC0)
-       ! next three parameters go here
+       call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
+            SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
+            SDB_sand, SDB_clay, SDB_DbM, cell_id0,             &
+            soilId0, soilHorizonId0, LCOVER0,                  &
+            thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
+            thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_tot0, SMs_FC0)
 
-       !
+       ! next three parameters go here
        iStart = proc_Mat(3,3) - 4 + 1
        iEnd   = proc_Mat(3,3)
-
        call mpr_SMhorizons( param(iStart:iEnd), nodata, nHorizons_mHM, &
             horizon_depth, &
-            LCOVER0, soilId0, SDB_nHorizons, SDB_nTillHorizons, thetaS_till,thetaFC_till,&
-            thetaPW_till, thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth, &
+            LCOVER0, soilId0, SDB_nHorizons, SDB_nTillHorizons, &
+            thetaS_till,thetaFC_till, thetaPW_till, &
+            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth, &
             mask0, cell_id0, &
             Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
             beta1, SMs1, FC1, PW1, fRoots1 )

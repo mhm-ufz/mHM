@@ -90,12 +90,17 @@ CONTAINS
   !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
   !                  Stephan Thober, Jun 2014 - updated flag for read_restart
   !                  Stephan Thober, Aug 2015 - removed initialisation of routing
+  !                    Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
 
   subroutine initialise(iBasin)
 
     use mo_kind,             only: i4
-    use mo_global_variables, only: soilDB, L0_Basin, &
-         read_restart, perform_mpr, dirRestartIn
+    use mo_global_variables, only: soilDB,       &
+                                   L0_Basin,     &
+                                   read_restart, &
+                                   perform_mpr,  &
+                                   dirRestartIn, &
+                                   iFlag_soilDB               ! options to handle different types of soil databases
     use mo_soil_database,    only: generate_soil_database
     use mo_init_states,      only: variables_alloc
     USE mo_restart,          ONLY: read_restart_config
@@ -109,7 +114,7 @@ CONTAINS
        ! constants initialization
        call constants_init()
        ! soilDB common for all basins
-       call generate_soil_database(soilDB)
+       call generate_soil_database(soilDB, iFlag_soilDB)
     end if
     
     ! L0 and L1 initialization
@@ -252,15 +257,22 @@ CONTAINS
   !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
   !                & Stephan Thober,           to process_matrix flag
   !                  Stephan Thober, Aug 2015 - moved check of L0 routing variables to mRM
+  !                    Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
 
   subroutine L0_check_input(iBasin)
 
-    use mo_global_variables, only: basin                    , &
+    use mo_global_variables, only: basin,                     &
                                    L0_elev, L0_slope, L0_asp, &
-                                   L0_soilId, L0_geoUnit    , &
-                                   L0_LCover_LAI            , &
-                                   nLCoverScene            , &
-                                   L0_LCover, timeStep_LAI_input
+                                   L0_geoUnit,                &
+                                   L0_soilId,                 & ! soil class ID on input resolution (L0) (iFlag_soilDB = 0)  
+                                   L0_Horizon_soilId,         & ! soil class ID on input resolution (L0) (iFlag_soilDB = 1)  
+                                   nSoilHorizons_mHM,         & ! soil horizons info for mHM
+                                   iFlag_soilDB,              & ! options to handle different types of soil databases
+                                   L0_LCover_LAI,             &
+                                   nLCoverScene,              &
+                                   L0_LCover,                 &
+                                   timeStep_LAI_input
+
     use mo_constants,    only: eps_dp
     use mo_message,      only: message, message_text
     use mo_string_utils, only: num2str
@@ -300,11 +312,24 @@ CONTAINS
        end if
 
        ! soil-Id [-]
-       if ( L0_soilId(k) .eq. nodata_i4 ) then
-          message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-          call message(' Error: soil id has missing values within the valid masked area at cell in basin ', &
-               trim(message_text) )
-          stop
+       if( iFlag_soilDB .eq. 0 ) then
+          ! classical mHM soil database
+          if ( L0_soilId(k) .eq. nodata_i4 ) then
+             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
+             call message(' Error: soil id has missing values within the valid masked area at cell in basin ', &
+                  trim(message_text) )
+             stop
+          end if
+       else if( iFlag_soilDB .eq. 1) then
+          ! another option to handle multiple soil horizons properties
+          do  n = 1, nSoilHorizons_mHM
+             if ( L0_Horizon_soilId(k,n) .eq. nodata_i4  ) then
+                message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))//','// trim(num2str(n,'(I5)'))
+                call message(' Error: soil id has missing values within the valid masked area at cell in basin and horizon ', &
+                     trim(message_text) )
+                stop
+             end if
+          end do
        end if
 
        ! geological-Id [-]
@@ -324,7 +349,6 @@ CONTAINS
              stop
           end if
        end do
-
 
        ! land cover scenes related to LAI
        if(timeStep_LAI_input .EQ. 0) then
@@ -398,6 +422,7 @@ CONTAINS
   !         Matthias Cuntz,                 May 2014 - changed empirical distribution function
   !                                                    so that doubles get the same value
   !         Matthias Zink & Matthias Cuntz, Feb 2016 - code speed up due to reformulation of CDF calculation
+  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
 
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
@@ -405,7 +430,11 @@ CONTAINS
                                    L0_nCells, L0_cellCoor, &
                                    L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
-                                   L0_soilId, nSoilTypes,  &
+                                   L0_soilId,              & ! soil class ID on input resolution (L0) (iFlag_soilDB = 0)  
+                                   L0_Horizon_soilId,      & ! soil class ID on input resolution (L0) (iFlag_soilDB = 1)  
+                                   nSoilHorizons_mHM,      & ! soil horizons info for mHM
+                                   iFlag_soilDB,           & ! options to handle different types of soil databases
+                                   nSoilTypes,             &
                                    L0_areaCell,            &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
@@ -558,11 +587,24 @@ CONTAINS
        soilId_isPresent(:) = 0
     end if
 
-    do k = iStart, iEnd
-       j = L0_soilId(k)
-       soilId_isPresent(j) = 1
-    end do
-
+    if( iFlag_soilDB .eq. 0) then
+       ! classical mHM soil database
+       do k = iStart, iEnd
+          j = L0_soilId(k)
+          soilId_isPresent(j) = 1
+       end do
+    else if( iFlag_soilDB .eq. 1) then
+       ! another option to handle multiple soil horizons properties
+       ! check for the presence of a particular soil type through all horizons
+       do i = 1, nSoilHorizons_mHM
+          do k = iStart, iEnd
+             j = L0_Horizon_soilId(k,i)
+             soilId_isPresent(j) = 1
+          end do
+       end do
+    end if
+       
+    
     ! free space
     deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index, temp)
 

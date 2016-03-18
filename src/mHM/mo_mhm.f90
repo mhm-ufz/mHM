@@ -112,6 +112,7 @@ CONTAINS
   !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
+  !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -133,6 +134,7 @@ CONTAINS
       nHorizons_mHM       , & ! Number of Horizons in mHM
       ntimesteps_day      , & ! number of time intervals per day, transformed in dp
       mask0               , & ! mask 0 for MPR
+      iflag_soil_option   , & ! flags for handling multiple soil databases      
       global_parameters   , & ! global mHM parameters
       ! LUT
       LCyearId            , & ! mapping of landcover scenes
@@ -146,6 +148,7 @@ CONTAINS
       cellId0             , & ! cell Ids at level 0
       soilId0             , & ! soil Ids at level 0
       L0_LCover_LAI       , & ! land cover ID for LAI estimation
+      Horizon_soilId0     , & ! Horizon specific soil Ids at level 0  [ncells,nhorizons]
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
       LAI0                , & ! LAI at level 0
@@ -274,6 +277,7 @@ CONTAINS
     integer(i4),                 intent(in) :: nHorizons_mHM
     real(dp),                    intent(in) :: ntimesteps_day
     logical,     dimension(:,:), intent(in) :: mask0
+    integer(i4),                 intent(in) :: iflag_soil_option                
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
@@ -289,6 +293,7 @@ CONTAINS
     integer(i4), dimension(:),     intent(in) :: cellId0
     integer(i4), dimension(:),     intent(in) :: soilId0
     integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
+    integer(i4), dimension(:,:),   intent(in) :: Horizon_soilId0
     integer(i4), dimension(:),     intent(in) :: LCover0
     real(dp),    dimension(:),     intent(in) :: Asp0
     real(dp),    dimension(:),     intent(in) :: LAI0
@@ -474,12 +479,12 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, global_parameters(:), nodata_dp, mask0,               &
-                geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
+           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,   &
+                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,            &
                 SDB_is_present, SDB_nHorizons,                                            &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
                 nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
-                soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
+                soilId0, Horizon_soilId0, Asp0, L0_LCover_LAI, LCover0,                   &
                 slope_emp0, cellId0,                                                      &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                 L0rightBound_inL1, nTCells0_inL1, l0_latitude,                            &

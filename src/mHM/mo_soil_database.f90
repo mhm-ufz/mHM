@@ -78,7 +78,7 @@ CONTAINS
   !           Rohini Kumar,           Mar 2016 - new variables for handling different soil databases
 
   subroutine read_soil_LUT(filename, iFlag_option, soilDB)
-
+    use mo_constants,        only: eps_dp                    ! epsilon(1.0) in double precision
     use mo_global_variables, only: soilType                  ! Type definition
     use mo_global_variables, only: tillageDepth              ! value is used
     use mo_global_variables, only: nSoilTypes                ! value is set
@@ -314,6 +314,11 @@ CONTAINS
              soilDB%dbM (kk,1) = bd
           end do
           close(usoil_database)
+ 
+       CASE DEFAULT
+          call message()
+          call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+          stop
           
        END SELECT
           
@@ -333,7 +338,7 @@ CONTAINS
 
   !     INDENT(INOUT)
   !>        \param[in,out] "type(soilType) :: soilDB"          initialized/ proper soil database
-
+  !>        \param[in] "integer(i4)        :: iFlag_option"    option for which kind of database to read
   !     INDENT(OUT)
   !         None
 
@@ -361,12 +366,13 @@ CONTAINS
   !     HISTORY
   !>        \author Juliane Mai
   !>        \date Dec 2012
-  !         Modified, Rohini Kumar & Juliane Mai, April, 2013
-  !                   - wieght for no-contributing soil horizons are intialized with nodata value       
+  !         Modified, Rohini Kumar &
+  !                    Juliane Mai, Apr, 2013 - wieght for no-contributing soil horizons are intialized with nodata value
+  !                   Rohini Kumar, Mar, 2016 - new variables for handling different soil databases
 
   ! ------------------------------------------------------------------
 
-  subroutine generate_soil_database(soilDB)
+  subroutine generate_soil_database(soilDB, iFlag_option)
 
     use mo_global_variables, only: soilType                                                     ! Type definition
     use mo_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM, nSoilTypes                  ! value is used
@@ -376,6 +382,7 @@ CONTAINS
     implicit none
 
     type(soilType),   intent(inout) :: soilDB
+    integer(i4), intent(in)         :: iFlag_option   ! option for which kind of soil database to read
 
     ! local variables
     integer(i4)              :: ii, jj, kk
@@ -385,108 +392,122 @@ CONTAINS
     real(dp),    parameter   :: small= 0.000001_dp
     real(dp), parameter      :: soil_dAccuracy=0.5_dp ! [mm]       soil depth accuracy
 
-    ! initalise minimum root zone depth among all soil types
-    dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) > 0.0_dp)
+    SELECT CASE (iFlag_option)
+       ! classical mHM soil database
+       CASE(0)
+          ! initalise minimum root zone depth among all soil types
+          dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) > 0.0_dp)
 
-    ! check
-    if (HorizonDepth_mHM(nSoilHorizons_mHM -1) .ge. dMin) then
-       call message('generate_soil_database: ERROR occurred: ')
-       call message('    The depth of soil Horizons provided for modelling is not appropriate')
-       call message('    The global minimum of total soil horizon depth among all soil type is ', num2str(dMin,'(F7.2)'))
-       call message('    Adjust your modeling soil horizon depth in this range')
-       call message('    OR Increase the soil depth in data base for only those soil types')
-       call message('    whose total depth is smaller than your given modeling depth.')
-       STOP
-    end if
-
-    ! allocate and initalise depth weight
-    allocate(soilDB%Wd(nSoilTypes, nSoilHorizons_mHM, maxval(soilDB%nHorizons(:)) ))
-    soilDB%Wd(:,:,:) = 0.0_dp
-
-    ! Process further to estimate weight of each horizons
-    ! weightage according to soil depths
-    do ii = 1, nSoilTypes
-       soilDB%Wd(ii,:,soilDB%nHorizons(ii)+1_i4:maxval(soilDB%nHorizons(:))) = nodata_dp
-
-       ! initalise last horizon depth to model w.r.t to surface
-       ! NOTE:: it is different for each soil
-       HorizonDepth_mHM(nSoilHorizons_mHM) = soilDB%RZdepth(ii)
-
-       ! Estimate soil properties for each modeling layers
-       do jj = 1, nSoilHorizons_mHM
-
-          ! modeling depth ( **from --> to ** )
-          ! take into account the depth accuracy [0.5mm, defined in module..]
-          dpth_f = 0.0_dp
-          if(jj .ne. 1_i4 ) dpth_f = HorizonDepth_mHM(jj-1)
-          dpth_t = HorizonDepth_mHM(jj) - soil_dAccuracy
-
-          ! identify to which layer of batabase this mHM  horizon lies
-          layer_f = nodata_i4
-          layer_t = nodata_i4
-          do kk = 1, soilDB%nHorizons(ii)
-             if( dpth_f .ge. soilDB%UD(ii,kk) .and. dpth_f .le. (soilDB%LD(ii,kk) - soil_dAccuracy) ) layer_f = kk
-             if( dpth_t .ge. soilDB%UD(ii,kk) .and. dpth_t .le. (soilDB%LD(ii,kk) - soil_dAccuracy) ) layer_t = kk
-          end do
-
-          ! Check
-          if(layer_f .le. 0_i4 .or. layer_t .le. 0_i4) then
+          ! check
+          if (HorizonDepth_mHM(nSoilHorizons_mHM -1) .ge. dMin) then
              call message('generate_soil_database: ERROR occurred: ')
-             call message('     Horizon depths to model do not lie in database for soil type', num2str(ii,'(I3)'))
-             call message('     Please check!')
-             STOP
-          end if
-          if(layer_f .gt. layer_t) then
-             call message('generate_soil_database: ERROR occurred: ')
-             call message('     Something is wrong in assignment of modeling soil horizons or')
-             call message('     database of soil type ', num2str(ii,'(I3)'))
-             call message('     Please check!')
+             call message('    The depth of soil Horizons provided for modelling is not appropriate')
+             call message('    The global minimum of total soil horizon depth among all soil type is ', num2str(dMin,'(F7.2)'))
+             call message('    Adjust your modeling soil horizon depth in this range')
+             call message('    OR Increase the soil depth in data base for only those soil types')
+             call message('    whose total depth is smaller than your given modeling depth.')
              STOP
           end if
 
-          ! iF modeling depth of a given horizon falls in a same soil layer
-          if(layer_f .eq. layer_t) then
-             soilDB%Wd(ii, jj, layer_f) = 1.0_dp
+          ! allocate and initalise depth weight
+          allocate(soilDB%Wd(nSoilTypes, nSoilHorizons_mHM, maxval(soilDB%nHorizons(:)) ))
+          soilDB%Wd(:,:,:) = 0.0_dp
 
-             ! else estimate depth weightage...
-          else
+          ! Process further to estimate weight of each horizons
+          ! weightage according to soil depths
+          do ii = 1, nSoilTypes
+             soilDB%Wd(ii,:,soilDB%nHorizons(ii)+1_i4:maxval(soilDB%nHorizons(:))) = nodata_dp
 
-             ! for starting layer...
-             soilDB%Wd(ii, jj, layer_f) = soilDB%LD(ii, layer_f) - dpth_f
+             ! initalise last horizon depth to model w.r.t to surface
+             ! NOTE:: it is different for each soil
+             HorizonDepth_mHM(nSoilHorizons_mHM) = soilDB%RZdepth(ii)
 
-             ! for ending layer
-             soilDB%Wd(ii,jj, layer_t) = (dpth_t + soil_dAccuracy) - soilDB%UD(ii,layer_t)
+             ! Estimate soil properties for each modeling layers
+             do jj = 1, nSoilHorizons_mHM
 
-             ! other intermediate layers weight, if exit
-             if(layer_t - layer_f .gt. 1_i4) then
-                do kk = layer_f + 1, layer_t - 1
-                   soilDB%Wd(ii, jj, kk) = soilDB%LD(ii, kk) - soilDB%UD(ii, kk)
+                ! modeling depth ( **from --> to ** )
+                ! take into account the depth accuracy [0.5mm, defined in module..]
+                dpth_f = 0.0_dp
+                if(jj .ne. 1_i4 ) dpth_f = HorizonDepth_mHM(jj-1)
+                dpth_t = HorizonDepth_mHM(jj) - soil_dAccuracy
+
+                ! identify to which layer of batabase this mHM  horizon lies
+                layer_f = nodata_i4
+                layer_t = nodata_i4
+                do kk = 1, soilDB%nHorizons(ii)
+                   if( dpth_f .ge. soilDB%UD(ii,kk) .and. dpth_f .le. (soilDB%LD(ii,kk) - soil_dAccuracy) ) layer_f = kk
+                   if( dpth_t .ge. soilDB%UD(ii,kk) .and. dpth_t .le. (soilDB%LD(ii,kk) - soil_dAccuracy) ) layer_t = kk
                 end do
-             end if
 
-             ! Estimate depth weightage
-             if(jj .ne. 1_i4) then
-                soilDB%Wd(ii, jj, 1:soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj,1:soilDB%nHorizons(ii)) / &
-                                                           ( HorizonDepth_mHM(jj) -  HorizonDepth_mHM(jj-1_i4) )
-             else
-                soilDB%Wd(ii, jj, 1:soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj,1:soilDB%nHorizons(ii)) / &
-                                                            HorizonDepth_mHM(jj)
-             end if
+                ! Check
+                if(layer_f .le. 0_i4 .or. layer_t .le. 0_i4) then
+                   call message('generate_soil_database: ERROR occurred: ')
+                   call message('     Horizon depths to model do not lie in database for soil type', num2str(ii,'(I3)'))
+                   call message('     Please check!')
+                   STOP
+                end if
+                if(layer_f .gt. layer_t) then
+                   call message('generate_soil_database: ERROR occurred: ')
+                   call message('     Something is wrong in assignment of modeling soil horizons or')
+                   call message('     database of soil type ', num2str(ii,'(I3)'))
+                   call message('     Please check!')
+                   STOP
+                end if
 
-             ! Check (small margin for numerical errors)
-             if(  sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp-small .or. &
-                  sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .ge. 1.0_dp+small     ) then
-                call message('generate_soil_database: ERROR occurred: ')
-                call message('     Weight assigned for each soil horizons are not correct.')
-                call message('     Please check!')
-                STOP
-             end if
+                ! iF modeling depth of a given horizon falls in a same soil layer
+                if(layer_f .eq. layer_t) then
+                   soilDB%Wd(ii, jj, layer_f) = 1.0_dp
 
-          end if
+                   ! else estimate depth weightage...
+                else
 
-       end do
-    end do
+                   ! for starting layer...
+                   soilDB%Wd(ii, jj, layer_f) = soilDB%LD(ii, layer_f) - dpth_f
 
+                   ! for ending layer
+                   soilDB%Wd(ii,jj, layer_t) = (dpth_t + soil_dAccuracy) - soilDB%UD(ii,layer_t)
+
+                   ! other intermediate layers weight, if exit
+                   if(layer_t - layer_f .gt. 1_i4) then
+                      do kk = layer_f + 1, layer_t - 1
+                         soilDB%Wd(ii, jj, kk) = soilDB%LD(ii, kk) - soilDB%UD(ii, kk)
+                      end do
+                   end if
+
+                   ! Estimate depth weightage
+                   if(jj .ne. 1_i4) then
+                      soilDB%Wd(ii, jj, 1:soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj,1:soilDB%nHorizons(ii)) / &
+                           ( HorizonDepth_mHM(jj) -  HorizonDepth_mHM(jj-1_i4) )
+                   else
+                      soilDB%Wd(ii, jj, 1:soilDB%nHorizons(ii)) = soilDB%Wd(ii, jj,1:soilDB%nHorizons(ii)) / &
+                           HorizonDepth_mHM(jj)
+                   end if
+
+                   ! Check (small margin for numerical errors)
+                   if(  sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .le. 1.0_dp-small .or. &
+                        sum(soilDB%Wd(ii, jj, :), soilDB%Wd(ii, jj, :) .gt. 0.0_dp) .ge. 1.0_dp+small     ) then
+                      call message('generate_soil_database: ERROR occurred: ')
+                      call message('     Weight assigned for each soil horizons are not correct.')
+                      call message('     Please check!')
+                      STOP
+                   end if
+
+                end if
+
+             end do
+          end do
+       ! soil database for the horizon specific case
+       CASE(1)
+          ! right now nothing is done here
+          ! *** reserved for future changes
+          return
+          
+       CASE DEFAULT
+          call message()
+          call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+          stop
+
+       END SELECT
 
   end subroutine generate_soil_database
 

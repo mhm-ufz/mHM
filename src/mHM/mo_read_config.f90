@@ -539,7 +539,6 @@ CONTAINS
 
     allocate( HorizonDepth_mHM(nSoilHorizons_mHM) )
     HorizonDepth_mHM(:) = 0.0_dp
-
    
     if( iFlag_soilDB .eq. 0 ) then
        ! classical mhm soil database

@@ -372,7 +372,8 @@ contains
        !------------------------------------------------------------------------
 
        L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+                                               Lef_col_L1, Rig_col_L1, cell_id0,  &
+                                               mask0, nodata, fRoots0 )
        !$OMP END PARALLEL
 
     end do
@@ -399,11 +400,10 @@ contains
     ! Normalise the vertical root distribution profile such that [sum(fRoots) = 1.0]
     !$OMP DO PRIVATE( fTotRoots ) SCHEDULE( STATIC )
     do k = 1, size(L1_fRoots,1)
-       fTotRoots       = sum(L1_fRoots(k, :), L1_fRoots(k, :) .gt. 0.0_dp)
-
+       fTotRoots = sum(L1_fRoots(k, :), L1_fRoots(k, :) .gt. 0.0_dp)
        ! This if clause is necessary for test program but may be redundant in actual program
        if ( fTotRoots .gt. 0._dp ) then
-          L1_fRoots(k, :) = L1_fRoots(k, :) / fTotRoots
+          L1_fRoots(k, :) = L1_fRoots(k,:) / fTotRoots
        else
           L1_fRoots(k, :) = 0._dp
        end If
