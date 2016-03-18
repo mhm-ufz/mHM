@@ -34,8 +34,10 @@ MODULE mo_file
   CHARACTER(len=*), PARAMETER :: file_meteo_binary_end  = '.bin'                        ! Meteo
   !> Unit for meteo files
   INTEGER,          PARAMETER :: umeteo                 = 51                            ! 
-  !> Soil database file
-  CHARACTER(len=*), PARAMETER :: file_soil_database     = 'soil_classdefinition.txt'    ! Soil data base
+  !> Soil database file (iFlag_soilDB = 0) = classical mHM format
+  CHARACTER(len=*), PARAMETER :: file_soil_database     = 'soil_classdefinition.txt'    ! Soil data base 
+  !>> Soil database file (iFlag_soilDB = 1)
+  CHARACTER(len=*), PARAMETER :: file_soil_database_1   = 'soil_classdefinition_iFlag_soilDB_1.txt' 
   !> Unit for soil data base
   INTEGER,          PARAMETER :: usoil_database         = 52                            ! 
   !> DEM input data file
@@ -71,6 +73,7 @@ MODULE mo_file
   !> Unit for  LAI input data file
   INTEGER,          PARAMETER :: ulaiclass              = 60                            ! 
   !> Unit for  LCover input data file
+  ! Land cover files are explicit given by the user in mhm.nml file
   INTEGER,          PARAMETER :: ulcoverclass           = 61                            ! 
 
   !> geological formation lookup table file

@@ -129,7 +129,7 @@
 !       Matthias Cuntz & Juliane Mai, Mar 2014 - Likelihood Kavetski uses 2 more parameters for the error model
 !                                                global_parameters -> local_parameters
 !                       Rohini Kumar, Apr 2014 - implementation of the mHM run on a single cell
-!                                                configuration that too in the routing mode.
+!                                                configuration also for the routing mode.
 !                                              - run mHM at the input data level i.e. L0 grid
 !                       Rohini Kumar, May 2014 - model run on a regular lat-lon grid or
 !                                                on a regular X-Y coordinate system
@@ -141,6 +141,8 @@
 !                     Stephan Thober, Oct 2015 - reorganized optimization (now compatible with mRM)
 !      Oldrich Rakovec, Rohini Kumar, Oct 2015 - added reading of basin averaged TWS and objective function 15
 !                                                for simultaneous calibration based on runoff and TWS
+!                       Rohini Kumar, Mar 2016 - options to handle different soil databases
+!                                                modified MPR to included soil horizon specific properties/parameters
 !
 ! --------------------------------------------------------------------------
 

@@ -28,7 +28,8 @@ MODULE mo_global_variables
   !           Matthias Zink,  Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
   !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
   !           Oldrich Rakovec,Oct 2015 - added definition of basin averaged TWS data
-
+  !           Rohini Kumar,   Mar 2016 - new variables for handling different soil databases
+  
   USE mo_kind,             ONLY: i4, i8, dp
   use mo_common_variables, ONLY: period
   USE mo_mhm_constants,    ONLY: nOutFlxState, YearMonths, maxNoBasins, maxNLCovers
@@ -82,7 +83,7 @@ MODULE mo_global_variables
   integer(i4),    public                             :: timeStep_sm_input          ! time step of optional data: soil moisture sm
   integer(i4),    public                             :: timeStep_neutrons_input    ! time step of optional data: soil moisture sm
   integer(i4),    public                             :: iFlag_cordinate_sys        ! options model for the run cordinate system
-
+  integer(i4),    public                             :: iFlag_soilDB               ! options to handle different types of soil databases
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
@@ -284,14 +285,16 @@ MODULE mo_global_variables
   !                                                                 ! target variable for coupling to mRM
   real(dp), public, dimension(:), allocatable      :: L0_slope      ! [%]       Slope
   real(dp), public, dimension(:), allocatable      :: L0_asp        ! [degree]  Aspect degree
-  integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           Soil id
-  integer(i4), public, dimension(:), allocatable   :: L0_geoUnit    !           Geologic formation (unit)
+  integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           classical mHM    soil id (iFlag_soilDB = 0)  
+  integer(i4), public, dimension(:,:), allocatable :: L0_Horizon_soilId  !      horizon specific Soil id (iFlag_soilDB = 1)
+  !                                                                      !      dim1=number grid cells, dim2=Number of horizons
+  integer(i4), public, dimension(:), allocatable   :: L0_geoUnit         !      Geologic formation (unit)
 
   ! input data - land cover
-  integer(i4), public, dimension(:), allocatable   :: L0_LCover_LAI ! Special landcover id (upto 10 classes) only for the LAI index
-  integer(i4), public, dimension(:,:), allocatable, target :: L0_LCover ! Normal  landcover id (upto 3 classes)
-  !                                                                     ! dim1=number grid cells, dim2=Number of land cover scenes
-  !                                                                     ! target variable for coupling to mRM
+  integer(i4), public, dimension(:), allocatable           :: L0_LCover_LAI  ! Special landcover class for the LAI index
+  integer(i4), public, dimension(:,:), allocatable, target :: L0_LCover      ! Classic mHM landcover class (upto 3 classes)
+  !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
+  !                                                                          ! target variable for coupling to mRM
 
   ! mHM derived variables
   ! dim1 = number grid cells L0
@@ -302,7 +305,7 @@ MODULE mo_global_variables
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !      gridded LAI data used when timeStep_LAI_input<0
   !                                                                  !      dim1=number of grid cells, dim2=number of LAI time steps
-  real(dp), public, dimension(:), allocatable      :: L0_areaCell   ! [m2] Area of a cell at level-0
+  real(dp), public, dimension(:), allocatable      :: L0_areaCell    ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description

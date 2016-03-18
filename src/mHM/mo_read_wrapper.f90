@@ -78,8 +78,10 @@ CONTAINS
   !                    Matthias Zink   Mar 2014   added inflow gauge
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
-  !                    Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
+  !                    Matthias Cuntz &
+  !                    Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
   !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
+  !                     Rohini Kumar,  Mar 2016  - options to handle different soil databases
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -101,7 +103,8 @@ CONTAINS
                                      file_soilclass     , usoilclass,     & ! file name and unit of soil class map
                                      file_hydrogeoclass , uhydrogeoclass, & ! file name and unit of hydrogeo class map
                                      file_laiclass      , ulaiclass,      & ! file name and unit of lai class map
-                                     file_soil_database ,                 & ! file name and unit of soil class map
+                                     file_soil_database ,                 & ! file name of soil class map (iFlag_soilDB = 0)
+                                     file_soil_database_1,                & ! file name of soil class map (iFlag_soilDB = 1)
                                      ulcoverclass                           ! unit of land cover class map
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
                                      L0_Basin,                            & ! L0_Basin ID
@@ -115,12 +118,14 @@ CONTAINS
                                      L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
                                      dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles,                      & ! directory of common files
-                                     LCfilename, nLCoverScene,           & ! file names and number of land cover scenes
+                                     LCfilename, nLCoverScene,            & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
                                      perform_mpr,                         & ! flag indicating whether L0 is read
-                                     !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
+                                     !timeStep_LAI_input,                 & ! flag on how LAI data has to be read
+                                     iFlag_soilDB,                        & ! options to handle different types of soil databases
+                                     HorizonDepth_mHM, nSoilHorizons_mHM, & ! soil horizons info for mHM
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
                                      nLAIclass, LAIUnitList, LAILUT,soilDB        
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
@@ -149,8 +154,12 @@ CONTAINS
     ! ************************************************
     !
     ! Soil LUT
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
-    call read_soil_LUT( trim(fName), soilDB )
+    if( iFlag_soilDB .eq. 0 ) then
+       fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
+    else if( iFlag_soilDB .eq. 1) then
+       fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database_1))
+    end if
+    call read_soil_LUT( trim(fName), iFlag_soilDB, soilDB)
 
     ! Geological formation LUT
     fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))

@@ -2,7 +2,7 @@
 
 !> \brief Generating soil database from input file.
 
-!> \details This module provides the routines fro generating the soil database for mHM from an ASCII input file.\n
+!> \details This module provides the routines for generating the soil database for mHM from an ASCII input file.\n
 !> One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial soil database.
 !> The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 
@@ -41,7 +41,9 @@ CONTAINS
 
   !     INDENT(IN)
   !>        \param[in] "character(len=*) :: filename"        filename of the soil LUT
-
+  !>        \param[in] "integer(i4)      :: iFlag_option"    option for which kind of database to read
+  
+  
   !     INDENT(INOUT)
   !         None
 
@@ -73,8 +75,9 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date Dec 2012
   !         Modified: Luis Samaniego, Nov 2013, transform relation op. == -> .eq. etc
+  !           Rohini Kumar,           Mar 2016 - new variables for handling different soil databases
 
-  subroutine read_soil_LUT(filename, soilDB)
+  subroutine read_soil_LUT(filename, iFlag_option, soilDB)
 
     use mo_global_variables, only: soilType                  ! Type definition
     use mo_global_variables, only: tillageDepth              ! value is used
@@ -87,6 +90,7 @@ CONTAINS
     implicit none
 
     character(len=*), intent(in)  :: filename       ! filename of the soil LUT
+    integer(i4), intent(in)       :: iFlag_option   ! option for which kind of soil database to read
     type(soilType),   intent(out) :: soilDB         ! initial soil database --> ready for further processing
 
     ! local variables
@@ -100,189 +104,219 @@ CONTAINS
     integer(i4)              :: maxNumberHorizons
     integer(i4)              :: minNumberTillHorizons, maxNumberTillHorizons
 
-    ios = 0_i4
-    open(usoil_database, file=filename, status = 'old', iostat = ios)
-    read(usoil_database, *) dummy, nSoilTypes
-    dummy = dummy//''   ! only to avoid warning
+    SELECT CASE (iFlag_option)
+       ! classical mHM soil database
+       CASE(0)
+          ios = 0_i4
+          open(usoil_database, file=filename, status = 'old', iostat = ios)
+          read(usoil_database, *) dummy, nSoilTypes
+          dummy = dummy//''   ! only to avoid warning
 
-    ! allocate space
-    allocate(soilDB%Id(nSoilTypes))
-    allocate(soilDB%nHorizons(nSoilTypes))
-    allocate(soilDB%nTillHorizons(nSoilTypes))
-    allocate(soilDB%RZdepth(nSoilTypes))
-    ! initialize
-    soilDB%Id(:)            = nodata_i4
-    soilDB%nHorizons(:)     = nodata_i4
-    soilDB%nTillHorizons(:) = nodata_i4
-    soilDB%RZdepth(:)       = nodata_dp
+          ! allocate space
+          allocate(soilDB%Id(nSoilTypes))
+          allocate(soilDB%nHorizons(nSoilTypes))
+          allocate(soilDB%nTillHorizons(nSoilTypes))
+          allocate(soilDB%RZdepth(nSoilTypes))
+          ! initialize
+          soilDB%Id(:)            = nodata_i4
+          soilDB%nHorizons(:)     = nodata_i4
+          soilDB%nTillHorizons(:) = nodata_i4
+          soilDB%RZdepth(:)       = nodata_dp
 
-    ! initalise total rows to read
-    nR = 0_i4
-    read(usoil_database, *) dummy
-    do while (.NOT. ( ios .ne. 0 ) )
-       read(usoil_database, *, IOSTAT=ios ) ii, jj, up, down, cly, snd, bd
+          ! initalise total rows to read
+          nR = 0_i4
+          read(usoil_database, *) dummy
+          do while (.NOT. ( ios .ne. 0 ) )
+             read(usoil_database, *, IOSTAT=ios ) ii, jj, up, down, cly, snd, bd
 
-       ! Checks
-       if(up .ge. down) then
-          call message('read_soil_LUT: ERROR occurred: Mixed horizon depths in soil type', &
-               num2str(ii,'(I3)'), ' and horizon no.', num2str(jj,'(I3)'))
-          stop
-       end if
-       if(  cly .lt. 0.0_dp .OR. cly .gt. 100.0_dp .OR. &
-            snd .lt. 0.0_dp .OR. snd .gt. 100.0_dp .OR. &
-            bd  .lt. 0.0_dp .OR. bd  .gt.   5.0_dp      ) then
-          call message('read_soil_LUT: ERROR occurred: Inappropriate soil properties in soil type', &
-               num2str(ii,'(I3)'), ' and horizon no.', num2str(jj,'(I3)'))
-          stop
-       end if
+             ! Checks
+             if(up .ge. down) then
+                call message('read_soil_LUT: ERROR occurred: Mixed horizon depths in soil type', &
+                     num2str(ii,'(I3)'), ' and horizon no.', num2str(jj,'(I3)'))
+                stop
+             end if
+             if(  cly .lt. 0.0_dp .OR. cly .gt. 100.0_dp .OR. &
+                  snd .lt. 0.0_dp .OR. snd .gt. 100.0_dp .OR. &
+                  bd  .lt. 0.0_dp .OR. bd  .gt.   5.0_dp      ) then
+                call message('read_soil_LUT: ERROR occurred: Inappropriate soil properties in soil type', &
+                     num2str(ii,'(I3)'), ' and horizon no.', num2str(jj,'(I3)'))
+                stop
+             end if
 
-       ! initalise soil id
-       soilDB%Id(ii)        = ii
-       soilDB%nHorizons(ii) = jj
-       if( anint(down, dp) .gt. soilDB%RZdepth(ii) ) soilDB%RZdepth(ii) = anint(down, dp)
+             ! initalise soil id
+             soilDB%Id(ii)        = ii
+             soilDB%nHorizons(ii) = jj
+             if( anint(down, dp) .gt. soilDB%RZdepth(ii) ) soilDB%RZdepth(ii) = anint(down, dp)
 
-       nR = nR + 1_i4
+             nR = nR + 1_i4
 
-    end do
+          end do
 
-    ! initalise minimum root zone depth among all soil types
-    dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) .gt. 0.0_dp)
+          ! initalise minimum root zone depth among all soil types
+          dMin = minval(soilDB%RZdepth(:), soilDB%RZdepth(:) .gt. 0.0_dp)
 
-    ! check the tillage depth...(if possible adjust it..)
-    if(tillageDepth .gt. dMin) then
-       call message('read_soil_LUT: ERROR occurred: ')
-       call message('    Tillage depth is greater than overall minimum total soil depth ')
-       call message('    So tillage depth should be at least', num2str(dMin,'(F7.2)'))
-       call message('    Please adjust!')
-       stop
-    end if
+          ! check the tillage depth...(if possible adjust it..)
+          if(tillageDepth .gt. dMin) then
+             call message('read_soil_LUT: ERROR occurred: ')
+             call message('    Tillage depth is greater than overall minimum total soil depth ')
+             call message('    So tillage depth should be at least', num2str(dMin,'(F7.2)'))
+             call message('    Please adjust!')
+             stop
+          end if
 
-    ! insert a new tillage soil layer, only in those soil types, in which it is not present
-    rewind(usoil_database)
-    read(usoil_database, *) dummy
-    read(usoil_database, *) dummy
+          ! insert a new tillage soil layer, only in those soil types, in which it is not present
+          rewind(usoil_database)
+          read(usoil_database, *) dummy
+          read(usoil_database, *) dummy
 
-    ! Last row is read twice so, read only upto (nR - 1)
-    do ii = 1, nR - 1
-       read(usoil_database, *) jj, nH, up, down, cly, snd, bd
-       if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .lt. anint(down,dp) ) then
-          soilDB%nHorizons(jj) = soilDB%nHorizons(jj) + 1_i4
-       end if
+          ! Last row is read twice so, read only upto (nR - 1)
+          do ii = 1, nR - 1
+             read(usoil_database, *) jj, nH, up, down, cly, snd, bd
+             if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .lt. anint(down,dp) ) then
+                soilDB%nHorizons(jj) = soilDB%nHorizons(jj) + 1_i4
+             end if
 
-       ! identify upto which soil horizon does the tillage depth goes in
-       if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .le. anint(down, dp) ) then
-          soilDB%nTillHorizons(jj) = nH
-       end if
-    end do
+             ! identify upto which soil horizon does the tillage depth goes in
+             if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .le. anint(down, dp) ) then
+                soilDB%nTillHorizons(jj) = nH
+             end if
+          end do
 
-    maxNumberHorizons = maxval(soilDB%nHorizons(:))
+          maxNumberHorizons = maxval(soilDB%nHorizons(:))
 
-    ! the variables of soilType are all allocated with maximal number of Horizons although not for each of the
-    ! nSoilTypes the array will be used
-    ! loops for array(i,j) should be: j=1, nHorizons(i), otherwise a nodata_dp will appear
-    allocate(soilDB%UD(    nSoilTypes, maxNumberHorizons ) )
-    allocate(soilDB%LD(    nSoilTypes, maxNumberHorizons ) )
-    allocate(soilDB%depth( nSoilTypes, maxNumberHorizons ) )
-    allocate(soilDB%clay(  nSoilTypes, maxNumberHorizons ) )
-    allocate(soilDB%sand(  nSoilTypes, maxNumberHorizons ) )
-    allocate(soilDB%dbM(   nSoilTypes, maxNumberHorizons ) )
+          ! the variables of soilType are all allocated with maximal number of Horizons although not for each of the
+          ! nSoilTypes the array will be used
+          ! loops for array(i,j) should be: j=1, nHorizons(i), otherwise a nodata_dp will appear
+          allocate(soilDB%UD(    nSoilTypes, maxNumberHorizons ) )
+          allocate(soilDB%LD(    nSoilTypes, maxNumberHorizons ) )
+          allocate(soilDB%depth( nSoilTypes, maxNumberHorizons ) )
+          allocate(soilDB%clay(  nSoilTypes, maxNumberHorizons ) )
+          allocate(soilDB%sand(  nSoilTypes, maxNumberHorizons ) )
+          allocate(soilDB%dbM(   nSoilTypes, maxNumberHorizons ) )
 
-    soilDB%UD(:,:)        = nodata_dp
-    soilDB%LD(:,:)        = nodata_dp
-    soilDB%depth(:,:)     = nodata_dp
-    soilDB%clay(:,:)      = nodata_dp
-    soilDB%sand(:,:)      = nodata_dp
-    soilDB%dbM(:,:)       = nodata_dp
+          soilDB%UD(:,:)        = nodata_dp
+          soilDB%LD(:,:)        = nodata_dp
+          soilDB%depth(:,:)     = nodata_dp
+          soilDB%clay(:,:)      = nodata_dp
+          soilDB%sand(:,:)      = nodata_dp
+          soilDB%dbM(:,:)       = nodata_dp
 
-    ! allocate space for other derived soil hydraulic properties ...
-    minNumberTillHorizons = minval(soilDB%nTillHorizons(:))
-    maxNumberTillHorizons = maxval(soilDB%nTillHorizons(:))
+          ! allocate space for other derived soil hydraulic properties ...
+          minNumberTillHorizons = minval(soilDB%nTillHorizons(:))
+          maxNumberTillHorizons = maxval(soilDB%nTillHorizons(:))
 
-    allocate(soilDB%thetaS_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
-    allocate(soilDB%thetaS( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
+          allocate(soilDB%thetaS_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
+          allocate(soilDB%thetaS( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
 
-    allocate(soilDB%thetaFC_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
-    allocate(soilDB%thetaFC( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
+          allocate(soilDB%thetaFC_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
+          allocate(soilDB%thetaFC( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
 
-    allocate(soilDB%thetaPW_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
-    allocate(soilDB%thetaPW( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
+          allocate(soilDB%thetaPW_till( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
+          allocate(soilDB%thetaPW( nSoilTypes, minNumberTillHorizons+1 : maxNumberHorizons ) )
 
-    allocate(soilDB%Db( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
+          allocate(soilDB%Db( nSoilTypes, 1 : maxNumberTillHorizons, nLCover_class ) )
 
-    allocate(soilDB%Ks( nSoilTypes, 1 : maxNumberHorizons, nLCover_class ) )
+          allocate(soilDB%Ks( nSoilTypes, 1 : maxNumberHorizons, nLCover_class ) )
 
-    ! Initialize with default nodata_dp
-    soilDB%thetaS_till(:,:,:)  = nodata_dp
-    soilDB%thetaS(:,:)         = nodata_dp
+          ! Initialize with default nodata_dp
+          soilDB%thetaS_till(:,:,:)  = nodata_dp
+          soilDB%thetaS(:,:)         = nodata_dp
 
-    soilDB%thetaFC_till(:,:,:) = nodata_dp
-    soilDB%thetaFC(:,:)        = nodata_dp
+          soilDB%thetaFC_till(:,:,:) = nodata_dp
+          soilDB%thetaFC(:,:)        = nodata_dp
 
-    soilDB%thetaPW_till(:,:,:) = nodata_dp
-    soilDB%thetaPW(:,:)        = nodata_dp
+          soilDB%thetaPW_till(:,:,:) = nodata_dp
+          soilDB%thetaPW(:,:)        = nodata_dp
 
-    soilDB%Db(:,:,:)           = nodata_dp
-    soilDB%Ks(:,:,:)           = nodata_dp
+          soilDB%Db(:,:,:)           = nodata_dp
+          soilDB%Ks(:,:,:)           = nodata_dp
 
-    ! Read again soil properties  from the data base
-    rewind(usoil_database)
-    read(usoil_database, *) dummy
-    read(usoil_database, *) dummy
+          ! Read again soil properties  from the data base
+          rewind(usoil_database)
+          read(usoil_database, *) dummy
+          read(usoil_database, *) dummy
 
-    ! Last row is read twice so, read only upto (nR - 1)
-    kk = 0_i4
-    do ii = 1, nR - 1_i4
-       read(usoil_database, *) jj, nH, up, down, cly, snd, bd
+          ! Last row is read twice so, read only upto (nR - 1)
+          kk = 0_i4
+          do ii = 1, nR - 1_i4
+             read(usoil_database, *) jj, nH, up, down, cly, snd, bd
 
-       ! to avoid numerical errors in PTF
-       if(cly .lt. 1.0_dp) cly = 1.0_dp
-       if(snd .lt. 1.0_dp) snd = 1.0_dp
+             ! to avoid numerical errors in PTF
+             if(cly .lt. 1.0_dp) cly = 1.0_dp
+             if(snd .lt. 1.0_dp) snd = 1.0_dp
 
-       ! Physical consistency
-       if((cly + snd) .gt. 100.0_dp) then
-          cly = cly / (cly + snd)
-          snd = snd / (cly + snd)
-       end if
+             ! Physical consistency
+             if((cly + snd) .gt. 100.0_dp) then
+                cly = cly / (cly + snd)
+                snd = snd / (cly + snd)
+             end if
 
-       ! check for an extra tillage horizon (if not exists create a layer)
-       if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .lt. anint(down, dp) ) then
+             ! check for an extra tillage horizon (if not exists create a layer)
+             if(tillageDepth .gt. anint(up, dp) .and. tillageDepth .lt. anint(down, dp) ) then
 
-          soilDB%UD(jj,nH)    = anint(up, dp)
-          soilDB%LD(jj,nH)    = tillageDepth
-          soilDB%depth(jj,nH) = soilDB%LD(jj,nH) - soilDB%UD(jj,nH)
-          soilDB%clay(jj,nH)  = cly
-          soilDB%sand(jj,nH)  = snd
-          soilDB%dbM(jj,nH)   = bd
+                soilDB%UD(jj,nH)    = anint(up, dp)
+                soilDB%LD(jj,nH)    = tillageDepth
+                soilDB%depth(jj,nH) = soilDB%LD(jj,nH) - soilDB%UD(jj,nH)
+                soilDB%clay(jj,nH)  = cly
+                soilDB%sand(jj,nH)  = snd
+                soilDB%dbM(jj,nH)   = bd
 
-          ! initalise the upper depth to new value... and the increment counter
-          up = tillageDepth
-          kk = 1_i4
-       end if
+                ! initalise the upper depth to new value... and the increment counter
+                up = tillageDepth
+                kk = 1_i4
+             end if
 
-       ! increment nH by one once it encounter the upper loop..
-       if(kk .eq. 1_i4) nH = nH + 1_i4
+             ! increment nH by one once it encounter the upper loop..
+             if(kk .eq. 1_i4) nH = nH + 1_i4
 
-       soilDB%UD(jj,nH)    = anint(up, dp)
-       soilDB%LD(jj,nH)    = anint(down, dp)
-       soilDB%depth(jj,nH) = soilDB%LD(jj,nH) - soilDB%UD(jj,nH)
-       soilDB%clay(jj,nH)  = cly
-       soilDB%sand(jj,nH)  = snd
-       soilDB%dbM(jj,nH)   = bd
+             soilDB%UD(jj,nH)    = anint(up, dp)
+             soilDB%LD(jj,nH)    = anint(down, dp)
+             soilDB%depth(jj,nH) = soilDB%LD(jj,nH) - soilDB%UD(jj,nH)
+             soilDB%clay(jj,nH)  = cly
+             soilDB%sand(jj,nH)  = snd
+             soilDB%dbM(jj,nH)   = bd
 
-       ! check for number of soil horizons...
-       if(nH .gt. soilDB%nHorizons(jj) ) then
-          call message('read_soil_LUT: ERROR occurred: ')
-          call message('    There is something wrong in allocating horizons in soil data base.')
-          call message('    Please check in code !')
-          STOP
-       end if
+             ! check for number of soil horizons...
+             if(nH .gt. soilDB%nHorizons(jj) ) then
+                call message('read_soil_LUT: ERROR occurred: ')
+                call message('    There is something wrong in allocating horizons in soil data base.')
+                call message('    Please check in code !')
+                STOP
+             end if
 
-       ! initalise the increment counter to zero
-       if(nH .eq. soilDB%nHorizons(jj) ) kk = 0_i4
+             ! initalise the increment counter to zero
+             if(nH .eq. soilDB%nHorizons(jj) ) kk = 0_i4
 
-    end do
-    close(usoil_database)
-
+          end do
+          close(usoil_database)
+          
+       ! soil database for the horizon specific case
+       CASE(1)
+          open(usoil_database, file=filename, status = 'old', action = 'read')
+          read(usoil_database, *) dummy, nSoilTypes
+          dummy = dummy//''   ! only to avoid warning
+          allocate( soilDB%Id  (nSoilTypes   ) )
+          allocate( soilDB%clay(nSoilTypes, 1) )
+          allocate( soilDB%sand(nSoilTypes, 1) )
+          allocate( soilDB%dbM (nSoilTypes, 1) )
+          soilDB%clay(:,:) = nodata_dp
+          soilDB%sand(:,:) = nodata_dp
+          soilDB%dbM (:,:) = nodata_dp
+          read(usoil_database, *) dummy
+          do kk = 1, nSoilTypes
+             read(usoil_database, *) jj, cly, snd, bd
+             ! to avoid numerical errors in PTF
+             if(cly .lt. 1.0_dp) cly = 1.0_dp
+             if(snd .lt. 1.0_dp) snd = 1.0_dp
+             soilDB%Id(kk)   = jj
+             soilDB%clay(kk,1) = cly
+             soilDB%sand(kk,1) = snd
+             soilDB%dbM (kk,1) = bd
+          end do
+          close(usoil_database)
+          
+       END SELECT
+          
   end subroutine read_soil_LUT
 
   ! ------------------------------------------------------------------
