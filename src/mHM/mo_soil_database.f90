@@ -82,6 +82,7 @@ CONTAINS
     use mo_global_variables, only: soilType                  ! Type definition
     use mo_global_variables, only: tillageDepth              ! value is used
     use mo_global_variables, only: nSoilTypes                ! value is set
+    use mo_global_variables, only: nSoilHorizons_mHM, HorizonDepth_mHM       ! value is used
     use mo_file,             only: usoil_database
     use mo_mhm_constants,    only: nLCover_class             ! number of land cover classes
     use mo_mhm_constants,    only: nodata_i4                 ! global nodata value (i4)
@@ -314,7 +315,36 @@ CONTAINS
              soilDB%dbM (kk,1) = bd
           end do
           close(usoil_database)
- 
+
+          ! assign up to which horizon layer a soil is treated as tillage layer
+          !   since our horizon information is well defined for modeling too
+          !   this information is uniform across all soils/modeling cells
+          ! for compatibility with iFlag_option == 0, assign
+          ! both nHorizons & tillage horizons
+          allocate( soilDB%nHorizons(1)     )
+          allocate( soilDB%nTillHorizons(1) )
+          soilDB%nHorizons(:)     = nSoilHorizons_mHM
+          soilDB%nTillHorizons(:) = -9
+          do kk = 1, nSoilHorizons_mHM
+             if( abs( HorizonDepth_mHM(kk) - tillageDepth ) .lt. eps_dp  ) then
+                soilDB%nTillHorizons(1) = kk
+             end if
+          end do
+         
+          ! check 
+          if( soilDB%nTillHorizons(1) .eq. -9 ) then
+             ! rarely could happen *** since this is checked in reading of horizons depths only
+             ! but is checked here for double confirmation
+             call message()
+             call message('***ERROR: specification of tillage depths is not confirming')
+             call message('          with given depths of soil horizons to be modeled.')
+             stop
+          else
+             call message()
+             call message('Tillage layers: the tillage horizons are modelled ')
+             call message('                upto mHM layers: ', trim(num2str(soilDB%nTillHorizons(1))))
+          end if
+          
        CASE DEFAULT
           call message()
           call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')

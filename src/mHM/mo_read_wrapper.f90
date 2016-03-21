@@ -112,11 +112,11 @@ CONTAINS
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
-                                     L0_soilId,                           & ! soil class ID on input resolution (L0) (iFlag_soilDB = 0)  
-                                     L0_Horizon_soilId,                   & ! soil class ID on input resolution (L0) (iFlag_soilDB = 1)  
+                                     L0_soilId,                           & ! soil ID on L0 resolution (iFlag_soilDB = 0)  
+                                     L0_Horizon_soilId,                   & ! soil ID on L0 resolution (iFlag_soilDB = 1)  
                                      L0_geoUnit,                          & ! hydrogeological class ID on input resolution (L0)
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
-                                     L0_LCover,                           & ! Normal dominant land cover class ID on input resolution (L0)
+                                     L0_LCover,                           & ! classical mHM land cover class (L0)
                                      dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles,                      & ! directory of common files
                                      LCfilename, nLCoverScene,            & ! file names and number of land cover scenes

@@ -350,7 +350,7 @@ contains
     real(dp), dimension(:,:,:), allocatable :: thetaS_till
     real(dp), dimension(:,:,:), allocatable :: thetaFC_till
     real(dp), dimension(:,:,:), allocatable :: thetaPW_till
-    real(dp), dimension(:,:,:), allocatable :: Ks
+    real(dp), dimension(:,:,:), allocatable :: Ks       ! saturated hydraulic conductivity
     real(dp), dimension(:,:,:), allocatable :: Db       ! Bulk density
     real(dp), dimension(:,:), allocatable   :: thetaS
     real(dp), dimension(:,:), allocatable   :: thetaFC
@@ -359,7 +359,6 @@ contains
     !                                                   ! hydraulic cound. for Horizantal flow
     real(dp), dimension(:),   allocatable   :: KsVar_V0 ! relative variability of saturated
     !                                                   ! hydraulic cound. for vertical flow
-    real(dp), dimension(:),   allocatable   :: SMs_tot0 ! total saturated soil mositure content
     real(dp), dimension(:),   allocatable   :: SMs_FC0  ! soil mositure deficit from
     !                                                   ! field cap. w.r.t to saturation
     real(dp), dimension(size(cell_id0,1))   :: k2_0     ! L0 baseflow parameter
@@ -396,8 +395,8 @@ contains
     select case( proc_Mat(3,1) )
     case(1)
        
-       msoil =   size(SDB_is_present,1)
-       mLC   = maxval(LCover0, ( LCover0 .ne. int(nodata,i4) )  )
+       msoil =   size( SDB_is_present, 1 )
+       mLC   = maxval( LCover0, ( LCover0 .ne. int(nodata,i4) )  )
        
        ! depending on which kind of soil database processing is to be performed
        if( iFlag_soil .eq. 0 )then
@@ -407,27 +406,31 @@ contains
           ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
           ! since a given soil type can lie in any horizon (till or non-till ones)
           ! adopt it in a way that it do not break the consistency of iFlag_soil = 0
+          ! ** NOTE: SDB_nTillHorizons and SDB_nHorizons are also assigned in
+          !          this flag option (see mo_soildatabase.f90 file - read_soil_LUT).
+          !          But we are not using those variables here since in this case we have not
+          !          varying number of soil horizons or either tillage horizons. 
+          !          So assigning them with a value = 1 is more than enough.   
           mtill = 1
           mHor  = 1
        end if
        
-       allocate(  thetaS_till( msoil, mtill, mLC )) 
-       allocate( thetaFC_till( msoil, mtill, mLC )) 
-       allocate( thetaPW_till( msoil, mtill, mLC )) 
-       allocate(       thetaS( msoil, mHor       )) 
-       allocate(      thetaFC( msoil, mHor       )) 
-       allocate(      thetaPW( msoil, mHor       ))
-       allocate(           Ks( msoil, mHor, mLC  ))
-       allocate(           Db( msoil, mHor, mLC  ))       
+       allocate(  thetaS_till(msoil, mtill, mLC) ) 
+       allocate( thetaFC_till(msoil, mtill, mLC) ) 
+       allocate( thetaPW_till(msoil, mtill, mLC) ) 
+       allocate(       thetaS(msoil, mHor      ) ) 
+       allocate(      thetaFC(msoil, mHor      ) ) 
+       allocate(      thetaPW(msoil, mHor      ) )
+       allocate(           Ks(msoil, mHor, mLC ) )
+       allocate(           Db(msoil, mHor, mLC ) )       
 
        ! earlier these variables were allocated with  size(soilId0,1)
        ! in which the variable "soilId0" changes according to the iFlag_soil
-       ! so better to use other variable which is common to 0 AND 1 flags
+       ! so better to use other variable which is common to both soilDB (0 AND 1) flags
        allocate( KsVar_H0( size(cell_id0,1) ) )
        allocate( KsVar_V0( size(cell_id0,1) ) )
-       allocate( SMs_tot0( size(cell_id0,1) ) )
        allocate(  SMs_FC0( size(cell_id0,1) ) )
-       
+ 
        ! first thirteen parameters go to this routine
        iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
        iEnd   = proc_Mat(3,3) - 4    
@@ -437,27 +440,29 @@ contains
             SDB_sand, SDB_clay, SDB_DbM, cell_id0,             &
             soilId0, soilHorizonId0, LCOVER0,                  &
             thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
-            thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_tot0, SMs_FC0)
+            thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
-       ! next three parameters go here
+       ! next four parameters go here
+       ! (the first three for the fRoots and the fourth one for the beta)
        iStart = proc_Mat(3,3) - 4 + 1
        iEnd   = proc_Mat(3,3)
-       call mpr_SMhorizons( param(iStart:iEnd), nodata, nHorizons_mHM, &
-            horizon_depth, &
-            LCOVER0, soilId0, SDB_nHorizons, SDB_nTillHorizons, &
-            thetaS_till,thetaFC_till, thetaPW_till, &
-            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth, &
-            mask0, cell_id0, &
-            Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
+       call mpr_SMhorizons( param(iStart:iEnd), nodata, iFlag_soil,         &
+            nHorizons_mHM, horizon_depth, LCOVER0, soilId0, soilHorizonId0, &
+            SDB_nHorizons, SDB_nTillHorizons,                               &
+            thetaS_till,thetaFC_till, thetaPW_till,                         &
+            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,     &
+            mask0, cell_id0,                                                &
+            Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1,      &
             beta1, SMs1, FC1, PW1, fRoots1 )
 
        deallocate( thetaS_till ) 
        deallocate( thetaFC_till ) 
        deallocate( thetaPW_till ) 
-       deallocate( thetaS ) 
+       deallocate( thetaS  ) 
        deallocate( thetaFC ) 
        deallocate( thetaPW )
-       deallocate( SMs_tot0 )
+       deallocate( Ks )
+       deallocate( Db )
 
     case DEFAULT
        call message()

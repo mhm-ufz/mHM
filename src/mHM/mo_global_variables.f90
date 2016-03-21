@@ -83,7 +83,7 @@ MODULE mo_global_variables
   integer(i4),    public                             :: timeStep_sm_input          ! time step of optional data: soil moisture sm
   integer(i4),    public                             :: timeStep_neutrons_input    ! time step of optional data: soil moisture sm
   integer(i4),    public                             :: iFlag_cordinate_sys        ! options model for the run cordinate system
-  integer(i4),    public                             :: iFlag_soilDB               ! options to handle different types of soil databases
+  integer(i4),    public                             :: iFlag_soilDB               ! options to handle different soil databases
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------

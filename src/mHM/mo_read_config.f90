@@ -556,7 +556,7 @@ CONTAINS
     if(iFlag_soilDB .eq. 1) then
        if( count( abs(HorizonDepth_mHM(:) - tillageDepth) .lt. eps_dp )  .eq. 0 ) then
           call message()
-          call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth')
+          call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
           stop
        end if
     end if

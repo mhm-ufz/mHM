@@ -76,7 +76,6 @@ contains
   !>                                                      hydraulic counductivity for Horizantal flow
   !>        \param[out] "real(dp)   :: L0_KsVar_V(:,:)" - relative variability of saturated
   !>                                                      hydraulic counductivity for Vertical flow
-  !>        \param[out] "real(dp)   :: L0_SMs_tot(:,:)" - total saturated soil mositure content
   !>        \param[out] "real(dp)   :: L0_SMs_FC(:,:)"  - soil mositure deficit from field
   !>                                                      capacity w.r.t to saturation
 
@@ -137,7 +136,7 @@ contains
        DbM                 , & ! IN:  mineral Bulk density
        ID0                 , & ! IN:  cell ids at level 0
        soilId0             , & ! IN:  soil ids at level 0
-       soilHorizonId0      , & ! IN:    horizon specific soil Ids at level 0
+       soilHorizonId0      , & ! IN:  horizon specific soil Ids at level 0
        LCover0             , & ! IN:  land cover ids at level 0
        thetaS_till         , & ! OUT: saturated soil moisture tillage layer
        thetaFC_till        , & ! OUT: field capacity tillage layer
@@ -151,7 +150,6 @@ contains
        !                       !      hydraulic counductivity for Horizantal flow
        KsVar_V0            , & ! OUT: relative variability of saturated
        !                       !      hydraulic counductivity for Horizantal flow
-       SMs_tot0            , & ! OUT: total saturated soil mositure content
        SMs_FC0               & ! OUT: soil moisture deficit from field capacity
        !                       !      w.r.t to saturation
        )
@@ -188,18 +186,10 @@ contains
     real(dp),    dimension(:,:),   intent(out) :: thetaPW       ! permanent wilting point
     real(dp),    dimension(:,:,:), intent(out) :: Ks            ! saturated hydraulic conductivity
     real(dp),    dimension(:,:,:), intent(out) :: Db            ! Bulk density
-    real(dp),    dimension(:),     intent(out) :: KsVar_H0      ! relative variability of
-    ! saturated hydraulic
-    ! cound. for Horizantal flow
-    ! dimension is number of cells at level 0
-    real(dp),    dimension(:),     intent(out) :: KsVar_V0      ! relative variability of
-    ! saturated hydraulic
-    ! cound. for vertical flow
-    real(dp),    dimension(:),     intent(out) :: SMs_tot0      ! total saturated soilmositure
-    ! content
+    real(dp),    dimension(:),     intent(out) :: KsVar_H0      ! rel. var. of Ks for horizontal flow
+    real(dp),    dimension(:),     intent(out) :: KsVar_V0      ! rel. var. of Ks for vertical flow
     real(dp),    dimension(:),     intent(out) :: SMs_FC0       ! soil mositure deficit from
-    ! field cap. w.r.t to saturation
-
+    !                                                           ! field cap. w.r.t to saturation
     ! Local variables
     integer(i4)                               :: i               ! loop index
     integer(i4)                               :: j               ! loop index
@@ -214,13 +204,28 @@ contains
     real(dp)                                  :: tmp_orgMatterContent_forest
     real(dp)                                  :: tmp_orgMatterContent_pervious
     real(dp)                                  :: tmp_orgMatterContent_impervious
+    real(dp), dimension(:),   allocatable     :: SMs_tot0       ! total saturated soil mositure content
+    ! some additional variables for iFlag_soil = 1
+    real(dp), dimension(:,:), allocatable     :: Ks_non_till    ! saturated hydraulic conductivity    
 
     tmp_orgMatterContent_forest     = param(3) + param(1)
     tmp_orgMatterContent_impervious = param(2)
     tmp_orgMatterContent_pervious   = param(3)
     tmp_minSoilHorizon = minval(nTillHorizons(:))
-
-    ! initializing soil hydraulic properties
+    
+    ! allocatable local variables
+    ! total saturated soil moisture content
+    allocate( SMs_tot0( size(ID0,1) ) )
+    
+    ! some additional variables for iFlag_soil = 1
+    if( iFlag_soil .eq. 1 ) then
+       s = size(is_present,1)
+       ! note: although second dimension is not required
+       ! we assign value 1 to be comparable to other assigned variables
+       allocate( Ks_non_till(s,1) )
+    end if
+    
+    ! initializing soil hydraulic properties related params
     KsVar_H0 = merge( 0.0_dp, nodata, ID0 .ne. int(nodata,i4) )
     KsVar_V0 = merge( 0.0_dp, nodata, ID0 .ne. int(nodata,i4) )
     SMs_tot0 = merge( 0.0_dp, nodata, ID0 .ne. int(nodata,i4) )
@@ -235,6 +240,7 @@ contains
     thetaPW      = 0.0_dp
     Ks           = 0.0_dp
     Db           = 0.0_dp
+    if( allocated(Ks_non_till) ) Ks_non_till = 0.0_dp
 
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soil)
@@ -271,7 +277,7 @@ contains
                       ! Effect of organic matter content
                       ! This is taken into account in a simplified form by using
                       ! the ratio of(Bd / BdOM)
-                      Ks_tmp = Ks_tmp * ( DbM(i,j) / Db(i,j,L))
+                      Ks_tmp = Ks_tmp * ( DbM(i,j)/Db(i,j,L) )
                       Ks(i,j,L) =  Ks_tmp
                       ! estimated SMs_till & van Genuchten's shape parameter (n)
                       call Genuchten( thetaS_till(i,j,L), Genu_Mual_n, Genu_Mual_alpha, &
@@ -332,21 +338,18 @@ contains
           !$OMP END DO
           !$OMP END PARALLEL
 
-
-          
        ! to handle multiple soil horizons with unique soil class   
        CASE(1)
-           
-          do i = 1, size(is_present)
+           do i = 1, size(is_present)
              if ( is_present(i) .lt. 1 ) cycle
-                
-             ! **** TILL SOIL LAYER *****
-             ! there is actually no soil horizons in this case, but
-             ! we assign value 1 to use variables as defined in the classical option, iFlag_soil = 0
+             ! **** FOR THE TILLAGE TYPE OF SOIL *****
+             ! there is actually no soil horizons/soil type in this case
+             ! but we assign of j = 1 to use variables as defined in the classical option (iFlag_soil = 0)
              do j = 1, 1   
                 ! calculating vertical hydraulic conductivity
                 call hydro_cond( Ks_tmp, param(10:13), sand(i,j), clay(i,j) )
-                Ks(i,j,:) = Ks_tmp
+                Ks_non_till(i,j) = Ks_tmp  !>> non-till
+                Ks(i,j,:)        = Ks_tmp  !>> till layers
                 ! calculating other soil hydraulic properties
                 ! tillage horizons properties depending on the LC class
                 do L = 1, maxval( LCOVER0 )
@@ -365,8 +368,8 @@ contains
                    Db(i,j,L) = 100.0_dp / ( (pOM/BulkDens_OrgMatter) + (pM/DbM(i,j)) )
                    ! Effect of organic matter content on Ks estimates
                    ! This is taken into account in a simplified form by using
-                   ! the ratio of (Bd / BdOM)
-                   Ks_tmp    = Ks_tmp * ( DbM(i,j) / Db(i,j,L))
+                   ! the ratio of (Bd/BdOM)
+                   Ks_tmp    = Ks_tmp * ( DbM(i,j) / Db(i,j,L) )
                    Ks(i,j,L) = Ks_tmp
                    ! estimated SMs_till & van Genuchten's shape parameter (n)
                    call Genuchten( thetaS_till(i,j,L), Genu_Mual_n, Genu_Mual_alpha, &
@@ -376,11 +379,11 @@ contains
                    ! estimating permanent wilting point
                    call PWP( Genu_Mual_n, Genu_Mual_alpha, thetaS_till(i,j,L), thetaPW_till(i,j,L) )
                 end do
-
-                ! *** NON-TILL SOIL LAYER ***
-                ! since Ks_tmp has changed earlier ... get the original one once again
-                ! calculating vertical hydraulic conductivity
-                call hydro_cond( Ks_tmp, param(10:13), sand(i,j), clay(i,j) )
+                
+                ! *** FOR NON-TILLAGE TYPE OF SOILS ***
+                ! note j = 1
+                ! since Ks_tmp has changed earlier ... get the original Ks once again
+                Ks_tmp = Ks_non_till(i,j)
                 ! estimate SMs & van Genuchten's shape parameter (n)
                 call Genuchten( thetaS(i,j), Genu_Mual_n, Genu_Mual_alpha, param(4:9), sand(i,j), clay(i,j), DbM(i,j) )
                 ! estimate field capacity
@@ -391,32 +394,27 @@ contains
              end do  !>> HORIZON
           end do   !>> SOIL TYPE
 
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!************
-!!!!!!!!!!!! here
           ! calculate other soil properties at each location [L0] for regionalising model parameters
-          do i = 1, size( soilId0, 1 )
-             s = soilId0(i)
-             do j = 1, nHorizons( s )
-                if ( j .le. nTillHorizons( s ) ) then
-                   ! Soil properties over the whole soil coloum depth
-                   KsVar_H0(i) = KsVar_H0(i) + thetaS_till( s, j, LCover0(i) ) * Ks( s, j, LCover0(i) )
-                   KsVar_V0(i) = KsVar_V0(i) + thetaS_till( s, j, LCover0(i) ) / Ks( s, j, LCover0(i) )
-                   SMs_FC0(i)  = SMs_FC0(i)  + thetaFC_till(s, j, LCover0(i) )
-                   SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s, j, LCover0(i) )
+          do i = 1, size(soilHorizonId0, 1)     !! over all cells
+             do j = 1, size(soilHorizonId0, 2)  !! over horizons
+                s = soilHorizonId0(i,j)
+                if ( j .le. nTillHorizons(1) ) then
+                   ! soil properties over the whole soil coloum depth
+                   KsVar_H0(i) = KsVar_H0(i) + thetaS_till (s,1,LCover0(i) ) * Ks(s,1,LCover0(i) )
+                   KsVar_V0(i) = KsVar_V0(i) + thetaS_till (s,1,LCover0(i) ) / Ks(s,1,LCover0(i) )
+                   SMs_FC0(i)  = SMs_FC0 (i) + thetaFC_till(s,1,LCover0(i) )
+                   SMs_tot0(i) = SMs_tot0(i) + thetaS_till (s,1,LCover0(i) )
                 else
                    ! soil_properties over the whole soil column
-                   KsVar_H0(i) = KsVar_H0(i)+thetaS(s,j-tmp_minSoilHorizon)*Ks(s,j,1)
-                   KsVar_V0(i) = KsVar_V0(i)+thetaS(s,j-tmp_minSoilHorizon)/Ks(s,j,1)
-                   SMs_FC0(i)  = SMs_FC0(i) +thetaFC(s,j-tmp_minSoilHorizon)
-                   SMs_tot0(i) = SMs_tot0(i)+thetaS (s,j-tmp_minSoilHorizon)
+                   KsVar_H0(i) = KsVar_H0(i) + thetaS (s,1)*Ks_non_till(s,1)
+                   KsVar_V0(i) = KsVar_V0(i) + thetaS (s,1)/Ks_non_till(s,1)
+                   SMs_FC0(i)  = SMs_FC0 (i) + thetaFC(s,1)
+                   SMs_tot0(i) = SMs_tot0(i) + thetaS (s,1)
                 end if
              end do
              ! ------------------------------------------------------------------
              ! DETERMINE RELATIVE VARIABILITIES OF
-             !   Ks FOR HORIZONTAL FLOW (KsVar_H)
-             !               &
-             !   Ks FOR VERTICAL FLOW (KsVar_V)
+             ! Ks FOR HORIZONTAL FLOW (KsVar_H) & Ks FOR VERTICAL FLOW (KsVar_V)
              ! ------------------------------------------------------------------
              ! soil moisture saturation deficit relative to the field capacity soil moisture
              SMs_FC0(i)  = (SMs_tot0(i) - SMs_FC0(i)) / SMs_tot0(i)
@@ -426,17 +424,16 @@ contains
              KsVar_V0(i) = SMs_tot0(i) / KsVar_V0(i) / param(13)
           end do
 
-
-
-          
-          
        CASE DEFAULT
           call message()
           call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
           stop
-
        END SELECT
-          
+
+       ! free space ** 
+       deallocate( SMs_tot0 )
+       if( allocated(Ks_non_till) ) deallocate(Ks_non_till)
+       
   end subroutine mpr_sm
 
   ! ------------------------------------------------------------------
