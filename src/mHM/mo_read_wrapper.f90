@@ -112,8 +112,7 @@ CONTAINS
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
-                                     L0_soilId,                           & ! soil ID on L0 resolution (iFlag_soilDB = 0)  
-                                     L0_Horizon_soilId,                   & ! soil ID on L0 resolution (iFlag_soilDB = 1)  
+                                     L0_soilId,                           & ! soil ID on L0 resolution
                                      L0_geoUnit,                          & ! hydrogeological class ID on input resolution (L0)
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
                                      L0_LCover,                           & ! classical mHM land cover class (L0)
@@ -135,6 +134,7 @@ CONTAINS
 
     ! local variables
     integer(i4)                               :: iBasin, iVar, iHorizon     ! loop variables
+    integer(i4)                               :: nH                         ! dummy variable
     integer(i4)                               :: nunit                      ! file unit of file to read
     integer(i4)                               :: nCells                     ! number of cells in global_mask
     character(256)                            :: fName                      ! file name of file to read
@@ -173,7 +173,6 @@ CONTAINS
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
-
     ! allocate necessary variables at Level0
     allocate(level0%nrows       (nBasins))
     allocate(level0%ncols       (nBasins))
@@ -288,42 +287,33 @@ CONTAINS
           end do nVars_real
 
           ! read datatype integer
-          ! a bit change from the earlier code where everything was done in the DO loop (**see below **)
-          ! here everything is more explicit
+          ! ***** CHANGE IS MADE HERE TO ACCOMODATE READ SEVERAL TYPES OF SOIL DATABASES
+          ! change from the earlier code where everything was done in the DO loop (**see below **)
+          ! here everything is more explicit and no do loop appears as was the case in previous version
           
-          ! read soilID
-          if( iFlag_soilDB .eq. 0 ) then
-             ! classical way of reading only one gridded soil id class file
-             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
-             ! reading and transposing
+          ! read soilID in both options
+          nH = 1 !> by default; when iFlag_soilDB = 0
+          if(iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+          ! modified way to read multiple horizons specific soil class
+          do iHorizon = 1, nH
+              if( iFlag_soilDB .eq. 0 ) then
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass)) 
+             else if( iFlag_soilDB .eq. 1 ) then
+                write(fName, 172) iHorizon
+172             format('soil_class_horizon_',i2.2,'.asc')
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(fName))
+             end if
              call read_spatial_data_ascii(trim(fName), usoilclass,                          &
                   level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                   level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
              ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-             call append( L0_soilId,  pack(data_i4_2d, mask_global) )
-             deallocate(data_i4_2d, mask_2d)
-             
-          else if( iFlag_soilDB .eq. 1 ) then
-             ! modified way to read multiple horizons specific soil class
-             do iHorizon = 1, nSoilHorizons_mHM
-                write(fName, 172) iHorizon
-                172 format('soil_class_horizon_',i2.2,'.asc')
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(fName))
-                call read_spatial_data_ascii(trim(fName), usoilclass,                          &
-                     level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-                     level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-                ! put global nodata value into array (probably not all grid cells have values)
-                data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)               
-                call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
-                deallocate(data_i4_2d)
-             end do
-             call append( L0_Horizon_soilId, dataMatrix_i4 )
-             deallocate(dataMatrix_i4)
-            
-          end if
+             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)               
+             call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+             deallocate(data_i4_2d)
+          end do
+          call append( L0_soilId, dataMatrix_i4 )
+          deallocate(dataMatrix_i4)
 
-          
           ! read geoUnit
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
           ! reading and transposing
@@ -335,7 +325,6 @@ CONTAINS
           call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
           deallocate(data_i4_2d, mask_2d)
           
-
           ! read LAI related land cover class
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
           ! reading and transposing
@@ -344,6 +333,7 @@ CONTAINS
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
           deallocate(data_i4_2d, mask_2d)
 
 
@@ -392,17 +382,15 @@ CONTAINS
           call append( L0_elev,     dummy_dp )
           call append( L0_slope,    dummy_dp )
           call append( L0_asp,      dummy_dp )
-          
-          if( iFlag_soilDB .eq. 0 ) then
-             call append( L0_soilId,   dummy_i4 )
-          else if( iFlag_soilDB .eq. 1 ) then
-             do iHorizon = 1, nSoilHorizons_mHM
-                call paste(dataMatrix_i4, dummy_i4)
-             end do
-             call append( L0_Horizon_soilId, dataMatrix_i4 )
-             deallocate(dataMatrix_i4)
-          end if
-
+          ! for soil class 
+          nH = 1 !> by default; when iFlag_soilDB = 0
+          if ( iFlag_soilDB .eq. 1 ) nH = nSoilHorizons_mHM
+          do iHorizon = 1, nH
+             call paste(dataMatrix_i4, dummy_i4)
+          end do
+          call append( L0_soilId, dataMatrix_i4 )
+          deallocate(dataMatrix_i4)
+          !
           call append( L0_geoUnit,  dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
           
@@ -418,26 +406,22 @@ CONTAINS
           
        end if read_L0_data
 
-       
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCoverScene
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
           deallocate(data_i4_2d)
-          
        end do
        !
        call append( L0_LCover, dataMatrix_i4 )
        deallocate(dataMatrix_i4)
        !
        deallocate(mask_global)
-
 
     end do basins
     !----------------------------------------------------------------

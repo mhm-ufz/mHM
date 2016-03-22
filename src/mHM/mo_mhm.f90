@@ -148,7 +148,6 @@ CONTAINS
       cellId0             , & ! cell Ids at level 0
       soilId0             , & ! soil Ids at level 0
       L0_LCover_LAI       , & ! land cover ID for LAI estimation
-      Horizon_soilId0     , & ! Horizon specific soil Ids at level 0  [ncells,nhorizons]
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
       LAI0                , & ! LAI at level 0
@@ -241,7 +240,6 @@ CONTAINS
       unsat_thresh        , & ! Threshold water depth in upper reservoir
       water_thresh_sealed , & ! Threshold water depth in impervious areas
       wilting_point         ) ! Permanent wilting point for each horizon
-
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
@@ -291,9 +289,8 @@ CONTAINS
     real(dp),    dimension(:),     intent(in) :: slope_emp0
     real(dp),    dimension(:),     intent(in) :: l0_latitude ! l1 ids of l0 cells
     integer(i4), dimension(:),     intent(in) :: cellId0
-    integer(i4), dimension(:),     intent(in) :: soilId0
+    integer(i4), dimension(:,:),   intent(in) :: soilId0
     integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
-    integer(i4), dimension(:,:),   intent(in) :: Horizon_soilId0
     integer(i4), dimension(:),     intent(in) :: LCover0
     real(dp),    dimension(:),     intent(in) :: Asp0
     real(dp),    dimension(:),     intent(in) :: LAI0
@@ -483,8 +480,8 @@ CONTAINS
                 mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,            &
                 SDB_is_present, SDB_nHorizons,                                            &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
-                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
-                soilId0, Horizon_soilId0, Asp0, L0_LCover_LAI, LCover0,                   &
+                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,         &
+                soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
                 slope_emp0, cellId0,                                                      &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
                 L0rightBound_inL1, nTCells0_inL1, l0_latitude,                            &

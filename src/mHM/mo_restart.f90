@@ -640,27 +640,29 @@ CONTAINS
     use mo_mhm_constants,    only: nodata_dp
     use mo_init_states,      only: calculate_grid_properties
     use mo_global_variables, only: L0_Basin, & ! check whether L0_Basin should be read
-         perform_mpr,    & ! switch that controls whether mpr is performed or not
-         L0_soilId,      & ! soil IDs at lower level
-         L0_cellCoor   , & 
-         L0_Id         , & ! Ids of grid at level-0 
-         L0_slope_emp  , & ! Empirical quantiles of slope
-         basin, & 
-         nBasins, &
-         level1, &
-         L0_nCells, &
-         L0_areaCell, & ! Ids of grid at level-0
-         L1_areaCell, & ! [km2] Effective area of cell at this level
-         nSoilTypes, &
+         perform_mpr,       & ! switch that controls whether mpr is performed or not
+         L0_soilId,         & ! soil IDs at lower level
+         iFlag_soilDB,      & ! options to handle different types of soil databases
+         nSoilHorizons_mHM, & ! soil horizons info for mHM         
+         L0_cellCoor      , & 
+         L0_Id            , & ! Ids of grid at level-0 
+         L0_slope_emp     , & ! Empirical quantiles of slope
+         basin,             & 
+         nBasins,           &
+         level1,            &
+         L0_nCells,         &
+         L0_areaCell,       & ! Ids of grid at level-0
+         L1_areaCell,       & ! [km2] Effective area of cell at this level
+         nSoilTypes,        &
          resolutionHydrology, &
-         L1_nCells,      &
-         L1_Id         , & ! Ids of grid at level-1
-         L1_cellCoor   , &
-         L1_upBound_L0 , & ! Row start at finer level-0 scale 
-         L1_downBound_L0, & ! Row end at finer level-0 scale
-         L1_leftBound_L0, & ! Col start at finer level-0 scale
-         L1_rightBound_L0, & ! Col end at finer level-0 scale
-         L1_nTCells_L0     ! Total number of valid L0 cells in a given L1 cell
+         L1_nCells,           &
+         L1_Id         ,      & ! Ids of grid at level-1
+         L1_cellCoor   ,      &
+         L1_upBound_L0 ,      & ! Row start at finer level-0 scale 
+         L1_downBound_L0,     & ! Row end at finer level-0 scale
+         L1_leftBound_L0,     & ! Col start at finer level-0 scale
+         L1_rightBound_L0,    & ! Col end at finer level-0 scale
+         L1_nTCells_L0          ! Total number of valid L0 cells in a given L1 cell
 
     implicit none
 
@@ -681,7 +683,7 @@ CONTAINS
     real(dp)                                             :: cellsize0
     !
     ! Dummy Variables
-    integer(i4)                                          :: ii
+    integer(i4)                                          :: ii, kk, nH
     integer(i4), dimension(:,:),   allocatable           :: dummyI2  ! dummy, 2 dimension I4
     integer(i4), dimension(:,:),   allocatable           :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp),    dimension(:,:),   allocatable           :: dummyD2  ! dummy, 2 dimension DP 
@@ -793,8 +795,12 @@ CONTAINS
     ! set soil types when mpr should be performed
     !------------------------------------------------------
     if ( perform_mpr ) then
-       do ii = iStart0, iEnd0
-          soilId_isPresent(L0_soilId(ii)) = 1
+       nH = 1 !> by default; when iFlag_soilDB = 0
+       if ( iFlag_soilDB .eq. 1 ) nH = nSoilHorizons_mHM
+       do ii = 1, nH
+          do kk = iStart0, iEnd0
+             soilId_isPresent( L0_soilId(kk,ii) ) = 1
+          end do
        end do
     end if
     !

@@ -281,14 +281,13 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells
   ! input data - morphological variables
-  real(dp), public, dimension(:), allocatable, target :: L0_elev    ! [m]       Elevation (sinks removed)
-  !                                                                 ! target variable for coupling to mRM
-  real(dp), public, dimension(:), allocatable      :: L0_slope      ! [%]       Slope
-  real(dp), public, dimension(:), allocatable      :: L0_asp        ! [degree]  Aspect degree
-  integer(i4), public, dimension(:), allocatable   :: L0_soilId     !           classical mHM    soil id (iFlag_soilDB = 0)  
-  integer(i4), public, dimension(:,:), allocatable :: L0_Horizon_soilId  !      horizon specific Soil id (iFlag_soilDB = 1)
-  !                                                                      !      dim1=number grid cells, dim2=Number of horizons
-  integer(i4), public, dimension(:), allocatable   :: L0_geoUnit         !      Geologic formation (unit)
+  real(dp), public, dimension(:), allocatable, target :: L0_elev    ! [m]      Elevation (sinks removed)
+  !                                                                 !           target variable for coupling to mRM
+  real(dp), public, dimension(:), allocatable         :: L0_slope    ! [%]      Slope
+  real(dp), public, dimension(:), allocatable         :: L0_asp     ! [degree]  Aspect degree
+  integer(i4), public, dimension(:,:), allocatable    :: L0_soilId  !           soil id (iFlag_soilDB = 0)  
+  !  [dim1=number grid cells, dim2=Number of soil horizons] note: for iFlag_soilDB=0, dim2=1
+  integer(i4), public, dimension(:), allocatable   :: L0_geoUnit    !      Geologic formation (unit)
 
   ! input data - land cover
   integer(i4), public, dimension(:), allocatable           :: L0_LCover_LAI  ! Special landcover class for the LAI index

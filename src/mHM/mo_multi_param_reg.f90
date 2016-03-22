@@ -82,8 +82,7 @@ contains
   !>       \param[in] "real(dp)    :: fForest1(:)"      - fraction of forest cover at scale L1
   !>       \param[in] "real(dp)    :: fIperm1(:)"       - fraction of sealed area at scale L1
   !>       \param[in] "real(dp)    :: fPerm1(:)"        - fraction of permeable area at scale L1
-  !>       \param[in] "integer(i4) :: soilID0(:)"           - [1] soil IDs at level 0
-  !>       \param[in] "integer(i4) :: soilHorizonId0(:,:)"  - [1] Horizon specific soil Ids at level 0  [ncells,nhorizons]
+  !>       \param[in] "integer(i4) :: soilID0(:,:)"     - [1] soil IDs at level 0
   !>       \param[in] "real(dp)    :: Asp0(:,:)"        - [degree] Aspect at Level 0
   !>       \param[in] "real(dp)    :: LCover_LAI0(:)    - [1] land cover ID for LAI estimation
   !>       \param[in] "integer(i4) :: LCover0(:)"       - [1] land use cover at level 0 
@@ -211,7 +210,6 @@ contains
        fIperm1,             & ! IN:    fraction of sealed area at scale L1
        fPerm1,              & ! IN:    fraction of permeable area at scale L1
        soilId0,             & ! IN:    soil Ids at level 0
-       soilHorizonId0,      & ! IN:    horizon specific soil Ids at level 0
        Asp0,                & ! IN:    [degree] Aspect at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
@@ -287,8 +285,7 @@ contains
     real(dp),    dimension(:),               intent(in)    :: fForest1          ! [1] fraction of forest cover
     real(dp),    dimension(:),               intent(in)    :: fIperm1           ! [1] fraction of sealed area
     real(dp),    dimension(:),               intent(in)    :: fPerm1            ! [1] fraction of permeable area
-    integer(i4), dimension(:),               intent(in)    :: soilId0           ! soil Ids at level 0
-    integer(i4), dimension(:,:),             intent(in)    :: soilHorizonId0    ! horizon specific soil Ids at level 0
+    integer(i4), dimension(:,:),             intent(in)    :: soilId0           ! soil Ids at level 0
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
@@ -437,8 +434,8 @@ contains
 
        call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
             SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
-            SDB_sand, SDB_clay, SDB_DbM, cell_id0,             &
-            soilId0, soilHorizonId0, LCOVER0,                  &
+            SDB_sand, SDB_clay, SDB_DbM,                       &
+            cell_id0, soilId0, LCOVER0,                        &
             thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
             thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
@@ -446,13 +443,13 @@ contains
        ! (the first three for the fRoots and the fourth one for the beta)
        iStart = proc_Mat(3,3) - 4 + 1
        iEnd   = proc_Mat(3,3)
-       call mpr_SMhorizons( param(iStart:iEnd), nodata, iFlag_soil,         &
-            nHorizons_mHM, horizon_depth, LCOVER0, soilId0, soilHorizonId0, &
-            SDB_nHorizons, SDB_nTillHorizons,                               &
-            thetaS_till,thetaFC_till, thetaPW_till,                         &
-            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,     &
-            mask0, cell_id0,                                                &
-            Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1,      &
+       call mpr_SMhorizons( param(iStart:iEnd), nodata, iFlag_soil,    &
+            nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
+            SDB_nHorizons, SDB_nTillHorizons,                          &
+            thetaS_till,thetaFC_till, thetaPW_till,                    &
+            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,&
+            mask0, cell_id0,                                           &
+            Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
             beta1, SMs1, FC1, PW1, fRoots1 )
 
        deallocate( thetaS_till ) 

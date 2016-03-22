@@ -56,8 +56,7 @@ contains
   !>        \param[in] "real(dp)    :: clay(:,:)"        - clay content
   !>        \param[in] "real(dp)    :: DbM(:,:)"         - mineral Bulk density
   !>        \param[in] "integer(i4) :: L0_ID(:,:)"       - cell ids at level 0
-  !>        \param[in] "integer(i4) :: L0_soilId(:,:)"      - soil ids at level 0
-  !>        \param[in] "integer(i4) :: soilHorizonId0(:,:)" - horizon specific soil Ids at level 0  [ncells,nhorizons]
+  !>        \param[in] "integer(i4) :: L0_soilId(:,:)"    - soil ids at level 0
   !>        \param[in] "integer(i4) :: L0_LUC(:,:)"      - land cover ids at level 0
 
   !     INTENT(INOUT)
@@ -136,7 +135,6 @@ contains
        DbM                 , & ! IN:  mineral Bulk density
        ID0                 , & ! IN:  cell ids at level 0
        soilId0             , & ! IN:  soil ids at level 0
-       soilHorizonId0      , & ! IN:  horizon specific soil Ids at level 0
        LCover0             , & ! IN:  land cover ids at level 0
        thetaS_till         , & ! OUT: saturated soil moisture tillage layer
        thetaFC_till        , & ! OUT: field capacity tillage layer
@@ -172,9 +170,8 @@ contains
     real(dp),    dimension(:,:),   intent(in)  :: clay         ! clay content
     real(dp),    dimension(:,:),   intent(in)  :: DbM          ! mineral Bulk density
     integer(i4), dimension(:),     intent(in)  :: ID0          ! cell ids at level 0
-    integer(i4), dimension(:),     intent(in)  :: soilId0         ! soil ids at level 0
-    integer(i4), dimension(:,:),   intent(in)  :: soilHorizonId0  ! horizon specific soil Ids at level 0
-    integer(i4), dimension(:),     intent(in)  :: LCOVER0         ! land cover ids at level 0
+    integer(i4), dimension(:,:),   intent(in)  :: soilId0      ! soil ids at level 0
+    integer(i4), dimension(:),     intent(in)  :: LCOVER0      ! land cover ids at level 0
 
 
     ! Output -------------------------------------------------------------------
@@ -305,8 +302,8 @@ contains
           
           ! calculate other soil properties at each location [L0] for regionalising model parameters
           !$OMP DO PRIVATE( s, j ) SCHEDULE( STATIC )
-          cellloop: do i = 1, size( soilId0, 1 )
-             s = soilId0(i)
+          cellloop: do i = 1, size( soilId0, 1 ) !>> here = ncells0 
+             s = soilId0(i,1)                    !>> in this case the second dimension of soilId0 = 1
              do j = 1, nHorizons( s )
                 if ( j .le. nTillHorizons( s ) ) then
                    ! Soil properties over the whole soil coloum depth
@@ -395,9 +392,9 @@ contains
           end do   !>> SOIL TYPE
 
           ! calculate other soil properties at each location [L0] for regionalising model parameters
-          do i = 1, size(soilHorizonId0, 1)     !! over all cells
-             do j = 1, size(soilHorizonId0, 2)  !! over horizons
-                s = soilHorizonId0(i,j)
+          do i = 1, size(soilId0, 1)     !! over all cells
+             do j = 1, size(soilId0, 2)  !! over horizons
+                s = soilId0(i,j)
                 if ( j .le. nTillHorizons(1) ) then
                    ! soil properties over the whole soil coloum depth
                    KsVar_H0(i) = KsVar_H0(i) + thetaS_till (s,1,LCover0(i) ) * Ks(s,1,LCover0(i) )

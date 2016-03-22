@@ -264,8 +264,7 @@ CONTAINS
     use mo_global_variables, only: basin,                     &
                                    L0_elev, L0_slope, L0_asp, &
                                    L0_geoUnit,                &
-                                   L0_soilId,                 & ! soil class ID on input resolution (L0) (iFlag_soilDB = 0)  
-                                   L0_Horizon_soilId,         & ! soil class ID on input resolution (L0) (iFlag_soilDB = 1)  
+                                   L0_soilId,                 & ! soil class ID on input resolution (L0) 
                                    nSoilHorizons_mHM,         & ! soil horizons info for mHM
                                    iFlag_soilDB,              & ! options to handle different types of soil databases
                                    L0_LCover_LAI,             &
@@ -282,7 +281,7 @@ CONTAINS
     integer(i4), intent(in) ::   iBasin
 
     ! local variables
-    integer(i4)                                :: k, n
+    integer(i4)                                :: k, n, nH
 
     ! START CHECKING VARIABLES
     do k = basin%L0_iStart(iBasin), basin%L0_iEnd(iBasin)
@@ -312,25 +311,17 @@ CONTAINS
        end if
 
        ! soil-Id [-]
-       if( iFlag_soilDB .eq. 0 ) then
-          ! classical mHM soil database
-          if ( L0_soilId(k) .eq. nodata_i4 ) then
-             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
-             call message(' Error: soil id has missing values within the valid masked area at cell in basin ', &
+       nH = 1 !> by default; when iFlag_soilDB = 0
+       if ( iFlag_soilDB .eq. 1 ) nH = nSoilHorizons_mHM
+       ! another option to handle multiple soil horizons properties
+       do n = 1, nH
+          if ( L0_soilId(k,n) .eq. nodata_i4  ) then
+             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))//','// trim(num2str(n,'(I5)'))
+             call message(' Error: soil id has missing values within the valid masked area at cell in basin and horizon ', &
                   trim(message_text) )
              stop
           end if
-       else if( iFlag_soilDB .eq. 1) then
-          ! another option to handle multiple soil horizons properties
-          do  n = 1, nSoilHorizons_mHM
-             if ( L0_Horizon_soilId(k,n) .eq. nodata_i4  ) then
-                message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))//','// trim(num2str(n,'(I5)'))
-                call message(' Error: soil id has missing values within the valid masked area at cell in basin and horizon ', &
-                     trim(message_text) )
-                stop
-             end if
-          end do
-       end if
+       end do
 
        ! geological-Id [-]
        if ( L0_geoUnit(k) .eq. nodata_i4 ) then
@@ -430,8 +421,7 @@ CONTAINS
                                    L0_nCells, L0_cellCoor, &
                                    L0_Id, L0_slope,        &
                                    L0_slope_emp,           &
-                                   L0_soilId,              & ! soil class ID on input resolution (L0) (iFlag_soilDB = 0)  
-                                   L0_Horizon_soilId,      & ! soil class ID on input resolution (L0) (iFlag_soilDB = 1)  
+                                   L0_soilId,              & ! soil class ID on input resolution (L0) 
                                    nSoilHorizons_mHM,      & ! soil horizons info for mHM
                                    iFlag_soilDB,           & ! options to handle different types of soil databases
                                    nSoilTypes,             &
@@ -461,7 +451,7 @@ CONTAINS
     real(dp), dimension(:), allocatable       :: slope_val, slope_emp, temp
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
     
-    integer(i4)                               :: i, j, k
+    integer(i4)                               :: i, j, k, nH
     real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
 
     !--------------------------------------------------------
@@ -587,23 +577,14 @@ CONTAINS
        soilId_isPresent(:) = 0
     end if
 
-    if( iFlag_soilDB .eq. 0) then
-       ! classical mHM soil database
+    nH = 1 !> by default; when iFlag_soilDB = 0
+    if ( iFlag_soilDB .eq. 1 ) nH = nSoilHorizons_mHM
+    do i = 1, nH
        do k = iStart, iEnd
-          j = L0_soilId(k)
+          j = L0_soilId(k,i)
           soilId_isPresent(j) = 1
        end do
-    else if( iFlag_soilDB .eq. 1) then
-       ! another option to handle multiple soil horizons properties
-       ! check for the presence of a particular soil type through all horizons
-       do i = 1, nSoilHorizons_mHM
-          do k = iStart, iEnd
-             j = L0_Horizon_soilId(k,i)
-             soilId_isPresent(j) = 1
-          end do
-       end do
-    end if
-       
+    end do
     
     ! free space
     deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index, temp)
