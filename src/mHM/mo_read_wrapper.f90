@@ -406,6 +406,7 @@ CONTAINS
           
        end if read_L0_data
 
+       
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCoverScene
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
@@ -417,10 +418,10 @@ CONTAINS
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
           deallocate(data_i4_2d)
        end do
-       !
        call append( L0_LCover, dataMatrix_i4 )
        deallocate(dataMatrix_i4)
-       !
+
+       ! deallocate mask
        deallocate(mask_global)
 
     end do basins

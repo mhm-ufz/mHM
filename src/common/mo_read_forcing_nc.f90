@@ -125,13 +125,13 @@ contains
     ! LATITUDE dimension
     type(period),                                      intent(in)  :: periode   ! time period
     character(len=*),                                  intent(in)  :: varName   ! name of NetCDF variable
-    real(dp), dimension(:,:,:), allocatable,           intent(out) :: data      ! data read in
     logical, dimension(:,:),                           intent(in)  :: mask      ! mask of valid data fields
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
     integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly
     logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
     !                                                                            ! default = .FALSE. - check is done
+    real(dp), dimension(:,:,:), allocatable,           intent(out) :: data      ! data read in
     logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout    ! mask of data to read
 
     !
@@ -230,8 +230,8 @@ contains
     ! alloc and read
     allocate(data(dimen(1), dimen(2), dim3))
     call Get_NcVar(trim(fName), trim(varName), data, &
-         start = (/ 1_i4, 1_i4, ncdim3start /), &
-         a_count = (/ dimen(1), dimen(2), dim3 /) )
+              start = (/ 1_i4, 1_i4, ncdim3start /), &
+            a_count = (/ dimen(1), dimen(2), dim3 /) )
 
     ! save output mask if optional maskout is given
     if (present(maskout)) then

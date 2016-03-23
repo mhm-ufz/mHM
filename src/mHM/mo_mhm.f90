@@ -568,8 +568,8 @@ CONTAINS
 
        case(1) ! HarSam
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-          doy       = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
-          !
+          doy = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          
           if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
 

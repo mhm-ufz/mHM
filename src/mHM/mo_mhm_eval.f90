@@ -359,7 +359,7 @@ CONTAINS
        hour = -timestep
        iGridLAI_TS = 0
        do tt = 1, nTimeSteps
-
+!!print*, tt, nTimeSteps
           if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
@@ -376,7 +376,7 @@ CONTAINS
              e_meteo = e1 - s1 + 1
              ! time step for meteorological variable (daily values)
              iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
-                  - ( readPer%julStart - simPer(ii)%julStart )
+                        - ( readPer%julStart - simPer(ii)%julStart )
           end if
 
           hour = mod(hour+timestep, 24)
