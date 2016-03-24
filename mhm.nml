@@ -87,35 +87,38 @@ optimize_restart = .FALSE.
 !> (3) SCE                 (requires single-objective (SO) function) \n
 !> additional settings for the different methods can be provided below in namelist Optimization
 opti_method = 1
-!> (1)  SO: Q:   1.0 - NSE  \n
-!> (2)  SO: Q:   1.0 - lnNSE  \n
-!> (3)  SO: Q:   1.0 - 0.5*(NSE+lnNSE)  \n
-!> (4)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
-!> (5)  SO: Q:   ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
-!> (6)  SO: Q:   SSE  \n
-!> (7)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors  \n
-!> (8)  SO: Q:  -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed \n
-!> (9)  SO: Q:  1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (10) SO: SM: 1.0 - KGE of catchment average soilmoisture \n
-!> (11) SO: SM: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture \n
-!> (12) SO: SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture \n
-!> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture \n
-!> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm \n
-!> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS\n
-!> (16) (reserved) please use the next number when implementing a new one
-!>      MO: Q:  1st objective: (1) = 1.0 - NSE  
-!>          Q:  2nd objective: (2) = 1.0 - lnNSE
-!> (17) SO: N:  1.0 - KGE of spatio-temporal neutron data, catchment-average
-!> (18) (reserved) please use the next number when implementing a new one
-!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
-!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
-!> (19) (reserved) please use the next number when implementing a new one
-!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
-!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
-!> (20) (reserved) please use the next number when implementing a new one
-!>      MO: Q:  1st objective: absolute difference in FDC's low-segment volume
-!>          Q:  2nd objective: 1.0 - NSE of discharge of months DJF
-!> further functions can be implemented in mo_objective_function
+!> (1)  SO: Q:   1.0 - NSE                                                                                                          \n
+!> (2)  SO: Q:   1.0 - lnNSE                                                                                                        \n
+!> (3)  SO: Q:   1.0 - 0.5*(NSE+lnNSE)                                                                                              \n
+!> (4)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed                \n
+!> (5)  SO: Q:   ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                                                                   \n
+!> (6)  SO: Q:   SSE                                                                                                                \n
+!> (7)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors                                                        \n
+!> (8)  SO: Q:  -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed            \n
+!> (9)  SO: Q:  1.0 - KGE (Kling-Gupta efficiency measure)                                                                          \n
+!> (10) SO: SM: 1.0 - KGE of catchment average soilmoisture                                                                         \n
+!> (11) SO: SM: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture                                             \n
+!> (12) SO: SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture                \n
+!> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture                                           \n
+!> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm         \n
+!> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS \n
+!> (16) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: (1) = 1.0 - NSE                                                                                      \n
+!>          Q:  2nd objective: (2) = 1.0 - lnNSE                                                                                    \n
+!> (17) SO: N:  1.0 - KGE of spatio-temporal neutron data, catchment-average                                                        \n
+!> (18) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)                                                            \n
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)                                                          \n
+!> (19) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                                                              \n
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)                                                          \n
+!> (20) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: absolute difference in FDC's low-segment volume                                                      \n
+!>          Q:  2nd objective: 1.0 - NSE of discharge of months DJF                                                                 \n
+!> (21) (reserved) please use the next number when implementing a new one                                                           \n
+!>      SO: Q:  ( (1.0-lnNSE(Q_highflow))**6 + (1.0-lnNSE(Q_lowflow))**6 )**(1/6)                                                   \n
+!>              where Q_highflow and Q_lowflow are calculated like in objective (19)                                                \n
+!> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 3
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
