@@ -18,6 +18,7 @@ module mo_netcdf
   ! following a somehow object-oriented approach.
 
   ! Written  David Schaefer, Jun 2015
+  ! Modified Matthias Cuntz, Jan 2016 - compiled with PGI Fortran rev 15.9 - no automatic allocation of left-hand-side
   
   ! License
   ! -------
@@ -1639,6 +1640,8 @@ contains
     type(NcDimension)              :: dim
     integer(i4)                    :: ii
 
+    allocate(dims(self%getNoDimensions()))
+
     isUnlimitedVariable = .false.
     dims = self%getDimensions()
 
@@ -2299,6 +2302,7 @@ contains
     integer(i1)      , intent(out), allocatable :: data(:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(1))
     datashape = getReadDataShape(self, 1, start, count, stride)
 
     allocate(data(datashape(1)))
@@ -2312,6 +2316,7 @@ contains
     integer(i1)      , intent(out), allocatable :: data(:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(2))
     datashape = getReadDataShape(self, 2, start, count, stride)
 
     allocate(data(datashape(1), datashape(2)))
@@ -2325,6 +2330,7 @@ contains
     integer(i1)      , intent(out), allocatable :: data(:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(3))
     datashape = getReadDataShape(self, 3, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2338,6 +2344,7 @@ contains
     integer(i1)      , intent(out), allocatable :: data(:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(4))
     datashape = getReadDataShape(self, 4, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2351,6 +2358,7 @@ contains
     integer(i1)      , intent(out), allocatable :: data(:,:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(5))
     datashape = getReadDataShape(self, 5, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2375,6 +2383,7 @@ contains
     integer(i2)      , intent(out), allocatable :: data(:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(1))
     datashape = getReadDataShape(self, 1, start, count, stride)
 
     allocate(data(datashape(1)))
@@ -2388,6 +2397,7 @@ contains
     integer(i2)      , intent(out), allocatable :: data(:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(2))
     datashape = getReadDataShape(self, 2, start, count, stride)
 
     allocate(data(datashape(1), datashape(2)))
@@ -2401,6 +2411,7 @@ contains
     integer(i2)      , intent(out), allocatable :: data(:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(3))
     datashape = getReadDataShape(self, 3, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2414,6 +2425,7 @@ contains
     integer(i2)      , intent(out), allocatable :: data(:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(4))
     datashape = getReadDataShape(self, 4, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2427,6 +2439,7 @@ contains
     integer(i2)      , intent(out), allocatable :: data(:,:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(5))
     datashape = getReadDataShape(self, 5, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2450,9 +2463,10 @@ contains
     integer(i4)      , intent(in) , optional    :: start(:), count(:), stride(:), map(:)
     integer(i4)      , intent(out), allocatable :: data(:)
     integer(i4)                   , allocatable :: datashape(:)
-
+    
+    allocate(datashape(1))
     datashape = getReadDataShape(self, 1, start, count, stride)
-
+    
     allocate(data(datashape(1)))
     call check (nf90_get_var(self%parent%id, self%id, data, start, count, stride, map), &
          "Could not read data from variable: "//trim(self%getName()))
@@ -2464,6 +2478,7 @@ contains
     integer(i4)      , intent(out), allocatable :: data(:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(2))
     datashape = getReadDataShape(self, 2, start, count, stride)
 
     allocate(data(datashape(1), datashape(2)))
@@ -2477,6 +2492,7 @@ contains
     integer(i4)      , intent(out), allocatable :: data(:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(3))
     datashape = getReadDataShape(self, 3, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2490,6 +2506,7 @@ contains
     integer(i4)      , intent(out), allocatable :: data(:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(4))
     datashape = getReadDataShape(self, 4, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2503,6 +2520,7 @@ contains
     integer(i4)      , intent(out), allocatable :: data(:,:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(5))
     datashape = getReadDataShape(self, 5, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2527,6 +2545,7 @@ contains
     real(sp)         , intent(out), allocatable :: data(:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(1))
     datashape = getReadDataShape(self, 1, start, count, stride)
 
     allocate(data(datashape(1)))
@@ -2540,6 +2559,7 @@ contains
     real(sp)         , intent(out), allocatable :: data(:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(2))
     datashape = getReadDataShape(self, 2, start, count, stride)
 
     allocate(data(datashape(1), datashape(2)))
@@ -2553,6 +2573,7 @@ contains
     real(sp)         , intent(out), allocatable :: data(:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(3))
     datashape = getReadDataShape(self, 3, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2566,6 +2587,7 @@ contains
     real(sp)         , intent(out), allocatable :: data(:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(4))
     datashape = getReadDataShape(self, 4, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2579,6 +2601,7 @@ contains
     real(sp)         , intent(out), allocatable :: data(:,:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(5))
     datashape = getReadDataShape(self, 5, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2603,6 +2626,7 @@ contains
     real(dp)         , intent(out), allocatable :: data(:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(1))
     datashape = getReadDataShape(self, 1, start, count, stride)
 
     allocate(data(datashape(1)))
@@ -2616,6 +2640,7 @@ contains
     real(dp)         , intent(out), allocatable :: data(:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(2))
     datashape = getReadDataShape(self, 2, start, count, stride)
 
     allocate(data(datashape(1), datashape(2)))
@@ -2629,6 +2654,7 @@ contains
     real(dp)         , intent(out), allocatable :: data(:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(3))
     datashape = getReadDataShape(self, 3, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2642,6 +2668,7 @@ contains
     real(dp)         , intent(out), allocatable :: data(:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(4))
     datashape = getReadDataShape(self, 4, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2655,6 +2682,7 @@ contains
     real(dp)         , intent(out), allocatable :: data(:,:,:,:,:)
     integer(i4)                   , allocatable :: datashape(:)
 
+    allocate(datashape(5))
     datashape = getReadDataShape(self, 5, start, count, stride)
 
     allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2685,8 +2713,7 @@ contains
        write(*,*) "Given read parameters do not match output variable rank!"
        stop 1
     end if
-
-    getReadDataShape = pack(datashape, datashape .gt. 1)
+    getReadDataShape = pack(datashape, datashape .ge. 1)
   end function getReadDataShape
 
   function getDtypeFromString(dtype)
