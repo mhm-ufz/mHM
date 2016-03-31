@@ -176,14 +176,13 @@ contains
 
     cellFactorR    = level11%cellsize(iBasin) / cellsize0
     ! create a mask: Id with respect to Level 0
-    do jc = 1, ncols11
-       jcc = jc * nint(cellfactorR,i4)
-       do ic = 1, nrows11
-          icc = ic * nint(cellfactorR,i4)
-          ! ceiling ( real(jc, dp)/cellFactorR )
-          if ( .not. any(mask0(icc - int(cellFactorR,i4) + 1:icc, jcc - int(cellfactorR,i4) + 1:jcc)) ) cycle
-          ! Identify grids (of level-1) which will take part at the routing level-11
-          mask11(ic, jc) = .TRUE.
+    ! create a mask at Level 11: Id with respect to Level 0
+    do jc = 1, ncols0
+       jcc = ceiling(real(jc, dp) / cellFactorR)
+       do ic = 1, nrows0
+          if (.NOT. mask0(ic, jc)) cycle
+          icc = ceiling(real(ic,dp) / cellFactorR)
+          mask11(icc, jcc) = .TRUE.
        end do
     end do
 
@@ -288,6 +287,12 @@ contains
           id =     icc * nint(cellFactorR,i4)
           jl = (jcc-1) * nint(cellFactorR,i4) + 1
           jr =     jcc * nint(cellFactorR,i4)
+          ! constrain the range of up, down, left, and right boundaries
+          if(iu < 1     ) iu = 1
+          if(id > nrows0) id = nrows0
+          if(jl < 1     ) jl = 1
+          if(jr > ncols0) jr = ncols0
+
           ! effective area [km2] & total no. of L0 cells within a given L1 cell
           areaCell(kk) = sum( areacell0_2D(iu:id, jl:jr), mask0(iu:id, jl:jr) )*1.0E-6
 
