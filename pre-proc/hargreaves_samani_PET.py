@@ -1,34 +1,69 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-#===========================================================================================
-# Created by   David Schafer (david.schaefer@ufz.de) on 23/03/2016
-# Commented by Rohini Kumar (rohini.kumar@ufz.de)    on 23/03/2016
-#------------------------------------------------------------------------
-#
-# HARGREAVES AND SAMANI (1985) BASED DAILY PET ESTIMATES
-# Requires: 3D tavg, tmax, and tmin [all in degree celcius] and
-#           2D latitude grid [degree decimals] 
-# Output will be written in highest precision among all input datasets
-#
-# To execute this script, you need to activate 
-# 1) our CHS python library scripts
-#    by e.g., export PYTHONPATH=../PYTHON_chs_lib/:$PYTHONPATH
-# 2) virtual C-binding virtual environment
-#    by e.g., module load /global/apps/chs-virtualenv/chspython/2.7.6
-#
-# After loding these environment run command
-#  by default the variable in the 'avg. temp. file' should be named as 'tavg'
-#                          in the 'max. temp. file' should be named as 'tmax'
-#                          in the 'min. temp. file' should be named as 'tmin'
-#                          in the 'lat        file' should be named as 'lat'
-# python hargreaves_samani_PET.py -g tavg.nc -n tmin.nc -x tmax.nc -l lat.nc pet.nc
-#
-# another way is to explicitly spell out the variable names
-# python hargreaves_samani_PET.py -g tavg.nc,tavg -n tmin.nc,tmin -x tmax.nc,tmin -l lat.nc,latlon.nc pet.nc
-#
-#===========================================================================================
+
+"""
+
+Author
+------
+David Schaefer
+
+History
+-------
+- Rohini Kumar, Mar 2016 - Added comments
+
+Purpose
+-------
+HARGREAVES and SAMANI (1985) based PET estimates
+
+Arguments
+---------
+- tavg     (3D) [degree Celsius]
+- tmax     (3D) [degree Celsius]
+- tmin     (3D) [degree Celsius]
+- latitude (2D) [degree decimals]
+
+all stored in one or several NetCDF file(s). The input data files are
+expected to hold a time variable following the CF Conventions
+(http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#time-coordinate)
+
+Output
+------
+- pet (3D) [mm/timestep]
+
+written into a NetCDF file.
+
+Requirements
+------------
+numpy
+netCDF4
+argparse
+netcdf4
+
+Usage
+-----
+1) Satisfy all dependencies
+2) Adapt your PYTHONPATH to include the module netcdf4 from PYTHON_chs_lib.
+   Skip this step if you received this program as a part of mHM.
+3) Run the program using one of the following possibilities
+3.1) python hargreaves_samani_PET.py -g tavg.nc -n tmin.nc -x tmax.nc -l lat.nc pet.nc
+3.2) python hargreaves_samani_PET.py --tavg tavg.nc --tmin tmin.nc --tmax tmax.nc --lat lat.nc pet.nc
+3.3) python hargreaves_samani_PET.py --tavg tavg.nc,tavg --tmin tmin.nc,tmin --tmax tmax.nc,tmax --lat lat.nc,lat pet.nc
+
+Note
+----
+When running the program as in 3.1) and 3.2) the NetCDF variables holding the data are expected to be named:
+- tavg: average temperature
+- tmin: minimum temperature
+- tmax: maximum temperature
+- lat : latitude
+
+If the input has a differing naming scheme, 3.3) gives the possibility to pass the variables names
+explicitly, after the filename and separated by comma (no additional whitespaces allowed)
+
+"""
+
 import numpy as np
-from ufz.netcdf4 import NcDataset
+from netcdf4 import NcDataset
 from argparse import ArgumentParser
 
 VARNAMES = {
@@ -38,16 +73,26 @@ VARNAMES = {
     "lat"  : "lat"
 }
 
-parser = ArgumentParser(description="Calculate PET according to HARGREAVES",
-                        usage="calc_pet.py [-h] -g TAVGFILE[,varname] -n TMINFILE[,varname] -x TMAXFILE[,varname] -l LATFILE[,varname] outfile")
-parser.add_argument("-g","--tavg", dest="tavg", required=True,
-                    help="NetCDF file holding average temperature data. The variable name should either be 'tavg' or given explictly.")
-parser.add_argument("-n","--tmin", dest="tmin", required=True,
-                    help="NetCDF file holding minimum temperature data. The variable name should either be 'tmin' or given explictly.")
-parser.add_argument("-x","--tmax", dest="tmax", required=True,
-                    help="NetCDF file holding maximum temperature data. The variable name should either be 'tmax' or given explictly.")
-parser.add_argument("-l","--lat", dest="lat", required=True,
-                    help="NetCDF file holding latitude data. The variable name should either be 'lat' or given explictly.")
+parser = ArgumentParser(
+    description="Calculate PET according to HARGREAVES",
+    usage="calc_pet.py [-h] -g TAVGFILE[,varname] -n TMINFILE[,varname] -x TMAXFILE[,varname] -l LATFILE[,varname] outfile"
+)
+parser.add_argument(
+    "-g","--tavg", dest="tavg", required=True,
+    help="NetCDF file holding average temperature data. The variable name should either be 'tavg' or given explicitly."
+)
+parser.add_argument(
+    "-n","--tmin", dest="tmin", required=True,
+    help="NetCDF file holding minimum temperature data. The variable name should either be 'tmin' or given explicitly."
+)
+parser.add_argument(
+    "-x","--tmax", dest="tmax", required=True,
+    help="NetCDF file holding maximum temperature data. The variable name should either be 'tmax' or given explicitly."
+)
+parser.add_argument(
+    "-l","--lat", dest="lat", required=True,
+    help="NetCDF file holding latitude data. The variable name should either be 'lat' or given explicitly."
+)
 parser.add_argument('outfile', help="Output file")
 
 
@@ -71,9 +116,9 @@ def epotHargreaves(tavg, tmin, tmax, lat, julian_dates):
 
     Note
     ----
-    For large argument arrays it is however well possible to run into MemoryErrors.
-    Split your problem along the timeaxis of tas and co. in order to trade speed
-    for results.
+    For large argument arrays it is well possible to run into MemoryErrors.
+    Split your problem along the timeaxis of the input arguments, in order to trade
+    speed for results.
     """
     
     lat = np.radians(np.abs(lat[None,:]))
