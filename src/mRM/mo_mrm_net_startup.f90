@@ -1357,10 +1357,10 @@ contains
       colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
       ! finding main outlet (row, col) in L0
-      Noutlet = count(basin_mrm%L0_rowOutlet(iBasin, :) .gt. nodata_i4)
+      Noutlet = count(basin_mrm%L0_rowOutlet(:, iBasin) .gt. nodata_i4)
       allocate(oLoc(Noutlet, 2))
-      oLoc(:, 1) = basin_mrm%L0_rowOutlet(iBasin, :Noutlet)
-      oLoc(:, 2) = basin_mrm%L0_colOutlet(iBasin, :Noutlet) 
+      oLoc(:, 1) = basin_mrm%L0_rowOutlet(:Noutlet, iBasin)
+      oLoc(:, 2) = basin_mrm%L0_colOutlet(:Noutlet, iBasin) 
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
