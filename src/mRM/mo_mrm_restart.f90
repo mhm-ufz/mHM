@@ -65,6 +65,8 @@ contains
   !                   Sep 2015, Stephan Thober - added L11_areaCell L1_ID and L1_L11_Id for routing
   !                                              resolution higher than hydrology resolution
   !                   Nov 2015, David Schaefer - mo_netcdf
+  !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
+  !                                              because multiple outlets could exist
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
     use mo_netcdf, only: NcDataset, NcDimension, NcVariable
@@ -151,9 +153,10 @@ contains
     integer(i4) :: ncols110 ! number of colums at pseudo level 110
     integer(i4) :: nrows110 ! number of rows at pseudo level 110
     real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
+    integer(i4) :: Noutlet ! number of outlets at level 0
 
     type(NcDataset)   :: nc
-    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, links
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, links, nout
     type(NcVariable)  :: var
     
     ! get Level0 information about the basin
@@ -167,10 +170,12 @@ contains
 
     ! set restart file name
     Fname = trim(OutPath(iBasin)) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc' 
+    ! set number of outlets
+    Noutlet = basin_mrm%L0_Noutlet(iBasin)
 
     call message('    Writing mRM restart file to ' // trim(Fname) // ' ...')
 
-    nc = NcDataset(fname,"w")
+    nc     = NcDataset(fname,"w")
     rows0  = nc%setDimension("nrows0", nrows0)
     cols0  = nc%setDimension("ncols0", ncols0)
     rows1  = nc%setDimension("nrows1", nrows1)
@@ -179,7 +184,9 @@ contains
     cols11 = nc%setDimension("ncols11", ncols11)
     it11   = nc%setDimension("nIT", nRoutingStates)
     links  = nc%setDimension("nLinks", size(L11_length(s11:e11)))
+    nout   = nc%setDimension("Noutlet", Noutlet)
 
+    
     var = nc%setVariable("L0_rowCoor","i32",(/rows0, cols0/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L0_cellCoor(s0:e0,1), mask0, nodata_i4))
@@ -454,10 +461,15 @@ contains
     call var%setData(unpack(L11_rightBound_L1(s11:e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "Col start at finer level-1 scale")
 
-    var = nc%setVariable("L0_OutletCoord", "i32", (/nc%setDimension("NoutletCoord", 2)/))
+    var = nc%setVariable("L0_RowOutletCoord", "i32", (/nout/))
     call var%setFillValue(nodata_i4)
-    call var%setData((/basin_mrm%L0_rowOutlet(iBasin), basin_mrm%L0_colOutlet(iBasin)/))
-    call var%setAttribute("long_name", "Outlet Coordinates at Level 0")
+    call var%setData(basin_mrm%L0_rowOutlet(:Noutlet, iBasin))
+    call var%setAttribute("long_name", "Row outlet coordinates at level 0")
+
+    var = nc%setVariable("L0_ColOutletCoord", "i32", (/nout/))
+    call var%setFillValue(nodata_i4)
+    call var%setData(basin_mrm%L0_colOutlet(:Noutlet, iBasin))
+    call var%setAttribute("long_name", "Column outlet coordinates at level 0")
 
     var = nc%setVariable("gaugeNodeList", "i32", &
          (/nc%setDimension("Ngauges", size(basin_mrm%gaugeNodeList(iBasin,:)))/) &
@@ -531,6 +543,8 @@ contains
   !>        \author   Stephan Thober
   !>        \date     Sep 2015
   !         Modified  Mar 2016, David Schaefer - mo_netcdf
+  !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
+  !                                              because multiple outlets could exist
   !
   subroutine mrm_read_restart_states(iBasin, InPath)
     use mo_netcdf, only: NcDataset, NcVariable
@@ -689,7 +703,7 @@ contains
     use mo_kind, only: i4, dp
     use mo_append, only: append
     use mo_netcdf, only: NcDataset, NcVariable
-    use mo_mrm_constants, only: nodata_dp
+    use mo_mrm_constants, only: nodata_dp, nodata_i4
     use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
     use mo_mrm_global_variables, only: &
          L0_Basin, & ! check whether L0_Basin should be read
@@ -766,7 +780,10 @@ contains
     integer(i4) :: iStart0, iEnd0
 
     ! DUMMY variables
+    integer(i4) :: Noutlet
+    integer(i4) :: old_Noutlet
     integer(i4), dimension(:), allocatable :: dummyI1 ! dummy, 1 dimension I4
+    integer(i4), dimension(:,:), allocatable :: dummy
     integer(i4), dimension(:,:), allocatable :: dummyI2 ! dummy, 2 dimension I4
     integer(i4), dimension(:,:), allocatable :: dummyI22 ! 2nd dummy, 2 dimension I4
     real(dp), dimension(:), allocatable :: dummyD1 ! dummy, 1 dimension DP
@@ -776,7 +793,7 @@ contains
 
     ! set file name
     fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
-    call message('    Reading mRM restart file:  ', trim(adjustl(Fname)),' ...')
+    call message('        Reading mRM restart file:  ', trim(adjustl(Fname)),' ...')
 
     if (iBasin .eq. 1) then
        allocate(level1%nrows(nBasins))
@@ -802,6 +819,13 @@ contains
        allocate(basin_mrm%L11_iEnd(nBasins))
        allocate(basin_mrm%L11_iStartMask(nBasins))
        allocate(basin_mrm%L11_iEndMask(nBasins))
+
+       allocate(basin_mrm%L0_Noutlet(nBasins))
+       allocate(basin_mrm%L0_rowOutlet(1, nBasins))
+       allocate(basin_mrm%L0_colOutlet(1, nBasins))
+       basin_mrm%L0_Noutlet = nodata_i4
+       basin_mrm%L0_rowOutlet = nodata_i4
+       basin_mrm%L0_colOutlet = nodata_i4
     end if
 
     ! grid properties
@@ -965,18 +989,38 @@ contains
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! read L0 outlet Coordinates
-    var = nc%getVariable("L0_OutletCoord")
+    var = nc%getVariable("L0_RowOutletCoord")
     call var%getData(dummyI1)
 
-    ! allocate space for row and col Outlet
-    if (iBasin .eq. 1) then
-       allocate(basin_mrm%L0_rowOutlet(nBasins))
-       allocate(basin_mrm%L0_colOutlet(nBasins))
-    end if
+    Noutlet = size(dummyI1, dim=1)
+    basin_mrm%L0_Noutlet(iBasin) = Noutlet
+    deallocate(dummyI2)
+    allocate(dummyI2(Noutlet, 2))
+    dummyI2(:, 1) = dummyI1
 
-    ! L0 data sets
-    basin_mrm%L0_rowOutlet(iBasin) = dummyI1(1)
-    basin_mrm%L0_colOutlet(iBasin) = dummyI1(2)
+    var = nc%getVariable("L0_ColOutletCoord")
+    call var%getData(dummyI1)
+    dummyI2(:, 2) = dummyI1
+
+    old_Noutlet = size(basin_mrm%L0_rowOutlet, dim=1)
+    ! store outlet coordinates to basin structure
+    if (Noutlet .le. old_Noutlet) then
+       basin_mrm%L0_rowOutlet(:Noutlet, iBasin) = dummyI2(:, 1)
+       basin_mrm%L0_colOutlet(:Noutlet, iBasin) = dummyI2(:, 2)
+    else
+       ! store up to size of old_Noutlet
+       basin_mrm%L0_rowOutlet(:old_Noutlet, iBasin) = dummyI2(:old_Noutlet, 1)
+       basin_mrm%L0_colOutlet(:old_Noutlet, iBasin) = dummyI2(:old_Noutlet, 2)
+       ! enlarge rowOutlet and colOutlet in basin_mrm structure
+       allocate(dummy(Noutlet - old_Noutlet, nBasins))
+       dummy = nodata_i4
+       dummy(:, iBasin) = dummyI2(old_Noutlet + 1:, 1)
+       call append(basin_mrm%L0_rowOutlet, dummy)
+       dummy(:, iBasin) = dummyI2(old_Noutlet + 1:, 2)
+       call append(basin_mrm%L0_colOutlet, dummy)
+       deallocate(dummy)
+    end if
+    deallocate(dummyI1, dummyI2)
 
     ! read L0 draining cell index
     var = nc%getVariable("L0_draSC")

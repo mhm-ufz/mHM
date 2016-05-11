@@ -378,8 +378,8 @@ contains
   !>    network at level L11.
 
   !>       \details The hydrographs generated at each cell are routed
-  !>                through the drainage network at level-11 towards the basin's
-  !>                outlet. The drainage network at level-11 is conceptualized as a
+  !>                through the drainage network at level-11 towards their 
+  !>                outlets. The drainage network at level-11 is conceptualized as a
   !>                graph whose nodes are hypothetically located at the center of
   !>                each grid cell connected by links that represent the river
   !>                reaches. The flow direction of a link correspond to the
@@ -407,6 +407,8 @@ contains
 
   !>                For the sake of simplicity, it is assumed that all runoff leaving
   !>                a given cell would exit through a major direction.
+
+  !>                Note that multiple outlets can exist within the modelling domain.
 
   !>                If a variable is added or removed here, then it also has to 
   !>                be added or removed in the subroutine L11_config_set in
@@ -452,11 +454,12 @@ contains
   !                  Stephan Thober, Aug 2015 - ported to mRM
   !                  Stephan Thober, Sep 2015 - create mapping between L11 and L1 if L11 resolution
   !                                             is higher than L1 resolution
+  !                  Stephan Thober, May 2016 - introducing multiple outlets
   ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
-    use mo_mrm_constants, only: nodata_i4
     use mo_append, only: append
-    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_message, only: message
+    use mo_mrm_constants, only: nodata_i4
     use mo_mrm_global_variables, only: &
          basin_mrm, &
          level0, &
@@ -476,6 +479,8 @@ contains
          L11_downBound_L0,  & ! INOUT: row end at finer level-0 scale 
          L11_leftBound_L0,  & ! INOUT: col start at finer level-0 scale 
          L11_rightBound_L0    ! INOUT: col end at finer level-0 scale 
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_string_utils, only: num2str
 
     implicit none
 
@@ -495,6 +500,7 @@ contains
     integer(i4)                              :: ii, jj, kk, ic, jc 
     integer(i4)                              :: iu, id
     integer(i4)                              :: jl, jr
+    integer(i4)                              :: iRow, jCol
     integer(i4), dimension(:,:), allocatable :: L11Id_on_L0 ! mapping of L11 Id on L0
     integer(i4), dimension(:,:), allocatable :: iD0            
     integer(i4), dimension(:,:), allocatable :: fDir0          
@@ -506,9 +512,13 @@ contains
     integer(i4), dimension(:),   allocatable :: rowOut      ! northing cell loc. of the Outlet
     integer(i4), dimension(:),   allocatable :: colOut      ! easting cell loc. of the Outlet
     integer(i4), dimension(:,:), allocatable :: draSC0         
-    integer(i4), dimension(2)                :: oLoc        ! output location in L0
+    integer(i4), dimension(:,:), allocatable :: oLoc        ! output location in L0
     integer(i4)                              :: side
     integer(i4)                              :: fAccMax, idMax
+    integer(i4)                              :: Noutlet     ! Number of outlet found
+    integer(i4)                              :: old_Noutlet ! Number of outlets before this basin
+    integer(i4), dimension(:,:), allocatable :: dummy       ! helping variable for storing L0 outlet coordinates
+    logical                                  :: is_outlet   ! flag whether outlet is found
 
     !--------------------------------------------------------
     ! STEPS:
@@ -537,6 +547,7 @@ contains
     allocate ( Id11(nrows11, ncols11) )
 
     ! initialize
+    Noutlet        = 0_i4
     upBound0(:)    = nodata_i4
     downBound0(:)  = nodata_i4
     leftBound0(:)  = nodata_i4
@@ -598,6 +609,7 @@ contains
     allocate ( fDir11      ( nrows11, ncols11 ) )
     allocate ( rowOut      ( nNodes ) )
     allocate ( colOut      ( nNodes ) )
+    allocate ( oLoc        ( 1, 2 ) )
 
     ! initialize
     iD0(:,:)        = nodata_i4   
@@ -609,6 +621,7 @@ contains
     fDir11(:,:)     = nodata_i4 
     rowOut(:)       = nodata_i4 
     colOut(:)       = nodata_i4
+    oLoc(:,:)       = nodata_i4
 
     ! get iD, fAcc, fDir at L0
     iD0(:,:)   = UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4 )
@@ -620,11 +633,11 @@ contains
 
     ! case where routing and input data scale is similar
     IF(nCells0 .EQ. nNodes) THEN
-      oLoc = maxloc( fAcc0, mask0 )
-      kk   = L11Id_on_L0( oLoc(1), oLoc(2) )
+      oLoc(1, :) = maxloc( fAcc0, mask0 )
+      kk   = L11Id_on_L0( oLoc(1, 1), oLoc(1, 2) )
       ! for a single node model run
       if(nCells0 .EQ. 1) then
-       fDir11(1,1) = fDir0(oLoc(1), oLoc(2)) 
+       fDir11(1,1) = fDir0(oLoc(1, 1), oLoc(1, 2)) 
       else
         fDir11(:,:) = fDir0(:,:)
       end if
@@ -639,21 +652,53 @@ contains
       do kk = 1, ncells0 
          ii = cellCoor0( kk, 1 )
          jj = cellCoor0( kk, 2 )
-         draSC0(ii,jj) = kk
+         draSC0(ii, jj) = kk
       end do
 
       ! case where routing and input data scale differs 
-    ELSE
-      ! finding main outlet (row, col) in L11
-      oLoc = maxloc( fAcc0, mask0 )
-      kk    = L11Id_on_L0( oLoc(1), oLoc(2) )
-      fDir11 ( cellCoor11(kk,1), cellCoor11(kk,2) ) = 0
-
-      ! set location of main outlet in L11
-      rowOut(kk) = oLoc(1)
-      colOut(kk) = oLoc(2)
-      draSC0 ( oLoc(1), oLoc(2) ) = kk
-
+   ELSE
+      ! =======================================================================
+      ! ST: find all cells whose downstream cells are outside the domain
+      ! =======================================================================
+      do ii = 1, nCells0
+         iRow = cellCoor0(ii, 1)
+         jCol = cellCoor0(ii, 2)
+         call moveDownOneCell(fDir0(iRow, jCol), iRow, jCol)
+         ! check whether new location is inside bound
+         is_outlet = .False.
+         if ((iRow .le. 0_i4) .or. (iRow .gt. nrows0) .or. &
+             (jCol .le. 0_i4) .or. (jCol .gt. ncols0)) then
+            is_outlet = .True.
+         else
+            if (fdir0(iRow, jCol) .lt. 0) is_outlet = .True.
+         end if
+         !
+         if (is_outlet) then
+            Noutlet = Noutlet + 1_i4
+            ! cell is an outlet
+            if (Noutlet .eq. 1) then
+               oLoc(1, :) = cellCoor0(ii, :)
+            else
+               call append(oLoc, cellCoor0(ii:ii, :))
+            end if
+            ! drain this cell into corresponding L11 cell
+            kk   = L11Id_on_L0(oLoc(Noutlet, 1), oLoc(Noutlet, 2))
+            draSC0(oLoc(Noutlet, 1), oLoc(Noutlet, 2)) = kk
+            ! check whether cell has maximum flow accumulation
+            ! coord. of all corners
+            iu = upBound0   (kk)
+            id = downBound0 (kk)
+            jl = leftBound0 (kk)
+            jr = rightBound0(kk)
+            if (maxval(facc0(iu: id, jl: jr)) .eq. facc0(oLoc(Noutlet, 1), oLoc(Noutlet, 2)))  then
+               ! set location of outlet at L11
+               rowOut(kk) = oLoc(Noutlet, 1)
+               colOut(kk) = oLoc(Noutlet, 2)
+               fdir11(cellCoor11(kk,1), cellCoor11(kk,2)) = 0
+            end if
+         end if
+      end do
+      
       ! finding cell L11 outlets -  using L0_fAcc
 
       do kk = 1, nNodes
@@ -783,40 +828,65 @@ contains
 
       end do
       
- END IF
-    !--------------------------------------------------------
-    ! Start padding up local variables to global variables
-    !--------------------------------------------------------
+   END IF
+   !--------------------------------------------------------
+   ! Start padding up local variables to global variables
+   !--------------------------------------------------------
+   
+   ! allocate space for row and col Outlet
+   if(iBasin .eq. 1) then
+      allocate( basin_mrm%L0_Noutlet(nBasins) )
+      allocate( basin_mrm%L0_rowOutlet(1, nBasins) ) 
+      allocate( basin_mrm%L0_colOutlet(1, nBasins) )
+      basin_mrm%L0_Noutlet = nodata_i4
+      basin_mrm%L0_rowOutlet = nodata_i4
+      basin_mrm%L0_colOutlet = nodata_i4
+   end if
 
-    ! allocate space for row and col Outlet
-    if(iBasin .eq. 1) then
-       allocate( basin_mrm%L0_rowOutlet(nBasins) ) 
-       allocate( basin_mrm%L0_colOutlet(nBasins) )
-    end if
+   ! L0 data sets
+   call append( L0_draSC, PACK ( draSC0(:,:),  mask0)  ) 
+   call append( L0_L11_Id, PACK ( L11Id_on_L0(:,:), mask0)  )
+   basin_mrm%L0_Noutlet(iBasin) = Noutlet
+   ! set L0 outlet coordinates
+   old_Noutlet = size(basin_mrm%L0_rowOutlet, dim=1)
+   if (Noutlet .le. old_Noutlet) then
+      basin_mrm%L0_rowOutlet(:Noutlet, iBasin) = oLoc(:, 1)
+      basin_mrm%L0_colOutlet(:Noutlet, iBasin) = oLoc(:, 2)
+   else
+      ! store up to size of old_Noutlet
+      basin_mrm%L0_rowOutlet(:old_Noutlet, iBasin) = oLoc(:old_Noutlet, 1)
+      basin_mrm%L0_colOutlet(:old_Noutlet, iBasin) = oLoc(:old_Noutlet, 2)
+      ! enlarge rowOutlet and colOutlet in basin_mrm structure
+      allocate(dummy(Noutlet - old_Noutlet, nBasins))
+      dummy = nodata_i4
+      dummy(:, iBasin) = oLoc(old_Noutlet + 1:, 1)
+      call append(basin_mrm%L0_rowOutlet, dummy)
+      dummy(:, iBasin) = oLoc(old_Noutlet + 1:, 2)
+      call append(basin_mrm%L0_colOutlet, dummy)
+      deallocate(dummy)
+   end if
+   
+   ! L11 data sets
+   call append( L11_fDir,     PACK ( fDir11(:,:),      mask11) )
+   call append( L11_rowOut          ,  rowOut(:)               )
+   call append( L11_colOut          ,  colOut(:)               )
+   call append( L11_upBound_L0      ,  upBound0(:)             )
+   call append( L11_downBound_L0    ,  downBound0(:)           )
+   call append( L11_leftBound_L0    ,  leftBound0(:)           )
+   call append( L11_rightBound_L0   ,  rightBound0(:)          )
 
-    ! L0 data sets
-    basin_mrm%L0_rowOutlet(iBasin) = oLoc(1)
-    basin_mrm%L0_colOutlet(iBasin) = oLoc(2)
-    call append( L0_draSC, PACK ( draSC0(:,:),  mask0)  ) 
-    call append( L0_L11_Id, PACK ( L11Id_on_L0(:,:), mask0)  )
+   ! communicate
+   call message('      Number of outlets found at Level 0:.. '//num2str(Noutlet, '(i2)'))
+   call message('      Number of outlets found at Level 11:. '//num2str(count(fdir11 .eq. 0_i4), '(i2)'))
 
-    ! L11 data sets
-    call append( L11_fDir,     PACK ( fDir11(:,:),      mask11) )
-    call append( L11_rowOut          ,  rowOut(:)               )
-    call append( L11_colOut          ,  colOut(:)               )
-    call append( L11_upBound_L0      ,  upBound0(:)             )
-    call append( L11_downBound_L0    ,  downBound0(:)           )
-    call append( L11_leftBound_L0    ,  leftBound0(:)           )
-    call append( L11_rightBound_L0   ,  rightBound0(:)          )
-
-    ! free space
-    deallocate(mask0, mask11, &
-         upBound0, downBound0, leftBound0, rightBound0, & 
-         L11Id_on_L0, Id11,                             &
-         iD0, fDir0, fAcc0, fDir11, cellCoor0,          &
-         cellCoor11, rowOut, colOut, draSC0         )   
-
-  end subroutine L11_flow_direction
+   ! free space
+   deallocate(mask0, mask11, &
+        upBound0, downBound0, leftBound0, rightBound0, & 
+        L11Id_on_L0, Id11,                             &
+        iD0, fDir0, fAcc0, fDir11, cellCoor0,          &
+        cellCoor11, rowOut, colOut, draSC0         )   
+   
+ end subroutine L11_flow_direction
 
   ! ------------------------------------------------------------------
 
@@ -1231,9 +1301,11 @@ contains
     logical,   dimension(:,:), allocatable    :: mask0
     integer(i4), dimension(:,:), allocatable  :: fDir0          
     integer(i4), dimension(:,:), allocatable  :: draSC0
-    integer(i4)                               :: ii, rr
+    integer(i4)                               :: ii, rr, kk
     integer(i4)                               :: iNode, iRow, jCol
-    integer(i4), dimension(2)                 :: oLoc           ! output location in L0
+    integer(i4)                               :: Noutlet        ! number of outlets in basin
+    integer(i4), dimension(:,:), allocatable  :: oLoc           ! output location in L0
+    logical                                   :: is_outlet      ! flag for finding outlet
 
     ! level-0 information
     call get_basin_info_mrm (iBasin, 0, nrows0, ncols0, iStart=iStart0, iEnd=iEnd0, mask=mask0) 
@@ -1285,8 +1357,10 @@ contains
       colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
       ! finding main outlet (row, col) in L0
-      oLoc(1) = basin_mrm%L0_rowOutlet(iBasin)
-      oLoc(2) = basin_mrm%L0_colOutlet(iBasin) 
+      Noutlet = count(basin_mrm%L0_rowOutlet(iBasin, :) .gt. nodata_i4)
+      allocate(oLoc(Noutlet, 2))
+      oLoc(:, 1) = basin_mrm%L0_rowOutlet(iBasin, :Noutlet)
+      oLoc(:, 2) = basin_mrm%L0_colOutlet(iBasin, :Noutlet) 
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
@@ -1300,7 +1374,13 @@ contains
          nLinkFromRow(ii) = iRow
          nLinkFromCol(ii) = jCol
 
-         if(iRow == oLoc(1) .and. jCol == oLoc(2)) then
+         ! check whether this location is an outlet
+         is_outlet = .False.
+         do kk = 1, Noutlet
+            if (iRow .eq. oLoc(kk, 1) .and. jCol .eq. oLoc(kk, 2)) is_outlet = .True.
+         end do
+
+         if (is_outlet) then
 
             nLinkToRow(ii) = iRow
             nLinkToCol(ii) = jCol
@@ -1309,7 +1389,11 @@ contains
 
             do while ( .not. ( draSC0(iRow,jCol) > 0 ) )
                call moveDownOneCell( fDir0(iRow,jcol), iRow, jCol )
-               if ( iRow == oLoc(1) .and. jCol == oLoc(2)) exit
+               ! check whether this location is an outlet and exit
+               do kk = 1, Noutlet
+                  if (iRow .eq. oLoc(kk, 1) .and. jCol .eq. oLoc(kk, 2)) exit
+               end do
+               ! if ( iRow == oLoc(1) .and. jCol == oLoc(2)) exit
             end do
             ! set "to" cell (when an outlet is reached)
             nLinkToRow(ii) = iRow
@@ -1466,7 +1550,6 @@ contains
 
 
     do kk = 1, nCells0
-
        ii   = cellCoor0(kk,1)
        jj   = cellCoor0(kk,2)
        iSc  = draSC0(ii,jj)
@@ -1486,7 +1569,9 @@ contains
           ! evaluation gauges
           do ll = 1, basin_mrm%nGauges(iBasin)
              ! search for gaugeID in L0 grid and save ID on L11
-             if (basin_mrm%gaugeIdList(iBasin, ll) .EQ. gaugeLoc0(ii,jj)) basin_mrm%gaugeNodeList(iBasin, ll) = L11Id_on_L0(ii, jj)
+             if (basin_mrm%gaugeIdList(iBasin, ll) .EQ. gaugeLoc0(ii,jj)) then
+                basin_mrm%gaugeNodeList(iBasin, ll) = L11Id_on_L0(ii, jj)
+             end if
           end do
        end if
 
@@ -1498,14 +1583,13 @@ contains
                   basin_mrm%InflowGaugeNodeList( iBasin, ll ) = L11Id_on_L0(ii,jj)
           end do
        end if
-  
     end do
 
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
     !--------------------------------------------------------
     ! L0 data sets 
-    call append( L0_draCell,     PACK ( draCell0(:,:),  mask0)  ) 
+    call append(L0_draCell, PACK(draCell0(:,:),  mask0)) 
 
     ! free space
     deallocate ( mask0, cellCoor0, draSC0, fDir0, gaugeLoc0, draCell0, L11Id_on_L0) 

@@ -69,20 +69,15 @@ CONTAINS
   !>        \author Stephan Thober
   !>        \date Aug 2015
   !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
+  !                   May 2016 - Stephan Thober, added warning message in case no gauge is found in modelling domain
 
   subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
 
     use mo_kind,    only: i4, dp
     use mo_message, only: message
-    use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
-         mrm_L1_variable_init, &
-         mrm_L0_variable_init, &
-         mrm_read_total_runoff
-    use mo_mrm_read_latlon, only: read_latlon
-    use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
-    use mo_mrm_restart, only: mrm_read_restart_config
+    use mo_mrm_constants, only: nodata_i4
     use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
-         mrm_coupling_mode
+         mrm_coupling_mode, basin_mrm
     use mo_mrm_net_startup, only: &
          L11_variable_init, &
          L11_flow_direction, &
@@ -91,6 +86,13 @@ CONTAINS
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
          L11_stream_features
+    use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
+    use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
+         mrm_L1_variable_init, &
+         mrm_L0_variable_init, &
+         mrm_read_total_runoff
+    use mo_mrm_read_latlon, only: read_latlon
+    use mo_mrm_restart, only: mrm_read_restart_config
 
     implicit none
     ! input variables
@@ -176,6 +178,13 @@ CONTAINS
           ! stream characteristics
           call L11_stream_features(iBasin)
        end do
+       ! check whether there are gauges within the modelling domain
+       if (allocated(basin_mrm%gaugeNodeList)) then
+          if (all(basin_mrm%gaugeNodeList .eq. nodata_i4)) then
+             call message('')
+             call message('    WARNING: no gauge found within modelling domain')
+          end if
+       end if
     end if
 
     ! ----------------------------------------------------------
