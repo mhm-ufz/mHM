@@ -4,7 +4,7 @@
 
 !> \details This module calculates PET [mm/s] based on one of the methods \n
 !>          - Hargreaves-Samani (1982) \n
-!>          - Priestly-Taylor   (1972) \n
+!>          - Priestly-Taylor (1972) \n
 !>          - Penman-Monteith FAO (1998) \n
 
 !> \author Matthias Zink, Christoph Schneider, Matthias Cuntz
@@ -22,7 +22,7 @@ MODULE mo_pet
 
   PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor
-  PUBLIC :: pet_penman     ! Penman Monteith
+  PUBLIC :: pet_penman     ! Penman-Monteith
 
   ! ------------------------------------------------------------------
 
@@ -268,10 +268,10 @@ CONTAINS
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
 
-    pet_penman =  DaySecs / SpecHeatET_dp  *           &                          ! conversion factor [W m-2] to [mm d-1]
+    pet_penman =  DaySecs / SpecHeatET_dp  *           & ! conversion factor [W m-2] to [mm d-1]
                   (slope_satpressure(tavg) * net_rad + &
                   rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure ) / aerodyn_resistance) / &
-                  (slope_satpressure(tavg) + Psychro_dp * (1 + bulksurface_resistance/aerodyn_resistance))
+                  (slope_satpressure(tavg) + Psychro_dp * (1.0_dp + bulksurface_resistance/aerodyn_resistance))
     
   END FUNCTION pet_penman
 
@@ -421,7 +421,7 @@ CONTAINS
     real(dp)             :: slope_satpressure       ! slope of saturation vapour pressure curve
 
 
-    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2*log(Tavg + tetens_c3))
+    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2.0_dp*log(Tavg + tetens_c3))
     
   END FUNCTION slope_satpressure
 

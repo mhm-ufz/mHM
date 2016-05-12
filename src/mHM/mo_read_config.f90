@@ -134,11 +134,11 @@ CONTAINS
          dirMorpho, dirLCover,                              & ! input directory of morphological
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
-         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam (case 1)
-         dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
-         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon (case 3)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
+         dirNetRadiation,                                   & ! PET input paths if process 5 is Priestely-Taylor (case 2)
+         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is Penman-Monteith (case 3)
          inputFormat_meteo_forcings,                        & ! input format either bin or nc
-         fileLatLon,                                         & ! directory of latitude and longitude files
+         fileLatLon,                                        & ! directory of latitude and longitude files
          dirConfigOut,                                      & ! configuration run output directory
          dirCommonFiles,                                    & ! directory where common files are located
          dirOut,                                            & ! output directory basin wise
@@ -353,8 +353,11 @@ CONTAINS
          rootFractionCoefficient_pervious, infiltrationShapeFactor
     namelist /directRunoff1/ imperviousStorageCapacity
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
+    ! Hargreaves-Samani
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
+    ! Priestely-Taylor
     namelist /PET2/  PriestleyTaylorCoeff, PriestleyTaylorLAIcorr
+    ! Penman-Monteith
     namelist /PET3/  canopyheigth_forest, canopyheigth_impervious, canopyheigth_pervious, displacementheight_coeff, &
          roughnesslength_momentum_coeff, roughnesslength_heat_coeff, stomatal_resistance
     namelist /interflow1/ interflowStorageCapacityFactor, interflowRecession_slope, fastInterflowRecession_forest, &
@@ -895,8 +898,7 @@ CONTAINS
 
     ! Process 5 - potential evapotranspiration (PET)
     select case (processCase(5))
-       ! 0 - PET is input, correct PET by aspect
-    case(0)
+    case(0) ! 0 - PET is input, correct PET by aspect
        call position_nml('PET0', unamelist_param)
        read(unamelist_param, nml=PET0)
        processMatrix(5, 1) = processCase(5)
@@ -918,8 +920,7 @@ CONTAINS
           stop
        end if
 
-       ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
-    case(1)
+    case(1) ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
        call position_nml('PET1', unamelist_param)
        read(unamelist_param, nml=PET1)
        processMatrix(5, 1) = processCase(5)
@@ -942,8 +943,7 @@ CONTAINS
           stop
        end if
 
-       ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
-    case(2)
+    case(2) ! 2 - Priestley-Taylor method (PrieTay) - additional input needed: net_rad
        ! check which LAI input is specified
        if (timeStep_LAI_input .NE. 0) then
           call message('***ERROR: The specified option of process 5 does only work with LAI from LUT.')
@@ -969,8 +969,7 @@ CONTAINS
           stop
        end if
 
-       ! 3 - Penman-Monteith method (PenMon) - additional input needed: net_rad, abs. vapour pressue, windspeed
-    case(3)
+    case(3) ! 3 - Penman-Monteith method - additional input needed: net_rad, abs. vapour pressue, windspeed
        ! check which LAI input is specified
        if (timeStep_LAI_input .NE. 0) then
           call message('***ERROR: The specified option of process 5 does only work with LAI from LUT.')
