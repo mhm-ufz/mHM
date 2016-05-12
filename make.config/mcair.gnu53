@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 5.3 at Giovanni's MacBook Pro
+# Setup file for Gnu compiler 5.3 at Matthias' Macbook Air
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2012 Giovanni Dalmasso
+#    Copyright 2012-2016 Matthias Cuntz
 
 # The Makefile assumes the standard bin, include and lib directories
 # i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
@@ -28,42 +28,33 @@
 # Define subirectories if another structure
 
 # Paths
-NAGDIR := /usr/local
-NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := /usr/bin
-
 GNUDIR := /usr/local
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(NAGBIN)/nagfor
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
-CC  := $(GNUBIN)/gcc
-CPP := /usr/bin/cpp
+CC  := /usr/bin/gcc
+CPP := /usr/bin/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
 ifeq ($(release),debug)
-    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
-    F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
-    FCFLAGS  += $(F90FLAGS)
-    CFLAGS   += -pedantic -Wall -W -O -g
-    LDFLAGS  += -g90
+    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
+    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-uninitialized # -ffpe-trap=invalid,zero,overflow,underflow,inexact,denormal
 else
-    F90FLAGS += -O3
-    FCFLAGS  += $(F90FLAGS)
+    F90FLAGS += -O3 -Wno-aggressive-loop-optimizations
+    FCFLAGS  += -O3 -Wno-aggressive-loop-optimizations
     CFLAGS   += -O3
 endif
-# -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
-#F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=full -ideclient
-MODFLAG  := -mdir # space significant
-FCFLAGS  += -fixed
+F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
+FCFLAGS  += -ffixed-form -ffixed-line-length-132
 CFLAGS   +=
-LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DNAGf90Fortran
+MODFLAG  := -J# space significant
+DEFINES  += -DGFORTRAN -DgFortran
 
 # Linking
-LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
-RPATH += -Wl,-rpath,$(NAGLIB)
+LIBS += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
 
 # IMSL
 IMSLDIR :=
@@ -74,24 +65,27 @@ MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR :=
+    NCDIR := /usr/local/netcdf-3.6.3-gfortran
 else
-    NCDIR    = /usr/local/netcdf_4.2_nag53
-    CURLLIB := /usr/bin
-    SZLIB   := /usr/local/lib
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.3-gfortran
     HDF5LIB := /usr/local/lib
+    SZLIB   := /usr/local/lib
+    CURLLIB := /usr/lib
 endif
 
 # PROJ
-# PROJ4DIR := /usr/local
-# FPROJDIR := 
+PROJ4DIR := /usr/local/
+FPROJDIR :=
 
 # LAPACK
 LAPACKDIR   :=
-GFORTRANDIR := /usr/local
+
+# MPI
+MPIDIR := /usr/local/openmpi-1.10.2-gfortran
 
 # Documentation
-DOXYGENDIR := /usr/local/bin
+DOXYGENDIR := /Applications/Program/Doxygen.app/Contents/Resources
 DOTDIR     := /usr/local/bin
-TEXDIR     := /usr/texbin
+TEXDIR     := /Library/TeX/texbin
 PERLDIR    := /usr/bin

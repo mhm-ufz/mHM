@@ -31,11 +31,7 @@
 # Paths
 NAGDIR := /usr/local
 NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := /usr/bin
-
-GNUDIR := /usr/local
-GNULIB := $(GNUDIR)/lib
-GNUBIN := $(GNUDIR)/bin
+NAGBIN := $(NAGDIR)/bin
 
 # Compiling
 F90 := $(NAGBIN)/nagfor
@@ -70,7 +66,7 @@ MODFLAG  := -mdir # space significant
 FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
+DEFINES  += -DNAG -DNAGf90Fortran
 
 # Linking
 LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
@@ -88,7 +84,7 @@ ifeq ($(netcdf),netcdf3)
     NCDIR := /usr/local/netcdf-3.6.3-nagfor
 else
     NCDIR   := /usr/local
-    NCFDIR  := /usr/local/netcdf-fortran-4.4.1-nagfor
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.3-nagfor
     CURLLIB := /usr/lib
     SZLIB   := /usr/local/lib
     HDF5LIB := /usr/local/lib
@@ -100,10 +96,9 @@ FPROJDIR :=
 
 # LAPACK
 LAPACKDIR   :=
-GFORTRANDIR := /usr/local/gfortran
 
 # MPI
-MPIDIR := /usr/local/openmpi-1.8.4-nagfor
+MPIDIR := /usr/local/openmpi-1.10.2-nagfor
 
 # Documentation
 DOXYGENDIR := /usr/local/bin
