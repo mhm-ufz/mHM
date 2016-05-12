@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import numpy as np
-import netcdftime as nt
 
 def date2dec(calendar = 'standard', units=None,
              excelerr = True, yr=1,
@@ -138,48 +137,62 @@ def date2dec(calendar = 'standard', units=None,
         Examples
         --------
         #calendar = 'standard'
-        >>> year   = np.array([2000,1810,1630,1510,1271,619,-1579,-4712])
-        >>> month  = np.array([1,4,7,9,3,8,8,1])
-        >>> day    = np.array([5,24,15,20,18,27,23,1])
-        >>> hour   = np.array([12,16,10,14,19,11,20,12])
-        >>> minute = np.array([30,15,20,35,41,8,3,0])
-        >>> second = np.array([15,10,40,50,34,37,41,0])
+
+        # Some implementations of datetime have problems with negative years
+        >>> import datetime
+        >>> if datetime.MINYEAR > 0:
+        ...     print('The minimum year in your datetime implementation is ', datetime.MINYEAR)
+        ...     print('i.e. it does not support negative years (BC).')
+
+        >>> if datetime.MINYEAR > 0:
+        ...     year   = np.array([2000, 1810, 1630, 1510, 1271, 619, 2, 1])
+        ... else:
+        ...     year   = np.array([2000, 1810, 1630, 1510, 1271, 619, -1579, -4712])
+        >>> month  = np.array([1, 4, 7, 9, 3, 8, 8, 1])
+        >>> day    = np.array([5, 24, 15, 20, 18, 27, 23, 1])
+        >>> hour   = np.array([12, 16, 10, 14, 19, 11, 20, 12])
+        >>> minute = np.array([30, 15, 20, 35, 41, 8, 3, 0])
+        >>> second = np.array([15, 10, 40, 50, 34, 37, 41, 0])
         >>> decimal = date2dec(calendar = 'standard', yr=year, mo=month, dy=day, hr=hour, mi=minute, sc=second)
         >>> from autostring import astr
         >>> nn = year.size
-        >>> print(astr(decimal[:nn/2],14,pp=True))
+        >>> print(astr(decimal[:nn/2], 14, pp=True))
         ['2.45154902100694e+06' '2.38226217719907e+06' '2.31660093101852e+06' '2.27284810821759e+06']
-        >>> print(astr(decimal[nn/2:],14,pp=True))
-        ['2.18536732053241e+06' '1.94738596431713e+06' '1.14456333589120e+06' '0.00000000000000e+00']
+        >>> print(astr(decimal[nn/2:nn-2], 14,pp=True))
+        ['2.18536732053241e+06' '1.94738596431713e+06']
         >>> decimal = date2dec(calendar='standard', yr=year, mo=6, dy=15, hr=12, mi=minute, sc=second)
         >>> print(astr(decimal[:nn/2],14,pp=True))
         ['2.45171102100694e+06' '2.38231401053241e+06' '2.31657101435185e+06' '2.27275102488426e+06']
-        >>> print(astr(decimal[nn/2:],14,pp=True))
-        ['2.18545602886574e+06' '1.94731300598380e+06' '1.14449400255787e+06' '1.66000000000000e+02']
+        >>> print(astr(decimal[nn/2:nn-2],14,pp=True))
+        ['2.18545602886574e+06' '1.94731300598380e+06']
 
         # ascii input
-        >>> a = np.array(['05.01.2000 12:30:15', '24.04.1810 16:15:10', '15.07.1630 10:20:40',  '20.09.1510 14:35:50',
-        ...               '18.03.1271 19:41:34', '27.08. 619 11:08:37', '23.08.-1579 20:03:41', '01.01.-4712 12:00:00'])
+        >>> if datetime.MINYEAR > 0:
+        ...     a = np.array(['05.01.2000 12:30:15', '24.04.1810 16:15:10', '15.07.1630 10:20:40',  '20.09.1510 14:35:50',
+        ...                   '18.03.1271 19:41:34', '27.08. 619 11:08:37', '23.08.0002 20:03:41', '01.01.0001 12:00:00'])
+        ... else:
+        ...     a = np.array(['05.01.2000 12:30:15', '24.04.1810 16:15:10', '15.07.1630 10:20:40',  '20.09.1510 14:35:50',
+        ...                   '18.03.1271 19:41:34', '27.08. 619 11:08:37', '23.08.-1579 20:03:41', '01.01.-4712 12:00:00'])
         >>> decimal = date2dec(calendar='standard', ascii=a)
         >>> nn = a.size
         >>> print(astr(decimal[:nn/2],14,pp=True))
         ['2.45154902100694e+06' '2.38226217719907e+06' '2.31660093101852e+06' '2.27284810821759e+06']
-        >>> print(astr(decimal[nn/2:],14,pp=True))
-        ['2.18536732053241e+06' '1.94738596431713e+06' '1.14456333589120e+06' '0.00000000000000e+00']
+        >>> print(astr(decimal[nn/2:nn-2],14,pp=True))
+        ['2.18536732053241e+06' '1.94738596431713e+06']
 
         # calendar = 'julian'
         >>> decimal = date2dec(calendar='julian', ascii=a)
         >>> print(astr(decimal[:nn/2],14,pp=True))
         ['2.45156202100694e+06' '2.38227417719907e+06' '2.31661093101852e+06' '2.27284810821759e+06']
-        >>> print(astr(decimal[nn/2:],14,pp=True))
-        ['2.18536732053241e+06' '1.94738596431713e+06' '1.14456333589120e+06' '0.00000000000000e+00']
+        >>> print(astr(decimal[nn/2:nn-2],14,pp=True))
+        ['2.18536732053241e+06' '1.94738596431713e+06']
 
         # calendar = 'proleptic_gregorian'
         >>> decimal = date2dec(calendar='proleptic_gregorian', ascii=a)
-        >>> print(astr(decimal[:nn/2],14,pp=True))
-        ['730123.52100694458932' '660836.67719907406718' '595175.43101851828396' '551412.60821759235114']
-        >>> print(astr(decimal[nn/2:],14,pp=True))
-        [' 4.63934820532408e+05' ' 2.25957464317130e+05' '-5.76848164108796e+05' '-1.72138750000000e+06']
+        >>> print(astr(decimal[:nn/2], 7, pp=True))
+        ['730123.5210069' '660836.6771991' '595175.4310185' '551412.6082176']
+        >>> print(astr(decimal[nn/2:nn-2], 7, pp=True))
+        ['463934.8205324' '225957.4643171']
 
         # calendar = 'excel1900' WITH excelerr=True -> 1900 considered as leap year
         >>> d = np.array(['05.01.2000 12:30:15', '27.05.1950 16:25:10', '13.08.1910 10:40:55',
@@ -187,27 +200,27 @@ def date2dec(calendar = 'standard', units=None,
         ...               '01.01.1900 00:00:00'])
         >>> decimal = date2dec(calendar='excel1900', ascii=d)
         >>> nn = d.size
-        >>> print(astr(decimal[:nn/2],14,pp=True))
-        ['36530.52100694458932' '18410.68414351856336' ' 3878.44508101837710']
+        >>> print(astr(decimal[:nn/2], 7, pp=True))
+        ['36530.5210069' '18410.6841435' ' 3878.4450810']
         >>> print(astr(decimal[nn/2:],14,pp=True))
         ['61.00000000000000' '60.00000000000000' '59.00000000000000' ' 1.00000000000000']
 
-        # calendar = 'excel1900' WITH excelerr = False -> 1900 considered as NO leap year
+        # calendar = 'excel1900' WITH excelerr = False -> 1900 is NO leap year
         >>> decimal = date2dec(calendar='excel1900', ascii=d, excelerr=False)
-        >>> print(astr(decimal[:nn/2],14,pp=True))
-        ['36529.52100694458932' '18409.68414351856336' ' 3877.44508101837710']
+        >>> print(astr(decimal[:nn/2], 7, pp=True))
+        ['36529.5210069' '18409.6841435' ' 3877.4450810']
         >>> print(astr(decimal[nn/2:],14,pp=True))
         ['60.00000000000000' '60.00000000000000' '59.00000000000000' ' 1.00000000000000']
 
         # calendar = 'excel1904'
         >>> decimal = date2dec(calendar='excel1904', ascii=d[:nn/2])
-        >>> print(astr(decimal[:nn/2],14,pp=True))
-        ['35069.52100694458932' '16949.68414351856336' ' 2417.44508101837710']
+        >>> print(astr(decimal[:nn/2], 7, pp=True))
+        ['35069.5210069' '16949.6841435' ' 2417.4450810']
 
         # calendar = '365_day'
         >>> g = np.array(['18.08.1972 12:30:15', '25.10.0986 12:30:15', '28.11.0493 22:20:40', '01.01.0001 00:00:00'])
         >>> decimal = date2dec(calendar='365_day', ascii=g)
-        >>> nn = d.size
+        >>> nn = g.size
         >>> print(astr(decimal[:nn],14,pp=True))
         ['719644.52100694458932' '359822.52100694435649' '179911.93101851851679' '     0.00000000000000']
 
@@ -245,20 +258,21 @@ def date2dec(calendar = 'standard', units=None,
 
         License
         -------
-        This file is part of the UFZ Python library.
+        This file is part of the UFZ Python package.
 
-        The UFZ Python library is free software: you can redistribute it and/or modify
+        The UFZ Python package is free software: you can redistribute it and/or modify
         it under the terms of the GNU Lesser General Public License as published by
         the Free Software Foundation, either version 3 of the License, or
         (at your option) any later version.
 
-        The UFZ Python library is distributed in the hope that it will be useful,
+        The UFZ Python package is distributed in the hope that it will be useful,
         but WITHOUT ANY WARRANTY; without even the implied warranty of
         MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
         GNU Lesser General Public License for more details.
 
         You should have received a copy of the GNU Lesser General Public License
-        along with The UFZ Python library.  If not, see <http://www.gnu.org/licenses/>.
+        along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
+        If not, see <http://www.gnu.org/licenses/>.
 
         Copyright 2010-2013 Arndt Piayda, Matthias Cuntz
 
@@ -278,6 +292,8 @@ def date2dec(calendar = 'standard', units=None,
                  MC, Oct 2013 - Excel starts at 1 not at 0
                  MC, Oct 2013 - units bugs, e.g. 01.01.0001 was substracted if Julian calendar even with units
                  MC, Nov 2013 - removed remnant of time treatment before time check in eng keyword
+                 MC, Jun 2015 - adapted to new netCDF4/netcdftime (>= v1.0) and datetime (>= Python v2.7.9)
+                 MC, Oct 2015 - call date2num with list instead of single netCDF4.datetime objects
     """
 
     #
@@ -285,19 +301,29 @@ def date2dec(calendar = 'standard', units=None,
     calendars = ['standard', 'gregorian', 'julian', 'proleptic_gregorian',
                  'excel1900', 'excel1904', '365_day', 'noleap', '366_day',
                  'all_leap', '360_day', 'decimal', 'decimal360']
-    if ((nt.__version__ <= '0.9.2') & (calendar == '360_day')):
-        raise ValueError("date2dec error: Your version of netcdftime.py is equal"
-                         " or below 0.9.2. The 360_day calendar does not work with"
-                         " arrays here. Please download a newer one.")
+    is1 = False
+    try:
+        import netcdftime as nt
+        testit = nt.__version__
+    except:
+        is1 = True
+    if not is1:
+        if ((nt.__version__ <= '0.9.2') & (calendar == '360_day')):
+            raise ValueError("date2dec error: Your version of netcdftime.py is equal"
+                             " or below 0.9.2. The 360_day calendar does not work with"
+                             " arrays here. Please download a newer one.")
+    else:
+        import netCDF4 as nt
+    #
     calendar = calendar.lower()
     if (calendar not in calendars):
         raise ValueError("date2dec error: Wrong calendar!"
                     " Choose: "+''.join([i+' ' for i in calendars]))
     # if ascii input is given by user, other input will be neglected
     # calculation of input size and shape
-    if (ascii != None) and (eng != None):
+    if (ascii is not None) and (eng is not None):
         raise ValueError("date2dec error: 'ascii' and 'eng' mutually exclusive")
-    if ascii != None:
+    if ascii is not None:
         islist = type(ascii) != type(np.array(ascii))
         isarr = np.ndim(ascii)
         if (islist & (isarr > 2)):
@@ -338,8 +364,11 @@ def date2dec(calendar = 'standard', units=None,
                 hr[i] = 00
                 mi[i] = 00
                 sc[i] = 00
-            timeobj[i] = nt.datetime(yr[i], mo[i], dy[i], hr[i], mi[i], sc[i])
-    if eng != None:
+            if ((yr[i]==1900) & (mo[i]==2) & (dy[i]==29)):
+                timeobj[i] = nt.datetime(yr[i], 3, 1, hr[i], mi[i], sc[i])
+            else:
+                timeobj[i] = nt.datetime(yr[i], mo[i], dy[i], hr[i], mi[i], sc[i])
+    if eng is not None:
         islist = type(eng) != type(np.array(eng))
         isarr = np.ndim(eng)
         if isarr == 0:
@@ -383,10 +412,13 @@ def date2dec(calendar = 'standard', units=None,
                 hr[i] = 00
                 mi[i] = 00
                 sc[i] = 00
-            timeobj[i] = nt.datetime(yr[i], mo[i], dy[i], hr[i], mi[i], sc[i])
+            if ((yr[i]==1900) & (mo[i]==2) & (dy[i]==29)):
+                timeobj[i] = nt.datetime(yr[i], 3, 1, hr[i], mi[i], sc[i])
+            else:
+                timeobj[i] = nt.datetime(yr[i], mo[i], dy[i], hr[i], mi[i], sc[i])
     # if no ascii input, other inputs will be concidered
     # calculation of input sizes, shapes and number of axis
-    if ((ascii == None) & (eng == None)):
+    if ((ascii is None) and (eng is None)):
         isnlist1 = type(yr) == type(np.array(yr))
         isarr1   = np.ndim(yr)
         if isarr1 == 0: yr = np.array([yr])
@@ -427,7 +459,7 @@ def date2dec(calendar = 'standard', units=None,
         if (islist & (np.size(outshape) > 2)):
             raise ValueError("date2dec error: input is list > 2D; Use array input.")
         if nyr < nmax:
-            if nyr == 1: yr  = np.ones(outshape)*yr
+            if nyr == 1: yr  = np.ones(outshape,)*yr
             else: raise ValueError("date2dec error: size of yr != max input or 1.")
         if nmo < nmax:
             if nmo == 1: mo  = np.ones(outshape)*mo
@@ -455,51 +487,91 @@ def date2dec(calendar = 'standard', units=None,
         timeobj = np.zeros(outsize, dtype=object)
         # datetime object is constructed
         for i in range(outsize):
-            timeobj[i] = nt.datetime(indate[0][i], indate[1][i], indate[2][i], indate[3][i], indate[4][i], indate[5][i])
+            iyr = int(indate[0][i])
+            imo = int(indate[1][i])
+            idy = int(indate[2][i])
+            ihr = int(indate[3][i])
+            imi = int(indate[4][i])
+            isc = int(indate[5][i])
+
+            if ((iyr==1900) & (imo==2) & (idy==29)):
+                timeobj[i] = nt.datetime(iyr, 3, 1, ihr, imi, isc)
+            else:
+                timeobj[i] = nt.datetime(iyr, imo, idy, ihr, imi, isc)
     # depending on chosen calendar and optional set of the time units
     # decimal date is calculated
+    output = np.zeros(outsize)
+    t0    = nt.datetime(1582, 10, 05, 00, 00, 00)
+    t1    = nt.datetime(1582, 10, 15, 00, 00, 00)
+    is121 = True if (min(timeobj)<t0) and (max(timeobj)>=t1) else False
     if (calendar == 'standard') or (calendar == 'gregorian'):
         if units is None:
             units = 'days since 0001-01-01 12:00:00'
             dec0 = 1721424
         else:
             dec0 = 0
-        output = nt.date2num(timeobj, units, calendar='gregorian')+dec0
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='gregorian')+dec0
+        else:
+            output = nt.date2num(timeobj, units, calendar='gregorian')+dec0
     elif calendar == 'julian':
         if units is None:
             units = 'days since 0001-01-01 12:00:00'
             dec0 = 1721424
         else:
             dec0 = 0
-        output = nt.date2num(timeobj, units, calendar='julian')+dec0
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='julian')+dec0
+        else:
+            output = nt.date2num(timeobj, units, calendar='julian')+dec0
     elif calendar == 'proleptic_gregorian':
         if units is None: units = 'days since 0001-01-01 00:00:00'
-        output = nt.date2num(timeobj, units, calendar='proleptic_gregorian')
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='proleptic_gregorian')
+        else:
+            output = nt.date2num(timeobj, units, calendar='proleptic_gregorian')
     elif calendar == 'excel1900':
         doerr = False
         if units is None:
-            units = 'days since 1900-01-00 00:00:00'
+            units = 'days since 1899-12-31 00:00:00'
             if excelerr: doerr = True
-        output = nt.date2num(timeobj, units, calendar='gregorian')
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='gregorian')
+        else:
+            output = nt.date2num(timeobj, units, calendar='gregorian')
         if doerr:
             output = np.where(output >= 60., output+1., output)
             # date2num treats 29.02.1900 as 01.03.1990, i.e. is the same decimal number
             if np.any((output >= 61.) & (output < 62.)):
                 for i in range(outsize):
-                    if (timeobj[i].year==1900) & (timeobj[i].month==2) & (timeobj[i].day==29):
+                    # if (timeobj[i].year==1900) & (timeobj[i].month==2) & (timeobj[i].day==29):
+                    #     output[i] -= 1.
+                    if (yr[i]==1900) & (mo[i]==2) & (dy[i]==29):
                         output[i] -= 1.
     elif calendar == 'excel1904':
-        if units is None: units = 'days since 1904-01-00 00:00:00'
-        output = nt.date2num(timeobj, units, calendar='gregorian')
+        if units is None: units = 'days since 1903-12-31 00:00:00'
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='gregorian')
+        else:
+            output = nt.date2num(timeobj, units, calendar='gregorian')
     elif (calendar == '365_day') or (calendar == 'noleap'):
         if units is None: units = 'days since 0001-01-01 00:00:00'
-        output = nt.date2num(timeobj, units, calendar='365_day')
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='365_day')
+        else:
+            output = nt.date2num(timeobj, units, calendar='365_day')
     elif (calendar == '366_day') or (calendar == 'all_leap'):
         if units is None: units = 'days since 0001-01-01 00:00:00'
-        output = nt.date2num(timeobj, units, calendar='366_day')
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='366_day')
+        else:
+            output = nt.date2num(timeobj, units, calendar='366_day')
     elif calendar == '360_day':
         if units is None: units = 'days since 0001-01-01 00:00:00'
-        output = nt.date2num(timeobj, units, calendar='360_day')
+        if is121 and (nt.__version__ < '1.2.2'):
+            for ii, tt in enumerate(timeobj): output[ii] = nt.date2num(tt, units, calendar='360_day')
+        else:
+            output = nt.date2num(timeobj, units, calendar='360_day')
     elif calendar == 'decimal':
         ntime = np.size(yr)
         leap  = np.array((((yr%4)==0) & ((yr%100)!=0)) | ((yr%400)==0))
@@ -556,3 +628,32 @@ if __name__ == '__main__':
     import doctest
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
+    # year   = np.array([2000,1810,1630,1510,1271,619,1,1])#-1579,-4712])
+    # month  = np.array([1,4,7,9,3,8,8,1])
+    # day    = np.array([5,24,15,20,18,27,23,1])
+    # hour   = np.array([12,16,10,14,19,11,20,12])
+    # minute = np.array([30,15,20,35,41,8,3,0])
+    # second = np.array([15,10,40,50,34,37,41,0])
+    # decimal = date2dec(calendar = 'standard', yr=year, mo=month, dy=day, hr=hour, mi=minute, sc=second)
+    # from autostring import astr
+    # nn = year.size
+    # print(astr(decimal[:nn/2],14,pp=True))
+    # #    ['2.45154902100694e+06' '2.38226217719907e+06' '2.31660093101852e+06' '2.27284810821759e+06']
+    # print(astr(decimal[nn/2:],14,pp=True))
+    # #    ['2.18536732053241e+06' '1.94738596431713e+06' '1.14456333589120e+06' '0.00000000000000e+00']
+    # decimal = date2dec(calendar='standard', yr=year, mo=6, dy=15, hr=12, mi=minute, sc=second)
+    # print(astr(decimal[:nn/2],14,pp=True))
+    # #    ['2.45171102100694e+06' '2.38231401053241e+06' '2.31657101435185e+06' '2.27275102488426e+06']
+    # print(astr(decimal[nn/2:],14,pp=True))
+    # #    ['2.18545602886574e+06' '1.94731300598380e+06' '1.14449400255787e+06' '1.66000000000000e+02']
+
+    # from autostring import astr
+    # d = np.array(['05.01.2000 12:30:15', '27.05.1950 16:25:10', '13.08.1910 10:40:55',
+    #               '01.03.1900 00:00:00', '29.02.1900 00:00:00', '28.02.1900 00:00:00',
+    #               '01.01.1900 00:00:00'])
+    # decimal = date2dec(calendar='excel1900', ascii=d)
+    # nn = d.size
+    # print(astr(decimal[:nn/2], 7, pp=True))
+    # #    ['36530.5210069' '18410.6841435' ' 3878.4450810']
+    # print(astr(decimal[nn/2:],14,pp=True))
+    # #    ['61.00000000000000' '60.00000000000000' '59.00000000000000' ' 1.00000000000000']

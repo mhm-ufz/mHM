@@ -30,9 +30,9 @@
 # Paths 
 NAGDIR := /usr/local
 NAGLIB := $(NAGDIR)/lib/NAG_Fortran
-NAGBIN := /usr/bin
+NAGBIN := $(NAGDIR)/bin
 
-GNUDIR := /usr/local
+GNUDIR := /usr
 GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
@@ -42,14 +42,16 @@ FC  := $(F90)
 CC  := $(GNUBIN)/gcc
 CPP := /usr/bin/cpp
 ifeq ($(release),debug)
+    #F90FLAGS += -C=all -g -gline -nan -O0 -strict95 -g90
+    # -gline not supported in NAG v5.3 under OpenMP 
     ifeq ($(openmp),true)
         F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90
     else
         F90FLAGS += -C -C=dangling -g -gline -nan -O0 -strict95 -g90
     endif
     #F90FLAGS += -C -C=dangling -g -nan -O0 -strict95 -g90
-    FCFLAGS  += -C -C=dangling -g -nan -O0 -fixed
-    CFLAGS   += -pedantic -Wall -W -O -g
+    FCFLAGS  += $(F90FLAGS)
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-uninitialized
     LDFLAGS  += -g90
 else
     F90FLAGS += -O3
@@ -57,12 +59,12 @@ else
     CFLAGS   += -O3
 endif
 # -mismatch-all
-F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop -ideclient -free
+F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=stop -free #-ieee=full
 MODFLAG  := -mdir # space significant
 FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
+DEFINES  += -DNAG -DNAGf90Fortran
 
 # Linking
 LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
@@ -79,10 +81,11 @@ MKL95DIR :=
 ifeq ($(netcdf),netcdf3)
     NCDIR :=
 else
-    NCDIR    = /usr/local/netcdf_4.1.2_nagfor
-    CURLLIB := /usr/local/lib
-    SZLIB   := /usr/local/lib
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.3-nagfor
     HDF5LIB := /usr/local/lib
+    SZLIB   := /usr/local/lib
+    CURLLIB := /usr/lib
 endif
 
 # PROJ

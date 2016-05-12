@@ -18,23 +18,23 @@ set -e
 #
 # Examples
 #     PGI compiler on Eve in debug mode without OpenMP
-#     $ ./check_mhm_cases -c pgi -j 4 -s eve2 -t '0' -r debug
+#     $ ./check_mhm_cases -c pgi -j 4 -s eve -t '0' -r debug
 #
 #     Only check cases 2 and 3 for GNU compiler on Eve in debug and release mode with and without OpenMP
-#     $ ./check_mhm_cases -c gnu -j 4 -s eve2 case_02 case_03
+#     $ ./check_mhm_cases -c gnu -j 4 -s eve case_02 case_03
 #
 #     All check cases with all compiler for release mode on Eve
-#     $ ./check_mhm_cases -j 4 -s eve2 -r release
+#     $ ./check_mhm_cases -j 4 -s eve -r release
 #
 # -------------------------------------------------------------------------------------------
 # DETAILS
 # -------------------------------------------------------------------------------------------
 #
-# To run all the test cases on (s)ystem "eve2" with (c)ompiler "nag53" in (r)elease mode "debug"
+# To run all the test cases on (s)ystem "eve" with (c)ompiler "nag53" in (r)elease mode "debug"
 # type
 
 #      $ cd check/
-#      $ ./check_mhm_cases -s eve2 -c nag53 -r debug
+#      $ ./check_mhm_cases -s eve -c nag53 -r debug
 
 # on your command line. If test case was running properly, i.e. is
 # consistent with the pre-defined output, command line output will be
@@ -43,7 +43,7 @@ set -e
 #      $     #     case_[id]  o.k.     #
 #      $     ###########################
 #      $     using
-#      $        System:   eve2
+#      $        System:   eve
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -54,7 +54,7 @@ set -e
 #      $     #     case_[id]  failed   #
 #      $     ###########################
 #      $     using
-#      $        System:   eve2
+#      $        System:   eve
 #      $        Compiler: nag53
 #      $        Release:  debug
 
@@ -147,15 +147,15 @@ function usage () {
     printf "    -r     Release or debug mode, e.g. 'release'\n"
     printf "           'all' or 'both' loop over debug and release\n"
     printf "           (Default: all)\n"
-    printf "    -s     System on which mHM will be compiled, e.g. 'eve2'\n"
-    printf "           (Default: eve2).\n"
+    printf "    -s     System on which mHM will be compiled, e.g. 'eve'\n"
+    printf "           (Default: eve).\n"
     printf "    -t     Number of threads for OpenMP, e.g. '6'\n"
     printf "           Set to '0' for deactivation of parallel test\n"
     printf "           (Default: '0 2').\n"
     printf "    -v     Verbose. Show make, run and diff outputs.\n"
     printf "\n"
     printf "Example\n"
-    printf "    ${pprog} -j 12 -c gnu45 -s eve2 -r debug -t '0 2'\n"
+    printf "    ${pprog} -j 12 -c gnu45 -s eve -r debug -t '0 2'\n"
 }
 
 # cleanup at end and when interupted
@@ -179,8 +179,8 @@ function cleanup ()
 
     # make cleanclean
     cd ..
-    if [[ "z${compiler}" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
-    eval make system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean ${devnull}
+    if [[ "${compiler}z" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
+    eval make -f ${makefile} system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean ${devnull}
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -189,12 +189,14 @@ function cleanup ()
 
 # name of the mhm executable
 mhm_exe='mhm_for_check'
+makefile=Makefile
+makeconfig=make.config
 
 # switches
 compilers='all'
 ijobs=0
 release='all'
-system='eve2'
+system='eve'
 threads='0 2'
 verbose=0
 while getopts "c:hj:r:s:t:v" Option ; do
@@ -217,7 +219,9 @@ if [[ ${verbose} -eq 1 ]] ; then devnull="" ; else devnull="> /dev/null" ; fi
 # check for compilers on system
 compilers=$(echo ${compilers} | tr [A-Z] [a-z])
 if [[ "${compilers}" == "all" ]] ; then
-    compilers=$(\ls ../make.config/${system}.* | grep -Ev '(alias|gnu41|gnu44|sun12|pgfortran154)' | cut -d '.' -f 5)
+    mcol=$(echo ${makeconfig} | tr '.' ' ' | wc -w)
+    icol=$(( 3 + ${mcol} ))
+    compilers=$(\ls ../${makeconfig}/${system}.* | grep -Ev '(alias|gnu41|gnu44|sun12|pgfortran154|pgi159)' | cut -d '.' -f ${icol})
 fi
 
 # argument
@@ -238,7 +242,7 @@ set +e
 icdo=$(which cdo 2> /dev/null)
 set -e
 if [[ "${icdo}z" == "z" ]] ; then
-    if [[ ${system} == "eve" ]] || [[ ${system} == "eve2" ]] ; then
+    if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
         source /etc/profile.d/000-modules.sh
         if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
@@ -284,13 +288,13 @@ for irelease in ${release} ; do
 	    
             if [[ ${thread} -eq 0 ]] ; then
                 echo '         OpenMP:   False'
-                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean ${devnull}
-                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= ${devnull}
+                eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean ${devnull}
+                eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= ${devnull}
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
-                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean ${devnull}
-                eval make ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true ${devnull}
+                eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean ${devnull}
+                eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true ${devnull}
                 export OMP_NUM_THREADS=${thread}
             fi
 
@@ -308,12 +312,12 @@ for irelease in ${release} ; do
                 cd ${case_dir}
 
                 # remove old exe and link recently compiled
-                if [ -f ${mhm_exe} ] ; then rm ${mhm_exe} ; fi
+                if [[ -f ${mhm_exe} ]] ; then rm ${mhm_exe} ; fi
                 ln -s ../../${mhm_exe} . 
 
                 # remove old files
-                if [ -f mhm_terminal.${pid}.out ] ; then rm mhm_terminal.${pid}.out ; fi
-                if [ -f cdo.${pid}.terminal ] ; then rm cdo.${pid}.terminal ; fi
+                if [[ -f mhm_terminal.${pid}.out ]] ; then rm mhm_terminal.${pid}.out ; fi
+                if [[ -f cdo.${pid}.terminal ]] ; then rm cdo.${pid}.terminal ; fi
 
                 # run mhm
                 echo '   mhm is running ...    ./'${mhm_exe}' > mhm_terminal.'${pid}'.out'

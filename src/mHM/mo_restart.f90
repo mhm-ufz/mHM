@@ -67,7 +67,7 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !         see library routine var2nc in mo_ncwrite.f90
+  !         None
 
   !     HISTORY
   !>        \author   Stephan Thober

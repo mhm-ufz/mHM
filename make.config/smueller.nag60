@@ -69,7 +69,7 @@ MODFLAG  := -mdir # space significant
 FCFLAGS  += -fixed
 CFLAGS   +=
 LDFLAGS  += -ideclient -unsharedrts
-DEFINES  += -DNAG -DgFortran
+DEFINES  += -DNAG -DNAGf90Fortran
 
 # Linking
 LIBS += -L$(NAGLIB) #$(NAGLIB)/thsafe.o
