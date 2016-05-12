@@ -390,13 +390,13 @@ CONTAINS
           case(0) ! PET is input
              s_p5 = (/s_meteo,       1,       1,       1,       1,       1/)
              e_p5 = (/e_meteo,       1,       1,       1,       1,       1/)
-          case(1) ! HarSam
+          case(1) ! Hargreaves-Samani
              s_p5 = (/s_meteo, s_meteo, s_meteo,       1,       1,       1/)
              e_p5 = (/e_meteo, e_meteo, e_meteo,       1,       1,       1/)
-          case(2) ! PrieTay
+          case(2) ! Priestely-Taylor
              s_p5 = (/s_meteo,       1,       1, s_meteo,       1,       1/)
              e_p5 = (/e_meteo,       1,       1, e_meteo,       1,       1/)
-          case(3) ! PenMon
+          case(3) ! Penman-Monteith
              s_p5 = (/s_meteo,       1,       1, s_meteo, s_meteo, s_meteo/)
              e_p5 = (/e_meteo,       1,       1, e_meteo, e_meteo, e_meteo/)
           end select
@@ -406,11 +406,11 @@ CONTAINS
           !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)
           case(0) ! PET is input
              iMeteo_p5 = (/iMeteoTS,        1,        1,        1,        1,        1 /)
-          case(1) ! HarSam
+          case(1) ! Hargreaves-Samani
              iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1,        1,        1 /)
-          case(2) ! PrieTay
+          case(2) ! Priestely-Taylor
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS,        1,        1 /)
-          case(3) ! PenMon
+          case(3) ! Penman-Monteith
              iMeteo_p5 = (/iMeteoTS,        1,        1, iMeteoTS, iMeteoTS, iMeteoTS /)
           end select
 

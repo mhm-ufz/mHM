@@ -460,30 +460,26 @@ contains
     ! potential evapotranspiration (PET)
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
-       ! aspect correction of input PET
-    case(0) 
+    case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
        call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
-       ! Hargreaves-Samani method   
-    case(1)
+    case(1) ! Hargreaves-Samani method
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
        call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd - 1), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
        HarSamCoeff1 = param(iEnd)
-       ! Priestley-Taylor Method 
-    case(2)
+    case(2) ! Priestley-Taylor Method
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
        call priestley_taylor_alpha(LCover_LAI0, LAILUT, LAIUnitList, param(iStart : iEnd),       & 
             mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1,  &
             PrieTayAlpha1)
-       ! Penman-Monteith method
-    case(3) 
+    case(3) ! Penman-Monteith method
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3) 
        call aerodynamical_resistance(LCover0, LAILUT, param(iStart : iEnd - 1), mask0,   & 
@@ -492,8 +488,7 @@ contains
        call bulksurface_resistance(LCover_LAI0, LAILUT, LAIUnitList, param(iEnd), mask0,                             & 
             nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
             surfResist1)
-       ! DEFAULT 
-    case DEFAULT
+    case default
        call message()
        call message('***ERROR: Process description for process "pet correction" does not exist! mo_multi_param_reg')
        stop

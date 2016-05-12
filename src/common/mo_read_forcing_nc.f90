@@ -257,16 +257,22 @@ contains
                   trim(varName),                                           &
                   '" are lower than ', trim(num2str(lower,'(F7.2)')) )
              call message('          at timestep  : ', trim(num2str(i)))
+             call message('File: ', trim(fName))
+             call message('Minval at timestep: ', trim(num2str(minval(data(:,:,i)),'(F7.2)')))
+             call message('Total minval: ', trim(num2str(minval(data(:,:,:)),'(F7.2)')))
              stop
           end if
        end if
 
        if (present(upper)) then
           if ( any( (data(:,:,i) .gt. upper) .AND. mask(:,:) )  ) then
-             call message('***ERROR: read_forcing_nc: values in variable"',  &
+             call message('***ERROR: read_forcing_nc: values in variable "',  &
                   trim(varName),                                           &
                   '" are greater than ', trim(num2str(upper,'(F7.2)')) )
              call message('          at timestep  : ', trim(num2str(i)))
+             call message('File: ', trim(fName))
+             call message('Maxval at timestep: ', trim(num2str(maxval(data(:,:,i)),'(F7.2)')))
+             call message('Total maxval: ', trim(num2str(maxval(data(:,:,:)),'(F7.2)')))
              stop
           end if
        end if
