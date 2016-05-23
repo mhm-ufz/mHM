@@ -177,7 +177,7 @@ CONTAINS
       tmin_in             , & ! [degc]   Daily minimum temperature
       tmax_in             , & ! [degc]   Daily maxumum temperature
       netrad_in           , & ! [w m2]   Daily average net radiation
-      absvappres_in       , & ! [hPa]    Daily average absolute vapour pressure
+      absvappres_in       , & ! [Pa]     Daily average absolute vapour pressure
       windspeed_in        , & ! [m s-1]  Daily average wind speed
       prec_in             , & ! [mm d-1] Daily mean precipitation
       temp_in             , & ! [degc]   Daily average temperature

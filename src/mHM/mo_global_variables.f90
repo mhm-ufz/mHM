@@ -330,7 +330,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable    :: L1_tmin          ! [degC]  minimum daily air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_tmax          ! [degC]  maximum daily air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_netrad        ! [W m2]  net radiation
-  real(dp), public, dimension(:,:), allocatable    :: L1_absvappress   ! [hPa]   absolute vapour pressure
+  real(dp), public, dimension(:,:), allocatable    :: L1_absvappress   ! [Pa]    absolute vapour pressure
   real(dp), public, dimension(:,:), allocatable    :: L1_windspeed     ! [m s-1] windspeed
 
   ! optional data

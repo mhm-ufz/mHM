@@ -217,7 +217,7 @@ CONTAINS
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: net_rad"                net radiation \f$[W m^{-2}]\f$
   !>        \param[in] "real(dp), intent(in) :: tavg"                   average daily temperature \f$[^{\circ}C]\f$ 
-  !>        \param[in] "real(dp), intent(in) :: act_vap_pressure"       actual vapur pressure \f$[hPa]\f$ 
+  !>        \param[in] "real(dp), intent(in) :: act_vap_pressure"       actual vapur pressure \f$[kPa]\f$ 
   !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s-1]\f$

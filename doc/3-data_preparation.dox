@@ -48,7 +48,7 @@ meteorological variables may be need:
 1 - Maximum air temperature       | \f$^\circ \mathrm{C}\f$ | daily  
 2 - Net radiation                 | \f$ W\;m^{-2}       \f$ | daily  
 3 - Net radiation                 | \f$ W\;m^{-2}       \f$ | daily  
-3 - Absolut vapur pressure of air | \f$ kPA             \f$ | daily  
+3 - Absolut vapur pressure of air | \f$ PA              \f$ | daily  
 3 - Windspeed                     | \f$ m\;s^{-1}       \f$ | daily  
 
 \subsection morph_data Morphological variables
