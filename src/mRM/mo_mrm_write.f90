@@ -645,10 +645,12 @@ contains
        call message('  OUTPUT: saved daily discharge file for basin ', trim(adjustl(dummy)))
        call message('    to ',trim(fname))
        do gg=igauge_start, igauge_end
-          call message('    KGE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
-               trim(adjustl(num2str(kge(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
-          call message('    NSE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
-               trim(adjustl(num2str(nse(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+          if (count(ge(Qobs(:,gg), 0.0_dp)) > 1 )  then
+             call message('    KGE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+                  trim(adjustl(num2str(kge(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+             call message('    NSE of daily discharge (gauge #',trim(adjustl(num2str(gg))),'): ', &
+                  trim(adjustl(num2str(nse(Qobs(:,gg), Qsim(:,gg), mask=(ge(Qobs(:,gg), 0.0_dp)))))) )
+          end if
        end do
 
        ! update igauge_start

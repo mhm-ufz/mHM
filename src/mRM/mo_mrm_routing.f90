@@ -110,6 +110,8 @@ CONTAINS
   !>        \date Aug 2015
   !         Modified, Sep 2015, Stephan Thober - using arguments instead of global variables
   !                   Sep 2015, Stephan Thober - added variables for routing resolution higher than hydrologic resolution
+  !                   May 2016, Stephan Thober - added check whether gauge is actually inside modelling domain
+  !                                              before copying simulated runoff
 
   subroutine mRM_routing( &
        ! input variables =========================================================
@@ -151,9 +153,10 @@ CONTAINS
        ! optional input variables ================================================
        do_mpr_routing &
        )
-    use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
-    use mo_mrm_mpr, only: reg_rout
+    use mo_mrm_constants, only: nodata_i4
     use mo_mrm_global_variables, only: is_start
+    use mo_mrm_mpr, only: reg_rout
+    use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
 
     implicit none
     ! input variables =========================================================
@@ -275,7 +278,7 @@ CONTAINS
     !        ordered corresponing to gauge%Q(:,:)
     !----------------------------------------------------------------------
     do gg = 1, nGauges
-       GaugeDischarge(gaugeIndexList(gg)) = L11_Qmod(gaugeNodeList(gg))
+       if (gaugeNodeList(gg) .ne. nodata_i4) gaugedischarge(gaugeIndexList(gg)) = L11_Qmod(gaugeNodeList(gg))
     end do
     
   end subroutine mRM_routing

@@ -67,7 +67,7 @@ CONTAINS
   !         None
 
   !     LITERATURE
-  !         see library routine var2nc in mo_ncwrite.f90
+  !         None
 
   !     HISTORY
   !>        \author   Stephan Thober
@@ -446,7 +446,7 @@ CONTAINS
           call var%setData(unpack(L1_fAsp(s1:e1), mask1, nodata_dp))
           call var%setAttribute("long_name","PET correction factor due to terrain aspect at level 1")
 
-       case(1) ! HarSam
+       case(1) ! Hargreaves-Samani
 
           var = nc%setVariable("L1_fAsp","f64",(/rows1,cols1/))
           call var%setFillValue(nodata_dp)
@@ -458,7 +458,7 @@ CONTAINS
           call var%setData(unpack(L1_HarSamCoeff(s1:e1), mask1, nodata_dp))
           call var%setAttribute("long_name","Hargreaves-Samani coefficient")
 
-       case(2) ! PrieTay
+       case(2) ! Priestley-Taylor
 
           allocate( dummy_d3( nrows1, ncols1, size( L1_PrieTayAlpha, 2) ) )
           do ii = 1, size( dummy_d3, 3 )
@@ -472,7 +472,7 @@ CONTAINS
 
           deallocate( dummy_d3 )
 
-       case(3) ! PenMon
+       case(3) ! Penman-Monteith
 
           allocate( dummy_d3( nrows1, ncols1, size( L1_aeroResist, 2) ) )
           do ii = 1, size( dummy_d3, 3 )
@@ -1280,7 +1280,7 @@ CONTAINS
        call var%getData(dummyD2)
        L1_fAsp(s1:e1) = pack( dummyD2, mask1 ) 
 
-    case(1) ! HarSam
+    case(1) ! Hargreaves-Samani
 
        ! PET correction factor due to terrain aspect
        var = nc%getVariable("L1_fAsp")
@@ -1292,7 +1292,7 @@ CONTAINS
        call var%getData(dummyD2)
        L1_HarSamCoeff(s1:e1) = pack( dummyD2, mask1 ) 
 
-    case(2) ! PrieTay
+    case(2) ! Priestely-Taylor
 
        ! Priestley Taylor coeffiecient (alpha)
        var = nc%getVariable("L1_PrieTayAlpha")
@@ -1301,7 +1301,7 @@ CONTAINS
           L1_PrieTayAlpha(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
        end do
 
-    case(3) ! PenMon
+    case(3) ! Penman-Monteith
 
        ! aerodynamical resitance
        var = nc%getVariable("L1_aeroResist")

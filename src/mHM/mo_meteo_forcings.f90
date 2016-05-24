@@ -82,13 +82,13 @@ CONTAINS
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_timer,            only:                         &
-         timer_start, timer_stop, timer_get, timer_clear  ! Timing of processes
+         timer_start, timer_stop, timer_get                   ! Timing of processes
     use mo_global_variables, only: &
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
-         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is HarSam  (case 1)
-         dirNetRadiation,                                   & ! PET input paths if process 5 is PrieTay (case 2)
-         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is PenMon  (case 3)
+         dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
+         dirNetRadiation,                                   & ! PET input paths if process 5 is Priestley-Taylor (case 2)
+         dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is Penman-Monteith (case 3)
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
          nBasins,                                           & ! Number of basins for multi-basin optimization 
          processMatrix,                                     & ! process configuration
@@ -137,7 +137,8 @@ CONTAINS
        call meteo_forcings_wrapper( iBasin, dirTemperature(iBasin), inputFormat_meteo_forcings,  &
             L1_temp, lower = -100._dp, upper=100._dp, ncvarName='tavg' )
 
-       ! read input for PET (process 5) depending on specified option (0 - input, 1 - HarSam, 2 - PrieTay, 3 - PenMon)
+       ! read input for PET (process 5) depending on specified option
+       ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
        select case (processMatrix(5,1))    
 
        case(0) ! pet is input
@@ -151,10 +152,10 @@ CONTAINS
           end if
 
        case(1) ! Hargreaves-Samani formulation (input: minimum and maximum Temperature)
-          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read max. temperature     ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read min. temperature     ...' )
           call meteo_forcings_wrapper( iBasin, dirMinTemperature(iBasin), inputFormat_meteo_forcings, &
                L1_tmin, lower=-100.0_dp, upper = 100._dp, ncvarName='tmin' )
-          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read min. temperature     ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read max. temperature     ...' )
           call meteo_forcings_wrapper( iBasin, dirMaxTemperature(iBasin), inputFormat_meteo_forcings, &
                L1_tmax, lower=-100.0_dp, upper = 100._dp, ncvarName='tmax' )
           ! allocate PET and dummies for mhm_call
@@ -178,9 +179,9 @@ CONTAINS
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read net radiation        ...' )
           call meteo_forcings_wrapper( iBasin, dirNetRadiation(iBasin), inputFormat_meteo_forcings, &
                L1_netrad, lower=-500.0_dp, upper = 1500._dp, ncvarName='net_rad' )
-          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read abs. vapour pressue  ...' )
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read absolute vapour pressure  ...' )
           call meteo_forcings_wrapper( iBasin, dirabsVapPressure(iBasin), inputFormat_meteo_forcings, &
-               L1_absvappress, lower=0.0_dp, upper = 2500.0_dp, ncvarName='eabs' )
+               L1_absvappress, lower=0.0_dp, upper = 15000.0_dp, ncvarName='eabs' )
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read windspeed            ...' )
           call meteo_forcings_wrapper( iBasin, dirwindspeed(iBasin), inputFormat_meteo_forcings, &
                L1_windspeed, lower=0.0_dp, upper = 250.0_dp, ncvarName='windspeed' )
@@ -194,7 +195,6 @@ CONTAINS
        if ( timeStep_model_inputs(iBasin) .eq. 0 ) then
           call timer_stop(1)
           call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
-          call timer_clear(1)
        end if
     end if
 

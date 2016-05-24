@@ -161,9 +161,9 @@ PROGRAM mhm_driver
        dirMorpho, dirLCover,  dirPrecipitation,              &      ! directories
        dirTemperature, dirOut,                               &      ! directories
        dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
-       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is HarSam  (case 1)
-       dirNetRadiation,                                      &      ! PET input paths if process 5 is PrieTay (case 2)
-       dirabsVapPressure, dirwindspeed,                      &      ! PET input paths if process 5 is PenMon  (case 3)
+       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is Hargreaves-Samani  (case 1)
+       dirNetRadiation,                                      &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
+       dirabsVapPressure, dirwindspeed,                      &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
        dirgridded_LAI,                                       &      ! directories
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
@@ -267,14 +267,14 @@ PROGRAM mhm_driver
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
-     case(0)
+     case(0) ! PET is input
         call message('    PET directory:              ', trim(dirReferenceET(ii)  ))
-     case(1)
+     case(1) ! Hargreaves-Samani
         call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  ))
         call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  ))
-     case(2)
+     case(2) ! Priestely-Taylor
         call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-     case(3)
+     case(3) ! Penman-Monteith
         call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
         call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  ))
         call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  ))

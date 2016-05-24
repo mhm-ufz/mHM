@@ -179,7 +179,7 @@ CONTAINS
       tmin_in             , & ! [degc]   Daily minimum temperature
       tmax_in             , & ! [degc]   Daily maxumum temperature
       netrad_in           , & ! [w m2]   Daily average net radiation
-      absvappres_in       , & ! [hPa]    Daily average absolute vapour pressure
+      absvappres_in       , & ! [Pa]     Daily average absolute vapour pressure
       windspeed_in        , & ! [m s-1]  Daily average wind speed
       prec_in             , & ! [mm d-1] Daily mean precipitation
       temp_in             , & ! [degc]   Daily average temperature
@@ -566,11 +566,11 @@ CONTAINS
        case(0) ! PET is input ! correct pet for every day only once at the first time step
           pet =  fAsp(k) * pet_in(k)
 
-       case(1) ! HarSam
+       case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
           doy = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
           
-          if (tmax_in(k) .LE. tmin_in(k)) call message('WARNING: tmax smaller tmin at doy ', &
+          if (tmax_in(k) .lt. tmin_in(k)) call message('WARNING: tmax smaller than tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
 
           pet = fAsp(k) * pet_hargreaves(HarSamCoeff(k), HarSamConst,  temp_in(k), tmax_in(k),   &

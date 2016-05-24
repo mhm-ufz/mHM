@@ -1498,7 +1498,7 @@ CONTAINS
        ! mask for highflow timepoints
        if ( allocated(highflow_mask) ) deallocate(highflow_mask)
        allocate( highflow_mask( nrunoff ) )
-       highflow_mask = .not. lowflow_mask
+       highflow_mask = (.not. lowflow_mask) .and. runoff_obs_mask
        !print*, 'nhigh = ',count(highflow_mask)
        ! 
        ! lnNSE highflows 

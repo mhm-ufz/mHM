@@ -76,7 +76,7 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_read_forcing_nc,  only: read_forcing_nc
     use mo_timer,            only:                         &
-         timer_start, timer_stop, timer_get, timer_clear     ! Timing of processes
+         timer_start, timer_stop, timer_get                  ! Timing of processes
     use mo_append,           only: append                    ! append data
     use mo_mhm_constants,    only: nodata_dp
     use mo_global_variables, only:                         &
@@ -128,7 +128,6 @@ CONTAINS
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
-    call timer_clear(1)
 
   end subroutine read_soil_moisture
 
@@ -287,7 +286,7 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_read_forcing_nc,  only: read_forcing_nc
     use mo_timer,            only:                         &
-         timer_start, timer_stop, timer_get, timer_clear     ! Timing of processes
+         timer_start, timer_stop, timer_get                  ! Timing of processes
     use mo_append,           only: append                    ! append data
     use mo_mhm_constants,    only: nodata_dp
     use mo_global_variables, only:                         &
@@ -339,7 +338,6 @@ CONTAINS
 
     call timer_stop(1)
     call message('    in ', trim(num2str(timer_get(1),'(F9.3)')), ' seconds.')
-    call timer_clear(1)
 
   end subroutine read_neutrons
 

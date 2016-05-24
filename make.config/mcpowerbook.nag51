@@ -56,7 +56,7 @@ F90FLAGS += -fpp -colour -unsharedf95 -kind=byte -ieee=stop
 MODFLAG  := -mdir # space significant
 FCFLAGS  +=
 CFLAGS   +=
-DEFINES  += -DNAG -DgFortran
+DEFINES  += -DNAG -DNAGf90Fortran
 
 # Linking
 LIBS += -L$(NAGLIB)

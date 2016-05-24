@@ -143,8 +143,9 @@ module mo_mrm_global_variables
      logical,     dimension(:,:), allocatable :: InflowGaugeHeadwater ! if headwater cells of inflow gauge will be considered
 
      ! basin outlet
-     integer(i4), dimension(:), allocatable :: L0_rowOutlet   ! Outlet location in L0 
-     integer(i4), dimension(:), allocatable :: L0_colOutlet   ! Outlet location in L0 
+     integer(i4), dimension(:),   allocatable :: L0_Noutlet
+     integer(i4), dimension(:,:), allocatable :: L0_rowOutlet   ! Outlet locations in L0 
+     integer(i4), dimension(:,:), allocatable :: L0_colOutlet   ! Outlet locations in L0 
 
      ! for remapping                                           
      integer(i4), dimension(:), allocatable :: L0_iStart      ! Starting cell index of a given basin at L0
