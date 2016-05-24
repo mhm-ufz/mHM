@@ -153,7 +153,7 @@ mrm_coupling_mode = 2
 !> directory where discharge files are located
 dir_Gauges(1)        = "/data/edge/data/processed/mhm_input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 1)
-dir_Total_Runoff(1) = "/data/edge/data/processed/mhm_output/default_run/"
+dir_Total_Runoff(1) = "/data/edge/data/processed/mhm_output/eobs_5km/"
 /
 
 ! general directories used by mRM and mHM
@@ -163,7 +163,7 @@ dir_Total_Runoff(1) = "/data/edge/data/processed/mhm_output/default_run/"
 ! Directory for common files (to all basins)
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "/data/edge/data/processed/mhm_output/default_run/"
+dirConfigOut = "/data/edge/data/processed/mhm_output/eobs_5km/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
@@ -175,11 +175,11 @@ dir_Morpho(1)        = "/data/edge/data/processed/mhm_input/morph/"
 !> directory where land cover files are located
 dir_LCover(1)        = "/data/edge/data/processed/mhm_input/luse/"
 !> directory where restart input is located
-dir_RestartIn(1)     = "/data/edge/data/processed/mhm_output/default_run/"
+dir_RestartIn(1)     = "/data/edge/data/processed/mhm_output/eobs_5km/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "/data/edge/data/processed/mhm_output/default_run/"
+dir_RestartOut(1)    = "/data/edge/data/processed/mhm_output/eobs_5km/"
 !> directory where output should be written
-dir_Out(1)           = "/data/edge/data/processed/mhm_output/default_run/"
+dir_Out(1)           = "/data/edge/data/processed/mhm_output/eobs_5km/"
 !> file containing latitude and longitude on the resolution_Hydrology
 file_LatLon(1)       = "/data/edge/data/processed/mhm_input/latlon/latlon_5km.nc"
 /
@@ -197,23 +197,23 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where meteorological input is located
-dir_Precipitation(1) = "/data/edge/data/processed/mhm_input/meteo/"
-dir_Temperature(1)   = "/data/edge/data/processed/mhm_input/meteo/"
+dir_Precipitation(1) = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
+dir_Temperature(1)   = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
 !> paths depending on PET process (processCase(5))
 !> 0 - PET is input
 !> 1 - Hargreaves-Sammani method
 !> 2 - Priestley-Taylor mehtod
 !> 3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "/data/edge/data/processed/mhm_input/meteo/"
+dir_ReferenceET(1)     = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "/data/edge/data/processed/mhm_input/meteo/"
-dir_MaxTemperature(1)  = "/data/edge/data/processed/mhm_input/meteo/"
+dir_MinTemperature(1)  = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
+dir_MaxTemperature(1)  = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "/data/edge/data/processed/mhm_input/meteo/"
+dir_NetRadiation(1)    = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "/data/edge/data/processed/mhm_input/meteo/"
-dir_windspeed(1)       = "/data/edge/data/processed/mhm_input/meteo/"
+dir_absVapPressure(1)  = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
+dir_windspeed(1)       = "/data/edge/data/processed/mhm_input/meteo/eobs_25km/"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "/data/edge/data/processed/mhm_input/lai/"
 /
@@ -244,7 +244,7 @@ file_tws(1) = "/data/edge/data/processed/mhm_input/optional_data/"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
-dir_neutrons(1)  = "/data/edge/data/processed/mhm_input/optional_data/"
+dir_neutrons(1) = "/data/edge/data/processed/mhm_input/optional_data/"
 /
 
 &time_periods
@@ -264,15 +264,15 @@ dir_neutrons(1)  = "/data/edge/data/processed/mhm_input/optional_data/"
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warming_Days(1)    = 365
+warming_Days(1)    = 0
 !> first year of wanted simulation period
-eval_Per(1)%yStart = 1991
+eval_Per(1)%yStart = 1990
 !> first month of wanted simulation period
 eval_Per(1)%mStart = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart = 01
 !> last year   of wanted simulation period
-eval_Per(1)%yEnd   = 1994
+eval_Per(1)%yEnd   = 2014
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd   = 12
 !> last day    of wanted simulation period
@@ -286,7 +286,7 @@ eval_Per(1)%dEnd   = 31
 !>      -3: yearly\n
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
-time_step_model_inputs(1) = 0
+time_step_model_inputs(1) = -2
 /
 
 !******************************************************************************************
@@ -310,7 +310,7 @@ time_step_model_inputs(1) = 0
 !>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
 !>            and depths provided in "soil_Depth(:)".\n
 !
-!>            The tillage depth if flexible in this case.\n
+!>            The tillage depth is flexible in this case.\n
 !
 !>            The depth of last mHM modeling layer is determined according the information given in the
 !>            input soil database, which could vary spatially depending on the soil type. Therefore the 
@@ -321,13 +321,14 @@ time_step_model_inputs(1) = 0
 !> iFlag_soilDB = 1:
 !>            Handle the harmonised horizon specific soil information, requires
 !>               i) multiple (horizon specific) gridded ASCII files containing info of soil-ids.
-!>                 (e.g., soil_class_horizon_depth_00000-00050mm.asc, soil_class_horizon_depth_00050-00150mm.asc, ....)
+!>                 (e.g., soil_class_horizon001.asc, soil_class_horizon002.asc, ....)
 !>                 File names are automatically generated within mHM as per the given soil_Depth(:).
-!>                 The format follows the FORTRAN coding style: "soil_class_horizon_depth_"UD"-"LD"mm.asc"
-!>                 where UD and LD is the upper and lower horizon depths [mm] with 5 spaces allocated to each depth 
-!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I5.5
-!>                 For example if horizon lies between 0 and 5 cm (= 50 mm), then the filename for this horizon would be     
-!>                 soil_class_horizon_depth_00000-00050mm.asc.\n
+!>                 The format follows the FORTRAN coding style: "soil_class_horizon_"XX".asc"
+!>                 where XX represents the horizon id with 2 spaces allocated for this number
+!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
+!>                 The horizon is numbered sequentially from top to bottom soil layers.
+!>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
+!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n               
 !
 !>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
 !>                  Note that there should be no horizon specific information in this LUT file
@@ -357,16 +358,16 @@ nSoilHorizons_mHM = 6
 !> IF (iFlag_soilDB = 0)
 !>    Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
 !> IF (iFlag_soilDB = 1)
-!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id grideed file for each layer
+!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
 !>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
 !
-!> Soil_Horizon    Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
-soil_Depth(1)     = 50
-soil_Depth(2)     = 150
-soil_Depth(3)     = 300
-soil_Depth(4)     = 600
-soil_Depth(5)     = 1000
-soil_Depth(6)     = 2000
+!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
+soil_Depth(1) = 50
+soil_Depth(2) = 150
+soil_Depth(3) = 300
+soil_Depth(4) = 600
+soil_Depth(5) = 1000
+soil_Depth(6) = 2000
 /
 
 
@@ -388,11 +389,11 @@ nLcover_scene = 1
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1) = 1990
+LCoverYearStart(1) = 1950
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1995
+LCoverYearEnd(1)   = 2014
 !> name of land cover file for scnene 1
-LCoverfName(1)     = 'lc_1990.asc'
+LCoverfName(1)     = 'lc_2000_3class.asc'
 /
 
 !******************************************************************************************
@@ -451,7 +452,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 1
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
