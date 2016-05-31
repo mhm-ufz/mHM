@@ -942,6 +942,7 @@ contains
 
   !         Modified Luis Samaniego, Jan 2013 - modular version
   !                  Stephan Thober, Aug 2015 - ported to mRM
+  !                  Stephan Thober, May 2016 - moved calculation of sink here
   ! ------------------------------------------------------------------
 
   subroutine L11_set_network_topology(iBasin)
@@ -966,7 +967,6 @@ contains
     integer(i4), dimension(:,:), allocatable  :: cellCoor11
     integer(i4), dimension(:,:), allocatable  :: Id11           ! ids of grid at level-11     
     integer(i4), dimension(:,:), allocatable  :: fDir11         
-
     integer(i4)                               :: jj, kk, ic, jc 
     integer(i4)                               :: fn, tn
 
@@ -1009,7 +1009,7 @@ contains
        fn = kk
        call moveDownOneCell(fDir11(ic, jc), ic, jc)
        tn = Id11(ic,jc)
-       if (fn == tn) cycle ! this cell is a sink
+       if (fn == tn) cycle 
        jj = jj + 1
        nLinkFromN(jj) = fn
        nLinkToN(jj)   = tn
@@ -1021,10 +1021,10 @@ contains
 
     ! L11 data sets
     call append( L11_fromN, nLinkFromN(:) ) ! sinks are at the end 
-    call append( L11_toN, nLinkToN(:)   )
+    call append( L11_toN,   nLinkToN(:)   )
 
     ! free space
-    deallocate (mask11, cellCoor11, Id11, fDir11, nLinkFromN, nLinkToN )   
+    deallocate (mask11, cellCoor11, Id11, fDir11, nLinkFromN, nLinkToN)   
 
   end subroutine L11_set_network_topology
 
@@ -1088,10 +1088,11 @@ contains
     use mo_mrm_global_variables, only: &
          L11_fromN,                & ! IN:    from node 
          L11_toN,                  & ! IN:    to node
+         L11_fDir,                 & ! IN:    flow direction to identify sink
          L11_nOutlets,             & ! IN:    number of sinks/outlets
+         L11_sink,                 & ! IN: == .true. if sink node reached
          L11_rOrder,               & ! INOUT: network routing order
          L11_label,                & ! INOUT: label Id [0='', 1=HeadWater, 2=Sink]
-         L11_sink,                 & ! INOUT: == .true. if sink node reached
          L11_netPerm                 ! INOUT: routing order (permutation)
 
     implicit none
@@ -1110,7 +1111,6 @@ contains
     logical,     dimension(:), allocatable    :: nLinkSink       ! == .true. if sink node reached
     integer(i4), dimension(:), allocatable    :: netPerm         ! routing order (permutation)
     integer(i4)                               :: ii, jj, kk
-    integer(i4), dimension(1)                 :: iSink
     logical                                   :: flag
 
     ! level-11 information
@@ -1132,7 +1132,7 @@ contains
     nLinkToN(:)           = nodata_i4
     nLinkROrder(1:nLinks) = 1
     nLinkROrder(nNodes)   = nodata_i4
-    nLinkLabel(1:nLinks) =  0           
+    nLinkLabel(1:nLinks)  =  0           
     nLinkLabel(nNodes)    = nodata_i4
     nLinkSink(:)          = .FALSE.
     netPerm(:)            = nodata_i4
@@ -1184,9 +1184,11 @@ contains
          end do loop3
       end do
      
-      ! sinks are located at the end
-      nLinkLabel(nLinks + 1:) = 2 !  'Sink'
-      nLinkSink(nLinks + 1:)  = .TRUE.
+      ! identify sink cells
+      do ii = 1, nLinks
+         if (L11_fdir(iStart11 + nLinkToN(ii) - 1_i4) .eq. 0_i4) nlinksink(ii) = .True. 
+      end do
+      where(nlinksink) nLinkLabel = 2 !  'Sink'
 
       ! keep routing order
       do ii = 1, nLinks
@@ -1703,7 +1705,7 @@ contains
     integer(i4)                              :: ii, rr, ns
     integer(i4)                              :: frow, fcol
     integer(i4)                              :: fId,  tId
-    integer(i4), dimension(:,:), allocatable :: stack,append_chunk
+    integer(i4), dimension(:,:), allocatable :: stack, append_chunk
     integer(i4), dimension(:),   allocatable :: dummy_1d
     real(dp)                                 :: length
     integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
@@ -1815,10 +1817,11 @@ contains
                stack(1,1) = 0
                stack(1,2) = 0
                ! stack = cshift(stack, SHIFT = 1, DIM = 1)
-               ! substitute cshift
+               ! substitute cshift <<<
                dummy_1d = stack(1, :)
-               stack(:nNodes - 1, :) = stack(2:, :)
-               stack(nNodes, :) = dummy_1d
+               stack(:size(stack, dim=1) - 1, :) = stack(2:, :)
+               stack(size(stack, dim=1), :) = dummy_1d
+               ! substitute cshift >>>
                if (stack(1,1) > 0 .and. stack(1,2) > 0 ) floodPlain0( stack(1,1), stack(1,2) ) = ii
                ns = count( stack > 0 ) / 2
             end do
@@ -1868,7 +1871,7 @@ contains
     deallocate (&
          mask0, iD0, elev0, fDir0, areaCell0, streamNet0, floodPlain0,      &
          stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol, &       
-         nLinkLength, nLinkAFloodPlain, nLinkSlope) 
+         nLinkLength, nLinkAFloodPlain, nLinkSlope, dummy_1d) 
     deallocate(nodata_i4_tmp,nodata_dp_tmp)    
 
   end subroutine L11_stream_features
