@@ -29,7 +29,7 @@ module mo_mrm_net_startup
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: get_distance_two_lat_lon_points
 contains
-    ! --------------------------------------------------------------------------
+  ! --------------------------------------------------------------------------
 
   !     NAME
   !         L11_variable_init
@@ -478,7 +478,8 @@ contains
          L11_upBound_L0,    & ! INOUT: row start at finer level-0 scale 
          L11_downBound_L0,  & ! INOUT: row end at finer level-0 scale 
          L11_leftBound_L0,  & ! INOUT: col start at finer level-0 scale 
-         L11_rightBound_L0    ! INOUT: col end at finer level-0 scale 
+         L11_rightBound_L0, & ! INOUT: col end at finer level-0 scale
+         L11_nOutlets
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_string_utils, only: num2str
 
@@ -867,6 +868,7 @@ contains
    end if
    
    ! L11 data sets
+   call append( L11_nOutlets,          count(fdir11 .eq. 0_i4) )
    call append( L11_fDir,     PACK ( fDir11(:,:),      mask11) )
    call append( L11_rowOut          ,  rowOut(:)               )
    call append( L11_colOut          ,  colOut(:)               )
@@ -876,8 +878,8 @@ contains
    call append( L11_rightBound_L0   ,  rightBound0(:)          )
 
    ! communicate
-   call message('      Number of outlets found at Level 0:.. '//num2str(Noutlet, '(i2)'))
-   call message('      Number of outlets found at Level 11:. '//num2str(count(fdir11 .eq. 0_i4), '(i2)'))
+   call message('      Number of outlets found at Level 0:.. '//num2str(Noutlet, '(i7)'))
+   call message('      Number of outlets found at Level 11:. '//num2str(count(fdir11 .eq. 0_i4), '(i7)'))
 
    ! free space
    deallocate(mask0, mask11, &
@@ -1007,7 +1009,7 @@ contains
        fn = kk
        call moveDownOneCell(fDir11(ic, jc), ic, jc)
        tn = Id11(ic,jc)
-       if (fn == tn) cycle
+       if (fn == tn) cycle ! this cell is a sink
        jj = jj + 1
        nLinkFromN(jj) = fn
        nLinkToN(jj)   = tn
@@ -1018,7 +1020,7 @@ contains
     !--------------------------------------------------------
 
     ! L11 data sets
-    call append( L11_fromN, nLinkFromN(:) )
+    call append( L11_fromN, nLinkFromN(:) ) ! sinks are at the end 
     call append( L11_toN, nLinkToN(:)   )
 
     ! free space
@@ -1086,6 +1088,7 @@ contains
     use mo_mrm_global_variables, only: &
          L11_fromN,                & ! IN:    from node 
          L11_toN,                  & ! IN:    to node
+         L11_nOutlets,             & ! IN:    number of sinks/outlets
          L11_rOrder,               & ! INOUT: network routing order
          L11_label,                & ! INOUT: label Id [0='', 1=HeadWater, 2=Sink]
          L11_sink,                 & ! INOUT: == .true. if sink node reached
@@ -1112,8 +1115,8 @@ contains
 
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
-
-    nLinks  = nNodes - 1
+    
+    nLinks  = nNodes - L11_nOutlets(iBasin)
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a basin. 
 
@@ -1149,7 +1152,6 @@ contains
             if ( nLinkROrder(ii) == -9 ) cycle loop1
          end do loop2
       end do loop1
-
       ! counting headwaters
       kk = 0
       do ii = 1, nLinks
@@ -1159,9 +1161,9 @@ contains
             nLinkLabel(ii)  = 1  ! 'Head Water'
          end if
       end do
-
       ! counting downstream
       do while ( minval( nLinkROrder( 1 : nLinks ) ) < 0 )
+       !!  print *, count(nLinkROrder .lt. 0), minval(nLinkROrder)
          loop3: do ii = 1, nLinks
             if ( .NOT. nLinkROrder(ii) == -9 ) cycle loop3
             flag = .TRUE.
@@ -1181,15 +1183,14 @@ contains
             end if
          end do loop3
       end do
-
-      ! identify sink cell
-      iSink = maxloc ( nLinkROrder( 1 : nLinks ) )
-      nLinkLabel( iSink ) = 2    !  'Sink'
-      nLinkSink(  iSink ) = .TRUE.
+     
+      ! sinks are located at the end
+      nLinkLabel(nLinks + 1:) = 2 !  'Sink'
+      nLinkSink(nLinks + 1:)  = .TRUE.
 
       ! keep routing order
       do ii = 1, nLinks
-         netPerm( nLinkROrder(ii) ) = ii
+         netPerm(nLinkROrder(ii)) = ii
       end do
      
       ! end of multi-node network design loop
@@ -1267,6 +1268,7 @@ contains
     use mo_mrm_global_variables, only: &
          basin_mrm,   & ! IN
          L0_fDir,     & ! IN:    flow direction (standard notation) L0
+         L11_nOutlets,& ! IN:    Number of Outlets/Sinks
          L0_draSC,    & ! IN:    Index of draining cell of each sub catchment (== cell L11)
          L11_fromN,   & ! IN:    from node 
          L11_rowOut,  & ! IN:    grid vertical location of the Outlet
@@ -1303,8 +1305,8 @@ contains
     integer(i4), dimension(:,:), allocatable  :: draSC0
     integer(i4)                               :: ii, rr, kk
     integer(i4)                               :: iNode, iRow, jCol
-    integer(i4)                               :: Noutlet        ! number of outlets in basin
     integer(i4), dimension(:,:), allocatable  :: oLoc           ! output location in L0
+    integer(i4)                               :: nOutlets       ! number of outlets in basin
     logical                                   :: is_outlet      ! flag for finding outlet
 
     ! level-0 information
@@ -1315,8 +1317,9 @@ contains
 
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+    nOutlets = L11_nOutlets(iBasin)
 
-    nLinks  = nNodes - 1
+    nLinks  = nNodes - nOutlets
 
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a basin. 
@@ -1357,10 +1360,9 @@ contains
       colOut(:)     = L11_colOut  ( iStart11 : iEnd11 )  
 
       ! finding main outlet (row, col) in L0
-      Noutlet = count(basin_mrm%L0_rowOutlet(:, iBasin) .gt. nodata_i4)
-      allocate(oLoc(Noutlet, 2))
-      oLoc(:, 1) = basin_mrm%L0_rowOutlet(:Noutlet, iBasin)
-      oLoc(:, 2) = basin_mrm%L0_colOutlet(:Noutlet, iBasin) 
+      allocate(oLoc(Noutlets, 2))
+      oLoc(:, 1) = basin_mrm%L0_rowOutlet(:Noutlets, iBasin)
+      oLoc(:, 2) = basin_mrm%L0_colOutlet(:Noutlets, iBasin) 
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
@@ -1376,7 +1378,7 @@ contains
 
          ! check whether this location is an outlet
          is_outlet = .False.
-         do kk = 1, Noutlet
+         do kk = 1, Noutlets
             if (iRow .eq. oLoc(kk, 1) .and. jCol .eq. oLoc(kk, 2)) is_outlet = .True.
          end do
 
@@ -1390,7 +1392,7 @@ contains
             do while ( .not. ( draSC0(iRow,jCol) > 0 ) )
                call moveDownOneCell( fDir0(iRow,jcol), iRow, jCol )
                ! check whether this location is an outlet and exit
-               do kk = 1, Noutlet
+               do kk = 1, Noutlets
                   if (iRow .eq. oLoc(kk, 1) .and. jCol .eq. oLoc(kk, 2)) exit
                end do
                ! if ( iRow == oLoc(1) .and. jCol == oLoc(2)) exit
@@ -1668,6 +1670,7 @@ contains
          L0_floodPlain,   & ! IN:    floodplains of stream i
          L11_length,      & ! IN:    total length [m] 
          L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
+         L11_nOutlets,    & ! IN:    Number of Outlets/Sinks
          L11_slope          ! INOUT: normalized average slope
 
     implicit none
@@ -1701,6 +1704,7 @@ contains
     integer(i4)                              :: frow, fcol
     integer(i4)                              :: fId,  tId
     integer(i4), dimension(:,:), allocatable :: stack,append_chunk
+    integer(i4), dimension(:),   allocatable :: dummy_1d
     real(dp)                                 :: length
     integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
     real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
@@ -1712,7 +1716,7 @@ contains
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
-    nLinks  = nNodes - 1
+    nLinks  = nNodes - L11_nOutlets(iBasin)
 
     ! allocate
     allocate ( iD0           ( nrows0, ncols0 ) )
@@ -1725,6 +1729,7 @@ contains
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a basin.
     allocate ( stack             ( nNodes, 2 ) ) !>> stack(nNodes, 2)
+    allocate ( dummy_1d          ( 2 ))
     allocate ( append_chunk      ( 8,      2 ) )
     allocate ( netPerm           ( nNodes ) )  
     allocate ( nLinkFromRow      ( nNodes ) )
@@ -1801,7 +1806,6 @@ contains
          tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
 
          do while ( .NOT. (fId == tId))
-
             ! Search flood plain from point(frow,fcol) upwards, keep co-ordinates in STACK
             do while (ns > 0)
                if (ns + 8 .gt. size(stack,1)) then 
@@ -1810,7 +1814,11 @@ contains
                call moveUp( elev0, fDir0, frow, fcol, stack, ns )
                stack(1,1) = 0
                stack(1,2) = 0
-               stack = cshift(stack, SHIFT = 1, DIM = 1)
+               ! stack = cshift(stack, SHIFT = 1, DIM = 1)
+               ! substitute cshift
+               dummy_1d = stack(1, :)
+               stack(:nNodes - 1, :) = stack(2:, :)
+               stack(nNodes, :) = dummy_1d
                if (stack(1,1) > 0 .and. stack(1,2) > 0 ) floodPlain0( stack(1,1), stack(1,2) ) = ii
                ns = count( stack > 0 ) / 2
             end do

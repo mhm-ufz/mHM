@@ -173,6 +173,7 @@ CONTAINS
          L11_netPerm,                & ! routing order at L11
          L11_fromN,                  & ! link source at L11
          L11_toN,                    & ! link target at L11
+         L11_nOutlets,               & ! number of outlets at the L11
          basin_mrm,                  & ! basin_mrm structure
          InflowGauge,                &
          outputFlxState_mrm,         &
@@ -359,7 +360,6 @@ CONTAINS
        hour = -timestep
        iGridLAI_TS = 0
        do tt = 1, nTimeSteps
-!!print*, tt, nTimeSteps
           if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
@@ -546,6 +546,7 @@ CONTAINS
                   L11_netPerm(s11:e11), & ! routing order at L11
                   L11_fromN(s11:e11), & ! link source at L11
                   L11_toN(s11:e11), & ! link target at L11
+                  L11_nOutlets(ii), & ! number of outlets
                   timeStep, & ! simulate timestep in [h]
                   basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                   basin_mrm%nInflowGauges(ii), &
