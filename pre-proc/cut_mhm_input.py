@@ -8,16 +8,24 @@
 #############################################
 
 from __future__ import print_function
-import optparse
-parser = optparse.OptionParser(usage='%prog [options]',
-                               description="Cretaes latitude and longitude grids for <coord_sys> with the domain defined in  <headerfile> into NetCDF file <outfile>.")
+import argparse
+import textwrap
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 description=textwrap.dedent('''\
+          description:
+            This is the python pre-processing script for cutting a subbasin within a given original basin. The rectangle overlying the catchment remains unchanged. This allows to use the same meteorological forcing for the subbasin and the given original basin.
 
-# usage example with command line arguments
-# -------------------------------------------------------------------------
-#
-# py create_latlon.py -c 'epsg:31463' -f header.txt -o latlon.nc
-#
-# -------------------------------------------------------------------------
+          Example:
+            python cut_mhm_basin.py -i ../test_basin/input/ -o cutted_subbasin -g 398
+
+          Note:
+            All morphological input data of the given original basin have to be processed and are assumed to be inside the input directory. The files are: gauge/gauge_loc.asc, morph/aspect.asc, morph/idgauges.asc, morph/dem.asc, morph/slope.asc, morph/facc.asc, morph/fdir.asc, luse/lc_2001.asc
+          
+          Author:
+            Stephan Thober
+          Created:
+            31 May 2016
+          '''))
 
 def check_dir(dir):
     if not isdir(dir):
@@ -28,58 +36,60 @@ def check_dir(dir):
 # default variables
 indir = '../test_basin/input/'
 outdir = './test_cut_mhm_input/'
+lc_file = 'lc_1990.asc'
 gauge_id = -9999.
 
-parser.add_option('-i', '--indir', action='store', dest='indir', type='string',
-                  default=indir, metavar='Property',
-                  help='input directory containing mhm gauge, land use, and morphological information')
-parser.add_option('-o', '--outdir', action='store', dest='outdir', type='string',
-                  default=outdir, metavar='Property',
-                  help='directory where output should be written')
-parser.add_option('-g', '--gauge_id', action='store', dest='gauge_id', type='float',
-                  default=gauge_id, metavar='Property',
+parser.add_argument('-g', '--gauge_id', action='store', dest='gauge_id', default=gauge_id, 
                   help='gauge_id from where subbasin should be cutted')
+parser.add_argument('-i', '--indir', action='store', dest='indir', default=indir, 
+                  help='input directory containing mhm gauge, land use, and morphological information')
+parser.add_argument('-l', '--lc_file', action='store', dest='lc_file', default=lc_file, 
+                  help='land cover file to process')
+parser.add_argument('-o', '--outdir', action='store', dest='outdir', default=outdir, 
+                  help='directory where output should be written')
 
-(opts, args) = parser.parse_args()
-
-indir = opts.indir
-outdir = opts.outdir
-gauge_id = opts.gauge_id
+args = parser.parse_args()
+gauge_id = int(args.gauge_id)
+indir = args.indir
+lc_file = args.lc_file
+outdir = args.outdir
 
 if indir[-1] != '/':
     indir += '/'
 if outdir[-1] != '/':
     outdir += '/'
 
-del opts, args
+del args
 #############################################
 ## START PROCESSING
 #############################################
 ## mHM files to process
-files = ['gauge/gauge_loc.asc',
-         'morph/aspect.asc',
+files = ['morph/aspect.asc',
          'morph/idgauges.asc',
          'morph/dem.asc',
          'morph/slope.asc',
          'morph/facc.asc',
          'morph/fdir.asc',
-         'luse/lc_2001.asc']
+         'luse/' + lc_file]
 #############################################
 
 
 import numpy as np # array manipulation
 from os.path import isdir
 from os import makedirs
-from ufz import fread, river_network, fwrite # from ufz
+from fread import fread
+from river_network import river_network
+from fwrite import fwrite # from ufz
+from subprocess import call # for system call
 
 # read gauge_id file
-idgauges = fread(indir + '/gauge/gauge_loc.asc', skip=6)
+idgauges = fread(indir + '/morph/idgauges.asc', skip=6)
 if gauge_id == -9999.:
     gauges_loc = np.where(idgauges > 0.)
     gauges_id = idgauges[gauges_loc]
 else:
     gauges_loc = np.where(idgauges == gauge_id)
-    gauges_id = gauge_id
+    gauges_id = [gauge_id]
     if gauges_loc[0].shape[0] == 0:
         raise ValueError('***ERROR: gauge with ID {:2.0f} does not exist'.format(gauge_id))    
 
@@ -112,8 +122,10 @@ for gg in np.arange(len(gauges_id)):
 
     # copy gauge file
     gfile = '{:05.0f}.txt'.format(gauges_id[gg])
-    print('   you have to copy gauge file ' + gfile + ' manually using')
+    print('   This script copies the gauge file using system call')
     print('   cp ' + indir + 'gauge/' + gfile + ' ' + outpath + 'gauge/' + gfile)
+    check_dir(outpath + 'gauge/')
+    call(['cp', indir + 'gauge/' + gfile, outpath + 'gauge/' + gfile])
 
 # done
 print('Done')
