@@ -83,7 +83,6 @@ CONTAINS
          L0_latitude, L0_longitude, level0, basin, L1_rect_latitude, L1_rect_longitude
     USE mo_append,           ONLY: append
     USE mo_message,          ONLY: message
-    USE mo_ncread,           ONLY: get_NcVar, get_NcDim
     use mo_netcdf,           only: NcDataset, NcVariable
     use mo_string_utils,     only: num2str
 

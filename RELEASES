@@ -3,6 +3,31 @@
 ------------------------------------------------------------
 
 ----------------------------------------
+     New Features of mHM v5.5
+     (released at Jun 1st, 2016)
+----------------------------------------
+
+New Features:
+- Routing works on domains with multiple outlets (e.g., continental level).
+- New option for providing soil data. They can be provided as predefined layers (one map per layer).
+- Speed up of mHM for big domains, due to reformulations in the model start up.
+- Pre-processing: new tools for i)   cutting out a catchment from a existing dataset,
+                                ii)  estimation of Hargreaves-Samani evapotranspiration, and
+                                iii) enlarging the grids of the input files.
+
+Bugs resolved:
+- Assigning routing parameters is done properly now.
+
+Known bugs:
+None.
+
+Restrictions:
+1. For gfortran compilers mHM supports only v4.8 and higher.
+2. If you wish to use a special process description of evapotranspiration (processCase(4)) please contact Matthias Zink (matthias.zink@ufz.de).
+3. If you wish to use features connected to neutron counts (processCase(8)) please contact Martin Schrön (martin.schroen@ufz.de).
+4. If you wish to use the multi-scale Routing Model as stand-alone version, please contact Stephan Thober (stephan.thober@ufz.de).
+
+----------------------------------------
      New Features of mHM v5.4
      (released at Dec 1st, 2015)
 ----------------------------------------
