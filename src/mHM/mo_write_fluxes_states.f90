@@ -1054,26 +1054,26 @@ contains
     ! northing
     var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
     call var%setData(northing)
-    call var%setAttribute("units","m")
-    call var%setAttribute("long_name","y-coordinate in cartesian coordinates GK4")
+    call var%setAttribute("units","m or deg. dec.")
+    call var%setAttribute("long_name","y-coordinate in the given coordinate system")
 
     ! easting
     var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
     call var%setData(easting)
-    call var%setAttribute("units","m")
-    call var%setAttribute("long_name","x-coordinate in cartesian coordinates GK4")
+    call var%setAttribute("units","m or deg. dec.")
+    call var%setAttribute("long_name","x-coordinate in the given coordinate system")
 
     ! lon
     var = nc%setVariable("lon","f64",dimids1(1:2))
     call var%setData(lon)
-    call var%setAttribute("units","degerees_east")
+    call var%setAttribute("units","deg. dec.")
     call var%setAttribute("long_name","longitude")
     call var%setAttribute("missing_value","-9999.")
 
     ! lat
     var = nc%setVariable("lat","f64",dimids1(1:2))
     call var%setData(lat)
-    call var%setAttribute("units","degerees_north")
+    call var%setAttribute("units","deg. dec.")
     call var%setAttribute("long_name","latitude")
     call var%setAttribute("missing_value","-9999.")
 

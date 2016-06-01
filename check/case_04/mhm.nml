@@ -409,6 +409,8 @@ time_step_model_inputs(6) = 0
 !> Namelist controlling the layering of the soil
 !> Variables given in this namelist are common to all basins to be modeled.
 &soilLayer
+!> iFlag_soilDB
+iFlag_soilDB = 0
 !> [mm] soil depth down to which organic matter is possible  
 tillageDepth         = 200
 !> No. of soil horizons to be modeled

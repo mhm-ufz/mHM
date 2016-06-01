@@ -90,6 +90,7 @@ CONTAINS
   !                   David Schaefer,       Aug 2015 - changed to new netcdf-writing scheme
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
   !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
+  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
@@ -115,6 +116,7 @@ CONTAINS
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             &
          LCyearId, LAIUnitList, LAILUT,                      &
          GeoUnitList, GeoUnitKar, soilDB,                    &
+         iFlag_soilDB,                                       & ! options to handle different types of soil databases
          L0_Id, L0_soilId,                                   &
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,       &
          soilDB, L1_nTCells_L0,                              &
@@ -171,6 +173,7 @@ CONTAINS
          L11_netPerm,                & ! routing order at L11
          L11_fromN,                  & ! link source at L11
          L11_toN,                    & ! link target at L11
+         L11_nOutlets,               & ! number of outlets at the L11
          basin_mrm,                  & ! basin_mrm structure
          InflowGauge,                &
          outputFlxState_mrm,         &
@@ -357,7 +360,6 @@ CONTAINS
        hour = -timestep
        iGridLAI_TS = 0
        do tt = 1, nTimeSteps
-
           if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
@@ -374,7 +376,7 @@ CONTAINS
              e_meteo = e1 - s1 + 1
              ! time step for meteorological variable (daily values)
              iMeteoTS = ceiling( real(tt,dp) / real(NTSTEPDAY,dp) ) &
-                  - ( readPer%julStart - simPer(ii)%julStart )
+                        - ( readPer%julStart - simPer(ii)%julStart )
           end if
 
           hour = mod(hour+timestep, 24)
@@ -472,10 +474,11 @@ CONTAINS
                timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
                nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                        & ! IN C
+               iFlag_soilDB,                                                                & ! IN C
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                     & ! IN L0
-               L0_Id(s0:e0), L0_soilId(s0:e0), L0_LCover_LAI(s0:e0),                        & ! IN L0
+               L0_Id(s0:e0), L0_soilId(s0:e0,:), L0_LCover_LAI(s0:e0),                        & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0
@@ -543,6 +546,7 @@ CONTAINS
                   L11_netPerm(s11:e11), & ! routing order at L11
                   L11_fromN(s11:e11), & ! link source at L11
                   L11_toN(s11:e11), & ! link target at L11
+                  L11_nOutlets(ii), & ! number of outlets
                   timeStep, & ! simulate timestep in [h]
                   basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                   basin_mrm%nInflowGauges(ii), &

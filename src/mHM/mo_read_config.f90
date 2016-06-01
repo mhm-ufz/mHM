@@ -103,7 +103,7 @@ CONTAINS
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
   !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
   !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
-
+  !                     Rohini Kumar, Mar 2016 - options to handle different soil databases
 
   subroutine read_config()
 
@@ -112,6 +112,7 @@ CONTAINS
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
     use mo_nml,              only: open_nml, close_nml, position_nml
+    use mo_constants,        only: eps_dp                     ! epsilon(1.0) in double precision 
     use mo_mhm_constants,    only:                          &
          nodata_i4, nodata_dp,                              & ! nodata values
          nColPars,                                          & ! number of properties of the global variables
@@ -149,7 +150,8 @@ CONTAINS
          nSoilHorizons_sm_input,                            & ! No. of mhm soil horizons equivalent to soil moisture input
          basin_avg_TWS_obs,                                 & ! basin avg TWS data
          fileTWS,                                           & ! directory with basin average tws data
-         dirNeutrons, timeStep_neutrons_input,           & ! directory where neutron data is located
+         dirNeutrons, timeStep_neutrons_input,              & ! directory where neutron data is located
+         iFlag_soilDB,                                      & ! options to handle different types of soil databases
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
          LCfilename, LCyearId,                              & !
@@ -329,7 +331,7 @@ CONTAINS
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
     ! namelist soil layering
-    namelist /soilLayer/ tillageDepth, nSoilHorizons_mHM, soil_Depth
+    namelist /soilLayer/ iFlag_soilDB, tillageDepth, nSoilHorizons_mHM, soil_Depth
     ! namelist for land cover scenes
     namelist/LCover/fracSealed_cityArea,nLcover_scene,LCoverYearStart,LCoverYearEnd,LCoverfName
     ! namelist for LAI related data
@@ -538,10 +540,30 @@ CONTAINS
     call position_nml('soillayer', unamelist)
     read(unamelist, nml=soillayer)
 
-    allocate(HorizonDepth_mHM(nSoilHorizons_mHM))
-    HorizonDepth_mHM = 0.0_dp
-    HorizonDepth_mHM(1:nSoilHorizons_mHM-1) = soil_Depth(1:nSoilHorizons_mHM-1)
+    allocate( HorizonDepth_mHM(nSoilHorizons_mHM) )
+    HorizonDepth_mHM(:) = 0.0_dp
+   
+    if( iFlag_soilDB .eq. 0 ) then
+       ! classical mhm soil database
+       HorizonDepth_mHM(1:nSoilHorizons_mHM-1) = soil_Depth(1:nSoilHorizons_mHM-1)
+    else if( iFlag_soilDB .eq. 1 ) then
+       ! for option-1 where horizon specific information are taken into consideration
+       HorizonDepth_mHM(1:nSoilHorizons_mHM) = soil_Depth(1:nSoilHorizons_mHM)
+    else
+       call message()
+       call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+       stop
+    end if
 
+    ! some consistency checks for the specification of the tillage depth
+    if(iFlag_soilDB .eq. 1) then
+       if( count( abs(HorizonDepth_mHM(:) - tillageDepth) .lt. eps_dp )  .eq. 0 ) then
+          call message()
+          call message('***ERROR: Soil tillage depth must conform with one of the specified horizon (lower) depth.')
+          stop
+       end if
+    end if
+   
     !===============================================================
     !  Read namelist of optional input data
     !===============================================================
@@ -560,28 +582,25 @@ CONTAINS
     !===============================================================
     ! Read evaluation basin average TWS data
     !===============================================================
-
     fileTWS = file_TWS (1:nBasins)
 
     ! if (opti_function .EQ. 15) then !OROROR
-       allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
-       allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
-
-       do iBasin = 1, nBasins
-           if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then
-                call message()
-                call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
-                                 ' for subbasin ', trim(adjustl(num2str(iBasin))), &
-                                 ' is not defined!')
-                call message('          Error occured in namelist: evaluation_tws')
-                stop
-           end if
-
-           basin_avg_TWS_obs%basinId(iBasin) = iBasin
-           basin_avg_TWS_obs%fname(iBasin)   = trim(file_TWS(iBasin))
-       end do
-   ! end if !OROROR
-
+    allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
+    allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
+    
+    do iBasin = 1, nBasins
+       if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then
+          call message()
+          call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
+               ' for subbasin ', trim(adjustl(num2str(iBasin))), &
+               ' is not defined!')
+          call message('          Error occured in namelist: evaluation_tws')
+          stop
+       end if
+       
+       basin_avg_TWS_obs%basinId(iBasin) = iBasin
+       basin_avg_TWS_obs%fname(iBasin)   = trim(file_TWS(iBasin))
+    end do
 
     !===============================================================
     ! Read process selection list

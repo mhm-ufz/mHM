@@ -112,6 +112,7 @@ CONTAINS
   !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
+  !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -133,6 +134,7 @@ CONTAINS
       nHorizons_mHM       , & ! Number of Horizons in mHM
       ntimesteps_day      , & ! number of time intervals per day, transformed in dp
       mask0               , & ! mask 0 for MPR
+      iflag_soil_option   , & ! flags for handling multiple soil databases      
       global_parameters   , & ! global mHM parameters
       ! LUT
       LCyearId            , & ! mapping of landcover scenes
@@ -238,7 +240,6 @@ CONTAINS
       unsat_thresh        , & ! Threshold water depth in upper reservoir
       water_thresh_sealed , & ! Threshold water depth in impervious areas
       wilting_point         ) ! Permanent wilting point for each horizon
-
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
     use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
@@ -274,6 +275,7 @@ CONTAINS
     integer(i4),                 intent(in) :: nHorizons_mHM
     real(dp),                    intent(in) :: ntimesteps_day
     logical,     dimension(:,:), intent(in) :: mask0
+    integer(i4),                 intent(in) :: iflag_soil_option                
     real(dp),    dimension(:),   intent(in) :: global_parameters
 
     ! LUT
@@ -287,7 +289,7 @@ CONTAINS
     real(dp),    dimension(:),     intent(in) :: slope_emp0
     real(dp),    dimension(:),     intent(in) :: l0_latitude ! l1 ids of l0 cells
     integer(i4), dimension(:),     intent(in) :: cellId0
-    integer(i4), dimension(:),     intent(in) :: soilId0
+    integer(i4), dimension(:,:),   intent(in) :: soilId0
     integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
     integer(i4), dimension(:),     intent(in) :: LCover0
     real(dp),    dimension(:),     intent(in) :: Asp0
@@ -474,11 +476,11 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, global_parameters(:), nodata_dp, mask0,               &
-                geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,                   &
+           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,   &
+                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,            &
                 SDB_is_present, SDB_nHorizons,                                            &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
-                nHorizons_mHM,  horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,        &
+                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,         &
                 soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
                 slope_emp0, cellId0,                                                      &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
@@ -566,8 +568,8 @@ CONTAINS
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
-          doy       = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
-          !
+          doy = nint(date2dec(day,month,year,12) - date2dec(1,1,year,12) ) + 1
+          
           if (tmax_in(k) .lt. tmin_in(k)) call message('WARNING: tmax smaller than tmin at doy ', &
                num2str(doy), ' in year ', num2str(year),' at cell', num2str(k),'!')
 

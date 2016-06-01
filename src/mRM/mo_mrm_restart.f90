@@ -744,6 +744,7 @@ contains
          L11_rOrder,        &
          L11_label,         &
          L11_sink,          &
+         L11_nOutlets,      &
          L11_netPerm,       &
          L11_fRow,          &
          L11_fCol,          &
@@ -1119,6 +1120,9 @@ contains
     var = nc%getVariable("L11_sink")
     call var%getData(dummyI1)
     call append(L11_sink, (dummyI1 .eq. 1_i4))
+    ! append Number of Outlets at Level 11
+    call append(L11_nOutlets, count((dummyI1 .eq. 1_i4)))
+    print *, size(L11_nOutlets), L11_nOutlets
 
     ! Routing sequence (permutation of L11_rOrder)
     var = nc%getVariable("L11_netPerm")

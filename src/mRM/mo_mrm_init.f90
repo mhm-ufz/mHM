@@ -136,6 +136,7 @@ CONTAINS
     ! ----------------------------------------------------------
     ! level 0 data
     call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    
     if (perform_mpr) then
        do iBasin = 1, nBasins
           if (iBasin .eq. 1) then

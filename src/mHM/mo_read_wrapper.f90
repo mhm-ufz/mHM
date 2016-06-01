@@ -78,8 +78,10 @@ CONTAINS
   !                    Matthias Zink   Mar 2014   added inflow gauge
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
-  !                    Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
+  !                    Matthias Cuntz &
+  !                    Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
   !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
+  !                     Rohini Kumar,  Mar 2016  - options to handle different soil databases
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -101,7 +103,8 @@ CONTAINS
                                      file_soilclass     , usoilclass,     & ! file name and unit of soil class map
                                      file_hydrogeoclass , uhydrogeoclass, & ! file name and unit of hydrogeo class map
                                      file_laiclass      , ulaiclass,      & ! file name and unit of lai class map
-                                     file_soil_database ,                 & ! file name and unit of soil class map
+                                     file_soil_database ,                 & ! file name of soil class map (iFlag_soilDB = 0)
+                                     file_soil_database_1,                & ! file name of soil class map (iFlag_soilDB = 1)
                                      ulcoverclass                           ! unit of land cover class map
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
                                      L0_Basin,                            & ! L0_Basin ID
@@ -109,18 +112,20 @@ CONTAINS
                                      L0_elev,                             & ! elevation on input resolution (L0)
                                      L0_slope,                            & ! slope on input resolution (L0)
                                      L0_asp,                              & ! aspect on input resolution (L0)
-                                     L0_soilId,                           & ! soil class ID on input resolution (L0)
-                                     L0_geoUnit,                          & ! hydro class ID on input resolution (L0)
+                                     L0_soilId,                           & ! soil ID on L0 resolution
+                                     L0_geoUnit,                          & ! hydrogeological class ID on input resolution (L0)
                                      L0_LCover_LAI,                       & ! LAI class ID on input resolution (L0)
-                                     L0_LCover,                           & ! Normal land cover class ID on input resolution (L0)
+                                     L0_LCover,                           & ! classical mHM land cover class (L0)
                                      dirMorpho, dirLCover,                & ! directories
                                      dirCommonFiles,                      & ! directory of common files
-                                     LCfilename, nLCoverScene,           & ! file names and number of land cover scenes
+                                     LCfilename, nLCoverScene,            & ! file names and number of land cover scenes
                                      level0,                              & ! grid information (ncols, nrows, ..)
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
                                      perform_mpr,                         & ! flag indicating whether L0 is read
-                                     !timeStep_LAI_input,                  & ! flag on how LAI data has to be read
+                                     !timeStep_LAI_input,                 & ! flag on how LAI data has to be read
+                                     iFlag_soilDB,                        & ! options to handle different types of soil databases
+                                     nSoilHorizons_mHM,                   & ! soil horizons info for mHM
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
                                      nLAIclass, LAIUnitList, LAILUT,soilDB        
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
@@ -128,10 +133,11 @@ CONTAINS
     implicit none
 
     ! local variables
-    integer(i4)                               :: iBasin, iVar     ! loop variables
-    integer(i4)                               :: nunit            ! file unit of file to read
-    integer(i4)                               :: nCells           ! number of cells in global_mask
-    character(256)                            :: fName            ! file name of file to read
+    integer(i4)                               :: iBasin, iVar, iHorizon     ! loop variables
+    integer(i4)                               :: nH                         ! dummy variable
+    integer(i4)                               :: nunit                      ! file unit of file to read
+    integer(i4)                               :: nCells                     ! number of cells in global_mask
+    character(256)                            :: fName                      ! file name of file to read
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
@@ -149,8 +155,12 @@ CONTAINS
     ! ************************************************
     !
     ! Soil LUT
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
-    call read_soil_LUT( trim(fName), soilDB )
+    if( iFlag_soilDB .eq. 0 ) then
+       fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database))
+    else if( iFlag_soilDB .eq. 1) then
+       fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_soil_database_1))
+    end if
+    call read_soil_LUT( trim(fName), iFlag_soilDB, soilDB)
 
     ! Geological formation LUT
     fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))
@@ -163,7 +173,6 @@ CONTAINS
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
-
     ! allocate necessary variables at Level0
     allocate(level0%nrows       (nBasins))
     allocate(level0%ncols       (nBasins))
@@ -237,16 +246,17 @@ CONTAINS
           basin%L0_iStartMask(iBasin) = basin%L0_iEndMask(iBasin-1) + 1
           basin%L0_iEndMask  (iBasin) = basin%L0_iStartMask(iBasin) + nCells - 1
        end if
+
        ! Read L0 data, if restart is false
        read_L0_data: if ( perform_mpr ) then
-          !
+          
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d, nodata_dp, mask_global)
           ! put data in variable
           call append( L0_elev, pack(data_dp_2d, mask_global) )
           ! deallocate arrays
           deallocate(data_dp_2d)
-          !
+          
           ! read slope and aspect - datatype real
           nVars_real: do iVar = 1, 2
              select case (iVar)
@@ -257,15 +267,13 @@ CONTAINS
                 fName = trim(adjustl(dirMorpho(iBasin)))// trim(adjustl(file_aspect))
                 nunit = uaspect
              end select
-             !
+             
              ! reading
              call read_spatial_data_ascii(trim(fName), nunit,                                     &
                   level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                   level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_2d)
-             !
              ! put global nodata value into array (probably not all grid cells have values)
              data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
-             !
              ! put data in variable
              select case (iVar)
              case(1) ! slope
@@ -273,53 +281,99 @@ CONTAINS
              case(2) ! aspect
                 call append( L0_asp, pack(data_dp_2d, mask_global) )
              end select
-             !
              ! deallocate arrays
              deallocate(data_dp_2d, mask_2d)
-             !
+
           end do nVars_real
-          !
-          ! read soilID, geoUnit, LAI - datatype integer
-          nVars_integer: do iVar = 1, 3
 
-             ! handle LAI options
-             ! if( (iVar .EQ. 3)  .AND. (timeStep_LAI_input < 0) ) CYCLE
-
-             select case (iVar)
-             case(1) ! soil ID
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
-                nunit = usoilclass
-             case(2) ! geological ID
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
-                nunit = uhydrogeoclass
-             case(3) ! LAI classes
-                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-                nunit = ulaiclass
-             end select
-
-             !
-             ! reading and transposing
-             call read_spatial_data_ascii(trim(fName), nunit,                               &
+          ! read datatype integer
+          ! ***** CHANGE IS MADE HERE TO ACCOMODATE READ SEVERAL TYPES OF SOIL DATABASES
+          ! change from the earlier code where everything was done in the DO loop (**see below **)
+          ! here everything is more explicit and no do loop appears as was the case in previous version
+          
+          ! read soilID in both options
+          nH = 1 !> by default; when iFlag_soilDB = 0
+          if(iFlag_soilDB .eq. 1) nH = nSoilHorizons_mHM
+          ! modified way to read multiple horizons specific soil class
+          do iHorizon = 1, nH
+              if( iFlag_soilDB .eq. 0 ) then
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass)) 
+             else if( iFlag_soilDB .eq. 1 ) then
+                write(fName, 172) iHorizon
+172             format('soil_class_horizon_',i2.2,'.asc')
+                fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(fName))
+             end if
+             call read_spatial_data_ascii(trim(fName), usoilclass,                          &
                   level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                   level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
              ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)               
+             call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+             deallocate(data_i4_2d)
+          end do
+          call append( L0_soilId, dataMatrix_i4 )
+          deallocate(dataMatrix_i4)
 
-             ! put data into global L0 variable
-             select case (iVar)
-             case(1) ! soil class ID
-                call append( L0_soilId,  pack(data_i4_2d, mask_global) )
-             case(2) ! hydrogeological class ID
-                call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-             case(3) ! Land cover related to LAI classes
-                call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
-             end select
-             !
-             ! deallocate arrays
-             deallocate(data_i4_2d, mask_2d)
-             !
-          end do nVars_integer
+          ! read geoUnit
+          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
+          ! reading and transposing
+          call read_spatial_data_ascii(trim(fName), uhydrogeoclass,                      &
+               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+          call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
+          deallocate(data_i4_2d, mask_2d)
+          
+          ! read LAI related land cover class
+          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+          ! reading and transposing
+          call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
+               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+          deallocate(data_i4_2d, mask_2d)
+
+
+          ! ! read soilID, geoUnit, LAI - datatype integer
+          ! nVars_integer: do iVar = 1, 3
+          !    ! handle LAI options
+          !    ! if( (iVar .EQ. 3)  .AND. (timeStep_LAI_input < 0) ) CYCLE
+          !    select case (iVar)
+          !    case(1) ! soil ID
+          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
+          !       nunit = usoilclass
+          !    case(2) ! geological ID
+          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
+          !       nunit = uhydrogeoclass
+          !    case(3) ! LAI classes
+          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+          !       nunit = ulaiclass
+          !    end select
+
+          !    ! reading and transposing
+          !    call read_spatial_data_ascii(trim(fName), nunit,                               &
+          !         level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+          !         level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+          !    ! put global nodata value into array (probably not all grid cells have values)
+          !    data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+
+          !    ! put data into global L0 variable
+          !    select case (iVar)
+          !    case(1) ! soil class ID
+          !       call append( L0_soilId,  pack(data_i4_2d, mask_global) )
+          !    case(2) ! hydrogeological class ID
+          !       call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
+          !    case(3) ! Land cover related to LAI classes
+          !       call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+          !    end select
+             
+          !    ! deallocate arrays
+          !    deallocate(data_i4_2d, mask_2d)
+          !    !
+          ! end do nVars_integer
           !
        else
           ! if restart is switched on, perform dummy allocation of
@@ -328,41 +382,47 @@ CONTAINS
           call append( L0_elev,     dummy_dp )
           call append( L0_slope,    dummy_dp )
           call append( L0_asp,      dummy_dp )
-          call append( L0_soilId,   dummy_i4 )
+          ! for soil class 
+          nH = 1 !> by default; when iFlag_soilDB = 0
+          if ( iFlag_soilDB .eq. 1 ) nH = nSoilHorizons_mHM
+          do iHorizon = 1, nH
+             call paste(dataMatrix_i4, dummy_i4)
+          end do
+          call append( L0_soilId, dataMatrix_i4 )
+          deallocate(dataMatrix_i4)
+          !
           call append( L0_geoUnit,  dummy_i4 )
           deallocate( dummy_dp, dummy_i4 )
+          
           ! read L0_LCover_LAI
           fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-          nunit = ulaiclass
-          call read_spatial_data_ascii(trim(fName), nunit,                               &
+          call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
           ! end if
+          
        end if read_L0_data
 
-       !
+       
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCoverScene
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
           call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
                level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
           call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
-          !
           deallocate(data_i4_2d)
        end do
-       !
        call append( L0_LCover, dataMatrix_i4 )
-       !
-       deallocate(mask_global)
        deallocate(dataMatrix_i4)
+
+       ! deallocate mask
+       deallocate(mask_global)
 
     end do basins
     !----------------------------------------------------------------
@@ -380,4 +440,5 @@ CONTAINS
     end if
 
   end subroutine read_data
+  
 END MODULE mo_read_wrapper

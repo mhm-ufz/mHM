@@ -23,6 +23,7 @@
 ! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
 ! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
 
+  
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -343,18 +344,79 @@ time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
-! mHM SOIL LAYERING
+! INPUT SOIL DATABASE AND mHM LAYERING 
 !******************************************************************************************
-!> Namelist controlling the layering of the soil
+!> Namelist controlling the layer information of the soil database
 !> Variables given in this namelist are common to all basins to be modeled.
 &soilLayer
+!----------------------------------------------------------------------------------------------------------
+!> iFlag_soilDB:
+!>            flag to handle multiple types of soil databases and their processing within the mHM.\n
+!>            This flag is unique and valid for all basins.\n
+!>            Depending on the choice of this flag you need to process your soil database differently.\n
+!
+!> iFlag_soilDB = 0:
+!>            Read and process the soil database in a classical mHM format which requires:\n
+!>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)\n
+!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of 
+!>                  soil textural properties for every horizon.\n
+!
+!>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
+!>            and depths provided in "soil_Depth(:)".\n
+!
+!>            The tillage depth is flexible in this case.\n
+!
+!>            The depth of last mHM modeling layer is determined according the information given in the
+!>            input soil database, which could vary spatially depending on the soil type. Therefore the 
+!>            user should not provide the depth of the last modeling layer. For example if you choose
+!>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
+!>            Any additional depth related information would be discarded
+!
+!> iFlag_soilDB = 1:
+!>            Handle the harmonised horizon specific soil information, requires
+!>               i) multiple (horizon specific) gridded ASCII files containing info of soil-ids.
+!>                 (e.g., soil_class_horizon001.asc, soil_class_horizon002.asc, ....)
+!>                 File names are automatically generated within mHM as per the given soil_Depth(:).
+!>                 The format follows the FORTRAN coding style: "soil_class_horizon_"XX".asc"
+!>                 where XX represents the horizon id with 2 spaces allocated for this number
+!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
+!>                 The horizon is numbered sequentially from top to bottom soil layers.
+!>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
+!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n               
+!
+!>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
+!>                  Note that there should be no horizon specific information in this LUT file
+!>                  (soil_classdefinition_iFlag_soilDB_1.txt - filename is hard coded).\n
+!
+!>            The modeling soil horizons is as per the input data (i.e. for which the gridded ASCII files are available).
+!
+!>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.\n
+!
+!>            The tillage depth should conform with one of the horizon (lower) layer depths.\n     
+!
+!>            There is an overhead cost of reading and storing multiple (horizon specific) gridded ASCII files\n
+!
+!> Note: For both cases: The present model code mHM can handle maximum of 10 soil horizons (hard coded).
+!>        To increase this number, edit the variable "maxNoSoilHorizons" in the "/src/mhm/mo_mhm_constants.f90" file
+!
+!----------------------------------------------------------------------------------------------------------
+iFlag_soilDB = 0
+!
 !> [mm] soil depth down to which organic matter is possible
-tillageDepth      = 200
+tillageDepth = 200
+!
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM = 2
-!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
-!> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soil_Depth(1)     = 200
+nSoilHorizons_mHM =2
+!
+! soil depth information
+!> IF (iFlag_soilDB = 0)
+!>    Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
+!> IF (iFlag_soilDB = 1)
+!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
+!>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
+!
+!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
+soil_Depth(1) = 200
 /
 
 !******************************************************************************************

@@ -86,6 +86,7 @@ contains
          L11_netPerm, & ! routing order at L11
          L11_fromN, & ! link source at L11
          L11_toN, & ! link target at L11
+         L11_nOutlets, &
          basin_mrm, & ! basin_mrm structure
          InflowGauge, &
          resolutionRouting, &
@@ -198,6 +199,7 @@ contains
                L11_netPerm(s11:e11), & ! routing order at L11
                L11_fromN(s11:e11), & ! link source at L11
                L11_toN(s11:e11), & ! link target at L11
+               L11_nOutlets(ii), & ! number of outlets
                timeStep, & ! simulate timestep in [h]
                basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                basin_mrm%nInflowGauges(ii), &

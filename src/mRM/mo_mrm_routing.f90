@@ -130,6 +130,7 @@ CONTAINS
        L11_netPerm, & ! L11 routing order
        L11_fromN, & ! L11 source grid cell order
        L11_toN, & ! L11 target grid cell order
+       L11_nOutlets, & ! number of outlets
        timestep, & ! simulation timestep in [h]
        nNodes, & ! number of nodes
        nInflowGauges, & ! number of inflow gauges
@@ -175,6 +176,7 @@ CONTAINS
     integer(i4), dimension(:), intent(in) :: L11_netPerm ! L11 routing order
     integer(i4), dimension(:), intent(in) :: L11_fromN ! L11 source grid cell order
     integer(i4), dimension(:), intent(in) :: L11_toN ! L11 target grid cell order
+    integer(i4),               intent(in) :: L11_nOutlets ! L11 number of outlets/sinks
     integer(i4), intent(in) :: timestep ! simulation timestep in [h]
     integer(i4), intent(in) :: nNodes ! number of nodes
     integer(i4), intent(in) :: nInflowGauges ! number of inflow gauges
@@ -221,7 +223,7 @@ CONTAINS
        ! --> Note: L11_fraction_sealed_floodplain routine is called
        !           only in case when routing process is ON
        !-------------------------------------------------------------------
-       CALL L11_fraction_sealed_floodplain( nNodes-1, &
+       CALL L11_fraction_sealed_floodplain( nNodes - L11_nOutlets, &
             L0_LCover, &
             L0_floodPlain,       &
             L0_areaCell, &
@@ -231,8 +233,8 @@ CONTAINS
        ! for a single node model run
        if( nNodes .GT. 1) then
           call reg_rout( global_routing_param, &
-               L11_length, L11_slope, L11_FracFPimp(:nNodes-1), &
-               real(timeStep,dp), L11_C1(:nNodes-1), L11_C2(:nNodes-1))
+               L11_length, L11_slope, L11_FracFPimp(:nNodes - L11_nOutlets), &
+               real(timeStep,dp), L11_C1(:nNodes - L11_nOutlets), L11_C2(:nNodes - L11_nOutlets))
        end if 
     end if
 
@@ -252,7 +254,7 @@ CONTAINS
     ! for a single node model run
     if( nNodes .GT. 1) then
        ! routing of water within river reaches
-       call L11_routing( nNodes, nNodes-1, &
+       call L11_routing( nNodes, nNodes - L11_nOutlets, &
             L11_netPerm, &
             L11_fromN, & ! Intent IN
             L11_toN, & ! Intent IN
