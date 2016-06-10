@@ -129,6 +129,7 @@ class NetcdfGrid(BaseGrid):
 
     def read(self, mirror_y_axis=False, **kwargs):
         from ufz import readnc
+        from numpy import meshgrid
 
         super(NetcdfGrid,self).read() # call read of ascci header
         # read netcdf variable, array and attributes
@@ -149,6 +150,11 @@ class NetcdfGrid(BaseGrid):
         self.nclat = readnc(self._ncfile, var='lat')
         self.nclatatt = readnc(self._ncfile, var='lat', attributes=True)
         self.nclatatt['missing_value'] = float(self.nodata_value)
+        if len(self.nclat.shape) != len(self.nclon.shape):
+            raise ValueError('lat and lon have different dimensions in nc file')
+        if len(self.nclat.shape) == 1:
+            print('***CAUTION: creating two dimensional lat and lon')
+            self.nclon, self.nclat = meshgrid(self.nclon, self.nclat)
 
     def write(self,filename):
         from ufz import dumpnetcdf
