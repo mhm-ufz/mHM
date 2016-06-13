@@ -401,8 +401,8 @@ contains
     call var%setData(L11_length(s11:e11))
     call var%setAttribute("long_name", "Total length of river link [m]")
 
-    var = nc%setVariable("L11_aFloodPlain", "i32", (/links/))
-    call var%setFillValue(nodata_i4)
+    var = nc%setVariable("L11_aFloodPlain", "f64", (/links/))
+    call var%setFillValue(nodata_dp)
     call var%setData(L11_aFloodPlain(s11:e11))
     call var%setAttribute("long_name", "Area of the flood plain [m2]")
 
