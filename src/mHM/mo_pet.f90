@@ -79,12 +79,13 @@ CONTAINS
   !             Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
 
   !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Dec 2012
+  !>        \author   Matthias Zink
+  !>        \date     Dec 2012
 
   elemental pure FUNCTION pet_hargreaves(HarSamCoeff, HarSamConst, tavg, tmax, tmin, latitude, doy)
 
     use mo_constants,     only: deg2rad_dp
+    use mo_utils,         only: LE
 
     implicit none
 
@@ -98,23 +99,17 @@ CONTAINS
 
     real(dp)                :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
 
-    real(dp)                :: delta_temp        ! tmax-Tmin
+    ! local
+    real(dp)                :: delta_temp            ! tmax-Tmin
 
-    ! correction for shity input data ! MZMZMZMZ
-    if (tmax - tmin .GT. 0.0_dp) then 
-      delta_temp     = tmax - tmin ! MZMZMZMZ
+    ! correction for shity input data (tmax<tmin) and to avoid numerical errors ! MZMZMZMZ
+    delta_temp = tmax - tmin
+    if( LE(delta_temp, 0.0_dp) .or. LE(tavg, -HarSamConst) ) then
+       pet_hargreaves = 0.0_dp
     else
-      delta_temp     =  1.0e-05_dp  ! MZMZMZMZ
+       pet_hargreaves = HarSamCoeff * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (tavg + HarSamConst) * sqrt(delta_temp) 
     end if
-    ! in [mm s-1]   
-  ! to avoid numerical errors
-  if (tavg .lt. -17.8_dp) then
-     pet_hargreaves = 1.0E-5_dp
-  else
-    pet_hargreaves = HarSamCoeff * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (tavg + HarSamConst) * sqrt(delta_temp) 
-  end if
-
-
+    
   END FUNCTION pet_hargreaves
 
 
@@ -332,8 +327,9 @@ CONTAINS
   !>            John Wiley and Sons, New York. pp. 1-109.
 
   !     HISTORY
-  !>        \author  Matthias Zink
-  !>        \date    Apr 2014
+  !>        \author   Matthias Zink
+  !>        \date     Apr 2014
+  !         Modified  R. Kumar and M. Zink,    June 2016 - correction to include NaN in acos(arg) 
 
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude) 
 
@@ -345,16 +341,26 @@ CONTAINS
     integer(i4), intent(in)             :: doy
     real(dp),    intent(in)             :: latitude             ! latitude [rad]
     real(dp)                            :: extraterr_rad_approx ! extraterrestrial radiation
+
+    ! local
     real(dp)                            :: dr, delta
     real(dp)                            :: omega
+    real(dp)                            :: arg
     
     ! inverse relative distance Earth-Sun - correction for eccentricity of Earths orbit around the sun
     dr     =  1.0_dp + DuffieDr * cos( TWOPI_D * doy / YearDays )            
     ! declination of the sun above the celestial equator in radians
     delta  =       DuffieDelta1 * sin( TWOPI_D * doy / YearDays - DuffieDelta2 ) 
+
+    ! arccos(x) is only defined between PI and 0 (for x between -1 and 1)
+    ! check limits
+    arg = - tan(latitude) * tan(delta)
+    if( arg .lt. -1.0_dp ) arg = -1.0_dp
+    if( arg .gt.  1.0_dp ) arg =  1.0_dp
+
     ! sunrise hour angle in radians
-    omega  = acos( - tan(latitude) * tan(delta) )                  
-    
+    omega  = acos( arg )
+       
     ! Ra - converted from [J m-2 d-1] in [mm d-1]
     extraterr_rad_approx   = DaySecs / PI_D / SpecHeatET_dp * SolarConst_dp *  &
          dr * (omega * sin(latitude) * sin(delta) + cos(latitude) * cos(delta) * sin(omega))

@@ -664,7 +664,7 @@ CONTAINS
                standard_score(sm_opti(iCell,:), mask=L1_sm_mask(iCell,:)), mask=L1_sm_mask(iCell,:))
 
        end do
-       print*, iBasin,  objective_sm_sse_standard_score_basin
+       ! print*, iBasin,  objective_sm_sse_standard_score_basin
        ! calculate average soil moisture correlation over all basins with power law
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
        objective_sm_sse_standard_score = objective_sm_sse_standard_score + &

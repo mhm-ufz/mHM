@@ -1122,7 +1122,6 @@ contains
     call append(L11_sink, (dummyI1 .eq. 1_i4))
     ! append Number of Outlets at Level 11
     call append(L11_nOutlets, count((dummyI1 .eq. 1_i4)))
-    print *, size(L11_nOutlets), L11_nOutlets
 
     ! Routing sequence (permutation of L11_rOrder)
     var = nc%getVariable("L11_netPerm")
