@@ -9,11 +9,22 @@
 #          Stephan Thober, Jun 2015 - added option for performing no coordinate transformation,
 #                                     updated import to new ufz module, cs can be float,
 #                                     create 1 dimensional xx array now with linspace, which is cleaner and solves a bug in the creation of the y direction
+#          Stephan Thober, Jun 2016 - refactored header_to_latlon function, now compatible with remap-grid script in bash_chs library
 #
 #############################################
 
 
-def header_to_latlon(headerfile, coord_sys):
+def xx_to_latlon(xx, yy, coord_sys):
+    if coord_sys == '':
+        longitude = xx
+        latitude = yy
+    else:
+        projAim = Proj(init=coord_sys)
+        longitude, latitude = projAim(xx, yy, inverse=True)
+    return longitude, latitude
+
+
+def header_to_latlon(headerfile, coord_sys, do_corners=False):
     # This function returns the latitude longitude given a ASCII header file
 
     # check input files
@@ -36,14 +47,33 @@ def header_to_latlon(headerfile, coord_sys):
 
     #
     # determine latitude and longitude of the Aimgrid
-    if coord_sys == '':
-        lons = xx
-        lats = yy
-    else:
-        projAim    = Proj(init=coord_sys)
-        lons, lats = projAim(xx, yy, inverse=True)
+    lons, lats = xx_to_latlon(xx, yy, coord_sys)
 
-    return lons, lats, xx, yy, missVal
+    if do_corners:
+        # lower left corner
+        ul_xx            = np.linspace(xllcorner,                     xllcorner + (ncols-1)*cs, ncols)
+        ul_yy            = np.linspace(yllcorner + cs + (nrows-1)*cs, yllcorner + cs,           nrows)
+        ul_xx, ul_yy     = np.meshgrid(ul_xx, ul_yy)
+        ul_lons, ul_lats = xx_to_latlon(ul_xx, ul_yy, coord_sys)
+        # lower right corner
+        ur_xx            = np.linspace(xllcorner + cs,                xllcorner + cs + (ncols-1)*cs, ncols)
+        ur_yy            = np.linspace(yllcorner + cs + (nrows-1)*cs, yllcorner + cs,                nrows)
+        ur_xx, ur_yy     = np.meshgrid(ur_xx, ur_yy)
+        ur_lons, ur_lats = xx_to_latlon(ur_xx, ur_yy, coord_sys)
+        # upper right corner
+        lr_xx            = np.linspace(xllcorner + cs,           xllcorner + cs + (ncols-1)*cs, ncols)
+        lr_yy            = np.linspace(yllcorner + (nrows-1)*cs, yllcorner,                     nrows)
+        lr_xx, lr_yy     = np.meshgrid(lr_xx, lr_yy)
+        lr_lons, lr_lats = xx_to_latlon(lr_xx, lr_yy, coord_sys)
+        # upper left corner
+        ll_xx            = np.linspace(xllcorner,                xllcorner + (ncols-1)*cs, ncols)
+        ll_yy            = np.linspace(yllcorner + (nrows-1)*cs, yllcorner,                nrows)
+        ll_xx, ll_yy     = np.meshgrid(ll_xx, ll_yy)
+        ll_lons, ll_lats = xx_to_latlon(ll_xx, ll_yy, coord_sys)
+
+        return lons, lats, xx, yy, missVal, ll_lons, lr_lons, ur_lons, ul_lons, ll_lats, lr_lats, ur_lats, ul_lats
+    else:
+        return lons, lats, xx, yy, missVal
 
 
 def latlon_to_nc(fhandle, lons, lats, xx, yy, missVal, suffix):
