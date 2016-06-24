@@ -104,7 +104,7 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Jan 2015
    subroutine setCalendarString(selector)
     character(*), intent(in) :: selector
@@ -152,7 +152,7 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Jan 2015
    subroutine setCalendarInteger(selector)
     integer(i4), intent(in) :: selector
@@ -199,7 +199,7 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Jan 2015
   pure function selectCalendar(selector)
     integer(i4), intent(in), optional :: selector
@@ -257,7 +257,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Jan 2015
   elemental subroutine caldat(julian, dd, mm, yy, calendar)
 
@@ -1173,7 +1173,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Oct 2015
   elemental subroutine caldat360(julian,dd,mm,yy)
 
@@ -1464,7 +1464,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schäfer
+  !>        \author Written, David Schaefer
   !>        \date Dec 2015
   elemental subroutine caldat365(julian,dd,mm,yy)
 

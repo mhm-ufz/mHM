@@ -85,7 +85,7 @@ CONTAINS
   !         Used as hydrologic signature with lag 1 in
   !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
   !     HISTORY
   !>        \author Juliane Mai
@@ -197,20 +197,20 @@ CONTAINS
   !         FDC is used as hydrologic signature (quantiles not specified) in
   !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
   !         Concavity Index used as hydrologic signature in
   !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
   !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
   !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
   !         Concavity index is defined using exceedance probabilities by
   !            Sauquet, E., & Catalogne, C. (2011).
   !            Comparison of catchment grouping methods for flow duration curve estimation at ungauged sites in France.
-  !            Hydrology and Earth System Sciences, 15(8), 2421–2435. doi:10.5194/hess-15-2421-2011
+  !            Hydrology and Earth System Sciences, 15(8), 2421-2435. doi:10.5194/hess-15-2421-2011
   !         mid_segment_slope, high_segment_volume, low_segment_volume used as hydrologic signature in
   !            Shafii, M., & Tolson, B. A. (2015).
   !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
   
   !     HISTORY
   !>        \author Remko Nijzink, Juliane Mai
@@ -358,7 +358,7 @@ CONTAINS
   !         Rising limb density used as hydrologic signature in
   !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
   !     HISTORY
   !>        \author Remko Nijzink
@@ -526,7 +526,7 @@ CONTAINS
   !         used as hydrologic signature in
   !            Shafii, M., & Tolson, B. A. (2015).
   !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
   !     HISTORY
   !>        \author Juliane Mai
@@ -667,11 +667,11 @@ CONTAINS
   !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
   !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
   !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
   !         mean_data, stddev_data, median_data, max_data, mean_log, and stddev_log used as hydrologic signature in
   !            Shafii, M., & Tolson, B. A. (2015).
   !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
   !     HISTORY
   !>        \author Juliane Mai
@@ -790,7 +790,7 @@ CONTAINS
   !         slope_peak_distribution used as hydrologic signature in
   !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893–1912. doi:10.5194/hess-17-1893-2013
+  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
   !     HISTORY
   !>        \author Remko Nijzink
@@ -929,7 +929,7 @@ CONTAINS
   !         Used as hydrologic signature in
   !            Shafii, M., & Tolson, B. A. (2015).
   !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796–3814. doi:10.1002/2014WR016520
+  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
   !     HISTORY
   !>        \author Juliane Mai
@@ -1052,7 +1052,7 @@ CONTAINS
   !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
   !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
   !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936–948. doi:10.1016/j.jhydrol.2014.06.032
+  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
 
   !     HISTORY
   !>        \author Juliane Mai
