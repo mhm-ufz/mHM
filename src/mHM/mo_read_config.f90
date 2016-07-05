@@ -431,8 +431,8 @@ CONTAINS
     ! check for perform_mpr and read restart
     if ( ( read_restart ) .and. ( perform_mpr ) ) then
        call message()
-       call message('***WARNING: MPR has not effect when reading states from restart file')
-       call message('            MPR should only be activated if a land cover change accurs.')
+       call message('***WARNING: MPR has no effect when reading states from restart file')
+       call message('            MPR should only be activated if a land cover change occurs.')
     end if
     if ( ( .not. read_restart ) .and. ( .not. perform_mpr ) ) then
        call message()
