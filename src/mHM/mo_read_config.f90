@@ -190,7 +190,6 @@ CONTAINS
          !                                                    !      # points per subcomplex
          mcmc_opti,                                         & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
          mcmc_error_params                                    !       parameters of error model used in likelihood
-		 
 
     implicit none
 
@@ -291,6 +290,7 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
     character(256), dimension(maxNoBasins)          :: file_TWS                  ! total water storage input file
     character(256), dimension(maxNoBasins)          :: dir_neutrons              ! ground albedo neutron input
+
     !
   integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
   integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover
@@ -306,7 +306,6 @@ CONTAINS
     real(dp), dimension(maxNoBasins)                :: resolution_Hydrology
     real(dp), dimension(maxNoBasins)                :: resolution_Routing
     integer(i4), dimension(maxNoBasins)             :: L0Basin
-   
 
     ! define namelists
     ! namelist directories
@@ -412,7 +411,6 @@ CONTAINS
     allocate(dirSoil_Moisture(nBasins))
     allocate(dirNeutrons(nBasins))
     allocate(fileTWS(nBasins))
-	allocate(dirWaterquality(nBasins))   !added by yangx 2016-06-23
     !
     resolutionHydrology = resolution_Hydrology(1:nBasins)
     resolutionRouting   = resolution_Routing(1:nBasins)
@@ -1219,25 +1217,7 @@ CONTAINS
        processMatrix(10, 2) = 0_i4
        processMatrix(10, 3) = sum(processMatrix(1:10, 2))
     end if
-    !---------------------------------------------
-    !***Nitrate parameters***
-    ! Process 11 - nutrient submodel(nitrogen)
-    ! 0 - deactivated
-    ! 1 - nitrogen submodel included
-	!parameters are read in "mo_wqm_read::wqm_readconfig"
-    select case (processCase(11))
-    case (1)
-       processMatrix(11,1) = processCase(11)
-       processMatrix(11,2) = 7
-       processMatrix(11,3) = sum(processMatrix(1:11,2))
-    case (0)
-       call message(' INFO: WATER QUALITY(Nitrogen submodel) IS DEACTIVATED.')
-    case default
-       call message()
-       call message('***ERROR: Process description for process "water quality" does not exist!')
-       stop
-    end select
-    !-------------------------------------------------
+
     call close_nml(unamelist_param)
 
     !===============================================================

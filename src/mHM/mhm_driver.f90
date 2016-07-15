@@ -203,12 +203,6 @@ PROGRAM mhm_driver
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
 #endif
-
-  USE mo_wqm_read,        ONLY : wqm_readinputdata, wqm_variables_initalloc, &
-                                 wqm_readconfig, wqm_readobsdata
-
-  USE mo_wqm_write,       ONLY : wqm_write
-								 
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
@@ -381,20 +375,6 @@ PROGRAM mhm_driver
   if (processMatrix(8, 1) .eq. 1) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
 #endif
 
-  !-------------------------
-  !READ AND INITIALISE WATER QUALITY MODEL
-  !-------------------------
-  if (processMatrix(11,1) .eq. 1) then
-     call message('  Reading and initialising water quality data for basin: ', trim(adjustl(num2str(ii))),' ...')
-     call timer_start(itimer)
-     call wqm_readconfig()
-     call wqm_readinputdata()
-	 call wqm_variables_initalloc()
-     call wqm_readobsdata()
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  end if
-
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
 
@@ -460,11 +440,6 @@ PROGRAM mhm_driver
   if (processMatrix(8, 1) .ne. 0) call mrm_write()
 #endif
 
-  ! ---------------------------------------------------------------------------  
-  ! WRITE NUTRIENTS
-  ! ---------------------------------------------------------------------------
-  if (processMatrix(11,1) .ne. 0_i4) call wqm_write()
-  
 
   ! --------------------------------------------------------------------------
   ! FINISH UP
