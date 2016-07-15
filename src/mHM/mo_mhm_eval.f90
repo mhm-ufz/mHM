@@ -92,7 +92,7 @@ CONTAINS
   !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
   !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti,nutrient)
 
     use mo_init_states,         only : get_basin_info
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
@@ -195,14 +195,43 @@ CONTAINS
     use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_mrm_init, only: variables_default_init_routing
 #endif
+    use mo_wqm_global_variables, only &
+         nsubstances,  & !
+         L1_humusN, L1_fastN, L1_dissolvedIN,              & ! INOUT NS Four different Nitrate pools in each soil layer
+         L1_dissolvedON, L1_csoilMoist,                    & ! INOUT NS conc. in each soil layer, dim2=soillayers, dim3=substances  
+         L1_csealSTW, L1_cunsatSTW, L1_csatSTW,            & ! INOUT NS conc. in each water storage, dim2=substances
+         L1_soiltemp, L1_baseflow_avg, L1_cbaseflow_delta, & ! INOUT NS soil temperature, variables for calculating baseflow conc.
+         L1_cinfilSoil, L1_cpreEffect,                     & ! INOUT NX dim2=soillayers, dim3=substances/dim2=substances  
+         L1_crain, L1_cpercolate, L1_crunoffSeal,          & ! INOUT NX dim2=substances
+         L1_cfastRunoff, L1_cslowRunoff, L1_cbaseflow,     & ! INOUT NX dim2=substances 
+         L1_ctotal_runoff,                                 & ! INOUT NX dim2=substances 
+         L1_rdegradN, L1_rmineralN, L1_rdissolN,           & ! INOUT NE1 nitrate submodel parameters
+         L1_rdeniSoil, L1_gwresidT,                        & ! INOUT NE1 nitrate submodel parameters          
+         L0_cover_rotation, L1_fLAI,                       & ! 
+		 L1_frotation, L1_soilUptakeN,L1_soilDenitri,      & !
+         ls_sealedStorage,             & ! sealed storage in last step
+         ls_unsatStorage,              & ! unsaturated storage in last step
+         ls_satStorage,                & ! saturated storage in last step
+         ls_soilmoist,                 & ! soil moisture in last step
+         L1_reachtemp, L11_rivertemp,  & !
+         L11_riverbox, L11_criverbox, L11_yravg_q,       & !inout 
+         L11_concOUT, L11_interload, L11_concTIN,    & !inout dim2=substances                  
+         L11_concMod,                            & !inout 
+         L11_aquaticDenitri, L11_aquaticAssimil,  & !
+         L11_rdeniAqtc,L11_rpprodN,               &
+         basin_wqm, nCroptation, rotation,        &
+         WQM_nutrient		 
+	use mo_water_quality, only: wqm
 
     implicit none
 
-    real(dp), dimension(:),                          intent(in)  :: parameterset
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
+    real(dp), dimension(:),                            intent(in)  :: parameterset
+    real(dp), dimension(:,:),   allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
+    real(dp), dimension(:,:),   allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
+    real(dp), dimension(:,:),   allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
+    real(dp), dimension(:,:),   allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
+    !added by yangx for Nutrient model
+    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: nutrient    ! dim1=time dim2=gauge dim3=substances
 
     ! -------------------------------------
     ! local variables
@@ -244,6 +273,7 @@ CONTAINS
 #ifdef mrm2mhm
     ! for routing
     logical                                   :: do_mpr
+    integer(i4)                               :: nNodes   !number of cells at level 11 for current basin
     integer(i4)                               :: s11, e11 ! start and end index at L11
     integer(i4)                               :: s110, e110 ! start and end index of L11 at L0
     logical, allocatable                      :: mask11(:,:)
@@ -259,7 +289,10 @@ CONTAINS
     integer(i4)                               :: day_counter
     integer(i4)                               :: month_counter
     real(dp), dimension(:), allocatable       :: LAI            ! local variable for leaf area index
-
+    
+	! for water quality model
+    integer(i4)                               :: cg
+	
     !----------------------------------------------------------
     ! Check optionals and initialize
     !----------------------------------------------------------
@@ -285,6 +318,14 @@ CONTAINS
        allocate(neutrons_opti(size(L1_pre, dim=1), nTimeSteps_L1_neutrons))
        neutrons_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
     end if
+    ! Nutrient models
+    !--------------------------
+    if ( present(nutrient) ) then
+       if ( processMatrix(11,1) .eq. 0) then
+          call message("***ERROR: nutrient can not be produced, since water quality processes are off in Process Matrix")
+          stop
+       end if
+    end if
     ! add other optionals...
 
 
@@ -307,6 +348,7 @@ CONTAINS
           call variables_default_init_routing()
        end if
 #endif
+
     else
        ! read from restart files, basin wise ...
        do ii = 1, nBasins
@@ -340,10 +382,12 @@ CONTAINS
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
           !
           ! get basin information at L11 and L110 if routing is activated
-          call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
+          call get_basin_info_mrm ( ii,  11, nrows, ncols, ncells=nNodes,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
        end if
 #endif
+
+ 
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
@@ -516,8 +560,7 @@ CONTAINS
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
                L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
-               L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
-
+               L1_wiltingPoint(s1:e1,:)                                                    )  ! INOUT E1
           ! call mRM routing
 #ifdef mrm2mhm
           if (processMatrix(8, 1) .eq. 1) then
@@ -568,15 +611,87 @@ CONTAINS
                   L11_qMod(s11:e11), &
                   mRM_runoff(tt, :), &
                   ! OPTIONAL INPUT variables
-                  do_mpr)
+                  do_mpr ) !
           end if
 #endif
+          !call water quality model (nitrogen submodel)
+          if (processMatrix(11,1) .eq. 1 then
+             call wqm( &
+               !configuration
+                  processMatrix,                                                               & ! IN C                                                           
+                  parameterset(processMatrix(11, 3) - processMatrix(11, 2) + 1 : processMatrix(11, 3)), & ! nitrate par.
+                  perform_mpr, read_restart,                                                   & ! 
+                  nCells,nSoilHorizons_mHM, HorizonDepth_mHM,                                  & ! IN C
+                  tt, newTime-0.5_dp, timeStep                                                         & ! IN C			   
+                  L1_nTCells_L0(s1:e1),                                                        & ! IN L1
+                  L1_upBound_L0(s1:e1), L1_downBound_L0(s1:e1),                                & ! IN L1
+                  L1_leftBound_L0(s1:e1), L1_rightBound_L0(s1:e1),                             & ! IN L1
+			      !variables from hydrological model(mhm()subroutine)
+                  L1_rain(s1:e1), L1_preEffect(s1:e1), L1_temp(s_meteo:e_meteo,iMeteoTS),      & ! IN F:Temp
+                  L1_fSealed(s1:e1),                                                           & ! IN L1
+                  L1_sealSTW(s1:e1),                                                           & ! IN S
+                  L1_runoffSeal(s1:e1), L1_infilSoil(s1:e1,:), L1_soilMoist(s1:e1,:),          & !
+                  L1_wiltingPoint(s1:e1,:), L1_soilMoistSat(s1:e1,:),                          & !E1
+                  L1_aETSoil(s1:e1,:), L1_aETSealed(s1:e1),                                    & !
+                  L1_satSTW(s1:e1), L1_unsatSTW(s1:e1), L1_snowPack(s1:e1)                     & ! IN S
+                  L1_slowRunoff(s1:e1), L1_fastRunoff(s1:e1),                                  & ! IN X
+                  L1_baseflow(s1:e1), L1_percol(s1:e1),  L1_total_runoff(s1:e1),               & ! IN X
+                  ls_sealedStorage(s1:e1), ls_unsatStorage(s1:e1), ls_satStorage(s1:e1),       & ! INOUT
+                  ls_soilmoist(s1:e1,:),                                                       & ! INOUT
+ 			   !-------Nitrate submodel global variables(soil phase)
+                  L0_cover_rotation(s0:e0), L0_LCover_LAI(s0:e0),                              & ! IN
+                  L1_frotation(s1:e1,:), L1_fLAI(s1:e1,:),                                     & ! INOUT
+                  nsubstances, nCroptation(ii), rotation(ii),                                  & ! IN
+                  L1_humusN(s1:e1,:), L1_fastN(s1:e1,:), L1_dissolvedIN(s1:e1,:),              & ! INOUT NS Four different Nitrate pools in each soil layer
+                  L1_dissolvedON(s1:e1,:), L1_csoilMoist(s1:e1,:,:),                           & ! INOUT NS conc. in each soil layer, dim2=soillayers, dim3=substances  
+                  L1_csealSTW(s1:e1,:), L1_cunsatSTW(s1:e1,:), L1_csatSTW(s1:e1,:),            & ! INOUT NS conc. in each water storage, dim2=substances
+                  L1_soiltemp(s1:e1), L1_baseflow_avg(s1:e1), L1_cbaseflow_delta(s1:e1,:),     & ! INOUT NS soil temperature, variables for calculating baseflow conc.
+                  L1_cinfilSoil(s1:e1,:,:), L1_cpreEffect(s1:e1,:),                            & ! INOUT NX dim2=soillayers, dim3=substances/dim2=substances  
+                  L1_crain(s1:e1,:), L1_cpercolate(s1:e1,:), L1_crunoffSeal(s1:e1,:),          & ! INOUT NX dim2=substances
+                  L1_cfastRunoff(s1:e1,:), L1_cslowRunoff(s1:e1,:), L1_cbaseflow(s1:e1,:),     & ! INOUT NX dim2=substances 
+                  L1_ctotal_runoff(s1:e1,:),                                                   & ! INOUT NX dim2=substances 
+                  L1_soilUptakeN(s1:e1), L1_soilDenitri(s1:e1),                                & ! INOUT NX 
+                  L1_rdegradN(s1:e1),L1_rmineralN(s1:e1),L1_rdissolN(s1:e1),                   & ! INOUT NE1 nitrate submodel parameters
+                  L1_rdeniSoil(s1:e1),L1_gwresidT(s1:e1),                                      & ! INOUT NE1 nitrate submodel parameters 
+               ! routing
+                  nNodes, L1_areaCell(s1:e1), L1_L11_Id(s1:e1), L11_L1_Id(s11:e11),            & !
+                  ge(resolutionRouting(ii), resolutionHydrology(ii)),                          & ! logical variable cell size of whom is bigger
+                  L11_fromN(s11:e11),L11_toN(s11:e11),L11_length(s11:e11 - 1),                 & !
+                  basin_mrm%nInflowGauges(ii),                                                 & !
+                  basin_mrm%InflowGaugeIndexList(ii,:),                                        & !
+                  basin_mrm%InflowGaugeHeadwater(ii,:),                                        & !
+                  basin_mrm%InflowGaugeNodeList(ii,:),                                         & !
+                  InflowGauge%Q(iMeteoTS,:),                                                   & !
+                  basin_wqm%InflowGaugeConc(iMeteoTS,:,1:2),                                   & !dim2=number of stations, dim3: 1 for IN, 2 for ON
+                  L1_reachtemp(s1:e1), L11_rivertemp(s11:e11),L11_qOUT(s11:e11),               & !
+			      L11_qTR(s11:e11,2),                                                          & !
+                  L11_riverbox(s11:e11), L11_criverbox(s11:e11,:), L11_yravg_q(s11:e11),       & !inout 
+                  L11_concOUT(s11:e11,:), L11_interload(s11:e11,:), L11_concTIN(s11:e11,:),    & !inout dim2=substances                  
+                  L11_concMod(s11:e11,:),                            & !inout 
+                  L11_aquaticDenitri(s11:e11), L11_aquaticAssimil(s11:e11),   & ! inout
+                  L11_rdeniAqtc(s11:e11), L11_rpprodN(s11:e11) )
+             !storing calcualted concentration at evaluation gauges
+             do cg=1, basin_mrm%nGauges(ii)
+                if (basin_mrm%gaugeNodeList(ii,cg) .ne. nodata_i4) then
+                !1for IN, 2 for ON
+				WQM_nutrient(tt, basin_mrm%gaugeIndexList(ii,cg), 1:2) = L11_concMod(basin_mrm%gaugeNodeList(ii,cg),:)
+                !3 for TN (=1+2)                
+				WQM_nutrient(tt,basin_mrm%gaugeIndexList(ii,cg),3)=sum(WQM_nutrient(tt,basin_mrm%gaugeIndexList(ii,cg),1:2))
+				end if
+             end do
+          end if
 
           ! update the counters
           if (day_counter   .NE. day  ) day_counter   = day
           if (month_counter .NE. month) month_counter = month
           if (year_counter  .NE. year)  year_counter  = year
 
+          !update previous step variables for water quality calcualtion
+          ls_sealedStorage = L1_sealSTW
+          ls_unsatStorage  = L1_unsatSTW
+          ls_satStorage    = L1_satSTW
+          ls_soilmoist     = L1_soilMoist
+ 		  
           ! increment of timestep
           newTime = julday(day,month,year) + real(hour+timestep,dp)/24._dp
           ! calculate new year, month and day
