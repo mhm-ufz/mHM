@@ -500,33 +500,31 @@ end subroutine prepare_meteo_forcings_data
     if ( tt .eq. 1_i4 ) then
        is_read = .true.
     else
-       ! shifted by 1 and 2 because 00:00 contains data from 23:00 of the day before until 
-       ! 00:00 of that day
-       Ndays        = ( ( tt - 1_i4 ) * timestep ) / nTstepDay
-       Ndays_before = ( ( tt - 2_i4 ) * timestep ) / nTstepDay     
+       ! check if a new day started by comparing the day of the current time step (Ndays)
+       ! with the one before (Ndays_before)
+       Ndays        = ceiling( (real(tt,dp)           ) / real(nTstepDay, dp) ) 
+       Ndays_before = ceiling( (real(tt,dp) - 1.0_dp  ) / real(nTstepDay, dp) )   
        
        ! evaluate cases of given timeStep_model_inputs
        select case( timeStep_model_inputs(iBasin) )
        case(0)  ! only at the beginning of the period
           if ( tt .eq. 1_i4 ) is_read = .true.
        case(1:) ! every timestep with frequency timeStep_model_inputs
-          if ( mod( tt - 1_i4, 24 ) .eq. 0_i4 ) then
-             if ( mod( (tt - 1_i4) / 24_i4 , timeStep_model_inputs(iBasin) ) .eq. 0_i4 ) is_read = .true.
-          end if
+          if ( mod( (tt-1) * timestep, timeStep_model_inputs(iBasin) * 24 ) .eq. 0_i4 ) is_read = .true.
        case(-1) ! every day
           if ( Ndays .ne. Ndays_before ) is_read = .true.
        case(-2) ! every month
           if ( Ndays .ne. Ndays_before ) then
              ! calculate months
-             call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
-             call caldat( simPer(iBasin)%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+             call caldat( simPer(iBasin)%julStart + Ndays - 1, dd = day, mm = month, yy = year )
+             call caldat( simPer(iBasin)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before )
              if ( month .ne. month_before ) is_read = .true.
           end if
        case(-3) ! every year
           if ( Ndays .ne. Ndays_before ) then
              ! calculate months
-             call caldat( simPer(iBasin)%julStart + Ndays, dd = day, mm = month, yy = year )
-             call caldat( simPer(iBasin)%julStart + Ndays_before, dd = day_before, mm = month_before, yy = year_before )
+             call caldat( simPer(iBasin)%julStart + Ndays - 1, dd = day, mm = month, yy = year )
+             call caldat( simPer(iBasin)%julStart + Ndays_before - 1, dd = day_before, mm = month_before, yy = year_before )
              if ( year .ne. year_before ) is_read = .true.
           end if
        case default ! not specified correctly
@@ -587,7 +585,10 @@ end subroutine prepare_meteo_forcings_data
   subroutine chunk_size( iBasin, tt, readPer )
     
     use mo_kind,             only: i4
-    use mo_global_variables, only: simPer, timeStep_model_inputs, timestep, period, nTstepDay
+    use mo_global_variables, only: simPer, & !     start and end of simulation period
+         timeStep_model_inputs,            & !     frequency for reading meteo input  
+         period,                           & !     type for describing read in period
+         nTstepDay                           !     Number of time intervals per day
     use mo_message,          only: message
     use mo_julian,           only: caldat, julday
     
@@ -607,10 +608,10 @@ end subroutine prepare_meteo_forcings_data
     integer(i4)              :: year         ! years
 
     ! calculate date of start date
-    Ndays        = ( tt * timestep ) / nTstepDay 
+    Ndays        =  ceiling( real(tt,dp) / real(nTstepDay,dp) )
 
     ! get start date
-    readPer%julStart = simPer(iBasin)%julStart + Ndays
+    readPer%julStart = simPer(iBasin)%julStart + Ndays - 1
     
     ! calculate end date according to specified frequency
     select case ( timeStep_model_inputs(iBasin) )
