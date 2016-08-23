@@ -21,7 +21,7 @@ timeStep_model_outputs_mrm = -1
 ! 1. Fluxes
 !----------------
 !
-! routed streamflow (Qrouted in output flux) (L11_qMod)     [mm]    -- case  1
+! routed streamflow (Qrouted in output flux) (L11_qMod)     [m3 s-1]    -- case  1
 outputFlxState_mrm(1)=.TRUE.
 /
 
