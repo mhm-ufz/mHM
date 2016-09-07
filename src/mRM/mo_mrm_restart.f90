@@ -1043,7 +1043,9 @@ contains
     var = nc%getVariable("L11_fDir")
     call var%getData(dummyI2)
     call append(L11_fDir, pack(dummyI2, mask11))
-
+    ! append Number of Outlets at Level 11 (where facc == 0 )
+    call append(L11_nOutlets, count((dummyI2 .eq. 0_i4)))
+    
     ! Grid vertical location of the Outlet
     var = nc%getVariable("L11_rowOut")
     call var%getData(dummyI2)
@@ -1120,8 +1122,6 @@ contains
     var = nc%getVariable("L11_sink")
     call var%getData(dummyI1)
     call append(L11_sink, (dummyI1 .eq. 1_i4))
-    ! append Number of Outlets at Level 11
-    call append(L11_nOutlets, count((dummyI1 .eq. 1_i4)))
 
     ! Routing sequence (permutation of L11_rOrder)
     var = nc%getVariable("L11_netPerm")
