@@ -898,7 +898,8 @@ contains
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_constants, only: nodata_dp
     use mo_read_forcing_nc, only: read_forcing_nc
-    use mo_mrm_global_variables, only: & ! timeStep_model_inputs, &
+    use mo_mrm_global_variables, only: &
+         timestep, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
          L1_total_runoff_in ! simulated runoff at L1
@@ -914,6 +915,7 @@ contains
     integer(i4) :: ncols
     integer(i4) :: ncells
     integer(i4) :: nTimeSteps
+    integer(i4) :: nctimestep ! tell nc file to read daily or hourly values
     logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:,:), allocatable :: L1_data ! read data from file
     real(dp), dimension(:,:), allocatable :: L1_data_packed     
@@ -922,8 +924,10 @@ contains
     call get_basin_info_mrm(iBasin, 1, nrows, ncols, ncells=ncells, mask=mask)
 
     !
+    if (timestep .eq. 1) nctimestep = -4 ! hourly input
+    if (timestep .eq. 24) nctimestep = -1 ! daily input
     call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
-         'total_runoff', L1_data, mask, nctimestep=-4)!ST: timeStep should be read from file timeStep_model_inputs(iBasin))
+         'total_runoff', L1_data, mask, nctimestep=nctimestep)
 
     ! pack variables
     nTimeSteps = size(L1_data, 3)

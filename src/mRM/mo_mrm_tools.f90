@@ -255,7 +255,7 @@ contains
     if ( nint(mod(aimingResolution, cellsizeIn)) .ne. 0) then
        call message()
        call message('***ERROR: Two resolutions size do not confirm: ',   &
-            trim(adjustl(num2str(nint(AimingResolution)))),              &
+            trim(adjustl(num2str(nint(AimingResolution)))), ' and ',  &
             trim(adjustl(num2str(nint(cellsizeIn))))         )
        stop
     end if

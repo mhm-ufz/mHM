@@ -17,6 +17,9 @@ MODULE mo_mrm_init
 
   public :: mrm_init
   public :: variables_default_init_routing
+  public :: mrm_init_param
+
+  private
 
 CONTAINS
 
@@ -379,7 +382,7 @@ CONTAINS
 
     use mo_mrm_global_variables, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp
+         L11_FracFPimp, L11_qAcc
     use mo_mrm_constants,    only:               &
          P1_InitStateFluxes
     implicit none
@@ -405,6 +408,8 @@ CONTAINS
     L11_C2 = P1_InitStateFluxes
     ! Fraction of the flood plain with impervious cover
     L11_FracFPimp = P1_InitStateFluxes
+	! Total accumulated runoff from cells L1 to L11
+    L11_qAcc = P1_InitStateFluxes  
   end subroutine variables_default_init_routing
 
   
@@ -455,7 +460,7 @@ CONTAINS
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp, L11_qAcc
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -488,6 +493,10 @@ CONTAINS
     dummy_Matrix11_IT(:,:) = 0.0_dp
     call append( L11_qTR, dummy_Matrix11_IT )
 
+    !  Accumulated runoff from L1 to L11
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_qAcc, dummy_Vector11 )
+
     ! kappa: Muskingum travel time parameter.
     dummy_Vector11(:) = 0.0_dp
     call append( L11_K, dummy_Vector11 )
@@ -514,4 +523,110 @@ CONTAINS
 
   end subroutine variables_alloc_routing
 
+  ! --------------------------------------------------------------------------
+  ! L11 PARAMETERS
+  ! --------------------------------------------------------------------------
+  ! The parameters are set following Thober et al. 2017
+  ! Modified: 
+  subroutine mrm_init_param(iBasin, param)
+
+    use mo_kind, only: i4, dp
+    use mo_mrm_global_variables, only: &
+         ! input variables
+         resolutionRouting, timeStep, iFlag_cordinate_sys, &
+         nBasins, &
+         ! output variables
+         L11_C1, L11_C2, L11_tsRout
+    use mo_mrm_constants, only: HourSecs
+    
+    implicit none
+
+    ! Input
+    integer(i4), intent(in) :: iBasin ! Basin number
+    real(dp), dimension(20), intent(in) :: param ! input parameter
+
+    ! local variables
+    integer(i4) :: nTSrout ! number of routing timestep per model timestep
+    real(dp)    :: TSrout  ! temporal routing resolution
+    real(dp)    :: deltaX  ! 
+    real(dp)    :: TS      ! [s] time step
+    real(dp)    :: C       ! celerity
+    real(dp)    :: K       ! [d] Muskingum travel time parameter
+    real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
+
+    if (iBasin .eq. 1_i4) then
+       allocate(L11_C1(nBasins))
+       allocate(L11_C2(nBasins))
+       allocate(L11_TSrout(nBasins))
+       L11_C1 = 0._dp
+       L11_C2 = 0._dp
+       L11_TSrout = 0._dp
+    end if
+
+    ! adjust spatial resolution
+    deltaX = resolutionRouting(iBasin)
+    ! conversion from degree to m (it's rough)
+    if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp
+    
+    ! calculate time step
+    TS = HourSecs * timeStep
+    
+    ! calculate the celerity
+    C = param(1) ! * 10._dp
+    
+    ! K and Xi according to Todini 2007
+    K = deltaX / C
+    xi = abs(param(2))
+
+    print *, '========================================================='
+    print *, '========================================================='
+    print *, 'K:.. ', K
+    print *, 'XI:. ', XI
+
+    ! adjust routing timestep to scale of K
+    TSrout = K / TS
+
+    if (TSrout .gt. 1._dp) then
+       nTSrout = nint(TSrout)
+       TSrout = nTSrout * TS
+    else
+       nTSrout = nint(1._dp / TSrout)
+       TSrout = (1._dp / nTSrout) * TS
+       print *, 'nTSrout here: ', nTSrout
+       print *, 'TSrout here:  ', TSrout
+       ! dont route below 12 minutes; there are limits!!!
+       if (TSrout .lt. 720._dp) then
+          print *, 'ST: CAUTION'
+          print *, 'ST: CAUTION'
+          print *, 'ST: CAUTION'
+          print *, 'ST: resetting routing timestep to 12 minutes (720 seconds)'
+          print *, 'ST: mRM has not been tested below this temporal resolution'
+          print *, 'ST: CAUTION'
+          print *, 'ST: CAUTION'
+          print *, 'ST: CAUTION'
+          nTSrout = nint(TS / 720._dp)
+          TSrout = 720._dp
+       end if
+    end if
+    print *, 'nTSrout:..', nTSrout
+    print *, 'TSrout:...', TSrout
+
+    ! update K
+    K = TSrout
+    print *, 'K:...', K, TSrout
+    
+    ! Muskingum parameters
+    L11_C1(iBasin) = TSrout / ( K * (1.0_dp - xi) + 0.5_dp * TSrout )
+    L11_C2(iBasin) = 1.0_dp - L11_C1(iBasin) * K / TSrout
+
+    ! set other global parameters
+    L11_tsRout(iBasin) = TSrout
+
+    print *, 'routing factor: ', tsRout / (timestep * HourSecs)
+
+    print *, 'C1:...', L11_C1(iBasin)
+    print *, 'C2:...', L11_C2(iBasin)
+    print *, '========================================================='
+    print *, '========================================================='
+  end subroutine mrm_init_param
 END MODULE mo_mrm_init

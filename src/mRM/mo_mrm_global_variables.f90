@@ -28,15 +28,15 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mRM
   ! -------------------------------------------------------------------
-  integer(i4), public :: timeStep ! [h] simulation time step (= TS) in [h]
-  integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs ! frequency for reading meteo input
-  integer(i4), public :: iFlag_cordinate_sys ! options model for the run cordinate system
-  integer(i4), dimension(:), allocatable, public :: L0_Basin
-  real(dp), dimension(:), allocatable, public :: resolutionRouting ! [m or degree] resolution of routing - Level 11
-  real(dp), dimension(:), allocatable, public :: resolutionHydrology ! [m or degree] resolution of routing - Level 11
-  logical, public :: read_restart ! flag 
-  logical, public :: write_restart ! flag 
-  logical, public :: perform_mpr ! switch for performing multiscale parameter regionalization
+  integer(i4),              public :: timeStep ! [h] simulation time step (= TS) in [h]
+  integer(i4), allocatable, public :: timeStep_model_inputs(:) ! frequency for reading meteo input
+  integer(i4),              public :: iFlag_cordinate_sys ! options model for the run cordinate system
+  integer(i4), allocatable, public :: L0_Basin(:)
+  real(dp),    allocatable, public :: resolutionRouting(:) ! [m or degree] resolution of routing - Level 11
+  real(dp),    allocatable, public :: resolutionHydrology(:) ! [m or degree] resolution of routing - Level 11
+  logical,                  public :: read_restart ! flag 
+  logical,                  public :: write_restart ! flag 
+  logical,                  public :: perform_mpr ! switch for performing multiscale parameter regionalization
 
   ! ------------------------------------------------------------------
   ! DIRECTORIES
@@ -283,6 +283,7 @@ module mo_mrm_global_variables
   real(dp), public, dimension(:), allocatable     :: L11_K           ! [d]     kappa: Muskingum travel time parameter.
   real(dp), public, dimension(:), allocatable     :: L11_xi          ! [1]     xi:    Muskingum diffusion parameter
   !                                                                  !                (attenuation).
+  real(dp), public, dimension(:), allocatable     :: L11_tsRout      ! [s]     Routing timestep
   real(dp), public, dimension(:), allocatable     :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
   real(dp), public, dimension(:), allocatable     :: L11_C2          ! [-]     Routing parameter C2 (")
 
