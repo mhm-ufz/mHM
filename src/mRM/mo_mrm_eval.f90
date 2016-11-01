@@ -70,7 +70,7 @@ contains
          nTStepDay, & ! number of timesteps per day
          timestep, & ! simulation timestep in [h]
          perform_mpr, &
-         ! LCYearId, & ! land cover year id
+         LCYearId, & ! land cover year id
          L1_total_runoff_in, & ! total runoff [mm h-1]
          ! INPUT variables for mRM routing ====================================
          L0_LCover_mRM, & ! L0 land cover
@@ -105,7 +105,7 @@ contains
          L11_FracFPimp, & ! fraction of impervious layer at L11 scale
          L11_qMod, &
          mRM_runoff ! global variable containing runoff for every gauge
-    use mo_common_variables, only: optimize
+    use mo_common_variables, only: optimize, processMatrix
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
@@ -240,25 +240,19 @@ contains
           ! execute routing
           ! -------------------------------------------------------------------
           if (do_rout) call mRM_routing( &
-               ! INPUT variables
+               ! general INPUT variables
+               processMatrix(8, 1), & ! parse process Case to be used
                parameterset, & ! routing par.
                RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
-               L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
-               L0_floodPlain(s110:e110), & ! flood plains at L0 level
-               L0_areaCell(s0:e0), &
                L1_areaCell(s1:e1), &
                L1_L11_Id(s1:e1), &
                L11_areaCell(s11:e11), &
                L11_L1_Id(s11:e11), &
-               L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
-               L11_length(s11:e11 - 1), & ! link length
-               L11_slope(s11:e11 - 1), &
                L11_netPerm(s11:e11), & ! routing order at L11
                L11_fromN(s11:e11), & ! link source at L11
                L11_toN(s11:e11), & ! link target at L11
-               tsRoutFactor, & ! Factor between routing and hydrologic resolution
                L11_nOutlets(ii), & ! number of outlets
-               timeStep, & ! simulate timestep in [h]
+               tsRoutFactor, & ! simulate timestep in [h]
                basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                basin_mrm%nInflowGauges(ii), &
                basin_mrm%InflowGaugeIndexList(ii,:), &
@@ -269,15 +263,23 @@ contains
                basin_mrm%gaugeIndexList(ii,:), &
                basin_mrm%gaugeNodeList(ii,:), &
                ge(resolutionRouting(ii), resolutionHydrology(ii)), &
-               ! INPUT/OUTPUT variables
+               ! original routing specific input variables
+               L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
+               L0_floodPlain(s110:e110), & ! flood plains at L0 level
+               L0_areaCell(s0:e0), &
+               L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
+               L11_length(s11:e11 - 1), & ! link length
+               L11_slope(s11:e11 - 1), &
+               ! general INPUT/OUTPUT variables
                L11_C1(s11:e11), & ! first muskingum parameter
                L11_C2(s11:e11), & ! second muskigum parameter
                L11_qOUT(s11:e11), & ! routed runoff flowing out of L11 cell
                L11_qTIN(s11:e11,:), & ! inflow water into the reach at L11
                L11_qTR(s11:e11,:), & !
-               L11_FracFPimp(s11:e11), & ! fraction of impervious layer at L11 scale
                L11_qMod(s11:e11), &
                mRM_runoff(tt, :), &
+               ! original routing specific input/output variables
+               L11_FracFPimp(s11:e11), & ! fraction of impervious layer at L11 scale
                ! OPTIONAL INPUT variables
                do_mpr)
           ! -------------------------------------------------------------------

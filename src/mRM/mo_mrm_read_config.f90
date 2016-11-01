@@ -155,6 +155,8 @@ contains
   !                                    and readLatLon flag
   subroutine read_mrm_config(do_message, readLatLon)
     use mo_common_variables,     only:            &
+         processMatrix,                           &
+         nProcesses,                              &
          optimize,                                & ! if mhm runs in optimization mode or not
          optimize_restart,                        & ! Optimization will be restarted from
          !                                          ! mo_<opti_method>.restart file (.true.)
@@ -227,6 +229,7 @@ contains
     logical, intent(out) :: readLatLon
     !
     ! local variables
+    integer(i4),    dimension(nProcesses)              :: processCase ! Choosen process description number
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
     character(256), dimension(maxNoBasins,maxNoGauges) :: Gauge_filename
@@ -274,8 +277,8 @@ contains
          write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
-    ! namelist for evaluation gauges
-    ! define namelists
+    ! namelsit process selection
+    namelist /processSelection/ processCase
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
     namelist /directories_general/ dirConfigOut, dirCommonFiles,                                   &
@@ -705,10 +708,22 @@ contains
 
     call close_nml(unamelist_mrm)
     
+#ifdef mrm2mhm
+    processCase = 0_i4
+    processCase(8) = processMatrix(8, 1)
+#else
+    !===============================================================
+    ! Read process selection list if in standalone mode
+    !===============================================================
+    processCase = 0_i4
+    call position_nml('processselection', unamelist_mrm)
+    read(unamelist_mrm, nml=processSelection)
+#endif
+
     !===============================================================
     ! Read namelist global parameters
     !===============================================================
-    call read_mrm_routing_params(1, para_file)
+    call read_mrm_routing_params(processCase(8), para_file)
 
     !===============================================================
     ! Settings for Optimization
@@ -794,13 +809,10 @@ contains
     use mo_message, only: message
     use mo_mrm_constants, only: nColPars ! number of properties of the global variables
     use mo_common_variables, only: &
+         processMatrix, &
          global_parameters, & ! global parameters
          global_parameters_name ! clear names of global parameters
-#ifdef mrm2mhm    
-    use mo_global_variables, only :  processMatrix ! process configuration
-#else
     use mo_append, only: append
-#endif
 
     implicit none
     ! input variables
@@ -837,10 +849,10 @@ contains
     ! -------------------------------------------------------------------------
     ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
     ! -------------------------------------------------------------------------
-    processMatrix(8, 1) = processCase
     ! Muskingum routing parameters with MPR
-    if (processMatrix(8, 1) .eq. 1_i4) then
+    if (processCase .eq. 1_i4) then
         ! insert parameter values and names at position required by mhm
+        processMatrix(8, 1) = processCase
         processMatrix(8, 2) = 5_i4
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
@@ -870,7 +882,10 @@ contains
     dummy = processCase ! dummy line to prevent compiler warning
 
     ! Muskingum routing parameters with MPR
-    if (processMatrix(8, 1) .eq. 1_i4) then
+    if (processCase .eq. 1_i4) then
+        processMatrix(8, 1) = processCase
+        processMatrix(8, 2) = 5_i4
+        processMatrix(8, 3) = processMatrix(8, 2)
         ! set variables of mrm (redundant in case of coupling to mhm)
         call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
         call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
@@ -886,6 +901,9 @@ contains
              'muskingumAttenuation_riverSlope'/))
      ! adaptive timestep routing
      else if (processMatrix(8, 1) .eq. 2_i4) then
+        processMatrix(8, 1) = processCase
+        processMatrix(8, 2) = 1_i4
+        processMatrix(8, 3) = processMatrix(8, 2)
         ! set variables of mrm (redundant in case of coupling to mhm)
         call append(global_parameters, reshape(streamflow_celerity,    (/1, nColPars/)))
         

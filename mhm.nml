@@ -523,6 +523,7 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
+!> 2 - adaptive timestep
 processCase(8) = 1
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)

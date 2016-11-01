@@ -382,7 +382,7 @@ CONTAINS
 
     use mo_mrm_global_variables, only: &
          L11_Qmod, L11_qOUT, L11_qTIN,  L11_qTR, L11_K, L11_xi,L11_C1, L11_C2,  &
-         L11_FracFPimp, L11_qAcc
+         L11_FracFPimp
     use mo_mrm_constants,    only:               &
          P1_InitStateFluxes
     implicit none
@@ -408,8 +408,6 @@ CONTAINS
     L11_C2 = P1_InitStateFluxes
     ! Fraction of the flood plain with impervious cover
     L11_FracFPimp = P1_InitStateFluxes
-	! Total accumulated runoff from cells L1 to L11
-    L11_qAcc = P1_InitStateFluxes  
   end subroutine variables_default_init_routing
 
   
@@ -460,7 +458,7 @@ CONTAINS
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp, L11_qAcc
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -492,10 +490,6 @@ CONTAINS
     !  Routed outflow leaving a node
     dummy_Matrix11_IT(:,:) = 0.0_dp
     call append( L11_qTR, dummy_Matrix11_IT )
-
-    !  Accumulated runoff from L1 to L11
-    dummy_Vector11(:) = 0.0_dp
-    call append( L11_qAcc, dummy_Vector11 )
 
     ! kappa: Muskingum travel time parameter.
     dummy_Vector11(:) = 0.0_dp
