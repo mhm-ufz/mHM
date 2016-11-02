@@ -716,9 +716,12 @@ contains
     ! Read process selection list if in standalone mode
     !===============================================================
     processCase = 0_i4
+    call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
     call position_nml('processselection', unamelist_mrm)
     read(unamelist_mrm, nml=processSelection)
+    call close_nml(unamelist_mrm)
 #endif
+
 
     !===============================================================
     ! Read namelist global parameters
@@ -837,10 +840,10 @@ contains
     !
     call open_nml(file_namelist, unamelist_param, quiet=.true.)
 
-    if (processMatrix(8, 1) .eq. 1_i4) then
+    if (processCase .eq. 1_i4) then
        call position_nml('routing1', unamelist_param)
        read(unamelist_param, nml=routing1)
-    else if (processMatrix(8, 1) .eq. 2_i4) then
+    else if (processCase .eq. 2_i4) then
        call position_nml('routing2', unamelist_param)
        read(unamelist_param, nml=routing2)
     end if
@@ -869,7 +872,7 @@ contains
              'muskingumTravelTime_impervious ', &
              'muskingumAttenuation_riverSlope'/)
      ! adaptive timestep routing
-     else if (processMatrix(8, 1) .eq. 2_i4) then
+     else if (processCase .eq. 2_i4) then
         processMatrix(8, 2) = 1_i4
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
@@ -879,8 +882,6 @@ contains
              'streamflow_celerity'/)
      end if
 #else
-    dummy = processCase ! dummy line to prevent compiler warning
-
     ! Muskingum routing parameters with MPR
     if (processCase .eq. 1_i4) then
         processMatrix(8, 1) = processCase
@@ -900,7 +901,8 @@ contains
              'muskingumTravelTime_impervious ', &
              'muskingumAttenuation_riverSlope'/))
      ! adaptive timestep routing
-     else if (processMatrix(8, 1) .eq. 2_i4) then
+     else if (processCase .eq. 2_i4) then
+        print *, 'ha...'
         processMatrix(8, 1) = processCase
         processMatrix(8, 2) = 1_i4
         processMatrix(8, 3) = processMatrix(8, 2)
@@ -912,16 +914,16 @@ contains
      end if
 #endif
 
-    ! check if parameter are in range
-    if ( .not. in_bound(global_parameters) ) then
-       call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
-            trim(adjustl(file_namelist)))
-       stop
-    end if
-
-    call close_nml(unamelist_param)
-
-  end subroutine read_mrm_routing_params
+     ! check if parameter are in range
+     if ( .not. in_bound(global_parameters) ) then
+        call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
+             trim(adjustl(file_namelist)))
+        stop
+     end if
+     
+     call close_nml(unamelist_param)
+     
+   end subroutine read_mrm_routing_params
 
   ! --------------------------------------------------------------------------------
   ! private funtions and subroutines, DUPLICATED FROM mo_read_config.f90

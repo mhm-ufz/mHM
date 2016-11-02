@@ -31,6 +31,11 @@ module mo_mrm_constants
   ! default inital values for states and fluxes as well as parameter fields
   real(dp), public, parameter :: P1_InitStateFluxes = 0.00_dp
   !
+  ! parameters for routing
+  real(dp), public, parameter :: rout_time_weight = 0._dp ! time weighting of routing is set to 0._dp
+  !                                                       ! This parameter has no effect on the routing
+  !                                                       ! results, see Thober et al. 2017
+  !
   ! hydrological modelling
   real(dp), public, parameter :: deltaH = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
 

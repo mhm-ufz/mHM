@@ -192,7 +192,7 @@ CONTAINS
     end if
 
     ! ----------------------------------------------------------
-    ! INITIALIZE STATES
+    ! INITIALIZE STATES AND ROUTING PARAMETERS
     ! ----------------------------------------------------------
     do iBasin = 1, nBasins
        call variables_alloc_routing(iBasin)
@@ -531,15 +531,20 @@ CONTAINS
          nBasins, &
          ! output variables
          L11_C1, L11_C2, L11_tsRout
-    use mo_mrm_constants, only: HourSecs
+    use mo_mrm_constants, only: HourSecs, rout_time_weight
+    use mo_mrm_tools, only: get_basin_info_mrm
     
     implicit none
 
     ! Input
-    integer(i4), intent(in) :: iBasin ! Basin number
-    real(dp), dimension(20), intent(in) :: param ! input parameter
+    integer(i4),            intent(in) :: iBasin ! Basin number
+    real(dp), dimension(:), intent(in) :: param ! input parameter
 
     ! local variables
+    integer(i4) :: nrows
+    integer(i4) :: ncols
+    integer(i4) :: s11
+    integer(i4) :: e11
     integer(i4) :: nTSrout ! number of routing timestep per model timestep
     real(dp)    :: TSrout  ! temporal routing resolution
     real(dp)    :: deltaX  ! 
@@ -548,12 +553,15 @@ CONTAINS
     real(dp)    :: K       ! [d] Muskingum travel time parameter
     real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
 
+    ! get basin information
+    call get_basin_info_mrm(iBasin,  11, nrows, ncols,  iStart=s11,  iEnd=e11)
+
     if (iBasin .eq. 1_i4) then
-       allocate(L11_C1(nBasins))
-       allocate(L11_C2(nBasins))
+       ! allocate(L11_C1(nBasins))
+       ! allocate(L11_C2(nBasins))
        allocate(L11_TSrout(nBasins))
-       L11_C1 = 0._dp
-       L11_C2 = 0._dp
+       ! L11_C1 = 0._dp
+       ! L11_C2 = 0._dp
        L11_TSrout = 0._dp
     end if
 
@@ -570,11 +578,11 @@ CONTAINS
     
     ! K and Xi according to Todini 2007
     K = deltaX / C
-    xi = abs(param(2))
+    xi = abs(rout_time_weight) ! set weighting factor to 0._dp
 
     print *, '========================================================='
     print *, '========================================================='
-    print *, 'K:.. ', K
+    print *, 'K:.. ', K, deltaX, C
     print *, 'XI:. ', XI
 
     ! adjust routing timestep to scale of K
@@ -590,14 +598,8 @@ CONTAINS
        print *, 'TSrout here:  ', TSrout
        ! dont route below 12 minutes; there are limits!!!
        if (TSrout .lt. 720._dp) then
-          print *, 'ST: CAUTION'
-          print *, 'ST: CAUTION'
-          print *, 'ST: CAUTION'
           print *, 'ST: resetting routing timestep to 12 minutes (720 seconds)'
           print *, 'ST: mRM has not been tested below this temporal resolution'
-          print *, 'ST: CAUTION'
-          print *, 'ST: CAUTION'
-          print *, 'ST: CAUTION'
           nTSrout = nint(TS / 720._dp)
           TSrout = 720._dp
        end if
@@ -610,16 +612,16 @@ CONTAINS
     print *, 'K:...', K, TSrout
     
     ! Muskingum parameters
-    L11_C1(iBasin) = TSrout / ( K * (1.0_dp - xi) + 0.5_dp * TSrout )
-    L11_C2(iBasin) = 1.0_dp - L11_C1(iBasin) * K / TSrout
+    L11_C1(s11: e11) = TSrout / ( K * (1.0_dp - xi) + 0.5_dp * TSrout )
+    L11_C2(s11: e11) = 1.0_dp - L11_C1(iBasin) * K / TSrout
 
     ! set other global parameters
     L11_tsRout(iBasin) = TSrout
 
     print *, 'routing factor: ', tsRout / (timestep * HourSecs)
 
-    print *, 'C1:...', L11_C1(iBasin)
-    print *, 'C2:...', L11_C2(iBasin)
+    print *, 'C1:...', L11_C1(s11)
+    print *, 'C2:...', L11_C2(s11)
     print *, '========================================================='
     print *, '========================================================='
   end subroutine mrm_init_param

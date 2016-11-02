@@ -169,10 +169,6 @@ contains
     ! loop over basins
     ! ----------------------------------------
     do ii = 1, nBasins
-       ! -------------------------------------
-       ! initialize parameters
-       ! -------------------------------------
-       call mrm_init_param(ii, parameterset)
        ! read states from restart
        if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
        !
@@ -181,12 +177,19 @@ contains
        call get_basin_info_mrm(ii,   1, nrows, ncols,   iStart=s1,  iEnd=e1  )
        call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 )
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
+       !
+       ! initialize parameters
+       print *, 'ST: parameterset: ', parameterset
+       if (processMatrix(8, 1) .eq. 2) call mrm_init_param(ii, parameterset)
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
        newTime = real(simPer(ii)%julStart,dp)
        ! initialize land cover year id
        yID = 0
+       ! initialize variable for runoff for routing
+       allocate(RunToRout(e1 - s1 + 1))
+       RunToRout = 0._dp
        ! ----------------------------------------
        ! loop over time
        ! ----------------------------------------
@@ -206,34 +209,43 @@ contains
           ! -------------------------------------------------------------------
           ! PERFORM ROUTING
           ! -------------------------------------------------------------------
-          do_rout = .False.
-          ! calculate factor
-          tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
-          ! print *, 'routing factor: ', tsRoutFactor
-          ! prepare routing call
-          if (tsRoutFactor .lt. 1._dp) then
-             ! ----------------------------------------------------------------
-             ! routing timesteps are shorter than hydrologic time steps
-             ! ----------------------------------------------------------------
-             ! set all input variables
-             tsRoutFactorIn = tsRoutFactor
+          !
+          ! set input variables for routing
+          if (processMatrix(8, 1) .eq. 1) then
+             do_rout = .True.
+             tsRoutFactor = 1._dp
              RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
              InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
-             do_rout = .True.
-          else
-             ! ----------------------------------------------------------------
-             ! routing timesteps are longer than hydrologic time steps
-             ! ----------------------------------------------------------------
-             ! set all input variables
-             tsRoutFactorIn = tsRoutFactor
-             RunToRout = RunToRout + L1_total_runoff_in(s1:e1, tt)
-             InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
-             ! reset tsRoutFactorIn if last period did not cover full period
-             if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
-                  tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
-             if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
-                InflowDischarge = InflowDischarge / tsRoutFactorIn
+          else if (processMatrix(8, 1) .eq. 2) then 
+             do_rout = .False.
+             ! calculate factor
+             tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
+             ! print *, 'routing factor: ', tsRoutFactor
+             ! prepare routing call
+             if (tsRoutFactor .lt. 1._dp) then
+                ! ----------------------------------------------------------------
+                ! routing timesteps are shorter than hydrologic time steps
+                ! ----------------------------------------------------------------
+                ! set all input variables
+                tsRoutFactorIn = tsRoutFactor
+                RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
+                InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
                 do_rout = .True.
+             else
+                ! ----------------------------------------------------------------
+                ! routing timesteps are longer than hydrologic time steps
+                ! ----------------------------------------------------------------
+                ! set all input variables
+                tsRoutFactorIn = tsRoutFactor
+                RunToRout = RunToRout + L1_total_runoff_in(s1:e1, tt)
+                InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
+                ! reset tsRoutFactorIn if last period did not cover full period
+                if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
+                     tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
+                if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+                   InflowDischarge = InflowDischarge / tsRoutFactorIn
+                   do_rout = .True.
+                end if
              end if
           end if
           ! -------------------------------------------------------------------
@@ -285,15 +297,21 @@ contains
           ! -------------------------------------------------------------------
           ! reset variables
           ! -------------------------------------------------------------------
-          if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
-             do jj = 1, nint(tsRoutFactorIn)
-                mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
-             end do
+          if (processMatrix(8, 1) .eq. 1) then
              ! reset Input variables
              InflowDischarge = 0._dp
              RunToRout = 0._dp
+          else if (processMatrix(8, 1) .eq. 2) then             
+             if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
+                do jj = 1, nint(tsRoutFactorIn)
+                   mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
+                end do
+                ! reset Input variables
+                InflowDischarge = 0._dp
+                RunToRout = 0._dp
+             end if
           end if
-		  ! -------------------------------------------------------------------
+          ! -------------------------------------------------------------------
           ! INCREMENT TIME
           ! -------------------------------------------------------------------
           hour = mod(hour+timestep, 24)

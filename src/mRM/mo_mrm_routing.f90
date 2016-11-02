@@ -285,7 +285,7 @@ CONTAINS
        ! routing multiple times if timestep is smaller than 1
        do tt = 1, rout_loop
           ! routing of water within river reaches
-          call L11_routing( nNodes, nNodes-1, &
+          call L11_routing( nNodes, nNodes - L11_nOutlets, &
                L11_netPerm, &
                L11_fromN, & ! Intent IN
                L11_toN, & ! Intent IN
