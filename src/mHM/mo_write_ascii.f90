@@ -558,7 +558,7 @@ CONTAINS
 
   !         Modified,
   !                 Stephan Thober, Nov  2016 - moved nProcesses to common variables
-
+  !                 Stephan Thober, Nov  2016 - write namelist for routing process 2
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
@@ -650,6 +650,9 @@ CONTAINS
        case(8)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&routing1'
+          end if
+          if (processMatrix(iProc,1) .eq. 2) then
+             write(uopti_nml,*) '&routing2'
           end if
        case(9)
           if (processMatrix(iProc,1) .eq. 1) then

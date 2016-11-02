@@ -985,7 +985,8 @@ contains
   !>        \date Dec 2013
 
   !         Modified,
-  !               Oct 2015, Stephan Thober - adapted to mRM
+  !               Stephan Thober, Oct 2015 - adapted to mRM
+  !               Stephan Thober, Nov 2016 - adapt header to routing process
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
@@ -993,6 +994,7 @@ contains
     use mo_mrm_global_variables, only: dirConfigOut
     use mo_message,              only: message
     use mo_string_utils,         only: num2str
+    use mo_common_variables,     only: processMatrix
 
     implicit none
 
@@ -1020,7 +1022,8 @@ contains
 
     write(uopti_nml,*) '! ', trim(adjustl('routing'))
 
-    write(uopti_nml,*) '&routing1'
+    if (processMatrix(8, 1) .eq. 1_i4) write(uopti_nml,*) '&routing1'
+    if (ProcessMatrix(8, 1) .eq. 2_i4) write(uopti_nml,*) '&routing2'
     
     do iPar=1, size(parameters,1)
        if (maskpara(iPar)) then

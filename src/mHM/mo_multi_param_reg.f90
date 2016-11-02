@@ -563,17 +563,18 @@ contains
        stop
     end select
 
-    ! ------------------------------------------------------------------
-    ! Regionalized routing parameters
-    ! ------------------------------------------------------------------
-    select case( proc_Mat( 8, 1) )
-    case(0)  ! routing is off
-    case(1)  !ST this part is moved to mRM
-    case DEFAULT
-       call message()
-       call message('***ERROR: Process description for process "routing" does not exist! mo_multi_param_reg')
-       stop
-    end select
+    ! ! ------------------------------------------------------------------
+    ! ! Regionalized routing parameters
+    ! ! ------------------------------------------------------------------
+    ! select case( proc_Mat( 8, 1) )
+    ! case(0)  ! routing is off
+    ! case(1)  ! ST this part is moved to mRM
+    ! case(2)  ! ST new routing is moved to mRM
+    ! case DEFAULT
+    !    call message()
+    !    call message('***ERROR: Process description for process "routing" does not exist! mo_multi_param_reg')
+    !    stop
+    ! end select
 
     ! ------------------------------------------------------------------
     ! baseflow recession parameter 

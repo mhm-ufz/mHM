@@ -373,7 +373,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .eq. 1) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
+  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
 #endif
 
   !this call may be moved to another position as it writes the master config out file for all basins
