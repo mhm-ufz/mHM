@@ -127,7 +127,8 @@ CONTAINS
        L11_fromN, & ! L11 source grid cell order
        L11_toN, & ! L11 target grid cell order
        L11_nOutlets, & ! number of outlets
-       timestep, & ! simulation timestep in [h]
+       timestep, & ! simulation timestep in [s]
+       tsRoutFactor, & ! factor from routing temporal resolution to hydrology temporal resolution
        nNodes, & ! number of nodes
        nInflowGauges, & ! number of inflow gauges
        InflowGaugeIndexList, & ! index list of inflow gauges
@@ -180,7 +181,8 @@ CONTAINS
     integer(i4), dimension(:), intent(in) :: L11_fromN ! L11 source grid cell order
     integer(i4), dimension(:), intent(in) :: L11_toN ! L11 target grid cell order
     integer(i4),               intent(in) :: L11_nOutlets ! L11 number of outlets/sinks
-    real(dp),                  intent(in) :: timestep ! simulation timestep in [h]
+    real(dp),                  intent(in) :: timestep ! simulation timestep in [s]
+    real(dp),                  intent(in) :: tsRoutFactor ! factor from routing temporal resolution to hydrology temporal resolution
     integer(i4),               intent(in) :: nNodes ! number of nodes
     integer(i4),               intent(in) :: nInflowGauges ! number of inflow gauges
     integer(i4), dimension(:), intent(in) :: InflowGaugeIndexList ! index list of inflow gauges
@@ -261,7 +263,7 @@ CONTAINS
     ! SECOND, EXECUTE ROUTING
     ! ====================================================================
     ! calculate number of routing loops
-    rout_loop = max(1_i4, nint(1._dp / timestep))
+    rout_loop = max(1_i4, nint(1._dp / tsRoutFactor))
 
     ! runoff accumulation from L1 to L11 level
     call L11_runoff_acc(L1_total_runoff, L1_areaCell, L1_L11_Id, &
@@ -391,19 +393,16 @@ CONTAINS
     integer(i4), intent(in) :: L1_L11_Id(:) ! l1 ids     mapped on l11
     real(dp),    intent(in) :: L11_areacell(:) ! [km2]      efective area at l11
     integer(i4), intent(in) :: L11_L1_Id(:) ! l11 ids    mapped on l1
-    real(dp),    intent(in) :: ts ! [h] time step 
+    real(dp),    intent(in) :: TS ! [s] time step 
     logical,     intent(in) :: map_flag ! true when routing resolution is larger than hydrologic resolution
     real(dp),    intent(out) :: qAcc(:) ! [m3 s-1]   aggregated runoff at l11 
 
                                                               ! local variables
     integer(i4)             :: k
-    real(dp)                :: TST             ! [s]        time step
 
     ! ------------------------------------------------------------------
     ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
     ! ------------------------------------------------------------------
-
-    TST = HourSecs * TS ! in [s]
 
     if (map_flag) then
        ! Estimate specific runoff at  L11
@@ -421,7 +420,7 @@ CONTAINS
        do k = 1, size(qAll, 1)
           qAcc(L1_L11_Id(k)) = qAcc(L1_L11_Id(k)) + qAll(k) * efecArea(k) 
        end do
-       qAcc = qAcc * 1000.0_dp / TST
+       qAcc = qAcc * 1000.0_dp / TS
        !
     else
        ! initialize qout
@@ -431,7 +430,7 @@ CONTAINS
           qAcc(k) = qAll(L11_L1_Id(k))
        end do
        ! adjust flux by area cell
-       qAcc(:) = qAcc(:) * L11_areaCell(:) * 1000.0_dp / TST
+       qAcc(:) = qAcc(:) * L11_areaCell(:) * 1000.0_dp / TS
     end if
 
   END SUBROUTINE L11_runoff_acc

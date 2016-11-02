@@ -538,18 +538,18 @@ CONTAINS
 
     ! Input
     integer(i4),            intent(in) :: iBasin ! Basin number
-    real(dp), dimension(:), intent(in) :: param ! input parameter
+    real(dp), dimension(:), intent(in) :: param ! input parameter (param(1) is celerity in m/s)
 
     ! local variables
     integer(i4) :: nrows
     integer(i4) :: ncols
     integer(i4) :: s11
     integer(i4) :: e11
-    integer(i4) :: nTSrout ! number of routing timestep per model timestep
+    integer(i4) :: nTSrout ! number of routing timestep per hydrology timestep
     real(dp)    :: TSrout  ! temporal routing resolution
+    real(dp)    :: TSroutfactor ! factor between routing temporal resolution and hydrology temporal resolution
     real(dp)    :: deltaX  ! 
     real(dp)    :: TS      ! [s] time step
-    real(dp)    :: C       ! celerity
     real(dp)    :: K       ! [d] Muskingum travel time parameter
     real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
 
@@ -557,72 +557,48 @@ CONTAINS
     call get_basin_info_mrm(iBasin,  11, nrows, ncols,  iStart=s11,  iEnd=e11)
 
     if (iBasin .eq. 1_i4) then
-       ! allocate(L11_C1(nBasins))
-       ! allocate(L11_C2(nBasins))
        allocate(L11_TSrout(nBasins))
-       ! L11_C1 = 0._dp
-       ! L11_C2 = 0._dp
        L11_TSrout = 0._dp
     end if
 
     ! adjust spatial resolution
     deltaX = resolutionRouting(iBasin)
-    ! conversion from degree to m (it's rough)
-    if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp
+    if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
     
     ! calculate time step
     TS = HourSecs * timeStep
     
-    ! calculate the celerity
-    C = param(1) ! * 10._dp
-    
     ! K and Xi according to Todini 2007
-    K = deltaX / C
+    K = deltaX / param(1)
     xi = abs(rout_time_weight) ! set weighting factor to 0._dp
 
-    print *, '========================================================='
-    print *, '========================================================='
-    print *, 'K:.. ', K, deltaX, C
-    print *, 'XI:. ', XI
-
     ! adjust routing timestep to scale of K
-    TSrout = K / TS
+    TSroutfactor = K / TS
 
-    if (TSrout .gt. 1._dp) then
-       nTSrout = nint(TSrout)
+    if (TSroutfactor .gt. 1._dp) then
+       nTSrout = nint(TSroutfactor)
        TSrout = nTSrout * TS
     else
-       nTSrout = nint(1._dp / TSrout)
+       nTSrout = nint(1._dp / TSroutfactor)
        TSrout = (1._dp / nTSrout) * TS
-       print *, 'nTSrout here: ', nTSrout
-       print *, 'TSrout here:  ', TSrout
-       ! dont route below 12 minutes; there are limits!!!
-       if (TSrout .lt. 720._dp) then
-          print *, 'ST: resetting routing timestep to 12 minutes (720 seconds)'
-          print *, 'ST: mRM has not been tested below this temporal resolution'
-          nTSrout = nint(TS / 720._dp)
-          TSrout = 720._dp
-       end if
     end if
-    print *, 'nTSrout:..', nTSrout
-    print *, 'TSrout:...', TSrout
 
-    ! update K
-    K = TSrout
-    print *, 'K:...', K, TSrout
+    ! dont route below 12 minutes; there are limits!!!
+    if (TSrout .lt. 720._dp) then
+       print *, 'ST warning: resetting routing timestep to 12 minutes (720 seconds)'
+       print *, 'ST warning: mRM has not been tested below this temporal resolution'
+       nTSrout = nint(TS / 720._dp)
+       TSrout = 720._dp
+    end if
     
     ! Muskingum parameters
-    L11_C1(s11: e11) = TSrout / ( K * (1.0_dp - xi) + 0.5_dp * TSrout )
-    L11_C2(s11: e11) = 1.0_dp - L11_C1(iBasin) * K / TSrout
+    L11_C1(s11: e11) = TSrout / ( TSrout * (1.0_dp - xi) + 0.5_dp * TSrout )
+    L11_C2(s11: e11) = 1.0_dp - L11_C1(iBasin) * TSrout / TSrout
 
     ! set other global parameters
     L11_tsRout(iBasin) = TSrout
 
-    print *, 'routing factor: ', tsRout / (timestep * HourSecs)
+    ! print *, 'routing factor: ', tsRout / (timestep * HourSecs)
 
-    print *, 'C1:...', L11_C1(s11)
-    print *, 'C2:...', L11_C2(s11)
-    print *, '========================================================='
-    print *, '========================================================='
   end subroutine mrm_init_param
 END MODULE mo_mrm_init

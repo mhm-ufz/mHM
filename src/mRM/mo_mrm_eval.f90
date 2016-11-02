@@ -137,7 +137,7 @@ contains
     integer(i4) :: s110, e110 ! start and end index of L11 at L0
     integer(i4) :: nrows, ncols
     integer(i4) :: iDischargeTS ! discharge timestep
-    ! integer(i4) :: nNodes                   ! number of Nodes
+    ! integer(i4) :: nNodes                 ! number of Nodes
     integer(i4), allocatable :: dummy(:, :) ! dummy for penalty
     real(dp) :: tsRoutFactor                ! factor between routing and hydrological modelling resolution
     real(dp) :: tsRoutFactorIn              ! factor between routing and hydrological modelling resolution (temporary variable)
@@ -178,9 +178,8 @@ contains
        call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 )
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
        !
-       ! initialize parameters
-       print *, 'ST: parameterset: ', parameterset
-       if (processMatrix(8, 1) .eq. 2) call mrm_init_param(ii, parameterset)
+       ! initialize routing parameters (has to be called before MPR)
+       call mrm_init_param(ii, parameterset)
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
@@ -212,11 +211,19 @@ contains
           !
           ! set input variables for routing
           if (processMatrix(8, 1) .eq. 1) then
+             ! >>>
+             ! >>> original Muskingum routing, executed every time
+             ! >>>
              do_rout = .True.
-             tsRoutFactor = 1._dp
+             L11_tsRout(ii) = (timestep * HourSecs)
+             tsRoutFactorIn = 1._dp
              RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
              InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
-          else if (processMatrix(8, 1) .eq. 2) then 
+             !
+          else if (processMatrix(8, 1) .eq. 2) then
+             ! >>>
+             ! >>> adaptive timestep
+             ! >>>
              do_rout = .False.
              ! calculate factor
              tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
@@ -264,7 +271,8 @@ contains
                L11_fromN(s11:e11), & ! link source at L11
                L11_toN(s11:e11), & ! link target at L11
                L11_nOutlets(ii), & ! number of outlets
-               tsRoutFactor, & ! simulate timestep in [h]
+               L11_tsRout(ii), & ! Routing timestep in seconds
+               tsRoutFactorIn, & ! simulate timestep in [h]
                basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                basin_mrm%nInflowGauges(ii), &
                basin_mrm%InflowGaugeIndexList(ii,:), &

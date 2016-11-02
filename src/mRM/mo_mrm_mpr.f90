@@ -74,6 +74,8 @@ contains
   subroutine reg_rout( param, length, slope, fFPimp, TS, &
        C1, C2 )
 
+    use mo_mrm_constants, only: HourSecs
+    
     implicit none
 
     ! Input
@@ -81,8 +83,8 @@ contains
     real(dp), dimension(:), intent(in)  :: length ! [m] total length
     real(dp), dimension(:), intent(in)  :: slope  ! average slope
     real(dp), dimension(:), intent(in)  :: fFPimp ! fraction of the flood plain with
-    !                                                ! impervious layer
-    real(dp),               intent(in)  :: TS     ! [h] time step in
+    !                                             ! impervious layer
+    real(dp),               intent(in)  :: TS     ! [s] time step in
 
     ! Output
     real(dp), dimension(:), intent(out) :: C1     ! routing parameter C1 (Chow, 25-41)
@@ -92,6 +94,9 @@ contains
     real(dp)                            :: ssMax  ! stream slope max
     real(dp), dimension(size(fFPimp,1)) :: K      ! [d] Muskingum travel time parameter
     real(dp), dimension(size(fFPimp,1)) :: xi     ! [1] Muskingum diffusion parameter (attenuation)
+    real(dp)                            :: TST    ! [h] time steps
+
+    TST = real(nint(TS / HourSecs), dp)
 
     ! normalize stream bed slope
     ssMax = maxval( slope(:) )
@@ -109,12 +114,12 @@ contains
     xi = merge( 0.005_dp, xi, xi < 0.005_dp )
 
     ! constrains on Ki
-    K = merge( 0.5_dp * TS / xi,            K, K > 0.5_dp * TS / xi )
-    K = merge( 0.5_dp * TS / (1.0_dp - xi), K, K < 0.5_dp * TS / (1.0_dp - xi))
+    K = merge( 0.5_dp * TST / xi,            K, K > 0.5_dp * TST / xi )
+    K = merge( 0.5_dp * TST / (1.0_dp - xi), K, K < 0.5_dp * TST / (1.0_dp - xi))
 
     ! Muskingum parameters
-    C1 = TS / ( K * (1.0_dp - xi) + 0.5_dp * TS )
-    C2 = 1.0_dp - C1 * K / TS
+    C1 = TST / ( K * (1.0_dp - xi) + 0.5_dp * TST )
+    C2 = 1.0_dp - C1 * K / TST
 
   end subroutine reg_rout
 end module mo_mrm_mpr
