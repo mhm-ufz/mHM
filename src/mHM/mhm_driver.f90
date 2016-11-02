@@ -199,7 +199,7 @@ PROGRAM mhm_driver
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
   USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods
   USE mo_optimization,        ONLY : optimization
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, only: single_objective_runoff
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
@@ -369,7 +369,7 @@ PROGRAM mhm_driver
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
@@ -387,7 +387,7 @@ PROGRAM mhm_driver
   if ( optimize ) then
 
      select case(opti_function) 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
      case(1:9,14) 
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
@@ -433,7 +433,7 @@ PROGRAM mhm_driver
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)

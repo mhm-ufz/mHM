@@ -184,7 +184,7 @@ static   := shared
 # Special compilation flags 
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := -Dmrm2mhm
+EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=

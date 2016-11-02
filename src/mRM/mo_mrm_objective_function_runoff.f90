@@ -2121,7 +2121,7 @@ CONTAINS
 
   !>        \brief returns mHM_eval or mRM_eval given preprocessor flag
 
-  !>        \details call mHM_eval if mrm2mhm preprocessor flag is used while
+  !>        \details call mHM_eval if MRM2MHM preprocessor flag is used while
   !>                 compilation or mRM_eval otherwise
 
   !     INTENT(IN)
@@ -2161,7 +2161,7 @@ CONTAINS
   ! ------------------------------------------------------------------
   subroutine eval(parameterset, runoff, basin_avg_tws)
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     use mo_mhm_eval, only: mHM_eval
 #else
     use mo_mrm_eval, only: mRM_eval
@@ -2177,7 +2177,7 @@ CONTAINS
     real(dp), allocatable, optional, intent(out) :: runoff(:,:)
     real(dp), allocatable, optional, intent(out) :: basin_avg_tws(:,:)
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     call mHM_eval(parameterset, runoff=runoff, basin_avg_tws=basin_avg_tws)
 #else
     call mRM_eval(parameterset, runoff=runoff)

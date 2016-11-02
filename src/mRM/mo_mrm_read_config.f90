@@ -87,14 +87,14 @@ contains
     call close_nml(unamelist_mrm)
     ! check whether coupling mode is specified correctly
     if (mrm_coupling_mode .eq. 2) then
-#ifndef mrm2mhm
-       call message('***ERROR: coupling mode equals 2, but mrm2mhm preprocessor flag is not set while compiling')
+#ifndef MRM2MHM
+       call message('***ERROR: coupling mode equals 2, but MRM2MHM preprocessor flag is not set while compiling')
        stop
 #endif       
     end if
     if (mrm_coupling_mode .eq. 0) then
-#ifdef mrm2mhm
-       call message('***ERROR: coupling mode equals 0, but mrm2mhm preprocessor flag is set while compiling')
+#ifdef MRM2MHM
+       call message('***ERROR: coupling mode equals 0, but MRM2MHM preprocessor flag is set while compiling')
        stop
 #endif
     end if
@@ -708,7 +708,7 @@ contains
 
     call close_nml(unamelist_mrm)
     
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     processCase = 0_i4
     processCase(8) = processMatrix(8, 1)
 #else
@@ -822,7 +822,7 @@ contains
     integer(i4), intent(in) :: processCase ! it is the default case, should be one
     character(256), intent(in) :: file_namelist ! file name containing parameter namelist
     ! local variables
-#ifdef mrm2mhm    
+#ifdef MRM2MHM    
     integer(i4) :: start_index ! equals sum of previous parameters
 #else
     integer(i4) :: dummy ! dummy variable to always use processCase
@@ -848,7 +848,7 @@ contains
        read(unamelist_param, nml=routing2)
     end if
        
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! -------------------------------------------------------------------------
     ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
     ! -------------------------------------------------------------------------

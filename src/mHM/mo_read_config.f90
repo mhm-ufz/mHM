@@ -198,6 +198,7 @@ CONTAINS
     ! PARAMETERS
     integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
     real(dp), dimension(5, nColPars)                :: dummy_2d_dp = nodata_dp ! space holder for routing parameters
+    real(dp), dimension(1, nColPars)                :: dummy_2d_dp_2 = nodata_dp ! space holder for routing parameters
     ! interception
     real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
@@ -1113,8 +1114,8 @@ CONTAINS
     case(1)
        ! parameter values and names are set in mRM
        ! 1 - Muskingum approach
-#ifndef mrm2mhm
-       call message('***ERROR processCase(8) equals 1, but mrm2mhm preprocessor flag is not given in Makefile')
+#ifndef MRM2MHM
+       call message('***ERROR processCase(8) equals 1, but MRM2MHM preprocessor flag is not given in Makefile')
        stop
 #endif
        processMatrix(8, 1) = processCase(8)
@@ -1122,7 +1123,16 @@ CONTAINS
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
        call append(global_parameters, dummy_2d_dp)
        call append(global_parameters_name, (/'dummy', 'dummy', 'dummy', 'dummy', 'dummy'/))
-
+    case(2)
+#ifndef MRM2MHM
+       call message('***ERROR processCase(8) equals 1, but MRM2MHM preprocessor flag is not given in Makefile')
+       stop
+#endif
+       processMatrix(8, 1) = processCase(8)
+       processMatrix(8, 2) = 1_i4
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+       call append(global_parameters, dummy_2d_dp_2)
+       call append(global_parameters_name, (/'dummy'/))
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')

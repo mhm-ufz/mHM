@@ -156,7 +156,7 @@ CONTAINS
     use mo_common_variables, only: &
          optimize, &
          processMatrix
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
          ! INPUT variables for mRM routing ====================================
@@ -245,7 +245,7 @@ CONTAINS
     logical                                   :: writeout         ! if true write out netcdf files
     integer(i4)                               :: writeout_counter ! write out time step
     !
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! for routing
     logical               :: do_mpr
     integer(i4)           :: jj
@@ -309,7 +309,7 @@ CONTAINS
        ! as default values,
        ! all cells for all modeled basins are simultenously initalized ONLY ONCE
        call variables_default_init()
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if (processMatrix(8, 1) .eq. 1) then
           !-------------------------------------------
           ! L11 ROUTING STATE VARIABLES, FLUXES AND
@@ -325,7 +325,7 @@ CONTAINS
        end do
     end if
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! ----------------------------------------
     ! initialize factor between routing resolution and hydrologic model resolution
     ! ----------------------------------------
@@ -353,7 +353,7 @@ CONTAINS
        call get_basin_info ( ii,  0, nrows, ncols,                iStart=s0,  iEnd=e0, mask=mask0 )
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 )
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if (processMatrix(8,1) .gt. 0) then
           ! read states from restart
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
@@ -543,7 +543,7 @@ CONTAINS
                L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 
           ! call mRM routing
-#ifdef mrm2mhm
+#ifdef MRM2MHM
           if (processMatrix(8, 1) .gt. 0) then
              ! set discharge timestep
              iDischargeTS = ceiling(real(tt,dp) / real(NTSTEPDAY,dp))
@@ -678,7 +678,7 @@ CONTAINS
           call caldat(int(newTime), yy=year, mm=month, dd=day)
 
           if (.not. optimize) then
-#ifdef mrm2mhm
+#ifdef MRM2MHM
              if (any(outputFlxState_mrm)) then
                 call mrm_write_output_fluxes( &
                      ! basin id
@@ -861,9 +861,15 @@ CONTAINS
        ! deallocate TWS field temporal variable
        if (allocated(TWS_field) ) deallocate(TWS_field)
 
+#ifdef MRM2MHM
+       ! clean runoff variable
+       deallocate(RunToRout)
+#endif       
+
+       
     end do !<< BASIN LOOP
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================

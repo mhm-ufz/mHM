@@ -1,5 +1,5 @@
 !> \file mrm_driver.f90
-#ifndef mrm2mhm
+#ifndef MRM2MHM
 program mrm_driver
 
   use mo_common_variables,              only: global_parameters, global_parameters_name, optimize

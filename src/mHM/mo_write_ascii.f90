@@ -120,7 +120,7 @@ CONTAINS
          processMatrix,             &
          global_parameters,         &
          global_parameters_name
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     use mo_mrm_global_variables, only: &
          basin_mrm,                 &
          gauge,                     &
@@ -168,13 +168,13 @@ CONTAINS
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
     write(uconfig, 103) 'Number of basins            ', nBasins
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     write(uconfig, 103) 'Total No. of nodes          ', L11_nCells
     write(uconfig, 103) 'Total No. of reaches        ', L11_nCells-1
 #endif
     write(uconfig, 103) 'No. of cells L0             ', L0_nCells
     write(uconfig, 103) 'No. of cells L1             ', L1_nCells
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 103) 'No. of cells L11            ', L11_nCells
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
@@ -185,14 +185,14 @@ CONTAINS
        select case (iFlag_cordinate_sys)
        case (0)
           write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
           if ( processMatrix(8,1) .ne. 0 ) then
              write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
           end if
 #endif
        case(1)
          write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
          if ( processMatrix(8,1) .ne. 0 ) then
             write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
          end if
@@ -248,7 +248,7 @@ CONTAINS
             i, global_parameters(i,1), global_parameters(i,2), global_parameters(i,3), &
             trim(adjustl(global_parameters_name(i)))
     end do
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! basin runoff data
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 202) '                Basin Runoff Data                '
@@ -289,7 +289,7 @@ CONTAINS
 
        write(uconfig, 224) 'Directory to morphological input         ',  dirMorpho(n)
        write(uconfig, 224) 'Directory to land cover input            ',  dirLCover(n)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
        end if
@@ -300,7 +300,7 @@ CONTAINS
        write(uconfig, 224) 'Directory to write output by default     ',  dirOut(n)
        write(uconfig, 224) 'Directory to write output when restarted ',  dirRestartOut(n)
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 102) 'River Network  (Routing level)'
           write(uconfig, 100) 'Label 0 = intermediate draining cell '
