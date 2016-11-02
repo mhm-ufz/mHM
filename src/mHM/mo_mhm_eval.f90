@@ -91,7 +91,8 @@ CONTAINS
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
   !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
   !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
-
+  !                   Stephan Thober,       Nov 2016 - added two options for routing
+  
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
     use mo_init_states,         only : get_basin_info
@@ -112,7 +113,7 @@ CONTAINS
          read_restart, perform_mpr, fracSealed_CityArea,     &
          timeStep_model_inputs,                              &
          timeStep, nBasins, simPer, readPer,                 & ! [h] simulation time step, No. of basins
-         processMatrix, c2TSTu, HorizonDepth_mHM,            &
+         c2TSTu, HorizonDepth_mHM,            &
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,             &
          LCyearId, LAIUnitList, LAILUT,                      &
          GeoUnitList, GeoUnitKar, soilDB,                    &
@@ -153,7 +154,8 @@ CONTAINS
          nTimeSteps_L1_sm,                                   & ! total number of timesteps in soil moisture input
          nTimeSteps_L1_neutrons                                ! total number of timesteps in neutrons input
     use mo_common_variables, only: &
-         optimize
+         optimize, &
+         processMatrix
 #ifdef mrm2mhm
     use mo_utils, only: ge
     use mo_mrm_global_variables, only: &
@@ -181,6 +183,7 @@ CONTAINS
          warmingDays_mrm,            &
          timeStep_model_outputs_mrm, &
          ! INPUT/OUTPUT variables for mRM routing =============================
+         L11_TSrout,                 & ! routing timestep in seconds
          L11_C1,                     & ! first muskingum parameter
          L11_C2,                     & ! second muskigum parameter
          L11_qOUT,                   & ! routed runoff flowing out of L11 cell
@@ -193,7 +196,8 @@ CONTAINS
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
     use mo_mrm_write, only: mrm_write_output_fluxes
-    use mo_mrm_init, only: variables_default_init_routing
+    use mo_mrm_init, only: variables_default_init_routing, mrm_init_param
+    use mo_mrm_constants, only: hourSecs
 #endif
 
     implicit none
@@ -243,10 +247,17 @@ CONTAINS
     !
 #ifdef mrm2mhm
     ! for routing
-    logical                                   :: do_mpr
-    integer(i4)                               :: s11, e11 ! start and end index at L11
-    integer(i4)                               :: s110, e110 ! start and end index of L11 at L0
-    logical, allocatable                      :: mask11(:,:)
+    logical               :: do_mpr
+    integer(i4)           :: jj
+    integer(i4)           :: iDischargeTS ! discharge timestep
+    integer(i4)           :: s11, e11 ! start and end index at L11
+    integer(i4)           :: s110, e110 ! start and end index of L11 at L0
+    real(dp)              :: tsRoutFactor ! factor between routing and hydrological modelling resolution
+    real(dp)              :: tsRoutFactorIn ! factor between routing and hydrological modelling resolution (dummy)
+    real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
+    real(dp), allocatable :: InflowDischarge(:) ! inflowing discharge
+    logical,  allocatable :: mask11(:,:)
+    logical               :: do_rout ! flag for performing routing
 #endif
     !
 
@@ -314,6 +325,14 @@ CONTAINS
        end do
     end if
 
+#ifdef mrm2mhm
+    ! ----------------------------------------
+    ! initialize factor between routing resolution and hydrologic model resolution
+    ! ----------------------------------------
+    tsRoutFactor = 1_i4
+    allocate(InflowDischarge(size(InflowGauge%Q, dim=2)))
+    InflowDischarge = 0._dp
+#endif
 
     !----------------------------------------
     ! loop over basins
@@ -335,13 +354,18 @@ CONTAINS
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 )
 
 #ifdef mrm2mhm
-       if (processMatrix(8,1) .eq. 1) then
+       if (processMatrix(8,1) .gt. 0) then
           ! read states from restart
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
           !
           ! get basin information at L11 and L110 if routing is activated
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
+          ! initialize routing parameters (has to be called before MPR)
+          call mrm_init_param(ii, parameterset)
+          ! initialize variable for runoff for routing
+          allocate(RunToRout(e1 - s1 + 1))
+          RunToRout = 0._dp
        end if
 #endif
        ! allocate space for local LAI grid
@@ -520,7 +544,9 @@ CONTAINS
 
           ! call mRM routing
 #ifdef mrm2mhm
-          if (processMatrix(8, 1) .eq. 1) then
+          if (processMatrix(8, 1) .gt. 0) then
+             ! set discharge timestep
+             iDischargeTS = ceiling(real(tt,dp) / real(NTSTEPDAY,dp))
              ! determine whether mpr is to be executed
              if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
                 do_mpr = perform_mpr
@@ -528,47 +554,116 @@ CONTAINS
                 do_mpr = .false.
              end if
              !
-             !here the routing states have to be updated if restart is set to true because of optimization
-             call mRM_routing( &
-                  ! INPUT variables
+             ! set input variables for routing
+             if (processMatrix(8, 1) .eq. 1) then
+                ! >>>
+                ! >>> original Muskingum routing, executed every time
+                ! >>>
+                do_rout = .True.
+                L11_tsRout(ii) = (timestep * HourSecs)
+                tsRoutFactorIn = 1._dp
+                RunToRout = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
+                InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
+                !
+             else if (processMatrix(8, 1) .eq. 2) then
+                ! >>>
+                ! >>> adaptive timestep
+                ! >>>
+                do_rout = .False.
+                ! calculate factor
+                tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
+                ! print *, 'routing factor: ', tsRoutFactor
+                ! prepare routing call
+                if (tsRoutFactor .lt. 1._dp) then
+                   ! ----------------------------------------------------------------
+                   ! routing timesteps are shorter than hydrologic time steps
+                   ! ----------------------------------------------------------------
+                   ! set all input variables
+                   tsRoutFactorIn = tsRoutFactor
+                   RunToRout = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
+                   InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
+                   do_rout = .True.
+                else
+                   ! ----------------------------------------------------------------
+                   ! routing timesteps are longer than hydrologic time steps
+                   ! ----------------------------------------------------------------
+                   ! set all input variables
+                   tsRoutFactorIn = tsRoutFactor
+                   RunToRout = RunToRout + L1_total_runoff(s1:e1)
+                   InflowDischarge = InflowDischarge + InflowGauge%Q(iDischargeTS, :)
+                   ! reset tsRoutFactorIn if last period did not cover full period
+                   if ((tt .eq. nTimeSteps) .and. (mod(tt, nint(tsRoutFactorIn)) .ne. 0_i4)) &
+                        tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
+                   if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
+                      InflowDischarge = InflowDischarge / tsRoutFactorIn
+                      do_rout = .True.
+                   end if
+                end if
+             end if
+             ! -------------------------------------------------------------------
+             ! execute routing
+             ! -------------------------------------------------------------------
+             if (do_rout) call mRM_routing( &
+                  ! general INPUT variables
+                  processMatrix(8, 1), & ! parse process Case to be used
                   parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)), & ! routing par.
-                  L1_total_runoff(s1:e1), & ! L1 total runoff generated at each cell
-                  L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
-                  L0_floodPlain(s110:e110), & ! flood plains at L0 level
-                  L0_areaCell(s0:e0), &
+                  RunToRout, & ! runoff [mm TST-1] mm per timestep old: L1_total_runoff_in(s1:e1, tt), &
                   L1_areaCell(s1:e1), &
                   L1_L11_Id(s1:e1), &
                   L11_areaCell(s11:e11), &
                   L11_L1_Id(s11:e11), &
-                  L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
-                  L11_length(s11:e11 - 1), & ! link length
-                  L11_slope(s11:e11 - 1), &
                   L11_netPerm(s11:e11), & ! routing order at L11
                   L11_fromN(s11:e11), & ! link source at L11
                   L11_toN(s11:e11), & ! link target at L11
                   L11_nOutlets(ii), & ! number of outlets
-                  timeStep, & ! simulate timestep in [h]
+                  L11_tsRout(ii), & ! Routing timestep in seconds
+                  tsRoutFactorIn, & ! simulate timestep in [h]
                   basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                   basin_mrm%nInflowGauges(ii), &
                   basin_mrm%InflowGaugeIndexList(ii,:), &
                   basin_mrm%InflowGaugeHeadwater(ii,:), &
                   basin_mrm%InflowGaugeNodeList(ii,:), &
-                  InflowGauge%Q(iMeteoTS,:), &
+                  InflowDischarge, &
                   basin_mrm%nGauges(ii), &
                   basin_mrm%gaugeIndexList(ii,:), &
                   basin_mrm%gaugeNodeList(ii,:), &
                   ge(resolutionRouting(ii), resolutionHydrology(ii)), &
-                  ! INPUT/OUTPUT variables
+                  ! original routing specific input variables
+                  L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
+                  L0_floodPlain(s110:e110), & ! flood plains at L0 level
+                  L0_areaCell(s0:e0), &
+                  L11_aFloodPlain(s11:e11), & ! flood plains at L11 level
+                  L11_length(s11:e11 - 1), & ! link length
+                  L11_slope(s11:e11 - 1), &
+                  ! general INPUT/OUTPUT variables
                   L11_C1(s11:e11), & ! first muskingum parameter
                   L11_C2(s11:e11), & ! second muskigum parameter
                   L11_qOUT(s11:e11), & ! routed runoff flowing out of L11 cell
                   L11_qTIN(s11:e11,:), & ! inflow water into the reach at L11
                   L11_qTR(s11:e11,:), & !
-                  L11_FracFPimp(s11:e11), & ! fraction of impervious layer at L11 scale
                   L11_qMod(s11:e11), &
                   mRM_runoff(tt, :), &
+                  ! original routing specific input/output variables
+                  L11_FracFPimp(s11:e11), & ! fraction of impervious layer at L11 scale
                   ! OPTIONAL INPUT variables
                   do_mpr)
+             ! -------------------------------------------------------------------
+             ! reset variables
+             ! -------------------------------------------------------------------
+             if (processMatrix(8, 1) .eq. 1) then
+                ! reset Input variables
+                InflowDischarge = 0._dp
+                RunToRout = 0._dp
+             else if (processMatrix(8, 1) .eq. 2) then             
+                if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
+                   do jj = 1, nint(tsRoutFactorIn)
+                      mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
+                   end do
+                   ! reset Input variables
+                   InflowDischarge = 0._dp
+                   RunToRout = 0._dp
+                end if
+             end if
           end if
 #endif
 

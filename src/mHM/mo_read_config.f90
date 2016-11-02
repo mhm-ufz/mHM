@@ -103,7 +103,8 @@ CONTAINS
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
   !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
   !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
-  !                     Rohini Kumar, Mar 2016 - options to handle different soil databases
+  !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
+  !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
 
   subroutine read_config()
 
@@ -165,7 +166,6 @@ CONTAINS
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
-         nProcesses, processMatrix,                         & ! process configuration
          nGeoUnits,                                         & ! number of geological classes
                                 !                                                    ! for parameter read-in
          timeStep_model_outputs,                            & ! timestep for writing model outputs
@@ -175,6 +175,7 @@ CONTAINS
          iFlag_cordinate_sys                                  ! model run cordinate system
 
     use mo_common_variables, only: &
+         nProcesses, processMatrix,                         & ! process configuration
          global_parameters,                                 & ! global parameters
          global_parameters_name,                            & ! clear names of global parameters
          optimize,                                          & ! if mhm runs in optimization mode or not

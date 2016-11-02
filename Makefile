@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM # where are the source files
+SRCPATH    := ./src/lib ./src/common ./src/mHM ./src/mRM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
@@ -184,7 +184,7 @@ static   := shared
 # Special compilation flags 
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := #-Dmrm2mhm
+EXTRA_DEFINES  := -Dmrm2mhm
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=

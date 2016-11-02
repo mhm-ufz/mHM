@@ -143,6 +143,7 @@
 !                                                for simultaneous calibration based on runoff and TWS
 !                       Rohini Kumar, Mar 2016 - options to handle different soil databases
 !                                                modified MPR to included soil horizon specific properties/parameters
+!                     Stephan Thober, Nov 2016 - implemented adaptive timestep for routing
 !
 ! --------------------------------------------------------------------------
 
@@ -168,12 +169,12 @@ PROGRAM mhm_driver
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       processMatrix,                                        &      ! basin information,  processMatrix
        dirConfigOut,                                         &
        basin,                                                & ! L0_mask for mrm_init call
        L0_elev,                                              & ! L0_elev for mrm_init call
        L0_LCover                                               ! L0_LCover for mrm_init call
   USE mo_common_variables,    ONLY : &
+       processMatrix,                                        &      ! basin information,  processMatrix
        optimize, opti_function,                              &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name                    ! mhm parameters (gamma) and their clear names
   USE mo_kind,                ONLY : i4, dp                         ! number precision

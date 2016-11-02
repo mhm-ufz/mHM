@@ -142,11 +142,11 @@ contains
     real(dp) :: tsRoutFactor                ! factor between routing and hydrological modelling resolution
     real(dp) :: tsRoutFactorIn              ! factor between routing and hydrological modelling resolution (temporary variable)
     real(dp) :: newTime
-    logical :: do_mpr
-	real(dp) :: penalty
+    logical  :: do_mpr
+    real(dp) :: penalty
     real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
     real(dp), allocatable :: InflowDischarge(:) ! inflowing discharge
-    logical, allocatable :: mask11(:,:)
+    logical,  allocatable :: mask11(:,:)
     logical  :: do_rout ! flag for performing routing
 
     if (.not. read_restart) then

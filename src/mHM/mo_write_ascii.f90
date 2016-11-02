@@ -78,6 +78,7 @@ MODULE mo_write_ascii
   !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out
   !                   Stephan Thober, Jun 2014 - updated read_restart
   !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
+  !                   Stephan Thober, Nov 2016 - moved processMatrix to common variables
 
   PRIVATE
 
@@ -93,7 +94,6 @@ CONTAINS
     use mo_string_utils,     only: num2str
     USE mo_file,             only: file_config, uconfig, version
     use mo_global_variables, only:                     &
-         processMatrix,             &
          nBasins,                   &
          basin,                     &
          iFlag_cordinate_sys,       &
@@ -117,6 +117,7 @@ CONTAINS
          LCyearId,                  &
          LCfilename
     use mo_common_variables, only: &
+         processMatrix,             &
          global_parameters,         &
          global_parameters_name
 #ifdef mrm2mhm
@@ -556,11 +557,14 @@ CONTAINS
   !>        \date Dec 2013
 
   !         Modified,
+  !                 Stephan Thober, Nov  2016 - moved nProcesses to common variables
+
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
     use mo_file,                only: file_opti_nml, uopti_nml
-    use mo_global_variables,    only: dirConfigOut, nProcesses
+    use mo_global_variables,    only: dirConfigOut
+    use mo_common_variables,    only: nProcesses
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
 
