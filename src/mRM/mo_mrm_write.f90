@@ -317,14 +317,16 @@ contains
     !*********************************
     ! Model Land Cover Observations 
     !*********************************
-    do j = 1, nBasins
-       write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
-       write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
-       do i=1,SimPer(j)%yEnd-SimPer(j)%yStart+1
-          write(uconfig,120) i+SimPer(j)%yStart-1, LCyearId(i+SimPer(j)%yStart-1, j), &
-               trim(LCfilename(LCyearId(i+SimPer(j)%yStart-1, j)))
+    if (processMatrix(8, 1) .eq. 1) then
+       do j = 1, nBasins
+          write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
+          write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
+          do i=1,SimPer(j)%yEnd-SimPer(j)%yStart+1
+             write(uconfig,120) i+SimPer(j)%yStart-1, LCyearId(i+SimPer(j)%yStart-1, j), &
+                  trim(LCfilename(LCyearId(i+SimPer(j)%yStart-1, j)))
+          end do
        end do
-    end do
+    end if
     !*********************************
     ! Initial Parameter Ranges
     !*********************************

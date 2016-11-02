@@ -47,7 +47,6 @@ program mrm_driver
      itimer = 1
      call timer_start(itimer)
      call message('    perform forward run of mRM')
-     print *, 'ST: global_parameters(:,3): ', global_parameters(:,3)
      call mrm_eval(global_parameters(:,3))
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')

@@ -99,6 +99,8 @@ contains
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
          basin_mrm ! basin information for single basins
+    use mo_common_variables, only: &
+         processMatrix ! process description
     
     implicit none
     
@@ -303,18 +305,24 @@ contains
        !
        if (mrm_coupling_mode .ne. 2) then
           ! LCover read in is realized seperated because of unknown number of scenes
-          do iVar = 1, nLCoverScene
-             fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
-             call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
-                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-             
-             ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-             call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
-             !
-             deallocate(data_i4_2d)
-          end do
+          if (processMatrix(8, 1) .eq. 1) then
+             do iVar = 1, nLCoverScene
+                fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
+                call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
+                     level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                     level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+                
+                ! put global nodata value into array (probably not all grid cells have values)
+                data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+                call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+                !
+                deallocate(data_i4_2d)
+             end do
+          end if
+          if (processMatrix(8, 1) .eq. 2) then
+             allocate(dataMatrix_i4(count(mask_global), 1))
+             dataMatrix_i4 = nodata_i4
+          end if
           !
           call append( L0_LCover_read, dataMatrix_i4 )
           ! free memory

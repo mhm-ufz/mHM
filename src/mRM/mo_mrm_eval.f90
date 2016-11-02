@@ -129,7 +129,7 @@ contains
     integer(i4) :: year
     integer(i4) :: hour
     integer(i4) :: nTimeSteps
-    integer(i4) :: yID ! Land cover year ID
+    integer(i4) :: Lcover_yID ! Land cover year ID
     integer(i4) :: s0, e0 ! start and end index at level 0 for current basin
     integer(i4) :: s1, e1 ! start and end index at level 1 for current basin
     integer(i4) :: s11, e11 ! start and end index at L11
@@ -182,7 +182,7 @@ contains
        ! initialize timestep
        newTime = real(simPer(ii)%julStart,dp)
        ! initialize land cover year id
-       yID = 0
+       Lcover_yID = 0
        ! initialize variable for runoff for routing
        allocate(RunToRout(e1 - s1 + 1))
        RunToRout = 0._dp
@@ -195,13 +195,6 @@ contains
           iDischargeTS = ceiling(real(tt,dp) / real(NTSTEPDAY,dp))
           ! calculate current timestep
           call caldat(int(newTime), yy=year, mm=month, dd=day)
-          ! determine whether mpr is to be executed
-          if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
-             do_mpr = perform_mpr
-             yID = LCyearId(year, ii)
-          else
-             do_mpr = .false.
-          end if
           ! -------------------------------------------------------------------
           ! PERFORM ROUTING
           ! -------------------------------------------------------------------
@@ -211,6 +204,15 @@ contains
              ! >>>
              ! >>> original Muskingum routing, executed every time
              ! >>>
+             !
+             ! determine whether mpr is to be executed
+             if( ( LCyearId(year,ii) .NE. Lcover_yId) .or. (tt .EQ. 1) ) then
+                do_mpr = perform_mpr
+                Lcover_yID = LCyearId(year, ii)
+             else
+                do_mpr = .false.
+             end if
+             !
              do_rout = .True.
              L11_tsRout(ii) = (timestep * HourSecs)
              tsRoutFactorIn = 1._dp
@@ -221,6 +223,10 @@ contains
              ! >>>
              ! >>> adaptive timestep
              ! >>>
+             !
+             ! set dummy lcover_yID
+             Lcover_yID = 1_i4
+             !
              do_rout = .False.
              ! calculate factor
              tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
@@ -281,7 +287,7 @@ contains
                basin_mrm%gaugeNodeList(ii,:), &
                ge(resolutionRouting(ii), resolutionHydrology(ii)), &
                ! original routing specific input variables
-               L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
+               L0_LCover_mRM(s0:e0, Lcover_yID), & ! L0 land cover
                L0_floodPlain(s110:e110), & ! flood plains at L0 level
                L0_areaCell(s0:e0), &
                L11_aFloodPlain(s11:e11), & ! flood plains at L11 level

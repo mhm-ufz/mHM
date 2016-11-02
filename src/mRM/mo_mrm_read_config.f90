@@ -366,6 +366,18 @@ contains
     nTstepDay = 24_i4/timeStep ! # of time steps per day
 
     !===============================================================
+    ! Set or read process selection
+    !===============================================================
+#ifdef MRM2MHM
+    processCase = 0_i4
+    processCase(8) = processMatrix(8, 1)
+#else
+    processCase = 0_i4
+    call position_nml('processselection', unamelist_mrm)
+    read(unamelist_mrm, nml=processSelection)
+#endif
+
+    !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
     call position_nml('time_periods', unamelist_mrm)
@@ -441,8 +453,10 @@ contains
     !===============================================================
     ! Read land cover information
     !===============================================================
-    call position_nml('LCover', unamelist_mrm)
-    read(unamelist_mrm, nml=LCover)
+    if (processCase(8) .eq. 1) then
+       call position_nml('LCover', unamelist_mrm)
+       read(unamelist_mrm, nml=LCover)
+    end if
 
     !===============================================================
     ! READ EVALUATION GAUGES
@@ -601,74 +615,76 @@ contains
     !===============================================================
     !  determine land cover periods
     !===============================================================
-    ! countercheck if land cover covers simulation period
-    if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
-       call message()
-       call message('***ERROR: Land cover for warming period is missing!')
-       call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
-       call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
-       stop
-    end if
-    if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
-       call message()
-       call message('***ERROR: Land cover period shorter than modelling period!')
-       call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimEnd   : ', trim(num2str(maxval(evalPer(1:nBasins)%yEnd))))
-       call message('   LCoverEnd: ', trim(num2str(LCoverYearEnd(nLcover_scene))))
-       stop
-    end if
-    !
-    allocate(LCYearId(minval(simPer(1:nBasins)%yStart):maxval(simPer(1:nBasins)%yEnd),nBasins))
-    LCYearId = nodata_i4
-    do iBasin = 1, nBasins
-       do ii = 1, nLcover_scene
-          ! land cover before model period                        ! land cover after model period
-          if ((LCoverYearEnd(ii) .LT. evalPer(iBasin)%yStart) .OR. &
-               (LCoverYearStart(ii) .GT. evalPer(iBasin)%yEnd)) then
-             cycle
-          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
-             LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
-             exit
-          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .LT. evalPer(iBasin)%yEnd)) then
-             LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
-          else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
-             LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
-          else
-             LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
-          end if
-       end do
-    end do
-    !
-    ! correct number of input land cover scenes to number of needed scenes
-    nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
-         minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
-    ! put land cover scenes to corresponding file name and LuT
-    allocate(LCfilename(nLCoverScene))
-    LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
-         maxval(LCyearId))
-    ! update the ID's
-    ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
-    LCyearId(:,:) = LCyearId(:,:) - minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) + 1
-    !
-    if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
-         maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
-       if (any(LCyearId .EQ. nodata_i4)) then
+    if (processCase(8) .eq. 1) then       
+       ! countercheck if land cover covers simulation period
+       if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
           call message()
-          call message('***ERROR: Intermidiate land cover period is missing!')
+          call message('***ERROR: Land cover for warming period is missing!')
           call message('   FILE: mhm.nml, namelist: LCover')
+          call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
+          call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
           stop
        end if
-    else
-       if (do_message) then
+       if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
           call message()
-          call message('***WARNING: No check on missing land cover period is performed!')
+          call message('***ERROR: Land cover period shorter than modelling period!')
+          call message('   FILE: mhm.nml, namelist: LCover')
+          call message('   SimEnd   : ', trim(num2str(maxval(evalPer(1:nBasins)%yEnd))))
+          call message('   LCoverEnd: ', trim(num2str(LCoverYearEnd(nLcover_scene))))
+          stop
+       end if
+       !
+       allocate(LCYearId(minval(simPer(1:nBasins)%yStart):maxval(simPer(1:nBasins)%yEnd),nBasins))
+       LCYearId = nodata_i4
+       do iBasin = 1, nBasins
+          do ii = 1, nLcover_scene
+             ! land cover before model period                        ! land cover after model period
+             if ((LCoverYearEnd(ii) .LT. evalPer(iBasin)%yStart) .OR. &
+                  (LCoverYearStart(ii) .GT. evalPer(iBasin)%yEnd)) then
+                cycle
+             else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
+                LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
+                exit
+             else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .LT. evalPer(iBasin)%yEnd)) then
+                LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
+             else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
+                LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
+             else
+                LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
+             end if
+          end do
+       end do
+       !
+       ! correct number of input land cover scenes to number of needed scenes
+       nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
+            minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
+       ! put land cover scenes to corresponding file name and LuT
+       allocate(LCfilename(nLCoverScene))
+       LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
+            maxval(LCyearId))
+       ! update the ID's
+       ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
+       LCyearId(:,:) = LCyearId(:,:) - minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) + 1
+       !
+       if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
+            maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
+          if (any(LCyearId .EQ. nodata_i4)) then
+             call message()
+             call message('***ERROR: Intermidiate land cover period is missing!')
+             call message('   FILE: mhm.nml, namelist: LCover')
+             stop
+          end if
+       else
+          if (do_message) then
+             call message()
+             call message('***WARNING: No check on missing land cover period is performed!')
+          end if
        end if
     end if
-
+    
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing
     !===============================================================
@@ -707,21 +723,6 @@ contains
     end do
 
     call close_nml(unamelist_mrm)
-    
-#ifdef MRM2MHM
-    processCase = 0_i4
-    processCase(8) = processMatrix(8, 1)
-#else
-    !===============================================================
-    ! Read process selection list if in standalone mode
-    !===============================================================
-    processCase = 0_i4
-    call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
-    call position_nml('processselection', unamelist_mrm)
-    read(unamelist_mrm, nml=processSelection)
-    call close_nml(unamelist_mrm)
-#endif
-
 
     !===============================================================
     ! Read namelist global parameters

@@ -96,6 +96,7 @@ CONTAINS
          mrm_read_total_runoff
     use mo_mrm_read_latlon, only: read_latlon
     use mo_mrm_restart, only: mrm_read_restart_config
+    use mo_common_variables, only: processMatrix
 
     implicit none
     ! input variables
@@ -138,7 +139,8 @@ CONTAINS
     ! READ DATA
     ! ----------------------------------------------------------
     ! level 0 data
-    call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    if (processMatrix(8, 1) .eq. 1) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
     
     if (perform_mpr) then
        do iBasin = 1, nBasins
