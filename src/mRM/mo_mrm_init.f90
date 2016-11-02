@@ -458,7 +458,9 @@ CONTAINS
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp, &
+         L11_tsRout, nBasins
+
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -511,6 +513,12 @@ CONTAINS
     dummy_Vector11(:) = 0.0_dp
     call append( L11_FracFPimp, dummy_Vector11 )
 
+    ! temporal resolution of routing
+    if (iBasin .eq. 1) then
+       allocate(L11_tsRout(nBasins))
+       L11_TSrout = 0._dp
+    end if
+    
     ! free space
     if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
     if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
@@ -528,7 +536,6 @@ CONTAINS
     use mo_mrm_global_variables, only: &
          ! input variables
          resolutionRouting, timeStep, iFlag_cordinate_sys, &
-         nBasins, &
          ! output variables
          L11_C1, L11_C2, L11_tsRout
     use mo_mrm_constants, only: HourSecs, rout_time_weight
@@ -555,11 +562,6 @@ CONTAINS
 
     ! get basin information
     call get_basin_info_mrm(iBasin,  11, nrows, ncols,  iStart=s11,  iEnd=e11)
-
-    if (iBasin .eq. 1_i4) then
-       allocate(L11_TSrout(nBasins))
-       L11_TSrout = 0._dp
-    end if
 
     ! adjust spatial resolution
     deltaX = resolutionRouting(iBasin)

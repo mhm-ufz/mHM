@@ -163,7 +163,6 @@ CONTAINS
        ! optional input variables ================================================
        do_mpr_routing &
        )
-    use mo_mrm_constants, only: nodata_i4
     use mo_mrm_global_variables, only: is_start
     use mo_mrm_mpr, only: reg_rout
     use mo_mrm_net_startup, only: L11_fraction_sealed_floodplain
@@ -384,7 +383,7 @@ CONTAINS
        L11_areaCell, L11_L1_Id, &
        TS, map_flag, qAcc)
 
-    use mo_mrm_constants, only: HourSecs, nodata_dp
+    use mo_mrm_constants, only: nodata_dp
 
     IMPLICIT NONE
 

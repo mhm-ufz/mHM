@@ -128,7 +128,10 @@ contains
     logical, dimension(:,:),                           intent(in)  :: mask      ! mask of valid data fields
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
-    integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly; -4: hourly;
+    integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default);
+    !                                                                            ! -2: monthly;
+    !                                                                            ! -3: yearly;
+    !                                                                            ! -4: hourly;
     logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
     !                                                                            ! default = .FALSE. - check is done
     real(dp), dimension(:,:,:), allocatable,           intent(out) :: data      ! data read in

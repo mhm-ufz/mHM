@@ -362,7 +362,7 @@ CONTAINS
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
           ! initialize routing parameters (has to be called before MPR)
-          call mrm_init_param(ii, parameterset)
+          if (processMatrix(8, 2) .eq. 2) call mrm_init_param(ii, parameterset)
           ! initialize variable for runoff for routing
           allocate(RunToRout(e1 - s1 + 1))
           RunToRout = 0._dp
@@ -862,8 +862,10 @@ CONTAINS
        if (allocated(TWS_field) ) deallocate(TWS_field)
 
 #ifdef MRM2MHM
-       ! clean runoff variable
-       deallocate(RunToRout)
+       if (processMatrix(8, 1) .ne. 0) then
+          ! clean runoff variable
+          deallocate(RunToRout)
+       end if
 #endif       
 
        

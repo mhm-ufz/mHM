@@ -123,7 +123,6 @@ contains
     ! local variables
     integer(i4) :: ii
     integer(i4) :: jj
-    integer(i4) :: dd
     integer(i4) :: tt
     integer(i4) :: day
     integer(i4) :: month
@@ -138,12 +137,10 @@ contains
     integer(i4) :: nrows, ncols
     integer(i4) :: iDischargeTS ! discharge timestep
     ! integer(i4) :: nNodes                 ! number of Nodes
-    integer(i4), allocatable :: dummy(:, :) ! dummy for penalty
     real(dp) :: tsRoutFactor                ! factor between routing and hydrological modelling resolution
     real(dp) :: tsRoutFactorIn              ! factor between routing and hydrological modelling resolution (temporary variable)
     real(dp) :: newTime
     logical  :: do_mpr
-    real(dp) :: penalty
     real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
     real(dp), allocatable :: InflowDischarge(:) ! inflowing discharge
     logical,  allocatable :: mask11(:,:)
