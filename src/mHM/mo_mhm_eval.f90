@@ -310,7 +310,7 @@ CONTAINS
        ! all cells for all modeled basins are simultenously initalized ONLY ONCE
        call variables_default_init()
 #ifdef MRM2MHM
-       if (processMatrix(8, 1) .eq. 1) then
+       if (processMatrix(8, 1) .gt. 0) then
           !-------------------------------------------
           ! L11 ROUTING STATE VARIABLES, FLUXES AND
           !             PARAMETERS
@@ -326,12 +326,14 @@ CONTAINS
     end if
 
 #ifdef MRM2MHM
-    ! ----------------------------------------
-    ! initialize factor between routing resolution and hydrologic model resolution
-    ! ----------------------------------------
-    tsRoutFactor = 1_i4
-    allocate(InflowDischarge(size(InflowGauge%Q, dim=2)))
-    InflowDischarge = 0._dp
+    if (processMatrix(8, 1) .gt. 0) then
+       ! ----------------------------------------
+       ! initialize factor between routing resolution and hydrologic model resolution
+       ! ----------------------------------------
+       tsRoutFactor = 1_i4
+       allocate(InflowDischarge(size(InflowGauge%Q, dim=2)))
+       InflowDischarge = 0._dp
+    end if
 #endif
 
     !----------------------------------------

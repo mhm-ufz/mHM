@@ -12,9 +12,9 @@ MODULE mo_mrm_file
   IMPLICIT NONE
   
   !> Current mHM model version
-  CHARACTER(len=*), PARAMETER :: version                 = '0.9'                         ! Version
+  CHARACTER(len=*), PARAMETER :: version                 = '1.1'                         ! Version
   !> Time of current mHM model version release
-  CHARACTER(len=*), PARAMETER :: version_date            = 'Aug 2015'                    ! Release date
+  CHARACTER(len=*), PARAMETER :: version_date            = 'Nov 2016'                    ! Release date
   !> Driver file
   CHARACTER(len=*), PARAMETER :: file_main               = 'mrm_driver.f90'              ! Driver
   !> Namelist file name

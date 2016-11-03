@@ -140,7 +140,7 @@ CONTAINS
     ! ----------------------------------------------------------
     ! level 0 data
     if (processMatrix(8, 1) .eq. 1) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
-    if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev)
     
     if (perform_mpr) then
        do iBasin = 1, nBasins
@@ -253,7 +253,7 @@ CONTAINS
     call message('           Version ', trim(version))
     call message('           ', trim(version_date))
     call message()
-    call message('Made available by S. Thober')
+    call message('Made available by S. Thober & M. Cuntz')
     call message()
     call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
 
