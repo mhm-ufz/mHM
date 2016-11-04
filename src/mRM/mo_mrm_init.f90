@@ -602,6 +602,7 @@ CONTAINS
     ! set other global parameters
     L11_tsRout(iBasin) = TSrout
 
+    ! print *, 'routing resolution: ', TSrout
     ! print *, 'routing factor: ', tsRout / (timestep * HourSecs)
 
   end subroutine mrm_init_param

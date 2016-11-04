@@ -90,5 +90,13 @@ module mo_common_variables
    !                                                                             !   col4: flag, col5: scaling
    character(256), dimension(:), allocatable,   public :: global_parameters_name ! Matrix of global parameters (former: gamma)
    !                                                                             !   col1: names
+   ! -------------------------------------------------------------------
+   ! ALMA convention
+   ! -------------------------------------------------------------------
+   logical :: ALMA_convention ! flag for ALMA convention
+   !                          ! see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+   !                          ! .True.: ALMA convention is used for Input/Output
+   !                          ! .False.: default mHM units are used
+   !                          ! CAUTION: only Qall is considered at the moment
    
 end module mo_common_variables

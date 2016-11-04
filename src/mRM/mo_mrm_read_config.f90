@@ -170,7 +170,8 @@ contains
          !                                          !      # points per subcomplex
          mcmc_opti,                               & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
          mcmc_error_params,                       & !       parameters of error model used in likelihood 
-         global_parameters
+         global_parameters,                       &
+         ALMA_convention
     use mo_julian,               only: dec2date, date2dec
     use mo_message,              only: message
     use mo_mrm_constants,        only: nodata_i4, &
@@ -273,8 +274,8 @@ contains
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
-         L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
-         write_restart, perform_mpr
+         ALMA_convention, L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, &
+         read_restart, write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
     ! namelsit process selection

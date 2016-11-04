@@ -901,17 +901,19 @@ contains
   !         \author  Stephan Thober
   !         \date    Sep 2015
   !     MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
+  !               Sep 2016, Stephan Thober - added ALMA convention
   subroutine mrm_read_total_runoff(iBasin)
     use mo_append, only: append
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_mrm_constants, only: nodata_dp
+    use mo_mrm_constants, only: nodata_dp, HourSecs
     use mo_read_forcing_nc, only: read_forcing_nc
     use mo_mrm_global_variables, only: &
          timestep, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
          L1_total_runoff_in ! simulated runoff at L1
-    
+    use mo_common_variables, only: ALMA_convention
+
     implicit none
     
     ! input variables
@@ -945,6 +947,19 @@ contains
     end do
     ! free space immediately
     deallocate(L1_data)
+
+    ! convert if ALMA conventions have been given
+    if (ALMA_convention) then
+       ! convert from kg m-2 s-1 to mm TST-1
+       ! 1 kg m-2 -> 1 mm depth
+       ! multiply with time to obtain per timestep
+       L1_data_packed = L1_data_packed * timestep * HourSecs
+       ! ! dump to file
+       ! call dump_netcdf('test.nc', L1_data_packed)
+    else
+       ! convert from mm hr-1 to mm TST-1
+       L1_data_packed = L1_data_packed * timestep
+    end if
     
     ! append
     call append(L1_total_runoff_in, L1_data_packed(:,:), nodata_dp)
