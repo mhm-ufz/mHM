@@ -320,7 +320,8 @@ contains
     !===============================================================
     call position_nml('mainconfig', unamelist_mrm)
     read(unamelist_mrm, nml=mainconfig)
-
+    ALMA_convention = .false.
+    
     if (nBasins .GT. maxNoBasins) then
        call message()
        call message('***ERROR: Number of basins is resticted to ', trim(num2str(maxNoBasins)),'!')

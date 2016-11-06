@@ -254,6 +254,13 @@ CONTAINS
     integer(i4)           :: s110, e110 ! start and end index of L11 at L0
     real(dp)              :: tsRoutFactor ! factor between routing and hydrological modelling resolution
     real(dp)              :: tsRoutFactorIn ! factor between routing and hydrological modelling resolution (dummy)
+    integer(i4) :: timestep_rout            ! timestep of runoff to rout [h]
+    !                                       ! - identical to timestep of input if
+    !                                       !   tsRoutFactor is less than 1
+    !                                       ! - tsRoutFactor * timestep if
+    !                                       !   tsRoutFactor is greater than 1
+    !
+
     real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
     real(dp), allocatable :: InflowDischarge(:) ! inflowing discharge
     logical,  allocatable :: mask11(:,:)
@@ -562,10 +569,10 @@ CONTAINS
                 ! >>> original Muskingum routing, executed every time
                 ! >>>
                 do_rout = .True.
-                L11_tsRout(ii) = (timestep * HourSecs)
                 tsRoutFactorIn = 1._dp
                 RunToRout = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
                 InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
+                timestep_rout = timestep
                 !
              else if (processMatrix(8, 1) .eq. 2) then
                 ! >>>
@@ -584,6 +591,7 @@ CONTAINS
                    tsRoutFactorIn = tsRoutFactor
                    RunToRout = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
                    InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
+                   timestep_rout = timestep
                    do_rout = .True.
                 else
                    ! ----------------------------------------------------------------
@@ -598,6 +606,7 @@ CONTAINS
                         tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
                    if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
                       InflowDischarge = InflowDischarge / tsRoutFactorIn
+                      timestep_rout = timestep * nint(tsRoutFactor, i4)
                       do_rout = .True.
                    end if
                 end if
@@ -618,7 +627,7 @@ CONTAINS
                   L11_fromN(s11:e11), & ! link source at L11
                   L11_toN(s11:e11), & ! link target at L11
                   L11_nOutlets(ii), & ! number of outlets
-                  L11_tsRout(ii), & ! Routing timestep in seconds
+                  timestep_rout, & ! timestep of runoff to rout [h]
                   tsRoutFactorIn, & ! simulate timestep in [h]
                   basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                   basin_mrm%nInflowGauges(ii), &

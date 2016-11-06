@@ -67,6 +67,14 @@ resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 resolution_Routing(1) = 12000
 resolution_Routing(2) = 24000
+!-----------------------------------------------------------------------------
+!> use ALMA convention for input and output variables
+!> see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+!> .False. -> default mHM units
+!> .True.  -> ALMA convention
+!> CAUTION: at the moment, only Qall as input for mRM is affected
+!-----------------------------------------------------------------------------
+! ALMA_convention = .True.
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n

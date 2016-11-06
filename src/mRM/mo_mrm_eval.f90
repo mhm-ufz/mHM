@@ -139,6 +139,12 @@ contains
     ! integer(i4) :: nNodes                 ! number of Nodes
     real(dp) :: tsRoutFactor                ! factor between routing and hydrological modelling resolution
     real(dp) :: tsRoutFactorIn              ! factor between routing and hydrological modelling resolution (temporary variable)
+    integer(i4) :: timestep_rout            ! timestep of runoff to rout [h]
+    !                                       ! - identical to timestep of input if
+    !                                       !   tsRoutFactor is less than 1
+    !                                       ! - tsRoutFactor * timestep if
+    !                                       !   tsRoutFactor is greater than 1
+    !
     real(dp) :: newTime
     logical  :: do_mpr
     real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
@@ -240,6 +246,7 @@ contains
                 tsRoutFactorIn = tsRoutFactor
                 RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
                 InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
+                timestep_rout = timestep
                 do_rout = .True.
              else
                 ! ----------------------------------------------------------------
@@ -254,6 +261,7 @@ contains
                      tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
                 if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
                    InflowDischarge = InflowDischarge / tsRoutFactorIn
+                   timestep_rout = timestep * tsRoutFactor
                    do_rout = .True.
                 end if
              end if
@@ -274,8 +282,8 @@ contains
                L11_fromN(s11:e11), & ! link source at L11
                L11_toN(s11:e11), & ! link target at L11
                L11_nOutlets(ii), & ! number of outlets
-               L11_tsRout(ii), & ! Routing timestep in seconds
-               tsRoutFactorIn, & ! simulate timestep in [h]
+               timestep_rout, & ! timestep of runoff to rout [h]
+               tsRoutFactorIn, & ! Factor between routing and hydrologic resolution
                basin_mrm%L11_iEnd(ii) - basin_mrm%L11_iStart(ii) + 1, & ! number of Nodes
                basin_mrm%nInflowGauges(ii), &
                basin_mrm%InflowGaugeIndexList(ii,:), &
