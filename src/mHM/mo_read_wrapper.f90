@@ -94,6 +94,7 @@ CONTAINS
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
     USE mo_message,            ONLY: message
+    USE mo_orderpack,          ONLY: unista
     !
     USE mo_file,               ONLY: file_geolut        , ugeolut,        & ! file name and unit of hydrogeology LuT
                                      file_lailut        , ulailut,        & ! file name and unit of LAI LuT
@@ -127,7 +128,9 @@ CONTAINS
                                      iFlag_soilDB,                        & ! options to handle different types of soil databases
                                      nSoilHorizons_mHM,                   & ! soil horizons info for mHM
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
-                                     nLAIclass, LAIUnitList, LAILUT,soilDB        
+                                     processMatrix,                       & ! Info about which process runs in which option
+                                     nLAIclass, LAIUnitList, LAILUT,soilDB
+    use mo_common_variables,   ONLY: global_parameters                      ! global parameters
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
     
     implicit none
@@ -139,6 +142,7 @@ CONTAINS
     integer(i4)                               :: nCells                     ! number of cells in global_mask
     character(256)                            :: fName                      ! file name of file to read
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
+    integer(i4), dimension(1)                 :: gg                         ! geo unit
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
     logical, dimension(:,:), allocatable      :: mask_2d
@@ -322,6 +326,7 @@ CONTAINS
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+          !MZMZMZ
           call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
           deallocate(data_i4_2d, mask_2d)
           
@@ -335,47 +340,9 @@ CONTAINS
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
           call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
           deallocate(data_i4_2d, mask_2d)
-
-
-          ! ! read soilID, geoUnit, LAI - datatype integer
-          ! nVars_integer: do iVar = 1, 3
-          !    ! handle LAI options
-          !    ! if( (iVar .EQ. 3)  .AND. (timeStep_LAI_input < 0) ) CYCLE
-          !    select case (iVar)
-          !    case(1) ! soil ID
-          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_soilclass))
-          !       nunit = usoilclass
-          !    case(2) ! geological ID
-          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_hydrogeoclass))
-          !       nunit = uhydrogeoclass
-          !    case(3) ! LAI classes
-          !       fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-          !       nunit = ulaiclass
-          !    end select
-
-          !    ! reading and transposing
-          !    call read_spatial_data_ascii(trim(fName), nunit,                               &
-          !         level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-          !         level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-          !    ! put global nodata value into array (probably not all grid cells have values)
-          !    data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-
-          !    ! put data into global L0 variable
-          !    select case (iVar)
-          !    case(1) ! soil class ID
-          !       call append( L0_soilId,  pack(data_i4_2d, mask_global) )
-          !    case(2) ! hydrogeological class ID
-          !       call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
-          !    case(3) ! Land cover related to LAI classes
-          !       call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
-          !    end select
-             
-          !    ! deallocate arrays
-          !    deallocate(data_i4_2d, mask_2d)
-          !    !
-          ! end do nVars_integer
-          !
+          
        else
+          
           ! if restart is switched on, perform dummy allocation of
           allocate( dummy_dp( count(mask_global) ) )
           allocate( dummy_i4( count(mask_global) ) )
@@ -425,6 +392,76 @@ CONTAINS
        deallocate(mask_global)
 
     end do basins
+
+    ! check consitency between look up tables and input map (soil, LAI, geology)
+    
+    ! Soil
+    allocate( dummy_i4( size( L0_soilId, 1) * size( L0_soilId, 2) ) )
+    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
+    ! input array with the unique array values
+    dummy_i4 =  reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /))
+    ! retrieve unique values of the L0_soilId array
+    call unista( dummy_i4, nunit)
+    ! check if soil unit exists in look up table
+    do iVar = 1 , nunit
+       if (.not. ANY(soilDB%id(:) .EQ. dummy_i4(iVar) )) then
+          call message()
+          call message('***ERROR: SoilUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
+          call message('          in input file for soil class definition ...')
+          stop
+       end if
+    end do
+    deallocate(dummy_i4)
+
+    ! LAI
+    allocate( dummy_i4( size( L0_LCover_LAI, 1)) )
+    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
+    ! input array with the unique array values
+    dummy_i4 = L0_LCover_LAI
+    ! retrieve unique values of the L0_soilId array
+    call unista( dummy_i4, nunit)
+    ! check if soil unit exists in look up table
+    do iVar = 1 , nunit
+       if (.not. ANY( LAIUnitList .EQ. dummy_i4(iVar) )) then
+          call message()
+          call message('***ERROR: LAIUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
+          call message('          in input file ', trim(adjustl(file_laiclass)),' ...')
+          stop
+       end if
+    end do
+    deallocate(dummy_i4)
+    
+    ! Geology
+    allocate( dummy_i4( size(L0_geoUnit, 1) ) )
+    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
+    ! input array with the unique array values
+    dummy_i4 = L0_geoUnit
+    ! retrieve unique values of the L0_geoUnit array
+    call unista( dummy_i4, nunit)
+    ! check if geological unit exists in look up table, if not stop program
+    do iVar = 1 , nunit
+       if (.not. ANY(GeoUnitList .EQ. dummy_i4(iVar) )) then
+          call message()
+          call message('***ERROR: GeoUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
+          call message('          in input file ', trim(adjustl(file_hydrogeoclass)),' ...')
+          stop
+       end if
+    end do
+
+    ! deactivate parameters of non existing geological in study domain
+    ! loop over geological units in look up list
+    do iVar = 1 , size(GeoUnitList, 1)
+       ! check if unit appears in geological map (dummy_i4 is unique number in L0_geoUnit)
+       if (.not. ANY(dummy_i4 .EQ. GeoUnitList(iVar)) ) then
+          print*,  iVar, 'others', dummy_i4(1:nunit) ! MZMZMZMZ
+          ! deactivate optimization flag (dim=4 from global_parameters)
+          global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 4) = 0
+          ! MZMZMZMZ print*, global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 1)
+       end if
+    end do
+
+    deallocate(dummy_i4)
+
     !----------------------------------------------------------------
     ! assign L0_mask to basin
     !----------------------------------------------------------------
