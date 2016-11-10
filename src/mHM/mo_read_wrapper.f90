@@ -419,7 +419,7 @@ CONTAINS
        stop
     end if
     
-    ! deactivate parameters of non existing geological in study domain for optimization
+    ! deactivate parameters of non existing geological classes in study domain for optimization
     if (optimize) then
        ! loop over geological units in look up list
        do iVar = 1 , size(GeoUnitList, 1)
@@ -433,7 +433,7 @@ CONTAINS
           end if
        end do
     end if
-    deallocate(dummy_i4) ! is allocated subroutine check_consistency_lut_map - geology
+    deallocate(dummy_i4) ! is allocated in subroutine check_consistency_lut_map - geology
     
     !----------------------------------------------------------------
     ! assign L0_mask to basin
@@ -454,16 +454,18 @@ CONTAINS
  ! ------------------------------------------------------------------
 
   !      NAME
-  !         read_data
+  !         check_consistency_lut_map
 
   !     PURPOSE
-  !>        \brief Reads data.
+  !>        \brief Checks if classes in input maps appear in look up tables.
 
-  !>        \details The namelists are already read by read_config call./n
-  !>                 All LUTs are read from their respective directory and information within those
-  !>                 files are shared across all basins to be modeled.
+  !>        \details Determines wether a class appearing in the morphological input
+  !>                 is occuring in the respective look up table. mHM breaks if inconsistencies
+  !>                 are discovered.
   !     INTENT(IN)
-  !         None
+  !>        \param[in] " integer(i4), dimension(:) :: data"          map of study domain
+  !>        \param[in] "integer(i4), dimension(:)  :: lookuptable"   look up table corresponding to map
+  !>        \param[in] "character(*)               :: filename"      name of the lut file - ERORR warn 
 
   !     INTENT(INOUT)
   !         None
@@ -478,13 +480,13 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !         None
+  !>        \param[out] "integer(i4), dimension(:), allocatable :: unique_values" array of unique values in data
 
   !     RETURN
   !         None
 
   !     RESTRICTIONS
-  !>       \note read_config has to be called before
+  !>       \none
 
   !     EXAMPLE
   !         None
