@@ -81,7 +81,8 @@ CONTAINS
   !                    Matthias Cuntz &
   !                    Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
   !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
-  !                     Rohini Kumar,  Mar 2016  - options to handle different soil databases
+  !                    Rohini Kumar,   Mar 2016  - options to handle different soil databases
+  !                    Matthias Zink   Mar 2014  - added subroutine for consistency check
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -106,7 +107,8 @@ CONTAINS
                                      file_laiclass      , ulaiclass,      & ! file name and unit of lai class map
                                      file_soil_database ,                 & ! file name of soil class map (iFlag_soilDB = 0)
                                      file_soil_database_1,                & ! file name of soil class map (iFlag_soilDB = 1)
-                                     ulcoverclass                           ! unit of land cover class map
+                                     ulcoverclass,                        & ! unit of land cover class map
+                                     file_namelist_param                    ! file name of parameter list
     USE mo_global_variables,   ONLY: nGeoUnits, GeoUnitList, GeoUnitKar,  & ! geological class information
                                      L0_Basin,                            & ! L0_Basin ID
                                      L0_mask,                             & ! global mask variable
@@ -130,9 +132,10 @@ CONTAINS
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
                                      processMatrix,                       & ! Info about which process runs in which option
                                      nLAIclass, LAIUnitList, LAILUT,soilDB
-    use mo_common_variables,   ONLY: global_parameters                      ! global parameters
+    use mo_common_variables,   ONLY: global_parameters,                   & ! global parameters
+                                     optimize                               ! optimization on/off
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
-    
+
     implicit none
 
     ! local variables
@@ -142,7 +145,6 @@ CONTAINS
     integer(i4)                               :: nCells                     ! number of cells in global_mask
     character(256)                            :: fName                      ! file name of file to read
     real(dp), dimension(:,:), allocatable     :: data_dp_2d
-    integer(i4), dimension(1)                 :: gg                         ! geo unit
     integer(i4), dimension(:,:), allocatable  :: data_i4_2d
     integer(i4), dimension(:,:), allocatable  :: dataMatrix_i4
     logical, dimension(:,:), allocatable      :: mask_2d
@@ -326,7 +328,6 @@ CONTAINS
                level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-          !MZMZMZ
           call append( L0_geoUnit, pack(data_i4_2d, mask_global) )
           deallocate(data_i4_2d, mask_2d)
           
@@ -372,8 +373,7 @@ CONTAINS
           ! end if
           
        end if read_L0_data
-
-       
+     
        ! LCover read in is realized seperated because of unknown number of scenes
        do iVar = 1, nLCoverScene
           fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
@@ -394,74 +394,47 @@ CONTAINS
     end do basins
 
     ! check consitency between look up tables and input map (soil, LAI, geology)
-    
-    ! Soil
-    allocate( dummy_i4( size( L0_soilId, 1) * size( L0_soilId, 2) ) )
-    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
-    ! input array with the unique array values
-    dummy_i4 =  reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /))
-    ! retrieve unique values of the L0_soilId array
-    call unista( dummy_i4, nunit)
-    ! check if soil unit exists in look up table
-    do iVar = 1 , nunit
-       if (.not. ANY(soilDB%id(:) .EQ. dummy_i4(iVar) )) then
-          call message()
-          call message('***ERROR: SoilUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
-          call message('          in input file for soil class definition ...')
-          stop
-       end if
-    end do
-    deallocate(dummy_i4)
-
+    !Soil
+    ! determine name od soil class definition file based on input option iFlag_soilDB
+    if( iFlag_soilDB .eq. 0 ) then
+       fName =file_soil_database
+    else if( iFlag_soilDB .eq. 1) then
+       fName = file_soil_database_1
+    end if
+    call check_consistency_lut_map( reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /)), &
+         soilDB%id(:), fName)
     ! LAI
-    allocate( dummy_i4( size( L0_LCover_LAI, 1)) )
-    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
-    ! input array with the unique array values
-    dummy_i4 = L0_LCover_LAI
-    ! retrieve unique values of the L0_soilId array
-    call unista( dummy_i4, nunit)
-    ! check if soil unit exists in look up table
-    do iVar = 1 , nunit
-       if (.not. ANY( LAIUnitList .EQ. dummy_i4(iVar) )) then
-          call message()
-          call message('***ERROR: LAIUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
-          call message('          in input file ', trim(adjustl(file_laiclass)),' ...')
-          stop
-       end if
-    end do
-    deallocate(dummy_i4)
-    
+    call check_consistency_lut_map( L0_LCover_LAI, LAIUnitList, file_laiclass)
+
     ! Geology
-    allocate( dummy_i4( size(L0_geoUnit, 1) ) )
-    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
-    ! input array with the unique array values
-    dummy_i4 = L0_geoUnit
-    ! retrieve unique values of the L0_geoUnit array
-    call unista( dummy_i4, nunit)
-    ! check if geological unit exists in look up table, if not stop program
-    do iVar = 1 , nunit
-       if (.not. ANY(GeoUnitList .EQ. dummy_i4(iVar) )) then
-          call message()
-          call message('***ERROR: GeoUnit ', trim(adjustl(num2str(dummy_i4(iVar)))),' is missing')
-          call message('          in input file ', trim(adjustl(file_hydrogeoclass)),' ...')
-          stop
-       end if
-    end do
+    call check_consistency_lut_map( L0_geoUnit, GeoUnitList, file_hydrogeoclass, dummy_i4)
 
-    ! deactivate parameters of non existing geological in study domain
-    ! loop over geological units in look up list
-    do iVar = 1 , size(GeoUnitList, 1)
-       ! check if unit appears in geological map (dummy_i4 is unique number in L0_geoUnit)
-       if (.not. ANY(dummy_i4 .EQ. GeoUnitList(iVar)) ) then
-          print*,  iVar, 'others', dummy_i4(1:nunit) ! MZMZMZMZ
-          ! deactivate optimization flag (dim=4 from global_parameters)
-          global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 4) = 0
-          ! MZMZMZMZ print*, global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 1)
-       end if
-    end do
-
-    deallocate(dummy_i4)
-
+    ! check if enough geoparameter are defined in mhm_parameter.nml
+    if ( ( processMatrix(9,2) ) .NE.  size(GeoUnitList, 1)) then
+       call message()
+       call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
+            ' is ',   trim(adjustl(num2str(size(GeoUnitList, 1)))))
+       call message('          while it is ', trim(adjustl(num2str(processMatrix(9,2)))), &
+            ' in ' , trim(adjustl(file_namelist_param)), '!')
+       stop
+    end if
+    
+    ! deactivate parameters of non existing geological in study domain for optimization
+    if (optimize) then
+       ! loop over geological units in look up list
+       do iVar = 1 , size(GeoUnitList, 1)
+          ! check if unit appears in geological map (dummy_i4 is unique number in L0_geoUnit)
+          if (.not. ANY(dummy_i4 .EQ. GeoUnitList(iVar)) ) then
+             ! deactivate optimization flag (dim=4 from global_parameters)
+             global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 4) = 0
+             call message('***WARNING: Deactivated geological unit ', trim(adjustl(num2str(GeoUnitList(iVar)))))
+             call message('            for optimization because it is not appearing in study domain.')
+             
+          end if
+       end do
+    end if
+    deallocate(dummy_i4) ! is allocated subroutine check_consistency_lut_map - geology
+    
     !----------------------------------------------------------------
     ! assign L0_mask to basin
     !----------------------------------------------------------------
@@ -477,5 +450,94 @@ CONTAINS
     end if
 
   end subroutine read_data
+
+ ! ------------------------------------------------------------------
+
+  !      NAME
+  !         read_data
+
+  !     PURPOSE
+  !>        \brief Reads data.
+
+  !>        \details The namelists are already read by read_config call./n
+  !>                 All LUTs are read from their respective directory and information within those
+  !>                 files are shared across all basins to be modeled.
+  !     INTENT(IN)
+  !         None
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !>       \note read_config has to be called before
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Matthias Zink
+  !>        \date Nov 2016
+  ! ------------------------------------------------------------------
+
+  subroutine check_consistency_lut_map(data, lookuptable, filename, unique_values)
+
+    USE mo_orderpack,          ONLY: unista
+    USE mo_string_utils,       ONLY: num2str
+    USE mo_message,            ONLY: message
+    
+    implicit none
+
+    integer(i4), dimension(:),              intent(in)            :: data          ! map of study domain
+    integer(i4), dimension(:),              intent(in)            :: lookuptable   ! look up table corresponding to map
+    character(*),                           intent(in)            :: filename      ! name of the lut file - ERORR warn 
+    integer(i4), dimension(:), allocatable, intent(out), optional :: unique_values ! array of unique values in data
+    
+    ! local variables
+    integer(i4)                                     :: n_unique_elements
+    integer(i4)                                     :: ielement
+    integer(i4), dimension(:), allocatable          :: temp
+
+    allocate( temp( size( data, 1)) )
+    ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the
+    ! input array with the unique array values
+    temp = data
+    ! retrieve unique values of data
+    call unista( temp, n_unique_elements)
+    ! check if unit exists in look up table
+    do ielement = 1 , n_unique_elements
+       if (.not. ANY( lookuptable .EQ. temp(ielement) )) then
+          call message()
+          call message('***ERROR: Class ', trim(adjustl(num2str(temp(ielement)))),' is missing')
+          call message('          in input file ', trim(adjustl(filename)),' ...')
+          stop
+       end if
+    end do
+
+    ! pass unique values if optional argument unique_values is given
+    if (present(unique_values)) then
+       allocate(unique_values(n_unique_elements))
+       unique_values(:) = temp(1:n_unique_elements)
+    end if
+    deallocate(temp)
+    
+  end subroutine check_consistency_lut_map
   
 END MODULE mo_read_wrapper
