@@ -363,7 +363,7 @@ CONTAINS
        call get_basin_info ( ii,  1, nrows, ncols, ncells=nCells, iStart=s1,  iEnd=e1, mask=mask1 )
 
 #ifdef MRM2MHM
-       if (processMatrix(8,1) .gt. 0) then
+       if (processMatrix(8, 1) .gt. 0) then
           ! read states from restart
           if (read_restart) call mrm_read_restart_states(ii, dirRestartIn(ii))
           !
@@ -371,7 +371,7 @@ CONTAINS
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
           ! initialize routing parameters (has to be called before MPR)
-          if (processMatrix(8, 2) .eq. 2) call mrm_init_param(ii, parameterset)
+          if (processMatrix(8, 1) .eq. 2) call mrm_init_param(ii, parameterset)
           ! initialize variable for runoff for routing
           allocate(RunToRout(e1 - s1 + 1))
           RunToRout = 0._dp
