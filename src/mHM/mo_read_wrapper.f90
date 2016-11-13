@@ -208,13 +208,12 @@ CONTAINS
           stop
        end if
 
-       !
        ! DEM + overall mask creation
        fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_dem))
        call read_spatial_data_ascii(trim(fName), udem, &
             level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin),&
             level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_global)
-       !
+       
        ! check whether L0 data is shared
        if (iBasin .gt. 1) then
           if (L0_Basin(iBasin) .eq. L0_Basin(iBasin - 1)) then
@@ -225,15 +224,15 @@ CONTAINS
              !
              basin%L0_iStartMask(iBasin) = basin%L0_iStartMask(iBasin - 1 )
              basin%L0_iEndMask  (iBasin) = basin%L0_iEndMask(iBasin - 1 )
-             !
+
              ! DO NOT read L0 data
              cycle
-             !
+
           end if
        end if
-       !
+
        call message('    Reading data for basin: ', trim(adjustl(num2str(iBasin))),' ...')
-       !
+
        ! create overall mHM mask on L0 and save indices
        nCells = size(mask_global, dim=1)*size(mask_global, dim=2)
        call append( L0_mask, reshape(mask_global, (/nCells/)))
@@ -394,47 +393,51 @@ CONTAINS
     end do basins
 
     ! check consitency between look up tables and input map (soil, LAI, geology)
-    !Soil
-    ! determine name od soil class definition file based on input option iFlag_soilDB
-    if( iFlag_soilDB .eq. 0 ) then
-       fName =file_soil_database
-    else if( iFlag_soilDB .eq. 1) then
-       fName = file_soil_database_1
-    end if
-    call check_consistency_lut_map( reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /)), &
-         soilDB%id(:), fName)
-    ! LAI
-    call check_consistency_lut_map( L0_LCover_LAI, LAIUnitList, file_laiclass)
+    ! consistency is only checked if data are read - if perform_mpr is deactivated data come from restart files
+    if ( perform_mpr ) then
+       !Soil
+       ! determine name od soil class definition file based on input option iFlag_soilDB
+       if( iFlag_soilDB .eq. 0 ) then
+          fName =file_soil_database
+       else if( iFlag_soilDB .eq. 1) then
+          fName = file_soil_database_1
+       end if
+       call check_consistency_lut_map( reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /)), &
+            soilDB%id(:), fName)
+       ! LAI
+       call check_consistency_lut_map( L0_LCover_LAI, LAIUnitList, file_laiclass)
 
-    ! Geology
-    call check_consistency_lut_map( L0_geoUnit, GeoUnitList, file_hydrogeoclass, dummy_i4)
+       ! Geology
+       call check_consistency_lut_map( L0_geoUnit, GeoUnitList, file_hydrogeoclass, dummy_i4)
 
-    ! check if enough geoparameter are defined in mhm_parameter.nml
-    if ( ( processMatrix(9,2) ) .NE.  size(GeoUnitList, 1)) then
-       call message()
-       call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
-            ' is ',   trim(adjustl(num2str(size(GeoUnitList, 1)))))
-       call message('          while it is ', trim(adjustl(num2str(processMatrix(9,2)))), &
-            ' in ' , trim(adjustl(file_namelist_param)), '!')
-       stop
+       ! check if enough geoparameter are defined in mhm_parameter.nml
+       if ( ( processMatrix(9,2) ) .NE.  size(GeoUnitList, 1)) then
+          call message()
+          call message('***ERROR: Mismatch: Number of geological units in ', trim(adjustl(file_hydrogeoclass)), &
+               ' is ',   trim(adjustl(num2str(size(GeoUnitList, 1)))))
+          call message('          while it is ', trim(adjustl(num2str(processMatrix(9,2)))), &
+               ' in ' , trim(adjustl(file_namelist_param)), '!')
+          stop
+       end if
+
+       ! deactivate parameters of non existing geological classes in study domain for optimization
+       if (optimize) then
+          ! loop over geological units in look up list
+          do iVar = 1 , size(GeoUnitList, 1)
+             ! check if unit appears in geological map (dummy_i4 is unique number in L0_geoUnit)
+             if (.not. ANY(dummy_i4 .EQ. GeoUnitList(iVar)) ) then
+                ! deactivate optimization flag (dim=4 from global_parameters)
+                global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 4) = 0
+                call message('***WARNING: Deactivated geological unit ', trim(adjustl(num2str(GeoUnitList(iVar)))))
+                call message('            for optimization because it is not appearing in study domain.')
+             end if
+          end do
+       end if
+
+       deallocate(dummy_i4) ! is allocated in subroutine check_consistency_lut_map - geology
+
     end if
-    
-    ! deactivate parameters of non existing geological classes in study domain for optimization
-    if (optimize) then
-       ! loop over geological units in look up list
-       do iVar = 1 , size(GeoUnitList, 1)
-          ! check if unit appears in geological map (dummy_i4 is unique number in L0_geoUnit)
-          if (.not. ANY(dummy_i4 .EQ. GeoUnitList(iVar)) ) then
-             ! deactivate optimization flag (dim=4 from global_parameters)
-             global_parameters( processMatrix(9,3) - processMatrix(9,2) + iVar , 4) = 0
-             call message('***WARNING: Deactivated geological unit ', trim(adjustl(num2str(GeoUnitList(iVar)))))
-             call message('            for optimization because it is not appearing in study domain.')
-             
-          end if
-       end do
-    end if
-    deallocate(dummy_i4) ! is allocated in subroutine check_consistency_lut_map - geology
-    
+       
     !----------------------------------------------------------------
     ! assign L0_mask to basin
     !----------------------------------------------------------------
