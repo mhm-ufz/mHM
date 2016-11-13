@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-                                                                   mHM-UFZ v-5.4
+                                                                   mHM-UFZ v-5.5
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
@@ -42,49 +42,49 @@ Simulation Period (1)+(2)     1     1  1990    31    12  1993
   Initial Transfer Function Parameter Ranges (gammas)  
 -------------------------------------------------------
          i            min            max        current                               name
-         1          0.150          0.400          0.182           canopyInterceptionFactor
-         2         -2.000          2.000          0.773           snowTreshholdTemperature
-         3          0.000          4.000          1.122             degreeDayFactor_forest
-         4          0.000          1.000          0.736         degreeDayFactor_impervious
-         5          0.000          2.000          1.368           degreeDayFactor_pervious
-         6          0.100          0.900          0.287    increaseDegreeDayFactorByPrecip
-         7          0.000          8.000          5.260          maxDegreeDayFactor_forest
-         8          0.000          8.000          4.342      maxDegreeDayFactor_impervious
-         9          0.000          8.000          5.078        maxDegreeDayFactor_pervious
-        10          0.000         20.000          6.374            orgMatterContent_forest
-        11          0.000          1.000          0.063        orgMatterContent_impervious
-        12          0.000          4.000          0.163          orgMatterContent_pervious
-        13          0.646          0.951          0.798             PTF_lower66_5_constant
+         1          0.150          0.400          0.150           canopyInterceptionFactor
+         2         -2.000          2.000          1.000           snowTreshholdTemperature
+         3          0.000          4.000          1.500             degreeDayFactor_forest
+         4          0.000          1.000          0.500         degreeDayFactor_impervious
+         5          0.000          2.000          0.500           degreeDayFactor_pervious
+         6          0.100          0.900          0.500    increaseDegreeDayFactorByPrecip
+         7          0.000          8.000          3.000          maxDegreeDayFactor_forest
+         8          0.000          8.000          3.500      maxDegreeDayFactor_impervious
+         9          0.000          8.000          4.000        maxDegreeDayFactor_pervious
+        10          0.000         20.000          3.400            orgMatterContent_forest
+        11          0.000          1.000          0.100        orgMatterContent_impervious
+        12          0.000          4.000          0.600          orgMatterContent_pervious
+        13          0.646          0.951          0.760             PTF_lower66_5_constant
         14          0.000          0.003          0.001                 PTF_lower66_5_clay
-        15         -0.373         -0.187         -0.262                   PTF_lower66_5_Db
-        16          0.536          1.123          0.881            PTF_higher66_5_constant
+        15         -0.373         -0.187         -0.264                   PTF_lower66_5_Db
+        16          0.536          1.123          0.890            PTF_higher66_5_constant
         17         -0.005          0.005         -0.001                PTF_higher66_5_clay
-        18         -0.551         -0.091         -0.321                  PTF_higher66_5_Db
-        19         -1.200         -0.285         -0.597                    PTF_Ks_constant
-        20          0.006          0.026          0.012                        PTF_Ks_sand
+        18         -0.551         -0.091         -0.324                  PTF_higher66_5_Db
+        19         -1.200         -0.285         -0.585                    PTF_Ks_constant
+        20          0.006          0.026          0.013                        PTF_Ks_sand
         21          0.003          0.013          0.006                        PTF_Ks_clay
-        22          1.000        150.000         61.960                  PTF_Ks_curveSlope
-        23          0.900          0.999          0.990     rootFractionCoefficient_forest
-        24          0.900          0.950          0.924 rootFractionCoefficient_impervious
-        25          0.001          0.090          0.042   rootFractionCoefficient_pervious
-        26          1.000          4.000          2.895            infiltrationShapeFactor
-        27          0.000          5.000          0.905          imperviousStorageCapacity
-        28          0.700          1.300          0.931             minCorrectionFactorPET
-        29          0.000          0.200          0.077             maxCorrectionFactorPET
-        30        160.000        200.000        183.800                  aspectTresholdPET
-        31         75.000        200.000         91.280     interflowStorageCapacityFactor
-        32          0.000         10.000          8.490           interflowRecession_slope
-        33          1.000          3.000          1.760      fastInterflowRecession_forest
-        34          1.000         30.000          8.907          slowInterflowRecession_Ks
-        35          0.050          0.300          0.150              exponentSlowInterflow
-        36          0.000         50.000         10.380                rechargeCoefficient
-        37         -5.000          5.000         -1.251             rechargeFactor_karstic
+        22         60.960         60.960         60.960                  PTF_Ks_curveSlope
+        23          0.900          0.999          0.970     rootFractionCoefficient_forest
+        24          0.900          0.950          0.930 rootFractionCoefficient_impervious
+        25          0.001          0.090          0.020   rootFractionCoefficient_pervious
+        26          1.000          4.000          1.750            infiltrationShapeFactor
+        27          0.000          5.000          0.500          imperviousStorageCapacity
+        28          0.700          1.300          0.900             minCorrectionFactorPET
+        29          0.000          0.200          0.100             maxCorrectionFactorPET
+        30        160.000        200.000        180.000                  aspectTresholdPET
+        31         75.000        200.000         85.000     interflowStorageCapacityFactor
+        32          0.000         10.000          7.000           interflowRecession_slope
+        33          1.000          3.000          1.500      fastInterflowRecession_forest
+        34          1.000         30.000         15.000          slowInterflowRecession_Ks
+        35          0.050          0.300          0.125              exponentSlowInterflow
+        36          0.000         50.000         35.000                rechargeCoefficient
+        37         -5.000          5.000         -1.000             rechargeFactor_karstic
         38          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
-        39          0.310          0.350          0.310       muskingumTravelTime_constant
-        40          0.070          0.080          0.073    muskingumTravelTime_riverLength
-        41          1.950          2.100          1.964     muskingumTravelTime_riverSlope
-        42          0.090          0.110          0.092     muskingumTravelTime_impervious
-        43          0.010          0.500          0.095    muskingumAttenuation_riverSlope
+        39          0.310          0.350          0.325       muskingumTravelTime_constant
+        40          0.070          0.080          0.075    muskingumTravelTime_riverLength
+        41          1.950          2.100          2.000     muskingumTravelTime_riverSlope
+        42          0.090          0.110          0.100     muskingumTravelTime_impervious
+        43          0.010          0.500          0.300    muskingumAttenuation_riverSlope
         44          1.000       1000.000        100.000                      GeoParam(1,:)
         45          1.000       1000.000        100.000                      GeoParam(2,:)
         46          1.000       1000.000        100.000                      GeoParam(3,:)
@@ -94,7 +94,7 @@ Simulation Period (1)+(2)     1     1  1990    31    12  1993
         50          1.000       1000.000        100.000                      GeoParam(7,:)
         51          1.000       1000.000        100.000                      GeoParam(8,:)
         52          1.000       1000.000        100.000                      GeoParam(9,:)
-        53      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
+        53          1.000       1000.000        100.000                     GeoParam(10,:)
         54        300.000       2000.000       1500.000                        Desilets_N0
         55        300.000       2000.000       1500.000                          COSMIC_N0
         56          0.010         10.000          1.000                          COSMIC_N1
@@ -117,14 +117,14 @@ Simulation Period (1)+(2)     1     1  1990    31    12  1993
 --------------------------------------------------------------------------------
                                  Directory list
 --------------------------------------------------------------------------------
-Directory to morphological input             test_basin/input/morph/                                                                                                                                                                                                                                         
-Directory to land cover input                test_basin/input/luse/                                                                                                                                                                                                                                          
-Directory to gauging station input           test_basin/input/gauge/                                                                                                                                                                                                                                         
-Directory to precipitation input             test_basin/input/meteo/pre/                                                                                                                                                                                                                                     
-Directory to temperature input               test_basin/input/meteo/tavg/                                                                                                                                                                                                                                    
-Directory to reference ET input              test_basin/input/meteo/pet/                                                                                                                                                                                                                                     
-Directory to write output by default         test_basin/output_b1/                                                                                                                                                                                                                                           
-Directory to write output when restarted     test_basin/restart/                                                                                                                                                                                                                                             
+Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
+Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
+Directory to gauging station input           ../../test_basin/input/gauge/                                                                                                                                                                                                                                   
+Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
+Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
+Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
+Directory to write output by default         output_b1/b1_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/                                                                                                                                                                                                                                                      
 
 ------------------------------
 River Network  (Routing level)
@@ -143,7 +143,7 @@ River Network  (Routing level)
          4         4        11         3         1          7.536     0.100
          6         7         8         4         1          1.207     0.100
          8         9        10         5         1         19.642     3.920
-        12        13         6         6         1          7.036    10.092
+        12        13         6         6         2          7.036    10.092
         19        20        19         7         1          4.121    18.441
         20        21        14         8         1         15.399     0.100
         23        24        25         9         1         18.228     1.591

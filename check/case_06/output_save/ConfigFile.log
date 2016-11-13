@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-                                                                   mHM-UFZ v-5.0
+                                                                   mHM-UFZ v-5.5
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
@@ -13,10 +13,10 @@ No. of cells L1                       68
 No. of cells L11                      68
 Total No. of gauges                    2
 Time Step [h]                          1
-Basin   1   Hydrology Resolution [m]          24000.
-Basin   1   Routing Resolution [m]            24000.
-Basin   2   Hydrology Resolution [m]          24000.
-Basin   2   Routing Resolution [m]            24000.
+Basin   1   Hydrology Resolution [m]              24000.
+Basin   1   Routing Resolution [m]                24000.
+Basin   2   Hydrology Resolution [m]              24000.
+Basin   2   Routing Resolution [m]                24000.
 Flag READ  restart                     F
 Flag WRITE restart                     T
 
@@ -66,49 +66,49 @@ Simulation Period (1)+(2)    10     7  1989    31    12  1993
   Initial Transfer Function Parameter Ranges (gammas)  
 -------------------------------------------------------
          i            min            max        current                               name
-         1          0.150          0.400          0.182           canopyInterceptionFactor
-         2         -2.000          2.000          0.773           snowTreshholdTemperature
-         3          0.000          4.000          1.122             degreeDayFactor_forest
-         4          0.000          1.000          0.736         degreeDayFactor_impervious
-         5          0.000          2.000          1.368           degreeDayFactor_pervious
-         6          0.100          0.900          0.287    increaseDegreeDayFactorByPrecip
-         7          0.000          8.000          5.260          maxDegreeDayFactor_forest
-         8          0.000          8.000          4.342      maxDegreeDayFactor_impervious
-         9          0.000          8.000          5.078        maxDegreeDayFactor_pervious
-        10          0.000         20.000          6.374            orgMatterContent_forest
-        11          0.000          1.000          0.063        orgMatterContent_impervious
-        12          0.000          4.000          0.163          orgMatterContent_pervious
-        13          0.646          0.951          0.798             PTF_lower66_5_constant
+         1          0.150          0.400          0.150           canopyInterceptionFactor
+         2         -2.000          2.000          1.000           snowTreshholdTemperature
+         3          0.000          4.000          1.500             degreeDayFactor_forest
+         4          0.000          1.000          0.500         degreeDayFactor_impervious
+         5          0.000          2.000          0.500           degreeDayFactor_pervious
+         6          0.100          0.900          0.500    increaseDegreeDayFactorByPrecip
+         7          0.000          8.000          3.000          maxDegreeDayFactor_forest
+         8          0.000          8.000          3.500      maxDegreeDayFactor_impervious
+         9          0.000          8.000          4.000        maxDegreeDayFactor_pervious
+        10          0.000         20.000          3.400            orgMatterContent_forest
+        11          0.000          1.000          0.100        orgMatterContent_impervious
+        12          0.000          4.000          0.600          orgMatterContent_pervious
+        13          0.646          0.951          0.760             PTF_lower66_5_constant
         14          0.000          0.003          0.001                 PTF_lower66_5_clay
-        15         -0.373         -0.187         -0.262                   PTF_lower66_5_Db
-        16          0.536          1.123          0.881            PTF_higher66_5_constant
+        15         -0.373         -0.187         -0.264                   PTF_lower66_5_Db
+        16          0.536          1.123          0.890            PTF_higher66_5_constant
         17         -0.005          0.005         -0.001                PTF_higher66_5_clay
-        18         -0.551         -0.091         -0.321                  PTF_higher66_5_Db
-        19         -1.200         -0.285         -0.597                    PTF_Ks_constant
-        20          0.006          0.026          0.012                        PTF_Ks_sand
+        18         -0.551         -0.091         -0.324                  PTF_higher66_5_Db
+        19         -1.200         -0.285         -0.585                    PTF_Ks_constant
+        20          0.006          0.026          0.013                        PTF_Ks_sand
         21          0.003          0.013          0.006                        PTF_Ks_clay
-        22          1.000        150.000         61.960                  PTF_Ks_curveSlope
-        23          0.900          0.999          0.990     rootFractionCoefficient_forest
-        24          0.900          0.950          0.924 rootFractionCoefficient_impervious
-        25          0.001          0.090          0.042   rootFractionCoefficient_pervious
-        26          1.000          4.000          2.895            infiltrationShapeFactor
-        27          0.000          5.000          0.905          imperviousStorageCapacity
-        28          0.700          1.300          0.931             minCorrectionFactorPET
-        29          0.000          0.200          0.077             maxCorrectionFactorPET
-        30        160.000        200.000        183.800                  aspectTresholdPET
-        31         75.000        200.000         91.280     interflowStorageCapacityFactor
-        32          0.000         10.000          8.490           interflowRecession_slope
-        33          1.000          3.000          1.760      fastInterflowRecession_forest
-        34          1.000         30.000          8.907          slowInterflowRecession_Ks
-        35          0.050          0.300          0.150              exponentSlowInterflow
-        36          0.000         50.000         10.380                rechargeCoefficient
-        37         -5.000          5.000         -1.251             rechargeFactor_karstic
+        22         60.960         60.960         60.960                  PTF_Ks_curveSlope
+        23          0.900          0.999          0.970     rootFractionCoefficient_forest
+        24          0.900          0.950          0.930 rootFractionCoefficient_impervious
+        25          0.001          0.090          0.020   rootFractionCoefficient_pervious
+        26          1.000          4.000          1.750            infiltrationShapeFactor
+        27          0.000          5.000          0.500          imperviousStorageCapacity
+        28          0.700          1.300          0.900             minCorrectionFactorPET
+        29          0.000          0.200          0.100             maxCorrectionFactorPET
+        30        160.000        200.000        180.000                  aspectTresholdPET
+        31         75.000        200.000         85.000     interflowStorageCapacityFactor
+        32          0.000         10.000          7.000           interflowRecession_slope
+        33          1.000          3.000          1.500      fastInterflowRecession_forest
+        34          1.000         30.000         15.000          slowInterflowRecession_Ks
+        35          0.050          0.300          0.125              exponentSlowInterflow
+        36          0.000         50.000         35.000                rechargeCoefficient
+        37         -5.000          5.000         -1.000             rechargeFactor_karstic
         38          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
-        39          0.310          0.350          0.310       muskingumTravelTime_constant
-        40          0.070          0.080          0.073    muskingumTravelTime_riverLength
-        41          1.950          2.100          1.964     muskingumTravelTime_riverSlope
-        42          0.090          0.110          0.092     muskingumTravelTime_impervious
-        43          0.010          0.500          0.095    muskingumAttenuation_riverSlope
+        39          0.310          0.350          0.325       muskingumTravelTime_constant
+        40          0.070          0.080          0.075    muskingumTravelTime_riverLength
+        41          1.950          2.100          2.000     muskingumTravelTime_riverSlope
+        42          0.090          0.110          0.100     muskingumTravelTime_impervious
+        43          0.010          0.500          0.300    muskingumAttenuation_riverSlope
         44          1.000       1000.000        100.000                      GeoParam(1,:)
         45          1.000       1000.000        100.000                      GeoParam(2,:)
         46          1.000       1000.000        100.000                      GeoParam(3,:)
@@ -118,20 +118,18 @@ Simulation Period (1)+(2)    10     7  1989    31    12  1993
         50          1.000       1000.000        100.000                      GeoParam(7,:)
         51          1.000       1000.000        100.000                      GeoParam(8,:)
         52          1.000       1000.000        100.000                      GeoParam(9,:)
-        53      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
+        53          1.000       1000.000        100.000                     GeoParam(10,:)
 
 --------------------------------------------------
                  Basin Runoff Data                
 --------------------------------------------------
  Gauge No.  Basin Id     Qmax[m3/s]     Qmin[m3/s]
          1         1       1600.000         11.000
-         2         2      -9999.000      -9999.000
+         2         2       1600.000         11.000
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
 --------------------------------------------------------------------------------
-Basin No.                              1
-No. of gauges                          1
 
 --------------------------------------------------------------------------------
                                  Directory list
@@ -146,53 +144,55 @@ Directory to write output by default         output_b1/b1_
 Directory to write output when restarted     output_b1/b1_                                                                                                                                                                                                                                                   
 
 ------------------------------
-River Network       
+River Network  (Routing level)
 ------------------------------
                                            Label 0 = intermediate draining cell 
                                            Label 1 = headwater cell             
                                            Label 2 = sink cell                  
 
 ---------------------------------------------------------------------------
-      Link      From        To   Routing     Label         Length      mean
-        Id      Node      Node  Sequence                              Slope
-                                                             [km]       [-]
+   Overall      From        To   Routing     Label         Length      Mean
+      Link   Routing   Routing  Sequence                              Slope
+        Id      Node      Node                               [km]    [o/oo]
 ---------------------------------------------------------------------------
-         1         1         5         1         1          7.536     0.000
-         6         7         3         2         1         28.349     0.000
-         9        10         9         3         1          9.243     0.001
-        10        11         8         4         1         40.042     0.001
-        14        15        14         5         1         27.728     0.001
-        19        20        19         6         1         28.435     0.002
-        20        21        16         7         1         21.728     0.005
-        24        25        24         8         1         32.127     0.004
-        29        30        26         9         1         28.642     0.004
-        32        33        29        10         1         27.142     0.013
-        33        34        32        11         1         31.763     0.003
-         2         3         4        12         0         29.642     0.000
-         7         8         4        13         0          1.414     0.000
-        13        14        13        14         0         38.213     0.001
-        15        16        17        15         0          9.985     0.000
-        18        19        18        16         0         33.799     0.001
-        25        26        22        17         0         61.734     0.001
-        28        29        28        18         0          6.243     0.003
-        31        32        31        19         0         16.399     0.001
-         3         4         5        20         0         38.420     0.001
-        12        13        12        21         0         42.127     0.000
-        17        18        17        22         0         42.542     0.000
-        27        28        24        23         0         32.835     0.002
-        30        31        27        24         0         32.728     0.003
-        23        24        23        25         0         34.420     0.001
-        26        27        23        26         0         29.799     0.001
-        22        23        22        27         0          0.707     0.000
-        21        22        17        28         0         38.456     0.000
-        16        17        12        29         0         35.885     0.002
-        11        12         9        30         0         30.263     0.000
-         8         9         5        31         0         24.399     0.000
-         4         5         6        32         0          5.036     0.000
-         5         6         2        33         2         14.692     0.000
+         1         1         5         1         1          7.536     0.100
+         6         7         3         2         1         28.349     0.100
+         9        10         9         3         1          9.243     1.190
+        10        11         8         4         1         40.042     0.999
+        14        15        14         5         1         27.728     0.938
+        19        20        19         6         1         28.435     1.653
+        20        21        16         7         1         21.728     4.786
+        24        25        24         8         1         32.127     4.171
+        29        30        26         9         1         28.642     3.840
+        32        33        29        10         1         27.142    13.116
+        33        34        32        11         1         31.763     2.613
+         2         3         4        12         0         29.642     0.100
+         7         8         4        13         0          1.414     0.100
+        13        14        13        14         0         38.213     0.576
+        15        16        17        15         0          9.985     0.100
+        18        19        18        16         0         33.799     1.036
+        25        26        22        17         0         61.734     0.794
+        28        29        28        18         0          6.243     3.204
+        31        32        31        19         0         16.399     1.342
+         3         4         5        20         0         38.420     0.833
+        12        13        12        21         0         42.127     0.166
+        17        18        17        22         0         42.542     0.282
+        27        28        24        23         0         32.835     1.980
+        30        31        27        24         0         32.728     2.781
+        23        24        23        25         0         34.420     1.133
+        26        27        23        26         0         29.799     1.141
+        22        23        22        27         0          0.707     0.100
+        21        22        17        28         0         38.456     0.364
+        16        17        12        29         0         35.885     1.728
+        11        12         9        30         0         30.263     0.100
+         8         9         5        31         0         24.399     0.100
+         4         5         6        32         0          5.036     0.100
+         5         6         2        33         2         14.692     0.100
 
 --------------------
-Node Index   Node Id
+   Overall     Basin
+      Cell   Routing
+        Id   Node Id
 --------------------
          1         1
          2         2
@@ -230,8 +230,9 @@ Node Index   Node Id
         34        34
 
 ------------------------------
-      Cell    L11-Id  efecArea
-       No.       [-]     [km2]
+  Modeling   Routing Effective
+      Cell   Cell Id      Area
+        Id       [-]     [km2]
 ------------------------------
          1         1   126.750
          2         2   229.750
@@ -267,45 +268,9 @@ Node Index   Node Id
         32        32   555.250
         33        33    89.000
         34        34   121.750
-        35         1   126.750
-        36         2   229.750
-        37         3   107.750
-        38         4   312.500
-        39         5   573.750
-        40         6   314.250
-        41         7    42.500
-        42         8   524.750
-        43         9   576.000
-        44        10   146.500
-        45        11   470.000
-        46        12   576.000
-        47        13   414.500
-        48        14   340.750
-        49        15     9.000
-        50        16   230.250
-        51        17   576.000
-        52        18   576.000
-        53        19   527.250
-        54        20    48.250
-        55        21    10.500
-        56        22   545.000
-        57        23   576.000
-        58        24   576.000
-        59        25   318.500
-        60        26   456.250
-        61        27   551.250
-        62        28   576.000
-        63        29   337.000
-        64        30     3.250
-        65        31   198.000
-        66        32   555.250
-        67        33    89.000
-        68        34   121.750
 ------------------------------
-     Total[km2]      23272.500
+     Total[km2]      11636.250
 
-Basin No.                              2
-No. of gauges                          1
 
 --------------------------------------------------------------------------------
                                  Directory list
@@ -320,53 +285,55 @@ Directory to write output by default         output_b1/b2_
 Directory to write output when restarted     output_b1/b2_                                                                                                                                                                                                                                                   
 
 ------------------------------
-River Network       
+River Network  (Routing level)
 ------------------------------
                                            Label 0 = intermediate draining cell 
                                            Label 1 = headwater cell             
                                            Label 2 = sink cell                  
 
 ---------------------------------------------------------------------------
-      Link      From        To   Routing     Label         Length      mean
-        Id      Node      Node  Sequence                              Slope
-                                                             [km]       [-]
+   Overall      From        To   Routing     Label         Length      Mean
+      Link   Routing   Routing  Sequence                              Slope
+        Id      Node      Node                               [km]    [o/oo]
 ---------------------------------------------------------------------------
-        35         1         5         1         1          7.536     0.000
-        40         7         3         2         1         28.349     0.000
-        43        10         9         3         1          9.243     0.001
-        44        11         8         4         1         40.042     0.001
-        48        15        14         5         1         27.728     0.001
-        53        20        19         6         1         28.435     0.002
-        54        21        16         7         1         21.728     0.005
-        58        25        24         8         1         32.127     0.004
-        63        30        26         9         1         28.642     0.004
-        66        33        29        10         1         27.142     0.013
-        67        34        32        11         1         31.763     0.003
-        36         3         4        12         0         29.642     0.000
-        41         8         4        13         0          1.414     0.000
-        47        14        13        14         0         38.213     0.001
-        49        16        17        15         0          9.985     0.000
-        52        19        18        16         0         33.799     0.001
-        59        26        22        17         0         61.734     0.001
-        62        29        28        18         0          6.243     0.003
-        65        32        31        19         0         16.399     0.001
-        37         4         5        20         0         38.420     0.001
-        46        13        12        21         0         42.127     0.000
-        51        18        17        22         0         42.542     0.000
-        61        28        24        23         0         32.835     0.002
-        64        31        27        24         0         32.728     0.003
-        57        24        23        25         0         34.420     0.001
-        60        27        23        26         0         29.799     0.001
-        56        23        22        27         0          0.707     0.000
-        55        22        17        28         0         38.456     0.000
-        50        17        12        29         0         35.885     0.002
-        45        12         9        30         0         30.263     0.000
-        42         9         5        31         0         24.399     0.000
-        38         5         6        32         0          5.036     0.000
-        39         6         2        33         2         14.692     0.000
+        35         1         5         1         1          7.536     0.100
+        40         7         3         2         1         28.349     0.100
+        43        10         9         3         1          9.243     1.190
+        44        11         8         4         1         40.042     0.999
+        48        15        14         5         1         27.728     0.938
+        53        20        19         6         1         28.435     1.653
+        54        21        16         7         1         21.728     4.786
+        58        25        24         8         1         32.127     4.171
+        63        30        26         9         1         28.642     3.840
+        66        33        29        10         1         27.142    13.116
+        67        34        32        11         1         31.763     2.613
+        36         3         4        12         0         29.642     0.100
+        41         8         4        13         0          1.414     0.100
+        47        14        13        14         0         38.213     0.576
+        49        16        17        15         0          9.985     0.100
+        52        19        18        16         0         33.799     1.036
+        59        26        22        17         0         61.734     0.794
+        62        29        28        18         0          6.243     3.204
+        65        32        31        19         0         16.399     1.342
+        37         4         5        20         0         38.420     0.833
+        46        13        12        21         0         42.127     0.166
+        51        18        17        22         0         42.542     0.282
+        61        28        24        23         0         32.835     1.980
+        64        31        27        24         0         32.728     2.781
+        57        24        23        25         0         34.420     1.133
+        60        27        23        26         0         29.799     1.141
+        56        23        22        27         0          0.707     0.100
+        55        22        17        28         0         38.456     0.364
+        50        17        12        29         0         35.885     1.728
+        45        12         9        30         0         30.263     0.100
+        42         9         5        31         0         24.399     0.100
+        38         5         6        32         0          5.036     0.100
+        39         6         2        33         2         14.692     0.100
 
 --------------------
-Node Index   Node Id
+   Overall     Basin
+      Cell   Routing
+        Id   Node Id
 --------------------
         35         1
         36         2
@@ -404,43 +371,10 @@ Node Index   Node Id
         68        34
 
 ------------------------------
-      Cell    L11-Id  efecArea
-       No.       [-]     [km2]
+  Modeling   Routing Effective
+      Cell   Cell Id      Area
+        Id       [-]     [km2]
 ------------------------------
-         1         1   126.750
-         2         2   229.750
-         3         3   107.750
-         4         4   312.500
-         5         5   573.750
-         6         6   314.250
-         7         7    42.500
-         8         8   524.750
-         9         9   576.000
-        10        10   146.500
-        11        11   470.000
-        12        12   576.000
-        13        13   414.500
-        14        14   340.750
-        15        15     9.000
-        16        16   230.250
-        17        17   576.000
-        18        18   576.000
-        19        19   527.250
-        20        20    48.250
-        21        21    10.500
-        22        22   545.000
-        23        23   576.000
-        24        24   576.000
-        25        25   318.500
-        26        26   456.250
-        27        27   551.250
-        28        28   576.000
-        29        29   337.000
-        30        30     3.250
-        31        31   198.000
-        32        32   555.250
-        33        33    89.000
-        34        34   121.750
         35         1   126.750
         36         2   229.750
         37         3   107.750
@@ -476,6 +410,6 @@ Node Index   Node Id
         67        33    89.000
         68        34   121.750
 ------------------------------
-     Total[km2]      23272.500
+     Total[km2]      11636.250
 
 
