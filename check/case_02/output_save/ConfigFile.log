@@ -1,23 +1,33 @@
 --------------------------------------------------------------------------------
-                                                                   mHM-UFZ v-5.0
+                                                                   mHM-UFZ v-5.5
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
          M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         
 
 Number of basins                       2
-Total No. of nodes                     1
-Total No. of reaches                   0
+Total No. of nodes                     0
+Total No. of reaches                  -1
 No. of cells L0                    46545
 No. of cells L1                       68
 Time Step [h]                          1
-Basin   1   Hydrology Resolution [m]          24000.
-Basin   2   Hydrology Resolution [m]          24000.
+Basin   1   Hydrology Resolution [m]              24000.
+Basin   2   Hydrology Resolution [m]              24000.
 Flag READ  restart                     F
 Flag WRITE restart                     T
 
 -------------------------------------------------------------
-                      Model Run Periods                      
+                      Model Run Periods for Basin          1
+-------------------------------------------------------------
+                                       From                To
+                            Day Month  Year   Day Month  Year
+Warming Period (1)            6     1  1989    31    12  1989
+Evaluation Period (2)         1     1  1990    31    12  1993
+Simulation Period (1)+(2)     6     1  1989    31    12  1993
+
+
+-------------------------------------------------------------
+                      Model Run Periods for Basin          2
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
@@ -27,7 +37,18 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
 
 
 --------------------------------------------------
-            Land Cover Observations
+       Land Cover Observations for Basin         3
+--------------------------------------------------
+      Year    Land cover scene     Land Cover File
+
+      1989                   1         lc_1990.asc
+      1990                   1         lc_1990.asc
+      1991                   2         lc_1990.asc
+      1992                   2         lc_1990.asc
+      1993                   2         lc_1990.asc
+
+--------------------------------------------------
+       Land Cover Observations for Basin         6
 --------------------------------------------------
       Year    Land cover scene     Land Cover File
 
@@ -41,42 +62,42 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
   Initial Transfer Function Parameter Ranges (gammas)  
 -------------------------------------------------------
          i            min            max        current                               name
-         1          0.150          0.400          0.182           canopyInterceptionFactor
-         2         -2.000          2.000          0.773           snowTreshholdTemperature
-         3          0.000          4.000          1.122             degreeDayFactor_forest
-         4          0.000          1.000          0.736         degreeDayFactor_impervious
-         5          0.000          2.000          1.368           degreeDayFactor_pervious
-         6          0.100          0.900          0.287    increaseDegreeDayFactorByPrecip
-         7          0.000          8.000          5.260          maxDegreeDayFactor_forest
-         8          0.000          8.000          4.342      maxDegreeDayFactor_impervious
-         9          0.000          8.000          5.078        maxDegreeDayFactor_pervious
-        10          0.000         20.000          6.374            orgMatterContent_forest
-        11          0.000          1.000          0.063        orgMatterContent_impervious
-        12          0.000          4.000          0.163          orgMatterContent_pervious
-        13          0.646          0.951          0.798             PTF_lower66_5_constant
+         1          0.150          0.400          0.150           canopyInterceptionFactor
+         2         -2.000          2.000          1.000           snowTreshholdTemperature
+         3          0.000          4.000          1.500             degreeDayFactor_forest
+         4          0.000          1.000          0.500         degreeDayFactor_impervious
+         5          0.000          2.000          0.500           degreeDayFactor_pervious
+         6          0.100          0.900          0.500    increaseDegreeDayFactorByPrecip
+         7          0.000          8.000          3.000          maxDegreeDayFactor_forest
+         8          0.000          8.000          3.500      maxDegreeDayFactor_impervious
+         9          0.000          8.000          4.000        maxDegreeDayFactor_pervious
+        10          0.000         20.000          3.400            orgMatterContent_forest
+        11          0.000          1.000          0.100        orgMatterContent_impervious
+        12          0.000          4.000          0.600          orgMatterContent_pervious
+        13          0.646          0.951          0.760             PTF_lower66_5_constant
         14          0.000          0.003          0.001                 PTF_lower66_5_clay
-        15         -0.373         -0.187         -0.262                   PTF_lower66_5_Db
-        16          0.536          1.123          0.881            PTF_higher66_5_constant
+        15         -0.373         -0.187         -0.264                   PTF_lower66_5_Db
+        16          0.536          1.123          0.890            PTF_higher66_5_constant
         17         -0.005          0.005         -0.001                PTF_higher66_5_clay
-        18         -0.551         -0.091         -0.321                  PTF_higher66_5_Db
-        19         -1.200         -0.285         -0.597                    PTF_Ks_constant
-        20          0.006          0.026          0.012                        PTF_Ks_sand
+        18         -0.551         -0.091         -0.324                  PTF_higher66_5_Db
+        19         -1.200         -0.285         -0.585                    PTF_Ks_constant
+        20          0.006          0.026          0.013                        PTF_Ks_sand
         21          0.003          0.013          0.006                        PTF_Ks_clay
-        22          1.000        150.000         61.960                  PTF_Ks_curveSlope
-        23          0.900          0.999          0.990     rootFractionCoefficient_forest
-        24          0.900          0.950          0.924 rootFractionCoefficient_impervious
-        25          0.001          0.090          0.042   rootFractionCoefficient_pervious
-        26          1.000          4.000          2.895            infiltrationShapeFactor
-        27          0.000          5.000          0.905          imperviousStorageCapacity
+        22         60.960         60.960         60.960                  PTF_Ks_curveSlope
+        23          0.900          0.999          0.970     rootFractionCoefficient_forest
+        24          0.900          0.950          0.930 rootFractionCoefficient_impervious
+        25          0.001          0.090          0.020   rootFractionCoefficient_pervious
+        26          1.000          4.000          1.750            infiltrationShapeFactor
+        27          0.000          5.000          0.500          imperviousStorageCapacity
         28          0.750          1.750          1.190               PriestleyTaylorCoeff
         29         -0.500          0.200          0.058             PriestleyTaylorLAIcorr
-        30         75.000        200.000         91.280     interflowStorageCapacityFactor
-        31          0.000         10.000          8.490           interflowRecession_slope
-        32          1.000          3.000          1.760      fastInterflowRecession_forest
-        33          1.000         30.000          8.907          slowInterflowRecession_Ks
-        34          0.050          0.300          0.150              exponentSlowInterflow
-        35          0.000         50.000         10.380                rechargeCoefficient
-        36         -5.000          5.000         -1.251             rechargeFactor_karstic
+        30         75.000        200.000         85.000     interflowStorageCapacityFactor
+        31          0.000         10.000          7.000           interflowRecession_slope
+        32          1.000          3.000          1.500      fastInterflowRecession_forest
+        33          1.000         30.000         15.000          slowInterflowRecession_Ks
+        34          0.050          0.300          0.125              exponentSlowInterflow
+        35          0.000         50.000         35.000                rechargeCoefficient
+        36         -5.000          5.000         -1.000             rechargeFactor_karstic
         37          1.000          1.000          1.000      gain_loss_GWreservoir_karstic
         38          1.000       1000.000        100.000                      GeoParam(1,:)
         39          1.000       1000.000        100.000                      GeoParam(2,:)
@@ -87,7 +108,7 @@ Simulation Period (1)+(2)     6     1  1989    31    12  1993
         44          1.000       1000.000        100.000                      GeoParam(7,:)
         45          1.000       1000.000        100.000                      GeoParam(8,:)
         46          1.000       1000.000        100.000                      GeoParam(9,:)
-        47      -9999.000      -9999.000      -9999.000                     GeoParam(10,:)
+        47          1.000       1000.000        100.000                     GeoParam(10,:)
 
 --------------------------------------------------------------------------------
                           Basin-wise Configuration
@@ -114,4 +135,4 @@ Directory to temperature input               ../../test_basin/input/meteo/tavg/
 Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
 Directory to write output by default         output_b2/                                                                                                                                                                                                                                                      
 Directory to write output when restarted     output_b2/                                                                                                                                                                                                                                                      
- 
+

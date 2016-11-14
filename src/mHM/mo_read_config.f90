@@ -111,6 +111,7 @@ CONTAINS
     use mo_julian,           only: date2dec, dec2date
     use mo_append,           only: append
     use mo_message,          only: message
+    use mo_utils,            only: EQ
     use mo_string_utils,     only: num2str
     use mo_nml,              only: open_nml, close_nml, position_nml
     use mo_constants,        only: eps_dp                     ! epsilon(1.0) in double precision 
@@ -124,8 +125,7 @@ CONTAINS
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
-         file_defOutput, udefOutput,                        & ! file specifying which output to write
-         file_geolut, ugeolut                                 ! file specifying geological formations
+         file_defOutput, udefOutput                           ! file specifying which output to write
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
@@ -166,8 +166,6 @@ CONTAINS
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
-         nGeoUnits,                                         & ! number of geological classes
-                                !                                                    ! for parameter read-in
          timeStep_model_outputs,                            & ! timestep for writing model outputs
          outputFlxState,                                    & ! definition which output to write
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
@@ -264,13 +262,13 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: COSMIC_alpha1
     real(dp), dimension(nColPars)                   :: COSMIC_L30
     real(dp), dimension(nColPars)                   :: COSMIC_L31
-    !
+
     integer(i4)                                     :: ii, iBasin, n_true_pars
+    integer(i4)                                     :: nGeoUnits ! number of geological classes for parameter read-in
     real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
-    !
+
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
     character(256)                                  :: dummy
-    character(256)                                  :: fname
 
     integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
     character(256), dimension(maxNoBasins)          :: dir_Morpho
@@ -287,18 +285,18 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
     character(256), dimension(maxNoBasins)          :: file_LatLon
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI           ! directory of gridded LAI data
-    !                                                                            ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoBasins)          :: dir_soil_moisture         ! soil moisture input
-    character(256), dimension(maxNoBasins)          :: file_TWS                  ! total water storage input file
-    character(256), dimension(maxNoBasins)          :: dir_neutrons              ! ground albedo neutron input
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data
+    !                                                                      ! used when timeStep_LAI_input<0
+    character(256), dimension(maxNoBasins)          :: dir_soil_moisture   ! soil moisture input
+    character(256), dimension(maxNoBasins)          :: file_TWS            ! total water storage input file
+    character(256), dimension(maxNoBasins)          :: dir_neutrons        ! ground albedo neutron input
 
     !
-  integer(i4)                                       :: nLCover_scene   ! given number of land cover scenes
-  integer(i4),    dimension(maxNLCovers)            :: LCoverYearStart ! starting year LCover
-  integer(i4),    dimension(maxNLCovers)            :: LCoverYearEnd   ! ending year LCover
-  character(256), dimension(maxNLCovers)            :: LCoverfName     ! filename of Lcover file
-    real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam                  ! geological parameters
+    integer(i4)                                     :: nLCover_scene   ! given number of land cover scenes
+    integer(i4),    dimension(maxNLCovers)          :: LCoverYearStart ! starting year LCover
+    integer(i4),    dimension(maxNLCovers)          :: LCoverYearEnd   ! ending year LCover
+    character(256), dimension(maxNLCovers)          :: LCoverfName     ! filename of Lcover file
+    real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam        ! geological parameters
     !
     real(dp)                                        :: jday_frac
     integer(i4),    dimension(maxNoBasins)          :: warming_Days
@@ -1142,12 +1140,6 @@ CONTAINS
     !===============================================================
     ! Geological formations
     !===============================================================
-
-    ! read in of number of geological formations
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_geolut))
-    open( unit=ugeolut, file=fname, action='read', status='old')
-    read(ugeolut, *) dummy, nGeoUnits
-    close(ugeolut)
     dummy = dummy//''   ! only to avoid warning
 
     ! Process 9 - geoparameter
@@ -1158,6 +1150,14 @@ CONTAINS
        GeoParam = nodata_dp
        read(unamelist_param, nml=geoparameter)
 
+       ! search number of geological parameters
+       do ii = 1, size(GeoParam, 1) ! no while loop to avoid risk of endless loop
+          if ( EQ(GeoParam(ii,1), nodata_dp) ) then
+             nGeoUnits = ii - 1
+             exit
+          end if
+       end do
+       
        ! for geology parameters
        processMatrix(9,1) = processCase(9)
        processMatrix(9,2) = nGeoUnits
