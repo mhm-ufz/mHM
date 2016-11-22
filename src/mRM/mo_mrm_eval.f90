@@ -58,6 +58,8 @@ contains
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Sep 2015
+  !         Modified, Nov 2016, Stephan Thober - implemented second routing process i.e. adaptive timestep
+  
   subroutine mrm_eval(parameterset, runoff)
 
     use mo_kind, only: i4, dp
