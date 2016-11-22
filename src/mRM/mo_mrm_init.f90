@@ -196,11 +196,9 @@ CONTAINS
        ! INITIALIZE PARAMETERS
        ! ----------------------------------------------------------
        do iBasin = 1, nBasins
-          if (processMatrix(8, 1) .eq. 2) then
-             iStart = processMatrix(8,3) - processMatrix(8,2) + 1 
-             iEnd   = processMatrix(8,3)
-             call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
-          end if
+          iStart = processMatrix(8,3) - processMatrix(8,2) + 1 
+          iEnd   = processMatrix(8,3)
+          call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
        end do
     end if
 
@@ -539,6 +537,7 @@ CONTAINS
   subroutine mrm_init_param(iBasin, param)
 
     use mo_kind, only: i4, dp
+    use mo_common_variables, only: processMatrix
     use mo_mrm_global_variables, only: &
          ! input variables
          resolutionRouting, timeStep, iFlag_cordinate_sys, &
@@ -568,44 +567,50 @@ CONTAINS
        L11_TSrout = 0._dp
     end if
 
-    ! adjust spatial resolution
-    deltaX = resolutionRouting(iBasin)
-    if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
-    
-    ! calculate time step of hydrologic model in [s]
-    TShydro = HourSecs * timeStep
-    
-    ! calculate time step of routing model in [s]
-    TSrout = deltaX / param(1)
+    if (processMatrix(8, 1) .eq. 1) then
+       L11_tsRout = timestep * HourSecs
+    else if (processMatrix(8, 1) .eq. 2) then
 
-    ! adjust routing timestep to scale of K
-    TSroutfactor = TSrout / TShydro
+       ! adjust spatial resolution
+       deltaX = resolutionRouting(iBasin)
+       if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
-    ! update TSrout such that it is a multiple
-    ! of TShydro
-    if (TSroutfactor .gt. 1._dp) then
-       nTSrout = nint(TSroutfactor)
-       TSrout = nTSrout * TShydro
-    else
-       nTSrout = nint(1._dp / TSroutfactor)
-       TSrout = (1._dp / nTSrout) * TShydro
+       ! calculate time step of hydrologic model in [s]
+       TShydro = HourSecs * timeStep
+
+       ! calculate time step of routing model in [s]
+       TSrout = deltaX / param(1)
+
+       ! adjust routing timestep to scale of K
+       TSroutfactor = TSrout / TShydro
+
+       ! update TSrout such that it is a multiple
+       ! of TShydro
+       if (TSroutfactor .gt. 1._dp) then
+          nTSrout = nint(TSroutfactor)
+          TSrout = nTSrout * TShydro
+       else
+          nTSrout = nint(1._dp / TSroutfactor)
+          TSrout = (1._dp / nTSrout) * TShydro
+       end if
+
+       ! dont route below 12 minutes; there are limits!!!
+       if (TSrout .lt. 720._dp) then
+          call message('***WARNING: resetting routing timestep to 12 minutes (720 seconds)')
+          call message('            mRM has not been tested below this temporal resolution')
+          nTSrout = nint(TShydro / 720._dp)
+          TSrout = 720._dp
+       end if
+
+       ! set other global parameters
+       L11_tsRout(iBasin) = TSrout
+
     end if
-
-    ! dont route below 12 minutes; there are limits!!!
-    if (TSrout .lt. 720._dp) then
-       call message('***WARNING: resetting routing timestep to 12 minutes (720 seconds)')
-       call message('            mRM has not been tested below this temporal resolution')
-       nTSrout = nint(TShydro / 720._dp)
-       TSrout = 720._dp
-    end if
-    
-    ! set other global parameters
-    L11_tsRout(iBasin) = TSrout
-
+ 
     call message('')
     call message('    Basin: '//num2str(iBasin, '(i3)'))
-    call message('      routing resolution [s]:. '//num2str(TSrout, '(f7.0)'))
-    call message('      routing factor:......... '//num2str(tsRout / (timestep * HourSecs), '(f5.2)'))
+    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
+    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
 
     if ((mod(HourSecs * 24._dp, L11_tsRout(iBasin)) .ne. 0) .and. &
         (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
