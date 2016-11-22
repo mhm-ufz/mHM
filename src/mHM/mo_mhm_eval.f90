@@ -196,7 +196,7 @@ CONTAINS
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
     use mo_mrm_write, only: mrm_write_output_fluxes
-    use mo_mrm_init, only: variables_default_init_routing, mrm_init_param
+    use mo_mrm_init, only: variables_default_init_routing, mrm_update_param
     use mo_mrm_constants, only: hourSecs
 #endif
 
@@ -220,6 +220,7 @@ CONTAINS
     integer(i4)                               :: nTimeSteps
     integer(i4)                               :: ii, tt, ll       ! Counters
     integer(i4)                               :: nCells           ! No. of cells at level 1 for current basin
+    integer(i4)                               :: Lcover_yID       ! Land cover year ID
     integer(i4)                               :: s0, e0           ! start and end index at level 0 for current basin
     integer(i4)                               :: s1, e1           ! start and end index at level 1 for current basin
     !
@@ -371,7 +372,7 @@ CONTAINS
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
           ! initialize routing parameters (has to be called before MPR)
-          if (processMatrix(8, 1) .eq. 2) call mrm_init_param(ii, parameterset)
+          if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii)
           ! initialize variable for runoff for routing
           allocate(RunToRout(e1 - s1 + 1))
           RunToRout = 0._dp
@@ -559,6 +560,7 @@ CONTAINS
              ! determine whether mpr is to be executed
              if( ( LCyearId(year,ii) .NE. yId) .or. (tt .EQ. 1) ) then
                 do_mpr = perform_mpr
+                Lcover_yID = LCyearId(year, ii)
              else
                 do_mpr = .false.
              end if
@@ -579,6 +581,8 @@ CONTAINS
                 ! >>> adaptive timestep
                 ! >>>
                 do_rout = .False.
+                ! set dummy lcover_yID
+                Lcover_yID = 1_i4
                 ! calculate factor
                 tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
                 ! print *, 'routing factor: ', tsRoutFactor
@@ -640,7 +644,7 @@ CONTAINS
                   basin_mrm%gaugeNodeList(ii,:), &
                   ge(resolutionRouting(ii), resolutionHydrology(ii)), &
                   ! original routing specific input variables
-                  L0_LCover_mRM(s0:e0, LCyearID(year,ii)), & ! L0 land cover
+                  L0_LCover_mRM(s0:e0, Lcover_yID), & ! L0 land cover
                   L0_floodPlain(s110:e110), & ! flood plains at L0 level
                   L0_areaCell(s0:e0), &
                   L11_aFloodPlain(s11:e11), & ! flood plains at L11 level

@@ -109,7 +109,7 @@ contains
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_restart, only: mrm_read_restart_states
     use mo_mrm_routing, only: mrm_routing
-    use mo_mrm_init, only: variables_default_init_routing, mrm_init_param
+    use mo_mrm_init, only: variables_default_init_routing, mrm_update_param
     use mo_mrm_write, only: mrm_write_output_fluxes
     use mo_julian, only: caldat, julday
     use mo_mrm_constants, only: HourSecs
@@ -182,7 +182,7 @@ contains
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
        !
        ! initialize routing parameters (has to be called before MPR)
-       call mrm_init_param(ii, parameterset)
+       call mrm_update_param(ii)
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep

@@ -878,6 +878,8 @@ contains
    call append( L11_rightBound_L0   ,  rightBound0(:)          )
 
    ! communicate
+   call message('')
+   call message('    Basin: '//num2str(iBasin, '(i3)'))
    call message('      Number of outlets found at Level 0:.. '//num2str(Noutlet, '(i7)'))
    call message('      Number of outlets found at Level 11:. '//num2str(count(fdir11 .eq. 0_i4), '(i7)'))
 

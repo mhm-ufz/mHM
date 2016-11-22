@@ -303,7 +303,7 @@ contains
           end do
        end if read_L0_data
        !
-       if (mrm_coupling_mode .ne. 2) then
+       if (.not. present(L0_LCover)) then
           ! LCover read in is realized seperated because of unknown number of scenes
           if (processMatrix(8, 1) .eq. 1) then
              do iVar = 1, nLCoverScene
