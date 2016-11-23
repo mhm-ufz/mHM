@@ -307,34 +307,59 @@ CONTAINS
           write(uconfig, 100) 'Label 1 = headwater cell             '
           write(uconfig, 100) 'Label 2 = sink cell                  '
 
-          write(uconfig, 104) '   Overall', &
-               '      From', &
-               '        To', &
-               '   Routing', &
-               '     Label', &
-               '    Length', &
-               '      Mean', &
-               '      Link', &
-               '   Routing', &
-               '   Routing', &
-               '  Sequence', &
-               '          ', &
-               '          ', &
-               '     Slope'
-          !
-          write(uconfig, 105) '        Id', &
-               '      Node', &
-               '      Node', &
-               '', &
-               '',           &
-               '      [km]', &
-               '    [o/oo]'
-          !
-          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
-             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
-             write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
-                  L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
-          end do
+          if (processMatrix(8, 1) .eq. 1_i4) then 
+             write(uconfig, 104) '   Overall', &
+                  '      From', &
+                  '        To', &
+                  '   Routing', &
+                  '     Label', &
+                  '    Length', &
+                  '      Mean', &
+                  '      Link', &
+                  '   Routing', &
+                  '   Routing', &
+                  '  Sequence', &
+                  '          ', &
+                  '          ', &
+                  '     Slope'
+             !
+             write(uconfig, 105) '        Id', &
+                  '      Node', &
+                  '      Node', &
+                  '', &
+                  '',           &
+                  '      [km]', &
+                  '    [o/oo]'
+             !
+             do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+                i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+                write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
+                     L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
+             end do
+
+          else if (processMatrix(8, 1) .eq. 2_i4) then
+             write(uconfig, 134) '   Overall', &
+                  '      From', &
+                  '        To', &
+                  '   Routing', &
+                  '     Label', &
+                  '      Link', &
+                  '   Routing', &
+                  '   Routing', &
+                  '  Sequence', &
+                  '          '
+             !
+             write(uconfig, 135) '        Id', &
+                  '      Node', &
+                  '      Node', &
+                  '', &
+                  ''
+             !
+             do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+                i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+                write(uconfig,136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
+             end do
+          end if
           ! draining node at L11
           write(uconfig, 109)  '   Overall', '     Basin', &
                '      Cell', '   Routing', &
@@ -390,6 +415,10 @@ CONTAINS
 123 format (i10, 3f15.3, a35)
     !
 126 format (a30,9x,L1)
+    !
+134 format (/ 50('-') / 5a10 / 5a10)
+135 format (5a10 / 50('-'))
+136 format (5i10)
     !
 200 format (80('-'))
 201 format (a80)

@@ -650,13 +650,13 @@ contains
        do gg = igauge_start, igauge_end
           ! write simulated discharge at that gauge
           call var2nc(trim(fName), Qsim(1:tlength, gg), &
-               dnames(1:1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
-               units='m3 s-1', long_name='simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+               dnames(1:1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create=create, &
+               units='m3 s-1', long_name='simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
           create = .false.
           ! write observed discharge at that gauge
           call var2nc(trim(fName), Qobs(1:tlength, gg), &
-               dnames(1:1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
-               units='m3 s-1', long_name='observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+               dnames(1:1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create=create, &
+               units='m3 s-1', long_name='observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
        end do
        ! add time axis
        allocate(taxis(tlength))
