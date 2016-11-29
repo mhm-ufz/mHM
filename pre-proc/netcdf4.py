@@ -388,7 +388,7 @@ def filterDimensions(ncin, lengths):
     """
     Arguments
     ---------
-    lengths : tuple/list of integers
+    lengths : integer, tuple/list of integers
 
     Return
     ------
@@ -400,15 +400,14 @@ def filterDimensions(ncin, lengths):
     -------
     Return all Dimensions with a length given in the argument lengths.
     """
-    out = OrderedDict()
-    dims = {len(d) : d  for d in ncin.dimensions.values()}
-    for l in lengths:
-        try:
-            d = dims[l]
-            out[d.name] = d
-        except KeyError:
-            pass
-    return out
+    try:
+        lengths[0]
+    except TypeError:
+        lengths = (lengths,)
+
+    return OrderedDict(
+        [(d.name, d) for d in ncin.dimensions.values() if len(d) in lengths]
+    ) 
 
 def getGroups(ncin):
     out = OrderedDict()
