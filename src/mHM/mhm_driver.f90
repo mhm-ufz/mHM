@@ -143,6 +143,7 @@
 !                                                for simultaneous calibration based on runoff and TWS
 !                       Rohini Kumar, Mar 2016 - options to handle different soil databases
 !                                                modified MPR to included soil horizon specific properties/parameters
+!                     Stephan Thober, Nov 2016 - implemented adaptive timestep for routing
 !
 ! --------------------------------------------------------------------------
 
@@ -168,12 +169,12 @@ PROGRAM mhm_driver
        simPer,                                               &      ! simulation period
        NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
        timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       processMatrix,                                        &      ! basin information,  processMatrix
        dirConfigOut,                                         &
        basin,                                                & ! L0_mask for mrm_init call
        L0_elev,                                              & ! L0_elev for mrm_init call
        L0_LCover                                               ! L0_LCover for mrm_init call
   USE mo_common_variables,    ONLY : &
+       processMatrix,                                        &      ! basin information,  processMatrix
        optimize, opti_function,                              &      ! optimization on/off and optimization method
        global_parameters, global_parameters_name                    ! mhm parameters (gamma) and their clear names
   USE mo_kind,                ONLY : i4, dp                         ! number precision
@@ -198,7 +199,7 @@ PROGRAM mhm_driver
        write_optinamelist                                           ! Writing optimized parameter set to a namelist
   USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods
   USE mo_optimization,        ONLY : optimization
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, only: single_objective_runoff
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
@@ -368,11 +369,11 @@ PROGRAM mhm_driver
   ! end if
   ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .eq. 1) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
+  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
 #endif
 
   !this call may be moved to another position as it writes the master config out file for all basins
@@ -386,7 +387,7 @@ PROGRAM mhm_driver
   if ( optimize ) then
 
      select case(opti_function) 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
      case(1:9,14) 
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
@@ -432,7 +433,7 @@ PROGRAM mhm_driver
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! WRITE RUNOFF (INCLUDING RESTART FILES, has to be called after mHM restart
   ! files are written)

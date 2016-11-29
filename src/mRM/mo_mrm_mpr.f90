@@ -81,7 +81,7 @@ contains
     real(dp), dimension(:), intent(in)  :: length ! [m] total length
     real(dp), dimension(:), intent(in)  :: slope  ! average slope
     real(dp), dimension(:), intent(in)  :: fFPimp ! fraction of the flood plain with
-    !                                                ! impervious layer
+    !                                             ! impervious layer
     real(dp),               intent(in)  :: TS     ! [h] time step in
 
     ! Output

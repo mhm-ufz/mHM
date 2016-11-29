@@ -89,7 +89,7 @@ contains
   !>        \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
   !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 3 dimensions:
   !>              1. x, 2. y, 3. t. It is expected that the variables (especially)within the NetCDF files contain an
-  !>              unit attribute. The timestep has to be equidistant
+  !>              unit attribute. The timestep has to be equidistant.
 
   !     EXAMPLE
 
@@ -128,7 +128,10 @@ contains
     logical, dimension(:,:),                           intent(in)  :: mask      ! mask of valid data fields
     real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
     real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
-    integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default); -2:monthly; -3:yearly
+    integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default);
+    !                                                                            ! -2: monthly;
+    !                                                                            ! -3: yearly;
+    !                                                                            ! -4: hourly;
     logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
     !                                                                            ! default = .FALSE. - check is done
     real(dp), dimension(:,:,:), allocatable,           intent(out) :: data      ! data read in

@@ -205,6 +205,15 @@ case 8 :: NEUTRON OPTIMIZATION ACTIVATED
    mhm_outputs.nml:
    timeStep_model_outputs     = 0                                               (default:      -1)
 
+case 9 :: ADAPTIVE TIMESTEPPING IN ROUTING, RESTART WRITING, PET: Hargreaves-Samani
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   processCase(5)             = 1                                               (default:       0)
+   processCase(8)             = 2                                               (default:       0)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
 # -------------------------------------------------------------------------------------------
 #
 # Copyright 2014 Juliane Mai

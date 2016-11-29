@@ -7,9 +7,31 @@
 
 !> \author Stephan Thober
 !> \date Sep 2015
+!  Modified Stephan Thober, Nov 2016 - moved processdescription from mo_global_variables to here
 module mo_common_variables
   use mo_kind, only: i4, i8, dp
   implicit none
+
+  ! -------------------------------------------------------------------
+  ! PROCESSES description
+  ! -------------------------------------------------------------------
+  integer(i4), parameter,                public :: nProcesses = 10 ! Number of possible processes to consider
+  !                                                                !   process 1 :: interception
+  !                                                                !   process 2 :: snow
+  !                                                                !   process 3 :: soilmoisture
+  !                                                                !   process 4 :: sealed area direct runoff
+  !                                                                !   process 5 :: potential evapotranspiration
+  !                                                                !   process 6 :: interflow
+  !                                                                !   process 7 :: percolation
+  !                                                                !   process 8 :: routing
+  !                                                                !   process 9 :: baseflow
+  !                                                                !   process 10:: neutrons
+  integer(i4), dimension(nProcesses, 3), public :: processMatrix   ! Info about which process runs in which option and
+  !                                                                ! number of parameters necessary for this option
+  !                                                                !   col1: process_switch
+  !                                                                !   col2: no. of parameters
+  !                                                                !   col3: cum. no. of parameters
+
   ! -------------------------------------------------------------------
   ! PERIOD description
   ! -------------------------------------------------------------------
@@ -68,5 +90,13 @@ module mo_common_variables
    !                                                                             !   col4: flag, col5: scaling
    character(256), dimension(:), allocatable,   public :: global_parameters_name ! Matrix of global parameters (former: gamma)
    !                                                                             !   col1: names
+   ! -------------------------------------------------------------------
+   ! ALMA convention
+   ! -------------------------------------------------------------------
+   logical :: ALMA_convention ! flag for ALMA convention
+   !                          ! see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+   !                          ! .True.: ALMA convention is used for Input/Output
+   !                          ! .False.: default mHM units are used
+   !                          ! CAUTION: only Qall is considered at the moment
    
 end module mo_common_variables

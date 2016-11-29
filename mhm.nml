@@ -22,6 +22,7 @@
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
 ! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
 ! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
+! Stephan Thober, Nov 2016 - added adaptive timestep scheme for routing  
 
   
 !******************************************************************************************
@@ -67,6 +68,14 @@ resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 resolution_Routing(1) = 12000
 resolution_Routing(2) = 24000
+!-----------------------------------------------------------------------------
+!> use ALMA convention for input and output variables
+!> see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+!> .False. -> default mHM units
+!> .True.  -> ALMA convention
+!> CAUTION: at the moment, only Qall as input for mRM is affected
+!-----------------------------------------------------------------------------
+! ALMA_convention = .True.
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
@@ -134,7 +143,7 @@ perform_mpr   = .TRUE.
 ! MRM COUPLING MODE
 !******************************************************************************************
 !-----------------------------------------------------------------------------
-!> coupling_mode can be either: 0 = stand-alone (NOT IMPLEMENTED YET)\n
+!> coupling_mode can be either: 0 = stand-alone\n
 !>                              1 = coupling to a hydrologic model (general coupling)\n
 !>                              2 = coupling to mHM\n
 !-----------------------------------------------------------------------------
@@ -523,7 +532,8 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-processCase(8) = 1
+!> 2 - adaptive timestep
+processCase(8) = 2
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1

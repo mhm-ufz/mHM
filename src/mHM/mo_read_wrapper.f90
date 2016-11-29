@@ -83,6 +83,7 @@ CONTAINS
   !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
   !                    Rohini Kumar,   Mar 2016  - options to handle different soil databases
   !                    Matthias Zink   Mar 2014  - added subroutine for consistency check
+  !                    Stephan Thober, Nov 2016  - moved processMatrix to common variables
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -130,9 +131,9 @@ CONTAINS
                                      iFlag_soilDB,                        & ! options to handle different types of soil databases
                                      nSoilHorizons_mHM,                   & ! soil horizons info for mHM
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
-                                     processMatrix,                       & ! Info about which process runs in which option
                                      nLAIclass, LAIUnitList, LAILUT,soilDB
-    use mo_common_variables,   ONLY: global_parameters,                   & ! global parameters
+    use mo_common_variables,   ONLY: processMatrix,                       & ! Info about which process runs in which option
+                                     global_parameters,                   & ! global parameters
                                      optimize                               ! optimization on/off
     USE mo_mhm_constants,      ONLY: nodata_i4, nodata_dp                   ! mHM's global nodata vales
 

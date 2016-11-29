@@ -17,6 +17,9 @@ MODULE mo_mrm_init
 
   public :: mrm_init
   public :: variables_default_init_routing
+  public :: mrm_update_param
+
+  private
 
 CONTAINS
 
@@ -93,16 +96,18 @@ CONTAINS
          mrm_read_total_runoff
     use mo_mrm_read_latlon, only: read_latlon
     use mo_mrm_restart, only: mrm_read_restart_config
+    use mo_common_variables, only: processMatrix, global_parameters
 
     implicit none
     ! input variables
-    logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
-    real(dp), dimension(:), target, intent(in), optional :: L0_elev ! L0 elevation
-    integer(i4), dimension(:,:), target, intent(in), optional :: L0_LCover ! L0 land cover
+    logical,     target, intent(in), optional :: L0_mask(:)     ! L0 mask
+    real(dp),    target, intent(in), optional :: L0_elev(:)     ! L0 elevation
+    integer(i4), target, intent(in), optional :: L0_LCover(:,:) ! L0 land cover
 
     ! local variables
+    integer(i4) :: iStart, iEnd ! start and end index for routing parameters
     integer(i4) :: iBasin
-    logical :: ReadLatLon
+    logical     :: ReadLatLon
 
     !-----------------------------------------------------------
     ! READ COUPLING MODE
@@ -135,7 +140,8 @@ CONTAINS
     ! READ DATA
     ! ----------------------------------------------------------
     ! level 0 data
-    call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    if (processMatrix(8, 1) .eq. 1) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+    if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev)
     
     if (perform_mpr) then
        do iBasin = 1, nBasins
@@ -186,10 +192,18 @@ CONTAINS
              call message('    WARNING: no gauge found within modelling domain')
           end if
        end if
+       ! ----------------------------------------------------------
+       ! INITIALIZE PARAMETERS
+       ! ----------------------------------------------------------
+       do iBasin = 1, nBasins
+          iStart = processMatrix(8,3) - processMatrix(8,2) + 1 
+          iEnd   = processMatrix(8,3)
+          call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
+       end do
     end if
 
     ! ----------------------------------------------------------
-    ! INITIALIZE STATES
+    ! INITIALIZE STATES AND ROUTING PARAMETERS
     ! ----------------------------------------------------------
     do iBasin = 1, nBasins
        call variables_alloc_routing(iBasin)
@@ -248,7 +262,7 @@ CONTAINS
     call message('           Version ', trim(version))
     call message('           ', trim(version_date))
     call message()
-    call message('Made available by S. Thober')
+    call message('Made available by S. Thober & M. Cuntz')
     call message()
     call message('Based on mHM-UFZ by L. Samaniego & R. Kumar')
 
@@ -456,6 +470,7 @@ CONTAINS
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
          L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
+
     implicit none
     ! input variables
     integer(i4), intent(in) :: iBasin
@@ -507,11 +522,144 @@ CONTAINS
     ! Fraction of the flood plain with impervious cover
     dummy_Vector11(:) = 0.0_dp
     call append( L11_FracFPimp, dummy_Vector11 )
-
+    
     ! free space
     if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
     if ( allocated( dummy_Matrix11_IT     ) ) deallocate( dummy_Matrix11_IT     )
 
   end subroutine variables_alloc_routing
 
+  ! --------------------------------------------------------------------------
+  ! L11 PARAMETERS
+  ! --------------------------------------------------------------------------
+  ! The parameters are set following Thober et al. 2017
+  ! Modified: 
+  subroutine mrm_init_param(iBasin, param)
+
+    use mo_kind, only: i4, dp
+    use mo_common_variables, only: processMatrix
+    use mo_mrm_global_variables, only: &
+         ! input variables
+         resolutionRouting, timeStep, iFlag_cordinate_sys, &
+         basin_mrm, nBasins, &
+         ! output variables
+         L11_tsRout
+    use mo_mrm_constants, only: HourSecs
+    use mo_message, only: message
+    use mo_string_utils, only: num2str
+    
+    implicit none
+
+    ! Input
+    integer(i4),            intent(in) :: iBasin ! Basin number
+    real(dp), dimension(:), intent(in) :: param ! input parameter (param(1) is celerity in m/s)
+
+    ! local variables
+    integer(i4) :: nTSrout ! number of routing timestep per hydrology timestep
+    real(dp)    :: TSrout  ! temporal routing resolution
+    real(dp)    :: TSroutfactor ! factor between routing temporal resolution and hydrology temporal resolution
+    real(dp)    :: deltaX  ! 
+    real(dp)    :: TShydro ! [s] time step of hydrologic model
+
+    ! temporal resolution of routing
+    if (iBasin .eq. 1) then
+       allocate(L11_tsRout(nBasins))
+       L11_TSrout = 0._dp
+    end if
+
+    if (processMatrix(8, 1) .eq. 1) then
+       L11_tsRout = timestep * HourSecs
+    else if (processMatrix(8, 1) .eq. 2) then
+
+       ! adjust spatial resolution
+       deltaX = resolutionRouting(iBasin)
+       if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
+
+       ! calculate time step of hydrologic model in [s]
+       TShydro = HourSecs * timeStep
+
+       ! calculate time step of routing model in [s]
+       TSrout = deltaX / param(1)
+
+       ! adjust routing timestep to scale of K
+       TSroutfactor = TSrout / TShydro
+
+       ! update TSrout such that it is a multiple
+       ! of TShydro
+       if (TSroutfactor .gt. 1._dp) then
+          nTSrout = nint(TSroutfactor)
+          TSrout = nTSrout * TShydro
+       else
+          nTSrout = nint(1._dp / TSroutfactor)
+          TSrout = (1._dp / nTSrout) * TShydro
+       end if
+
+       ! dont route below 12 minutes; there are limits!!!
+       if (TSrout .lt. 720._dp) then
+          call message('***WARNING: resetting routing timestep to 12 minutes (720 seconds)')
+          call message('            mRM has not been tested below this temporal resolution')
+          nTSrout = nint(TShydro / 720._dp)
+          TSrout = 720._dp
+       end if
+
+       ! set other global parameters
+       L11_tsRout(iBasin) = TSrout
+
+    end if
+ 
+    call message('')
+    call message('    Basin: '//num2str(iBasin, '(i3)'))
+    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
+    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
+
+    if ((mod(HourSecs * 24._dp, L11_tsRout(iBasin)) .ne. 0) .and. &
+        (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
+       call message('***WARNING: routing timestep is not a multiple of 24 h.')
+       call message('            Inflowgauge timeseries is averaged over values')
+       call message('            of different days, small mismatches at')
+       call message('            inflowgauge location might occur.')
+    end if
+
+  end subroutine mrm_init_param
+
+  subroutine mrm_update_param(iBasin)
+
+    use mo_kind, only: i4, dp
+    use mo_mrm_global_variables, only: &
+         ! output variables
+         L11_C1, L11_C2
+    use mo_mrm_constants, only: HourSecs, rout_time_weight
+    use mo_mrm_tools, only: get_basin_info_mrm
+    
+    implicit none
+
+    ! Input
+    integer(i4),            intent(in) :: iBasin ! Basin number
+
+    ! local variables
+    integer(i4) :: nrows
+    integer(i4) :: ncols
+    integer(i4) :: s11
+    integer(i4) :: e11
+    real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
+
+    ! get basin information
+    call get_basin_info_mrm(iBasin,  11, nrows, ncols,  iStart=s11,  iEnd=e11)
+
+    ! set time-weighting scheme
+    xi = abs(rout_time_weight) ! set weighting factor to 0._dp
+    
+    ! Muskingum parameters
+    L11_C1(s11: e11) = 1._dp / (1.5_dp - xi)
+    L11_C2(s11: e11) = 1.0_dp - L11_C1(s11)
+
+    ! ! Muskingum parameters - old equations where TSrout is variable
+    ! L11_C1(s11: e11) = L11_TSrout(iBasin) / ( L11_TSrout(iBasin) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
+    ! L11_C2(s11: e11) = 1.0_dp - L11_C1(s11) * L11_TSrout(iBasin) / L11_TSrout(iBasin)
+
+    ! optional print
+    ! print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
+    ! print *, 'C2 Muskingum routing parameter: ', L11_C2(s11)
+
+  end subroutine mrm_update_param
 END MODULE mo_mrm_init

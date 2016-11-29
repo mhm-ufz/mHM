@@ -194,6 +194,7 @@ contains
   !                   Stephan Thober, Jun 2014 - updated read_restart
   !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
   !                   Stephan Thober, Sep 2015 - updated write of stream network
+  !                   Stephan Thober, Nov 2016 - adapted write to selected case for routing process
 
     Subroutine write_configfile()
 
@@ -244,6 +245,7 @@ contains
          LCfilename
 
     use mo_common_variables, only: &
+         processMatrix, &
          global_parameters,      &
          global_parameters_name 
 
@@ -315,14 +317,16 @@ contains
     !*********************************
     ! Model Land Cover Observations 
     !*********************************
-    do j = 1, nBasins
-       write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
-       write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
-       do i=1,SimPer(j)%yEnd-SimPer(j)%yStart+1
-          write(uconfig,120) i+SimPer(j)%yStart-1, LCyearId(i+SimPer(j)%yStart-1, j), &
-               trim(LCfilename(LCyearId(i+SimPer(j)%yStart-1, j)))
+    if (processMatrix(8, 1) .eq. 1) then
+       do j = 1, nBasins
+          write(uconfig,118) '       Land Cover Observations for Basin ', num2str(i)
+          write(uconfig,119) '      Year', '    Land cover scene', 'Land Cover File'
+          do i=1,SimPer(j)%yEnd-SimPer(j)%yStart+1
+             write(uconfig,120) i+SimPer(j)%yStart-1, LCyearId(i+SimPer(j)%yStart-1, j), &
+                  trim(LCfilename(LCyearId(i+SimPer(j)%yStart-1, j)))
+          end do
        end do
-    end do
+    end if
     !*********************************
     ! Initial Parameter Ranges
     !*********************************
@@ -383,34 +387,59 @@ contains
        write(uconfig, 100) 'Label 1 = headwater cell             '
        write(uconfig, 100) 'Label 2 = sink cell                  '
 
-       write(uconfig, 104) '   Overall', &
-            '      From', &
-            '        To', &
-            '   Routing', &
-            '     Label', &
-            '    Length', &
-            '      Mean', &
-            '      Link', &
-            '   Routing', &
-            '   Routing', &
-            '  Sequence', &
-            '          ', &
-            '          ', &
-            '     Slope'
-       !
-       write(uconfig, 105) '        Id', &
-            '      Node', &
-            '      Node', &
-            '', &
-            '',           &
-            '      [km]', &
-            '    [o/oo]'
-       !
-       do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
-          i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
-          write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
-               L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
-       end do
+       if (processMatrix(8, 1) .eq. 1_i4) then 
+          write(uconfig, 104) '   Overall', &
+               '      From', &
+               '        To', &
+               '   Routing', &
+               '     Label', &
+               '    Length', &
+               '      Mean', &
+               '      Link', &
+               '   Routing', &
+               '   Routing', &
+               '  Sequence', &
+               '          ', &
+               '          ', &
+               '     Slope'
+          !
+          write(uconfig, 105) '        Id', &
+               '      Node', &
+               '      Node', &
+               '', &
+               '',           &
+               '      [km]', &
+               '    [o/oo]'
+          !
+          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+             write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
+                  L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
+          end do
+          
+       else if (processMatrix(8, 1) .eq. 2_i4) then
+          write(uconfig, 134) '   Overall', &
+               '      From', &
+               '        To', &
+               '   Routing', &
+               '     Label', &
+               '      Link', &
+               '   Routing', &
+               '   Routing', &
+               '  Sequence', &
+               '          '
+          !
+          write(uconfig, 135) '        Id', &
+               '      Node', &
+               '      Node', &
+               '', &
+               ''
+          !
+          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+             write(uconfig,136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
+          end do
+       end if
        ! draining node at L11
        write(uconfig, 109)  '   Overall', '     Basin', &
             '      Cell', '   Routing', &
@@ -469,6 +498,10 @@ contains
     !
 126 format (a30,9x,L1)
     !
+134 format (/ 50('-') / 5a10 / 5a10)
+135 format (5a10 / 50('-'))
+136 format (5i10)
+!
 200 format (80('-'))
 201 format (a80)
 202 format (/50('-')/ a50 /50('-'))
@@ -617,13 +650,13 @@ contains
        do gg = igauge_start, igauge_end
           ! write simulated discharge at that gauge
           call var2nc(trim(fName), Qsim(1:tlength, gg), &
-               dnames(1:1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
-               units='m3 s-1', long_name='simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+               dnames(1:1), 'Qsim_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create=create, &
+               units='m3 s-1', long_name='simulated discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
           create = .false.
           ! write observed discharge at that gauge
           call var2nc(trim(fName), Qobs(1:tlength, gg), &
-               dnames(1:1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')), create=create, &
-               units='m3 s-1', long_name='observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i5.5)')))
+               dnames(1:1), 'Qobs_' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')), create=create, &
+               units='m3 s-1', long_name='observed discharge at gauge ' // trim(num2str(gauge%gaugeID(gg), '(i10.10)')))
        end do
        ! add time axis
        allocate(taxis(tlength))
@@ -954,7 +987,8 @@ contains
   !>        \date Dec 2013
 
   !         Modified,
-  !               Oct 2015, Stephan Thober - adapted to mRM
+  !               Stephan Thober, Oct 2015 - adapted to mRM
+  !               Stephan Thober, Nov 2016 - adapt header to routing process
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
@@ -962,6 +996,7 @@ contains
     use mo_mrm_global_variables, only: dirConfigOut
     use mo_message,              only: message
     use mo_string_utils,         only: num2str
+    use mo_common_variables,     only: processMatrix
 
     implicit none
 
@@ -989,7 +1024,8 @@ contains
 
     write(uopti_nml,*) '! ', trim(adjustl('routing'))
 
-    write(uopti_nml,*) '&routing1'
+    if (processMatrix(8, 1) .eq. 1_i4) write(uopti_nml,*) '&routing1'
+    if (ProcessMatrix(8, 1) .eq. 2_i4) write(uopti_nml,*) '&routing2'
     
     do iPar=1, size(parameters,1)
        if (maskpara(iPar)) then

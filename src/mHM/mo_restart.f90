@@ -75,6 +75,7 @@ CONTAINS
   !         Modified  Matthias Zink   Nov. 2014  - added PET related parameter writing
   !                   Stephan Thober  Aug  2015  - moved write of routing states to mRM
   !                   David Schaefer  Nov  2015  - mo_netcdf
+  !                   Stephan Thober  Nov  2016  - moved processMatrix to common variables
   ! ------------------------------------------------------------------ 
   subroutine write_restart_files( OutPath )
 
@@ -84,7 +85,7 @@ CONTAINS
     use mo_string_utils,     only: num2str
     use mo_netcdf,           only: NcDataset, NcDimension, NcVariable
     use mo_mhm_constants,    only: nodata_dp, nodata_i4
-    use mo_global_variables, only: processMatrix, &
+    use mo_global_variables, only: &
          L1_fSealed, &
          L1_fForest, &
          L1_fPerm, &
@@ -146,6 +147,8 @@ CONTAINS
          L1_leftBound_L0,          & ! Col start at finer level-0 scale
          L1_rightBound_L0,         & ! Col end at finer level-0 scale
          L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
+    use mo_common_variables, only: &
+         processMatrix                                        ! process configuration
 
     implicit none
 
@@ -937,6 +940,7 @@ CONTAINS
   !         Modified   Matthias Zink       Nov. 2014  - added PET related parameter read in
   !         Modified   Stephan Thober      Aug  2015  - moved read of routing states to mRM
   !         Modified   David Schaefer      Nov  2015  - mo_netcdf
+  !                    Stephan Thober      Nov  2016  - moved processMatrix to common variables
   subroutine read_restart_states( iBasin, InPath )
 
     use mo_kind,             only: i4, dp
@@ -945,7 +949,7 @@ CONTAINS
     use mo_string_utils,     only: num2str
     use mo_init_states,      only: get_basin_info
     use mo_mhm_constants,    only: YearMonths_i4
-    use mo_global_variables, only: processMatrix, &
+    use mo_global_variables, only: &
          L1_fSealed, &
          L1_fForest, &
          L1_fPerm, &
@@ -995,6 +999,8 @@ CONTAINS
          L1_sealedThresh, &
          L1_wiltingPoint, &
          nSoilHorizons_mHM
+    use mo_common_variables, only: &
+         processMatrix                                        ! process configuration
 
     implicit none
 

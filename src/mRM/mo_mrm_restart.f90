@@ -67,96 +67,101 @@ contains
   !                   Nov 2015, David Schaefer - mo_netcdf
   !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
   !                                              because multiple outlets could exist
+  !                   Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
+  
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
     use mo_netcdf, only: NcDataset, NcDimension, NcVariable
     use mo_string_utils, only: num2str
+    use mo_common_variables, only: processMatrix
     use mo_mrm_constants, only: nRoutingStates, nodata_dp, nodata_i4
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: &
-         basin_mrm, &
-         L0_cellCoor, &
-         L0_Id, &
-         L0_areaCell, &
-         L1_Id, &
-         L1_areaCell, &
-         L1_L11_Id, &
-         L11_Qmod, &
-         L11_qOUT, &
-         L11_qTIN, &
-         L11_qTR, &
-         L11_K, &
-         L11_xi, &
-         L11_C1, &
-         L11_C2, &
-         L11_FracFPimp, &
-         L11_cellCoor, &
-         L11_Id, &
-         L11_areaCell, &
-         L0_draSC, &
-         L0_draCell, &
-         L0_streamNet, &
-         L0_floodPlain, &
-         L0_L11_Id, &
-         L11_L1_Id, &
-         L11_rowOut, &
-         L11_colOut, &
-         L11_fDir, &
-         L11_upBound_L0, &
-         L11_downBound_L0, &
-         L11_leftBound_L0, &
+         basin_mrm,         &
+         L0_cellCoor,       &
+         L0_Id,             &
+         L0_areaCell,       &
+         L1_Id,             &
+         L1_areaCell,       &
+         L1_L11_Id,         &
+         L11_Qmod,          &
+         L11_qOUT,          &
+         L11_qTIN,          &
+         L11_qTR,           &
+         L11_K,             &
+         L11_xi,            &
+         L11_C1,            &
+         L11_C2,            &
+         L11_FracFPimp,     &
+         L11_cellCoor,      &
+         L11_Id,            &
+         L11_areaCell,      &
+         L0_draSC,          &
+         L0_draCell,        &
+         L0_streamNet,      &
+         L0_floodPlain,     &
+         L0_L11_Id,         &
+         L11_TSrout,        &
+         L11_L1_Id,         &
+         L11_rowOut,        &
+         L11_colOut,        &
+         L11_fDir,          &
+         L11_upBound_L0,    &
+         L11_downBound_L0,  &
+         L11_leftBound_L0,  &
          L11_rightBound_L0, &
-         L11_upBound_L1, &
-         L11_downBound_L1, &
-         L11_leftBound_L1, &
+         L11_upBound_L1,    &
+         L11_downBound_L1,  &
+         L11_leftBound_L1,  &
          L11_rightBound_L1, &
-         L11_fDir, &
-         L11_fromN, &
-         L11_toN, &
-         L11_rOrder, &
-         L11_label, &
-         L11_sink, &
-         L11_netPerm, &
-         L11_rowOut, &
-         L11_colOut, &
-         L11_fRow, &
-         L11_fCol, &
-         L11_tRow, &
-         L11_tCol, &
-         L11_length, &
-         L11_aFloodPlain, &
+         L11_fDir,          &
+         L11_fromN,         &
+         L11_toN,           &
+         L11_rOrder,        &
+         L11_label,         &
+         L11_sink,          &
+         L11_netPerm,       &
+         L11_rowOut,        &
+         L11_colOut,        &
+         L11_fRow,          &
+         L11_fCol,          &
+         L11_tRow,          &
+         L11_tCol,          &
+         L11_length,        &
+         L11_aFloodPlain,   &
          L11_slope
     implicit none
     ! input variables
-    integer(i4), intent(in) :: iBasin
-    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
-    ! local variables
-    character(256) :: Fname
-    integer(i4) :: ii
-    integer(i4) :: s0 ! start index at level 0
-    integer(i4) :: e0 ! end index at level 0
-    integer(i4) :: ncols0 ! number of colums at level 0
-    integer(i4) :: nrows0 ! number of rows at level 0
-    logical, dimension(:,:), allocatable :: mask0 ! mask at level 0
-    integer(i4) :: s1 ! start index at level 1
-    integer(i4) :: e1 ! end index at level 1
-    integer(i4) :: ncols1 ! number of colums at level 1
-    integer(i4) :: nrows1 ! number of rows at level 1
-    logical, dimension(:,:), allocatable :: mask1 ! mask at level 1
-    integer(i4) :: s11 ! start index at level 11
-    integer(i4) :: e11 ! end index at level 11
-    integer(i4) :: ncols11 ! number of colums at level 11
-    integer(i4) :: nrows11 ! number of rows at level 11
-    logical, dimension(:,:), allocatable :: mask11 ! mask at level 11
-    integer(i4) :: s110 ! start index at pseudo level 110 
-    integer(i4) :: e110 ! end index at pseudo level 110
-    integer(i4) :: ncols110 ! number of colums at pseudo level 110
-    integer(i4) :: nrows110 ! number of rows at pseudo level 110
+    integer(i4), intent(in)                  :: iBasin
+    character(256), dimension(:), intent(in) :: OutPath  ! list of Output paths per Basin
+                                                         ! local variables
+    character(256)                           :: Fname
+    integer(i4)                              :: ii
+    integer(i4)                              :: s0       ! start index at level 0
+    integer(i4)                              :: e0       ! end index at level 0
+    integer(i4)                              :: ncols0   ! number of colums at level 0
+    integer(i4)                              :: nrows0   ! number of rows at level 0
+    logical, dimension(:,:), allocatable     :: mask0    ! mask at level 0
+    integer(i4)                              :: s1       ! start index at level 1
+    integer(i4)                              :: e1       ! end index at level 1
+    integer(i4)                              :: ncols1   ! number of colums at level 1
+    integer(i4)                              :: nrows1   ! number of rows at level 1
+    logical, dimension(:,:), allocatable     :: mask1    ! mask at level 1
+    integer(i4)                              :: s11      ! start index at level 11
+    integer(i4)                              :: e11      ! end index at level 11
+    integer(i4)                              :: ncols11  ! number of colums at level 11
+    integer(i4)                              :: nrows11  ! number of rows at level 11
+    logical, dimension(:,:), allocatable     :: mask11   ! mask at level 11
+    integer(i4)                              :: s110     ! start index at pseudo level 110 
+    integer(i4)                              :: e110     ! end index at pseudo level 110
+    integer(i4)                              :: ncols110 ! number of colums at pseudo level 110
+    integer(i4)                              :: nrows110 ! number of rows at pseudo level 110
     real(dp), dimension(:,:,:), allocatable  :: dummy_d3 ! dummy variable
-    integer(i4) :: Noutlet ! number of outlets at level 0
+    integer(i4)                              :: Noutlet  ! number of outlets at level 0
 
     type(NcDataset)   :: nc
-    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, links, nout
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11
+    type(NcDimension) :: links, nout, nts, nproc
     type(NcVariable)  :: var
     
     ! get Level0 information about the basin
@@ -185,7 +190,14 @@ contains
     it11   = nc%setDimension("nIT", nRoutingStates)
     links  = nc%setDimension("nLinks", size(L11_length(s11:e11)))
     nout   = nc%setDimension("Noutlet", Noutlet)
+    nts    = nc%setDimension("TS", 1)
+    nproc  = nc%setDimension("Nprocesses", size(processMatrix, dim=1))
 
+    ! add processMatrix
+    var = nc%setVariable("ProcessMatrix","i32",(/nproc/))
+    call var%setFillValue(nodata_i4)
+    call var%setData(processMatrix(:, 1))
+    call var%setAttribute("long_name","Process Matrix")
     
     var = nc%setVariable("L0_rowCoor","i32",(/rows0, cols0/))
     call var%setFillValue(nodata_i4)
@@ -291,6 +303,12 @@ contains
          (/nrows11,ncols11/))))
     call var%setAttribute("long_name", "Mask at Level 11")
 
+    var = nc%setVariable("L11_TSrout", "i32", (/nts/))
+    call var%setFillValue(nodata_i4)
+    call var%setData(L11_TSrout(iBasin))
+    call var%setAttribute("long_name", "routing resolution at Level 11")
+    call var%setAttribute("units", "s")
+    
     var = nc%setVariable("L11_rowCoor", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L11_cellCoor(s11:e11,1), mask11, nodata_i4))
@@ -695,6 +713,7 @@ contains
   !                  Sep 2015, Stephan Thober - added L11_areaCell, L1_ID and L1_L11_Id for routing
   !                                             resolution higher than hydrology resolution
   !                  Mar 2016, David Schaefer - mo_netcdf
+  !                  Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
 
   subroutine mrm_read_restart_config( iBasin, InPath )
     use mo_kind, only: i4, dp
@@ -705,6 +724,7 @@ contains
     use mo_netcdf, only: NcDataset, NcVariable
     use mo_mrm_constants, only: nodata_dp, nodata_i4
     use mo_mrm_tools, only: get_basin_info_mrm, calculate_grid_properties
+    use mo_common_variables, only: processMatrix
     use mo_mrm_global_variables, only: &
          L0_Basin, & ! check whether L0_Basin should be read
          nBasins,           & ! Number of Basins
@@ -727,6 +747,7 @@ contains
          L0_nCells,         & ! Number of Cells at Level 0
          L0_draSC,          &
          L0_L11_Id,         &
+         L11_TSrout,        &
          L11_L1_Id,         &
          L11_fDir,          &
          L11_rowOut,        &
@@ -759,38 +780,38 @@ contains
 
     implicit none
 
-    integer(i4), intent(in):: iBasin
+    integer(i4),    intent(in) :: iBasin
     character(256), intent(in) :: InPath ! list of Output paths per Basin
 
     ! local variables
     character(256) :: fname
 
     ! local variables
-    integer(i4) :: nrows0 ! Number of rows at level 0
-    integer(i4) :: ncols0 ! Number of cols at level 0
-    logical, dimension(:,:), allocatable :: mask0 ! Mask at Level 0
-    integer(i4) :: nrows1 ! Number of rows at level 1
-    integer(i4) :: ncols1 ! Number of cols at level 1
-    logical, dimension(:,:), allocatable :: mask1    ! Mask at Level 1
-    integer(i4) :: nrows11 ! Number of rows at level 11
-    integer(i4) :: ncols11 ! Number of cols at level 11
-    logical, dimension(:,:), allocatable :: mask11 ! Mask at Level 11
-    integer(i4) :: nCells11 ! Number of cells at lev. 11
-    real(dp) :: xllcorner0, yllcorner0
-    real(dp) :: cellsize0
-    integer(i4) :: iStart0, iEnd0
+    integer(i4)          :: nrows0       ! Number of rows at level 0
+    integer(i4)          :: ncols0       ! Number of cols at level 0
+    logical, allocatable :: mask0(:, :)  ! Mask at Level 0
+    integer(i4)          :: nrows1       ! Number of rows at level 1
+    integer(i4)          :: ncols1       ! Number of cols at level 1
+    logical, allocatable :: mask1(:, :)  ! Mask at Level 1
+    integer(i4)          :: nrows11      ! Number of rows at level 11
+    integer(i4)          :: ncols11      ! Number of cols at level 11
+    logical, allocatable :: mask11(:, :) ! Mask at Level 11
+    integer(i4)          :: nCells11     ! Number of cells at lev. 11
+    real(dp)             :: xllcorner0, yllcorner0
+    real(dp)             :: cellsize0
+    integer(i4)          :: iStart0, iEnd0
 
     ! DUMMY variables
-    integer(i4) :: Noutlet
-    integer(i4) :: old_Noutlet
-    integer(i4), dimension(:), allocatable :: dummyI1 ! dummy, 1 dimension I4
-    integer(i4), dimension(:,:), allocatable :: dummy
-    integer(i4), dimension(:,:), allocatable :: dummyI2 ! dummy, 2 dimension I4
-    integer(i4), dimension(:,:), allocatable :: dummyI22 ! 2nd dummy, 2 dimension I4
-    real(dp), dimension(:), allocatable :: dummyD1 ! dummy, 1 dimension DP
-    real(dp), dimension(:,:), allocatable :: dummyD2 ! dummy, 2 dimension
-    type(NcDataset) :: nc
-    type(NcVariable) :: var
+    integer(i4)              :: Noutlet
+    integer(i4)              :: old_Noutlet
+    integer(i4), allocatable :: dummyI1(:)     ! dummy, 1 dimension I4
+    integer(i4), allocatable :: dummy(:, :)
+    integer(i4), allocatable :: dummyI2(:, :)  ! dummy, 2 dimension I4
+    integer(i4), allocatable :: dummyI22(:, :) ! 2nd dummy, 2 dimension I4
+    real(dp), allocatable    :: dummyD1(:)     ! dummy, 1 dimension DP
+    real(dp), allocatable    :: dummyD2(:, :)  ! dummy, 2 dimension
+    type(NcDataset)          :: nc
+    type(NcVariable)         :: var
 
     ! set file name
     fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
@@ -851,6 +872,22 @@ contains
 
     nc = NcDataset(fname, "r")
 
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! Read Process Matrix for check <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    var = nc%getVariable("ProcessMatrix")
+    allocate(dummyI1(size(processMatrix, dim=1)))
+    call var%getData(dummyI1)
+    if (dummyI1(8) .ne. processMatrix(8, 1)) then
+       call message('***ERROR: process description for routing')
+       call message('***ERROR: given in restart file does not match')
+       call message('***ERROR: that in namelist')
+       call message('***ERROR: restart file value:. ' // num2str(dummyI1(8), '(i2)'))
+       call message('***ERROR: namelist value:..... ' // num2str(processMatrix(8, 1), '(i2)'))
+       stop 'ERROR: mrm_read_restart_config'
+    end if
+    deallocate(dummyI1)
+    
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -952,6 +989,14 @@ contains
 
     ! get Number of cells
     nCells11 = count(mask11)
+
+    ! read L11_TSrout
+    if (iBasin .eq. 1) then
+       allocate(L11_TSrout(nBasins))
+       L11_tsRout = nodata_dp
+    end if
+    var = nc%getVariable("L11_TSrout")
+    call var%getData(L11_TSrout(iBasin))
 
     ! update basin database
     if (iBasin .eq. 1) then

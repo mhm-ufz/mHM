@@ -106,10 +106,10 @@ LIBNAME  := #libminpack.a # Name of library
 #
 # Options
 # Systems: eve and personal computers such as mcimac for Matthias Cuntz' iMac; look in $(MAKEDPATH) or type 'make info'
-system   := eve2
+system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := gnu
+compiler := nag
 # Releases: debug, release
 release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -184,7 +184,7 @@ static   := shared
 # Special compilation flags 
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := -Dmrm2mhm
+EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  :=
 EXTRA_LIBS     :=

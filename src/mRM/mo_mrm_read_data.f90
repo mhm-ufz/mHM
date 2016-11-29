@@ -99,6 +99,8 @@ contains
          L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
          L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
          basin_mrm ! basin information for single basins
+    use mo_common_variables, only: &
+         processMatrix ! process description
     
     implicit none
     
@@ -301,20 +303,26 @@ contains
           end do
        end if read_L0_data
        !
-       if (mrm_coupling_mode .ne. 2) then
+       if (.not. present(L0_LCover)) then
           ! LCover read in is realized seperated because of unknown number of scenes
-          do iVar = 1, nLCoverScene
-             fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
-             call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
-                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-             
-             ! put global nodata value into array (probably not all grid cells have values)
-             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-             call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
-             !
-             deallocate(data_i4_2d)
-          end do
+          if (processMatrix(8, 1) .eq. 1) then
+             do iVar = 1, nLCoverScene
+                fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
+                call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
+                     level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                     level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+                
+                ! put global nodata value into array (probably not all grid cells have values)
+                data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+                call paste(dataMatrix_i4, pack(data_i4_2d, mask_global), nodata_i4)
+                !
+                deallocate(data_i4_2d)
+             end do
+          end if
+          if (processMatrix(8, 1) .eq. 2) then
+             allocate(dataMatrix_i4(count(mask_global), 1))
+             dataMatrix_i4 = nodata_i4
+          end if
           !
           call append( L0_LCover_read, dataMatrix_i4 )
           ! free memory
@@ -893,16 +901,19 @@ contains
   !         \author  Stephan Thober
   !         \date    Sep 2015
   !     MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
+  !               Sep 2016, Stephan Thober - added ALMA convention
   subroutine mrm_read_total_runoff(iBasin)
     use mo_append, only: append
     use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_mrm_constants, only: nodata_dp
+    use mo_mrm_constants, only: nodata_dp, HourSecs
     use mo_read_forcing_nc, only: read_forcing_nc
-    use mo_mrm_global_variables, only: & ! timeStep_model_inputs, &
+    use mo_mrm_global_variables, only: &
+         timestep, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
          L1_total_runoff_in ! simulated runoff at L1
-    
+    use mo_common_variables, only: ALMA_convention
+
     implicit none
     
     ! input variables
@@ -914,6 +925,7 @@ contains
     integer(i4) :: ncols
     integer(i4) :: ncells
     integer(i4) :: nTimeSteps
+    integer(i4) :: nctimestep ! tell nc file to read daily or hourly values
     logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:,:), allocatable :: L1_data ! read data from file
     real(dp), dimension(:,:), allocatable :: L1_data_packed     
@@ -922,8 +934,10 @@ contains
     call get_basin_info_mrm(iBasin, 1, nrows, ncols, ncells=ncells, mask=mask)
 
     !
+    if (timestep .eq. 1) nctimestep = -4 ! hourly input
+    if (timestep .eq. 24) nctimestep = -1 ! daily input
     call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
-         'total_runoff', L1_data, mask, nctimestep=-4)!ST: timeStep should be read from file timeStep_model_inputs(iBasin))
+         'total_runoff', L1_data, mask, nctimestep=nctimestep)
 
     ! pack variables
     nTimeSteps = size(L1_data, 3)
@@ -933,6 +947,19 @@ contains
     end do
     ! free space immediately
     deallocate(L1_data)
+
+    ! convert if ALMA conventions have been given
+    if (ALMA_convention) then
+       ! convert from kg m-2 s-1 to mm TST-1
+       ! 1 kg m-2 -> 1 mm depth
+       ! multiply with time to obtain per timestep
+       L1_data_packed = L1_data_packed * timestep * HourSecs
+       ! ! dump to file
+       ! call dump_netcdf('test.nc', L1_data_packed)
+    else
+       ! convert from mm hr-1 to mm TST-1
+       L1_data_packed = L1_data_packed * timestep
+    end if
     
     ! append
     call append(L1_total_runoff_in, L1_data_packed(:,:), nodata_dp)

@@ -87,7 +87,7 @@ rechargeFactor_karstic             = -5.0000,      5.0000,          -1.0,     1,
 gain_loss_GWreservoir_karstic      =  1.0000,      1.0000,           1.0,     0,       1
 /                                                         
                                                           
-! Muskingum routing parameters with MPR
+! routing                                                 
 &routing1                                                 
 muskingumTravelTime_constant       =  0.3100,      0.3500,         0.325,     1,       1
 muskingumTravelTime_riverLength    =  0.0700,      0.0800,         0.075,     1,       1

@@ -741,7 +741,7 @@ CONTAINS
     use mo_temporal_aggregation, only: day2mon_average
     use mo_standard_score,       only: classified_standard_score
     use mo_string_utils,         only: num2str
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     use mo_mrm_objective_function_runoff, only: extract_runoff
 #endif
 
@@ -868,7 +868,7 @@ CONTAINS
     !--------------------------------------------
     !! RUNOFF
     !--------------------------------------------
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     nGaugesTotal = size(runoff, dim=2)
     allocate( kge_q(nGaugesTotal))
     kge_q(:) = nodata_dp

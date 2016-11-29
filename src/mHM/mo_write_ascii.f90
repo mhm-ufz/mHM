@@ -78,6 +78,7 @@ MODULE mo_write_ascii
   !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out
   !                   Stephan Thober, Jun 2014 - updated read_restart
   !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
+  !                   Stephan Thober, Nov 2016 - moved processMatrix to common variables
 
   PRIVATE
 
@@ -93,7 +94,6 @@ CONTAINS
     use mo_string_utils,     only: num2str
     USE mo_file,             only: file_config, uconfig, version
     use mo_global_variables, only:                     &
-         processMatrix,             &
          nBasins,                   &
          basin,                     &
          iFlag_cordinate_sys,       &
@@ -117,9 +117,10 @@ CONTAINS
          LCyearId,                  &
          LCfilename
     use mo_common_variables, only: &
+         processMatrix,             &
          global_parameters,         &
          global_parameters_name
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     use mo_mrm_global_variables, only: &
          basin_mrm,                 &
          gauge,                     &
@@ -167,13 +168,13 @@ CONTAINS
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
     write(uconfig, 103) 'Number of basins            ', nBasins
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     write(uconfig, 103) 'Total No. of nodes          ', L11_nCells
     write(uconfig, 103) 'Total No. of reaches        ', L11_nCells-1
 #endif
     write(uconfig, 103) 'No. of cells L0             ', L0_nCells
     write(uconfig, 103) 'No. of cells L1             ', L1_nCells
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 103) 'No. of cells L11            ', L11_nCells
        write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal
@@ -184,14 +185,14 @@ CONTAINS
        select case (iFlag_cordinate_sys)
        case (0)
           write(uconfig, 301)      'Basin  ',i, '   Hydrology Resolution [m]      ', resolutionHydrology(i)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
           if ( processMatrix(8,1) .ne. 0 ) then
              write(uconfig, 301)   'Basin  ',i, '   Routing Resolution [m]        ', resolutionRouting(i)
           end if
 #endif
        case(1)
          write(uconfig, 302)       'Basin  ',i, '   Hydrology Resolution [o]      ', resolutionHydrology(i)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
          if ( processMatrix(8,1) .ne. 0 ) then
             write(uconfig, 302)   'Basin  ',i, '   Routing Resolution [o]        ', resolutionRouting(i)
          end if
@@ -247,7 +248,7 @@ CONTAINS
             i, global_parameters(i,1), global_parameters(i,2), global_parameters(i,3), &
             trim(adjustl(global_parameters_name(i)))
     end do
-#ifdef mrm2mhm
+#ifdef MRM2MHM
     ! basin runoff data
     if ( processMatrix(8,1) .ne. 0 ) then
        write(uconfig, 202) '                Basin Runoff Data                '
@@ -288,7 +289,7 @@ CONTAINS
 
        write(uconfig, 224) 'Directory to morphological input         ',  dirMorpho(n)
        write(uconfig, 224) 'Directory to land cover input            ',  dirLCover(n)
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 224) 'Directory to gauging station input       ', dirGauges(n)
        end if
@@ -299,41 +300,66 @@ CONTAINS
        write(uconfig, 224) 'Directory to write output by default     ',  dirOut(n)
        write(uconfig, 224) 'Directory to write output when restarted ',  dirRestartOut(n)
 
-#ifdef mrm2mhm
+#ifdef MRM2MHM
        if ( processMatrix(8,1) .ne. 0 ) then
           write(uconfig, 102) 'River Network  (Routing level)'
           write(uconfig, 100) 'Label 0 = intermediate draining cell '
           write(uconfig, 100) 'Label 1 = headwater cell             '
           write(uconfig, 100) 'Label 2 = sink cell                  '
 
-          write(uconfig, 104) '   Overall', &
-               '      From', &
-               '        To', &
-               '   Routing', &
-               '     Label', &
-               '    Length', &
-               '      Mean', &
-               '      Link', &
-               '   Routing', &
-               '   Routing', &
-               '  Sequence', &
-               '          ', &
-               '          ', &
-               '     Slope'
-          !
-          write(uconfig, 105) '        Id', &
-               '      Node', &
-               '      Node', &
-               '', &
-               '',           &
-               '      [km]', &
-               '    [o/oo]'
-          !
-          do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
-             i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
-             write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
-                  L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
-          end do
+          if (processMatrix(8, 1) .eq. 1_i4) then 
+             write(uconfig, 104) '   Overall', &
+                  '      From', &
+                  '        To', &
+                  '   Routing', &
+                  '     Label', &
+                  '    Length', &
+                  '      Mean', &
+                  '      Link', &
+                  '   Routing', &
+                  '   Routing', &
+                  '  Sequence', &
+                  '          ', &
+                  '          ', &
+                  '     Slope'
+             !
+             write(uconfig, 105) '        Id', &
+                  '      Node', &
+                  '      Node', &
+                  '', &
+                  '',           &
+                  '      [km]', &
+                  '    [o/oo]'
+             !
+             do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+                i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+                write(uconfig,106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
+                     L11_length(i)/1000.0_dp, L11_slope(i)*1.0e3_dp
+             end do
+
+          else if (processMatrix(8, 1) .eq. 2_i4) then
+             write(uconfig, 134) '   Overall', &
+                  '      From', &
+                  '        To', &
+                  '   Routing', &
+                  '     Label', &
+                  '      Link', &
+                  '   Routing', &
+                  '   Routing', &
+                  '  Sequence', &
+                  '          '
+             !
+             write(uconfig, 135) '        Id', &
+                  '      Node', &
+                  '      Node', &
+                  '', &
+                  ''
+             !
+             do j=basin_mrm%L11_iStart(n), basin_mrm%L11_iEnd(n)-1
+                i=L11_netPerm(j) + basin_mrm%L11_iStart(n) - 1 ! adjust permutation for multi-basin option
+                write(uconfig,136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
+             end do
+          end if
           ! draining node at L11
           write(uconfig, 109)  '   Overall', '     Basin', &
                '      Cell', '   Routing', &
@@ -389,6 +415,10 @@ CONTAINS
 123 format (i10, 3f15.3, a35)
     !
 126 format (a30,9x,L1)
+    !
+134 format (/ 50('-') / 5a10 / 5a10)
+135 format (5a10 / 50('-'))
+136 format (5i10)
     !
 200 format (80('-'))
 201 format (a80)
@@ -556,11 +586,14 @@ CONTAINS
   !>        \date Dec 2013
 
   !         Modified,
+  !                 Stephan Thober, Nov  2016 - moved nProcesses to common variables
+  !                 Stephan Thober, Nov  2016 - write namelist for routing process 2
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
     use mo_file,                only: file_opti_nml, uopti_nml
-    use mo_global_variables,    only: dirConfigOut, nProcesses
+    use mo_global_variables,    only: dirConfigOut
+    use mo_common_variables,    only: nProcesses
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
 
@@ -646,6 +679,9 @@ CONTAINS
        case(8)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&routing1'
+          end if
+          if (processMatrix(iProc,1) .eq. 2) then
+             write(uopti_nml,*) '&routing2'
           end if
        case(9)
           if (processMatrix(iProc,1) .eq. 1) then

@@ -1,23 +1,26 @@
 !> \file mrm_driver.f90
-#ifndef mrm2mhm
+#ifndef MRM2MHM
 program mrm_driver
 
   use mo_common_variables,              only: global_parameters, global_parameters_name, optimize
   use mo_finish,                        only: finish
-  use mo_kind,                          only: dp
+  use mo_kind,                          only: dp, i4
+  use mo_message,                       only: message
   use mo_mrm_eval,                      only: mrm_eval
   use mo_mrm_global_variables,          only: dirConfigOut
   use mo_mrm_init,                      only: mrm_init
   use mo_mrm_objective_function_runoff, only: single_objective_runoff
   use mo_mrm_write,                     only: mrm_write, mrm_write_optifile, mrm_write_optinamelist
   use mo_optimization,                  only: optimization
-  use mo_timer,                         only: timers_init
+  use mo_string_utils,                  only: num2str
+  use mo_timer,                         only: timers_init, timer_start, timer_stop, timer_get
 
   
   implicit none
   
   ! variables for optimization
   real(dp)             :: funcbest    ! best objective function achivied during optimization
+  integer(i4)          :: itimer
   logical, allocatable :: maskpara(:) ! true  = parameter will be optimized     = parameter(i,4) = 1
   !                                   ! false = parameter will not be optimized = parameter(i,4) = 0
   ! --------------------------------------------------------------------------
@@ -41,7 +44,12 @@ program mrm_driver
      ! -----------------------------------------------------------------------
      ! FORWARD RUN
      ! -----------------------------------------------------------------------
+     itimer = 1
+     call timer_start(itimer)
+     call message('    perform forward run of mRM')
      call mrm_eval(global_parameters(:,3))
+     call timer_stop(itimer)
+     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
   ! --------------------------------------------------------------------------
   ! WRITE OUTPUT

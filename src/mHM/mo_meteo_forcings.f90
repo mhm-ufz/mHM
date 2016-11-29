@@ -77,6 +77,7 @@ CONTAINS
   !           Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
   !           Stephan Thober,  Jun  2014 - add chunk_config for chunk read, 
   !                                        copied L2 initialization to mo_startup
+  !           Stephan Thober,  Nov  2016 - moved processMatrix to common variables
   !
   subroutine prepare_meteo_forcings_data(iBasin, tt)
     use mo_message,          only: message
@@ -91,10 +92,12 @@ CONTAINS
          dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is Penman-Monteith (case 3)
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
          nBasins,                                           & ! Number of basins for multi-basin optimization 
-         processMatrix,                                     & ! process configuration
          readPer, timeStep_model_inputs,                    & ! chunk read in config                           
          L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
          L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
+    use mo_common_variables, only: &
+         processMatrix                                        ! process configuration
+
 
     implicit none
 

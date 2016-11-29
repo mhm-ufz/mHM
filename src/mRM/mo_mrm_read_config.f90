@@ -87,14 +87,14 @@ contains
     call close_nml(unamelist_mrm)
     ! check whether coupling mode is specified correctly
     if (mrm_coupling_mode .eq. 2) then
-#ifndef mrm2mhm
-       call message('***ERROR: coupling mode equals 2, but mrm2mhm preprocessor flag is not set while compiling')
+#ifndef MRM2MHM
+       call message('***ERROR: coupling mode equals 2, but MRM2MHM preprocessor flag is not set while compiling')
        stop
 #endif       
     end if
     if (mrm_coupling_mode .eq. 0) then
-#ifdef mrm2mhm
-       call message('***ERROR: coupling mode equals 0, but mrm2mhm preprocessor flag is set while compiling')
+#ifdef MRM2MHM
+       call message('***ERROR: coupling mode equals 0, but MRM2MHM preprocessor flag is set while compiling')
        stop
 #endif
     end if
@@ -155,6 +155,8 @@ contains
   !                                    and readLatLon flag
   subroutine read_mrm_config(do_message, readLatLon)
     use mo_common_variables,     only:            &
+         processMatrix,                           &
+         nProcesses,                              &
          optimize,                                & ! if mhm runs in optimization mode or not
          optimize_restart,                        & ! Optimization will be restarted from
          !                                          ! mo_<opti_method>.restart file (.true.)
@@ -168,7 +170,8 @@ contains
          !                                          !      # points per subcomplex
          mcmc_opti,                               & ! MCMC: if optimization mode of MCMC or only uncertainty estimation
          mcmc_error_params,                       & !       parameters of error model used in likelihood 
-         global_parameters
+         global_parameters,                       &
+         ALMA_convention
     use mo_julian,               only: dec2date, date2dec
     use mo_message,              only: message
     use mo_mrm_constants,        only: nodata_i4, &
@@ -227,6 +230,7 @@ contains
     logical, intent(out) :: readLatLon
     !
     ! local variables
+    integer(i4),    dimension(nProcesses)              :: processCase ! Choosen process description number
     integer(i4),    dimension(maxNoBasins)             :: NoGauges_basin
     integer(i4),    dimension(maxNoBasins,maxNoGauges) :: Gauge_id
     character(256), dimension(maxNoBasins,maxNoGauges) :: Gauge_filename
@@ -270,12 +274,12 @@ contains
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
-         L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
-         write_restart, perform_mpr
+         ALMA_convention, L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, &
+         read_restart, write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
-    ! namelist for evaluation gauges
-    ! define namelists
+    ! namelsit process selection
+    namelist /processSelection/ processCase
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
     namelist /directories_general/ dirConfigOut, dirCommonFiles,                                   &
@@ -316,7 +320,8 @@ contains
     !===============================================================
     call position_nml('mainconfig', unamelist_mrm)
     read(unamelist_mrm, nml=mainconfig)
-
+    ALMA_convention = .false.
+    
     if (nBasins .GT. maxNoBasins) then
        call message()
        call message('***ERROR: Number of basins is resticted to ', trim(num2str(maxNoBasins)),'!')
@@ -361,6 +366,18 @@ contains
 
     ! set ntstepday
     nTstepDay = 24_i4/timeStep ! # of time steps per day
+
+    !===============================================================
+    ! Set or read process selection
+    !===============================================================
+#ifdef MRM2MHM
+    processCase = 0_i4
+    processCase(8) = processMatrix(8, 1)
+#else
+    processCase = 0_i4
+    call position_nml('processselection', unamelist_mrm)
+    read(unamelist_mrm, nml=processSelection)
+#endif
 
     !===============================================================
     !  read simulation time periods incl. warming days
@@ -438,8 +455,10 @@ contains
     !===============================================================
     ! Read land cover information
     !===============================================================
-    call position_nml('LCover', unamelist_mrm)
-    read(unamelist_mrm, nml=LCover)
+    if (processCase(8) .eq. 1) then
+       call position_nml('LCover', unamelist_mrm)
+       read(unamelist_mrm, nml=LCover)
+    end if
 
     !===============================================================
     ! READ EVALUATION GAUGES
@@ -598,74 +617,76 @@ contains
     !===============================================================
     !  determine land cover periods
     !===============================================================
-    ! countercheck if land cover covers simulation period
-    if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
-       call message()
-       call message('***ERROR: Land cover for warming period is missing!')
-       call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
-       call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
-       stop
-    end if
-    if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
-       call message()
-       call message('***ERROR: Land cover period shorter than modelling period!')
-       call message('   FILE: mhm.nml, namelist: LCover')
-       call message('   SimEnd   : ', trim(num2str(maxval(evalPer(1:nBasins)%yEnd))))
-       call message('   LCoverEnd: ', trim(num2str(LCoverYearEnd(nLcover_scene))))
-       stop
-    end if
-    !
-    allocate(LCYearId(minval(simPer(1:nBasins)%yStart):maxval(simPer(1:nBasins)%yEnd),nBasins))
-    LCYearId = nodata_i4
-    do iBasin = 1, nBasins
-       do ii = 1, nLcover_scene
-          ! land cover before model period                        ! land cover after model period
-          if ((LCoverYearEnd(ii) .LT. evalPer(iBasin)%yStart) .OR. &
-               (LCoverYearStart(ii) .GT. evalPer(iBasin)%yEnd)) then
-             cycle
-          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
-             LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
-             exit
-          else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .LT. evalPer(iBasin)%yEnd)) then
-             LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
-          else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
-               (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
-             LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
-          else
-             LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
-          end if
-       end do
-    end do
-    !
-    ! correct number of input land cover scenes to number of needed scenes
-    nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
-         minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
-    ! put land cover scenes to corresponding file name and LuT
-    allocate(LCfilename(nLCoverScene))
-    LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
-         maxval(LCyearId))
-    ! update the ID's
-    ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
-    LCyearId(:,:) = LCyearId(:,:) - minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) + 1
-    !
-    if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
-         maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
-       if (any(LCyearId .EQ. nodata_i4)) then
+    if (processCase(8) .eq. 1) then       
+       ! countercheck if land cover covers simulation period
+       if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
           call message()
-          call message('***ERROR: Intermidiate land cover period is missing!')
+          call message('***ERROR: Land cover for warming period is missing!')
           call message('   FILE: mhm.nml, namelist: LCover')
+          call message('   SimStart   : ', trim(num2str(minval(evalPer(1:nBasins)%yStart))))
+          call message('   LCoverStart: ', trim(num2str(LCoverYearStart(1))))
           stop
        end if
-    else
-       if (do_message) then
+       if (LCoverYearEnd(nLcover_scene) .LT. maxval(evalPer(1:nBasins)%yEnd) ) then
           call message()
-          call message('***WARNING: No check on missing land cover period is performed!')
+          call message('***ERROR: Land cover period shorter than modelling period!')
+          call message('   FILE: mhm.nml, namelist: LCover')
+          call message('   SimEnd   : ', trim(num2str(maxval(evalPer(1:nBasins)%yEnd))))
+          call message('   LCoverEnd: ', trim(num2str(LCoverYearEnd(nLcover_scene))))
+          stop
+       end if
+       !
+       allocate(LCYearId(minval(simPer(1:nBasins)%yStart):maxval(simPer(1:nBasins)%yEnd),nBasins))
+       LCYearId = nodata_i4
+       do iBasin = 1, nBasins
+          do ii = 1, nLcover_scene
+             ! land cover before model period                        ! land cover after model period
+             if ((LCoverYearEnd(ii) .LT. evalPer(iBasin)%yStart) .OR. &
+                  (LCoverYearStart(ii) .GT. evalPer(iBasin)%yEnd)) then
+                cycle
+             else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
+                LCyearId(simPer(iBasin)%yStart:simPer(iBasin)%yEnd, iBasin) = ii
+                exit
+             else if ((LCoverYearStart(ii) .LE. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .LT. evalPer(iBasin)%yEnd)) then
+                LCyearId(simPer(iBasin)%yStart:LCoverYearEnd(ii), iBasin) = ii
+             else if ((LCoverYearStart(ii) .GT. evalPer(iBasin)%yStart) .AND. &
+                  (LCoverYearEnd(ii) .GE. evalPer(iBasin)%yEnd)) then
+                LCyearId(LCoverYearStart(ii):simPer(iBasin)%yEnd, iBasin) = ii
+             else
+                LCyearId(LCoverYearStart(ii):LCoverYearEnd(ii), iBasin) = ii
+             end if
+          end do
+       end do
+       !
+       ! correct number of input land cover scenes to number of needed scenes
+       nLCoverScene = maxval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) - &
+            minval(LCyearId, mask = (LCyearId .gt. nodata_i4) ) + 1
+       ! put land cover scenes to corresponding file name and LuT
+       allocate(LCfilename(nLCoverScene))
+       LCfilename(:) = LCoverfName( minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) : &
+            maxval(LCyearId))
+       ! update the ID's
+       ! use next line because of Intel11 bug: LCyearId = LCyearId - minval(LCyearId) + 1
+       LCyearId(:,:) = LCyearId(:,:) - minval(LCyearId, mask = ( LCyearId .gt. nodata_i4 ) ) + 1
+       !
+       if ( maxval( simPer(1:nBasins)%julStart ) .eq. minval( simPer(1:nBasins)%julStart) .and. &
+            maxval( simPer(1:nBasins)%julEnd   ) .eq. minval( simPer(1:nBasins)%julEnd  ) ) then
+          if (any(LCyearId .EQ. nodata_i4)) then
+             call message()
+             call message('***ERROR: Intermidiate land cover period is missing!')
+             call message('   FILE: mhm.nml, namelist: LCover')
+             stop
+          end if
+       else
+          if (do_message) then
+             call message()
+             call message('***WARNING: No check on missing land cover period is performed!')
+          end if
        end if
     end if
-
+    
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing
     !===============================================================
@@ -704,11 +725,11 @@ contains
     end do
 
     call close_nml(unamelist_mrm)
-    
+
     !===============================================================
     ! Read namelist global parameters
     !===============================================================
-    call read_mrm_routing_params(1, para_file)
+    call read_mrm_routing_params(processCase(8), para_file)
 
     !===============================================================
     ! Settings for Optimization
@@ -794,20 +815,17 @@ contains
     use mo_message, only: message
     use mo_mrm_constants, only: nColPars ! number of properties of the global variables
     use mo_common_variables, only: &
+         processMatrix, &
          global_parameters, & ! global parameters
          global_parameters_name ! clear names of global parameters
-#ifdef mrm2mhm    
-    use mo_global_variables, only :  processMatrix ! process configuration
-#else
     use mo_append, only: append
-#endif
 
     implicit none
     ! input variables
     integer(i4), intent(in) :: processCase ! it is the default case, should be one
     character(256), intent(in) :: file_namelist ! file name containing parameter namelist
     ! local variables
-#ifdef mrm2mhm    
+#ifdef MRM2MHM    
     integer(i4) :: start_index ! equals sum of previous parameters
 #else
     integer(i4) :: dummy ! dummy variable to always use processCase
@@ -817,64 +835,98 @@ contains
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverSlope
     real(dp), dimension(nColPars) :: muskingumTravelTime_impervious
     real(dp), dimension(nColPars) :: muskingumAttenuation_riverSlope
+    real(dp), dimension(nColPars) :: streamflow_celerity
 
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
          muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
+    namelist /routing2/ streamflow_celerity
     !
     call open_nml(file_namelist, unamelist_param, quiet=.true.)
 
-    call position_nml('routing1', unamelist_param)
-    read(unamelist_param, nml=routing1)
-
-#ifdef mrm2mhm
+    if (processCase .eq. 1_i4) then
+       call position_nml('routing1', unamelist_param)
+       read(unamelist_param, nml=routing1)
+    else if (processCase .eq. 2_i4) then
+       call position_nml('routing2', unamelist_param)
+       read(unamelist_param, nml=routing2)
+    end if
+       
+#ifdef MRM2MHM
     ! -------------------------------------------------------------------------
     ! INCLUDE MRM PARAMETERS IN PARAMETERS OF MHM
     ! -------------------------------------------------------------------------
-    processMatrix(8, 1) = processCase
-    processMatrix(8, 2) = 5_i4
-    processMatrix(8, 3) = sum(processMatrix(1:8, 2))
-    ! insert parameter values and names at position required by mhm
-    start_index         = processMatrix(8, 3) - processMatrix(8, 2)
-    global_parameters(start_index + 1, :) = muskingumTravelTime_constant
-    global_parameters(start_index + 2, :) = muskingumTravelTime_riverLength
-    global_parameters(start_index + 3, :) = muskingumTravelTime_riverSlope
-    global_parameters(start_index + 4, :) = muskingumTravelTime_impervious
-    global_parameters(start_index + 5, :) = muskingumAttenuation_riverSlope
+    ! Muskingum routing parameters with MPR
+    if (processCase .eq. 1_i4) then
+        ! insert parameter values and names at position required by mhm
+        processMatrix(8, 1) = processCase
+        processMatrix(8, 2) = 5_i4
+        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+        start_index         = processMatrix(8, 3) - processMatrix(8, 2)
+        global_parameters(start_index + 1, :) = muskingumTravelTime_constant
+        global_parameters(start_index + 2, :) = muskingumTravelTime_riverLength
+        global_parameters(start_index + 3, :) = muskingumTravelTime_riverSlope
+        global_parameters(start_index + 4, :) = muskingumTravelTime_impervious
+        global_parameters(start_index + 5, :) = muskingumAttenuation_riverSlope
     
-    global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
-         'muskingumTravelTime_constant   ', &
-         'muskingumTravelTime_riverLength', &
-         'muskingumTravelTime_riverSlope ', &
-         'muskingumTravelTime_impervious ', &
-         'muskingumAttenuation_riverSlope'/)
+        global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
+             'muskingumTravelTime_constant   ', &
+             'muskingumTravelTime_riverLength', &
+             'muskingumTravelTime_riverSlope ', &
+             'muskingumTravelTime_impervious ', &
+             'muskingumAttenuation_riverSlope'/)
+     ! adaptive timestep routing
+     else if (processCase .eq. 2_i4) then
+        processMatrix(8, 2) = 1_i4
+        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+        start_index         = processMatrix(8, 3) - processMatrix(8, 2)
+        global_parameters(start_index + 1, :) = streamflow_celerity
+        
+        global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
+             'streamflow_celerity'/)
+     end if
 #else
-    dummy = processCase ! dummy line to prevent compiler warning
+    ! Muskingum routing parameters with MPR
+    if (processCase .eq. 1_i4) then
+        processMatrix(8, 1) = processCase
+        processMatrix(8, 2) = 5_i4
+        processMatrix(8, 3) = processMatrix(8, 2)
+        ! set variables of mrm (redundant in case of coupling to mhm)
+        call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
+        call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
+        call append(global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
+        call append(global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
+        call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
 
-    ! set variables of mrm (redundant in case of coupling to mhm)
-    call append(global_parameters, reshape(muskingumTravelTime_constant,    (/1, nColPars/)))
-    call append(global_parameters, reshape(muskingumTravelTime_riverLength, (/1, nColPars/)))
-    call append(global_parameters, reshape(muskingumTravelTime_riverSlope,  (/1, nColPars/)))
-    call append(global_parameters, reshape(muskingumTravelTime_impervious,  (/1, nColPars/)))
-    call append(global_parameters, reshape(muskingumAttenuation_riverSlope, (/1, nColPars/)))
-
-    call append(global_parameters_name, (/ &
-         'muskingumTravelTime_constant   ', &
-         'muskingumTravelTime_riverLength', &
-         'muskingumTravelTime_riverSlope ', &
-         'muskingumTravelTime_impervious ', &
-         'muskingumAttenuation_riverSlope'/))
+        call append(global_parameters_name, (/ &
+             'muskingumTravelTime_constant   ', &
+             'muskingumTravelTime_riverLength', &
+             'muskingumTravelTime_riverSlope ', &
+             'muskingumTravelTime_impervious ', &
+             'muskingumAttenuation_riverSlope'/))
+     ! adaptive timestep routing
+     else if (processCase .eq. 2_i4) then
+        print *, 'ha...'
+        processMatrix(8, 1) = processCase
+        processMatrix(8, 2) = 1_i4
+        processMatrix(8, 3) = processMatrix(8, 2)
+        ! set variables of mrm (redundant in case of coupling to mhm)
+        call append(global_parameters, reshape(streamflow_celerity,    (/1, nColPars/)))
+        
+        call append(global_parameters_name, (/ &
+             'streamflow_celerity'/))
+     end if
 #endif
 
-    ! check if parameter are in range
-    if ( .not. in_bound(global_parameters) ) then
-       call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
-            trim(adjustl(file_namelist)))
-       stop
-    end if
-
-    call close_nml(unamelist_param)
-
-  end subroutine read_mrm_routing_params
+     ! check if parameter are in range
+     if ( .not. in_bound(global_parameters) ) then
+        call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
+             trim(adjustl(file_namelist)))
+        stop
+     end if
+     
+     call close_nml(unamelist_param)
+     
+   end subroutine read_mrm_routing_params
 
   ! --------------------------------------------------------------------------------
   ! private funtions and subroutines, DUPLICATED FROM mo_read_config.f90

@@ -103,7 +103,8 @@ CONTAINS
   !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
   !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
   !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
-  !                     Rohini Kumar, Mar 2016 - options to handle different soil databases
+  !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
+  !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
 
   subroutine read_config()
 
@@ -165,7 +166,6 @@ CONTAINS
          evap_coeff,                                        & ! pan evaporation
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
-         nProcesses, processMatrix,                         & ! process configuration
          timeStep_model_outputs,                            & ! timestep for writing model outputs
          outputFlxState,                                    & ! definition which output to write
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
@@ -173,6 +173,7 @@ CONTAINS
          iFlag_cordinate_sys                                  ! model run cordinate system
 
     use mo_common_variables, only: &
+         nProcesses, processMatrix,                         & ! process configuration
          global_parameters,                                 & ! global parameters
          global_parameters_name,                            & ! clear names of global parameters
          optimize,                                          & ! if mhm runs in optimization mode or not
@@ -195,6 +196,7 @@ CONTAINS
     ! PARAMETERS
     integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
     real(dp), dimension(5, nColPars)                :: dummy_2d_dp = nodata_dp ! space holder for routing parameters
+    real(dp), dimension(1, nColPars)                :: dummy_2d_dp_2 = nodata_dp ! space holder for routing parameters
     ! interception
     real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
@@ -1110,8 +1112,8 @@ CONTAINS
     case(1)
        ! parameter values and names are set in mRM
        ! 1 - Muskingum approach
-#ifndef mrm2mhm
-       call message('***ERROR processCase(8) equals 1, but mrm2mhm preprocessor flag is not given in Makefile')
+#ifndef MRM2MHM
+       call message('***ERROR processCase(8) equals 1, but MRM2MHM preprocessor flag is not given in Makefile')
        stop
 #endif
        processMatrix(8, 1) = processCase(8)
@@ -1119,7 +1121,16 @@ CONTAINS
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
        call append(global_parameters, dummy_2d_dp)
        call append(global_parameters_name, (/'dummy', 'dummy', 'dummy', 'dummy', 'dummy'/))
-
+    case(2)
+#ifndef MRM2MHM
+       call message('***ERROR processCase(8) equals 1, but MRM2MHM preprocessor flag is not given in Makefile')
+       stop
+#endif
+       processMatrix(8, 1) = processCase(8)
+       processMatrix(8, 2) = 1_i4
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+       call append(global_parameters, dummy_2d_dp_2)
+       call append(global_parameters_name, (/'dummy'/))
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "routing" does not exist!')
