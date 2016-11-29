@@ -108,13 +108,13 @@ contains
          L11_qMod, &
          mRM_runoff ! global variable containing runoff for every gauge
     use mo_common_variables, only: optimize, processMatrix
-    use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_mrm_restart, only: mrm_read_restart_states
-    use mo_mrm_routing, only: mrm_routing
-    use mo_mrm_init, only: variables_default_init_routing, mrm_update_param
-    use mo_mrm_write, only: mrm_write_output_fluxes
-    use mo_julian, only: caldat, julday
-    use mo_mrm_constants, only: HourSecs
+    use mo_mrm_tools,        only: get_basin_info_mrm
+    use mo_mrm_restart,      only: mrm_read_restart_states
+    use mo_mrm_routing,      only: mrm_routing
+    use mo_mrm_init,         only: variables_default_init_routing, mrm_update_param
+    use mo_mrm_write,        only: mrm_write_output_fluxes
+    use mo_julian,           only: caldat, julday
+    use mo_mrm_constants,    only: HourSecs
 
     implicit none
 
@@ -138,9 +138,8 @@ contains
     integer(i4) :: s110, e110 ! start and end index of L11 at L0
     integer(i4) :: nrows, ncols
     integer(i4) :: iDischargeTS ! discharge timestep
-    ! integer(i4) :: nNodes                 ! number of Nodes
-    real(dp) :: tsRoutFactor                ! factor between routing and hydrological modelling resolution
-    real(dp) :: tsRoutFactorIn              ! factor between routing and hydrological modelling resolution (temporary variable)
+    real(dp)    :: tsRoutFactor             ! factor between routing and hydrological modelling resolution
+    real(dp)    :: tsRoutFactorIn           ! factor between routing and hydrological modelling resolution (temporary variable)
     integer(i4) :: timestep_rout            ! timestep of runoff to rout [h]
     !                                       ! - identical to timestep of input if
     !                                       !   tsRoutFactor is less than 1
@@ -263,7 +262,7 @@ contains
                      tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
                 if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
                    InflowDischarge = InflowDischarge / tsRoutFactorIn
-                   timestep_rout = timestep * tsRoutFactor
+                   timestep_rout = nint(real(timestep,dp) * tsRoutFactor)
                    do_rout = .True.
                 end if
              end if

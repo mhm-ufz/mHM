@@ -55,7 +55,7 @@ CONTAINS
   !>        \param[in] "integer(i4), dimension(:) :: L11_fromN - L11 source grid cell order"
   !>        \param[in] "integer(i4), dimension(:) :: L11_toN - L11 target grid cell order"
   !>        \param[in] "integer(i4)               :: timestep - simulation timestep in [h]"
-  !>        \param[in] "real(dp)                  :: tsRoutFactor - factor between routing timestep and hydrological timestep"
+  !>        \param[in] "real(dp)                  :: tsRoutFactor - factor between routing timestep and hydrol. timestep"
   !>        \param[in] "integer(i4)               :: nNodes - number of nodes"
   !>        \param[in] "integer(i4)               :: nInflowGauges - number of inflow gauges"
   !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList - index list of inflow gauges"
@@ -65,7 +65,8 @@ CONTAINS
   !>        \param[in] "integer(i4)               :: nGauges - number of recording gauges"
   !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList - index list for outflow gauges"
   !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList - gauge node list at L11"
-  !>        \param[in] "logical                   :: map_flag  - flag indicating whether routing resolution is coarser than hydrologic resolution"
+  !>        \param[in] "logical                   :: map_flag - flag indicating whether routing resolution is coarser
+  !>                                                 than hydrological resolution"
   !>        \param[in] "integer(i4), dimension(:) :: L0_LCover - L0 land cover"
   !>        \param[in] "integer(i4), dimension(:) :: L0_floodPlain - L0 fraction of flood plains"
   !>        \param[in] "real(dp), dimension(:)    :: L0_areaCell - L0 cell area"

@@ -544,9 +544,10 @@ CONTAINS
          basin_mrm, nBasins, &
          ! output variables
          L11_tsRout
-    use mo_mrm_constants, only: HourSecs
-    use mo_message, only: message
-    use mo_string_utils, only: num2str
+    use mo_mrm_constants,        only: HourSecs
+    use mo_message,              only: message
+    use mo_string_utils,         only: num2str
+    use mo_utils,                only: notequal
     
     implicit none
 
@@ -612,7 +613,7 @@ CONTAINS
     call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
     call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
 
-    if ((mod(HourSecs * 24._dp, L11_tsRout(iBasin)) .ne. 0) .and. &
+    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
         (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
        call message('***WARNING: routing timestep is not a multiple of 24 h.')
        call message('            Inflowgauge timeseries is averaged over values')
@@ -628,8 +629,8 @@ CONTAINS
     use mo_mrm_global_variables, only: &
          ! output variables
          L11_C1, L11_C2
-    use mo_mrm_constants, only: HourSecs, rout_time_weight
-    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_constants, only: rout_time_weight
+    use mo_mrm_tools,     only: get_basin_info_mrm
     
     implicit none
 
