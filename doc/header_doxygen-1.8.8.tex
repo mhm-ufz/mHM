@@ -21,6 +21,8 @@
 \usepackage{courier}
 \usepackage{amssymb}
 \usepackage{sectsty}
+\usepackage{wallpaper}      
+
 \renewcommand{\familydefault}{\sfdefault}
 \allsectionsfont{%
   \fontseries{bc}\selectfont%
@@ -114,6 +116,8 @@
 
 \begin{document}
 
+\ThisCenterWallPaper{1}{../figures/UFZ_background.pdf}
+
 % Titlepage & ToC
 \hypersetup{pageanchor=false,
              bookmarks=true,
@@ -122,13 +126,12 @@
             }
 \pagenumbering{roman}
 \begin{titlepage}
-\vspace*{2cm}
+\vspace*{1.5cm}
 \begin{center}%
-{\Huge \bf multiscale Hydrologic Model}\\
+\includegraphics[width=6.0cm]{../figures/mHM_textlogo.pdf}\\
+
 \vspace*{1cm}
-{\Huge m\+H\+M }\\
-\vspace*{1cm}
-\includegraphics[totalheight=5.0cm]{../figures/mhm5-logo.pdf}\\
+\includegraphics[width=6.0cm]{../figures/mhm5-logo.pdf}\\
 \vspace*{1.5cm}
 {\Large Documentation for version 5.6}\\
 \vspace*{2.5cm}
@@ -138,27 +141,49 @@
 \vspace*{0.5cm}
 {\large 
 Matthias Cuntz,
-%John Craven,
-%Giovanni Dalmasso,
 Rohini Kumar,
+Ben Langenberg,
 Juliane Mai, \\
-%Jude Musuuza,
-%Vladyslav Prykhodko,
 Oldrich Rakovec, 
 David Sch\"{a}fer,
-%Christoph Schneider,\\
 Martin Schr\"{o}n,
-%Diana Spieler,
 Stephan Thober,
 Matthias Zink }\\
 \vspace*{2cm}
-{\large Helmholtz Centre for Environmental Research - UFZ}\\
-\vspace*{0.25cm}
-{\large \copyright 2005-2016}\\
+% {\large Helmholtz Centre for Environmental Research - UFZ}\\
+% \vspace*{0.25cm}
+% {\large \copyright 2005-2016}\\
 \vspace*{0.75cm}
-\includegraphics[totalheight=1.75cm]{../figures/ufz_logo.pdf}\\
 \end{center}
 \end{titlepage}
+
+\newpage
+
+\vspace*{2cm}
+\begin{center}%
+{\large Former mHM project collaborators}\\
+\vspace*{0.5cm}
+{\large 
+John Craven,
+Giovanni Dalmasso,
+Jude Musuuza,
+Vladyslav Prykhodko,
+Christoph Schneider,
+Diana Spieler
+}\\
+\vspace*{15.5cm}
+{\huge \textbf{The mHM project}}\\
+\textcolor{blue}{www.ufz.de/mhm}\\
+\vspace*{0.5cm}
+{\large \copyright 2005-2016}\\
+{\large Helmholtz Centre for Environmental Research - UFZ}\\
+\vspace*{0.2cm}
+\includegraphics[totalheight=5.mm]{../figures/cc_large.png}\,%
+\includegraphics[totalheight=5.mm]{../figures/by_large.png}\,%
+\includegraphics[totalheight=5.mm]{../figures/sa_large.png}%
+\vspace*{0.25cm}
+
+\end{center}
 
 \clearemptydoublepage
 \tableofcontents
