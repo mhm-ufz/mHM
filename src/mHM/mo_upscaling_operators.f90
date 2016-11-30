@@ -37,12 +37,12 @@ contains
   !>         \details upscale grid L0_fineScale_2D_data based on a majority statistics
 
   !      INTENT(IN)
-  !>         \param[in] "integer(i4) :: nClass"                       - number of classes
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"       - upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"       - lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"      - left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)"     - right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_fineScale_2D_data(:,:)"    - high resolution data
+  !>         \param[in] "integer(i4) :: nClass"                       number of classes
+  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"       upper row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"       lower row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"      left colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)"     right colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L0_fineScale_2D_data(:,:)"    high resolution data
 
   !     INTENT(INOUT)
   !         None
@@ -260,15 +260,15 @@ contains
   !>         \details upscaling of level-0 grid data to level-1 using aritmetic mean
 
   !      INTENT(IN)
-  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"  - number of level-0 cells within a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   - upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   - lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  - left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" - right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"           - cell ID at level-0
-  !>         \param[in] "logical     :: mask0(:,:)"               - mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             - no data value
-  !>         \param[in] "real(dp)    :: L0_fineScale_data(:,:)"- high resolution data
+  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"  number of level-0 cells within a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   upper row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   lower row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  left colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" right colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"           cell ID at level-0
+  !>         \param[in] "logical     :: mask0(:,:)"               mask at Level 0
+  !>         \param[in] "real(dp)    :: nodata_value"             no data value
+  !>         \param[in] "real(dp)    :: L0_fineScale_data(:,:)"   high resolution data
 
   !     INTENT(INOUT)
   !         None
@@ -371,15 +371,15 @@ contains
   !>         \details upscaling of level-0 grid data to level-1 using harmonic mean
 
   !       INTENT(IN)
-  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"  - number of level-0 cells within a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   - upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   - lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  - left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" - right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"           - cell ID at level-0
-  !>         \param[in] "logical     :: mask0(:,:)"               - mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             - no data value
-  !>         \param[in] "real(dp)    :: L0_fineScale_2D_data(:,:)"- high resolution data
+  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"   number of level-0 cells within a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"    upper row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"    lower row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"   left colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)"  right colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"            cell ID at level-0
+  !>         \param[in] "logical     :: mask0(:,:)"                mask at Level 0
+  !>         \param[in] "real(dp)    :: nodata_value"              no data value
+  !>         \param[in] "real(dp)    :: L0_fineScale_2D_data(:,:)" high resolution data
 
   !     INTENT(INOUT)
   !         None
@@ -485,15 +485,15 @@ contains
   !>         \details upscaling of level-0 grid data to level-1 using geometric mean
 
   !       INTENT(IN)
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   - upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   - lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  - left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" - right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "logical     :: mask0(:,:)"               - mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             - no data value
+  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   upper row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   lower row boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  left colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" right colon boundary (level-0) of a level-1 cell
+  !>         \param[in] "logical     :: mask0(:,:)"               mask at Level 0
+  !>         \param[in] "real(dp)    :: nodata_value"             no data value
 
   !     INTENT(INOUT)
-  !>         \param[in,out] real(dp) :: L0_fineScale_2D_data(:,:)  - high resolution data
+  !>         \param[in,out] real(dp) :: L0_fineScale_2D_data(:,:)  high resolution data
 
   !     INTENT(OUT)
   !         None

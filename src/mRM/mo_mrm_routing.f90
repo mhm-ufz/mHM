@@ -44,51 +44,50 @@ CONTAINS
   !>        the timestep of the hydrological timestep
 
   !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: processCase - Process switch for routing"
-  !>        \param[in] "real(dp), dimension(5)    :: global_routing_param - routing parameters"
-  !>        \param[in] "real(dp), dimension(:)    :: L1_total_runoff - total runoff from L1 grid cells"
-  !>        \param[in] "real(dp), dimension(:)    :: L1_areaCell - L1 cell area"
-  !>        \param[in] "integer(i4), dimension(:) :: L1_L11_Id - L1 cell ids on L11"
-  !>        \param[in] "real(dp), dimension(:)    :: L11_areaCell - L11 cell area"
-  !>        \param[in] "integer(i4), dimension(:) :: L11_L1_Id - L11 cell ids on L1"
-  !>        \param[in] "integer(i4), dimension(:) :: L11_netPerm - L11 routing order"
-  !>        \param[in] "integer(i4), dimension(:) :: L11_fromN - L11 source grid cell order"
-  !>        \param[in] "integer(i4), dimension(:) :: L11_toN - L11 target grid cell order"
-  !>        \param[in] "integer(i4)               :: timestep - simulation timestep in [h]"
-  !>        \param[in] "real(dp)                  :: tsRoutFactor - factor between routing timestep and hydrol. timestep"
-  !>        \param[in] "integer(i4)               :: nNodes - number of nodes"
-  !>        \param[in] "integer(i4)               :: nInflowGauges - number of inflow gauges"
-  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList - index list of inflow gauges"
-  !>        \param[in] "logical, dimension(:)     :: InflowGaugeHeadwater - flag for headwater cell of inflow gauge"
-  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList - gauge node list at L11"
-  !>        \param[in] "real(dp), dimension(:)    :: InflowDischarge - inflowing discharge at discharge gauge at current day"
-  !>        \param[in] "integer(i4)               :: nGauges - number of recording gauges"
-  !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList - index list for outflow gauges"
-  !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList - gauge node list at L11"
-  !>        \param[in] "logical                   :: map_flag - flag indicating whether routing resolution is coarser
-  !>                                                 than hydrological resolution"
-  !>        \param[in] "integer(i4), dimension(:) :: L0_LCover - L0 land cover"
-  !>        \param[in] "integer(i4), dimension(:) :: L0_floodPlain - L0 fraction of flood plains"
-  !>        \param[in] "real(dp), dimension(:)    :: L0_areaCell - L0 cell area"
-  !>        \param[in] "real(dp), dimension(:)    :: L11_aFloodPlain - L11 area of flood plain"
-  !>        \param[in] "real(dp), dimension(:)    :: L11_length - L11 link length"
-  !>        \param[in] "real(dp), dimension(:)    :: L11_slope - L11 slope"
+  !>        \param[in] "integer(i4)               :: processCase" Process switch for routing
+  !>        \param[in] "real(dp), dimension(5)    :: global_routing_param" routing parameters
+  !>        \param[in] "real(dp), dimension(:)    :: L1_total_runoff" total runoff from L1 grid cells
+  !>        \param[in] "real(dp), dimension(:)    :: L1_areaCell" L1 cell area
+  !>        \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L1 cell ids on L11
+  !>        \param[in] "real(dp), dimension(:)    :: L11_areaCell" L11 cell area
+  !>        \param[in] "integer(i4), dimension(:) :: L11_L1_Id" L11 cell ids on L1
+  !>        \param[in] "integer(i4), dimension(:) :: L11_netPerm" L11 routing order
+  !>        \param[in] "integer(i4), dimension(:) :: L11_fromN" L11 source grid cell order
+  !>        \param[in] "integer(i4), dimension(:) :: L11_toN" L11 target grid cell order
+  !>        \param[in] "integer(i4)               :: timestep" simulation timestep in [h]
+  !>        \param[in] "real(dp)                  :: tsRoutFactor" factor between routing timestep and hydrological timestep
+  !>        \param[in] "integer(i4)               :: nNodes" number of nodes
+  !>        \param[in] "integer(i4)               :: nInflowGauges" number of inflow gauges
+  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList" index list of inflow gauges
+  !>        \param[in] "logical, dimension(:)     :: InflowGaugeHeadwater" flag for headwater cell of inflow gauge
+  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList" gauge node list at L11
+  !>        \param[in] "real(dp), dimension(:)    :: InflowDischarge" inflowing discharge at discharge gauge at current day
+  !>        \param[in] "integer(i4)               :: nGauges" number of recording gauges
+  !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList" index list for outflow gauges
+  !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList" gauge node list at L11
+  !>        \param[in] "logical                   :: map_flag" flag indicating whether routing resolution is coarser than hydrologic resolution
+  !>        \param[in] "integer(i4), dimension(:) :: L0_LCover" L0 land cover
+  !>        \param[in] "integer(i4), dimension(:) :: L0_floodPlain" L0 fraction of flood plains
+  !>        \param[in] "real(dp), dimension(:)    :: L0_areaCell" L0 cell area
+  !>        \param[in] "real(dp), dimension(:)    :: L11_aFloodPlain" L11 area of flood plain
+  !>        \param[in] "real(dp), dimension(:)    :: L11_length" L11 link length
+  !>        \param[in] "real(dp), dimension(:)    :: L11_slope" L11 slope
   !
   !     INTENT(INOUT)
-  !>        \param[inout] "real(dp), dimension(:) :: L11_C1 - L11 muskingum parameter 1"
-  !>        \param[inout] "real(dp), dimension(:) :: L11_C2 - L11 muskingum parameter 2"
-  !>        \param[inout] "real(dp), dimension(:) :: L11_qOut - total runoff from L11 grid cells"
-  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTIN - L11 inflow to the reach"
-  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTR - L11 routed outflow"
-  !>        \param[inout] "real(dp), dimension(:) :: L11_qMod - modelled discharge at each grid cell"
-  !>        \param[inout] "real(dp), dimension(:) :: GaugeDischarge - modelled discharge at each gauge"
-  !>        \param[inout] "real(dp), dimension(:) :: L11_FracFPimp - L11 fraction of flood plain with impervios cover"
+  !>        \param[inout] "real(dp), dimension(:) :: L11_C1" L11 muskingum parameter 1
+  !>        \param[inout] "real(dp), dimension(:) :: L11_C2" L11 muskingum parameter 2
+  !>        \param[inout] "real(dp), dimension(:) :: L11_qOut" total runoff from L11 grid cells
+  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTIN" L11 inflow to the reach
+  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTR" L11 routed outflow
+  !>        \param[inout] "real(dp), dimension(:) :: L11_qMod" modelled discharge at each grid cell
+  !>        \param[inout] "real(dp), dimension(:) :: GaugeDischarge" modelled discharge at each gauge
+  !>        \param[inout] "real(dp), dimension(:) :: L11_FracFPimp" L11 fraction of flood plain with impervios cover
 
   !     INTENT(OUT)
   !         None
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, optional :: do_mpr_routing - indicate whether routing is to be performed"
+  !>        \param[in] "logical, optional :: do_mpr_routing" indicate whether routing is to be performed"
 
   !     INTENT(INOUT), OPTIONAL
   !         None
