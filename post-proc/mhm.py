@@ -174,9 +174,9 @@ class MHM(object):
         if data_type == 'states_and_fluxes':            
             self.import_states_and_fluxes( *kwargs )
         elif data_type == 'lat_lon_L0':
-            data_path = '/home/fhesse/Source/mhm/branches/sas/nagel_basin/sub_9304070/latlon/latlon_100.nc'
-            self.lon_L0 = self.import_lat_lon(data_path, 'lon')
-            self.lat_L0 = self.import_lat_lon(data_path, 'lat')
+            data_path = self.nml['dir_LatLon(1)']
+            self.lon_L0 = self.import_lat_lon(data_path, 'lon_l0')
+            self.lat_L0 = self.import_lat_lon(data_path, 'lat_l0')
         elif data_type == 'lat_lon':
             data_path = self.nml['dir_LatLon(1)']
             self.lon_L1 = self.import_lat_lon(data_path, 'lon')
