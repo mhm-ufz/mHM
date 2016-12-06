@@ -816,11 +816,11 @@ contains
           case(0) ! only at last time step
              if (tt .eq. nTimeSteps) writeout = .true.
           case(-1) ! daily
-             if (((tIndex_out .gt. 1) .and. (day_counter .ne. new_day)) .or. (tt .eq. nTimeSteps))     writeout = .true.
+             if ((day_counter .ne. new_day)     .or. (tt .eq. nTimeSteps))     writeout = .true.
           case(-2) ! monthly
-             if (((tIndex_out .gt. 1) .and. (month_counter .ne. new_month)) .or. (tt .eq. nTimeSteps)) writeout = .true.
+             if ((month_counter .ne. new_month) .or. (tt .eq. nTimeSteps)) writeout = .true.
           case(-3) ! yearly
-             if (((tIndex_out .gt. 1) .and. (year_counter .ne. new_year)) .or. (tt .eq. nTimeSteps))   writeout = .true.
+             if ((year_counter .ne. new_year)   .or. (tt .eq. nTimeSteps))   writeout = .true.
           case default ! no output at all
              continue
           end select
