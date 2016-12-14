@@ -92,6 +92,8 @@ CONTAINS
   !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
   !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
   !                   Stephan Thober,       Nov 2016 - added two options for routing
+  !                    Rohini Kuamr,       Dec  2016 - option to handle monthly mean gridded fields of LAI
+ 
   
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
@@ -470,7 +472,10 @@ CONTAINS
                    where( L0_LCover_LAI(s0:e0) .EQ. LAIUnitList(ll) ) LAI(:) = LAILUT(ll, month)
                 end do
              end if
-             !
+             
+          case(1) ! long term mean monthly gridded lai 
+             LAI(:) = L0_gridded_LAI(s0:e0, month)
+             
           case(-1) ! daily
              if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
@@ -512,7 +517,7 @@ CONTAINS
                parameterset,                                                                & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,             & ! IN L0
                L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                     & ! IN L0
-               L0_Id(s0:e0), L0_soilId(s0:e0,:), L0_LCover_LAI(s0:e0),                        & ! IN L0
+               L0_Id(s0:e0), L0_soilId(s0:e0,:), L0_LCover_LAI(s0:e0),                      & ! IN L0
                L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),              & ! IN L0
                L0_geoUnit(s0:e0),                                                           & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                   & ! IN L0

@@ -113,6 +113,8 @@ CONTAINS
   !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
   !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
+  !                  Rohini Kumar,                   Dec 2016 - changes for reading gridded mean monthly LAI fields
+  !
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
@@ -508,7 +510,7 @@ CONTAINS
     ! IT is now outside of mHM since LAI is now dynamic variable
     !-------------------------------------------------------------------
     select case(timeStep_LAI_input)
-    case(0)
+    case(0:1) ! in both case of option with 0 and 1
        ! Estimate max. intecept. capacity based on long term monthly mean LAI values
        ! Max. interception is updated every month rather than every day
        if( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then

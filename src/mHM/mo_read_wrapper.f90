@@ -84,6 +84,7 @@ CONTAINS
   !                    Rohini Kumar,   Mar 2016  - options to handle different soil databases
   !                    Matthias Zink   Mar 2014  - added subroutine for consistency check
   !                    Stephan Thober, Nov 2016  - moved processMatrix to common variables
+  !                    Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
   ! ------------------------------------------------------------------
 
   subroutine read_data
@@ -127,7 +128,7 @@ CONTAINS
                                      nBasins,                             & ! number of basins
                                      basin,                               & ! basin information for single basins
                                      perform_mpr,                         & ! flag indicating whether L0 is read
-                                     !timeStep_LAI_input,                 & ! flag on how LAI data has to be read
+                                     timeStep_LAI_input,                  & ! flag on how LAI data has to be read
                                      iFlag_soilDB,                        & ! options to handle different types of soil databases
                                      nSoilHorizons_mHM,                   & ! soil horizons info for mHM
                                      resolutionHydrology,                 & ! hydrology resolution (L1 scale)
@@ -174,9 +175,19 @@ CONTAINS
     call read_geoformation_lut(trim(fName), ugeolut, nGeoUnits, GeoUnitList, GeoUnitKar)
 
     ! LAI LUT
-    fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
-    call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
-    ! end if
+    if( timeStep_LAI_input .EQ. 0 ) then 
+       fName = trim(adjustl(dirCommonFiles)) // trim(adjustl(file_lailut))
+       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
+    else
+       !! just a dummy allocation for passing through the mo_mhm_eval call
+       allocate( LAIUnitList(1), LAILUT(1,1) )
+       LAIUnitList(:) = nodata_i4
+       LAILUT(:,:)    = nodata_dp
+    end if
+
+
+    
+    
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
@@ -332,21 +343,31 @@ CONTAINS
           deallocate(data_i4_2d, mask_2d)
           
           ! read LAI related land cover class
-          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-          ! reading and transposing
-          call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
-          deallocate(data_i4_2d, mask_2d)
-          
+          if( timeStep_LAI_input .EQ. 0 ) then 
+             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+             ! reading and transposing
+             call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
+                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+             call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+             deallocate(data_i4_2d, mask_2d)
+          else
+             !! dummy allocation for passing through the mo_mhm_eval
+             allocate( dummy_i4( count(mask_global) ) )
+             dummy_i4(:) = nodata_i4
+             call append( L0_LCover_LAI, dummy_i4 )
+             deallocate( dummy_i4 ) 
+          end if
+             
        else
           
           ! if restart is switched on, perform dummy allocation of
           allocate( dummy_dp( count(mask_global) ) )
           allocate( dummy_i4( count(mask_global) ) )
+          dummy_dp(:) = nodata_dp
+          dummy_i4(:) = dummy_i4
           call append( L0_elev,     dummy_dp )
           call append( L0_slope,    dummy_dp )
           call append( L0_asp,      dummy_dp )
@@ -363,14 +384,21 @@ CONTAINS
           deallocate( dummy_dp, dummy_i4 )
           
           ! read L0_LCover_LAI
-          fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
-          call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
-               level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
-               level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
-          ! put global nodata value into array (probably not all grid cells have values)
-          data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
-          call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
-          ! end if
+          if( timeStep_LAI_input .EQ. 0 ) then 
+             fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_laiclass))
+             call read_spatial_data_ascii(trim(fName), ulaiclass,                           &
+                  level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                  level0%yllcorner(iBasin), level0%cellsize(iBasin), data_i4_2d, mask_2d)
+             ! put global nodata value into array (probably not all grid cells have values)
+             data_i4_2d = merge(data_i4_2d,  nodata_i4, mask_2d)
+             call append( L0_LCover_LAI, pack(data_i4_2d, mask_global) )
+          else
+             !! dummy allocation for passing through the mo_mhm_eval
+             allocate( dummy_i4( count(mask_global) ) )
+             dummy_i4(:) = nodata_i4
+             call append( L0_LCover_LAI, dummy_i4 )
+             deallocate( dummy_i4 ) 
+          end if
           
        end if read_L0_data
      
@@ -406,8 +434,9 @@ CONTAINS
        call check_consistency_lut_map( reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /)), &
             soilDB%id(:), fName)
        ! LAI
-       call check_consistency_lut_map( L0_LCover_LAI, LAIUnitList, file_laiclass)
-
+       if( timeStep_LAI_input .EQ. 0 ) then 
+          call check_consistency_lut_map( L0_LCover_LAI, LAIUnitList, file_laiclass)
+       end if
        ! Geology
        call check_consistency_lut_map( L0_geoUnit, GeoUnitList, file_hydrogeoclass, dummy_i4)
 

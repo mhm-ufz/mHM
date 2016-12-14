@@ -105,7 +105,8 @@ CONTAINS
   !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
   !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
   !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
-
+  !                  Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
+  
   subroutine read_config()
 
     use mo_julian,           only: date2dec, dec2date
@@ -626,9 +627,9 @@ CONTAINS
           call message('***ERROR: Gridded LAI input in bin format must be daily.')
           stop
        end if
-       if (timeStep_LAI_input > 0) then
+       if (timeStep_LAI_input .GT. 1) then
           call message()
-          call message('***ERROR: timeStep_LAI_input must be <= 0.')
+          call message('***ERROR: option for selected timeStep_LAI_input not coded yet')
           stop
        end if
     end if

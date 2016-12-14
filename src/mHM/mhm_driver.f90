@@ -144,6 +144,7 @@
 !                       Rohini Kumar, Mar 2016 - options to handle different soil databases
 !                                                modified MPR to included soil horizon specific properties/parameters
 !                     Stephan Thober, Nov 2016 - implemented adaptive timestep for routing
+!                       Rohini Kumar, Dec 2016 - options to read (monthly mean) LAI fields
 !
 ! --------------------------------------------------------------------------
 
@@ -181,7 +182,9 @@ PROGRAM mhm_driver
   USE mo_message,             ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval,            ONLY : mhm_eval
-  USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data ! prepare daily LAI gridded fields
+  USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data, & ! prepare daily LAI gridded fields
+                             prepare_gridded_mean_monthly_LAI_data  ! prepare mean monthly LAI gridded fields
+  
   USE mo_read_optional_data,  ONLY : read_soil_moisture,     &      ! optional soil moisture reader, basin_avg_TWS reader
                                      read_basin_avg_TWS,     &
                                      read_neutrons
@@ -281,8 +284,8 @@ PROGRAM mhm_driver
         call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  ))
      end select
      call message('    Output directory:           ',   trim(dirOut(ii) ))
-     if (timeStep_LAI_input < 0) then
-        call message('    LAI directory:             ', trim(dirgridded_LAI(ii)) )
+     if (timeStep_LAI_input .NE. 0) then
+        call message('    LAI directory:              ', trim(dirgridded_LAI(ii)) )
      end if
 
      call message('')
@@ -327,13 +330,24 @@ PROGRAM mhm_driver
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
-     ! daily gridded LAI values
-     if (timeStep_LAI_input < 0) then
-        call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
-        call timer_start(itimer)
-        call prepare_gridded_daily_LAI_data(ii)
-        call timer_stop(itimer)
-        call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+     ! gridded LAI values
+     if( timeStep_LAI_input .NE. 0 ) then
+        ! daily gridded fieelds
+        if (timeStep_LAI_input .LT. 0) then
+           call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
+           call timer_start(itimer)
+           call prepare_gridded_daily_LAI_data(ii)
+           call timer_stop(itimer)
+           call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+        end if
+        ! long term mean monthly gridded fields
+        if ( timeStep_LAI_input .EQ. 1 ) then
+           call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
+           call timer_start(itimer)
+           call prepare_gridded_mean_monthly_LAI_data(ii)
+           call timer_stop(itimer)
+           call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+        end if
      endif
 
      ! read optional optional data
