@@ -51,14 +51,13 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 12000
-resolution_Hydrology(2) = 24000
+resolution_Hydrology(1) = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -66,8 +65,7 @@ resolution_Hydrology(2) = 24000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 12000
-resolution_Routing(2) = 24000
+resolution_Routing(1) = 24000
 !-----------------------------------------------------------------------------
 !> use ALMA convention for input and output variables
 !> see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
@@ -82,7 +80,6 @@ resolution_Routing(2) = 24000
 !> but not 1,2,1. The correct way should be: 1,1,2.\n
 !-----------------------------------------------------------------------------
 L0Basin(1) = 1
-L0Basin(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
@@ -135,7 +132,7 @@ opti_function = 3
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
 read_restart  = .FALSE.
-write_restart = .TRUE.
+write_restart = .FALSE.
 perform_mpr   = .TRUE.
 /
 
@@ -168,10 +165,8 @@ mrm_coupling_mode = 2
 !
 !> directory where discharge files are located
 dir_Gauges(1)        = "test_basin/input/gauge/"
-dir_Gauges(2)        = "test_basin_2/input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
 dir_Total_Runoff(1) = 'test_basin/output_b1/'
-dir_Total_Runoff(2) = 'test_basin_2/output/'
 /
 
 ! general directories used by mRM and mHM
@@ -199,21 +194,7 @@ dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_2.nc"
-
-! **** for Basin 2
-!> directory where morphological files are located
-dir_Morpho(2)        = "test_basin_2/input/morph/"
-!> directory where land cover files are located
-dir_LCover(2)        = "test_basin_2/input/luse/"
-!> directory where restart input is located
-dir_RestartIn(2)     = "test_basin_2/restart/"
-!> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin_2/restart/"
-!> directory where output should be written
-dir_Out(2)           = "test_basin_2/output/"
-!> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
+file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
 /
 
 ! directories used only by mhm
@@ -249,27 +230,6 @@ dir_windspeed(1)       = "test_basin/input/meteo/"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "test_basin/input/lai/"
 !
-!**** for Basin 2
-!> directory where meteorological input is located
-dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
-dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
-!> paths depending on PET process (processCase(5))
-!> 0 - PET is input
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
-!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
-dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
-!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
-dir_windspeed(2)       = "test_basin_2/input/meteo/"
-!> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_basin/input/lai/"
 /
 
 !> data which are optionally needed for optimization
@@ -296,7 +256,6 @@ timeStep_sm_input = -2
 !> basin average total water storage (tws) \n
 !> file name including path with timeseries of GRACE-based data
 file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
-file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
@@ -321,25 +280,18 @@ dir_neutrons(1)        = "test_basin/input/optional_data/"
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
 warming_Days(1)    = 0
-warming_Days(2)    = 180
 !> first year of wanted simulation period
 eval_Per(1)%yStart = 1990
-eval_Per(2)%yStart = 1993
 !> first month of wanted simulation period
 eval_Per(1)%mStart = 01
-eval_Per(2)%mStart = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart = 01
-eval_Per(2)%dStart = 01
 !> last year   of wanted simulation period
 eval_Per(1)%yEnd   = 1993
-eval_Per(2)%yEnd   = 1993
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd   = 12
-eval_Per(2)%mEnd   = 12
 !> last day    of wanted simulation period
 eval_Per(1)%dEnd   = 31
-eval_Per(2)%dEnd   = 31
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -350,7 +302,6 @@ eval_Per(2)%dEnd   = 31
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
 time_step_model_inputs(1) = 0
-time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
@@ -416,7 +367,7 @@ iFlag_soilDB = 0
 tillageDepth = 200
 !
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
+nSoilHorizons_mHM = 2
 !
 ! soil depth information
 !> IF (iFlag_soilDB = 0)
@@ -441,29 +392,15 @@ fracSealed_cityArea = 0.6
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered
 !> chronologically.
-nLcover_scene = 3
+nLcover_scene = 1
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1) = 1975
+LCoverYearStart(1) = 1989
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1989
+LCoverYearEnd(1)   = 1995
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 2
-LCoverYearStart(2) = 1990
-!> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 1993
-!> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1990.asc'
-
-!> starting year of land cover scene 3
-LCoverYearStart(3) = 1994
-!> ending year of land cover scnene 3
-LCoverYearEnd(3)   = 2004
-!> name of land cover file for scnene 3
-LCoverfName(3)     = 'lc_1990.asc'
 /
 
 !******************************************************************************************
@@ -476,22 +413,37 @@ LCoverfName(3)     = 'lc_1990.asc'
 !> This flag is unique and valid for all basins.\n
 !
 !> timeStep_LAI_input
+!>
 !>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
 !>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
 !>         Information regarding long-term monthly mean LAI for land cover classes
 !>         appearing in all modeled basins should be included in this LUT file.
 !>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be
-!>         located in each basin's morph directory.
-!> <0: Read gridded LAI files.\n
+!>     The respective plant functional type is in LAI_class.asc, which must be also given
+!>         and should be located in each basin's morph directory.
+!>
+!>*NOTE: In this option-0, the LAI-LUT and the corresponding LC_LAI datasets are used in
+!>         regionalising the max. interception capacity parameter and some parameters
+!>         in the PET estimation approaches of the Priestley-Taylor method and
+!>         the Penman monteith equation. The PET estimation approaches uses these datasets
+!>         in various ways; and are currently not flexible enough to use other LAI options.
+!>         
+!> **: THE BELOW MENTIONED OPTIONS ARE CURRENTLY USED FOR ONLY REGIONALIZING THE INTERCEPTION PARAMETERS
+!>
+!> < 0: Read gridded LAI files.\n
 !>     -1: gridded LAI are daily values\n
 !>     -2: gridded LAI are monthly values\n
 !>     -3: gridded LAI are yearly values\n
+!
+!>  1: read mean monthly gridded LAI values.\n
+!>     must be a separate *.nc file for every (modeled) basins.\n
 !-----------------------------------------------------------------------------------
 timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
 !>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
+!> input file format of gridded file (if timeStep_LAI_input == 1)
+!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
 inputFormat_gridded_LAI = "nc"
 /
 
@@ -555,7 +507,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -568,14 +520,6 @@ NoGauges_basin(1)   = 1
 Gauge_id(1,1)       = 398
 !> name of file with timeseries for subbasin(1) at gauge(1) --> (1,1)
 gauge_filename(1,1) = "00398.txt"
-!
-!> basin 2
-!> number of gauges for subbasin (2)
-NoGauges_basin(2)       = 1
-!> in subbasin(2), this is the id of gauge(1) --> (2,1)
-Gauge_id(2,1)           = 45
-!> name of file with timeseries for subbasin(2) at gauge(1) --> (2,1)
-Gauge_filename(2,1)     = "45.txt"
 /
 
 &inflow_gauges

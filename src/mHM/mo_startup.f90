@@ -342,7 +342,7 @@ CONTAINS
        end do
 
        ! land cover scenes related to LAI
-       if(timeStep_LAI_input .EQ. 0) then
+       if( timeStep_LAI_input .EQ. 0 ) then
          if ( L0_LCover_LAI(k) .eq. nodata_i4 ) then
             message_text = trim(num2str(k,'(I5)'))//','// trim(num2str(iBasin,'(I5)'))
             call message(' Error: land cover ID for LAI has missing values within the valid masked area at cell in basin ', &
