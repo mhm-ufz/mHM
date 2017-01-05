@@ -54,6 +54,7 @@ MODULE mo_global_variables
   logical,       public                              :: read_restart               ! flag
   logical,       public                              :: write_restart              ! flag
   logical,       public                              :: perform_mpr                ! switch for performing
+  logical,       public                              :: read_meteo_weights         ! read weights for tavg and pet
   ! multiscale parameter regionalization
   character(256),public                              :: inputFormat_meteo_forcings ! format of meteo input data(bin or nc)
   ! LAI information
@@ -306,6 +307,8 @@ MODULE mo_global_variables
   ! Forcings
   ! dim1 = number grid cells L1
   ! dim2 = number of meteorological time steps
+  real(dp), public, dimension(:,:,:), allocatable  :: L1_temp_weights  ! hourly temperature weights for daily values
+  real(dp), public, dimension(:,:,:), allocatable  :: L1_pet_weights   ! hourly pet weights for daily values
   real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]    Precipitation
   real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC]  Air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm TST-1] Potential evapotranspiration

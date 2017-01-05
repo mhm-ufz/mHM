@@ -20,14 +20,10 @@ MODULE mo_spatial_agg_disagg_forcing
 
   IMPLICIT NONE
 
-  PRIVATE
 
   PUBLIC :: spatial_aggregation      ! Spatial aggregation or upscaling
   PUBLIC :: spatial_disaggregation   ! Spatial disaggregation or downscaling
 
-  ! ------------------------------------------------------------------
-
-CONTAINS
 
   ! ------------------------------------------------------------------
 
@@ -83,7 +79,77 @@ CONTAINS
   !          Modified Rohini Kumar,   Nov 2013 - data1 changed from intent(inout) to intent(out)
   !          Modified RK, MZ, DS,     May 2014 - added mask2
 
-  subroutine spatial_aggregation(data2, cellsize2, cellsize1, mask1, mask2, data1)
+  INTERFACE spatial_aggregation
+     MODULE PROCEDURE spatial_aggregation_3d, spatial_aggregation_4d
+  END INTERFACE spatial_aggregation
+  
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         spatial_disaggregation
+
+  !     PURPOSE
+  !>        \brief Spatial disaggregation of meterological variables
+
+  !>        \details Disaggregate (or downscale) the given level-2 meteorological data to the \n 
+  !>                 required level-1 spatial resolution for the mHM run. 
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(:,:,:)   :: data2"         Level-2 meteorological data \n
+  !>                                                                   dim1=nRows, dim2=nCols, dim3=nTimeSteps
+  !>        \param[in] "real(dp)                     :: cellsize2"     Level-2 resolution 
+  !>        \param[in] "real(dp)                     :: cellsize1"     Level-1 resolution 
+  !>        \param[in] "logical, dimension(:,:)      :: mask1"         Level-1 basin mask \n
+  !>        \param[in] "logical, dimension(:,:)      :: mask2"         Level-2 basin mask \n
+  !>                                                                   dim1=nRows, dim2=nCols
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp), allocatable, dimension(:,:,:)  :: data1" 
+  !>           return level-1 meteorological data; DIMENSION [nRows_L1, nCols_L1, nTimeSteps] 
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date Jan 2013
+  !          Modified Rohini Kumar,   Nov 2013 - data1 changed from intent(inout) to intent(out)
+  !          Modified RK, MZ, DS,     May 2014 - added mask2
+
+  INTERFACE spatial_disaggregation
+     MODULE PROCEDURE spatial_disaggregation_3d, spatial_disaggregation_4d
+  end INTERFACE spatial_disaggregation
+  
+  ! ------------------------------------------------------------------
+
+  PRIVATE
+  
+  ! ------------------------------------------------------------------
+
+CONTAINS
+
+  subroutine spatial_aggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
     
     use mo_mhm_constants, only: nodata_dp
 
@@ -172,64 +238,103 @@ CONTAINS
     ! free space 
     deallocate(nTCells)
 
-  end subroutine spatial_aggregation
+  end subroutine spatial_aggregation_3d
   
-  
-  ! ------------------------------------------------------------------
+  subroutine spatial_aggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
+    
+    use mo_mhm_constants, only: nodata_dp
 
-  !     NAME
-  !         spatial_disaggregation
+    implicit none
 
-  !     PURPOSE
-  !>        \brief Spatial disaggregation of meterological variables
+    real(dp), dimension(:,:,:,:),              intent(in)  :: data2       ! Level-2 data
+    real(dp),                                  intent(in)  :: cellsize2   ! Level-2 resolution  
+    real(dp),                                  intent(in)  :: cellsize1   ! Level-1 resolution 
+    logical, dimension(:,:),                   intent(in)  :: mask1       ! Level-1 mask
+    logical, dimension(:,:),                   intent(in)  :: mask2       ! Level-2 mask
 
-  !>        \details Disaggregate (or downscale) the given level-2 meteorological data to the \n 
-  !>                 required level-1 spatial resolution for the mHM run. 
+    real(dp), dimension(:,:,:,:), allocatable, intent(out) :: data1       ! Level-1 data
+        
+    ! local variables
+    integer(i4)                                :: nr2, nc2  ! No. of rows and cols at Level-1 
+    integer(i4)                                :: nr1, nc1  ! No. of rows and cols at Level-1 
+    real(dp)                                   :: cellFactor 
+    integer(i4), dimension(:,:), allocatable   :: nTCells
+    integer(i4)                                :: nMonths, nHours
+    integer(i4)                                :: i, j, ic, jc, t, h
 
-  !     CALLING SEQUENCE
+    ! get number of rows and cols at level-2 from mask2
+    ! and the total time steps 
+    nr2     = size( data2, 1 )
+    nc2     = size( data2, 2 )
+    nMonths = size( data2, 3 )
+    nHours  = size( data2, 4 )
+       
+    ! get number of rows and cols at level-1 from mask1
+    nr1 = size( mask1, 1 )
+    nc1 = size( mask1, 2 )
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:,:)   :: data2"         Level-2 meteorological data \n
-  !>                                                                   dim1=nRows, dim2=nCols, dim3=nTimeSteps
-  !>        \param[in] "real(dp)                     :: cellsize2"     Level-2 resolution 
-  !>        \param[in] "real(dp)                     :: cellsize1"     Level-1 resolution 
-  !>        \param[in] "logical, dimension(:,:)      :: mask1"         Level-1 basin mask \n
-  !>        \param[in] "logical, dimension(:,:)      :: mask2"         Level-2 basin mask \n
-  !>                                                                   dim1=nRows, dim2=nCols
+    !-----------------------------------------------------------------------
+    ! Allocate and initalize nTCells which comprises
+    ! of number of L2 cells that belongs to a given L1 cell
+    ! NOTE:: 1) cell size of L1 > L2 (see CellFactor)
+    !        2) nTCells is estimated over the valid masked domain only
+    !-----------------------------------------------------------------------
+    
+    ! cellFactor = level-1 resolution (hydro) / level-2 resolution (meteo)
+    cellFactor = cellsize1 / cellsize2
+    
+    ! nTCells calculations
+    allocate( nTCells(nr1, nc1) )
+    nTCells(:,:) = 0
 
-  !     INTENT(INOUT)
-  !         None
+    do j=1, nc2
+       jc = ceiling( real(j,dp)/cellFactor )
+       do i=1, nr2
+          ic = ceiling(real(i,dp)/cellFactor)
+          if( .not. mask2(i,j) ) cycle
+          nTCells(ic,jc) = nTcells(ic,jc) + 1  
+       end do
+    end do
+    
+         
+    ! allocate and initalize L1_data
+    allocate( data1(nr1, nc1, nMonths, nHours) )
+    data1(:,:,:,:) = 0.0_dp
+   
+    ! time loop
+    do t = 1, nMonths
+       do h = 1, nHours
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), allocatable, dimension(:,:,:)  :: data1" 
-  !>           return level-1 meteorological data; DIMENSION [nRows_L1, nCols_L1, nTimeSteps] 
+          ! perform spatial aggregation
+          do j=1, nc2
+             jc = ceiling( real(j,dp)/cellFactor )
+             do i=1, nr2
+                ic = ceiling(real(i,dp)/cellFactor)
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+                ! only in valid masked area
+                if( .not. mask2(i,j) ) cycle
+                data1(ic,jc,t,h) = data1(ic,jc,t,h) + data2(i,j,t,h)
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+             end do
+          end do
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+          ! perform spatial average only over valid masked domain
+          ! out of the masked domain nTCells(:,:) = 0
+          where( mask1 )
+             data1(:,:,t,h) = data1(:,:,t,h) / real( nTcells(:,:), dp )
+          elsewhere
+             data1(:,:,t,h) = nodata_dp
+          endwhere
 
-  !     RETURN
-  !         None
+       end do
+    end do
+    
+    ! free space 
+    deallocate(nTCells)
 
-  !     RESTRICTIONS
+  end subroutine spatial_aggregation_4d
 
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Jan 2013
-  !          Modified Rohini Kumar,   Nov 2013 - data1 changed from intent(inout) to intent(out)
-  !          Modified RK, MZ, DS,     May 2014 - added mask2
-
-  subroutine spatial_disaggregation(data2, cellsize2, cellsize1, mask1, mask2, data1)
+  subroutine spatial_disaggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
     use mo_mhm_constants, only: nodata_dp
 
@@ -280,7 +385,61 @@ CONTAINS
       
     end do    
    
-  end subroutine spatial_disaggregation
+  end subroutine spatial_disaggregation_3d
 
+  subroutine spatial_disaggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
+
+    use mo_mhm_constants, only: nodata_dp
+
+    implicit none
+
+    real(dp), dimension(:,:,:,:),               intent(in) :: data2       ! Level-2 data
+    real(dp),                                   intent(in) :: cellsize2   ! Level-2 resolution  
+    real(dp),                                   intent(in) :: cellsize1   ! Level-1 resolution 
+    logical, dimension(:,:),                    intent(in) :: mask1       ! Level-1 mask
+    logical, dimension(:,:),                    intent(in) :: mask2       ! Level-2 mask
+
+    real(dp), dimension(:,:,:,:), allocatable, intent(out) :: data1       ! Level-1 data
+        
+    ! local variables
+    integer(i4)                                :: nr1, nc1                ! No. of rows and cols at Level-1 
+
+    real(dp)                                   :: cellFactor 
+    integer(i4)                                :: nMonths, nHours
+    integer(i4)                                :: i, j, t, ic, jc, h
+
+    ! get number of rows and cols at level-2 from mask2
+    nr1 = size( mask1, 1)
+    nc1 = size( mask1, 2)
+
+    ! cellFactor = level-2 resolution (meteo) / level-1 resolution (hydro)
+    cellFactor = cellsize2 / cellsize1
+    
+    ! time axis 
+    nMonths = size(data2, 3)
+    nHours  = size(data2, 4)
+
+    ! allocate and initalize L1_data
+    allocate( data1(nr1, nc1, nMonths, nHours) )
+    data1(:,:,:,:) = nodata_dp
+    
+    ! over the time loop
+    do t = 1, nMonths
+       do h = 1, nHours
+
+          ! spatial disaggregation
+          do j=1, nc1
+             jc = ceiling( real(j,dp)/cellFactor )
+             do i=1, nr1
+                ic = ceiling(real(i,dp)/cellFactor)
+                ! only over the valid masked area
+                if( .not. mask2(ic,jc) ) cycle
+                data1(i,j,t,h) = data2(ic,jc,t,h)
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine spatial_disaggregation_4d
 
 END MODULE mo_spatial_agg_disagg_forcing
