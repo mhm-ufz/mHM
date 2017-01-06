@@ -165,6 +165,7 @@ CONTAINS
          evalPer, simPer,                                   & ! model eval. & sim. periods
                                 !                                                    ! (sim. = wrm. + eval.)
          evap_coeff,                                        & ! pan evaporation
+         read_meteo_weights,                                & ! flag for read meteo weights
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
          timeStep_model_outputs,                            & ! timestep for writing model outputs
@@ -340,7 +341,7 @@ CONTAINS
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
-    namelist/nightDayRatio/fnight_prec,fnight_pet,fnight_temp
+    namelist/nightDayRatio/read_meteo_weights,fnight_prec,fnight_pet,fnight_temp
     ! namelsit process selection
     namelist /processSelection/ processCase
     ! namelist parameters

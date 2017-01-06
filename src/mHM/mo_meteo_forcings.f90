@@ -78,6 +78,7 @@ CONTAINS
   !           Stephan Thober,  Jun  2014 - add chunk_config for chunk read, 
   !                                        copied L2 initialization to mo_startup
   !           Stephan Thober,  Nov  2016 - moved processMatrix to common variables
+  !           Stephan Thober,  Jan  2017 - added subroutine for meteo_weights
   !
   subroutine prepare_meteo_forcings_data(iBasin, tt)
     use mo_message,          only: message
@@ -109,25 +110,23 @@ CONTAINS
     ! local variables
     logical                                    :: read_flag     ! indicate whether data should be read
 
-    ! read weights
-    
-    ! weights for hourly disaggregation of temperature
-    read_meteo_weights = .true.
-    if ( read_meteo_weights .and. ( tt .eq. 1 ) ) then
-       call message( '    read meteo weights for tavg     ...' )
-       call meteo_weights_wrapper( iBasin, dirTemperature(iBasin),  &
-            L1_temp_weights, lower = -100._dp, upper=100._dp, ncvarName='tavg_weight' )
-
-       call message( '    read meteo weights for pet     ...' )
-       call meteo_weights_wrapper( iBasin, dirTemperature(iBasin),  &
-            L1_pet_weights, lower = -100._dp, upper=100._dp, ncvarName='pet_weight' )
-    end if
-
     ! configuration of chunk_read
     call chunk_config( iBasin, tt, read_flag, readPer )
  
     ! only read, if read_flag is true
     if ( read_flag ) then
+
+       ! read weights for hourly disaggregation of temperature
+       if ( tt .eq. 1 ) then
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for tavg     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirTemperature(iBasin),  &
+               L1_temp_weights, lower = -100._dp, upper=100._dp, ncvarName='tavg_weight' )
+          
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for pet     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirReferenceET(iBasin),  &
+               L1_pet_weights, lower = -100._dp, upper=100._dp, ncvarName='pet_weight' )
+       end if
+       
        ! free L1 variables if chunk read is activated
        if ( timeStep_model_inputs(iBasin) .ne. 0 ) then
           if ( allocated( L1_pre         )) deallocate( L1_pre         )
@@ -450,7 +449,7 @@ end subroutine prepare_meteo_forcings_data
   !>        \date Jan 2017
   !         Modified, 
 
-  subroutine meteo_weights_wrapper(iBasin, dataPath, dataOut1, lower, upper, ncvarName)
+  subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
   
     use mo_global_variables,           only: readPer, level1, level2
     use mo_mhm_constants,              only: nodata_dp
@@ -462,12 +461,13 @@ end subroutine prepare_meteo_forcings_data
     
     implicit none
 
-    integer(i4),                            intent(in)    :: iBasin    ! Basin Id
-    character(len=*),                       intent(in)    :: dataPath  ! Data path
-    real(dp), dimension(:,:,:),allocatable, intent(inout) :: dataOut1  ! Packed meteorological variable
-    real(dp),                   optional,   intent(in)    :: lower     ! lower bound for data points
-    real(dp),                   optional,   intent(in)    :: upper     ! upper bound for data points
-    character(len=*),           optional,   intent(in)    :: ncvarName ! name of the variable (for .nc files)
+    integer(i4),                            intent(in)    :: iBasin             ! Basin Id
+    logical,                                intent(in)    :: read_meteo_weights ! flag for reading meteo weights
+    character(len=*),                       intent(in)    :: dataPath           ! Data path
+    real(dp), dimension(:,:,:),allocatable, intent(inout) :: dataOut1           ! Packed meteorological variable
+    real(dp),                   optional,   intent(in)    :: lower              ! lower bound for data points
+    real(dp),                   optional,   intent(in)    :: upper              ! upper bound for data points
+    character(len=*),           optional,   intent(in)    :: ncvarName          ! name of the variable (for .nc files)
 
     
     integer(i4)                                :: nrows1, ncols1
@@ -491,52 +491,58 @@ end subroutine prepare_meteo_forcings_data
     ! make  basic basin information at level-2
     call get_basin_info( iBasin, 2, nrows2, ncols2, mask=mask2 )
 
-    if( present(lower) .AND. (.not. present(upper)) ) then
-       CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower )
-    end if
-    !
-    if( present(upper) .AND. (.not. present(lower)) ) then
-       CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, upper=upper )
-    end if
-    !
-    if( present(lower) .AND. present(upper) ) then
-       CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower, upper=upper )
-    end if
-    
-    if( (.not. present(lower)) .AND. (.not. present(upper)) ) then
-       CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2 )
-    end if
+    if (read_meteo_weights) then
+       if( present(lower) .AND. (.not. present(upper)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower )
+       end if
+       !
+       if( present(upper) .AND. (.not. present(lower)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, upper=upper )
+       end if
+       !
+       if( present(lower) .AND. present(upper) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower, upper=upper )
+       end if
 
-    ! cellfactor to decide on the upscaling or downscaling of meteo. fields
-    cellFactorHbyM = level1%cellsize(iBasin) / level2%cellsize(iBasin) 
+       if( (.not. present(lower)) .AND. (.not. present(upper)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2 )
+       end if
 
-    ! upscaling & packing
-    if(cellFactorHbyM .gt. 1.0_dp) then
-       call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
-    ! downscaling   
-    elseif(cellFactorHbyM .lt. 1.0_dp) then
-       call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
-    ! nothing
-    else
-       L1_data = L2_data
-    end if
-    ! free memory immediately
-    deallocate(L2_data)
-    
-    ! pack variables
-    nMonths = size(L1_data, dim=3)
-    nHours  = size(L1_data, dim=4)
-    allocate( L1_data_packed(nCells1, nMonths, nHours))
-    do t = 1, nMonths
-       do j = 1, nHours
-          L1_data_packed(:,t,j) = pack( L1_data(:,:,t,j), MASK=mask1(:,:) )
+       ! cellfactor to decide on the upscaling or downscaling of meteo. fields
+       cellFactorHbyM = level1%cellsize(iBasin) / level2%cellsize(iBasin) 
+
+       ! upscaling & packing
+       if(cellFactorHbyM .gt. 1.0_dp) then
+          call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
+          ! downscaling   
+       elseif(cellFactorHbyM .lt. 1.0_dp) then
+          call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
+          ! nothing
+       else
+          L1_data = L2_data
+       end if
+       ! free memory immediately
+       deallocate(L2_data)
+
+       ! pack variables
+       nMonths = size(L1_data, dim=3)
+       nHours  = size(L1_data, dim=4)
+       allocate( L1_data_packed(nCells1, nMonths, nHours))
+       do t = 1, nMonths
+          do j = 1, nHours
+             L1_data_packed(:,t,j) = pack( L1_data(:,:,t,j), MASK=mask1(:,:) )
+          end do
        end do
-    end do
-    ! free memory immediately
-    deallocate(L1_data)
+       ! free memory immediately
+       deallocate(L1_data)
+    else
+       ! dummy allocation
+       allocate(L1_data_packed(nCells1, 12, 24))
+       L1_data_packed = nodata_dp
+    end if
     
-    ! ! append
-    ! call append( dataOut1, L1_data_packed, nodata_dp )
+    ! append
+    call append( dataOut1, L1_data_packed )
 
     !free space
     deallocate(L1_data_packed) 

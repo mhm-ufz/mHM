@@ -76,7 +76,8 @@ MODULE mo_append
   !     INTENT(IN)
   !>        \param[in] "input2" values to append. Can be INTEGER(I4/I8), REAL(SP/DP), or CHARACTER(len=*)
   !>                            and also scalar, DIMENSION(:), or DIMENSION(:,:)\n
-  !>                            If not scalar then the columns have to agree with input1
+  !>                            Also includes 3d version, where the append is always done along
+  !>                            the first dimension. If not scalar then the columns have to agree with input1.
 
   !     INTENT(INOUT)
   !>        \param[in,out] "allocatable :: input1" array to be appended to. Can be INTEGER(I4/I8), REAL(SP/DP),
@@ -110,16 +111,21 @@ MODULE mo_append
   !        Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
   !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
   !        Modified Matthias Zink,  Feb 2015 - added optional 'fill_value' for logical append
+  !        Modified Stephan Thober, Jan 2017 - added 3d version for append
 
   
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
           append_i8_v_s, append_i8_v_v, append_i8_m_m, &
+          append_i8_3d, &
           append_sp_v_s, append_sp_v_v, append_sp_m_m, &
+          append_sp_3d, &
           append_dp_v_s, append_dp_v_v, append_dp_m_m, &
+          append_dp_3d, &
           append_char_v_s, append_char_v_v, append_char_m_m, &
-          append_lgt_v_s, append_lgt_v_v, append_lgt_m_m
-
+          append_char_3d, &
+          append_lgt_v_s, append_lgt_v_v, append_lgt_m_m, &
+          append_lgt_3d
   END INTERFACE append
 
   ! ------------------------------------------------------------------
@@ -328,6 +334,55 @@ CONTAINS
 
   END SUBROUTINE append_i4_m_m
 
+  SUBROUTINE append_i4_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:,:,:), intent(in)                 :: mat2
+    integer(i4), optional,         intent(in)                 :: fill_value
+
+    ! local variables
+    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
+    integer(i4), dimension(:,:,:), allocatable :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_i4_3d
+
   SUBROUTINE append_i8_v_s(vec1, sca2)
 
     implicit none
@@ -450,6 +505,55 @@ CONTAINS
     end if
 
   END SUBROUTINE append_i8_m_m
+
+  SUBROUTINE append_i8_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    integer(i8), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    integer(i8), dimension(:,:,:), intent(in)                 :: mat2
+    integer(i8), optional,         intent(in)                 :: fill_value
+
+    ! local variables
+    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
+    integer(i8), dimension(:,:,:), allocatable :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_i8_3d
 
   SUBROUTINE append_sp_v_s(vec1, sca2)
 
@@ -574,6 +678,55 @@ CONTAINS
 
   END SUBROUTINE append_sp_m_m
 
+  SUBROUTINE append_sp_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    real(sp), dimension(:,:,:), allocatable, intent(inout)   :: mat1
+    real(sp), dimension(:,:,:), intent(in)                   :: mat2
+    real(sp), optional,         intent(in)                   :: fill_value
+
+    ! local variables
+    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                               :: j1, j2    ! dim3 of matrixes: something else
+    real(sp), dimension(:,:,:), allocatable   :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_sp_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_sp_3d
+
   SUBROUTINE append_dp_v_s(vec1, sca2)
 
     implicit none
@@ -697,6 +850,55 @@ CONTAINS
 
   END SUBROUTINE append_dp_m_m
 
+  SUBROUTINE append_dp_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    real(dp), dimension(:,:,:), allocatable, intent(inout)   :: mat1
+    real(dp), dimension(:,:,:), intent(in)                   :: mat2
+    real(dp), optional,         intent(in)                   :: fill_value
+
+    ! local variables
+    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                               :: j1, j2    ! dim3 of matrixes: something else
+    real(dp), dimension(:,:,:), allocatable   :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_dp_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_dp_3d
+
   SUBROUTINE append_char_v_s(vec1, sca2)
 
     implicit none
@@ -817,6 +1019,55 @@ CONTAINS
     end if
 
   END SUBROUTINE append_char_m_m
+
+  SUBROUTINE append_char_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    character(len=*), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    character(len=*), dimension(:,:,:), intent(in)                 :: mat2
+    character(len=*), optional,         intent(in)                 :: fill_value
+
+    ! local variables
+    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
+    character(len(mat1)), dimension(:,:,:), allocatable :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_char_3d
 
   SUBROUTINE append_lgt_v_s(vec1, sca2)
 
@@ -940,6 +1191,55 @@ CONTAINS
     end if
 
   END SUBROUTINE append_lgt_m_m
+
+  SUBROUTINE append_lgt_3d(mat1, mat2, fill_value)
+
+    implicit none
+
+    logical, dimension(:,:,:), allocatable, intent(inout) :: mat1
+    logical, dimension(:,:,:), intent(in)                 :: mat2
+    logical, optional,         intent(in)                 :: fill_value
+
+    ! local variables
+    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
+    logical, dimension(:,:,:), allocatable :: tmp
+
+    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    
+    m2 = size(mat2,1)    ! rows
+    n2 = size(mat2,2)    ! columns
+    j2 = size(mat2,3)    ! something else
+
+    if (allocated(mat1)) then
+       m1 = size(mat1,1)    ! rows
+       n1 = size(mat1,2)    ! columns
+       j1 = size(mat1,3)    ! something else
+
+       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+          STOP
+       end if
+
+       ! save mat1
+       allocate(tmp(m1,n1,j1))
+       tmp=mat1
+       deallocate(mat1)
+
+       allocate(mat1(m1+m2,n1,j1))
+       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+
+    else
+
+       allocate(mat1(m2,n2,j2))
+       mat1 = mat2
+       
+    end if
+
+  END SUBROUTINE append_lgt_3d
 
   ! ------------------------------------------------------------------
 
