@@ -137,7 +137,7 @@ parser = optparse.OptionParser(usage='%prog [options]',
 # usage example with command line arguments
 # -------------------------------------------------------------------------
 #
-# python create_latlon.py -c 'epsg:31463' -f header.txt -g headerm.txt -e header.txt -o latlon.nc
+# python create_latlon.py -c 'epsg:31463' -f header.txt -g header.txt -e header.txt -o latlon.nc
 #
 # -------------------------------------------------------------------------
 
