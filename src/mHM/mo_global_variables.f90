@@ -309,6 +309,7 @@ MODULE mo_global_variables
   ! dim2 = number of meteorological time steps
   real(dp), public, dimension(:,:,:), allocatable  :: L1_temp_weights  ! hourly temperature weights for daily values
   real(dp), public, dimension(:,:,:), allocatable  :: L1_pet_weights   ! hourly pet weights for daily values
+  real(dp), public, dimension(:,:,:), allocatable  :: L1_pre_weights   ! hourly pre weights for daily values
   real(dp), public, dimension(:,:), allocatable    :: L1_pre           ! [mm]    Precipitation
   real(dp), public, dimension(:,:), allocatable    :: L1_temp          ! [degC]  Air temperature
   real(dp), public, dimension(:,:), allocatable    :: L1_pet           ! [mm TST-1] Potential evapotranspiration

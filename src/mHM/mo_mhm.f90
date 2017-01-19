@@ -178,8 +178,9 @@ CONTAINS
       fnight_pet          , & ! [-] night ratio PET  < 1
       fday_temp           , & ! [-] day factor mean temp
       fnight_temp         , & ! [-] night factor mean temp
-      temp_weights        , & ! multiplicative weights for temperature
+      temp_weights        , & ! multiplicative weights for temperature (deg K)
       pet_weights         , & ! multiplicative weights for potential evapotranspiration
+      pre_weights         , & ! multiplicative weights for precipitation
       read_meteo_weights  , & ! flag whether weights for tavg and pet have read and should be used
       pet_in              , & ! [mm d-1] Daily potential evapotranspiration (input)
       tmin_in             , & ! [degc]   Daily minimum temperature
@@ -329,6 +330,7 @@ CONTAINS
     real(dp),    dimension(:),     intent(in) :: fnight_temp
     real(dp),    dimension(:,:,:), intent(in) :: temp_weights
     real(dp),    dimension(:,:,:), intent(in) :: pet_weights
+    real(dp),    dimension(:,:,:), intent(in) :: pre_weights
     logical,                       intent(in) :: read_meteo_weights
     real(dp),    dimension(:),     intent(in) :: pet_in
     real(dp),    dimension(:),     intent(in) :: tmin_in
@@ -599,6 +601,7 @@ CONTAINS
             pet, temp_in(k), fday_prec(month), fday_pet(month),                                & ! Intent IN
             fday_temp(month), fnight_prec(month), fnight_pet(month), fnight_temp(month),       & ! Intent IN
             temp_weights(k, month, hour + 1), pet_weights(k, month, hour + 1),                 & ! Intent IN
+            pre_weights(k, month, hour + 1),                                                   & ! Intent IN
             read_meteo_weights,                                                                & ! Intent IN
             prec, pet_calc(k), temp )                                                            ! Intent OUT
 

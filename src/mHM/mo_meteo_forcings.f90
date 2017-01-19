@@ -95,7 +95,7 @@ CONTAINS
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
          nBasins,                                           & ! Number of basins for multi-basin optimization 
          readPer, timeStep_model_inputs,                    & ! chunk read in config
-         L1_temp_weights, L1_pet_weights,                   & ! temperature weights at L1 resolution
+         L1_temp_weights, L1_pet_weights, L1_pre_weights,   & ! meteorological weights at L1 resolution
          L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
          L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
     use mo_common_variables, only: &
@@ -120,11 +120,15 @@ CONTAINS
        if ( tt .eq. 1 ) then
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for tavg     ...' )
           call meteo_weights_wrapper( iBasin, read_meteo_weights, dirTemperature(iBasin),  &
-               L1_temp_weights, lower = -100._dp, upper=100._dp, ncvarName='tavg_weight' )
+               L1_temp_weights, ncvarName='tavg_weight' )
           
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for pet     ...' )
           call meteo_weights_wrapper( iBasin, read_meteo_weights, dirReferenceET(iBasin),  &
-               L1_pet_weights, lower = -100._dp, upper=100._dp, ncvarName='pet_weight' )
+               L1_pet_weights, ncvarName='pet_weight' )
+
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for pre     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirPrecipitation(iBasin),  &
+               L1_pre_weights, ncvarName='pre_weight' )
        end if
        
        ! free L1 variables if chunk read is activated

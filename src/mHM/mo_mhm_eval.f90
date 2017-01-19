@@ -129,7 +129,8 @@ CONTAINS
          evap_coeff, fday_prec,                              &
          fnight_prec, fday_pet, fnight_pet, fday_temp,       &
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
-         L1_temp_weights, L1_pet_weights, read_meteo_weights,&
+         L1_temp_weights, L1_pet_weights, L1_pre_weights,    &
+         read_meteo_weights,                                 &
          L1_absvappress, L1_windspeed,                       &
          L1_pre, L1_temp , L1_fForest,                       &
          L1_fPerm, L1_fSealed, L1_inter,                     &
@@ -531,6 +532,7 @@ CONTAINS
                fday_temp, fnight_temp,                                                      & ! IN F
                L1_temp_weights(s1:e1,:,:),                                                  & ! IN F
                L1_pet_weights(s1:e1,:,:),                                                   & ! IN F
+               L1_pre_weights(s1:e1,:,:),                                                   & ! IN F
                read_meteo_weights,                                                          & ! IN F
                L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET
                L1_tmin(s_p5(2):e_p5(2), iMeteo_p5(2)),                                      & ! IN F:PET

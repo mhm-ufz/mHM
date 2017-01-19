@@ -101,7 +101,7 @@ CONTAINS
   !         S. Thober, Jan 2017 --> added disaggregation based on weights given in nc file
   elemental pure subroutine temporal_disagg_forcing(isday, ntimesteps_day, prec_day, pet_day, temp_day, &
        fday_prec, fday_pet, fday_temp, fnight_prec, fnight_pet, fnight_temp, temp_weights, &
-       pet_weights, read_meteo_weights, &
+       pet_weights, pre_weights, read_meteo_weights, &
        prec, pet, temp)
 
     implicit none
@@ -120,6 +120,7 @@ CONTAINS
     real(dp), intent(in)    :: fnight_temp        ! Daytime air temparture increase
     real(dp), intent(in)    :: temp_weights       ! weights for average temperature
     real(dp), intent(in)    :: pet_weights        ! weights for PET
+    real(dp), intent(in)    :: pre_weights        ! weights for precipitation
     logical,  intent(in)    :: read_meteo_weights ! flag indicating that weights should be used
     !
     real(dp), intent(out)   :: prec               ! actual precipitation [mm/s]
@@ -134,8 +135,8 @@ CONTAINS
     if (read_meteo_weights) then
        ! apply weights
        pet  = pet * pet_weights
-       temp = temp * temp_weights
-       prec = prec / ntimesteps_day
+       temp = (temp + 273.15_dp) * temp_weights - 273.15 ! temperature weights are in K
+       prec = prec * pre_weights
     else
        ! Distribute Prec, PET and Temp into time steps night/day
        if(ntimesteps_day .gt. 1.0_dp) then 
