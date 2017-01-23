@@ -165,7 +165,9 @@ For example, you can change the variable name TEMPERATURE in your NETCDF file wi
 \subsection headerfiles The Header File
 
 Every meteorological data file should come with an additional file "header.txt" in the same directory.
-In the following example, we have only one pixel of data (ncols=nrows=1) and a cell size of 4km. The lat lon coordinates should be adapted to your morphological data of your catchment.
+In the following example, we has only one pixel of data (ncols=nrows=1) and a cell size of 4km.
+The easting and northing coordinates of the lower left cornaer should be similar to the morphological data of
+your catchment.
 \code
 ncols         1
 nrows         1
@@ -186,25 +188,36 @@ ncatted -O -a _FillValue,pre,o,d,-9999. INOUT.nc
 
 \section latlon Preparation of the LatLon Grid
 
-As input mHM additionally needs a <code>latlon.nc</code> file specifying the geographical location of every grid cell.
-This file has to be adjusted for every resolution of the level-1 hydrological simulations.
+As input mHM additionally needs a <code>latlon.nc</code> file specifying the geographical location of every grid cell in
+WGS84 coordinates. This file has to be adjusted for every resolution of the level-1 hydrological simulations.
 
-In order to do that a python script was delivered, which can be found in <code>pre-proc/</code>.
-As input, a file <code>header.txt</code> is needed, but the existing header files for meteorological data should not be modified.
+For creating a latlon file mHM comes with the python script <code>create_latlon.py</code>, which can be found in
+<code>pre-proc/</code>. Detailed information for the usage of this python script can be found in the online help by typing:
+\code
+python [MHM_DIRECTORY]/pre-proc/create_latlon.py -h
+\endcode
+<code>create_latlon.py</code> needs several specifications via command line switches. First, the coordinate system of
+the morphological and meteorological data have to be specified according to 
+<a href="http://www.spatialreference.org">www.spatialreference.org</a> by using the switch: <code>-c</code>.
+Second, you need to specify three header files containing the corresponding information for the different spatail
+resolutions connected to mHM. The three resolutions are the resoltution of 1) the morphological input (switch: <code>-f</code>),
+2) the hydrological simulation (switch: <code>-g</code>), and 3) the routing (switch: <code>-e</code>).
+
+These header files can be produced by adopting the header file of the meteorological data
 Therefore, copy one of these files that you generated for meteo data (see \ref meteo):
 \code
 cp [INPUT_DIRECTOY]/input/meteo/pre/header.txt [INPUT_DIRECTORY]/input/latlon/
 \endcode
-Edit the new file <code>header.txt</code> such that <code>cellsize</code> equals your hydrologic resolution. You have to adapt <code>ncols</code> and <code>nrows</code>
-to that resolution such that it covers the whole region. For example, reducing the cell size from 2000 to 100, the number of columns and rows should be increased by a factor of 20.
+Edit the new file <code>header.txt</code> such that <code>cellsize</code> equals your hydrologic resolution.
+You have to adapt <code>ncols</code> and <code>nrows</code>
+to that resolution such that it covers the whole region. For example, reducing the cell size from 2000 to 100,
+the number of columns and rows should be increased by a factor of 20.
 
-By default, coordinates are created in <code>epsg:31463</code> projection, which is DHDN / 3-degree Gauss-Kruger zone 3.
-This can be changed in the variable <code>coord_system</code> in <code>pre-proc/create_latlon.py</code> (see <a href="http://www.spatialreference.org/ref/epsg/31463/">www.spatialreference.org/ref/epsg/31463</a> for help).
+Third, you need to set the path and filename for the resulting output file by using the switch <code>-o</code>. 
 
-Change to the directory where you like to have header and latlon file located, or change paths in the script code. Then execute:
+An example for creating a lat-lon-file looks like
 \code
-cd [INPUT_DIRECTORY]/latlon/
-python [MHM_DIRECTORY]/pre-proc/create_latlon.py
+python [MHM_DIRECTORY]/pre-proc/create_latlon.py -c epsg:31463 -f header_100m.txt -g header_1000m.txt -e header_2000m.txt -o ../latlon/latlon.nc
 \endcode
 
 Keep in mind that you need one latlon file for each hydrologic resolution in mHM. Since the filename <code>latlon.nc</code> is hard-coded in mHM,
@@ -275,7 +288,7 @@ In the following paragraphs a possible GIS workflow is outlined using the softwa
      \image html data_mask.png "System Toolboxes -> Spatial Analyst Tools -> Map Algebra -> Raster Calculator"
      \anchor fig_data_mask \image latex data_mask.png "System Toolboxes -> Spatial Analyst Tools -> Map Algebra -> Raster Calculator" width=14cm   
 
-    Mask all the mentioned datasets with the output of the 'Raster Calculator' follwing the procedure described in \ref mask of this tutorial. In case the described processing step is necessary, 
+\arg    Mask all the mentioned datasets with the output of the 'Raster Calculator' follwing the procedure described in \ref mask of this tutorial. In case the described processing step is necessary, 
     accomplish it <b> before </b> you reach  subsection \ref hydro ! Masking these maps would most likely disturb the hydrological 
     properties of your catchment data and result in unexpected model behaviour.
 
@@ -298,34 +311,38 @@ In the following paragraphs a possible GIS workflow is outlined using the softwa
 
   Depending on quality and resolution of the DEM map, these steps can be done with the respective tools from the Spatial Anaylst Extension or by using the Arc Hydro Tools.
 
-  \subsubsection spatial_analyst Spatial Analyst
+\subsubsection spatial_analyst Spatial Analyst
 
-     If a high quality DEM, with a resolution fine enough to represent small scale river morphology is available, you may calculate flow direction and flow accumulation directly.
+If a high quality DEM, with a resolution fine enough to represent small scale river morphology is available, you may calculate flow direction and flow accumulation directly.
 
-     \arg Flow Directon
-          \image html fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction"
-     	  \anchor fig_fdir \image latex fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction" width=14cm 
-     \arg Flow Accumulation
-          \image html facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation"
-     	  \anchor fig_facc \image latex facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation" width=14cm 
+\arg Flow Directon
+     \image html fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction"
+  	  \anchor fig_fdir \image latex fdir.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Direction" width=14cm 
 
-  \subsubsection arc_hydro_tools Arc Hydro Tools 
+\arg Flow Accumulation
+     \image html facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation"
+     \anchor fig_facc \image latex facc.png "System Toolboxes -> Spatial Analyst Tools -> Hydrology -> Flow Accumulation" width=14cm 
 
-     Using the Arc Hydro Tools is recommended in case of doubtful DEM quality and/or coarse map resolutions. 
+\subsubsection arc_hydro_tools Arc Hydro Tools 
 
-     \arg In a first step the original DEM must be reconditioned, i.e. the given altitudes will be reassigned in dependence of a stream network. The latter must be given as a Line Shapefile. 
-       In case the necessary stream network file is not available, you can get one from the USGS HydroSHEDS download portal http://hydrosheds.cr.usgs.gov/dataavail.php.
-          \image html hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"
-     	  \anchor fig_agree \image latex hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"  width=14cm
-     \arg Fill the sinks in the resulting reconditioned DEM     
-          \image html hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks"
-     	  \anchor fig_hydro_fill \image latex hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks" width=14cm
-     \arg Calculate Flow Direction
-          \image html hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction"
-     	  \anchor fig_hydro_fdir \image latex hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction" width=14cm
-     \arg Create a Flow Accumulation map
-          \image html hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation"
-     	  \anchor fig_hydro_facc \image latex hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation" width=14cm
+Using the Arc Hydro Tools is recommended in case of doubtful DEM quality and/or coarse map resolutions. 
+
+\arg In a first step the original DEM must be reconditioned, i.e. the given altitudes will be reassigned in dependence of a stream network. The latter must be given as a Line Shapefile. 
+In case the necessary stream network file is not available, you can get one from the USGS HydroSHEDS download portal http://hydrosheds.cr.usgs.gov/dataavail.php.
+   \image html hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"
+   \anchor fig_agree \image latex hydro_agree.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> DEM Reconditioning"  width=14cm
+
+\arg Fill the sinks in the resulting reconditioned DEM     
+     \image html hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks"
+     \anchor fig_hydro_fill \image latex hydro_fill.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Fill Sinks" width=14cm
+
+\arg Calculate Flow Direction
+     \image html hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction"
+     \anchor fig_hydro_fdir \image latex hydro_fdir.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Direction" width=14cm
+
+\arg Create a Flow Accumulation map
+     \image html hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation"
+     \anchor fig_hydro_facc \image latex hydro_facc.png "System Toolboxes -> Arc Hydro Tools -> Terrain Preprocessing -> Flow Accumulation" width=14cm
 
 
 \subsection gauges Gauges map 
@@ -355,7 +372,7 @@ In the following paragraphs a possible GIS workflow is outlined using the softwa
    the unedited file, create a copy of the original Shapefile before editing it.
 
 \arg Delineate the basin 
-       	  \image html basin.png "System Toolboxes -> Spatial Analyst -> Hydrology -> Watershed"
+    	  \image html basin.png "System Toolboxes -> Spatial Analyst -> Hydrology -> Watershed"
      	  \anchor fig_basin \image latex basin.png "System Toolboxes -> Spatial Analyst -> Hydrology -> Watershed" width=14cm    	      
 
  \subsection mask Mask the datasets

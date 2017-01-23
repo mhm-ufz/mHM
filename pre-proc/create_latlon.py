@@ -137,7 +137,7 @@ parser = optparse.OptionParser(usage='%prog [options]',
 # usage example with command line arguments
 # -------------------------------------------------------------------------
 #
-# py create_latlon.py -c 'epsg:31463' -f header.txt -o latlon.nc
+# python create_latlon.py -c 'epsg:31463' -f header.txt -g header.txt -e header.txt -o latlon.nc
 #
 # -------------------------------------------------------------------------
 
@@ -146,13 +146,13 @@ parser.add_option('-c', '--coord_sys', action='store', dest='coord_sys', type='s
                   help='Coordinate system specifier according to http://www.spatialreference.org. (default: epsg:31467), give empty string for regular latlon grid')
 parser.add_option('-f', '--header_l0', action='store', dest='headerfile_l0', type='string',
                   default=headerfile_l0, metavar='Header file for level 0',
-                  help='Header file containing information about e.g. number of rows and columns. (default: header.txt).')
+                  help='Header file containing information about e.g. number of rows and columns at level 0 (morphological input).')
 parser.add_option('-g', '--header_l1', action='store', dest='headerfile_l1', type='string',
                   default=headerfile_l1, metavar='Header file for level 1',
-                  help='Header file containing information about e.g. number of rows and columns at level 1. (default: header.txt).')
+                  help='Header file containing information about e.g. number of rows and columns at level 1 (hydrological simulation).')
 parser.add_option('-e', '--header_l11', action='store', dest='headerfile_l11', type='string',
                   default=headerfile_l11, metavar='Header file for level 11',
-                  help='Header file containing information about e.g. number of rows and columns at level 1. (default: header.txt).')
+                  help='Header file containing information about e.g. number of rows and columns at level 11 (routing).')
 parser.add_option('-o', '--outfile', action='store', dest='outfile', type='string',
                   default=outfile, metavar='NetCDF file',
                   help='Name of NetCDF file. (default: latlon.nc).')

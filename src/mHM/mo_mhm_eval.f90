@@ -901,7 +901,7 @@ CONTAINS
     ! =========================================================================
     ! SET RUNOFF OUTPUT VARIABLE
     ! =========================================================================
-    if (present(runoff) .and. (processMatrix(8, 1) .eq. 1)) runoff = mRM_runoff
+    if (present(runoff) .and. (processMatrix(8, 1) .gt. 0)) runoff = mRM_runoff
 #endif
 
     ! =========================================================================

@@ -49,7 +49,7 @@ MODULE mo_kind
   ! use, intrinsic :: iso_fortran_env, only: &
   !      int8!, int16,   int32, int64,  real32,  real64
   use, intrinsic :: iso_c_binding,   only: &
-             c_short, c_int, c_long, c_float, c_double, c_float_complex, c_double_complex, c_bool
+             c_short, c_int, c_long_long, c_float, c_double, c_float_complex, c_double_complex, c_bool
 
   IMPLICIT NONE
 
@@ -67,7 +67,7 @@ MODULE mo_kind
   !> 8 Byte Integer Kind
   ! INTEGER, PARAMETER :: i8  = SELECTED_INT_KIND(18)
   ! INTEGER, PARAMETER :: i8  = int64
-  INTEGER, PARAMETER :: i8  = c_long
+  INTEGER, PARAMETER :: i8  = c_long_long
   !> Single Precision Real Kind
   ! INTEGER, PARAMETER :: sp  = SELECTED_REAL_KIND(6,37)
   ! INTEGER, PARAMETER :: sp  = real32

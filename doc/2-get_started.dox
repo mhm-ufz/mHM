@@ -7,7 +7,7 @@ This chapter will introduce the structure of mHM technically.
 
 The current release of mHM is available through a code repository provided by the version control system SVN
 (<a href="http://subversion.apache.org/">http://subversion.apache.org/</a>).
-Comprehensive instructions on accessing the repository can be found at <a href="https://svn.ufz.de/mhm/browser/">https://svn.ufz.de/mhm/browser/</a>.
+Comprehensive instructions on accessing the repository can be found at <a href="https://svn.ufz.de/mhm/wiki/">https://svn.ufz.de/mhm</a>.
 
 \section NETCDF Install NETCDF
 
@@ -15,39 +15,54 @@ The mHM input and output file format is NETCDF, so the according library is requ
 <a href="http://www.unidata.ucar.edu/software/netcdf/">www.unidata.ucar.edu/software/netcdf</a> in order to download the current version.
 
 \li <b>on Linux:</b> Install as described in the online documentation.
-\li <b>on Windows:</b> Use the short guide below.
 \li <b>on MacOS:</b> Use the short guide below.
 
-\subsection netcdfwindows Short Guide to NETCDF on Windows7
+\subsection netcdflinux Short Guide Install to NETCDF on Linux (example Ubuntu 16.04 with gfortran v5.4.0)
 
-A NETCDF installation under Windows7 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed:
+The official netcdf documentation can be found under:\n
+<a href="http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html">http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html</a>
 
-First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
+Download the four dependencies zlib, hdf5, netcdf and netcdf fortran and unzip them to
+some folder (not the place where you will install them, e.g., /Downloads/). You may also need to install curl.
 
-\image html cygwin_netcdf.png "netcdf packages for CYGWIN"
-\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.png "netcdf packages for CYGWIN" width=14cm
+<b>Download and unpack zlib</b>, go to the related folder and use the following commands:
+\code
+  cd /Downloads/zlib-1.2.10
+  ZDIR=/usr/local
+  ./configure --prefix=${ZDIR}
+  make check
+  sudo make install
+\endcode
 
-Second, the following hdf5 version has to be installed for netcdf-4 support. Please note the version number, which has to be 1.8.12 NOT 1.8.13 (Just click the 1.8.13 to get to 1.8.12).
+<b>Download and unpack hdf5</b>, go to the related folder and use the following commands:
+\code
+  cd /Downloads/hdf5-1.8.18
+  H5DIR=/usr/local
+  ./configure --with-zlib=${ZDIR} --prefix=${H5DIR}
+  make check
+  sudo make install
+\endcode
 
-\image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
-\image latex cygwin_hdf5.png "hdf5 packages for CYGWIN" width=14cm
+<b>Download and unpack netCDF for C </b>, which is needed for Fortran. Go to the related folder and use with the following commands:
+\code
+  cd /Downloads/netcdf-4.4.1.1
+  NCDIR=/usr/local
+  LD_LIBRARY_PATH=/usr/local/lib
+  CPPFLAGS=-I${H5DIR}/include LDFLAGS=-L${H5DIR}/lib ./configure --prefix=${NCDIR}
+  make check
+  sudo make install
+\endcode
 
-Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_liggfortran) have to be installed
+<b>Download and unpack netCDF for Fortran </b>, go to the related folder and use the following commands:
 
-\image html cygwin_gfortran.png "gfortran packages for CYGWIN"
-\anchor fig_cygwin_gfortran \image latex cygwin_gfortran.png "gfortran packages for CYGWIN" width=14cm
+\code
+  cd /Downloads/netcdf-fortran-4.4.4
+  FC=gfortran CPPFLAGS=-I${H5DIR}/include LDFLAGS=-L${H5DIR}/lib ./configure --prefix=/usr/local/netcdf_4.4_gfortran54
+  make check
+  sudo make install
+\endcode
 
-\image html cygwin_libgfortran.png "libgfortran packages for CYGWIN"
-\anchor fig_cygwin_libgfortran \image latex cygwin_libgfortran.png "libgfortran packages for CYGWIN" width=14cm
-
-Fourth, GNU make has to be made available by selecting the following:
-
-\image html cygwin_make.png "make packages for CYGWIN"
-\image latex cygwin_make.png "make packages for CYGWIN" width=14cm
-
-Once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'. Then the mhm has proven to compile and run successfully under Windows.
-
-\subsection netcdfmacos Short Guide to NETCDF on MacOS
+\subsection netcdfmacos Short Guide Install to NETCDF on MacOS
 
 <b>Download and unpack zlib v. 1.2.5</b>, go to the related folder and use the following commands:
 \code
@@ -105,6 +120,39 @@ Compile. Note that it is possible that some tests fail during the make check acc
     sudo make install
 \endcode
 
+\section windows Run mHM under CYGWIN on Windows
+
+A NETCDF installation under Windows7 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed:
+
+First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
+
+\image html cygwin_netcdf.png "netcdf packages for CYGWIN"
+\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.png "netcdf packages for CYGWIN" width=14cm
+
+Second, the following hdf5 version has to be installed for netcdf-4 support. Please note the version number, which has to be 1.8.12 NOT 1.8.13 (Just click the 1.8.13 to get to 1.8.12).
+
+\image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
+\image latex cygwin_hdf5.png "hdf5 packages for CYGWIN" width=14cm
+
+\image html cygwin_netcdf.PNG "hdf5 packages for CYGWIN" 
+\image latex cygwin_netcdf.PNG "hdf5 packages for CYGWIN" width=14cm
+
+Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_liggfortran) have to be installed
+
+\image html cygwin_gfortran.png "gfortran packages for CYGWIN"
+\anchor fig_cygwin_gfortran \image latex cygwin_gfortran.png "gfortran packages for CYGWIN" width=14cm
+
+\image html cygwin_libgfortran.png "libgfortran packages for CYGWIN"
+\anchor fig_cygwin_libgfortran \image latex cygwin_libgfortran.png "libgfortran packages for CYGWIN" width=14cm
+
+Fourth, GNU make has to be made available by selecting the following:
+
+\image html cygwin_make.png "make packages for CYGWIN"
+\image latex cygwin_make.png "make packages for CYGWIN" width=14cm
+
+Once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'. Then the mhm has proven to compile and run successfully under Windows.
+
+
 \section compile Compile mHM
 
 Compilations of the code need to know paths and locations of its dependencies that are specific to the individual operating system.
@@ -134,7 +182,7 @@ In between two compilations, it might be useful to apply the command <code>make 
 
 The mHM distribution usually comes with an example test basin located in 
 \code
-test_basin/  .
+test_basin/
 \endcode
 The directory provides input data for the test basin and output examples. Detailled information about this test basin can be found in the chapter \ref testbasin. All parameters and paths are already set by default to the test case, so you can just start the simulation with the command
 \code
