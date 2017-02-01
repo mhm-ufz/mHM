@@ -23,7 +23,7 @@
 ! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
 ! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
 ! Stephan Thober, Nov 2016 - added adaptive timestep scheme for routing  
-
+! Rohini  Kumar, Dec 2017  - added LAI option to read long term mean monthly fields 
   
 !******************************************************************************************
 !
@@ -476,22 +476,37 @@ LCoverfName(3)     = 'lc_1990.asc'
 !> This flag is unique and valid for all basins.\n
 !
 !> timeStep_LAI_input
+!>
 !>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
 !>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
 !>         Information regarding long-term monthly mean LAI for land cover classes
 !>         appearing in all modeled basins should be included in this LUT file.
 !>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be
-!>         located in each basin's morph directory.
-!> <0: Read gridded LAI files.\n
+!>     The respective plant functional type is in LAI_class.asc, which must be also given
+!>         and should be located in each basin's morph directory.
+!>
+!>*NOTE: In this option-0, the LAI-LUT and the corresponding LC_LAI datasets are used in
+!>         regionalising the max. interception capacity parameter and some parameters
+!>         in the PET estimation approaches of the Priestley-Taylor method and
+!>         the Penman monteith equation. The PET estimation approaches uses these datasets
+!>         in various ways; and are currently not flexible enough to use other LAI options.
+!>         
+!> **: THE BELOW MENTIONED OPTIONS ARE CURRENTLY USED FOR ONLY REGIONALIZING THE INTERCEPTION PARAMETERS
+!>
+!> < 0: Read gridded LAI files.\n
 !>     -1: gridded LAI are daily values\n
 !>     -2: gridded LAI are monthly values\n
 !>     -3: gridded LAI are yearly values\n
+!
+!>  1: read mean monthly gridded LAI values.\n
+!>     must be a separate *.nc file for every (modeled) basins.\n
 !-----------------------------------------------------------------------------------
 timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
 !>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
+!> input file format of gridded file (if timeStep_LAI_input == 1)
+!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
 inputFormat_gridded_LAI = "nc"
 /
 
