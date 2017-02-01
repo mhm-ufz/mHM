@@ -13,10 +13,12 @@
 !> \authors Juliane Mai
 !> \date Dec 2012
 !  Modified Sep 2015, Stephan Thober - separated routines for netcdf files from routines for binary files
+!           Jan 2017, Stephan Thober - added reading weights for disaggregation of daily meteorological values to hourly ones
 
 module mo_read_forcing_nc
   implicit none
   public :: read_forcing_nc
+  public :: read_weights_nc
   private
   !
 contains
@@ -61,6 +63,8 @@ contains
   !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
   !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
   !>        \param[in] "type(period)     :: periode"       Period the data are needed for
+  !>        \param[in] "character(len=*) :: varName"       Name of variable name to read
+  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
 
   !     INTENT(INOUT)
   !         None
@@ -70,10 +74,12 @@ contains
   !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
 
   !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(dp), optional, intent(in)  :: lower"    Lower bound for check of validity of data values
-  !>        \param[in] "real(dp), optional, intent(in)  :: upper"    Upper bound for check of validity of data values
-  !>        \param[in] "logical,  optional, intent(in)  :: nocheck"  .TRUE. if check for nodata values deactivated
-  !>                                                                  default = .FALSE. - check is done
+  !>        \param[in] "real(dp),   optional, intent(in) :: lower"    Lower bound for check of validity of data values
+  !>        \param[in] "real(dp),   optional, intent(in) :: upper"    Upper bound for check of validity of data values
+  !>        \param[in] "logical,    optional, intent(in) :: nocheck"  .TRUE. if check for nodata values deactivated
+  !>                                                                   default = .FALSE. - check is done
+  !>        \param[in] "integer(i4) optional, intent(in) :: nctimestep" timestep in netcdf file
+
   
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -283,6 +289,182 @@ contains
     end do
 
   end subroutine read_forcing_nc
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         read_weights_nc
+
+  !     PURPOSE
+  !>        \brief Reads weights for meteo forcings input in NetCDF file format.
+
+  !>        \details Reads netCDF weight files.  \n
+  !>        First, the dimensions given are cross-checked with header.txt information. If the optional lower
+  !>        and/or upper bound for the data values is given, the read data are checked for validity.
+  !>        The program is stopped if any value lies out of range.\n
+  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in] "character(len=*)        :: folder"        Name of the folder where data are stored
+  !>        \param[in] "integer(i4)             :: nRows"         Number of datapoints in longitudinal direction
+  !>        \param[in] "integer(i4)             :: nCols"         Number of datapoints in latitudinal  direction
+  !>        \param[in] "character(len=*)        :: varName"       Name of variable name to read
+  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp), dimension(:,:,:) :: data"     Data matrix
+  !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
+
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "real(dp), optional, intent(in)  :: lower"    Lower bound for check of validity of data values
+  !>        \param[in] "real(dp), optional, intent(in)  :: upper"    Upper bound for check of validity of data values
+  !>        \param[in] "logical,  optional, intent(in)  :: nocheck"  .TRUE. if check for nodata values deactivated
+  !>                                                                  default = .FALSE. - check is done
+  
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !>        \param[in] "logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
+  !>                                                                                                  data points 
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Stephan Thober & Matthias Zink
+  !>        \date Jan 2017
+  !               modified
+  
+  subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout)
+
+    use mo_kind,             only: i4, dp
+    use mo_common_variables, only: period
+    use mo_julian,           only: caldat, julday
+    use mo_message,          only: message
+    use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
+
+    use mo_string_utils,      only: num2str
+    use mo_utils,             only: eq, ne
+
+    implicit none
+
+    character(len=*),                                    intent(in)  :: folder  ! folder where data are stored
+    integer(i4),                                         intent(in)  :: nRows   ! number of rows of data fields:
+    ! LONGITUDE dimension
+    integer(i4),                                         intent(in)  :: nCols   ! number of columns of data fields:
+    ! LATITUDE dimension
+    character(len=*),                                    intent(in)  :: varName ! name of NetCDF variable
+    logical, dimension(:,:),                             intent(in)  :: mask    ! mask of valid data fields
+    real(dp),                                  optional, intent(in)  :: lower   ! lower bound for data points
+    real(dp),                                  optional, intent(in)  :: upper   ! upper bound for data points
+    logical,                                   optional, intent(in)  :: nocheck ! .TRUE. if check for nodata values deactivated
+    !                                                                           ! default = .FALSE. - check is done
+    real(dp), dimension(:,:,:,:), allocatable,           intent(out) :: data    ! data read in
+    !                                                                           ! dim 1 = rows
+    !                                                                           ! dim 2 = cols
+    !                                                                           ! dim 3 = months
+    !                                                                           ! dim 4 = hours
+    !
+    logical,  dimension(:,:,:,:), allocatable, optional, intent(out) :: maskout ! mask of data to read
+
+    !
+    ! local variables
+    character(256)            :: fName        ! name of NetCDF file
+    character(256)            :: AttValues    ! netcdf attribute values
+    integer(i4)               :: i            ! loop variable
+    integer(i4)               :: j            ! loop variable
+    integer(i4)               :: datatype     ! datatype of attribute
+    integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
+    real(dp)                  :: nodata_value ! data nodata value
+    integer(i4)               :: dim3         ! time dim of input data
+    logical                   :: checking     ! check if model domain is covered by data
+
+    checking = .TRUE.
+    if (present(nocheck)) checking = .NOT. nocheck
+    
+    fName = trim(folder) // trim(varName) // '.nc'
+    ! get dimensions
+    dimen = Get_NcDim(trim(fName), trim(varName))
+
+    if ( (dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols) ) then
+       stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
+    end if
+
+    ! determine no data value
+    call Get_NcVarAtt(fName, varName, 'missing_value', AttValues, dtype=datatype)
+    ! convert to number
+    read(AttValues, *) nodata_value
+
+    !
+    ! alloc and read
+    allocate(data(dimen(1), dimen(2), dimen(3), dimen(4)))
+    call Get_NcVar(trim(fName), trim(varName), data)
+
+    ! save output mask if optional maskout is given
+    if (present(maskout)) then
+       allocate(maskout(dimen(1), dimen(2), dimen(3), dimen(4)))
+       maskout = ne(data(:,:,:,:),nodata_value)
+    end if
+       
+    ! start checking values
+    do i = 1, dimen(3)
+       do j = 1, dimen(4)
+          ! neglect checking for naodata values if optional nocheck is given
+          if (checking) then
+             if (any(eq(data(:,:,i,j),nodata_value) .and. (mask))) then
+                call message('***ERROR: read_forcing_nc: nodata value within basin ')
+                call message('          boundary in variable: ', trim(varName))
+                call message('          at hour         : ', trim(num2str(i)))
+                stop
+             end if
+          end if
+          ! optional check
+          if (present(lower)) then
+             if ( any( (data(:,:,i,j) .lt. lower) .AND. mask(:,:) )  ) then
+                call message('***ERROR: read_forcing_nc: values in variable "', &
+                     trim(varName),                                           &
+                     '" are lower than ', trim(num2str(lower,'(F7.2)')) )
+                call message('          at hour  : ', trim(num2str(i)))
+                call message('File: ', trim(fName))
+                call message('Minval at hour: ', trim(num2str(minval(data(:,:,i,j)),'(F7.2)')))
+                call message('Total minval: ', trim(num2str(minval(data(:,:,:,:)),'(F7.2)')))
+                stop
+             end if
+          end if
+
+          if (present(upper)) then
+             if ( any( (data(:,:,i,j) .gt. upper) .AND. mask(:,:) )  ) then
+                call message('***ERROR: read_forcing_nc: values in variable "',  &
+                     trim(varName),                                           &
+                     '" are greater than ', trim(num2str(upper,'(F7.2)')) )
+                call message('          at hour  : ', trim(num2str(i)))
+                call message('File: ', trim(fName))
+                call message('Maxval at hour: ', trim(num2str(maxval(data(:,:,i,j)),'(F7.2)')))
+                call message('Total maxval: ', trim(num2str(maxval(data(:,:,:,:)),'(F7.2)')))
+                stop
+             end if
+          end if
+       
+       end do
+    end do
+
+  end subroutine read_weights_nc
 
   !     PORPOSE
   !         Determine data time interval & check timesteps

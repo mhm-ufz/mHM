@@ -93,7 +93,7 @@ CONTAINS
   !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
   !                   Stephan Thober,       Nov 2016 - added two options for routing
   !                    Rohini Kuamr,       Dec  2016 - option to handle monthly mean gridded fields of LAI
- 
+  !                   Stephan Thober,       Jan 2017 - added prescribed weights for tavg and pet
   
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
@@ -129,6 +129,8 @@ CONTAINS
          evap_coeff, fday_prec,                              &
          fnight_prec, fday_pet, fnight_pet, fday_temp,       &
          fnight_temp, L1_pet, L1_tmin, L1_tmax, L1_netrad,   &
+         L1_temp_weights, L1_pet_weights, L1_pre_weights,    &
+         read_meteo_weights,                                 &
          L1_absvappress, L1_windspeed,                       &
          L1_pre, L1_temp , L1_fForest,                       &
          L1_fPerm, L1_fSealed, L1_inter,                     &
@@ -528,6 +530,10 @@ CONTAINS
                L1_latitude(s_p5(1):e_p5(1)),                                                & ! IN L1
                evap_coeff, fday_prec, fnight_prec, fday_pet, fnight_pet,                    & ! IN F
                fday_temp, fnight_temp,                                                      & ! IN F
+               L1_temp_weights(s1:e1,:,:),                                                  & ! IN F
+               L1_pet_weights(s1:e1,:,:),                                                   & ! IN F
+               L1_pre_weights(s1:e1,:,:),                                                   & ! IN F
+               read_meteo_weights,                                                          & ! IN F
                L1_pet(s_p5(1):e_p5(1), iMeteo_p5(1)),                                       & ! INOUT F:PET
                L1_tmin(s_p5(2):e_p5(2), iMeteo_p5(2)),                                      & ! IN F:PET
                L1_tmax(s_p5(3):e_p5(3), iMeteo_p5(3)),                                      & ! IN F:PET

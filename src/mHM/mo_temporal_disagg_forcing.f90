@@ -33,7 +33,9 @@ CONTAINS
 
   !>        \details Calculates actual precipitation, PET and temperature from daily mean inputs.\n
   !>        Precipitation and PET are distributed with predefined factors onto the day.\n
-  !>        Temperature gets a predefined amplitude added on day and substracted at night.
+  !>        Temperature gets a predefined amplitude added on day and substracted at night.\n
+  !>        Alternatively, weights for each hour and month can be given and disaggregation is\n
+  !>        using these as factors for PET and temperature. Precipitation is distributed uniformly.
 
   !     CALLING SEQUENCE
   !         elemental pure subroutine temporal_disagg_forcing(isday, ntimesteps_day, prec_day, pet_day, temp_day, &
@@ -52,6 +54,7 @@ CONTAINS
   !>        \param[in] "real(dp) :: fnight_prec"      Daytime fraction of precipitation
   !>        \param[in] "real(dp) :: fnight_pet"       Daytime fraction of PET
   !>        \param[in] "real(dp) :: fnight_temp"      Daytime air temparture increase
+  
 
   !     INTENT(INOUT)
   !         None
@@ -80,6 +83,7 @@ CONTAINS
   !>                 real(NTSTEPDAY, dp), prec_day(k), pet_day(k), temp_day(k), &
   !>                 fpre(month,2), fpet(month,2), ftem(month,2), &
   !>                 fpre(month,1), fpet(month,1), ftem(month,1), &
+  !>                 tavg_weight(k,month,hour), pet_weights(k,month,hour), read_meteo_weights, &
   !>                 prec(k), pet(k), temp(k))
   !>        pet(k) = pet(k) * fasp(k)
   !>        \endcode
@@ -94,44 +98,58 @@ CONTAINS
   !         Modifications
   !         R. Kumar, July 2013 --> added default initalization of meteorological values
   !                                 also added the if loop around the temporal dissagg. step
+  !         S. Thober, Jan 2017 --> added disaggregation based on weights given in nc file
   elemental pure subroutine temporal_disagg_forcing(isday, ntimesteps_day, prec_day, pet_day, temp_day, &
-       fday_prec, fday_pet, fday_temp, fnight_prec, fnight_pet, fnight_temp, prec, &
-       pet, temp)
+       fday_prec, fday_pet, fday_temp, fnight_prec, fnight_pet, fnight_temp, temp_weights, &
+       pet_weights, pre_weights, read_meteo_weights, &
+       prec, pet, temp)
 
     implicit none
 
     ! Intent variables
-    logical,  intent(in)    :: isday          ! is day or night
-    real(dp), intent(in)    :: ntimesteps_day ! # of time steps per day
-    real(dp), intent(in)    :: prec_day       ! Daily mean precipitation [mm/s]
-    real(dp), intent(in)    :: pet_day        ! Daily mean ET [mm/s]
-    real(dp), intent(in)    :: temp_day       ! Daily mean air temperature [K]
-    real(dp), intent(in)    :: fday_prec      ! Daytime fraction of precipitation
-    real(dp), intent(in)    :: fday_pet       ! Daytime fraction of PET
-    real(dp), intent(in)    :: fday_temp      ! Daytime air temparture increase
-    real(dp), intent(in)    :: fnight_prec    ! Daytime fraction of precipitation
-    real(dp), intent(in)    :: fnight_pet     ! Daytime fraction of PET
-    real(dp), intent(in)    :: fnight_temp    ! Daytime air temparture increase
-    real(dp), intent(out)   :: prec           ! actual precipitation [mm/s]
-    real(dp), intent(out)   :: pet            ! Reference ET [mm/s]
-    real(dp), intent(out)   :: temp           ! Air temperature [K]
+    logical,  intent(in)    :: isday              ! is day or night
+    real(dp), intent(in)    :: ntimesteps_day     ! # of time steps per day
+    real(dp), intent(in)    :: prec_day           ! Daily mean precipitation [mm/s]
+    real(dp), intent(in)    :: pet_day            ! Daily mean ET [mm/s]
+    real(dp), intent(in)    :: temp_day           ! Daily mean air temperature [K]
+    real(dp), intent(in)    :: fday_prec          ! Daytime fraction of precipitation
+    real(dp), intent(in)    :: fday_pet           ! Daytime fraction of PET
+    real(dp), intent(in)    :: fday_temp          ! Daytime air temparture increase
+    real(dp), intent(in)    :: fnight_prec        ! Daytime fraction of precipitation
+    real(dp), intent(in)    :: fnight_pet         ! Daytime fraction of PET
+    real(dp), intent(in)    :: fnight_temp        ! Daytime air temparture increase
+    real(dp), intent(in)    :: temp_weights       ! weights for average temperature
+    real(dp), intent(in)    :: pet_weights        ! weights for PET
+    real(dp), intent(in)    :: pre_weights        ! weights for precipitation
+    logical,  intent(in)    :: read_meteo_weights ! flag indicating that weights should be used
+    !
+    real(dp), intent(out)   :: prec               ! actual precipitation [mm/s]
+    real(dp), intent(out)   :: pet                ! Reference ET [mm/s]
+    real(dp), intent(out)   :: temp               ! Air temperature [K]
 
     ! default vaule used if ntimesteps_day = 1 (i.e., e.g. daily values)
     prec =  prec_day
     pet  =  pet_day 
     temp =  temp_day
 
-    ! Distribute Prec, PET and Temp into time steps night/day
-    if(ntimesteps_day .gt. 1.0_dp) then 
-      if (isday) then ! DAY-TIME
-         prec = 2.0_dp * prec_day * fday_prec / ntimesteps_day
-         pet  = 2.0_dp * pet_day  * fday_pet  / ntimesteps_day
-         temp =          temp_day + fday_temp
-      else            ! NIGHT-TIME
-         prec = 2.0_dp * prec_day * fnight_prec / ntimesteps_day
-         pet  = 2.0_dp * pet_day  * fnight_pet  / ntimesteps_day
-         temp =          temp_day + fnight_temp
-      end if
+    if (read_meteo_weights) then
+       ! apply weights
+       pet  = pet * pet_weights
+       temp = (temp + 273.15_dp) * temp_weights - 273.15 ! temperature weights are in K
+       prec = prec * pre_weights
+    else
+       ! Distribute Prec, PET and Temp into time steps night/day
+       if(ntimesteps_day .gt. 1.0_dp) then 
+          if (isday) then ! DAY-TIME
+             prec = 2.0_dp * prec_day * fday_prec / ntimesteps_day
+             pet  = 2.0_dp * pet_day  * fday_pet  / ntimesteps_day
+             temp =          temp_day + fday_temp
+          else            ! NIGHT-TIME
+             prec = 2.0_dp * prec_day * fnight_prec / ntimesteps_day
+             pet  = 2.0_dp * pet_day  * fnight_pet  / ntimesteps_day
+             temp =          temp_day + fnight_temp
+          end if
+       end if
     end if
 
   end subroutine temporal_disagg_forcing

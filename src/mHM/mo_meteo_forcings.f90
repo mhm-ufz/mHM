@@ -78,6 +78,7 @@ CONTAINS
   !           Stephan Thober,  Jun  2014 - add chunk_config for chunk read, 
   !                                        copied L2 initialization to mo_startup
   !           Stephan Thober,  Nov  2016 - moved processMatrix to common variables
+  !           Stephan Thober,  Jan  2017 - added subroutine for meteo_weights
   !
   subroutine prepare_meteo_forcings_data(iBasin, tt)
     use mo_message,          only: message
@@ -85,6 +86,7 @@ CONTAINS
     use mo_timer,            only:                         &
          timer_start, timer_stop, timer_get                   ! Timing of processes
     use mo_global_variables, only: &
+         read_meteo_weights,                                & ! flag for reading meteo weights
          dirPrecipitation, dirTemperature,                  & ! directory of meteo input
          dirReferenceET,                                    & ! PET input path  if process 5 is 'PET is input' (case 0)
          dirMinTemperature, dirMaxTemperature,              & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
@@ -92,7 +94,8 @@ CONTAINS
          dirabsVapPressure, dirwindspeed,                   & ! PET input paths if process 5 is Penman-Monteith (case 3)
          inputFormat_meteo_forcings,                        & ! 'bin' for binary data or 'nc' for NetCDF input
          nBasins,                                           & ! Number of basins for multi-basin optimization 
-         readPer, timeStep_model_inputs,                    & ! chunk read in config                           
+         readPer, timeStep_model_inputs,                    & ! chunk read in config
+         L1_temp_weights, L1_pet_weights, L1_pre_weights,   & ! meteorological weights at L1 resolution
          L1_pre, L1_temp, L1_pet , L1_tmin, L1_tmax,        & ! meteorological data
          L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
     use mo_common_variables, only: &
@@ -112,6 +115,22 @@ CONTAINS
  
     ! only read, if read_flag is true
     if ( read_flag ) then
+
+       ! read weights for hourly disaggregation of temperature
+       if ( tt .eq. 1 ) then
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for tavg     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirTemperature(iBasin),  &
+               L1_temp_weights, ncvarName='tavg_weight' )
+          
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for pet     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirReferenceET(iBasin),  &
+               L1_pet_weights, ncvarName='pet_weight' )
+
+          if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read meteo weights for pre     ...' )
+          call meteo_weights_wrapper( iBasin, read_meteo_weights, dirPrecipitation(iBasin),  &
+               L1_pre_weights, ncvarName='pre_weight' )
+       end if
+       
        ! free L1 variables if chunk read is activated
        if ( timeStep_model_inputs(iBasin) .ne. 0 ) then
           if ( allocated( L1_pre         )) deallocate( L1_pre         )
@@ -377,6 +396,163 @@ end subroutine prepare_meteo_forcings_data
     deallocate(L1_data_packed) 
     
   end subroutine meteo_forcings_wrapper
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         meteo_forcings_wrapper
+  
+  !     PURPOSE
+  !>        \brief Prepare weights for meteorological forcings data for mHM at Level-1
+
+  !>        \details Prepare meteorological forcings data for mHM, which include \n
+  !>         1) Reading meteo. weights datasets at their native resolution for every basin \n
+  !>         2) Perform aggregation or disaggregation of meteo. weights datasets from their \n
+  !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
+  !>         3) Pad the above datasets of every basin to their respective global ones
+  !>                 
+
+  !     CALLING SEQUENCE
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4)               :: iBasin"        Basin Id
+  !>        \param[in] "character(len=*)          :: dataPath"      Data path where a given meteo. variable is stored
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[in] "real(dp), dimension(:,:,:) :: dataOut1"      Packed meterological variable for the whole simulation period
+
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
+  !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values
+  !>        \param[in] "type(period), optional    :: readPer"  reading Period
+  !>        \param[in] "character(len=*), optional:: ncvarName" name of the variable (for .nc files)
+
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Stephan Thober & Rohini Kumar
+  !>        \date Jan 2017
+  !         Modified, 
+
+  subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
+  
+    use mo_global_variables,           only: readPer, level1, level2
+    use mo_mhm_constants,              only: nodata_dp
+    use mo_init_states,                only: get_basin_info
+    use mo_read_meteo,                 only: read_meteo_bin
+    use mo_read_forcing_nc,            only: read_weights_nc
+    use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
+    use mo_append,                     only: append                    ! append vector
+    
+    implicit none
+
+    integer(i4),                            intent(in)    :: iBasin             ! Basin Id
+    logical,                                intent(in)    :: read_meteo_weights ! flag for reading meteo weights
+    character(len=*),                       intent(in)    :: dataPath           ! Data path
+    real(dp), dimension(:,:,:),allocatable, intent(inout) :: dataOut1           ! Packed meteorological variable
+    real(dp),                   optional,   intent(in)    :: lower              ! lower bound for data points
+    real(dp),                   optional,   intent(in)    :: upper              ! upper bound for data points
+    character(len=*),           optional,   intent(in)    :: ncvarName          ! name of the variable (for .nc files)
+
+    
+    integer(i4)                                :: nrows1, ncols1
+    logical, dimension(:,:), allocatable       :: mask1
+    integer(i4)                                :: ncells1
+
+    integer(i4)                                :: nrows2, ncols2
+    logical, dimension(:,:), allocatable       :: mask2
+
+    real(dp), dimension(:,:,:,:), allocatable  :: L2_data        ! meteo data at level-2 
+    real(dp), dimension(:,:,:,:), allocatable  :: L1_data        ! meteo data at level-1
+    real(dp), dimension(:,:,:),   allocatable  :: L1_data_packed ! packed meteo data at level-1 from 3D to 2D
+
+    integer(i4)                                :: nMonths, nHours
+    real(dp)                                   :: cellFactorHbyM ! level-1_resolution/level-2_resolution
+    integer(i4)                                :: t, j
+
+    ! get basic basin information at level-1
+    call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 )
+    
+    ! make  basic basin information at level-2
+    call get_basin_info( iBasin, 2, nrows2, ncols2, mask=mask2 )
+
+    if (read_meteo_weights) then
+       if( present(lower) .AND. (.not. present(upper)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower )
+       end if
+       !
+       if( present(upper) .AND. (.not. present(lower)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, upper=upper )
+       end if
+       !
+       if( present(lower) .AND. present(upper) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower=lower, upper=upper )
+       end if
+
+       if( (.not. present(lower)) .AND. (.not. present(upper)) ) then
+          CALL read_weights_nc( dataPath, nRows2, nCols2, ncvarName, L2_data, mask2 )
+       end if
+
+       ! cellfactor to decide on the upscaling or downscaling of meteo. fields
+       cellFactorHbyM = level1%cellsize(iBasin) / level2%cellsize(iBasin) 
+
+       ! upscaling & packing
+       if(cellFactorHbyM .gt. 1.0_dp) then
+          call spatial_aggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
+          ! downscaling   
+       elseif(cellFactorHbyM .lt. 1.0_dp) then
+          call spatial_disaggregation(L2_data, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, L1_data)
+          ! nothing
+       else
+          L1_data = L2_data
+       end if
+       ! free memory immediately
+       deallocate(L2_data)
+
+       ! pack variables
+       nMonths = size(L1_data, dim=3)
+       nHours  = size(L1_data, dim=4)
+       allocate( L1_data_packed(nCells1, nMonths, nHours))
+       do t = 1, nMonths
+          do j = 1, nHours
+             L1_data_packed(:,t,j) = pack( L1_data(:,:,t,j), MASK=mask1(:,:) )
+          end do
+       end do
+       ! free memory immediately
+       deallocate(L1_data)
+    else
+       ! dummy allocation
+       allocate(L1_data_packed(nCells1, 12, 24))
+       L1_data_packed = nodata_dp
+    end if
+    
+    ! append
+    call append( dataOut1, L1_data_packed )
+
+    !free space
+    deallocate(L1_data_packed) 
+    
+  end subroutine meteo_weights_wrapper
+
 
   ! ------------------------------------------------------------------
   !
