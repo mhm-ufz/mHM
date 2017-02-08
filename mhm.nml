@@ -635,7 +635,7 @@ evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  
 !> The array for temperature weights are called tavg_weight in the file: <dir_Temperature>/tavg_weight.nc
 !> The array for pet weights are called pet_weight in the file: <dir_ReferenceET>/pet_weight.nc
 !> If read_meteo_weights is False than night fractions below are used
-read_meteo_weights = .True.
+read_meteo_weights = .FALSE.
 !> night ratio for precipitation
 !> only night values required because day values are the opposite
 fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
