@@ -223,6 +223,7 @@ CONTAINS
     integer(i4) :: gg
     integer(i4) :: tt
     integer(i4) :: rout_loop ! number of routing loops
+    real(dp)    :: L11_qAcc(size(L11_qMod, dim=1))     ! variable for accumulation
 
     ! ====================================================================
     ! FIRST, EXECUTE MPR
@@ -266,6 +267,7 @@ CONTAINS
     ! ====================================================================
     ! calculate number of routing loops
     rout_loop = max(1_i4, nint(1._dp / tsRoutFactor))
+    
 
     ! runoff accumulation from L1 to L11 level
     call L11_runoff_acc(L1_total_runoff, L1_areaCell, L1_L11_Id, &
@@ -284,6 +286,8 @@ CONTAINS
     ! for a single node model run
     if( nNodes .GT. 1) then
        ! routing multiple times if timestep is smaller than 1
+       !
+       L11_qAcc = 0._dp
        do tt = 1, rout_loop
           ! routing of water within river reaches
           call L11_routing( nNodes, nNodes - L11_nOutlets, &
@@ -299,7 +303,11 @@ CONTAINS
                L11_qTIN, & ! Intent INOUT
                L11_qTR, & ! Intent INOUT
                L11_Qmod) ! Intent OUT
+          ! accumulate values of individual subtimesteps
+          L11_qAcc = L11_qAcc + L11_qMod
        end do
+       ! calculate mean over routing period (timestep)
+       L11_qMod = L11_qAcc / real(rout_loop, dp)
     else
        L11_Qmod = L11_qOUT 
     end if

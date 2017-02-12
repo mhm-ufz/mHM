@@ -182,8 +182,9 @@ contains
        call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 )
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
        !
-       ! initialize routing parameters (has to be called before MPR)
-       call mrm_update_param(ii)
+       ! initialize routing parameters (has to be called only for Routing option 2)
+       if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii, &
+            parameterset(processMatrix(8,3) - processMatrix(8,2) + 1:processMatrix(8,3)))
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
@@ -223,6 +224,7 @@ contains
              do_rout = .True.
              L11_tsRout(ii) = (timestep * HourSecs)
              tsRoutFactorIn = 1._dp
+             timestep_rout = timestep
              RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
              InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
              !

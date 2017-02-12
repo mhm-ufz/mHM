@@ -32,11 +32,19 @@ module mo_mrm_constants
   real(dp), public, parameter :: P1_InitStateFluxes = 0.00_dp
   !
   ! parameters for routing
-  real(dp), public, parameter :: rout_time_weight = 0._dp ! time weighting of routing is set to 0._dp
-  !                                                       ! This parameter has no effect on the routing
-  !                                                       ! results, see Thober et al. 2017
+  real(dp), public, parameter :: rout_space_weight = 0._dp ! space weighting of routing is set to 0._dp
+  !                                                        ! This parameter has no effect on the routing
+  !                                                        ! results, see Thober et al. 2017
   !
   ! hydrological modelling
   real(dp), public, parameter :: deltaH = 5.000_dp  ! [m]     flood plain elevation, transept, above riverbed
+  !
+  ! timesteps in [s] that can be selected by adaptive time step
+  ! these are multiples of 1 hour and 24 hours
+  real(dp), dimension(19), parameter :: given_TS = &
+       (/ 60._dp, 120._dp, 180._dp, 240._dp, 300._dp, 360._dp, &
+       600._dp, 720._dp, 900._dp, 1200._dp, 1800._dp, 3600._dp, &
+       7200._dp, 10800._dp, 14400._dp, 21600._dp, 28800._dp, 43200._dp, &
+       86400._dp/)
 
 end module mo_mrm_constants

@@ -375,8 +375,9 @@ CONTAINS
           ! get basin information at L11 and L110 if routing is activated
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
-          ! initialize routing parameters (has to be called before MPR)
-          if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii)
+          ! initialize routing parameters (has to be called for routing option 2)
+          if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii, &
+               parameterset(processMatrix(8,3) - processMatrix(8,2) + 1:processMatrix(8,3)))
           ! initialize variable for runoff for routing
           allocate(RunToRout(e1 - s1 + 1))
           RunToRout = 0._dp
@@ -581,11 +582,12 @@ CONTAINS
                 ! >>>
                 ! >>> original Muskingum routing, executed every time
                 ! >>>
-                do_rout = .True.
-                tsRoutFactorIn = 1._dp
-                RunToRout = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
+                do_rout         = .True.
+                tsRoutFactorIn  = 1._dp
+                timestep_rout   = timestep
+                RunToRout       = L1_total_runoff(s1:e1) ! runoff [mm TST-1] mm per timestep
                 InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
-                timestep_rout = timestep
+                timestep_rout   = timestep
                 !
              else if (processMatrix(8, 1) .eq. 2) then
                 ! >>>
