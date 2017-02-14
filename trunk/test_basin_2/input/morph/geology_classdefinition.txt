@@ -1,0 +1,27 @@
+nGeo_Formations  10
+GeoParam(i)   ClassUnit     Karstic      Description
+         1	      1           0      GeoUnit-1
+         2     	      2           0      GeoUnit-2
+         3     	      3           0      GeoUnit-3
+         4     	      4           0      GeoUnit-4
+         5     	      5           0      GeoUnit-5
+         6     	      6           0      GeoUnit-6
+         7     	      7           0      GeoUnit-7
+         8     	      8           0      GeoUnit-8
+         9     	      9           0      GeoUnit-9
+        10 	     10           0      GeoUnit-10
+!<-END
+
+
+!***********************************
+! NOTES
+!***********************************
+1 = Karstic
+0 = Non-karstic
+
+IMPORTANT ::
+   Ordering has to be according to the ordering in mhm_parameter.nml
+   (namelist: geoparameter)
+         
+         
+         

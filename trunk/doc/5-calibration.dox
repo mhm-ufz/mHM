@@ -1,0 +1,51 @@
+/**
+\page calopt Calibration Options
+
+\section paramopt Calibration of Parameters on Observations
+
+In order to use the calibration feature of mHM, turn the <code>optimize</code> switch in <code>mhm.nml</code> to
+<code>.true.</code>.
+
+\subsection Parameters
+
+MHM calibrates all parameters in <code>mhm_parameters.nml</code> which are flagged for optimization (column
+"FLAG"). Parameters can be forced to stay constant during calibration by setting the flag to 0. The upper and lower
+bounds define the ranges in within which the optimization methods vary the parameters. Although permitted, we recommend
+not to change the bounds, since they are the result of intensive sensitivity studies covering a wide range of basins.
+
+\subsection Methods
+
+Different optimization methods are available to find the best configuration of parameters for the selected objective
+function. You may chose between Simulated Annealing (SA), Dynamically Dimensioned Search (DDS) and Shuffled Complex
+Evolution algorith (SCE). Details about these methods can be found in the module describtion part of this manual. At the
+very end of <code>mhm.nml</code> additional settings are offered for optimization.
+
+\subsection Objective Functions
+
+The measure to define how well a quantity fits to the observations depends strongly on the specific type of
+application. mHM offers a variety of options for different quantities like discharge, soil moisture, or total water
+storage. For example, an NSE type of function will not be able to catch low values as well as ln(NSE) would. In
+<code>mhm.nml</code>, individual objective functions are defined for specific quantities.
+
+\subsection Observation Data
+
+Discharge and total water storage data should be provided in ASCII file format for each gauge/basin. Soil moisture and
+neutron data need to be provided as spatio-temporal netcdf files. Example files can be found in thr folder
+<code>optional_data</code> in the <code>test_basin</code>. Furthermore, a <code>optional_data</code> namelist in
+<code>mhm.nml</code> provides several options regarding the handling of such data. For example, for soil moisture data,
+the temporal resolution needs to be set in <code>mhm.nml</code>. However, neutron data is restricted to be daily in the
+current release. The spatial resolution of soil moisture and neutrons data needs to match the hydrological resolution of
+mHM.
+
+For correct preparation of input data, please take a look at the input data in the <code>test_basin</code>, which will
+serve as a good example. Furthermore, it could be helpful to generate optional data files from precedent mHM output,
+because then the temporal resolution and the spatial grid is guaranteed to match the needs of mHM. The files then can be
+modified with tools like <code>cdo</code> or <code>python</code>.
+
+\subsection Output
+
+Calibration runs result in a parameter file called <code>FinalParams.nml</code> which contains the optimized parameter
+set. Replace <code>mhm_parameters.nml</code> with <code>FinalParams.nml</code>, then run mHM in foreward mode in order
+to obtain hydrologic predictions.
+
+*/
