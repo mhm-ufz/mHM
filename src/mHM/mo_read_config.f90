@@ -105,8 +105,10 @@ CONTAINS
   !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
   !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
   !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
-  !                  Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
-  
+  !                  Simon Stisen & Mehmet Cuneyd Demirel, February 2017 - Three parameters added: theta_norm_C1, rootFractionCoefficient_sand, rootFractionCoefficient_clay
+  !																		 - This is done for new SM and AET parametrization based on FC, sand and clay.  
+
+
   subroutine read_config()
 
     use mo_julian,           only: date2dec, dec2date
@@ -165,7 +167,6 @@ CONTAINS
          evalPer, simPer,                                   & ! model eval. & sim. periods
                                 !                                                    ! (sim. = wrm. + eval.)
          evap_coeff,                                        & ! pan evaporation
-         read_meteo_weights,                                & ! flag for read meteo weights
          fday_prec, fnight_prec, fday_pet,                  & ! day-night fraction
          fnight_pet, fday_temp, fnight_temp,                & ! day-night fraction
          timeStep_model_outputs,                            & ! timestep for writing model outputs
@@ -228,6 +229,8 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_forest
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_impervious
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious
+
+	
     ! directRunoff
     real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
     ! PET0
@@ -267,8 +270,14 @@ CONTAINS
 
     integer(i4)                                     :: ii, iBasin, n_true_pars
     integer(i4)                                     :: nGeoUnits ! number of geological classes for parameter read-in
-    real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
+    
+	real(dp), dimension(nColPars)                   :: theta_norm_C1
+	real(dp), dimension(nColPars)                   :: rootFractionCoefficient_sand
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_clay
+	
+	real(dp)                                        :: cellFactorRbyH            ! conversion factor L11 to L1
 
+	
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
     character(256)                                  :: dummy
 
@@ -341,11 +350,11 @@ CONTAINS
     ! namelist for pan evaporation
     namelist/panEvapo/evap_coeff
     ! namelist for night-day ratio of precipitation, referenceET and temperature
-    namelist/nightDayRatio/read_meteo_weights,fnight_prec,fnight_pet,fnight_temp
+    namelist/nightDayRatio/fnight_prec,fnight_pet,fnight_temp
     ! namelsit process selection
     namelist /processSelection/ processCase
     ! namelist parameters
-    namelist /interception1/ canopyInterceptionFactor
+    namelist /interception1/canopyInterceptionFactor
     namelist /snow1/snowTreshholdTemperature, degreeDayFactor_forest, degreeDayFactor_impervious, &
          degreeDayFactor_pervious, increaseDegreeDayFactorByPrecip, maxDegreeDayFactor_forest,    &
          maxDegreeDayFactor_impervious, maxDegreeDayFactor_pervious
@@ -370,6 +379,8 @@ CONTAINS
     namelist /neutrons1/ Desilets_N0, COSMIC_N0, COSMIC_N1, COSMIC_N2, COSMIC_alpha0, COSMIC_alpha1, COSMIC_L30, COSMIC_L31
     !
     namelist /geoparameter/ GeoParam
+    namelist /sandclay/ theta_norm_C1,rootFractionCoefficient_sand,rootFractionCoefficient_clay !SPACE 2/2/2017 Cuneyd-Simon
+
     ! name list regarding output
     namelist/NLoutputResults/timeStep_model_outputs, outputFlxState
     ! namelist for optimization settings
@@ -628,9 +639,9 @@ CONTAINS
           call message('***ERROR: Gridded LAI input in bin format must be daily.')
           stop
        end if
-       if (timeStep_LAI_input .GT. 1) then
+       if (timeStep_LAI_input > 0) then
           call message()
-          call message('***ERROR: option for selected timeStep_LAI_input not coded yet')
+          call message('***ERROR: timeStep_LAI_input must be <= 0.')
           stop
        end if
     end if
@@ -774,8 +785,9 @@ CONTAINS
        processMatrix(1, 3) = 1_i4
        call append(global_parameters, reshape(canopyInterceptionFactor,(/1, nColPars/)))
 
+
        call append(global_parameters_name, (/  &
-            'canopyInterceptionFactor'/))
+           'canopyInterceptionFactor'/))
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
@@ -858,6 +870,8 @@ CONTAINS
        call append(global_parameters, reshape(rootFractionCoefficient_impervious, (/1, nColPars/)))
        call append(global_parameters, reshape(rootFractionCoefficient_pervious,   (/1, nColPars/)))
        call append(global_parameters, reshape(infiltrationShapeFactor,     (/1, nColPars/)))
+	   
+
 
        call append(global_parameters_name, (/     &
             'orgMatterContent_forest           ', &
@@ -877,6 +891,7 @@ CONTAINS
             'rootFractionCoefficient_impervious', &
             'rootFractionCoefficient_pervious  ', &
             'infiltrationShapeFactor           '/))
+			
 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
@@ -925,6 +940,9 @@ CONTAINS
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 3_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+	   processMatrix(11, 1) = processCase(11)
+       processMatrix(11, 2) = 0_i4
+       processMatrix(11, 3) = 0_i4
        call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
@@ -941,12 +959,16 @@ CONTAINS
           stop
        end if
 
+	   
     case(1) ! 1 - Hargreaves-Samani method (HarSam) - additional input needed: Tmin, Tmax
        call position_nml('PET1', unamelist_param)
        read(unamelist_param, nml=PET1)
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 4_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+	   processMatrix(11, 1) = 0_i4
+       processMatrix(11, 2) = 0_i4
+       processMatrix(11, 3) = 0_i4
        call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
@@ -977,6 +999,9 @@ CONTAINS
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 2_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+	   processMatrix(11, 1) = 0_i4
+       processMatrix(11, 2) = 0_i4
+       processMatrix(11, 3) = 0_i4
        call append(global_parameters, reshape(PriestleyTaylorCoeff,               (/1, nColPars/)))
        call append(global_parameters, reshape(PriestleyTaylorLAIcorr,             (/1, nColPars/)))
        call append(global_parameters_name, (/ &
@@ -1003,6 +1028,9 @@ CONTAINS
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 7_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+	   processMatrix(11, 1) = 0_i4
+       processMatrix(11, 2) = 0_i4
+       processMatrix(11, 3) = 0_i4
 
        call append(global_parameters, reshape(canopyheigth_forest,                (/1, nColPars/)))
        call append(global_parameters, reshape(canopyheigth_impervious,            (/1, nColPars/)))
@@ -1164,7 +1192,6 @@ CONTAINS
        processMatrix(9,1) = processCase(9)
        processMatrix(9,2) = nGeoUnits
        processMatrix(9,3) = sum(processMatrix(1:9, 2))
-
        call append(global_parameters, GeoParam(1:nGeoUnits,:))
 
        ! create names
@@ -1230,9 +1257,38 @@ CONTAINS
        processMatrix(10, 2) = 0_i4
        processMatrix(10, 3) = sum(processMatrix(1:10, 2))
     end if
+	
+	
+!Process 11 - Soil moisture ET soil type dependency 
+!Note to UFZ branch admin: This part can be more elegant by adding as an option in process(5),case(0) so users can decide if they want 
+!to use Jarvis method. Here we just add them to the global_parameters array and then pass it to mo_soil_moisture and mo_mpr_smhorizons files  
+    !select case (processCase(11))
+    !case(0)
+       call position_nml('sandclay', unamelist_param)
+       read(unamelist_param, nml=sandclay)
+       !processMatrix(11, 1) = processCase(11)
+       !processMatrix(11, 2) = 2_i4
+       !processMatrix(11, 3) = sum(processMatrix(1:11, 2))
 
-    call close_nml(unamelist_param)
+       call append(global_parameters, reshape(theta_norm_C1,           (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_sand,        (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_clay,        (/1, nColPars/)))
 
+       call append(global_parameters_name, (/ &
+            'theta_norm_C1               ', &
+            'rootFractionCoefficient_sand', &
+            'rootFractionCoefficient_clay'/))
+
+       ! check if parameter are in range    
+
+    call close_nml(unamelist_param) 
+
+	!case DEFAULT
+    !   call message()
+    !  call message('***ERROR: Process description for process "sandclay" does not exist!')
+    !  stop
+	   
+    !end select
     !===============================================================
     ! Settings for Optimization
     !===============================================================
@@ -1349,7 +1405,7 @@ CONTAINS
   end subroutine read_config
 
   ! --------------------------------------------------------------------------------
-  ! private funtions and subroutines
+  ! private functions and subroutines
   ! --------------------------------------------------------------------------------
 
   function in_bound(params)

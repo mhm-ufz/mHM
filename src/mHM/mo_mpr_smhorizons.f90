@@ -10,6 +10,7 @@
 module mo_mpr_SMhorizons
 
   use mo_kind, only: i4, dp
+  use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
 
   implicit none
 
@@ -114,6 +115,7 @@ contains
   !                                                --> param(4) = infiltrationShapeFactor
   !                  Stephan Thober, Mar 2014 - added omp parallelization
   !                  Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
+  !                  Simon Stisen & Mehmet Cuneyd Demirel, Feb 2017 -New SM and AET parametrization based on FC, sand and clay and introducing FC dependency on root frac coef.	
 
   subroutine mpr_SMhorizons( &
        ! Input -----------------------------------------------------------------
@@ -221,16 +223,327 @@ contains
     real(dp), dimension(size(LCOVER0,1))    :: FC0     ! [10^-3 m] field capacity
     real(dp), dimension(size(LCOVER0,1))    :: PW0     ! [10^-3 m] permanent wilting point
     real(dp), dimension(size(LCOVER0,1))    :: fRoots0 ! fraction of roots in soil horizons
-    real(dp)                                :: tmp_rootFractionCoefficient_forest
+	real(dp)                                :: tmp_rootFractionCoefficient_forest
     real(dp)                                :: tmp_rootFractionCoefficient_impervious
     real(dp)                                :: tmp_rootFractionCoefficient_pervious
+    real(dp)                                :: tmp_rootFractionCoefficient_perviousFC ! Field capacity dependent root frac coeffiecient
+
+    real(dp)    							:: theta_norm_C1 	=0.0_dp	  ! Critical value of Normalized soil water content, Eq3 in Jarvis 1989 JHydrol (SPACE)
+    real(dp)    							:: tmp_rootFractionCoefficient_sand             ! Model parameter describing the threshold for actual ET reduction for clay (FC=0.4) 12/22/2016 SPACE
+	real(dp)    							:: tmp_rootFractionCoefficient_clay             ! Model parameter describing the threshold for actual ET reduction for Sand (FC=0.1) 12/22/2016 SPACE
+    real(dp)    							:: tmp_FC0min             						! Calculate FCmin at level 0 once to speed up the code
+	real(dp)    							:: tmp_FC0max             						! Calculate FCmax at level 0 once to speed up the code
+	integer(i4)    							:: iii  										! row number of new ET-SPACE parameters 
 
     tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
     tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
+   !tmp_rootFractionCoefficient_pervious   = param(3) 			 ! Note to UFZ: param(1) and param(3) separated for more freedom in model calibration 14/2/2017 by SPACE
 
+	
+    !CHECK consistency in user choices for process 5 and 11 in mhm.nml 
+	if ((processMatrix(5,1) .NE.  0_i4) .AND.  (processMatrix(11,1) .NE.  0_i4)) then
+		call message('***ERROR: Process(5) has to be set zero if Process (11) &
+		- Jarvis method (Eq3 in JHydrol 1989) will be used..')
+		stop
+    end if
+    
+	if ( (processMatrix(11,1) .NE.  0_i4) ) then
+  
+	do, iii=1,size(global_parameters_name,1)
+		if (global_parameters_name(iii)=="theta_norm_C1")theta_norm_C1=global_parameters(iii,3)
+		if (global_parameters_name(iii)=="rootFractionCoefficient_sand") &
+		tmp_rootFractionCoefficient_sand=global_parameters(iii+1,3)-global_parameters(iii,3) 
+		if (global_parameters_name(iii)=="rootFractionCoefficient_clay") &
+		tmp_rootFractionCoefficient_clay=global_parameters(iii,3) 
+	enddo	
+	
+	print*,"theta_norm_C1 is ",theta_norm_C1
+	print*,"rootFractionCoefficient_sand is ",tmp_rootFractionCoefficient_sand
+	print*,"rootFractionCoefficient_clay is ",tmp_rootFractionCoefficient_clay
+	print*,"Jarvis method is activated by processCase(11)= ",processMatrix(11,1)
+
+	end if 	
+	
+	
+	if ((processMatrix(11,1) .EQ. -2) .OR. (processMatrix(11,1) .EQ. -3)) then
+
+	!REVISED root fraction by GEUS.dk 16/2/2017		
     ! select case according to a given soil database flag
-    SELECT CASE(iFlag_soil)
+		SELECT CASE(iFlag_soil)
+	
+       ! classical mHM soil database format
+       CASE(0)
+          do h = 1, nHorizons_mHM
+             Bd0     = nodata
+             SMs0    = nodata
+             FC0     = nodata
+             PW0     = nodata
+             fRoots0 = nodata
+             ! Initalise mHM horizon depth
+             !  Last layer depth is soil type dependent, and hence it assigned within the inner loop 
+             ! by default for the first soil layer
+             dpth_f = 0.0_dp
+             dpth_t = HorizonDepth(H)
+             ! check for the layer (2, ... n-1 layers) update depth
+             if(H .gt. 1 .and. H .lt. nHorizons_mHM) then
+                dpth_f = HorizonDepth(H - 1)
+                dpth_t = HorizonDepth(H)
+             end if
+
+             !$OMP PARALLEL
+             !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
+             celllloop: do k = 1, size(LCOVER0,1)
+                l = LCOVER0(k)
+                s = soilID0(k,1)  !>> in this case the second dimension of soilId0 = 1
+                ! depth weightage bulk density
+                Bd0(k) = sum( Db(s,:nTillHorizons(s), L)*Wd(S, H, 1:nTillHorizons(S) ), &
+                     Wd(S,H, 1:nTillHorizons(S)) > 0.0_dp ) &
+                     + sum( dbM(S,nTillHorizons(S)+1 : nHorizons(S)) &
+                     * Wd(S,H, nTillHorizons(S)+1:nHorizons(S)), &
+                     Wd(S,H, nTillHorizons(S)+1:nHorizons(S)) >= 0.0_dp )
+                ! depth weightage thetaS
+                SMs0(k) = sum( thetaS_till(S,:nTillHorizons(s), L) &
+                     * Wd(S,H, 1:nTillHorizons(S) ), &
+                     Wd(S,H, 1:nTillHorizons(S)) > 0.0_dp ) &
+                     + sum( thetaS(S,nTillHorizons(S)+1-minval(nTillHorizons(:)):nHorizons(s)-minval(nTillHorizons(:))) &
+                     * Wd(S,H, nTillHorizons(S)+1:nHorizons(S)), &
+                     Wd(S,H, nTillHorizons(S)+1:nHorizons(S)) > 0.0_dp )
+                ! depth weightage FC
+                FC0(k) = sum( thetaFC_till(S, :nTillHorizons(s), L) &
+                     * Wd(S, H, 1:nTillHorizons(S) ), &
+                     Wd(S, H, 1:nTillHorizons(S)) > 0.0_dp ) &
+                     + sum( thetaFC(S, nTillHorizons(S)+1-minval(nTillHorizons(:)):nHorizons(s)-minval(nTillHorizons(:))) &
+                     * Wd(S, H, nTillHorizons(S)+1:nHorizons(S)), &
+                     Wd(S, H, nTillHorizons(S)+1:nHorizons(S)) > 0.0_dp )
+                ! depth weightage PWP
+                PW0(k) = sum( thetaPW_till(S, :nTillHorizons(s), L) &
+                     * Wd(S, H, 1:nTillHorizons(S) ), &
+                     Wd(S, H, 1:nTillHorizons(S)) > 0.0_dp ) &
+                     + sum( thetaPW(S,nTillHorizons(S)+1-minval(nTillHorizons(:)) :nHorizons(s)-minval(nTillHorizons(:))) &
+                     * Wd(S, H, nTillHorizons(S)+1:nHorizons(S)), &
+                     Wd(S, H, nTillHorizons(S)+1:nHorizons(S)) > 0.0_dp )
+                ! Horizon depths: last soil horizon is varying, and thus the depth
+                ! of the horizon too...
+                if(H .eq. nHorizons_mHM) then
+                   dpth_f = HorizonDepth(nHorizons_mHM - 1)
+                   dpth_t = RZdepth(S) 
+                end if
+                ! other soil properties [SMs, FC, PWP in mm]
+                SMs0(k) = SMs0(k) * (dpth_t - dpth_f)
+                FC0(k)  = FC0(k)  * (dpth_t - dpth_f)
+                PW0(k)  = PW0(k)  * (dpth_t - dpth_f)
+			end do celllloop
+			!$OMP END DO
+			!$OMP END PARALLEL		
+			
+
+			tmp_FC0min=minval(FC0(:))
+			tmp_FC0max=maxval(FC0(:))
+			
+			if(tmp_FC0min .lt. 0.0_dp) then 
+			print*,"CHECK FC0min, -9999 effect",tmp_FC0min
+			tmp_FC0min=minval(FC0(cell_id0))
+			print*,"NEW FC0min is",tmp_FC0min
+			end if
+			
+			
+			!$OMP PARALLEL
+            !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
+             cellllloop: do k = 1, size(LCOVER0,1)
+                l = LCOVER0(k)
+                s = soilID0(k,1)  !>> in this case the second dimension of soilId0 = 1			
+                !---------------------------------------------------------------------
+                ! Effective root fractions in soil horizon... 
+                !  as weightage sum (according to LC fraction)
+                !---------------------------------------------------------------------
+                ! vertical root distribution = f(LC), following asymptotic equation
+                ! [for refrence see, Jackson et. al., Oecologia, 1996. 108(389-411)]
+                
+                ! Roots(H) = 1 - beta^d
+                !  where,  
+                !   Roots(H) = cumulative root fraction [-], range: 0-1
+                !   beta     = fitted extinction cofficient parameter [-], as a f(LC)
+                !   d        = soil surface to depth [cm] 
+                
+                ! NOTES **
+                !  sum(fRoots) for soil horions = 1.0 
+                
+                !  if [sum(fRoots) for soil horions < 1.0], then 
+                !  normalise fRoot distribution such that all roots end up
+                !  in soil horizon and thus satisfying the constrain that
+                !  sum(fRoots) = 1
+                
+                !  The above constrains means that there are not roots below the soil horizon. 
+                !  This may or may not be realistic but it has been coded here to satisfy the
+                !  conditions of the EVT vales, otherwise which the EVT values would be lesser
+                !  than the acutal EVT from whole soil layers.
+                
+                !  Code could be modified in a way that a portion of EVT comes from the soil layer
+                !  which is in between unsaturated and saturated zone or if necessary the saturated
+                !  layer (i.e. Groundwater layer) can also contribute to EVT. Note that the above 
+                !  modification should be done only if and only if [sum(fRoots) for soil horions < 1.0]. 
+                !  In such cases, you have to judiciously decide which layers (either soil layer between 
+                !  unsaturated and saturated zone or saturated zone) will contribute to EVT and in which
+                !  proportions. Also note that there are no obervations on the depth avialable ata a 
+                !  moment on these layers. 
+                !------------------------------------------------------------------------
+
+				
+				select case(L)
+                case(1)              
+                   ! forest
+                   fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_t*0.1_dp)) &
+                        - (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_f*0.1_dp) )
+                case(2)              
+                   ! impervious
+                   fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_t*0.1_dp)) &
+                        - (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_f*0.1_dp) )
+                case(3)
+   
+				    tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
+					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
+					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &
+					tmp_rootFractionCoefficient_sand)  !SPACE 13/1/2017, introducing FC dependency on root frac coef.
+					
+					if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
+					print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+					
+					fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
+                    - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) ) !SPACE 13/1/2017, introducing FC dependency on root frac coef.
+					
+					if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
+					print*, "CHECK fRoots0(k)", fRoots0(k)				
+						
+                end select
+             end do cellllloop
+             !$OMP END DO
+             beta0 = Bd0*param(4)
+
+             !---------------------------------------------
+             ! Upscale the soil related parameters
+             !---------------------------------------------
+             L1_SMs(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                  Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, SMs0 )
+             L1_beta(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                  Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, beta0 )
+             L1_PW(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                  Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, PW0 )
+             L1_FC(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                  Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, FC0 )
+             L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                              Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+
+             !$OMP END PARALLEL
+          end do
+       ! to handle multiple soil horizons with unique soil class   
+       CASE(1)
+          ! horizon wise calculation
+          do h = 1, nHorizons_mHM
+             Bd0     = nodata
+             SMs0    = nodata
+             FC0     = nodata
+             PW0     = nodata
+             fRoots0 = nodata
+             ! initalise mHM horizon depth
+             if (h .eq. 1 ) then
+                dpth_f = 0.0_dp
+                dpth_t = HorizonDepth(h)
+             ! check for the layer (2, ... n-1 layers) update depth
+             else 
+                dpth_f = HorizonDepth(h-1)
+                dpth_t = HorizonDepth(h)
+             end if
+             ! need to be done for every layer to get fRoots
+             do k = 1, size(LCOVER0,1)
+                L = LCOVER0(k)
+                s =  soilID0(k,h)
+                if ( h .le. nTillHorizons(1) ) then
+                   Bd0(k)  = Db(s,1,L)
+                   SMs0(k) = thetaS_till (s,1,L) * (dpth_t - dpth_f) ! in mm
+                   FC0(k)  = thetaFC_till(s,1,L) * (dpth_t - dpth_f) ! in mm
+                   PW0(k)  = thetaPW_till(s,1,L) * (dpth_t - dpth_f) ! in mm
+                else
+                   Bd0(k)  = DbM(s,1)
+                   SMs0(k) = thetaS (s,1) * (dpth_t - dpth_f) ! in mm
+                   FC0(k)  = thetaFC(s,1) * (dpth_t - dpth_f) ! in mm
+                   PW0(k)  = thetaPW(s,1) * (dpth_t - dpth_f) ! in mm          
+                end if
+			 end do
+									
+
+			tmp_FC0min=minval(FC0(:))
+			tmp_FC0max=maxval(FC0(:))
+			
+			if(tmp_FC0min .lt. 0.0_dp) then 
+			print*,"CHECK FC0min, -9999 effect",tmp_FC0min
+			tmp_FC0min=minval(FC0(cell_id0))
+			print*,"NEW FC0min is",tmp_FC0min
+			end if
+			
+			
+
+			 do k = 1, size(LCOVER0,1)
+                !================================================================================
+                ! fRoots = f[LC] --> (fRoots(H) = 1 - beta^d)
+                ! see below for comments and references for the use of this simple equation
+                ! NOTE that in this equation the unit of soil depth is in cm 
+                !================================================================================
+                select case(L)
+                case(1)              
+                   ! forest
+                   fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_t*0.1_dp)) &
+                        - (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_f*0.1_dp) )
+                case(2)              
+                   ! impervious
+                   fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_t*0.1_dp)) &
+                        - (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_f*0.1_dp) )
+                case(3)
+	   
+				    tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
+					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
+					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &
+					tmp_rootFractionCoefficient_sand)  !SPACE 13/1/2017, introducing FC dependency on root frac coef.
+					
+					if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
+					print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+					
+					fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
+                    - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) ) !SPACE 13/1/2017, introducing FC dependency on root frac coef.
+					
+					if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
+					print*, "CHECK fRoots0(k)", fRoots0(k)										
+							   
+                end select
+             end do !>> cellloop
+
+             ! beta parameter
+             beta0 = Bd0*param(4)
+             
+             ! Upscale the soil related parameters
+             L1_SMs(:,h)  = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                                                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, SMs0 )
+             L1_beta(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                                                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, beta0)
+             L1_PW(:,h)   = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                                                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, PW0  )
+             L1_FC(:,h)   = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                                                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, FC0  )
+             L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+                                                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+          end do
+       ! anything else   
+       CASE DEFAULT
+          call message()
+          call message('***ERROR: iFlag_soilDB option given does not exist. Only 0 and 1 is taken at the moment.')
+          stop
+       END SELECT
+	
+	else
+	
+	!DEFAULT mHM 
+	! select case according to a given soil database flag
+		SELECT CASE(iFlag_soil)
        ! classical mHM soil database format
        CASE(0)
           do h = 1, nHorizons_mHM
@@ -435,6 +748,7 @@ contains
           stop
        END SELECT
 
+	end if
 
        ! below operations are common to all soil databases flags
        !$OMP PARALLEL

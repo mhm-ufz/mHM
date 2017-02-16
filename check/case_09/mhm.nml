@@ -20,22 +20,144 @@
 ! Rohini Kumar and
 ! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
+! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
+! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
+! Stephan Thober, Nov 2016 - added adaptive timestep scheme for routing  
+
+  
 !******************************************************************************************
 !
+!******************************************************************************************
+! MAIN
+!******************************************************************************************
+!> Main namelist
+!> Most of the variables (if not all) given in this namelist are common
+!> to all basins to be modeled.
+&mainconfig
+!-----------------------------------------------------------------------------
+!> model run timestep [h] either 1 or 24
+!-----------------------------------------------------------------------------
+timestep = 1
+!-----------------------------------------------------------------------------
+!> input data & model run cordinate system
+!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
+!> 1 -> regular lat & lon coordinate system
+!-----------------------------------------------------------------------------
+iFlag_cordinate_sys = 0
+!-----------------------------------------------------------------------------
+!> Number of basins to be modeled. \n
+!> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
+!> All gauging stations within those basins will be taken for the optimization.\n
+!> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
+!> discard gauging station information.
+!-----------------------------------------------------------------------------
+nBasins             = 2
+!-----------------------------------------------------------------------------
+!> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
+!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n
+!-----------------------------------------------------------------------------
+resolution_Hydrology(1) = 12000
+resolution_Hydrology(2) = 24000
+!-----------------------------------------------------------------------------
+!> resolution of Level-11 discharge routing [m or degree] per basin \n
+!> this  level-11 discharge routing resolution must be >= and multiple of the
+!> level-1 hydrological simulations resolution \n
+!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n
+!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n
+!-----------------------------------------------------------------------------
+resolution_Routing(1) = 12000
+resolution_Routing(2) = 24000
+!-----------------------------------------------------------------------------
+!> use ALMA convention for input and output variables
+!> see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+!> .False. -> default mHM units
+!> .True.  -> ALMA convention
+!> CAUTION: at the moment, only Qall as input for mRM is affected
+!-----------------------------------------------------------------------------
+! ALMA_convention = .True.
+!----------------------------------------------------------------------------
+!> specify same index for basins to share L0_data to save memory \n
+!> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
+!> but not 1,2,1. The correct way should be: 1,1,2.\n
+!-----------------------------------------------------------------------------
+L0Basin(1) = 1
+L0Basin(2) = 2
+!-----------------------------------------------------------------------------
+!> flag for optimization: .TRUE.: optimization
+!>                    or .FALSE.: no optimazition
+!-----------------------------------------------------------------------------
+optimize = .FALSE.
+!> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
+!> should be located next to the mhm executable (mhm)
+optimize_restart = .FALSE.
+!> (0) MCMC                (requires single-objective (SO) function) \n
+!> (1) DDS                 (requires single-objective (SO) function) \n
+!> (2) Simulated Annealing (requires single-objective (SO) function) \n
+!> (3) SCE                 (requires single-objective (SO) function) \n
+!> additional settings for the different methods can be provided below in namelist Optimization
+opti_method = 1
+!> (1)  SO: Q:   1.0 - NSE                                                                                                          \n
+!> (2)  SO: Q:   1.0 - lnNSE                                                                                                        \n
+!> (3)  SO: Q:   1.0 - 0.5*(NSE+lnNSE)                                                                                              \n
+!> (4)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed                \n
+!> (5)  SO: Q:   ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                                                                   \n
+!> (6)  SO: Q:   SSE                                                                                                                \n
+!> (7)  SO: Q:  -1.0 * loglikelihood with trend removed from absolute errors                                                        \n
+!> (8)  SO: Q:  -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed            \n
+!> (9)  SO: Q:  1.0 - KGE (Kling-Gupta efficiency measure)                                                                          \n
+!> (10) SO: SM: 1.0 - KGE of catchment average soilmoisture                                                                         \n
+!> (11) SO: SM: 1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture                                             \n
+!> (12) SO: SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture                \n
+!> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture                                           \n
+!> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm         \n
+!> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average (standard score) TWS \n
+!> (16) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: (1) = 1.0 - NSE                                                                                      \n
+!>          Q:  2nd objective: (2) = 1.0 - lnNSE                                                                                    \n
+!> (17) SO: N:  1.0 - KGE of spatio-temporal neutron data, catchment-average                                                        \n
+!> (18) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)                                                            \n
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)                                                          \n
+!> (19) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                                                              \n
+!>          Q:  2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)                                                          \n
+!> (20) (reserved) please use the next number when implementing a new one                                                           \n
+!>      MO: Q:  1st objective: absolute difference in FDC's low-segment volume                                                      \n
+!>          Q:  2nd objective: 1.0 - NSE of discharge of months DJF                                                                 \n
+!> (21) (reserved) please use the next number when implementing a new one                                                           \n
+!>      SO: Q:  ( (1.0-lnNSE(Q_highflow))**6 + (1.0-lnNSE(Q_lowflow))**6 )**(1/6)                                                   \n
+!>              where Q_highflow and Q_lowflow are calculated like in objective (19)                                                \n
+!> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
+!> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
+opti_function = 3
+!-----------------------------------------------------------------------------
+!> flags for reading and writing restart output, and calculating mpr
+!-----------------------------------------------------------------------------
+read_restart  = .FALSE.
+write_restart = .TRUE.
+perform_mpr   = .TRUE.
+/
+
 !******************************************************************************************
 ! MRM COUPLING MODE
 !******************************************************************************************
 !-----------------------------------------------------------------------------
-!> coupling_mode can be either: 0 = stand-alone (NOT IMPLEMENTED YET)\n
-!>                              1 = coupling to a hydrologic model\n
+!> coupling_mode can be either: 0 = stand-alone\n
+!>                              1 = coupling to a hydrologic model (general coupling)\n
+!>                              2 = coupling to mHM\n
 !-----------------------------------------------------------------------------
 &coupling_config
 mrm_coupling_mode = 2
 /
 
 !******************************************************************************************
-! DIRECTORIES 
+! DIRECTORIES
 !******************************************************************************************
+!> Namelist with all directories for common file as well as separate file for every basin.\n
+!> Number in brackets indicates basin number.\n
+!> This number HAS TO correspond with the number of basin given below in the "mainconfig"
+!> namelist as well as the indices given in "evaluation_gauges" namelist.\n
 
 ! directories used only by mRM
 &directories_mRM
@@ -45,62 +167,58 @@ mrm_coupling_mode = 2
 !-----------------------------------------------------
 !
 !> directory where discharge files are located
-dir_Gauges(1)        = "../../test_basin/input/gauge/"
-dir_Gauges(2)        = "../../test_basin/input/gauge/"
+dir_Gauges(1)        = "test_basin/input/gauge/"
+dir_Gauges(2)        = "test_basin_2/input/gauge/"
+!> directory where simulated runoff can be found (only required if coupling mode equals 0)
+dir_Total_Runoff(1) = 'test_basin/output_b1/'
+dir_Total_Runoff(2) = 'test_basin_2/output/'
 /
 
 ! general directories used by mRM and mHM
 &directories_general
 !
 !-----------------------------------------------------
-! Directory for common files (to all basins) 
+! Directory for common files (to all basins)
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "output_b1/"
+dirConfigOut = "test_basin/"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles = "../../test_basin/input/morph/"
+dirCommonFiles = "test_basin/input/morph/"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "../../test_basin/input/morph/"
+dir_Morpho(1)        = "test_basin/input/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "../../test_basin/input/luse/"
+dir_LCover(1)        = "test_basin/input/luse/"
 !> directory where restart input is located
-dir_RestartIn(1)     = "restart/b1_"
+dir_RestartIn(1)     = "test_basin/restart/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "output_b1/b1_"
+dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
-dir_Out(1)           = "output_b1/b1_"
+dir_Out(1)           = "test_basin/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
-!
-!**** for Basin 2
+file_LatLon(1)       = "test_basin/input/latlon/latlon_2.nc"
+
+! **** for Basin 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "../../test_basin/input/morph/"
+dir_Morpho(2)        = "test_basin_2/input/morph/"
 !> directory where land cover files are located
-dir_LCover(2)        = "../../test_basin/input/luse/"
+dir_LCover(2)        = "test_basin_2/input/luse/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "restart/b2_"
+dir_RestartIn(2)     = "test_basin_2/restart/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "output_b1/b2_"
+dir_RestartOut(2)    = "test_basin_2/restart/"
 !> directory where output should be written
-dir_Out(2)           = "output_b1/b2_"
+dir_Out(2)           = "test_basin_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
+file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 /
 
-!> Namelist with all directories for common file as well as separate file for every basin.\n 
-!> Number in brackets indicates basin number.\n
-!> This number HAS TO correspond with the number of basin given below in the "mainconfig"
-!> namelist as well as the indices given in the "gaugeinfo.txt" file.\n 
-
+! directories used only by mhm
 &directories_mHM
 !
-!-----------------------------------------------------
-! Directory for common files (to all basins) 
-!-----------------------------------------------------
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
 inputFormat_meteo_forcings = "nc"
@@ -111,47 +229,47 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where meteorological input is located
-dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
+dir_Precipitation(1) = "test_basin/input/meteo/pre/"
+dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input 
+!> 0 - PET is input
 !> 1 - Hargreaves-Sammani method
 !> 2 - Priestley-Taylor mehtod
 !> 3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "../../test_basin/input/meteo/pet/"
+dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "../../test_basin/input/meteo/"
-dir_MaxTemperature(1)  = "../../test_basin/input/meteo/"
+dir_MinTemperature(1)  = "test_basin/input/meteo/"
+dir_MaxTemperature(1)  = "test_basin/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "../../test_basin/input/meteo/"
+dir_NetRadiation(1)    = "test_basin/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "../../test_basin/input/meteo/"
-dir_windspeed(1)       = "../../test_basin/input/meteo/"
+dir_absVapPressure(1)  = "test_basin/input/meteo/"
+dir_windspeed(1)       = "test_basin/input/meteo/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
+dir_gridded_LAI(1)   = "test_basin/input/lai/"
 !
 !**** for Basin 2
 !> directory where meteorological input is located
-dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
-dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
+dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
+dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input 
+!> 0 - PET is input
 !> 1 - Hargreaves-Sammani method
 !> 2 - Priestley-Taylor mehtod
 !> 3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "../../test_basin/input/meteo/pet/"
+dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "../../test_basin/input/meteo/"
-dir_MaxTemperature(2)  = "../../test_basin/input/meteo/"
+dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
+dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "../../test_basin/input/meteo/"
+dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "../../test_basin/input/meteo/"
-dir_windspeed(2)       = "../../test_basin/input/meteo/"
+dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
+dir_windspeed(2)       = "test_basin_2/input/meteo/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
+dir_gridded_LAI(2)   = "test_basin/input/lai/"
 /
 
 !> data which are optionally needed for optimization
@@ -163,6 +281,7 @@ dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 !> soil column and saturated water content (porosity). \n
 !
 !> directory to soil moisture data
+! expected file name: sm.nc, expected variable name: sm
 dir_soil_moisture(1)   = "test_basin/input/optional_data/"
 !> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
 !> input is representative for (counted top to down)
@@ -173,128 +292,55 @@ nSoilHorizons_sm_input = 1
 !>     -3: yearly  SM values\n
 !-----------------------------
 timeStep_sm_input = -2
-/
-
 !
-!******************************************************************************************
-! MAIN  
-!******************************************************************************************
-!> Main namelist
-!> Most of the variables (if not all) given in this namelist are common
-!> to all basins to be modeled.
-&mainconfig
-!-----------------------------------------------------------------------------
-!> model run timestep [h] either 1 or 24
-!-----------------------------------------------------------------------------
-timestep = 1
-!-----------------------------------------------------------------------------
-!> input data & model run cordinate system 
-!> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
-!> 1 -> regular lat & lon coordinate system
-!-----------------------------------------------------------------------------
-iFlag_cordinate_sys = 0
-!-----------------------------------------------------------------------------
-!> Number of basins to be modeled. \n 
-!> Number given here should correspond to one given in "gaugeinfo.txt" file.\n
-!> All gauging stations within those basins will be taken for the optimization.\n
-!> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
-!> discard gauging station information.
-!-----------------------------------------------------------------------------
-nBasins             = 2
-!-----------------------------------------------------------------------------
-!> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
-!>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
-!-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 24000 
-resolution_Hydrology(2) = 24000 
-!-----------------------------------------------------------------------------
-!> resolution of Level-11 discharge routing [m or degree] per basin \n
-!> this  level-11 discharge routing resolution must be >= and multiple of the
-!> level-1 hydrological simulations resolution \n
-!> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n 
-!>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
-!-----------------------------------------------------------------------------
-resolution_Routing(1)   = 24000 
-resolution_Routing(2)   = 24000
-!----------------------------------------------------------------------------
-!> specify same integer for basins to share L0_data to save memory \n
-!> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
-!> intersected by other integers \n
-!-----------------------------------------------------------------------------
-L0Basin(1)            = 1
-L0Basin(2)            = 1
-!-----------------------------------------------------------------------------
-!> flag for optimization: .TRUE.: optimization
-!>                    or .FALSE.: no optimazition 
-!-----------------------------------------------------------------------------
-optimize = .false.
-!> Optimization shall be restarted from mo_<opti_method>.restart file
-optimize_restart = .FALSE.
-!> (0) MCMC                \n
-!> (1) DDS                 \n
-!> (2) Simulated Annealing \n
-!> (3) SCE                 \n
-!> additional settings for the different methods can be provided below in namelist Optimization
-opti_method = 1
-!> (1) 1.0 - NSE  \n
-!> (2) 1.0 - lnNSE  \n
-!> (3) 1.0 - 0.5*(NSE+lnNSE)  \n
-!> (4) -1.0 * loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed  \n
-!> (5) ((1-NSE)**6+(1-lnNSE)**6)**(1/6)  \n
-!> (6) SSE  \n
-!> (7) -1.0 * loglikelihood with trend removed from absolute errors  \n
-!> (8) -1.0 * loglikelihood with trend removed from the relative errors and then lag(1)-autocorrelation removed  \n
-!> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
-!> (13) 1.0 - average temporal correlation of soil moisture  \n
-!> further functions can be implemented in mo_objective_function
-opti_function = 3
-!-----------------------------------------------------------------------------
-!> flags for reading and writing restart output, and calculating mpr
-!-----------------------------------------------------------------------------
-read_restart  = .False.
-write_restart = .True.
-perform_mpr   = .True.
+!> basin average total water storage (tws) \n
+!> file name including path with timeseries of GRACE-based data
+file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
+file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
+!
+!> directory to neutron data
+! expected file name: neutrons.nc, expected variable name: neutrons
+dir_neutrons(1)        = "test_basin/input/optional_data/"
 /
 
 &time_periods
 !-----------------------------------------------------------------------------
 !> specification of number of warming days [d] and the simulation period.\n
-!> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start 
+!> All dynamic data sets(e.g., meteo. forcings, landcover scenes) should start
 !> from warming days and ends at the last day of the evaluation period. \n
 !
 !>     1---------2-------------------3
 !>
 !>     1-> Starting of the effective modeling period (including the warming days)
 !>     2-> Starting of the given simulation period
-!>     3-> Ending   of the given simulation period   (= end of the effective modeling period) 
+!>     3-> Ending   of the given simulation period   (= end of the effective modeling period)
 !
 !> IF you want to run the model from 2002/01/01 (Starting of the given simulation
-!>    period=2) to 2003/12/31 (End of the given simulation period=3) with 365 warming 
+!>    period=2) to 2003/12/31 (End of the given simulation period=3) with 365 warming
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warming_Days(1)       = 360
-warming_Days(2)       = 360
+warming_Days(1)    = 0
+warming_Days(2)    = 180
 !> first year of wanted simulation period
-eval_Per(1)%yStart    = 1990
-eval_Per(2)%yStart    = 1990
+eval_Per(1)%yStart = 1990
+eval_Per(2)%yStart = 1993
 !> first month of wanted simulation period
-eval_Per(1)%mStart    = 01
-eval_Per(2)%mStart    = 01
+eval_Per(1)%mStart = 01
+eval_Per(2)%mStart = 01
 !> first day   of wanted simulation period
-eval_Per(1)%dStart    = 01
-eval_Per(2)%dStart    = 01
+eval_Per(1)%dStart = 01
+eval_Per(2)%dStart = 01
 !> last year   of wanted simulation period
-eval_Per(1)%yEnd      = 1993
-eval_Per(2)%yEnd      = 1993
+eval_Per(1)%yEnd   = 1993
+eval_Per(2)%yEnd   = 1993
 !> last month  of wanted simulation period
-eval_Per(1)%mEnd      = 12
-eval_Per(2)%mEnd      = 12
+eval_Per(1)%mEnd   = 12
+eval_Per(2)%mEnd   = 12
 !> last day    of wanted simulation period
-eval_Per(1)%dEnd      = 31
-eval_Per(2)%dEnd      = 31
-!> switch to control read input frequency of the gridded meteo input, 
+eval_Per(1)%dEnd   = 31
+eval_Per(2)%dEnd   = 31
+!> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
 !>       0: only at beginning of the run\n
@@ -308,74 +354,134 @@ time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
-! mHM SOIL LAYERING 
+! INPUT SOIL DATABASE AND mHM LAYERING 
 !******************************************************************************************
-!> Namelist controlling the layering of the soil
+!> Namelist controlling the layer information of the soil database
 !> Variables given in this namelist are common to all basins to be modeled.
 &soilLayer
-!> iFlag_soilDB
+!----------------------------------------------------------------------------------------------------------
+!> iFlag_soilDB:
+!>            flag to handle multiple types of soil databases and their processing within the mHM.\n
+!>            This flag is unique and valid for all basins.\n
+!>            Depending on the choice of this flag you need to process your soil database differently.\n
+!
+!> iFlag_soilDB = 0:
+!>            Read and process the soil database in a classical mHM format which requires:\n
+!>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)\n
+!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of 
+!>                  soil textural properties for every horizon.\n
+!
+!>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
+!>            and depths provided in "soil_Depth(:)".\n
+!
+!>            The tillage depth is flexible in this case.\n
+!
+!>            The depth of last mHM modeling layer is determined according the information given in the
+!>            input soil database, which could vary spatially depending on the soil type. Therefore the 
+!>            user should not provide the depth of the last modeling layer. For example if you choose
+!>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
+!>            Any additional depth related information would be discarded
+!
+!> iFlag_soilDB = 1:
+!>            Handle the harmonised horizon specific soil information, requires
+!>               i) multiple (horizon specific) gridded ASCII files containing info of soil-ids.
+!>                 (e.g., soil_class_horizon001.asc, soil_class_horizon002.asc, ....)
+!>                 File names are automatically generated within mHM as per the given soil_Depth(:).
+!>                 The format follows the FORTRAN coding style: "soil_class_horizon_"XX".asc"
+!>                 where XX represents the horizon id with 2 spaces allocated for this number
+!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
+!>                 The horizon is numbered sequentially from top to bottom soil layers.
+!>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
+!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n               
+!
+!>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
+!>                  Note that there should be no horizon specific information in this LUT file
+!>                  (soil_classdefinition_iFlag_soilDB_1.txt - filename is hard coded).\n
+!
+!>            The modeling soil horizons is as per the input data (i.e. for which the gridded ASCII files are available).
+!
+!>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.\n
+!
+!>            The tillage depth should conform with one of the horizon (lower) layer depths.\n     
+!
+!>            There is an overhead cost of reading and storing multiple (horizon specific) gridded ASCII files\n
+!
+!> Note: For both cases: The present model code mHM can handle maximum of 10 soil horizons (hard coded).
+!>        To increase this number, edit the variable "maxNoSoilHorizons" in the "/src/mhm/mo_mhm_constants.f90" file
+!
+!----------------------------------------------------------------------------------------------------------
 iFlag_soilDB = 0
-!> [mm] soil depth down to which organic matter is possible  
-tillageDepth         = 200
+!
+!> [mm] soil depth down to which organic matter is possible
+tillageDepth = 200
+!
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM    = 2
-!> Soil_Horizon       Depth[mm]             ! depth of soil horizons w.r.t surface
-!> [mm] from 1,..,n-1. Depth of layer n is determined from soil LUT (positive downwards)
-soil_Depth(1)   = 200
+nSoilHorizons_mHM =2
+!
+! soil depth information
+!> IF (iFlag_soilDB = 0)
+!>    Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
+!> IF (iFlag_soilDB = 1)
+!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
+!>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
+!
+!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
+soil_Depth(1) = 200
 /
 
 !******************************************************************************************
-! LAND COVER 
+! LAND COVER
 !******************************************************************************************
 &LCover
 !> Variables given in this namelist are common to all basins to be modeled.
-!> Please make sure that the land cover periods are covering the simulation period. 
+!> Please make sure that the land cover periods are covering the simulation period.
 !>fraction of area within city assumed to be fully sealed [0.0-1.0]
-fracSealed_cityArea  = 0.6
+fracSealed_cityArea = 0.6
 !> number of land cover scenes to be used\n
 !> The land cover scene periods are shared by all catchments.
-!> The names should be equal for all basins. The land cover scnes have to be ordered 
+!> The names should be equal for all basins. The land cover scnes have to be ordered
 !> chronologically.
-nLcover_scene         = 3
+nLcover_scene = 3
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1)     = 1975
+LCoverYearStart(1) = 1975
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)       = 1993
+LCoverYearEnd(1)   = 1989
 !> name of land cover file for scnene 1
-LCoverfName(1)   = 'lc_1990.asc'
+LCoverfName(1)     = 'lc_1990.asc'
+
 !> starting year of land cover scene 2
-LCoverYearStart(2)     = 1994
+LCoverYearStart(2) = 1990
 !> ending year of land cover scnene 2
-LCoverYearEnd(2)       = 1995
+LCoverYearEnd(2)   = 1993
 !> name of land cover file for scnene 2
-LCoverfName(2)   = 'lc_1990.asc'
+LCoverfName(2)     = 'lc_1990.asc'
 
 !> starting year of land cover scene 3
-LCoverYearStart(3)     = 1996
+LCoverYearStart(3) = 1994
 !> ending year of land cover scnene 3
-LCoverYearEnd(3)       = 2004
+LCoverYearEnd(3)   = 2004
 !> name of land cover file for scnene 3
-LCoverfName(3)   = 'lc_1990.asc'
+LCoverfName(3)     = 'lc_1990.asc'
 /
-!
+
 !******************************************************************************************
 ! INFORMATION RELATED TO LAI DATA
 !******************************************************************************************
 &LAI_data_information
 !
 !-----------------------------------------------------------------------------------
-!> Flag timeStep_LAI_input identifies how LAI is read in mHM. 
+!> Flag timeStep_LAI_input identifies how LAI is read in mHM.
 !> This flag is unique and valid for all basins.\n
 !
 !> timeStep_LAI_input
 !>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
 !>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
 !>         Information regarding long-term monthly mean LAI for land cover classes
-!>         appearing in all modeled basins should be included in this LUT file. 
+!>         appearing in all modeled basins should be included in this LUT file.
 !>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be   
+!>     The respective plant functional type is in LAI_class.asc, which must be
 !>         located in each basin's morph directory.
 !> <0: Read gridded LAI files.\n
 !>     -1: gridded LAI are daily values\n
@@ -394,18 +500,18 @@ inputFormat_gridded_LAI = "nc"
 ! PROCESSES
 !******************************************************************************************
 !> This matrix manages which processes and process descriptions are used for simulation.
-!> The number of processes and its corresponding numbering are fixed. The process description can be 
-!> chosen from the options listed undeneath the name of the particular process case. This number has to be
+!> The number of processes and its corresponding numbering are fixed. The process description can be
+!> chosen from the options listed above the name of the particular process case. This number has to be
 !> given for processCase(*).
 !
 &processSelection
 !> interception
-!> 1 - maximum Interception 
+!> 1 - maximum Interception
 processCase(1) = 1
 !> snow
 !> 1 - degree-day approach
 processCase(2) = 1
-!> soilmoisture
+!> soil moisture
 !> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
 processCase(3) = 1
 !> directRunoff
@@ -416,9 +522,18 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 1
+processCase(5) = 0
+!> if processCase(5) = 0 then you have other options for 
+!> estimating fraction of ET demand based on root fraction and SM status according to Eq3 in Jarvis 1989 Jhydrol paper
+!> Jarvis, N.J., 1989. A simple empirical model of root water uptake. J. Hydrol. 107, 57–72. doi:10.1016/0022-1694(89)90050-4
+!> FIELD CAPACITY DEPENDENT THRESHOLD FOR SOIL MOISTURE ET REDUCTION
+!>  0 - default Feddes equation
+!> -1 - use Jarvis equation instead of Feddes
+!> -2 - Jarvis equation and introducing FC dependency on root frac coef.  
+!> -3 - Jarvis equation and introducing FC dependency on root frac coef. and wilting point dependent runoff fraction 
+processCase(11) = -2
 !> interflow
-!> 1 - storage reservoir with one outflow threshold and nonlinear response 
+!> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
 !> percolation
 !> 1 - GW  assumed as linear reservoir
@@ -426,15 +541,15 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-!> 2 - Muskingum approach, adaptive timestep
-processCase(8) = 2
-!> geoparameter
-!> 1 - geological parameters (not regionalized yet)
+!> 2 - adaptive timestep
+processCase(8) = 1
+!> baseflow
+!> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
 !> ground albedo of cosmic-ray neutrons
 !> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 !> 0 - deactivated
-!> 1 - inverse N0 based on Desilets et al. 2010 
+!> 1 - inverse N0 based on Desilets et al. 2010
 !> 2 - COSMIC forward operator by Shuttlworth et al. 2013
 processCase(10) = 0
 /
@@ -444,12 +559,12 @@ processCase(10) = 0
 !******************************************************************************************
 !> namelist controlling the gauging station information
 !> The ID has to correspond to the ID's given in the 'gaugelocation.asc' and
-!> to the filename containing the time series 
+!> to the filename containing the time series
 &evaluation_gauges
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal           = 2
+nGaugesTotal = 2
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -457,36 +572,28 @@ nGaugesTotal           = 2
 !
 !> basin 1
 !> number of gauges for subbasin (1)
-NoGauges_basin(1)       = 1
-!> id of gauge(1) for subbasin(1) --> (1,1) 
-Gauge_id(1,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
-gauge_filename(1,1)     = "00398.txt"
+NoGauges_basin(1)   = 1
+!> in subbasin(1), this is the id of gauge(1)  --> (1,1)
+Gauge_id(1,1)       = 398
+!> name of file with timeseries for subbasin(1) at gauge(1) --> (1,1)
+gauge_filename(1,1) = "00398.txt"
 !
 !> basin 2
 !> number of gauges for subbasin (2)
 NoGauges_basin(2)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(2,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(2,1)     = "00398.txt"
-!
-!> basin 3
-!> number of gauges for subbasin (2)
-NoGauges_basin(3)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(3,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(3,1)     = "00398.txt"
+!> in subbasin(2), this is the id of gauge(1) --> (2,1)
+Gauge_id(2,1)           = 45
+!> name of file with timeseries for subbasin(2) at gauge(1) --> (2,1)
+Gauge_filename(2,1)     = "45.txt"
 /
 
 &inflow_gauges
 !> Gauges / gridpoints used for inflow to the model domain
-!> e.g. in the case of upstream/headwater areas which are  
+!> e.g. in the case of upstream/headwater areas which are
 !>      not included in the model domain
 !
-!> Total number of inflow gauges (sum of all gauges in all subbains) 
-nInflowGaugesTotal            = 0
+!> Total number of inflow gauges (sum of all gauges in all subbains)
+nInflowGaugesTotal = 0
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -494,11 +601,13 @@ nInflowGaugesTotal            = 0
 !
 !> basin 1
 !> number of gauges for subbasin (1)
-NoInflowGauges_basin(1)       = 0
-!> id of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_id(1,1)           = 398
-!> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
-InflowGauge_filename(1,1)     = "00398.txt"
+NoInflowGauges_basin(1)   = 0
+!> id of inflow gauge(1) for subbasin(1) --> (1,1)
+InflowGauge_id(1,1)       = -9
+!> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1)
+InflowGauge_filename(1,1) = ""
+!> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(1) --> (1,1)
+InflowGauge_Headwater(1,1) = .FALSE.
 /
 
 !******************************************************************************************
@@ -511,13 +620,13 @@ evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  
 /
 
 !******************************************************************************************
-! ANNUAL CYCLE METEOROLOGICAL FORCINGS 
+! ANNUAL CYCLE METEOROLOGICAL FORCINGS
 !******************************************************************************************
 &nightDayRatio
 !> night ratio for precipitation
 !> only night values required because day values are the opposite
 fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
-!> night ratio for PET 
+!> night ratio for PET
 fnight_pet   =  0.10,   0.10,   0.10,   0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10
 !> night correction factor for temperature
 fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
@@ -531,21 +640,21 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations    = 400
+nIterations = 7
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
-seed           = 1235876
+seed = 1235876
 !  -------------------------------------
 !> DDS specific: \n
 !  -------------------------------------
 !> perturbation rate r (default: 0.2)
-dds_r          = 0.2
+dds_r = 0.2
 !  -------------------------------------
 !> SA specific: \n
 !  -------------------------------------
 !> Initial Temperature (default: -9.0)
 !> if default: temperature is determined by algorithm of Ben-Ameur (2004)
-sa_temp        = -9.0
+sa_temp = -9.0
 !  -------------------------------------
 !> SCE specific: \n
 !  -------------------------------------
@@ -558,4 +667,13 @@ sce_npg = -9
 !> Points per Sub-Complex (default: -9)
 !> if default: nps = n+1
 sce_nps = -9
+!  -------------------------------------
+!> MCMC specific: \n
+!  -------------------------------------
+!> .true.:  use MCMC for optimisation and estimation of parameter uncertainty
+!> .false.: use MCMC for estimation of parameter uncertainty
+mcmc_opti = .false.
+!> Parameters of error model if mcmc_opti=.false.
+!> e.g. for opti_function=8: two parameters a and b: err = a + b*Q
+mcmc_error_params = 0.01, 0.6
 /
