@@ -1,0 +1,124 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Gnu compiler 4.7 with easybuild/goolf/1.4.10 at eve.ufz.de
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2013 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+GNUDIR := /opt/sharcnet/gcc/4.8.4/
+GNULIB := $(GNUDIR)/lib64
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(GNUBIN)/gfortran
+FC  := $(F90)
+CC  := $(GNUBIN)/gcc
+CPP := /opt/sharcnet/gcc/4.8.4/bin/cpp
+# GNU Fortran version >= 4.4
+ifeq ($(release),debug)
+    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
+else
+    F90FLAGS += -O3
+    FCFLAGS  += -O3
+    CFLAGS   += -O3
+endif
+F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
+FCFLAGS  += -ffixed-form -ffixed-line-length-132
+CFLAGS   +=
+MODFLAG  := -J# space significant
+DEFINES  += -DGFORTRAN -DgFortran
+
+# Linking
+LIBS  += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
+iLDPATH = $(GNUDIR)/lib/gcc/x86_64-unknown-linux-gnu/4.8.4
+ifneq ($(LDPATH),)
+    LDPATH += :$(iLDPATH)
+else
+    LDPATH := $(iLDPATH)
+endif
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+INTEL  := 
+MKLDIR := 
+MKLINC := 
+MKLLIB := 
+INTELLIB := 
+MKL95DIR :=
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR :=
+else
+    ZLIB    := 
+    SZLIB   := 
+    HDF5LIB := /opt/sharcnet/hdf/5.1.8.11/serial/lib
+    NCDIR   := /opt/sharcnet/netcdf/4.2/gcc
+    NCFDIR  := 
+endif
+
+# PROJ
+PROJ4DIR := 
+FPROJDIR :=
+
+# LAPACK
+LAPACKDIR   := 
+GFORTRANDIR := 
+GFORTRANLIB := 
+
+# MPI
+MPIDIR := /usr/local/openmpi/gcc/1.8.4-2
+
+# Documentation
+DOXYGENDIR := 
+DOTDIR     := 
+TEXDIR     := 
+PERLDIR    := 
+iiLDPATH   := 
+ifneq ($(LDPATH),)
+    LDPATH += :$(iiLDPATH)
+else
+    LDPATH := $(iiLDPATH)
+endif
+
+# Check some dependices, e.g. IMSL needs intel11 on eve
+ifneq (,$(findstring $(system),eve))
+    ifneq (,$(findstring $(imsl),vendor imsl))
+        ifneq ($(icompiler),intel11)
+            $(error Error: IMSL needs intel11.0.075, set 'compiler=intel11')
+        endif
+        ifeq ($(imsl),vendor)
+            ifeq (,$(findstring $(mkl),mkl mkl95))
+                $(error Error: IMSL vendor needs MKL, set 'mkl=mkl' or 'mkl=mkl95')
+            endif
+        endif
+    endif
+endif

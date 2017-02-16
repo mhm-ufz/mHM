@@ -1,0 +1,46 @@
+# fgenrc for the cray f90 compiler (inline comments forbidden)
+#
+# resource file for f2html.pl
+#
+# $Id: fgenrc,v 1.1 1999/05/10 08:58:39 m214030 Exp $
+
+[fc]
+
+# suffixes for include files (like .SUFFIXES in the makefile)
+suffixes = .h .inc
+
+#==============================================================================
+
+[html]
+
+# html output directory
+dir = html
+
+# color for anchors (blue)
+c_anchors = #0000ff
+
+# color for comments (red)
+c_comments = #e00000
+
+# color for strings (green)
+# c_strings = #00c000
+# color for strings (dark green)
+c_strings = #228b22
+
+# color for Fortran intrinsics (black)
+# c_intrinsics = #000000
+# color for Fortran intrinsics (blue)
+c_intrinsics = #0000ff
+
+# color for Fortran blocks (purple1)
+c_blocks = #9e30cf
+
+# #e00000 red
+# #ff0000 red1
+# #797d79 gray50
+# #00cf00 green3
+# #9e30cf purple1
+# #0000ff blue1
+# #b22222 brown
+# #228b22 dark green
+# #22228b dark blue

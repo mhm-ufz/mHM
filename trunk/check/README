@@ -1,0 +1,232 @@
+----------------------------------------
+        MAKE TEST
+----------------------------------------
+
+To run all the test cases type 
+
+     $ cd check/
+     $ ./check_mhm_cases
+
+on your command line. If test case was running properly, i.e. is 
+consistent with the pre-defined output, command line output will be 
+
+     $ case #[id] o.k. 
+
+otherwise, if the test scenario failed either during runtime or 
+because of inconsistent output 
+
+     $ case #[id] failed
+
+will be written on standard output. Additionally, you will find a file
+mhm.output in each specific test case folder case_[id]/ containing the 
+mHM print-outs. Inspecting this file might help you to find the reason 
+of failure. You can use 'check_mhm_cases clean' to clean up the case
+directories.
+Only if all test cases pass the make test, a new feature of mHM is
+allowed to be merged back to the trunk, which consists of two steps:
+
+(1) Update your branch to current status of the trunk, i.e.
+    include features already apparent in the trunk but not your branch
+
+     $ cd my-branch/
+     $ svn merge https://svn.ufz.de/svn/mhm/trunk
+     $ svn commit -m "mhm: branches: my-branch: I have the current trunk \
+                      in my branch and solved all conflicts"
+
+(2) Merge your branch to the trunk
+
+     $ cd trunk/
+     $ svn merge --reintegrate https://svn.ufz.de/svn/mhm/branches/my-branch
+     $ svn commit -m "mhm: trunk: successfully integrated feature \
+                      <this-is-the-feature>"
+
+Please be aware that the test cases only include switches specified 
+within a namelist. This means that you should run "./check_mhm_cases" with 
+the Makefile setting for
+
+    (1a) compiler = gnu
+    (1b) compiler = nag
+    (1c) compiler = intel
+    (2a) openmp   = true
+    (2b) openmp   = false
+
+----------------------------------------
+        TEST CASES
+----------------------------------------
+
+case 0 :: DEFAULT mhm.nml and mhm_outputs.nml and mhm_parameter.nml
+
+case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   processCase(5)             = 1                                               (default:       0)
+   flag: read_restart         = .TRUE.                                          (default: .FALSE.)
+   flag: perform_mpr          = .FALSE.                                         (default: .TRUE. )
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly, output written monthly
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   processCase(5)             = 2                                               (default:       0)
+   processCase(8)             = 0                                               (default:       1)
+   timestep_model_inputs      = -2                                              (default:       1)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = -2                                              (default:      -1)
+
+case 3 :: OPTIMIZATION ACTIVATED, PET: Penman-Monteith
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   processCase(5)             = 3                                               (default:       0)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 4 :: MULTISCALE  
+   nBasins                    = 6                                               (default: nBasins                 = 2)
+   resolution_Hydrology(1)    = 24000                                           (default: resolution_Hydrology(1) = 24000 )
+   resolution_Hydrology(2)    = 12000                                           (default: resolution_Hydrology(1) = 24000 )
+   resolution_Hydrology(3)    = 24000                                           (default: )
+   resolution_Hydrology(4)    = 24000                                           (default: )
+   resolution_Hydrology(5)    = 12000                                           (default: )
+   resolution_Hydrology(6)    = 24000                                           (default: )
+   resolution_Routing(1)      = 24000                                           (default: resolution_Routing(1)   = 24000)
+   resolution_Routing(2)      = 12000                                           (default: resolution_Routing(2)   = 24000)
+   resolution_Routing(3)      = 24000                                           (default: )
+   resolution_Routing(4)      = 24000                                           (default: )
+   resolution_Routing(5)      = 12000                                           (default: )
+   resolution_Routing(6)      = 24000                                           (default: )
+   L0Basin(1)                 = 1                                               (default: )
+   L0Basin(2)                 = 1                                               (default: )
+   L0Basin(3)                 = 2                                               (default: )
+   L0Basin(4)                 = 3                                               (default: )
+   L0Basin(5)                 = 4                                               (default: )
+   L0Basin(6)                 = 5                                               (default: )
+   nGaugesTotal               = 6                                               (default: nGaugesTotal            = 2)
+   NoGauges_basin(3)          = 1                                               (default: )
+   Gauge_id(3,1)              = 45                                              (default: )
+   Gauge_filename(3,1)        = "45.txt"                                        (default: )
+   NoGauges_basin(4)          = 1                                               (default: )
+   Gauge_id(4,1)              = 398                                             (default: )
+   Gauge_filename(4,1)        = "00398.txt"                                     (default: )
+   NoGauges_basin(5)          = 1                                               (default: )
+   Gauge_id(5,1)              = 398                                             (default: )
+   Gauge_filename(5,1)        = "00398.txt"                                     (default: )
+   NoGauges_basin(6)          = 1                                               (default: )
+   Gauge_id(6,1)              = 45                                              (default: )
+   Gauge_filename(6,1)        = "45.txt"                                        (default: )
+   + adjust basin wise directory paths according to the multiscale setup:
+   dir_Out(1)                 = "output_b1/b1_"                                 (default: "output_b1/")
+   dir_RestartOut(1)          = "output_b1/b1_"                                 (default: "output_b1/")
+   dir_LatLon(2)              = "../../test_basin/input/latlon/latlon_2.nc"     (default: latlon_1.nc )
+   dir_Out(2)                 = "output_b1/b2_"                                 (default: "output_b1/")
+   dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
+   dir_LatLon(3)              = "../../test_basin_2/input/latlon/latlon.nc"     (default: )
+   dir_Out(3)                 = "output_b1/b3_"                                 (default: )
+   dir_RestartOut(3)          = "output_b1/b3_"                                 (default: )
+   dir_LatLon(4)              = "../../test_basin/input/latlon/latlon_1.nc"     (default: )
+   dir_Out(4)                 = "output_b1/b4_"                                 (default: )
+   dir_RestartOut(4)          = "output_b1/b4_"                                 (default: )
+   dir_LatLon(5)              = "../../test_basin/input/latlon/latlon_2.nc"     (default: )
+   dir_Out(5)                 = "output_b1/b5_"                                 (default: )
+   dir_RestartOut(5)          = "output_b1/b5_"                                 (default: )
+   dir_LatLon(6)              = "../../test_basin_2/input/latlon/latlon.nc"     (default: )
+   dir_Out(6)                 = "output_b1/b6_"                                 (default: )
+   dir_RestartOut(6)          = "output_b1/b6_"                                 (default: )
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA, output written every 14 days
+   nBasins                    = 3                                               (default:       1)
+   nGaugesTotal               = 6                                               (default:       1)
+   NoGauges_basin(1)          = 2                                               (default:       1)
+   NoGauges_basin(2)          = 2                                               (default:       1)
+   NoGauges_basin(3)          = 2                                               (default:       0)
+   timeStep_LAI_input         = -2                                              (default:       0)
+   Gauge_id(1,2)              = 333                                             (default: n.a.)
+   gauge_filename(1,2)        = "00333.txt"                                     (default: n.a.)
+   Gauge_id(2,2)              = 333                                             (default: n.a.)
+   gauge_filename(2,2)        = "00333.txt"                                     (default: n.a.)
+   nInflowGaugesTotal         = 2                                               (default: nInflowGaugesTotal            = 0)
+   NoInflowGauges_basin(1)    = 1                                               (default: NoInflowGauges_basin(1)       = 0)
+   InflowGauge_id(1,1)        = 333                                             (default: InflowGauge_id(1,1)           = 398)
+   InflowGauge_filename(1,1)  = "00333.txt"                                     (default: InflowGauge_filename(1,1)     = "00398.txt")
+   NoInflowGauges_basin(2)    = 1                                               (default: NoInflowGauges_basin(2)       = 0)
+   InflowGauge_id(2,1)        = 333                                             (default: InflowGauge_id(2,1)           = 398)
+   InflowGauge_filename(2,1)  = "00333.txt"                                     (default: InflowGauge_filename(2,1)     = "00398.txt")
+   InflowGauge_Headwater(2,1) = .TRUE.                                          (default:             )
+   dir_Out(1)                 = "output_b1/b1_"                                 (default: "output_b1/")
+   dir_RestartOut(1)          = "output_b1/b1_"                                 (default: "output_b1/")
+   dir_Out(2)                 = "output_b1/b2_"                                 (default: "output_b1/")
+   dir_RestartOut(2)          = "output_b1/b2_"                                 (default: "output_b1/")
+   dir_Out(3)                 = "output_b1/b3_"                                 (default: "output_b1/")
+   dir_RestartOut(3)          = "output_b1/b3_"                                 (default: "output_b1/")
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 336 (= 14*24 hours)                             (default:      -1)
+
+
+case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 13                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 7 :: Q + TWS BASIN AVERAGE OPTIMIZATION ACTIVATED
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 15                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 8 :: NEUTRON OPTIMIZATION ACTIVATED
+   nBasins                    = 1                                               (default:       1)
+   nGaugesTotal               = 1                                               (default:       1)
+   optimize                   = .TRUE.                                          (default: .FALSE.)
+   opti_method                = 1                                               (default:       3)
+   opti_function              = 17                                              (default:       3)
+   nIterations                = 6                                               (default:     400)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 9 :: ADAPTIVE TIMESTEPPING IN ROUTING, RESTART WRITING, PET: Hargreaves-Samani
+   nBasins                    = 2                                               (default:       1)
+   nGaugesTotal               = 2                                               (default:       1)
+   processCase(5)             = 1                                               (default:       0)
+   processCase(8)             = 2                                               (default:       0)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = 0                                               (default:      -1)
+
+# -------------------------------------------------------------------------------------------
+#
+# Copyright 2014 Juliane Mai
+#
+# License
+# This file is part of the UFZ CHS mesoscale hydrologic model mHM.
+#
+# The UFZ CHS mesoscale hydrologic model mHM is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The UFZ CHS mesoscale hydrologic model mHM is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.

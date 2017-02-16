@@ -1,0 +1,186 @@
+/**
+\page style Coding and Documentation Style
+
+The coding and documentation style guide has the following sections:\n
+\ref general "General"\n
+\ref files "In and Out of Files"\n
+\ref modules "Modules, Subroutines and Functions"\n
+\ref variables "Variables"\n
+\ref documentation "Documentation"\n
+
+
+\anchor general<b>General</b>\n
+- <b>Follow the coding and documentation style of template mo_template.f90 very closely.</b>
+- Enforce SI units in all code, with the only exception of \f$\mathrm{mm s^{-1}}\f$ for
+\f$\mathrm{kg\;m}^{-2} \mathrm{s}^{-1}\f$.
+- mHM is computed in double precision (dp).
+\code
+real(dp) :: wind_speed ! wind speed in [m s-1]
+\endcode
+- New routines should be tested with at least two different compilers (of different vendors).
+
+
+\anchor files<b>In and Out of Files</b>\n
+- Filenames are all lower case.
+- Module names and filenames are the same and start with mo_
+- Filenames should be descriptive of the content and use as little abbreviations as possible.
+- Fortran filenames end with .f90
+\code
+mo_string_utils.f90
+\endcode
+- Never use tabs.
+- Break lines at column 130, at most. This includes comments
+\code
+  sum_of_all = a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s + &
+               t + u + v + w + x + y + z
+  zero       = 0.0_dp ! This literal can be used whenever something has to be initialised, so that 
+                      ! it will be initialised with the right number precision
+\endcode
+- Indent all code blocks.
+\code
+  if (abs(a-b)>epsilon(1.0_dp)) then
+    if (a >= b) then
+      a = b
+    else
+      b = a
+    endif
+  endif
+\endcode
+
+
+\anchor modules<b>Modules, Subroutines and Functions</b>\n
+- All modules and programs have IMPLICIT NONE.
+- All USE statements have the only clause.
+\code
+  module mo_calc
+
+    use mo_kind, only: i4, dp
+
+    implicit none
+
+    ...
+\endcode
+- Modules are PRIVATE by default.
+- Module routines are made available explicitly, i.e. PUBLIC.
+- Give 1-line descriptions after the public definition.
+\code
+  module mo_calc
+
+    use mo_kind, only: i4, dp
+
+    implicit none
+
+    private
+
+    public :: calc ! Calculates the thing
+
+  contains
+
+    function calc(x)  
+
+    ...
+\endcode
+- Try to write elemental pure subroutines whenever possible (see below).
+- Extremely short subroutines should be avoided.
+- Avoid very long subroutines (>500 lines).
+
+
+\anchor variables<b>Variables</b>\n
+- Use expressive and descriptive variable names for all variables in the namelist and for all
+variables that have a larger scope, i.e. that are used in more than a screen full.\n
+This means that counter variables can still be i, ii, j, ... and local variables can also be called
+short names such as tmp or itmp.\n
+But variables, which are important to read the formula, should have descriptive names such as ido_that or iDoThat.\n
+Variable names should not be too long either. The agreed maximu numbers are
+  - filenames < 30 characters
+  - variable names < 20 characters
+- All variables and literals use explicit type declarations from mo_kind.
+\code
+  elemental pure function circum(radius)
+
+    use mo_kind,     only: dp
+    use mo_constans, only: pi_dp
+
+    implicit none
+
+    real(dp), intent(in) :: radius
+    real(dp)             :: circum
+
+    circum = 2.0_dp * pi_dp * radius
+
+  end function circum
+\endcode
+- Array dimensions are in the following order: lon (east-west), lat (north-south), z (vertical), t
+(time level). Additional dimensions can be used and are placed in front of t.
+- Always pass arrays as sub-program arguments. This means: use as little global variables as possible.
+- All input/output arguments have an intent.
+\code
+  subroutine calc(x,y)
+
+    use mo_kind, only: i4, dp
+
+    implicit none
+
+    real(dp),    dimension(:,:),                 intent(in)  :: x
+    integer(i4), dimension(size(x,1),size(x,2)), intent(out) :: y
+
+    ...
+\endcode
+- Use intuitive names for optional arguments.
+\code
+  function calc(x, inverse)
+
+    use mo_kind, only: i4, dp
+
+    implicit none
+
+    real(dp),    dimension(:,:),     intent(in) :: x
+    logical,     optional,           intent(in) :: inverse
+    integer(i4), dimension(size(x,1),size(x,2)) :: calc
+
+    logical :: iinverse
+
+    iinverse = .false.
+    if (present(inverse)) then
+      iinverse = .false.
+      if (inverse) iinverse = .true.
+    endif
+
+    ...
+\endcode
+- Global variables are initialised at the setup stage.
+- Never use hardcoded number literals such as 5., 3.14, etc. Exceptions might be -1, 0, 1, and
+2<b></b>. But all literals are appended by _dp, _i4, etc.
+\code
+  elemental pure function circum(radius)
+
+    use mo_kind,     only: dp
+    use mo_constans, only: pi_dp
+
+    implicit none
+
+    real(dp), intent(in) :: radius
+    real(dp)             :: circum
+
+    circum = 2.0_dp * pi_dp * radius
+
+  end function circum
+\endcode
+- Avoid pointers whenever possible.
+- Index notation is encouraged whenever whole arrays are treated such as a(:) = b(:)*c(:).\n
+It is still very good for contiguous subarrays such as  a(1:n-1) = b(1:n-1)*c(1:n-1).\n
+It is discouraged, though, for mixed indexing such as a(1:n-1) = b(2:n)*c(1:n-1). This is (1) prone
+to coding error, (2) not easy to read by other programmers, and (3) hard to parallelise with OpenMP
+or MPI. Use forall or do instead.
+
+
+\anchor documentation<b>Documentation</b>\n
+Follow the documentation structure before the interface mean in mo_template.f90.\n
+Documentation uses the automatic documentation system doxygen (http://www.doxygen.org/). See the
+manual for the complete list of documentation tags: http://www.doxygen.nl/manual.html
+- The documentation of a routine is in front of the routine definition.
+- Documentation for a module interface must be in front of the interface definition.\n
+  The individual routines do not need extra documentation.
+- Only public elements will be considered by the automatic documentation system doxygen.
+- Make your routines public at the beginning of the file. Append a one-line descriptions to the public statement.
+*/
