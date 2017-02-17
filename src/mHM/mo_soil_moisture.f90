@@ -13,8 +13,6 @@
 MODULE mo_soil_moisture
 
   USE mo_kind, ONLY: i4, dp
-  use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
-  USE mo_global_variables, only : HorizonDepth_mHM, L1_soilMoistFC  
 
   IMPLICIT NONE
 
@@ -110,12 +108,11 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Dec 2012
-  !         Modified by RK, July 2013 - A Mosiac apporach is implemented for processes accounted
+  !         Modified RK, July 2013 - A Mosiac apporach is implemented for processes accounted
   !                                  within the permeamble & impervious area. Precipitation and 
   !                                  effective PET intensity are same for both areas.
   !                                - changes made for variables "water_thresh_sealed" when it becomes
   !                                  zero
-  !         February 2017, modified by Simon Stisen & Mehmet Cuneyd Demirel: New SM and AET parametrization based on FC, sand and clay. 	
 
   subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
        evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
@@ -124,7 +121,6 @@ CONTAINS
 
     use mo_constants, only: eps_dp
 
-	
     implicit none
 
     ! Intent variables
@@ -137,9 +133,8 @@ CONTAINS
     real(dp), dimension(:),                      intent(in)    :: soil_moist_sat      ! Saturation soil moisture 
     !                                                                                 ! for each horizon [mm]
     real(dp), dimension(:),                      intent(in)    :: frac_roots          ! Fraction of Roots in soil horizon
-    real(dp), dimension(:),                      intent(inout)    :: soil_moist_FC       ! Soil moisture below which actual ET 
+    real(dp), dimension(:),                      intent(in)    :: soil_moist_FC       ! Soil moisture below which actual ET 
     !                                                                                 ! is reduced [mm]
-
     real(dp), dimension(:),                      intent(in)    :: wilting_point       ! Permanent wilting point 
     !                                                                                 ! for each horizon [mm]
     real(dp), dimension(:),                      intent(in)    :: soil_moist_exponen  ! Exponential parameter to how non-linear 
@@ -152,10 +147,6 @@ CONTAINS
     real(dp), dimension(size(soil_moist_sat,1)), intent(inout) :: infiltration        ! Recharge, infiltration intensity or
     !                                                                                 ! effective precipitation 
     !                                                                                 ! for each horizon [mm/s]
-    real(dp)		:: theta_inorm 		=0.0_dp    									  ! Normalized soil water content, SPACE Eq2 in Jarvis 1989 JHydrol
-    real(dp)    	:: theta_norm_C1 	=0.0_dp    									  ! Critical value of Normalized soil water content, Eq3 in Jarvis 1989 JHydrol (SPACE)
-	integer(i4)    	:: iii 
-
     real(dp), dimension(size(soil_moist_sat,1)), intent(inout) :: soil_moist          ! Soil moisture of each horizon [mm]
     real(dp), dimension(size(soil_moist_sat,1)), intent(out)   :: aet                 ! actual ET [mm/s]
     real(dp),                                    intent(out)   :: aet_sealed          ! actual ET from free-water surfaces,
@@ -164,11 +155,8 @@ CONTAINS
     ! Local variables
     integer(i4) :: hh              ! counter
     real(dp)    :: prec_effec_soil ! Effective Prec or infiltration from above
-    real(dp)    :: frac_runoff     ! Runof fraction
+    real(dp)    :: frac_runoff     ! Runoof fraction
     real(dp)    :: tmp             ! temporary variable for misc use
-															
-																
-   
 
     ! ----------------------------------------------------------------
     ! IMPERVIOUS COVER PROCESS
@@ -205,30 +193,16 @@ CONTAINS
        end if
 
     end if
-	
-	
-	
+
     ! ----------------------------------------------------------------
     ! N-LAYER SOIL MODULE
     ! ----------------------------------------------------------------
-    aet(:)          		 = 0.0_dp
-    infiltration(:) 		 = 0.0_dp
-	
-	if ( ( processMatrix(11,1) ) .NE. 0 ) then
+    aet(:)          = 0.0_dp
+    infiltration(:) = 0.0_dp
 
-	!the Soil moisture below which actual ET is reduced linearly till PWP at level 1  2/2/2017 SPACE
-	do, iii=1,size(global_parameters_name,1)
-		if (global_parameters_name(iii)=="theta_norm_C1")theta_norm_C1=global_parameters(iii,3)
-	enddo	 
- 
-	end if 
-	
-	! for 1st layer input is prec_effec
+    ! for 1st layer input is prec_effec
     prec_effec_soil = prec_effec
-	
-	if ( ( processMatrix(11,1) .EQ. 0_i4)) then
-
-	!! DEFAULT mHM do loop
+    
     do hh = 1, size(soil_moist_sat,1) ! nHorizons
        ! input for other layers is the infiltration from its immediate upper layer will be input
        if (hh .NE. 1) prec_effec_soil = infiltration(hh-1)
@@ -298,194 +272,7 @@ CONTAINS
 
     end do ! hh
 
-	
-	else if ( ( processMatrix(11,1) .EQ. -1) .OR. (processMatrix(11,1) .EQ. -2)) then
-    
-	!! SPACE without frac_runoff: process(11): -1 or -2
-	do hh = 1, size(soil_moist_sat,1) ! nHorizons
-       ! input for other layers is the infiltration from its immediate upper layer will be input
-       if (hh .NE. 1) prec_effec_soil = infiltration(hh-1)
-
-		!  start processing for soil moisture process
-		!  BASED ON SMs as its upper LIMIT
-				   
-	   
-       !  start processing for soil moisture process
-       !  BASED ON SMs as its upper LIMIT
-
-       if (soil_moist(hh) > soil_moist_sat(hh)) then
-          infiltration(hh) = prec_effec_soil
-       else
-          ! to avoid underflow -- or numerical errors
-		  if((soil_moist(hh) - wilting_point(hh)) > eps_dp) then
-             !frac_runoff = (soil_moist(hh) / soil_moist_sat(hh))**soil_moist_exponen(hh)
-             frac_runoff = exp(soil_moist_exponen(hh)*log(soil_moist(hh)/soil_moist_sat(hh))) ! default mHM 
-		  else		  
-             frac_runoff = 0.0_dp
-          end if
-          tmp = prec_effec_soil * (1.0_dp - frac_runoff)
-
-          if ( (soil_moist(hh) + tmp) > soil_moist_sat(hh) ) then
-             infiltration(hh) = prec_effec_soil + ( soil_moist(hh) - soil_moist_sat(hh) )
-             soil_moist(hh)   = soil_moist_sat(hh)
-          else
-             infiltration(hh) = prec_effec_soil - tmp
-             soil_moist(hh)   = soil_moist(hh)  + tmp
-          end if
-       end if
-   
-       !             aET calculations
-
-       !  Satisfying ET demand sequentially from top to the bottom layer
-       !  Note that the potential ET for the first soil layer is reduced after
-       !  satisfying ET demands of the canopy surface
-
-       aet(hh) = pet - aet_canopy                                                     ! First layer
-       if (hh /= 1) aet(hh) = aet(hh) - sum(aet(1:hh-1), mask=(aet(1:hh-1) > 0.0_dp)) ! remaining layers
-	   
-
-	   !!!!!!!!! INTRODUCING FIELD CAPACITY DEPENDENT THRESHOLD FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
-	   
-	   
-		! Calculating normalized Soil Water Content 
-	    theta_inorm = (soil_moist(hh)-wilting_point(hh))/(soil_moist_sat(hh)-wilting_point(hh))  ! SPACE Eq2 in Jarvis 1989 JHydrol
-		! theta_norm_C1 is dynamically found in global_parameters at Line 220 above. This works fine for different routing options as compared to a fixed row number. 
-
-
-		if (theta_inorm .lt. 0.0_dp) 	theta_inorm=0.0_dp	   
-		if (theta_inorm .gt. 1.0_dp)    theta_inorm=1.0_dp
-	   	
-	   
-	   
-	   	! estimate fraction of ET demand based on root fraction and SM status using theta_inorm according to Jarvis 1989 Jhydrol paper
-		! theta_inorm >= theta_norm_C1
-	   if ( (theta_inorm) .GE. theta_norm_C1) then !12/20/2016 SPACE
-          tmp = frac_roots(hh)
-       ! 0 < theta_inorm < theta_norm_C1
-       else if ( (theta_inorm.lt. theta_norm_C1) .AND. (theta_inorm .gt. 0.0_dp)) then !12/20/2016 SPACE
-          !tmp = frac_roots(hh) * (soil_moist(hh) - wilting_point(hh)) / (soil_moist_FC(hh) - wilting_point(hh))
-          tmp = frac_roots(hh) * (theta_inorm/theta_norm_C1)!12/20/2016 SPACE
-       ! theta_inorm <= 0
-       else if ( theta_inorm .LE. 0.0_dp ) then
-          tmp = 0.0_dp
-       else
-          stop 'Error soil_moisture: tmp used uninitialised.'
-       end if
-       aet(hh) = aet(hh) * tmp
-       ! avoid numerical error
-       if(aet(hh) < 0.0_dp) aet(hh) = 0.0_dp
-
-       ! reduce SM state
-       if(soil_moist(hh) > aet(hh)) then
-          soil_moist(hh) = soil_moist(hh) - aet(hh)
-       else
-          aet(hh)        = soil_moist(hh) - eps_dp
-          soil_moist(hh) = eps_dp
-       end if
-
-       ! avoid numerical error of underflow
-       if(soil_moist(hh) < eps_dp) soil_moist(hh) = eps_dp
-	   
-
-	   
-    end do ! hh
-
-	else if ( ( processMatrix(11,1) .EQ. -3) ) then
-	
-    !! SPACE with frac_runoff: process(11): -3
-	do hh = 1, size(soil_moist_sat,1) ! nHorizons
-       ! input for other layers is the infiltration from its immediate upper layer will be input
-       if (hh .NE. 1) prec_effec_soil = infiltration(hh-1)
-
-		!  start processing for soil moisture process
-		!  BASED ON SMs as its upper LIMIT
-				   
-	   
-       !  start processing for soil moisture process
-       !  BASED ON SMs as its upper LIMIT
-
-       if (soil_moist(hh) > soil_moist_sat(hh)) then
-          infiltration(hh) = prec_effec_soil
-       else
-          ! to avoid underflow -- or numerical errors
-		  if((soil_moist(hh) - wilting_point(hh)) > eps_dp) then
-             !frac_runoff = (soil_moist(hh) / soil_moist_sat(hh))**soil_moist_exponen(hh)
-             !frac_runoff = exp(soil_moist_exponen(hh)*log(soil_moist(hh)/soil_moist_sat(hh))) ! default mHM 
-			 frac_runoff = exp(soil_moist_exponen(hh)*log((soil_moist(hh)-wilting_point(hh))/(soil_moist_sat(hh)-wilting_point(hh))))  ! SPACE test 14/12/2016
-			 !frac_runoff = ((soil_moist(hh)-wilting_point(hh)) / (soil_moist_sat(hh)-wilting_point(hh)))**soil_moist_exponen(hh) ! SPACE test 20/12/2016
-		  else 
-             frac_runoff = 0.0_dp
-          end if
-          tmp = prec_effec_soil * (1.0_dp - frac_runoff)
-
-          if ( (soil_moist(hh) + tmp) > soil_moist_sat(hh) ) then
-             infiltration(hh) = prec_effec_soil + ( soil_moist(hh) - soil_moist_sat(hh) )
-             soil_moist(hh)   = soil_moist_sat(hh)
-          else
-             infiltration(hh) = prec_effec_soil - tmp
-             soil_moist(hh)   = soil_moist(hh)  + tmp
-          end if
-       end if
-   
-       !             aET calculations
-
-       !  Satisfying ET demand sequentially from top to the bottom layer
-       !  Note that the potential ET for the first soil layer is reduced after
-       !  satisfying ET demands of the canopy surface
-
-       aet(hh) = pet - aet_canopy                                                     ! First layer
-       if (hh /= 1) aet(hh) = aet(hh) - sum(aet(1:hh-1), mask=(aet(1:hh-1) > 0.0_dp)) ! remaining layers
-	   
-
-	   !!!!!!!!! INTRODUCING FIELD CAPACITY DEPENDENT THRESHOLD FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
-	   
-	   
-		! Calculating normalized Soil Water Content 
-	    theta_inorm = (soil_moist(hh)-wilting_point(hh))/(soil_moist_sat(hh)-wilting_point(hh))  ! SPACE Eq2 in Jarvis 1989 JHydrol
-		! theta_norm_C1 is dynamically found in global_parameters at Line 220 above. This works fine for different routing options as compared to a fixed row number. 
-
-
-		if (theta_inorm .lt. 0.0_dp) 	theta_inorm=0.0_dp	   
-		if (theta_inorm .gt. 1.0_dp)    theta_inorm=1.0_dp
-	   	
-	   
-	   
-	   	! estimate fraction of ET demand based on root fraction and SM status using theta_inorm according to Jarvis 1989 Jhydrol paper
-		! theta_inorm >= theta_norm_C1
-	   if ( (theta_inorm) .GE. theta_norm_C1) then !12/20/2016 SPACE
-          tmp = frac_roots(hh)
-       ! 0 < theta_inorm < theta_norm_C1
-       else if ( (theta_inorm.lt. theta_norm_C1) .AND. (theta_inorm .gt. 0.0_dp)) then !12/20/2016 SPACE
-          !tmp = frac_roots(hh) * (soil_moist(hh) - wilting_point(hh)) / (soil_moist_FC(hh) - wilting_point(hh))
-          tmp = frac_roots(hh) * (theta_inorm/theta_norm_C1)!12/20/2016 SPACE
-       ! theta_inorm <= 0
-       else if ( theta_inorm .LE. 0.0_dp ) then
-          tmp = 0.0_dp
-       else
-          stop 'Error soil_moisture: tmp used uninitialised.'
-       end if
-       aet(hh) = aet(hh) * tmp
-       ! avoid numerical error
-       if(aet(hh) < 0.0_dp) aet(hh) = 0.0_dp
-
-       ! reduce SM state
-       if(soil_moist(hh) > aet(hh)) then
-          soil_moist(hh) = soil_moist(hh) - aet(hh)
-       else
-          aet(hh)        = soil_moist(hh) - eps_dp
-          soil_moist(hh) = eps_dp
-       end if
-
-       ! avoid numerical error of underflow
-       if(soil_moist(hh) < eps_dp) soil_moist(hh) = eps_dp
-	   
-
-	   
-    end do ! hh
-
-
-	end if 
-	
+  
   end subroutine soil_moisture
 
 END MODULE mo_soil_moisture

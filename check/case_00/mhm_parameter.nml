@@ -87,7 +87,7 @@ rechargeFactor_karstic             = -5.0000,      5.0000,          -1.0,     1,
 gain_loss_GWreservoir_karstic      =  1.0000,      1.0000,           1.0,     0,       1
 /                                                         
                                                           
-! Muskingum routing parameters with MPR
+! routing                                                 
 &routing1                                                 
 muskingumTravelTime_constant       =  0.3100,      0.3500,         0.325,     1,       1
 muskingumTravelTime_riverLength    =  0.0700,      0.0800,         0.075,     1,       1
@@ -95,12 +95,6 @@ muskingumTravelTime_riverSlope     =  1.9500,      2.1000,           2.0,     1,
 muskingumTravelTime_impervious     =  0.0900,      0.1100,           0.1,     1,       1
 muskingumAttenuation_riverSlope    =  0.0100,      0.5000,           0.3,     1,       1
 /
-
-! adaptive timestep routing
-&routing2
-streamflow_celerity                =     0.1,         15.,           1.5,     0,       1
-/
-
 ! ground albedo neutrons                                  
 ! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 &neutrons1                                                 
@@ -127,12 +121,3 @@ GeoParam(8,:)                      =  1.000,      1000.00,     100.0,     1,    
 GeoParam(9,:)                      =  1.000,      1000.00,     100.0,     1,       1
 GeoParam(10,:)                     =  1.000,      1000.00,     100.0,     1,       1
 /
-
-
-! Soil moisture ET soil type dependency                                           
-&sandclay                                            
-theta_norm_C1                      =    0,          1.0,            0.5,      1,       1
-rootFractionCoefficient_sand 	   =  0.0010,      0.0900,          0.09,     1,       1
-rootFractionCoefficient_clay   	   =  0.9000,      0.9990,          0.98,     1,       1
-
-/ 

@@ -23,7 +23,7 @@
 ! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
 ! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
 ! Stephan Thober, Nov 2016 - added adaptive timestep scheme for routing  
-
+! Rohini  Kumar, Dec 2017  - added LAI option to read long term mean monthly fields 
   
 !******************************************************************************************
 !
@@ -476,22 +476,37 @@ LCoverfName(3)     = 'lc_1990.asc'
 !> This flag is unique and valid for all basins.\n
 !
 !> timeStep_LAI_input
+!>
 !>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
 !>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
 !>         Information regarding long-term monthly mean LAI for land cover classes
 !>         appearing in all modeled basins should be included in this LUT file.
 !>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be
-!>         located in each basin's morph directory.
-!> <0: Read gridded LAI files.\n
+!>     The respective plant functional type is in LAI_class.asc, which must be also given
+!>         and should be located in each basin's morph directory.
+!>
+!>*NOTE: In this option-0, the LAI-LUT and the corresponding LC_LAI datasets are used in
+!>         regionalising the max. interception capacity parameter and some parameters
+!>         in the PET estimation approaches of the Priestley-Taylor method and
+!>         the Penman monteith equation. The PET estimation approaches uses these datasets
+!>         in various ways; and are currently not flexible enough to use other LAI options.
+!>         
+!> **: THE BELOW MENTIONED OPTIONS ARE CURRENTLY USED FOR ONLY REGIONALIZING THE INTERCEPTION PARAMETERS
+!>
+!> < 0: Read gridded LAI files.\n
 !>     -1: gridded LAI are daily values\n
 !>     -2: gridded LAI are monthly values\n
 !>     -3: gridded LAI are yearly values\n
+!
+!>  1: read mean monthly gridded LAI values.\n
+!>     must be a separate *.nc file for every (modeled) basins.\n
 !-----------------------------------------------------------------------------------
 timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
 !>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
+!> input file format of gridded file (if timeStep_LAI_input == 1)
+!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
 inputFormat_gridded_LAI = "nc"
 /
 
@@ -523,15 +538,6 @@ processCase(4) = 1
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
 processCase(5) = 0
-!> if processCase(5) = 0 then you have other options for 
-!> estimating fraction of ET demand based on root fraction and SM status according to Eq3 in Jarvis 1989 Jhydrol paper
-!> Jarvis, N.J., 1989. A simple empirical model of root water uptake. J. Hydrol. 107, 57–72. doi:10.1016/0022-1694(89)90050-4
-!> FIELD CAPACITY DEPENDENT THRESHOLD FOR SOIL MOISTURE ET REDUCTION
-!>  0 - default Feddes equation
-!> -1 - use Jarvis equation instead of Feddes
-!> -2 - Jarvis equation and introducing FC dependency on root frac coef.  
-!> -3 - Jarvis equation and introducing FC dependency on root frac coef. and wilting point dependent runoff fraction 
-processCase(11) = -2
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
@@ -542,7 +548,7 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 !> 2 - adaptive timestep
-processCase(8) = 1
+processCase(8) = 2
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
@@ -623,6 +629,13 @@ evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  
 ! ANNUAL CYCLE METEOROLOGICAL FORCINGS
 !******************************************************************************************
 &nightDayRatio
+!> Alternatively to night day ratios, explicit weights for pet and average temperature can
+!> be read. The dimension for the weights are in FORTRAN-notation (rows, colums, months=12, hours=24)
+!> and in C-notation (hours=24, months=12, colums, rows).
+!> The array for temperature weights are called tavg_weight in the file: <dir_Temperature>/tavg_weight.nc
+!> The array for pet weights are called pet_weight in the file: <dir_ReferenceET>/pet_weight.nc
+!> If read_meteo_weights is False than night fractions below are used
+read_meteo_weights = .FALSE.
 !> night ratio for precipitation
 !> only night values required because day values are the opposite
 fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
