@@ -65,7 +65,8 @@ CONTAINS
   !>        \param[in] "integer(i4)               :: nGauges" number of recording gauges
   !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList" index list for outflow gauges
   !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList" gauge node list at L11
-  !>        \param[in] "logical                   :: map_flag" flag indicating whether routing resolution is coarser than hydrologic resolution
+  !>        \param[in] "logical                   :: map_flag" flag indicating whether routing resolution is
+  !>                                                 coarser than hydrologic resolution
   !>        \param[in] "integer(i4), dimension(:) :: L0_LCover" L0 land cover
   !>        \param[in] "integer(i4), dimension(:) :: L0_floodPlain" L0 fraction of flood plains
   !>        \param[in] "real(dp), dimension(:)    :: L0_areaCell" L0 cell area

@@ -401,12 +401,12 @@ end subroutine prepare_meteo_forcings_data
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         meteo_forcings_wrapper
+  !         meteo_weights_wrapper
   
   !     PURPOSE
   !>        \brief Prepare weights for meteorological forcings data for mHM at Level-1
 
-  !>        \details Prepare meteorological forcings data for mHM, which include \n
+  !>        \details Prepare meteorological weights data for mHM, which include \n
   !>         1) Reading meteo. weights datasets at their native resolution for every basin \n
   !>         2) Perform aggregation or disaggregation of meteo. weights datasets from their \n
   !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
@@ -458,7 +458,6 @@ end subroutine prepare_meteo_forcings_data
     use mo_global_variables,           only: readPer, level1, level2
     use mo_mhm_constants,              only: nodata_dp
     use mo_init_states,                only: get_basin_info
-    use mo_read_meteo,                 only: read_meteo_bin
     use mo_read_forcing_nc,            only: read_weights_nc
     use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
     use mo_append,                     only: append                    ! append vector
@@ -481,9 +480,9 @@ end subroutine prepare_meteo_forcings_data
     integer(i4)                                :: nrows2, ncols2
     logical, dimension(:,:), allocatable       :: mask2
 
-    real(dp), dimension(:,:,:,:), allocatable  :: L2_data        ! meteo data at level-2 
-    real(dp), dimension(:,:,:,:), allocatable  :: L1_data        ! meteo data at level-1
-    real(dp), dimension(:,:,:),   allocatable  :: L1_data_packed ! packed meteo data at level-1 from 3D to 2D
+    real(dp), dimension(:,:,:,:), allocatable  :: L2_data        ! meteo weights data at level-2 
+    real(dp), dimension(:,:,:,:), allocatable  :: L1_data        ! meteo weights data at level-1
+    real(dp), dimension(:,:,:),   allocatable  :: L1_data_packed ! packed meteo weights data at level-1 from 4D to 3D
 
     integer(i4)                                :: nMonths, nHours
     real(dp)                                   :: cellFactorHbyM ! level-1_resolution/level-2_resolution
