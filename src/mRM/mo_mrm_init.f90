@@ -544,10 +544,10 @@ CONTAINS
          basin_mrm, nBasins, &
          ! output variables
          L11_tsRout
-    use mo_mrm_constants,        only: HourSecs
+    use mo_mrm_constants,        only: HourSecs, given_TS
     use mo_message,              only: message
     use mo_string_utils,         only: num2str
-    use mo_utils,                only: notequal
+    use mo_utils,                only: notequal, locate
     
     implicit none
 
@@ -556,11 +556,9 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: param ! input parameter (param(1) is celerity in m/s)
 
     ! local variables
-    integer(i4) :: nTSrout ! number of routing timestep per hydrology timestep
-    real(dp)    :: TSrout  ! temporal routing resolution
-    real(dp)    :: TSroutfactor ! factor between routing temporal resolution and hydrology temporal resolution
-    real(dp)    :: deltaX  ! 
-    real(dp)    :: TShydro ! [s] time step of hydrologic model
+    integer(i4) :: index   ! index selected from given_TS
+    real(dp)    :: deltaX  ! spatial routing resolution
+    real(dp)    :: K       ! [s] wave travel time parameter
 
     ! temporal resolution of routing
     if (iBasin .eq. 1) then
@@ -570,41 +568,19 @@ CONTAINS
 
     if (processMatrix(8, 1) .eq. 1) then
        L11_tsRout = timestep * HourSecs
+
     else if (processMatrix(8, 1) .eq. 2) then
 
        ! adjust spatial resolution
        deltaX = resolutionRouting(iBasin)
        if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
-       ! calculate time step of hydrologic model in [s]
-       TShydro = HourSecs * timeStep
-
        ! calculate time step of routing model in [s]
-       TSrout = deltaX / param(1)
+       K = deltaX / param(1)
 
-       ! adjust routing timestep to scale of K
-       TSroutfactor = TSrout / TShydro
-
-       ! update TSrout such that it is a multiple
-       ! of TShydro
-       if (TSroutfactor .gt. 1._dp) then
-          nTSrout = nint(TSroutfactor)
-          TSrout = nTSrout * TShydro
-       else
-          nTSrout = nint(1._dp / TSroutfactor)
-          TSrout = (1._dp / nTSrout) * TShydro
-       end if
-
-       ! dont route below 12 minutes; there are limits!!!
-       if (TSrout .lt. 720._dp) then
-          call message('***WARNING: resetting routing timestep to 12 minutes (720 seconds)')
-          call message('            mRM has not been tested below this temporal resolution')
-          nTSrout = nint(TShydro / 720._dp)
-          TSrout = 720._dp
-       end if
-
-       ! set other global parameters
-       L11_tsRout(iBasin) = TSrout
+       ! determine routing timestep
+       index = locate(given_TS, K)
+       L11_TSrout(iBasin) = given_TS(index)
 
     end if
  
@@ -623,40 +599,47 @@ CONTAINS
 
   end subroutine mrm_init_param
 
-  subroutine mrm_update_param(iBasin)
+  subroutine mrm_update_param(iBasin, param)
 
     use mo_kind, only: i4, dp
     use mo_mrm_global_variables, only: &
+         ! input variable
+         resolutionRouting, L11_TSrout, iFlag_cordinate_sys, &
          ! output variables
          L11_C1, L11_C2
-    use mo_mrm_constants, only: rout_time_weight
+    use mo_mrm_constants, only: rout_space_weight
     use mo_mrm_tools,     only: get_basin_info_mrm
     
     implicit none
 
     ! Input
-    integer(i4),            intent(in) :: iBasin ! Basin number
+    integer(i4), intent(in) :: iBasin   ! Basin number
+    real(dp),    intent(in) :: param(1) ! celerity parameter [m s-1]
 
     ! local variables
     integer(i4) :: nrows
     integer(i4) :: ncols
     integer(i4) :: s11
     integer(i4) :: e11
+    real(dp)    :: deltaX  ! spatial routing resolution
+    real(dp)    :: K       ! [s] wave travel time parameter
     real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
 
     ! get basin information
     call get_basin_info_mrm(iBasin,  11, nrows, ncols,  iStart=s11,  iEnd=e11)
 
-    ! set time-weighting scheme
-    xi = abs(rout_time_weight) ! set weighting factor to 0._dp
-    
-    ! Muskingum parameters
-    L11_C1(s11: e11) = 1._dp / (1.5_dp - xi)
-    L11_C2(s11: e11) = 1.0_dp - L11_C1(s11)
+    ! adjust spatial resolution
+    deltaX = resolutionRouting(iBasin)
+    if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
-    ! ! Muskingum parameters - old equations where TSrout is variable
-    ! L11_C1(s11: e11) = L11_TSrout(iBasin) / ( L11_TSrout(iBasin) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
-    ! L11_C2(s11: e11) = 1.0_dp - L11_C1(s11) * L11_TSrout(iBasin) / L11_TSrout(iBasin)
+    ! [s] wave travel time parameter
+    K = deltaX / param(1)    
+    ! set time-weighting scheme
+    xi = abs(rout_space_weight) ! set weighting factor to 0._dp
+    
+    ! Muskingum parameters 
+    L11_C1(s11: e11) = L11_TSrout(iBasin) / ( K * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
+    L11_C2(s11: e11) = 1.0_dp - L11_C1(s11) * K / L11_TSrout(iBasin)
 
     ! optional print
     ! print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
