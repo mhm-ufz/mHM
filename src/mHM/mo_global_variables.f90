@@ -29,6 +29,7 @@ MODULE mo_global_variables
   !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
   !           Oldrich Rakovec,Oct 2015 - added definition of basin averaged TWS data
   !           Rohini Kumar,   Mar 2016 - new variables for handling different soil databases
+  !           Johann Brenner, Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
   
   USE mo_kind,             ONLY: i4, i8, dp
   use mo_common_variables, ONLY: period
@@ -62,7 +63,8 @@ MODULE mo_global_variables
   integer(i4),    public                             :: timeStep_LAI_input         ! time step of gridded LAI input
   ! Optional data
   integer(i4),    public                             :: timeStep_sm_input          ! time step of optional data: soil moisture sm
-  integer(i4),    public                             :: timeStep_neutrons_input    ! time step of optional data: soil moisture sm
+  integer(i4),    public                             :: timeStep_neutrons_input    ! time step of optional data: neutron counts
+  integer(i4),    public                             :: timeStep_et_input          ! time step of optional data: evapotransp. et
   integer(i4),    public                             :: iFlag_cordinate_sys        ! options model for the run cordinate system
   integer(i4),    public                             :: iFlag_soilDB               ! options to handle different soil databases
   ! ------------------------------------------------------------------
@@ -86,9 +88,10 @@ MODULE mo_global_variables
                                                                           ! used when timeStep_LAI_input < 0
   character(256), dimension(:), allocatable, public :: fileLatLon          ! directory to lat lon files
 
-  character(256), dimension(:), allocatable, public :: dirSoil_moisture   ! File of monthly soil moisture
-  character(256), dimension(:), allocatable, public :: fileTWS            ! File of tws data
-  character(256), dimension(:), allocatable, public :: dirNeutrons        ! File of spatio-temporal neutron data
+  character(256), dimension(:), allocatable, public :: dirSoil_moisture        ! File of monthly soil moisture
+  character(256), dimension(:), allocatable, public :: fileTWS                 ! File of tws data
+  character(256), dimension(:), allocatable, public :: dirNeutrons             ! File of spatio-temporal neutron data
+  character(256), dimension(:), allocatable, public :: dirEvapotranspiration   ! File of monthly soil moisture
 
   ! directory common to all basins
   character(256),                            public :: dirConfigOut       ! Directory where config run output is written to
@@ -330,7 +333,11 @@ MODULE mo_global_variables
   ! neutrons
   real(dp), public, dimension(:,:), allocatable    :: L1_neutronsdata            ! [cph] ground albedo neutrons input
   logical,  public, dimension(:,:), allocatable    :: L1_neutronsdata_mask       ! [cph] mask for valid data in L1_neutrons
-  integer(i4)                                      :: nTimeSteps_L1_neutrons ! [-] number of time steps in L1_neutrons_mask
+  integer(i4)                                      :: nTimeSteps_L1_neutrons     ! [-] number of time steps in L1_neutrons_mask
+  ! evapotranspiration
+  real(dp), public, dimension(:,:), allocatable    :: L1_et                 ! [mm] Evapotranspiration input for optimization
+  logical,  public, dimension(:,:), allocatable    :: L1_et_mask            ! [mm] mask for valid data in L1_neutrons
+  integer(i4)                                      :: nTimeSteps_L1_et      ! [-] number of time steps in L1_sm_mask
 
   ! Land cover
   ! dim1 = number grid cells L1

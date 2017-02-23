@@ -187,7 +187,8 @@ PROGRAM mhm_driver
   
   USE mo_read_optional_data,  ONLY : read_soil_moisture,     &      ! optional soil moisture reader, basin_avg_TWS reader
                                      read_basin_avg_TWS,     &
-                                     read_neutrons
+                                     read_neutrons,          &
+                                     read_evapotranspiration
   USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
   USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
   USE mo_read_latlon,         ONLY : read_latlon
