@@ -15,6 +15,7 @@
 !>               (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
 !>                                        (standard score) TWS\n
 !>               (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average \n
+!>               (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -114,9 +115,12 @@ CONTAINS
     case (15)
        ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
        objective = objective_kge_q_rmse_tws(parameterset)
-   case (17)
+    case (17)
       ! KGE of catchment average SM
-      objective = objective_neutrons_kge_catchment_avg(parameterset)
+       objective = objective_neutrons_kge_catchment_avg(parameterset)
+    case (27)
+       ! KGE of catchment average SM
+       objective = objective_et_kge_catchment_avg(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -1184,6 +1188,149 @@ CONTAINS
 
     call message('    objective_neutrons_kge_catchment_avg = ', num2str(objective_neutrons_kge_catchment_avg,'(F9.5)'))
 
-END FUNCTION objective_neutrons_kge_catchment_avg
+  END FUNCTION objective_neutrons_kge_catchment_avg
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_et_kge_catchment_avg
+
+  !>        \brief Objective function for evpotranspirstion (et).
+
+  !>        \details The objective function only depends on a parameter vector.
+  !>                 The model will be called with that parameter vector and
+  !>                 the model output is subsequently compared to observed data.\n
+  !>
+  !>                 Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
+  !>                       evapotranspiration (et) is calculated
+  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>                 where \n
+  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
+  !>                       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM \n
+  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
+  !>                 is calculated and the objective function for a given basin \f$ i \f$ is
+  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
+  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
+  !>
+  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f] \n
+  !>                 The observed data L1_et, L1_et_mask are global in this module.
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_et_kge_catchment_avg &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_et_kge_catchment_avg(para)
+
+  !     LITERATURE
+  !         none
+
+  !     HISTORY
+  !>        \author  Johannes Brenner
+  !>        \date    Feb 2017
+
+  FUNCTION objective_et_kge_catchment_avg(parameterset)
+
+    use mo_init_states,      only : get_basin_info
+    use mo_mhm_eval,         only : mhm_eval
+    use mo_message,          only : message
+    use mo_moment,           only : average
+    use mo_errormeasures,    only : KGE
+    use mo_string_utils,     only : num2str
+    !
+    use mo_global_variables, only: nBasins,             & ! number of basins
+                                   L1_et, L1_et_mask      ! packed measured et, et-mask (dim1=ncells, dim2=time)
+    use mo_mhm_constants,    only: nodata_dp              ! global nodata value
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)      :: parameterset
+    real(dp)                                :: objective_et_kge_catchment_avg
+
+    ! local
+    integer(i4)                             :: iBasin                   ! basin loop counter
+    integer(i4)                             :: iTime                    ! time loop counter
+    integer(i4)                             :: nrows1, ncols1           ! level 1 number of culomns and rows
+    integer(i4)                             :: s1, e1                   ! start and end index for the current basin
+    integer(i4)                             :: ncells1                  ! ncells1 of level 1
+    real(dp), parameter                     :: onesixth = 1.0_dp/6.0_dp ! for sixth root
+    real(dp), dimension(:),   allocatable   :: et_catch_avg_basin       ! spatial average of observed et
+    real(dp), dimension(:),   allocatable   :: et_opti_catch_avg_basin  ! spatial avergae of modeled  et
+    real(dp), dimension(:,:), allocatable   :: et_opti                  ! simulated et
+    !                                                                   ! (dim1=ncells, dim2=time)
+    logical,  dimension(:),   allocatable   :: mask_times               ! mask for valid et catchment avg time steps
+
+    call mhm_eval(parameterset, et_opti=et_opti)
+
+    ! initialize some variables
+    objective_et_kge_catchment_avg = 0.0_dp
+
+    ! loop over basin - for applying power law later on
+    do iBasin=1, nBasins
+
+       ! get basin information
+       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
+
+       ! allocate
+       allocate(mask_times             (size(et_opti, dim=2)))
+       allocate(et_catch_avg_basin     (size(et_opti, dim=2)))
+       allocate(et_opti_catch_avg_basin(size(et_opti, dim=2)))
+
+       ! initalize
+       mask_times              = .TRUE.
+       et_catch_avg_basin      = nodata_dp
+       et_opti_catch_avg_basin = nodata_dp
+
+       ! calculate catchment average evapotranspiration
+       do iTime = 1, size(et_opti, dim=2)
+
+          ! check for enough data points in time for correlation
+          if ( all(.NOT. L1_et_mask(:,iTime))) then
+              write (*,*) 'WARNING: ET data at time ', iTime, ' is empty.'
+             !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
+             !call message('         10 valid cells available in evapotranspiration observation')
+             mask_times(iTime) = .FALSE.
+             cycle
+          end if
+          et_catch_avg_basin(iTime)      = average(  L1_et(s1:e1,iTime), mask=L1_et_mask(s1:e1,iTime))
+          et_opti_catch_avg_basin(iTime) = average(et_opti(s1:e1,iTime), mask=L1_et_mask(s1:e1,iTime))
+       end do
+
+       ! calculate average ET KGE over all basins with power law
+       ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+       objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
+            ( (1.0_dp-KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask=mask_times)) / real(nBasins,dp) )**6
+    end do
+
+    objective_et_kge_catchment_avg = objective_et_kge_catchment_avg**onesixth
+
+    call message('    objective_et_kge_catchment_avg = ', num2str(objective_et_kge_catchment_avg,'(F9.5)'))
+
+END FUNCTION objective_et_kge_catchment_avg
 
 END MODULE mo_objective_function

@@ -407,7 +407,7 @@ PROGRAM mhm_driver
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17) 
+     case(10:13,15,17,27) 
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
      case default 
