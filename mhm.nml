@@ -539,7 +539,8 @@ processCase(1) = 1
 !> 1 - degree-day approach
 processCase(2) = 1
 !> soil moisture
-!> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
+!> 1 - Feddes equation for PET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
+!> 2 - Jarvis equation for PET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach

@@ -617,7 +617,9 @@ CONTAINS
 
        tmp_soilMoisture(:) = soilMoisture(k,:)
        tmp_infiltration(:) = infiltration(k,:)
-       call soil_moisture( fSealed1(k), water_thresh_sealed(k),                                & ! Intent IN
+	   
+       call soil_moisture(processMatrix(3,1),                                                  & ! Intent IN
+			fSealed1(k), water_thresh_sealed(k),                                               & ! Intent IN
             pet_calc(k), evap_coeff(month), soil_moist_sat(k,:), frac_roots(k,:),              & ! Intent IN
             soil_moist_FC(k,:), wilting_point(k,:),  soil_moist_exponen(k,:), aet_canopy(k),   & ! Intent IN
             prec_effect(k), runoff_sealed(k), sealedStorage(k),                                & ! Intent INOUT
