@@ -319,8 +319,8 @@ contains
   !         None
 
   !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:,:,:) :: data"     Data matrix
-  !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
+  !>        \param[out] "real(dp), dimension(:,:,:,:) :: data"     Data matrix
+  !>                                                               dim_1 = longitude, dim_2 = latitude, dim_3 = months, dim_4 = hours
 
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(dp), optional, intent(in)  :: lower"    Lower bound for check of validity of data values
@@ -332,7 +332,7 @@ contains
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[in] "logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
+  !>        \param[in] "logical, dimension(:,:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
   !>                                                                                                  data points 
 
   !     RETURN

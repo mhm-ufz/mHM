@@ -153,6 +153,7 @@ CONTAINS
          basin_avg_TWS_obs,                                 & ! basin avg TWS data
          fileTWS,                                           & ! directory with basin average tws data
          dirNeutrons, timeStep_neutrons_input,              & ! directory where neutron data is located
+         dirEvapotranspiration, timeStep_et_input,          & ! directory and time stepping of evapotranspiration data
          iFlag_soilDB,                                      & ! options to handle different types of soil databases
          HorizonDepth_mHM, nSoilHorizons_mHM, tillageDepth, & ! soil horizons info for mHM
          fracSealed_cityArea, nLcoverScene,                 & ! land cover information
@@ -272,7 +273,7 @@ CONTAINS
     ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
     character(256)                                  :: dummy
 
-    integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth           ! depth of the single horizons
+    integer(i4),dimension(maxNoSoilHorizons)        :: soil_Depth             ! depth of the single horizons
     character(256), dimension(maxNoBasins)          :: dir_Morpho
     character(256), dimension(maxNoBasins)          :: dir_LCover
     character(256), dimension(maxNoBasins)          :: dir_Precipitation
@@ -287,11 +288,12 @@ CONTAINS
     character(256), dimension(maxNoBasins)          :: dir_RestartOut
     character(256), dimension(maxNoBasins)          :: dir_RestartIn
     character(256), dimension(maxNoBasins)          :: file_LatLon
-    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI     ! directory of gridded LAI data
-    !                                                                      ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoBasins)          :: dir_soil_moisture   ! soil moisture input
-    character(256), dimension(maxNoBasins)          :: file_TWS            ! total water storage input file
-    character(256), dimension(maxNoBasins)          :: dir_neutrons        ! ground albedo neutron input
+    character(256), dimension(maxNoBasins)          :: dir_gridded_LAI        ! directory of gridded LAI data
+    !                                                                         ! used when timeStep_LAI_input<0
+    character(256), dimension(maxNoBasins)          :: dir_soil_moisture      ! soil moisture input
+    character(256), dimension(maxNoBasins)          :: file_TWS               ! total water storage input file
+    character(256), dimension(maxNoBasins)          :: dir_neutrons           ! ground albedo neutron input
+    character(256), dimension(maxNoBasins)          :: dir_evapotranspiration ! ground albedo neutron input
 
     !
     integer(i4)                                     :: nLCover_scene   ! given number of land cover scenes
@@ -325,7 +327,9 @@ CONTAINS
         nSoilHorizons_sm_input, &
         timeStep_sm_input, &
         file_TWS, &
-        dir_neutrons
+        dir_neutrons, &
+        dir_evapotranspiration, &
+        timeStep_et_input
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Hydrology, resolution_Routing, &
          L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, read_restart,   &
@@ -571,6 +575,7 @@ CONTAINS
     !===============================================================
     call position_nml('optional_data', unamelist)
     read(unamelist, nml=optional_data)
+    ! soil moisture
     dirSoil_moisture = dir_Soil_moisture(1:nBasins)
     if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
        call message()
@@ -578,8 +583,11 @@ CONTAINS
        call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
        stop
     end if
+    ! neutrons
     dirNeutrons = dir_neutrons(1:nBasins)
     timeStep_neutrons_input = -1 ! daily, hard-coded, to be flexibilized
+    ! evapotranspiration
+    dirEvapotranspiration = dir_evapotranspiration(1:nBasins)
 
     !===============================================================
     ! Read evaluation basin average TWS data

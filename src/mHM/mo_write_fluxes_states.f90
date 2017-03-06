@@ -1028,7 +1028,8 @@ contains
     type(NcDimension)       :: dimids1(3)
     type(NcVariable)        :: var
     integer(i4)             :: day, month, year
-    character(128)          :: fname, unit, date, time, datetime
+    character(1028)         :: fname
+    character(128)          :: unit, date, time, datetime
     real(dp), allocatable   :: northing(:), easting(:), lat(:,:), lon(:,:)
 
     fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
