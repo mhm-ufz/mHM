@@ -147,7 +147,7 @@ contains
        L1_beta       , & ! Parameter that determines the relative contribution to SM
        L1_SMs        , & ! [10^-3 m] depth of saturated SM cont
        L1_FC         , & ! [10^-3 m] field capacity
-       L1_PW         , & ! [10^-3 m] permanent wilting point 
+       L1_PW         , & ! [10^-3 m] permanent wilting point
        L1_fRoots )       ! fraction of roots in soil horizons
 
     use mo_upscaling_operators, only: upscale_harmonic_mean

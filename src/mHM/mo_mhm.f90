@@ -243,6 +243,7 @@ CONTAINS
       soil_moist_FC       , & ! Soil moisture below which actual ET is reduced
       soil_moist_sat      , & ! Saturation soil moisture for each horizon [mm]
       soil_moist_exponen  , & ! Exponential parameter to how non-linear is the soil water retention
+      jarvis_thresh_c1    , & ! jarvis critical value for normalized soil water content
       temp_thresh         , & ! Threshold temperature for snow/rain
       unsat_thresh        , & ! Threshold water depth in upper reservoir
       water_thresh_sealed , & ! Threshold water depth in impervious areas
@@ -397,6 +398,7 @@ CONTAINS
     real(dp), dimension(:,:),      intent(inout) ::  soil_moist_FC
     real(dp), dimension(:,:),      intent(inout) ::  soil_moist_sat
     real(dp), dimension(:,:),      intent(inout) ::  soil_moist_exponen
+    real(dp), dimension(:),        intent(inout) ::  jarvis_thresh_c1
     real(dp), dimension(:),        intent(inout) ::  temp_thresh
     real(dp), dimension(:),        intent(inout) ::  unsat_thresh
     real(dp), dimension(:),        intent(inout) ::  water_thresh_sealed
@@ -499,7 +501,7 @@ CONTAINS
                 alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
                 fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
                 surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
-                soil_moist_FC, soil_moist_sat, soil_moist_exponen,                        &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),   &
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
         !-------------------------------------------------------------------
@@ -617,11 +619,12 @@ CONTAINS
 
        tmp_soilMoisture(:) = soilMoisture(k,:)
        tmp_infiltration(:) = infiltration(k,:)
-	   
+       
        call soil_moisture(processMatrix(3,1),                                                  & ! Intent IN
-			fSealed1(k), water_thresh_sealed(k),                                               & ! Intent IN
+            fSealed1(k), water_thresh_sealed(k),                                               & ! Intent IN
             pet_calc(k), evap_coeff(month), soil_moist_sat(k,:), frac_roots(k,:),              & ! Intent IN
-            soil_moist_FC(k,:), wilting_point(k,:),  soil_moist_exponen(k,:), aet_canopy(k),   & ! Intent IN
+            soil_moist_FC(k,:), wilting_point(k,:), soil_moist_exponen(k,:),                   & ! Intent IN
+            jarvis_thresh_c1(k), aet_canopy(k),                                                & ! Intent IN
             prec_effect(k), runoff_sealed(k), sealedStorage(k),                                & ! Intent INOUT
             tmp_infiltration(:), tmp_soilMoisture(:),                                          & ! Intent INOUT
             tmp_aet_soil(:), aet_sealed(k) )                                                     ! Intent OUT

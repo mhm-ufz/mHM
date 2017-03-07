@@ -130,6 +130,8 @@ contains
   !>       \param[in,out] "real(dp) :: PW1(:,:)"           - [10^-3 m] permanent wilting point.
   !>                                                         Number of cells at L1 times number 
   !>                                                         of horizons in mHM
+  !>       \param[in,out] "real(dp) :: jarvis_thresh_c1(:)"- [1] jarvis critical value for normalized 
+  !>                                                         soil water content
   !>       \param[in,out] "real(dp) :: fRoots1(:,:)"       - fraction of roots in soil horizons.
   !>                                                         Number of cells at L1 times number
   !>                                                         of horizons in mHM
@@ -239,6 +241,7 @@ contains
        FC1,                 & ! INOUT: [10^-3 m] field capacity
        SMs1,                & ! INOUT: [10^-3 m] depth of saturated SM cont
        beta1,               & ! INOUT:           Parameter that determines the relative contribution to SM
+       jarvis_thresh_c1,    & ! INOUT: [1]       jarvis critical value for normalized soil water content
        TT1,                 & ! INOUT:           threshold temperature for snow rain
        HL1_1,               & ! INOUT: [10^-3 m] Threshhold water depth in upper reservoir 
        !                      !                  (for Runoff  contribution)
@@ -305,6 +308,7 @@ contains
     ! Output of soilmoisture parametrization
     real(dp), dimension(:,:),                intent(inout) :: beta1             ! Parameter that determines the rel.
     !                                                                           ! contribution to SM, upscal. Bulk den.
+    real(dp), dimension(:),                  intent(inout) :: jarvis_thresh_c1  ! [1] jarvis critical value for norm SWC
     real(dp), dimension(:,:),                intent(inout) :: SMs1              ! [10^-3 m] depth of saturated SM
     real(dp), dimension(:,:),                intent(inout) :: FC1               ! [10^-3 m] field capacity
     real(dp), dimension(:,:),                intent(inout) :: PW1               ! [10^-3 m] permanent wilting point
@@ -364,8 +368,10 @@ contains
     integer(i4)                             :: mTill    ! maximum of number of Tillage horizons
     integer(i4)                             :: mHor     ! maximum number of horizons
     integer(i4)                             :: mLC      ! number of Landcover classes
-    integer(i4)                             :: iStart 
-    integer(i4)                             :: iEnd
+    integer(i4)                             :: iStart   ! indexing of parameter vector - start
+    integer(i4)                             :: iEnd     ! indexing of parameter vector - end
+    integer(i4)                             :: iStart2  ! 2nd indexing of parameter vector - start
+    integer(i4)                             :: iEnd2    ! 2nd indexing of parameter vector - end
 
     ! ------------------------------------------------------------------
     ! snow parameters 
@@ -428,9 +434,30 @@ contains
        allocate( KsVar_V0( size(cell_id0,1) ) )
        allocate(  SMs_FC0( size(cell_id0,1) ) )
  
-       ! first thirteen parameters go to this routine
-       iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
-       iEnd   = proc_Mat(3,3) - 4    
+       select case( proc_Mat( 3,1 ) )
+       case(1)
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 4    
+
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 4 + 1
+           iEnd2   = proc_Mat(3,3)
+
+       case(2)
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 5    
+
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 5 + 1
+           iEnd2   = proc_Mat(3,3) - 1
+
+           ! last parameter is jarvis parameter - no need to be regionalized               
+           jarvis_thresh_c1 = param(proc_Mat(3,3))
+       end select
 
        call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
             SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
@@ -438,12 +465,8 @@ contains
             cell_id0, soilId0, LCOVER0,                        &
             thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
             thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
-
-       ! next four parameters go here
-       ! (the first three for the fRoots and the fourth one for the beta)
-       iStart = proc_Mat(3,3) - 4 + 1
-       iEnd   = proc_Mat(3,3)
-       call mpr_SMhorizons( param(iStart:iEnd), nodata, iFlag_soil,    &
+            
+       call mpr_SMhorizons( param(iStart2:iEnd2), nodata, iFlag_soil,    &
             nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
             SDB_nHorizons, SDB_nTillHorizons,                          &
             thetaS_till,thetaFC_till, thetaPW_till,                    &
@@ -451,7 +474,7 @@ contains
             mask0, cell_id0,                                           &
             Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
             beta1, SMs1, FC1, PW1, fRoots1 )
-
+       
        deallocate( thetaS_till ) 
        deallocate( thetaFC_till ) 
        deallocate( thetaPW_till ) 
@@ -1220,10 +1243,10 @@ contains
   !      EXAMPLE
   !         calling sequence
   !         call canopy_intercept_param(proc_Mat, param,             &    
-  !				        LAI0, nL0_in_L1, upp_row_L1, &    
-  !				        low_row_L1, lef_col_L1,      &   
-  !				        rig_col_L1, cell_id0, mask0, &  
-  !				        nodata, max_intercept1 ) 
+  !                     LAI0, nL0_in_L1, upp_row_L1, &    
+  !                     low_row_L1, lef_col_L1,      &   
+  !                     rig_col_L1, cell_id0, mask0, &  
+  !                     nodata, max_intercept1 ) 
 
   !      HISTORY
   !>         \author Rohini Kumar

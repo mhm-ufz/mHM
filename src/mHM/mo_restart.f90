@@ -130,6 +130,7 @@ CONTAINS
          L1_soilMoistFC, &
          L1_soilMoistSat, &
          L1_soilMoistExp, &
+         L1_jarvis_thresh_c1, &
          L1_tempThresh, &
          L1_unsatThresh, &
          L1_sealedThresh, &
@@ -416,6 +417,13 @@ CONTAINS
        call var%setData(dummy_d3)
        call var%setAttribute("long_name","Exponential parameter to how non-linear is the soil water retention at level 1")
 
+       if (processMatrix(3,1) == 2) then    
+            var = nc%setVariable("L1_jarvis_thresh_c1","f64",(/rows1,cols1/))
+            call var%setFillValue(nodata_dp)
+            call var%setData(unpack(L1_jarvis_thresh_c1(s1:e1), mask1, nodata_dp))
+            call var%setAttribute("long_name","jarvis critical value for normalized soil water content")
+       end if
+       
        var = nc%setVariable("L1_tempThresh","f64",(/rows1,cols1/))
        call var%setFillValue(nodata_dp)
        call var%setData(unpack(L1_tempThresh(s1:e1), mask1, nodata_dp))
@@ -994,6 +1002,7 @@ CONTAINS
          L1_soilMoistFC, &
          L1_soilMoistSat, &
          L1_soilMoistExp, &
+         L1_jarvis_thresh_c1, &
          L1_tempThresh, &
          L1_unsatThresh, &
          L1_sealedThresh, &
@@ -1255,6 +1264,13 @@ CONTAINS
        L1_soilMoistExp(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
+    if (processMatrix(3,1) == 2) then 
+        ! jarvis critical value for normalized soil water content
+        var = nc%getVariable("L1_jarvis_thresh_c1")
+        call var%getData(dummyD2)
+        L1_jarvis_thresh_c1(s1:e1) = pack( dummyD2, mask1 ) 
+    end if
+    
     ! Threshold temperature for snow/rain 
     var = nc%getVariable("L1_tempThresh")
     call var%getData(dummyD2)

@@ -59,7 +59,7 @@ CONTAINS
 
   !     INTENT(IN)
 
-  !>	    \param[in] "integer(i4),           :: processCase"          
+  !>        \param[in] "integer(i4),           :: processCase"          
   !>                                              1 - Feddes equation for PET reduction
   !>                                              2 - Jarvis equation for PET reduction
   !>        \param[in] "real(dp)               :: frac_sealed"
@@ -80,6 +80,8 @@ CONTAINS
   !>                                              Permanent wilting point for each horizon [mm]
   !>        \param[in] "real(dp), dimension(:) :: soil_moist_exponen"
   !>                                              Exponential parameter to how non-linear is the soil water retention
+  !>        \param[in] "real(dp)               :: jarvis_thresh_c1"
+  !>                                              Jarvis critical value for normalized soil water content
   !>        \param[in] "real(dp)               :: aet_canopy"
   !>                                              Actual ET from canopy [mm/s]
 
@@ -122,8 +124,8 @@ CONTAINS
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, &
        evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
-       soil_moist_exponen, aet_canopy, prec_effec, runoff_sealed, storage_sealed, &
-       infiltration, soil_moist, aet, aet_sealed)
+       soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, runoff_sealed, &
+       storage_sealed, infiltration, soil_moist, aet, aet_sealed)
 
     use mo_constants, only: eps_dp
 
@@ -131,7 +133,7 @@ CONTAINS
 
     ! Intent variables
     integer(i4),                                 intent(in)    :: processCase         ! 1 - Feddes equation for PET reduction 
-	!                                                                                 ! 2 - Jarvis equation for PET reduction
+    !                                                                                 ! 2 - Jarvis equation for PET reduction
     real(dp),                                    intent(in)    :: frac_sealed         ! fraction of sealed area
     real(dp),                                    intent(in)    :: water_thresh_sealed ! Threshhold water depth in impervious 
     !                                                                                 ! areas [mm/s]
@@ -147,6 +149,7 @@ CONTAINS
     !                                                                                 ! for each horizon [mm]
     real(dp), dimension(:),                      intent(in)    :: soil_moist_exponen  ! Exponential parameter to how non-linear 
     !                                                                                 ! is the soil water retention
+    real(dp),                                    intent(in)    :: jarvis_thresh_c1    ! jarvis critical value for normalized soil water content
     real(dp),                                    intent(in)    :: aet_canopy          ! actual ET from canopy [mm/s]
     real(dp),                                    intent(inout) :: prec_effec          ! Effective precipitation 
     !                                                                                 ! (rain + snow melt) [mm]
@@ -166,10 +169,7 @@ CONTAINS
     real(dp)    :: frac_runoff        ! Runoof fraction
     real(dp)    :: soil_stress_factor ! PET reduction factor according to actual soil moisture
     real(dp)    :: tmp                ! temporary variable for misc use
-
-	! to be deleted MZMZMZ
-	real(dp)    :: jarvis_sm_threshold_c1 = 0.5_dp
-	
+    
     ! ----------------------------------------------------------------
     ! IMPERVIOUS COVER PROCESS
     ! ----------------------------------------------------------------
@@ -253,19 +253,19 @@ CONTAINS
        if (hh /= 1) aet(hh) = aet(hh) - sum(aet(1:hh-1), mask=(aet(1:hh-1) > 0.0_dp)) ! remaining layers
 
         ! estimate fraction of ET demand based on root fraction and SM status
-	   select case(processCase)
-	   ! FEDDES EQUATION
-	   case(1)
-	        soil_stress_factor = feddes_et_reduction(soil_moist(hh), soil_moist_FC(hh), wilting_point(hh), &
-			                                         frac_roots(hh)) 
-	   ! JARVIS EQUATION
-	   case(2)
-		    !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
-		    soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
-			                                         frac_roots(hh), jarvis_sm_threshold_c1) 
-		end select
+       select case(processCase)
+       ! FEDDES EQUATION
+       case(1)
+            soil_stress_factor = feddes_et_reduction(soil_moist(hh), soil_moist_FC(hh), wilting_point(hh), &
+                                                     frac_roots(hh)) 
+       ! JARVIS EQUATION
+       case(2)
+            !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
+            soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
+                                                     frac_roots(hh), jarvis_thresh_c1) 
+        end select
 
-		aet(hh) = aet(hh) * soil_stress_factor
+        aet(hh) = aet(hh) * soil_stress_factor
        ! avoid numerical error
        if(aet(hh) < 0.0_dp) aet(hh) = 0.0_dp
 
@@ -322,7 +322,7 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>        \return real(dp) :: feddes_et_reduction; et reduction factor	
+  !>        \return real(dp) :: feddes_et_reduction; et reduction factor    
 
   !     RESTRICTIONS
   !         None
@@ -343,28 +343,28 @@ CONTAINS
 
     implicit none
 
-	real(dp),                      intent(in) :: soil_moist          ! Soil moisture of each horizon [mm]
+    real(dp),                      intent(in) :: soil_moist          ! Soil moisture of each horizon [mm]
     real(dp),                      intent(in) :: soil_moist_FC       ! Soil moisture below which actual ET 
     !                                                                ! is reduced [mm]
     real(dp),                      intent(in) :: wilting_point       ! Permanent wilting point 
-	real(dp),                      intent(in) :: frac_roots          ! Fraction of Roots in soil horizon
+    real(dp),                      intent(in) :: frac_roots          ! Fraction of Roots in soil horizon
     !                                                                ! is reduced [mm]
 
     real(dp)                                  :: feddes_et_reduction ! reference evapotranspiration in [mm s-1]
 
     !    SM >= FC
-	if ( soil_moist >= soil_moist_FC ) then
-		feddes_et_reduction = frac_roots
-		! PW < SM < FC
-	else if ( (soil_moist < soil_moist_FC) .AND. (soil_moist > wilting_point) ) then
-		feddes_et_reduction = frac_roots * (soil_moist - wilting_point) / (soil_moist_FC - wilting_point)
-		! SM <= PW
-	else if ( soil_moist <= wilting_point ) then	
-		feddes_et_reduction = 0.0_dp
-	else
-		feddes_et_reduction = 0.0_dp
-	end if
-		   
+    if ( soil_moist >= soil_moist_FC ) then
+        feddes_et_reduction = frac_roots
+        ! PW < SM < FC
+    else if ( (soil_moist < soil_moist_FC) .AND. (soil_moist > wilting_point) ) then
+        feddes_et_reduction = frac_roots * (soil_moist - wilting_point) / (soil_moist_FC - wilting_point)
+        ! SM <= PW
+    else if ( soil_moist <= wilting_point ) then    
+        feddes_et_reduction = 0.0_dp
+    else
+        feddes_et_reduction = 0.0_dp
+    end if
+           
   END FUNCTION feddes_et_reduction
   
   ! ------------------------------------------------------------------
@@ -380,8 +380,8 @@ CONTAINS
   !>                                           {\theta_{sat} - \theta_{pwp}}  \f]  
   !>                 Potential evapotranspiration is reduced to 0 if \f[ \theta_{norm} \f] is less or equal 0. 
   !>                 PET is equal fraction of roots if \f[ \theta_{norm} \f]
-  !>                 is exceeding the parameter jarvis_sm_threshold_c1. If \f[ \theta_{norm} \f] is
-  !>                 in between 0 and jarvis_sm_threshold_c1, PET is reduced by fraction of roots times
+  !>                 is exceeding the parameter jarvis_thresh_c1. If \f[ \theta_{norm} \f] is
+  !>                 in between 0 and jarvis_thresh_c1, PET is reduced by fraction of roots times
   !>                 a soil stress factor.
   !>                 This factor is estimated as 
   !>                 \f[ stress\_factor = frac\_roots \cdot \frac{\theta_{norm}}{jarvis\_sm\_threshold\_c1  \f]  
@@ -391,7 +391,7 @@ CONTAINS
   !>       \param[in] " real(dp), intent(in) :: soil_moist_sat" saturated Soil moisture content [mm] 
   !>       \param[in] " real(dp), intent(in) :: wilting_point" Permanent wilting point 
   !>       \param[in] " real(dp), intent(in) :: frac_roots"    Fraction of Roots in soil horizon is reduced [mm]
-  !> 	   \param[in] " real(dp), intent(in) :: jarvis_sm_threshold_c1" parameter C1 from Jarvis formulation
+  !>       \param[in] " real(dp), intent(in) :: jarvis_thresh_c1" parameter C1 from Jarvis formulation
 
   !     INTENT(INOUT)
   !         None
@@ -409,7 +409,7 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>        \return real(dp) :: jarvis_et_reduction; et reduction factor	
+  !>        \return real(dp) :: jarvis_et_reduction; et reduction factor    
 
   !     RESTRICTIONS
   !         None
@@ -426,42 +426,42 @@ CONTAINS
   !>        \date     March 2017
   
   elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, &
-                                              jarvis_sm_threshold_c1)
+                                              jarvis_thresh_c1)
 
     implicit none
 
-	real(dp),                      intent(in) :: soil_moist             ! Soil moisture of each horizon [mm]
+    real(dp),                      intent(in) :: soil_moist             ! Soil moisture of each horizon [mm]
     real(dp),                      intent(in) :: soil_moist_sat         ! saturated Soil moisture content [mm]
     real(dp),                      intent(in) :: wilting_point          ! Permanent wilting point 
-	real(dp),                      intent(in) :: frac_roots             ! Fraction of Roots in soil horizon
+    real(dp),                      intent(in) :: frac_roots             ! Fraction of Roots in soil horizon
     !                                                                   ! is reduced [mm]
-	real(dp),                      intent(in) :: jarvis_sm_threshold_c1 ! parameter C1 from Jarvis formulation
+    real(dp),                      intent(in) :: jarvis_thresh_c1 ! parameter C1 from Jarvis formulation
 
     real(dp)                                  :: jarvis_et_reduction    ! reference evapotranspiration in [mm s-1]
 
-	! local
-	real(dp)                                  :: theta_inorm             ! normalized soil water content
-	
-	! Calculating normalized Soil Water Content 
-	theta_inorm = (soil_moist - wilting_point)/(soil_moist_sat - wilting_point)  
+    ! local
+    real(dp)                                  :: theta_inorm             ! normalized soil water content
+    
+    ! Calculating normalized Soil Water Content 
+    theta_inorm = (soil_moist - wilting_point)/(soil_moist_sat - wilting_point)  
 
-	if (theta_inorm .lt. 0.0_dp) 	theta_inorm=0.0_dp	   
-	if (theta_inorm .gt. 1.0_dp)    theta_inorm=1.0_dp
-	
-	! estimate fraction of ET demand based on root fraction and SM status using theta_inorm according 
-	! to Jarvis 1989 Jhydrol paper 
-	! theta_inorm >= jarvis_sm_threshold_c1
-	if ( theta_inorm .GE. jarvis_sm_threshold_c1) then !12/20/2016 SPACE
-	  jarvis_et_reduction = frac_roots
-	! 0 < theta_inorm < jarvis_sm_threshold_c1
-	else if ( (theta_inorm.lt. jarvis_sm_threshold_c1) .AND. (theta_inorm .gt. 0.0_dp)) then !12/20/2016 SPACE
-	  jarvis_et_reduction = frac_roots * (theta_inorm/jarvis_sm_threshold_c1)!12/20/2016 SPACE
-	! theta_inorm <= 0
-	else if ( theta_inorm .LE. 0.0_dp ) then
-	  jarvis_et_reduction = 0.0_dp
-	else
-	  jarvis_et_reduction = 0.0_dp
-	end if
+    if (theta_inorm .lt. 0.0_dp)    theta_inorm=0.0_dp     
+    if (theta_inorm .gt. 1.0_dp)    theta_inorm=1.0_dp
+    
+    ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm according 
+    ! to Jarvis 1989 Jhydrol paper 
+    ! theta_inorm >= jarvis_thresh_c1
+    if ( theta_inorm .GE. jarvis_thresh_c1) then !12/20/2016 SPACE
+      jarvis_et_reduction = frac_roots
+    ! 0 < theta_inorm < jarvis_thresh_c1
+    else if ( (theta_inorm.lt. jarvis_thresh_c1) .AND. (theta_inorm .gt. 0.0_dp)) then !12/20/2016 SPACE
+      jarvis_et_reduction = frac_roots * (theta_inorm/jarvis_thresh_c1)!12/20/2016 SPACE
+    ! theta_inorm <= 0
+    else if ( theta_inorm .LE. 0.0_dp ) then
+      jarvis_et_reduction = 0.0_dp
+    else
+      jarvis_et_reduction = 0.0_dp
+    end if
 
   END FUNCTION jarvis_et_reduction
   

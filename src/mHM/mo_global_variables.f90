@@ -403,6 +403,8 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable :: L1_soilMoistSat ! [mm]   Saturation soil moisture for each horizon [mm]
   real(dp), public, dimension(:,:), allocatable :: L1_soilMoistExp ! [1]    Exponential parameter to how non-linear
   !                                                                !        is the soil water retention
+  real(dp), public, dimension(:),   allocatable :: L1_jarvis_thresh_c1 ![1] jarvis critical value for normalized soil 
+  !                                                                !        water content 
   real(dp), public, dimension(:), allocatable   :: L1_tempThresh   ! [degC]   Threshold temperature for snow/rain
   real(dp), public, dimension(:), allocatable   :: L1_unsatThresh  ! [mm]   Threshhold water depth controlling fast interflow
   real(dp), public, dimension(:), allocatable   :: L1_sealedThresh ! [mm]   Threshhold water depth for surface runoff

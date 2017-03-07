@@ -147,6 +147,7 @@ CONTAINS
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, &
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              &
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   &
+         L1_jarvis_thresh_c1,                                &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     &
          L1_wiltingPoint, L1_neutrons,                       &
          basin_avg_TWS_sim,                                  &
@@ -561,6 +562,7 @@ CONTAINS
                L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),               & ! INOUT E1
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
+               L1_jarvis_thresh_c1(s1:e1),                                                  & ! INOUT E1
                L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
                L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 
