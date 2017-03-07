@@ -541,7 +541,7 @@ processCase(2) = 1
 !> soil moisture
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
-processCase(3) = 1
+processCase(3) = 2
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
