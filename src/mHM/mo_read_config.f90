@@ -106,6 +106,8 @@ CONTAINS
   !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
   !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
   !                  Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                  Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   
   subroutine read_config()
 
@@ -229,6 +231,7 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_forest
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_impervious
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious
+    real(dp), dimension(nColPars)                   :: jarvis_sm_threshold_c1
     ! directRunoff
     real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
     ! PET0
@@ -359,6 +362,12 @@ CONTAINS
          PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
          rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
          rootFractionCoefficient_pervious, infiltrationShapeFactor
+    namelist/soilmoisture2/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &
+         PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,              &
+         PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant,                                            &
+         PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
+         rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
+         rootFractionCoefficient_pervious, infiltrationShapeFactor, jarvis_sm_threshold_c1
     namelist /directRunoff1/ imperviousStorageCapacity
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
     ! Hargreaves-Samani
@@ -842,7 +851,8 @@ CONTAINS
 
     ! Process 3 - soilmoisture
     select case (processCase(3))
-       ! 1 - bucket approach, Brooks-Corey like
+    
+    ! 1 - Feddes equation for PET reduction, bucket approach, Brooks-Corey like
     case(1)
        call position_nml('soilmoisture1', unamelist_param)
        read(unamelist_param, nml=soilmoisture1)
@@ -893,6 +903,59 @@ CONTAINS
           stop
        end if
 
+    ! 2- Jarvis equation for PET reduction, bucket approach, Brooks-Corey like
+    case(2)
+       call position_nml('soilmoisture2', unamelist_param)
+       read(unamelist_param, nml=soilmoisture2)
+       processMatrix(3, 1) = processCase(3)
+       processMatrix(3, 2) = 18_i4
+       processMatrix(3, 3) = sum(processMatrix(1:3, 2))
+       call append(global_parameters, reshape(orgMatterContent_forest,     (/1, nColPars/)))
+       call append(global_parameters, reshape(orgMatterContent_impervious, (/1, nColPars/)))
+       call append(global_parameters, reshape(orgMatterContent_pervious,   (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_constant,      (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_clay,          (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_Db,            (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_constant,     (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_clay,         (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_Db,           (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_constant,             (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_sand,                 (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_clay,                 (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_curveSlope,           (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_forest,     (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_impervious, (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_pervious,   (/1, nColPars/)))
+       call append(global_parameters, reshape(infiltrationShapeFactor,     (/1, nColPars/)))
+       call append(global_parameters, reshape(jarvis_sm_threshold_c1,      (/1, nColPars/)))
+
+       call append(global_parameters_name, (/     &
+            'orgMatterContent_forest           ', &
+            'orgMatterContent_impervious       ', &
+            'orgMatterContent_pervious         ', &
+            'PTF_lower66_5_constant            ', &
+            'PTF_lower66_5_clay                ', &
+            'PTF_lower66_5_Db                  ', &
+            'PTF_higher66_5_constant           ', &
+            'PTF_higher66_5_clay               ', &
+            'PTF_higher66_5_Db                 ', &
+            'PTF_Ks_constant                   ', &
+            'PTF_Ks_sand                       ', &
+            'PTF_Ks_clay                       ', &
+            'PTF_Ks_curveSlope                 ', &
+            'rootFractionCoefficient_forest    ', &
+            'rootFractionCoefficient_impervious', &
+            'rootFractionCoefficient_pervious  ', &
+            'infiltrationShapeFactor           ', &
+            'jarvis_sm_threshold_c1            '/))
+
+       ! check if parameter are in range
+       if ( .not. in_bound(global_parameters) ) then
+          call message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &
+               trim(adjustl(file_namelist_param)))
+          stop
+       end if
+       
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "soilmoisture" does not exist!')

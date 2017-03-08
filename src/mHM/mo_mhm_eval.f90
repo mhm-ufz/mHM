@@ -83,17 +83,19 @@ CONTAINS
   !                   M. Zink,              Mar 2014 - added inflow from upstream areas
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
-  !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+  !                   M. Cuntz & J. Mai,    Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
   !                                                    included routing related variables from mRM
   !                   David Schaefer,       Aug 2015 - changed to new netcdf-writing scheme
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
-  !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
-  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
+  !                   O. Rakovec, R. Kumar, Oct 2015 - added optional output for basin averaged TWS
+  !                   Rohini Kumar,         Mar 2016 - changes for handling multiple soil database options
   !                   Stephan Thober,       Nov 2016 - added two options for routing
-  !                    Rohini Kuamr,       Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                   Rohini Kuamr,         Dec  2016 - option to handle monthly mean gridded fields of LAI
   !                   Stephan Thober,       Jan 2017 - added prescribed weights for tavg and pet
+  !                   Zink M. Demirel C.,   Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 
@@ -147,6 +149,7 @@ CONTAINS
          L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow, &
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,              &
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,   &
+         L1_jarvis_thresh_c1,                                &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh,     &
          L1_wiltingPoint, L1_neutrons,                       &
          basin_avg_TWS_sim,                                  &
@@ -561,6 +564,7 @@ CONTAINS
                L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),               & ! INOUT E1
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                  & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:), & ! INOUT E1
+               L1_jarvis_thresh_c1(s1:e1),                                                  & ! INOUT E1
                L1_tempThresh(s1:e1), L1_unsatThresh(s1:e1), L1_sealedThresh(s1:e1),         & ! INOUT E1
                L1_wiltingPoint(s1:e1,:)                                                     ) ! INOUT E1
 

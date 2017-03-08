@@ -76,6 +76,8 @@ CONTAINS
   !                   Stephan Thober  Aug  2015  - moved write of routing states to mRM
   !                   David Schaefer  Nov  2015  - mo_netcdf
   !                   Stephan Thober  Nov  2016  - moved processMatrix to common variables
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   ! ------------------------------------------------------------------ 
   subroutine write_restart_files( OutPath )
 
@@ -130,6 +132,7 @@ CONTAINS
          L1_soilMoistFC, &
          L1_soilMoistSat, &
          L1_soilMoistExp, &
+         L1_jarvis_thresh_c1, &
          L1_tempThresh, &
          L1_unsatThresh, &
          L1_sealedThresh, &
@@ -398,7 +401,7 @@ CONTAINS
        var = nc%setVariable("L1_soilMoistFC","f64",(/rows1,cols1,soil1/))
        call var%setFillValue(nodata_dp)
        call var%setData(dummy_d3)
-       call var%setAttribute("long_name","Soil moisture below which actual ET is reduced linearly till PWP at level 1")
+       call var%setAttribute("long_name","SM below which actual ET is reduced linearly till PWP at level 1 for processCase(3)=1")
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
@@ -416,6 +419,13 @@ CONTAINS
        call var%setData(dummy_d3)
        call var%setAttribute("long_name","Exponential parameter to how non-linear is the soil water retention at level 1")
 
+       if (processMatrix(3,1) == 2) then    
+            var = nc%setVariable("L1_jarvis_thresh_c1","f64",(/rows1,cols1/))
+            call var%setFillValue(nodata_dp)
+            call var%setData(unpack(L1_jarvis_thresh_c1(s1:e1), mask1, nodata_dp))
+            call var%setAttribute("long_name","jarvis critical value for normalized soil water content")
+       end if
+       
        var = nc%setVariable("L1_tempThresh","f64",(/rows1,cols1/))
        call var%setFillValue(nodata_dp)
        call var%setData(unpack(L1_tempThresh(s1:e1), mask1, nodata_dp))
@@ -632,6 +642,8 @@ CONTAINS
   !>        \author Stephan Thober
   !>        \date Apr 2013
   !         Modified  David Schaefer   Nov 2015 - mo_netcdf
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   subroutine read_restart_config( iBasin, soilId_isPresent, InPath )
 
     use mo_kind,             only: i4, dp
@@ -994,6 +1006,7 @@ CONTAINS
          L1_soilMoistFC, &
          L1_soilMoistSat, &
          L1_soilMoistExp, &
+         L1_jarvis_thresh_c1, &
          L1_tempThresh, &
          L1_unsatThresh, &
          L1_sealedThresh, &
@@ -1234,7 +1247,7 @@ CONTAINS
     L1_kPerco(s1:e1) = pack( dummyD2, mask1 ) 
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
-
+    ! for processCase(3) = 1
     var = nc%getVariable("L1_soilMoistFC")
     call var%getData(dummyD3)
     do ii = 1, nSoilHorizons_mHM
@@ -1255,6 +1268,13 @@ CONTAINS
        L1_soilMoistExp(s1:e1, ii) = pack( dummyD3( :,:,ii), mask1)
     end do
 
+    if (processMatrix(3,1) == 2) then 
+        ! jarvis critical value for normalized soil water content
+        var = nc%getVariable("L1_jarvis_thresh_c1")
+        call var%getData(dummyD2)
+        L1_jarvis_thresh_c1(s1:e1) = pack( dummyD2, mask1 ) 
+    end if
+    
     ! Threshold temperature for snow/rain 
     var = nc%getVariable("L1_tempThresh")
     call var%getData(dummyD2)

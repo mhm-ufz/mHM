@@ -130,6 +130,8 @@ contains
   !>       \param[in,out] "real(dp) :: PW1(:,:)"           - [10^-3 m] permanent wilting point.
   !>                                                         Number of cells at L1 times number 
   !>                                                         of horizons in mHM
+  !>       \param[in,out] "real(dp) :: jarvis_thresh_c1(:)"- [1] jarvis critical value for normalized 
+  !>                                                         soil water content
   !>       \param[in,out] "real(dp) :: fRoots1(:,:)"       - fraction of roots in soil horizons.
   !>                                                         Number of cells at L1 times number
   !>                                                         of horizons in mHM
@@ -180,7 +182,9 @@ contains
   !                   Stephan Thober, Feb 2013 - added subroutine for karstic percolation loss
   !                                              removed L1_, L0_ in variable names
   !                   Stephan Thober, Aug 2015 - moved regionalization of routing to mRM
-  !                  Rohini Kumar,    Mar 2016 - changes for handling multiple soil database options
+  !                   Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
 
   !TO DOS: all variable names have to be updated as in the mHM call and the sorted. Documentation has to be updated
 
@@ -239,6 +243,7 @@ contains
        FC1,                 & ! INOUT: [10^-3 m] field capacity
        SMs1,                & ! INOUT: [10^-3 m] depth of saturated SM cont
        beta1,               & ! INOUT:           Parameter that determines the relative contribution to SM
+       jarvis_thresh_c1,    & ! INOUT: [1]       jarvis critical value for normalized soil water content
        TT1,                 & ! INOUT:           threshold temperature for snow rain
        HL1_1,               & ! INOUT: [10^-3 m] Threshhold water depth in upper reservoir 
        !                      !                  (for Runoff  contribution)
@@ -305,6 +310,7 @@ contains
     ! Output of soilmoisture parametrization
     real(dp), dimension(:,:),                intent(inout) :: beta1             ! Parameter that determines the rel.
     !                                                                           ! contribution to SM, upscal. Bulk den.
+    real(dp), dimension(:),                  intent(inout) :: jarvis_thresh_c1  ! [1] jarvis critical value for norm SWC
     real(dp), dimension(:,:),                intent(inout) :: SMs1              ! [10^-3 m] depth of saturated SM
     real(dp), dimension(:,:),                intent(inout) :: FC1               ! [10^-3 m] field capacity
     real(dp), dimension(:,:),                intent(inout) :: PW1               ! [10^-3 m] permanent wilting point
@@ -364,8 +370,10 @@ contains
     integer(i4)                             :: mTill    ! maximum of number of Tillage horizons
     integer(i4)                             :: mHor     ! maximum number of horizons
     integer(i4)                             :: mLC      ! number of Landcover classes
-    integer(i4)                             :: iStart 
-    integer(i4)                             :: iEnd
+    integer(i4)                             :: iStart   ! indexing of parameter vector - start
+    integer(i4)                             :: iEnd     ! indexing of parameter vector - end
+    integer(i4)                             :: iStart2  ! 2nd indexing of parameter vector - start
+    integer(i4)                             :: iEnd2    ! 2nd indexing of parameter vector - end
 
     ! ------------------------------------------------------------------
     ! snow parameters 
@@ -389,83 +397,95 @@ contains
     ! ------------------------------------------------------------------
     ! Soil moisture parametrization 
     ! ------------------------------------------------------------------
-    select case( proc_Mat(3,1) )
+    msoil =   size( SDB_is_present, 1 )
+    mLC   = maxval( LCover0, ( LCover0 .ne. int(nodata,i4) )  )
+   
+    ! depending on which kind of soil database processing is to be performed
+    if( iFlag_soil .eq. 0 )then
+        mtill = maxval(SDB_nTillHorizons, ( SDB_nTillHorizons .ne. int(nodata,i4) )    )
+        mHor  = maxval(SDB_nHorizons,     ( SDB_nHorizons     .ne. int(nodata,i4) )    )
+    else if(iFlag_soil .eq. 1) then
+        ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
+        ! since a given soil type can lie in any horizon (till or non-till ones)
+        ! adopt it in a way that it do not break the consistency of iFlag_soil = 0
+        ! ** NOTE: SDB_nTillHorizons and SDB_nHorizons are also assigned in
+        !          this flag option (see mo_soildatabase.f90 file - read_soil_LUT).
+        !          But we are not using those variables here since in this case we have not
+        !          varying number of soil horizons or either tillage horizons. 
+        !          So assigning them with a value = 1 is more than enough.   
+        mtill = 1
+        mHor  = 1
+    end if
+   
+    allocate(  thetaS_till(msoil, mtill, mLC) ) 
+    allocate( thetaFC_till(msoil, mtill, mLC) ) 
+    allocate( thetaPW_till(msoil, mtill, mLC) ) 
+    allocate(       thetaS(msoil, mHor      ) ) 
+    allocate(      thetaFC(msoil, mHor      ) ) 
+    allocate(      thetaPW(msoil, mHor      ) )
+    allocate(           Ks(msoil, mHor, mLC ) )
+    allocate(           Db(msoil, mHor, mLC ) )       
+
+    ! earlier these variables were allocated with  size(soilId0,1)
+    ! in which the variable "soilId0" changes according to the iFlag_soil
+    ! so better to use other variable which is common to both soilDB (0 AND 1) flags
+    allocate( KsVar_H0( size(cell_id0,1) ) )
+    allocate( KsVar_V0( size(cell_id0,1) ) )
+    allocate(  SMs_FC0( size(cell_id0,1) ) )
+
+    select case( proc_Mat( 3,1 ) )
     case(1)
-       
-       msoil =   size( SDB_is_present, 1 )
-       mLC   = maxval( LCover0, ( LCover0 .ne. int(nodata,i4) )  )
-       
-       ! depending on which kind of soil database processing is to be performed
-       if( iFlag_soil .eq. 0 )then
-          mtill = maxval(SDB_nTillHorizons, ( SDB_nTillHorizons .ne. int(nodata,i4) )    )
-          mHor  = maxval(SDB_nHorizons,     ( SDB_nHorizons     .ne. int(nodata,i4) )    )
-       else if(iFlag_soil .eq. 1) then
-          ! here for each soil type both till and non-till soil hydraulic properties are to be estimated
-          ! since a given soil type can lie in any horizon (till or non-till ones)
-          ! adopt it in a way that it do not break the consistency of iFlag_soil = 0
-          ! ** NOTE: SDB_nTillHorizons and SDB_nHorizons are also assigned in
-          !          this flag option (see mo_soildatabase.f90 file - read_soil_LUT).
-          !          But we are not using those variables here since in this case we have not
-          !          varying number of soil horizons or either tillage horizons. 
-          !          So assigning them with a value = 1 is more than enough.   
-          mtill = 1
-          mHor  = 1
-       end if
-       
-       allocate(  thetaS_till(msoil, mtill, mLC) ) 
-       allocate( thetaFC_till(msoil, mtill, mLC) ) 
-       allocate( thetaPW_till(msoil, mtill, mLC) ) 
-       allocate(       thetaS(msoil, mHor      ) ) 
-       allocate(      thetaFC(msoil, mHor      ) ) 
-       allocate(      thetaPW(msoil, mHor      ) )
-       allocate(           Ks(msoil, mHor, mLC ) )
-       allocate(           Db(msoil, mHor, mLC ) )       
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 4    
 
-       ! earlier these variables were allocated with  size(soilId0,1)
-       ! in which the variable "soilId0" changes according to the iFlag_soil
-       ! so better to use other variable which is common to both soilDB (0 AND 1) flags
-       allocate( KsVar_H0( size(cell_id0,1) ) )
-       allocate( KsVar_V0( size(cell_id0,1) ) )
-       allocate(  SMs_FC0( size(cell_id0,1) ) )
- 
-       ! first thirteen parameters go to this routine
-       iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
-       iEnd   = proc_Mat(3,3) - 4    
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 4 + 1
+           iEnd2   = proc_Mat(3,3)
 
-       call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
-            SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
-            SDB_sand, SDB_clay, SDB_DbM,                       &
-            cell_id0, soilId0, LCOVER0,                        &
-            thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
-            thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
+    case(2)
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 5    
 
-       ! next four parameters go here
-       ! (the first three for the fRoots and the fourth one for the beta)
-       iStart = proc_Mat(3,3) - 4 + 1
-       iEnd   = proc_Mat(3,3)
-       call mpr_SMhorizons( param(iStart:iEnd), nodata, iFlag_soil,    &
-            nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
-            SDB_nHorizons, SDB_nTillHorizons,                          &
-            thetaS_till,thetaFC_till, thetaPW_till,                    &
-            thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,&
-            mask0, cell_id0,                                           &
-            Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
-            beta1, SMs1, FC1, PW1, fRoots1 )
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 5 + 1
+           iEnd2   = proc_Mat(3,3) - 1
 
-       deallocate( thetaS_till ) 
-       deallocate( thetaFC_till ) 
-       deallocate( thetaPW_till ) 
-       deallocate( thetaS  ) 
-       deallocate( thetaFC ) 
-       deallocate( thetaPW )
-       deallocate( Ks )
-       deallocate( Db )
-
+           ! last parameter is jarvis parameter - no need to be regionalized               
+           jarvis_thresh_c1 = param(proc_Mat(3,3))
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "soil moisture parametrization" does not exist! mo_multi_param_reg')
        stop
-    END select
+    end select
+
+    call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
+        SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
+        SDB_sand, SDB_clay, SDB_DbM,                       &
+        cell_id0, soilId0, LCOVER0,                        &
+        thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
+        thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
+        
+    call mpr_SMhorizons( param(iStart2:iEnd2), nodata, iFlag_soil,    &
+        nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
+        SDB_nHorizons, SDB_nTillHorizons,                          &
+        thetaS_till,thetaFC_till, thetaPW_till,                    &
+        thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,&
+        mask0, cell_id0,                                           &
+        Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
+        beta1, SMs1, FC1, PW1, fRoots1 )
+   
+    deallocate( thetaS_till ) 
+    deallocate( thetaFC_till ) 
+    deallocate( thetaPW_till ) 
+    deallocate( thetaS  ) 
+    deallocate( thetaFC ) 
+    deallocate( thetaPW )
+    deallocate( Ks )
+    deallocate( Db )
 
     ! ------------------------------------------------------------------
     ! sealed area threshold for runoff generation 
@@ -1220,10 +1240,10 @@ contains
   !      EXAMPLE
   !         calling sequence
   !         call canopy_intercept_param(proc_Mat, param,             &    
-  !				        LAI0, nL0_in_L1, upp_row_L1, &    
-  !				        low_row_L1, lef_col_L1,      &   
-  !				        rig_col_L1, cell_id0, mask0, &  
-  !				        nodata, max_intercept1 ) 
+  !                     LAI0, nL0_in_L1, upp_row_L1, &    
+  !                     low_row_L1, lef_col_L1,      &   
+  !                     rig_col_L1, cell_id0, mask0, &  
+  !                     nodata, max_intercept1 ) 
 
   !      HISTORY
   !>         \author Rohini Kumar
