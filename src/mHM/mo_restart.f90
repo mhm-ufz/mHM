@@ -76,6 +76,8 @@ CONTAINS
   !                   Stephan Thober  Aug  2015  - moved write of routing states to mRM
   !                   David Schaefer  Nov  2015  - mo_netcdf
   !                   Stephan Thober  Nov  2016  - moved processMatrix to common variables
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   ! ------------------------------------------------------------------ 
   subroutine write_restart_files( OutPath )
 
@@ -399,7 +401,7 @@ CONTAINS
        var = nc%setVariable("L1_soilMoistFC","f64",(/rows1,cols1,soil1/))
        call var%setFillValue(nodata_dp)
        call var%setData(dummy_d3)
-       call var%setAttribute("long_name","Soil moisture below which actual ET is reduced linearly till PWP at level 1")
+       call var%setAttribute("long_name","SM below which actual ET is reduced linearly till PWP at level 1 for processCase(3)=1")
 
        do ii = 1, size( dummy_d3, 3 )
           dummy_d3(:,:,ii) = unpack( L1_soilMoistSat(s1:e1,ii), mask1, nodata_dp )
@@ -640,6 +642,8 @@ CONTAINS
   !>        \author Stephan Thober
   !>        \date Apr 2013
   !         Modified  David Schaefer   Nov 2015 - mo_netcdf
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   subroutine read_restart_config( iBasin, soilId_isPresent, InPath )
 
     use mo_kind,             only: i4, dp
@@ -1243,7 +1247,7 @@ CONTAINS
     L1_kPerco(s1:e1) = pack( dummyD2, mask1 ) 
 
     ! Soil moisture below which actual ET is reduced linearly till PWP
-
+    ! for processCase(3) = 1
     var = nc%getVariable("L1_soilMoistFC")
     call var%getData(dummyD3)
     do ii = 1, nSoilHorizons_mHM

@@ -182,7 +182,9 @@ contains
   !                   Stephan Thober, Feb 2013 - added subroutine for karstic percolation loss
   !                                              removed L1_, L0_ in variable names
   !                   Stephan Thober, Aug 2015 - moved regionalization of routing to mRM
-  !                  Rohini Kumar,    Mar 2016 - changes for handling multiple soil database options
+  !                   Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
+  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
 
   !TO DOS: all variable names have to be updated as in the mHM call and the sorted. Documentation has to be updated
 

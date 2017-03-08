@@ -116,11 +116,12 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Dec 2012
-  !         Modified RK, July 2013 - A Mosiac apporach is implemented for processes accounted
-  !                                  within the permeamble & impervious area. Precipitation and 
-  !                                  effective PET intensity are same for both areas.
-  !                                - changes made for variables "water_thresh_sealed" when it becomes
-  !                                  zero
+  !         Modified Rohinhi Kumar, July 2013        - A Mosiac apporach is implemented for processes accounted
+  !                                                    within the permeamble & impervious area. Precipitation and 
+  !                                                    effective PET intensity are same for both areas.
+  !                                                  - changes made for variables "water_thresh_sealed" when it becomes
+  !                                                   zero
+  !                   Zink M. Demirel C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, &
        evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
@@ -263,9 +264,10 @@ CONTAINS
             !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
             soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
                                                      frac_roots(hh), jarvis_thresh_c1) 
-        end select
+       end select
+        
+       aet(hh) = aet(hh) * soil_stress_factor
 
-        aet(hh) = aet(hh) * soil_stress_factor
        ! avoid numerical error
        if(aet(hh) < 0.0_dp) aet(hh) = 0.0_dp
 
@@ -336,7 +338,7 @@ CONTAINS
   !>                      doi:10.1016/0022-1694(76)90017-2
 
   !     HISTORY
-  !>        \author   Cueneyd Demirel, Matthias Zink
+  !>        \author   Matthias Cuntz, Cueneyd Demirel, Matthias Zink
   !>        \date     March 2017
   
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
@@ -454,10 +456,10 @@ CONTAINS
     if ( theta_inorm .GE. jarvis_thresh_c1) then !12/20/2016 SPACE
       jarvis_et_reduction = frac_roots
     ! 0 < theta_inorm < jarvis_thresh_c1
-    else if ( (theta_inorm.lt. jarvis_thresh_c1) .AND. (theta_inorm .gt. 0.0_dp)) then !12/20/2016 SPACE
+    else if ( (theta_inorm.LT. jarvis_thresh_c1) .AND. (theta_inorm .GT. 0.0_dp)) then !12/20/2016 SPACE
       jarvis_et_reduction = frac_roots * (theta_inorm/jarvis_thresh_c1)!12/20/2016 SPACE
     ! theta_inorm <= 0
-    else if ( theta_inorm .LE. 0.0_dp ) then
+    else if ( theta_inorm .LT. 0.0_dp ) then
       jarvis_et_reduction = 0.0_dp
     else
       jarvis_et_reduction = 0.0_dp

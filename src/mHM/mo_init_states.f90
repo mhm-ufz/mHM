@@ -77,6 +77,8 @@ CONTAINS
   !>        \date Jan 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
   !                   S. Thober, Aug 2015  - removed routing related variables
+  !                   Zink M. Demirel C.,Mar 2017 - Init Jarvis soil water stress variable at SM process(3)  
+
 
   subroutine variables_alloc(iBasin)
 

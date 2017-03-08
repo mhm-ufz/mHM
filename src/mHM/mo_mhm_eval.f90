@@ -83,17 +83,19 @@ CONTAINS
   !                   M. Zink,              Mar 2014 - added inflow from upstream areas
   !                   Stephan Thober,       Jun 2014 - added chunk read for meteorological input
   !                   Stephan Thober,       Jun 2014 - updated flag for read_restart
-  !                   Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
+  !                   M. Cuntz & J. Mai,    Nov 2014 - LAI input from daily, monthly or yearly files
   !                   Matthias Zink,        Dec 2014 - adopted inflow gauges to ignore headwater cells
   !                   Stephan Thober,       Aug 2015 - moved writing of daily discharge to mo_write_routing,
   !                                                    included routing related variables from mRM
   !                   David Schaefer,       Aug 2015 - changed to new netcdf-writing scheme
   !                   Stephan Thober,       Sep 2015 - updated mrm_routing call
-  !          Oldrich Rakovec, Rohini Kumar, Oct 2015 - added optional output for basin averaged TWS
-  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
+  !                   O. Rakovec, R. Kumar, Oct 2015 - added optional output for basin averaged TWS
+  !                   Rohini Kumar,         Mar 2016 - changes for handling multiple soil database options
   !                   Stephan Thober,       Nov 2016 - added two options for routing
-  !                    Rohini Kuamr,       Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                   Rohini Kuamr,         Dec  2016 - option to handle monthly mean gridded fields of LAI
   !                   Stephan Thober,       Jan 2017 - added prescribed weights for tavg and pet
+  !                   Zink M. Demirel C.,   Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
 

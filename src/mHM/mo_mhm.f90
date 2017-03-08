@@ -115,6 +115,8 @@ CONTAINS
   !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
   !                  Rohini Kumar,                   Dec 2016 - changes for reading gridded mean monthly LAI fields
   !                  Stephan Thober,                 Jan 2017 - added prescribed weights for tavg and pet
+  !                  Zink M. Demirel C.,             Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   !
   ! ------------------------------------------------------------------
 

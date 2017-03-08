@@ -106,6 +106,8 @@ CONTAINS
   !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
   !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
   !                  Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                  Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+
   
   subroutine read_config()
 

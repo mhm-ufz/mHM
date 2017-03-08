@@ -30,6 +30,8 @@ MODULE mo_global_variables
   !           Oldrich Rakovec,Oct 2015 - added definition of basin averaged TWS data
   !           Rohini Kumar,   Mar 2016 - new variables for handling different soil databases
   !           Johann Brenner, Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
+  !           Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress variable for SM process(3) 
+
   
   USE mo_kind,             ONLY: i4, i8, dp
   use mo_common_variables, ONLY: period
