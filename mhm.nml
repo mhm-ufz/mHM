@@ -88,7 +88,7 @@ L0Basin(2) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
 !-----------------------------------------------------------------------------
-optimize = .TRUE.
+optimize = .FALSE.
 !> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
 !> should be located next to the mhm executable (mhm)
 optimize_restart = .FALSE.
@@ -132,7 +132,7 @@ opti_method = 1
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 27
+opti_function = 10
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -585,7 +585,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal = 2
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -668,7 +668,7 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations = 700
+nIterations = 7
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
 seed = 1235876
