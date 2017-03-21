@@ -77,6 +77,8 @@ CONTAINS
   !>        \date Jan 2013
   !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
   !                   S. Thober, Aug 2015  - removed routing related variables
+  !                   Zink M. Demirel C.,Mar 2017 - Init Jarvis soil water stress variable at SM process(3)  
+
 
   subroutine variables_alloc(iBasin)
 
@@ -91,6 +93,7 @@ CONTAINS
          L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
+         L1_jarvis_thresh_c1,                                                   &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
 
@@ -303,6 +306,10 @@ CONTAINS
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_soilMoistSat,  dummy_Matrix )
 
+    ! jarvis critical value for normalized soil water content 
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_jarvis_thresh_c1,  dummy_Vector )
+
     ! Exponential parameter to how non-linear is the soil water retention
     dummy_Matrix(:,:) = 0.0_dp
     call append( L1_soilMoistExp,  dummy_Matrix )
@@ -394,6 +401,7 @@ CONTAINS
          L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
          L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
          L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
+         L1_jarvis_thresh_c1,                                                   &
          L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
          L1_neutrons
 
@@ -563,6 +571,9 @@ CONTAINS
     ! Exponential parameter to how non-linear is the soil water retention
     L1_soilMoistExp = P1_InitStateFluxes
 
+    ! jarvis critical value for normalized soil water content 
+    L1_jarvis_thresh_c1 = P1_InitStateFluxes
+    
     ! Threshold temperature for snow/rain
     L1_tempThresh = P1_InitStateFluxes
 

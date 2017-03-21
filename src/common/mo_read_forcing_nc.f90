@@ -172,7 +172,6 @@ contains
     fName = trim(folder) // trim(varName) // '.nc'
     ! get dimensions
     dimen = Get_NcDim(trim(fName), trim(varName))
-
     if ( (dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols) ) then
        stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if

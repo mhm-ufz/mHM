@@ -1,6 +1,6 @@
-! Emacs: -*- mode: f90 -*-
+get_basin_info! Emacs: -*- mode: f90 -*-
 !> \file mhm.nml
-!
+39.35185!
 !> \brief Namelists of mHM
 !
 !> \details This files provides all namelists for mHM.
@@ -8,22 +8,23 @@
 !> \authors Matthias Zink, Matthias Cuntz
 !> \date Jan 2013
 ! Modified,
-! Rohini Kumar, Aug 2013   - added "fracSealed_cityArea" in the LCover namelist \n
-!                          - added new namelist "LAI_data_information" \n
-!                          - added new directory paths for soil and geology LUTs
-!                            which are common to all modeled basins \n
-! Luis Samaniego, Nov 2013 - process description
-! Matthias  Zink, Mar 2014 - added evaluation and inflow gauge namelists
-! Rohini Kumar,   May 2014 - options for different cordinate system for the model run\n
-! Stephan Thober, May 2014 - added switch for chunk read in
-! Stephan Thober, Jun 2014 - reorganized restart flags, added flag for performing mpr
+! Rohini Kumar, Aug 2013      - added "fracSealed_cityArea" in the LCover namelist \n
+!                             - added new namelist "LAI_data_information" \n
+!                             - added new directory paths for soil and geology LUTs
+!                               which are common to all modeled basins \n
+! Luis Samaniego, Nov 2013    - process description
+! Matthias  Zink, Mar 2014    - added evaluation and inflow gauge namelists
+! Rohini Kumar,   May 2014    - options for different cordinate system for the model run\n
+! Stephan Thober, May 2014    - added switch for chunk read in
+! Stephan Thober, Jun 2014    - reorganized restart flags, added flag for performing mpr
 ! Rohini Kumar and
-! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
-! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
-! Matthias Zink, Dec 2014  - adopted inflow gauges to ignore headwater cells
-! Matthias Zink, Mar 2015  - added optional soil mositure read in for calibration
-! Stephan Thober, Nov 2016 - added adaptive timestep scheme for routing  
-! Rohini  Kumar, Dec 2017  - added LAI option to read long term mean monthly fields 
+! Olda Rakovec  , Sep 2014    - added KGE estimator (OF number 9)
+! Matthias Zink,  Nov 2014    - added multiple options for process 5 - PET
+! Matthias Zink, Dec 2014     - adopted inflow gauges to ignore headwater cells
+! Matthias Zink, Mar 2015     - added optional soil mositure read in for calibration
+! Stephan Thober, Nov 2016    - added adaptive timestep scheme for routing  
+! Rohini  Kumar, Dec 2017     - added LAI option to read long term mean monthly fields 
+! Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
   
 !******************************************************************************************
 !
@@ -57,7 +58,7 @@ nBasins             = 2
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 12000
+resolution_Hydrology(1) = 24000
 resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
@@ -66,7 +67,7 @@ resolution_Hydrology(2) = 24000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 12000
+resolution_Routing(1) = 24000
 resolution_Routing(2) = 24000
 !-----------------------------------------------------------------------------
 !> use ALMA convention for input and output variables
@@ -87,7 +88,7 @@ L0Basin(2) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
 !-----------------------------------------------------------------------------
-optimize = .FALSE.
+optimize = .TRUE.
 !> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
 !> should be located next to the mhm executable (mhm)
 optimize_restart = .FALSE.
@@ -131,7 +132,7 @@ opti_method = 1
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 3
+opti_function = 27
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -200,7 +201,7 @@ dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_2.nc"
+file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
 
 ! **** for Basin 2
 !> directory where morphological files are located
@@ -283,7 +284,7 @@ dir_gridded_LAI(2)   = "test_basin/input/lai/"
 !
 !> directory to soil moisture data
 ! expected file name: sm.nc, expected variable name: sm
-dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+dir_soil_moisture(1)   = "test_basin/input/optional_data/sm/"
 !> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
 !> input is representative for (counted top to down)
 nSoilHorizons_sm_input = 1
@@ -301,13 +302,13 @@ file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
-dir_neutrons(1)        = "test_basin/input/optional_data/"
+dir_neutrons(1)        = "test_basin/input/optional_data/neutrons/"
 
 !> evapotranspiration data
 !
 !> directory to evapotranspiration data
 ! expected file name: et.nc, expected variable name: et
-dir_evapotranspiration(1)   = "test_basin/input/optional_data/"
+dir_evapotranspiration(1)   = "test_basin/input/optional_data/et/"
 !> time stepping of the soil moisture input
 !>     -1: daily   ET values\n
 !>     -2: monthly ET values\n
@@ -540,7 +541,8 @@ processCase(1) = 1
 !> 1 - degree-day approach
 processCase(2) = 1
 !> soil moisture
-!> 1 - multi-layer infiltration capacity approach, Brooks-Corey like
+!> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
+!> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
@@ -583,7 +585,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -666,7 +668,7 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations = 7
+nIterations = 700
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
 seed = 1235876

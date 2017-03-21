@@ -940,6 +940,7 @@ CONTAINS
    ! level-0 information
    call get_basin_info( iBasin, 0, nrows0, ncols0, mask=mask0,                         &
                         xllcorner=xllcorner0, yllcorner=yllcorner0, cellsize=cellsize0 ) 
+  
    ! grid information
    call calculate_grid_properties( nrows0, ncols0, xllcorner0, yllcorner0, cellsize0, nodata_dp,          &
                                    level2%cellsize(iBasin), &

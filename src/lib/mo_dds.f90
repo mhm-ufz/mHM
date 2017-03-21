@@ -253,11 +253,12 @@ CONTAINS
        write(999,*) '# iter   bestf   (bestx(j),j=1,nopt)'
        close(999)
     end if
-
+  
     ! Evaluate initial solution and return objective function value
     ! and Initialise the other variables (e.g. of_best)
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
     DDS        = pini
+    print *, imaxit
     of_new     = imaxit * obj_func(pini)
     of_best    = of_new
     if (present(history)) history(1) = of_new

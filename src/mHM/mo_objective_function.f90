@@ -247,7 +247,7 @@ CONTAINS
        do iTime = 1, size(sm_opti, dim=2)
 
           ! check for enough data points in time for correlation
-          if ( all(.NOT. L1_sm_mask(:,iTime)) .OR. (count(L1_sm_mask(:,iTime)) .LE. 10) ) then
+          if ( all(.NOT. L1_sm_mask(s1:e1,iTime)) .OR. (count(L1_sm_mask(:,iTime)) .LE. 10) ) then
              call message('WARNING: objective_sm_kge_catchment_avg: ignored currrent time step since less than')
              call message('         10 valid cells available in soil moisture observation')
              mask_times(iTime) = .FALSE.
@@ -261,6 +261,11 @@ CONTAINS
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
        objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
             ( (1.0_dp-KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask=mask_times)) / real(nBasins,dp) )**6
+       
+       ! deallocate
+       deallocate(mask_times             )
+       deallocate(sm_catch_avg_basin     )
+       deallocate(sm_opti_catch_avg_basin)
     end do
 
     objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg**onesixth
@@ -542,6 +547,13 @@ CONTAINS
           call message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
           stop
        end if
+
+       ! deallocate
+       deallocate(mask_times    )
+       deallocate(pd_time_series)
+       deallocate(mat1   )
+       deallocate(mat2   )
+       deallocate(mask_sm)
     end do
 
     objective_sm_pd = objective_sm_pd**onesixth
@@ -1167,7 +1179,7 @@ CONTAINS
        do iTime = 1, size(neutrons_opti, dim=2)
 
           ! check for enough data points in time for correlation
-          if ( all(.NOT. L1_neutronsdata_mask(:,iTime))) then
+          if ( all(.NOT. L1_neutronsdata_mask(s1:e1,iTime))) then
               write (*,*) 'WARNING: neutrons data at time ', iTime, ' is empty.'
              !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored currrent time step since less than')
              !call message('         10 valid cells available in soil moisture observation')
@@ -1182,6 +1194,12 @@ CONTAINS
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
        objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg + &
             ( (1.0_dp-KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask=mask_times)) / real(nBasins,dp) )**6
+       
+       ! deallocate
+       deallocate(mask_times              )
+       deallocate(neutrons_catch_avg_basin)
+       deallocate(neutrons_opti_catch_avg_basin)
+
     end do
 
     objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg**onesixth
@@ -1305,26 +1323,33 @@ CONTAINS
        mask_times              = .TRUE.
        et_catch_avg_basin      = nodata_dp
        et_opti_catch_avg_basin = nodata_dp
-
-       ! calculate catchment average evapotranspiration
+       
+       ! calculate catchment average soil moisture
        do iTime = 1, size(et_opti, dim=2)
 
           ! check for enough data points in time for correlation
-          if ( all(.NOT. L1_et_mask(:,iTime))) then
-              write (*,*) 'WARNING: ET data at time ', iTime, ' is empty.'
+          if ( all(.NOT. L1_et_mask(s1:e1,iTime))) then
+             !write (*,*) 'WARNING: et data at time ', iTime, ' is empty.'
              !call message('WARNING: objective_et_kge_catchment_avg: ignored currrent time step since less than')
              !call message('         10 valid cells available in evapotranspiration observation')
              mask_times(iTime) = .FALSE.
              cycle
           end if
+
           et_catch_avg_basin(iTime)      = average(  L1_et(s1:e1,iTime), mask=L1_et_mask(s1:e1,iTime))
           et_opti_catch_avg_basin(iTime) = average(et_opti(s1:e1,iTime), mask=L1_et_mask(s1:e1,iTime))
        end do
-
+       
        ! calculate average ET KGE over all basins with power law
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+       
        objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
             ( (1.0_dp-KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask=mask_times)) / real(nBasins,dp) )**6
+       
+       ! deallocate
+       deallocate(mask_times             )
+       deallocate(et_catch_avg_basin     )
+       deallocate(et_opti_catch_avg_basin)
     end do
 
     objective_et_kge_catchment_avg = objective_et_kge_catchment_avg**onesixth

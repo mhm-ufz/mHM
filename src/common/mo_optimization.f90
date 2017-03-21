@@ -220,17 +220,17 @@ contains
        call message('    Use DDS')
 
        tFile = trim(adjustl(dirConfigOut)) // 'dds_results.out'
-
+       
        if (optimize_restart) then
           call message('ERROR: A restart of this optimization method is not implemented yet!')
           stop
        end if
-       
        ! use fixed user-defined seed
        local_parameters(:,3) = dds(objective, local_parameters(:,3), local_parameters(:,1:2),                              &
             maxiter=int(nIterations,i8), r=dds_r, seed=iseed,                                                              &
             tmp_file=tFile, mask=local_maskpara,                                                                           &
             funcbest=funcbest)
+       
     case (2)
        call message('    Use Simulated Annealing')
 
