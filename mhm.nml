@@ -284,7 +284,7 @@ dir_gridded_LAI(2)   = "test_basin/input/lai/"
 !
 !> directory to soil moisture data
 ! expected file name: sm.nc, expected variable name: sm
-dir_soil_moisture(1)   = "test_basin/input/optional_data/sm/"
+dir_soil_moisture(1)   = "test_basin/input/optional_data/"
 !> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
 !> input is representative for (counted top to down)
 nSoilHorizons_sm_input = 1
@@ -302,13 +302,13 @@ file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
-dir_neutrons(1)        = "test_basin/input/optional_data/neutrons/"
+dir_neutrons(1)        = "test_basin/input/optional_data/"
 
 !> evapotranspiration data
 !
 !> directory to evapotranspiration data
 ! expected file name: et.nc, expected variable name: et
-dir_evapotranspiration(1)   = "test_basin/input/optional_data/et/"
+dir_evapotranspiration(1)   = "test_basin/input/optional_data/"
 !> time stepping of the soil moisture input
 !>     -1: daily   ET values\n
 !>     -2: monthly ET values\n
