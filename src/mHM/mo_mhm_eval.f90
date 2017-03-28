@@ -36,6 +36,7 @@ CONTAINS
 
   !     INTENT(INOUT)
   !         None
+  
 
   !     INTENT(OUT)
   !         None
@@ -97,15 +98,17 @@ CONTAINS
   !                   Zink M. Demirel C.,   Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
 
   
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 
     use mo_init_states,         only : get_basin_info
     use mo_init_states,         only : variables_default_init   ! default initalization of variables
     use mo_julian,              only : caldat, julday
     use mo_message,             only : message
     use mo_mhm,                 only : mhm
+
     use mo_mhm_constants,       only : nodata_dp
     use mo_restart,             only : read_restart_states      ! read initial values of variables
+
     use mo_meteo_forcings,      only : prepare_meteo_forcings_data
     use mo_write_fluxes_states, only : OutputDataset
 #ifdef pgiFortran154
@@ -157,9 +160,11 @@ CONTAINS
          timeStep_LAI_input,                                 & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                       & ! restart directory location
          timeStep_sm_input,                                  & ! time step of soil moisture input (day, month, year)
+         timeStep_et_input,                                  & ! time step of soil moisture input (day, month, year)
          nSoilHorizons_sm_input,                             & ! no. of mhm soil horizons equivalent to sm input
          nTimeSteps_L1_sm,                                   & ! total number of timesteps in soil moisture input
-         nTimeSteps_L1_neutrons                                ! total number of timesteps in neutrons input
+         nTimeSteps_L1_neutrons,                             & ! total number of timesteps in neutrons input
+         nTimeSteps_L1_et                                      ! total number of timesteps in evapotranspiration input
     use mo_common_variables, only: &
          optimize, &
          processMatrix
@@ -214,6 +219,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
 
     ! -------------------------------------
     ! local variables
@@ -311,12 +317,19 @@ CONTAINS
        allocate(neutrons_opti(size(L1_pre, dim=1), nTimeSteps_L1_neutrons))
        neutrons_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
     end if
+    ! evapotranspiration optimization
+    !--------------------------
+    if ( present(et_opti) ) then
+       !                ! total No of cells, No of timesteps
+       !                ! of all basins    , in evapotranspiration input
+       allocate(et_opti(size(L1_pre, dim=1), nTimeSteps_L1_et))
+       et_opti(:,:) = 0.0_dp ! has to be intialized with zero because later summation
+    end if
     ! add other optionals...
-
 
     !-------------------------------------------------------------------
     ! Initalize State variables either to the default value or
-    ! from the restrat_files.
+    ! from the restart_files.
     ! All variables to be initalized had been allocated to the required
     ! space before this point (see, mo_startup: initialise)
     !-------------------------------------------------------------------
@@ -515,6 +528,7 @@ CONTAINS
           !  S    STATE VARIABLES L1
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
+          ! JBJBJBJB
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                          & ! IN C
                timeStep_LAI_input, year_counter, month_counter, day_counter,                & ! IN C
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                 & ! IN C
@@ -882,6 +896,51 @@ CONTAINS
                      neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) + L1_neutrons(s1:e1)
                   end if
 
+                  average_counter = average_counter + 1
+               end if
+            end if
+
+            !----------------------------------------------------------------------
+            ! FOR EVAPOTRANSPIRATION
+            ! NOTE:: modeled evapotranspiration is averaged according to input time step
+            !        evapotranspiration (timeStep_sm_input)
+            !----------------------------------------------------------------------
+            if (present(et_opti)) then
+               if ( tt .EQ. 1 ) writeout_counter = 1
+               ! only for evaluation period - ignore warming days
+               if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
+                  ! decide for daily, monthly or yearly aggregation
+                  select case(timeStep_et_input)
+                  case(-1) ! daily
+                     if (day   .NE. day_counter)   then
+                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                        writeout_counter = writeout_counter + 1
+                        average_counter = 0
+                     end if
+                  case(-2) ! monthly
+                     if (month .NE. month_counter) then
+                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                        writeout_counter = writeout_counter + 1
+                        average_counter = 0
+                     end if
+                  case(-3) ! yearly
+                     if (year  .NE. year_counter)  then
+                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                        writeout_counter = writeout_counter + 1
+                        average_counter = 0
+                     end if
+                  end select
+
+                  ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
+                  if (.not. (tt .eq. nTimeSteps) ) then
+                     ! aggregate evapotranspiration to needed time step for optimization
+                     et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) + &
+                          sum(L1_aETSoil(s1:e1,:), dim=2) * L1_fNotSealed(s1:e1) + &
+                          L1_aETCanopy(s1:e1) + &
+                          L1_aETSealed(s1:e1) * L1_fSealed(s1:e1)
+                  end if
+                  
+                  ! increase average counter by one
                   average_counter = average_counter + 1
                end if
             end if

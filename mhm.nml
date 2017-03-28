@@ -1,6 +1,6 @@
-! Emacs: -*- mode: f90 -*-
+get_basin_info! Emacs: -*- mode: f90 -*-
 !> \file mhm.nml
-!
+39.35185!
 !> \brief Namelists of mHM
 !
 !> \details This files provides all namelists for mHM.
@@ -58,7 +58,7 @@ nBasins             = 2
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 12000
+resolution_Hydrology(1) = 24000
 resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
@@ -67,7 +67,7 @@ resolution_Hydrology(2) = 24000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 12000
+resolution_Routing(1) = 24000
 resolution_Routing(2) = 24000
 !-----------------------------------------------------------------------------
 !> use ALMA convention for input and output variables
@@ -130,8 +130,9 @@ opti_method = 1
 !>      SO: Q:  ( (1.0-lnNSE(Q_highflow))**6 + (1.0-lnNSE(Q_lowflow))**6 )**(1/6)                                                   \n
 !>              where Q_highflow and Q_lowflow are calculated like in objective (19)                                                \n
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
+!> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 3
+opti_function = 10
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -200,7 +201,7 @@ dir_RestartOut(1)    = "test_basin/restart/"
 !> directory where output should be written
 dir_Out(1)           = "test_basin/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_2.nc"
+file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
 
 ! **** for Basin 2
 !> directory where morphological files are located

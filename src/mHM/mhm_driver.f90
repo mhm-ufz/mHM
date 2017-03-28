@@ -361,6 +361,12 @@ PROGRAM mhm_driver
     if ( (opti_function .EQ. 17) .AND. optimize ) then
         call read_neutrons(ii)
         call message('  neutrons data read')
+     endif
+
+    ! read optional spatio-temporal evapotranspiration data
+    if ( (opti_function .EQ. 27) .AND. optimize ) then
+        call read_evapotranspiration(ii)
+        call message('  evapotranpiration data read')
     endif
 
   end do
@@ -400,14 +406,14 @@ PROGRAM mhm_driver
   iTimer = iTimer + 1
   call message()
   if ( optimize ) then
-
+     
      select case(opti_function) 
 #ifdef MRM2MHM
      case(1:9,14) 
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17) 
+     case(10:13,15,17,27)
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
      case default 
