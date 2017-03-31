@@ -18,7 +18,9 @@ MODULE mo_pet
 
   IMPLICIT NONE
 
-  PRIVATE
+  PRIVATE :: extraterr_rad_approx
+  PRIVATE :: slope_satpressure
+  PRIVATE :: sat_vap_pressure
 
   PUBLIC :: pet_hargreaves ! Hargreaves-Samani
   PUBLIC :: pet_priestly   ! Priestley-Taylor

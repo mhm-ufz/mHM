@@ -650,9 +650,12 @@ CONTAINS
              write(uopti_nml,*) '&snow1'
           end if
        case(3)
-          if (processMatrix(iProc,1) .eq. 1) then
+          select case (processMatrix(iProc,1))
+          case(1)
              write(uopti_nml,*) '&soilmoisture1'
-          end if
+          case(2)
+             write(uopti_nml,*) '&soilmoisture2'             
+          end select
        case(4)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&directRunoff1'

@@ -4,11 +4,11 @@
 
 !> \details Soil moisture in the different layers is calculated with
 !> infiltration as \f$ (\theta / \theta_{sat})^\beta \f$ \n
-!> Then evapotranspiration is calculated from PET with a soil water reduction factor
-!> either using the Feddes equation (precessCase(1)):
-!> \f$ \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$.
-!> or using the Jarvis equation (precessCase(1)):
-!> \f$ \frac{1}{\theta_\mathit{stress-index-C1}} \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
+!> Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
+!> either using \n the Feddes equation - precessCase(1):
+!> \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$\n
+!> or using the Jarvis equation - precessCase(1):
+!> \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}} \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
 
 !> \authors Matthias Cuntz, Luis Samaniego
 !> \date Dec 2012
@@ -19,9 +19,10 @@ MODULE mo_soil_moisture
 
   IMPLICIT NONE
 
-  PRIVATE
+  PRIVATE :: feddes_et_reduction
+  PRIVATE :: jarvis_et_reduction
 
-  PUBLIC :: soil_moisture  ! Soil moisture in different soil horizons
+  PUBLIC  :: soil_moisture  ! Soil moisture in different soil horizons
 
   ! ------------------------------------------------------------------
 
@@ -41,15 +42,7 @@ CONTAINS
   !>        Then soil moisture can be calculated as (omit \f$k\f$)
   !>        \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
   !>        with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being 
-  !>        \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f]
-  !>        and
-  !>        \f[ f_{SM} = \left\{
-  !>          \begin{array}{lr}
-  !>             1 & if \theta \ge \theta_{fc}\\
-  !>             \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} &
-  !>              if \theta < \theta_{fc}
-  !>          \end{array}
-  !>        \right. \f]
+  !>        \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
   
   !     CALLING SEQUENCE
   !         subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
@@ -148,9 +141,10 @@ CONTAINS
     !                                                                                 ! is reduced [mm]
     real(dp), dimension(:),                      intent(in)    :: wilting_point       ! Permanent wilting point 
     !                                                                                 ! for each horizon [mm]
-    real(dp), dimension(:),                      intent(in)    :: soil_moist_exponen  ! Exponential parameter to how non-linear 
-    !                                                                                 ! is the soil water retention
-    real(dp),                                    intent(in)    :: jarvis_thresh_c1    ! jarvis critical value for normalized soil water content
+    real(dp), dimension(:),                      intent(in)    :: soil_moist_exponen  ! Exponential parameter to how non-
+    !                                                                                 ! linear is the soil water retention
+    real(dp),                                    intent(in)    :: jarvis_thresh_c1    ! jarvis critical value for
+    !                                                                                 ! normalized soil water content
     real(dp),                                    intent(in)    :: aet_canopy          ! actual ET from canopy [mm/s]
     real(dp),                                    intent(inout) :: prec_effec          ! Effective precipitation 
     !                                                                                 ! (rain + snow melt) [mm]
@@ -297,10 +291,17 @@ CONTAINS
 
   !>        \details Potential evapotranspiration is reduced to 0 if SM is lower PWP. PET is equal 
   !>                 fraction of roots if soil moisture is exceeding field capacity. If soil moisture is
-  !>                 in between PWP and FC PET is reduced by fraction of roots times a soil stress factor.
-  !>                 This factor is estimated as 
-  !>                 \f[ stress\_factor = frac\_roots \cdot \frac{\theta - \theta_\mathit{pwp}}
-  !>                  {\theta_{fc} - \theta_{pwp}}  \f]  
+  !>                 in between PWP and FC PET is reduced by fraction of roots times a stress factor.
+  !>                 
+  !>                 The ET reduction factor \f$ f \f$ is estimated as
+  !>                 \f[ f = \left\{
+  !>                 \begin{array}{lr}
+  !>                     f_{roots}  & if \theta \ge \theta_{fc}\\
+  !>                     f_{roots} \cdot \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} &
+  !>                     if \theta < \theta_{fc} \\
+  !>                     0 & if \theta < \theta_{pwp}
+  !>                 \end{array}
+  !>                 \right. \f]
 
   !     INTENT(IN)
   !>       \param[in] " real(dp), intent(in) :: soil_moist"    Soil moisture of each horizon [mm]
@@ -377,17 +378,18 @@ CONTAINS
   !>        \brief stress factor for reducing evapotranspiration based on actual soil moisture
 
   !>        \details The soil moisture stress factor is estimated based on the normalized soil water
-  !>                 content. The normalized soil water content \f[ \theta_{norm} \f] is estimated as:
+  !>                 content. The normalized soil water content \f$ \theta_{norm} \f$ is estimated as:
   !>                 \f[ \theta_{norm} =  \frac{\theta - \theta_\mathit{pwp}}
   !>                                           {\theta_{sat} - \theta_{pwp}}  \f]  
-  !>                 Potential evapotranspiration is reduced to 0 if \f[ \theta_{norm} \f] is less or equal 0. 
-  !>                 PET is equal fraction of roots if \f[ \theta_{norm} \f]
-  !>                 is exceeding the parameter jarvis_thresh_c1. If \f[ \theta_{norm} \f] is
-  !>                 in between 0 and jarvis_thresh_c1, PET is reduced by fraction of roots times
-  !>                 a soil stress factor.
-  !>                 This factor is estimated as 
-  !>                 \f[ stress\_factor = frac\_roots \cdot \frac{\theta_{norm}}{jarvis\_sm\_threshold\_c1  \f]  
-
+  !>                The ET reduction factor \f$ f \f$ is estimated as 
+  !>                 \f[ f = \left\{
+  !>                 \begin{array}{lr}
+  !>                     f_{roots}  & if \theta_{norm} \ge jarvis\_sm\_threshold\_c1 \\
+  !>                      f_{roots}\frac{\theta_{norm}}{jarvis\_sm\_threshold\_c1}  &
+  !>                     if  \theta_{norm} < jarvis\_sm\_threshold\_c1 \\
+  !>                 \end{array}
+  !>                 \right. \f]
+  
   !     INTENT(IN)
   !>       \param[in] " real(dp), intent(in) :: soil_moist"    Soil moisture of each horizon [mm]
   !>       \param[in] " real(dp), intent(in) :: soil_moist_sat" saturated Soil moisture content [mm] 
@@ -447,22 +449,17 @@ CONTAINS
     ! Calculating normalized Soil Water Content 
     theta_inorm = (soil_moist - wilting_point)/(soil_moist_sat - wilting_point)  
 
-    if (theta_inorm .lt. 0.0_dp)    theta_inorm=0.0_dp     
-    if (theta_inorm .gt. 1.0_dp)    theta_inorm=1.0_dp
+    ! correct for numerical unaccuracies
+    if (theta_inorm .LT. 0.0_dp)    theta_inorm = 0.0_dp     
+    if (theta_inorm .GT. 1.0_dp)    theta_inorm = 1.0_dp
     
-    ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm according 
-    ! to Jarvis 1989 Jhydrol paper 
+    ! estimate fraction of ET demand based on root fraction and SM status using theta_inorm 
     ! theta_inorm >= jarvis_thresh_c1
-    if ( theta_inorm .GE. jarvis_thresh_c1) then !12/20/2016 SPACE
-      jarvis_et_reduction = frac_roots
+    if ( theta_inorm .GE. jarvis_thresh_c1) then
+       jarvis_et_reduction = frac_roots
     ! 0 < theta_inorm < jarvis_thresh_c1
-    else if ( (theta_inorm.LT. jarvis_thresh_c1) .AND. (theta_inorm .GT. 0.0_dp)) then !12/20/2016 SPACE
-      jarvis_et_reduction = frac_roots * (theta_inorm/jarvis_thresh_c1)!12/20/2016 SPACE
-    ! theta_inorm <= 0
-    else if ( theta_inorm .LT. 0.0_dp ) then
-      jarvis_et_reduction = 0.0_dp
-    else
-      jarvis_et_reduction = 0.0_dp
+    else if (theta_inorm .LT. jarvis_thresh_c1) then
+       jarvis_et_reduction = frac_roots * (theta_inorm/jarvis_thresh_c1) 
     end if
 
   END FUNCTION jarvis_et_reduction
