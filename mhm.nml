@@ -52,7 +52,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
@@ -88,7 +88,7 @@ L0Basin(2) = 2
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
 !-----------------------------------------------------------------------------
-optimize = .FALSE.
+optimize = .TRUE.
 !> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
 !> should be located next to the mhm executable (mhm)
 optimize_restart = .FALSE.
@@ -131,6 +131,7 @@ opti_method = 1
 !>              where Q_highflow and Q_lowflow are calculated like in objective (19)                                                \n
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
+!> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                      \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 10
 !-----------------------------------------------------------------------------
@@ -543,7 +544,7 @@ processCase(2) = 1
 !> soil moisture
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
-processCase(3) = 1
+processCase(3) = 2
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
@@ -552,7 +553,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 0
+processCase(5) = 2
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
@@ -585,7 +586,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i

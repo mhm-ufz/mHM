@@ -186,7 +186,7 @@ end subroutine prepare_gridded_daily_LAI_data
     use mo_ncread,                     only: Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_message,                    only: message
     use mo_string_utils,               only: num2str
-    use mo_utils,                      only: eq, ne
+    use mo_utils,                      only: eq
                                            
     implicit none
     ! input 

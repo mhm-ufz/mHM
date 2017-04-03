@@ -924,6 +924,240 @@ CONTAINS
 
   END FUNCTION objective_kge_q_rmse_tws
 
+  ! -----------------------------------------------------------------
+
+  !      NAME
+  !          objective_kge_q_sse_sm(parameterset)
+
+  !>        \brief Objective function of KGE for runoff and SSE for SM (standarized scores)
+
+  !>        \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge_q_rmse_tws &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized. \n
+  !>             For TWS required at least 5 years of data!
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge_q_sse_sm(parameterset)
+
+  !     LITERATURE
+  !         None
+
+
+  !     HISTORY
+  !>        \author Matthias Zink
+  !>        \date Mar. 2017
+
+
+! #################################################
+
+
+  FUNCTION objective_kge_q_sse_sm(parameterset)
+
+    use mo_mhm_eval,             only: mhm_eval
+    use mo_constants,            only: eps_dp
+    use mo_errormeasures,        only: kge, rmse
+    use mo_global_variables,     only: nBasins, evalPer
+    use mo_julian,               only: caldat
+    use mo_message,              only: message
+    use mo_mrm_constants,        only: nodata_dp
+    use mo_moment,               only: mean
+    use mo_temporal_aggregation, only: day2mon_average
+    use mo_standard_score,       only: classified_standard_score
+    use mo_string_utils,         only: num2str
+#ifdef MRM2MHM
+    use mo_mrm_objective_function_runoff, only: extract_runoff
+#endif
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_kge_q_rmse_tws
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:,:) :: tws                      ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+
+    integer(i4)                           :: gg, ii, pp, mmm          ! gauges counter, basin counter, month counters
+    integer(i4)                           :: year, month, day
+    integer(i4)                           :: nGaugesTotal
+    real(dp), dimension(nBasins)          :: initTime
+
+    real(dp), dimension(:),   allocatable :: runoff_agg            ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs            ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask       ! mask for measured runoff
+
+    real(dp), dimension(:),   allocatable :: tws_sim               ! simulated tws
+    real(dp), dimension(:),   allocatable :: tws_obs               ! measured tws
+    logical,  dimension(:),   allocatable :: tws_obs_mask          ! mask for measured tws
+
+    integer(i4)                           :: nMonths               ! total number of months
+    integer(i4), dimension(:),allocatable :: month_classes         ! vector with months' classes
+
+    !
+    real(dp), DIMENSION(:), allocatable   :: tws_sim_m, tws_obs_m           ! monthly values original time series
+    real(dp), DIMENSION(:), allocatable   :: tws_sim_m_anom, tws_obs_m_anom ! monthly values anomaly time series
+    logical,  DIMENSION(:), allocatable   :: tws_obs_m_mask   !
+    real(dp), dimension(:), allocatable   :: rmse_tws, kge_q  ! rmse_tws(nBasins), kge_q(nGaugesTotal)
+    real(dp)                              :: rmse_tws_avg, kge_q_avg ! obj. functions
+
+    ! obtain hourly values of runoff and tws:
+    call mHM_eval(parameterset, runoff=runoff, sm_opti=sm_opti)
+
+    !--------------------------------------------
+    !! TWS
+    !--------------------------------------------
+
+    ! allocate
+    allocate( rmse_tws(nBasins) )
+    rmse_tws(:) = nodata_dp
+
+    do ii=1, nBasins
+
+       ! extract tws the same way as runoff using mrm
+       call extract_basin_avg_tws( ii, tws, tws_sim, tws_obs, tws_obs_mask )
+
+       ! check for whether to proceed with this basin or not
+       ! potentially 5 years of data
+       if (count(tws_obs_mask) .lt.  365*5 ) then
+          deallocate (tws_sim, tws_obs, tws_obs_mask)
+          call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(ii)))  , &
+                       ' less than 5 years: these data are not considered')
+          cycle
+       else
+          ! get initial time of the evaluation period
+          initTime(ii) = real(evalPer(ii)%julStart,dp)
+
+          ! get calendar days, months, year
+          call caldat(int(initTime(ii)), yy=year, mm=month, dd=day)
+
+          ! calculate monthly averages from daily values of the model
+          call day2mon_average(tws_sim,year,month,day,tws_sim_m, misval=nodata_dp)
+
+          ! remove mean from modelled time series
+          tws_sim_m(:) = tws_sim_m(:) - mean(tws_sim_m(:))
+
+          ! calculate monthly averages from daily values of the observations, which already have removed the long-term mean
+          call day2mon_average(tws_obs,year,month,day,tws_obs_m, misval=nodata_dp)
+
+          ! get number of months for given basin
+          nMonths = size(tws_obs_m)
+
+          allocate ( month_classes(  nMonths ) )
+          allocate ( tws_obs_m_mask( nMonths ) )
+          allocate ( tws_obs_m_anom( nMonths ) )
+          allocate ( tws_sim_m_anom( nMonths ) )
+
+          month_classes(:) = 0
+          tws_obs_m_mask(:) = .TRUE.
+          tws_obs_m_anom(:) = nodata_dp
+          tws_sim_m_anom(:) = nodata_dp
+
+          ! define months' classes
+          mmm = month
+          do pp = 1, nMonths
+             month_classes(pp) = mmm
+             if (mmm .LT. 12) then
+                mmm = mmm + 1
+             else
+                mmm = 1
+             end if
+          end do
+
+          ! define mask for missing data in observations (there are always data for simulations)
+          where( abs( tws_obs_m - nodata_dp) .lt. eps_dp ) tws_obs_m_mask = .FALSE.
+
+          ! calculate standard score
+          tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask)
+          tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask)
+          rmse_tws(ii) = rmse(tws_sim_m_anom,tws_obs_m_anom,  mask = tws_obs_m_mask)
+
+          deallocate ( month_classes )
+          deallocate ( tws_obs_m )
+          deallocate ( tws_sim_m )
+          deallocate ( tws_obs_m_mask )
+          deallocate ( tws_sim_m_anom )
+          deallocate ( tws_obs_m_anom )
+          deallocate (tws_sim, tws_obs, tws_obs_mask)
+       endif
+
+    end do
+
+    rmse_tws_avg = sum( rmse_tws(:), abs( rmse_tws - nodata_dp) .gt. eps_dp ) / &
+                                        real(count( abs( rmse_tws - nodata_dp) .gt. eps_dp),dp)
+    deallocate(rmse_tws)
+
+    !--------------------------------------------
+    !! RUNOFF
+    !--------------------------------------------
+#ifdef MRM2MHM
+    nGaugesTotal = size(runoff, dim=2)
+    allocate( kge_q(nGaugesTotal))
+    kge_q(:) = nodata_dp
+
+    do gg=1, nGaugesTotal
+
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+
+       ! check for whether to proceed with this basin or not
+       ! potentially 5 years of data
+       pp = count(runoff_agg .ge. 0.0_dp )
+       if (pp .lt.  365*5 ) then
+          deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
+          cycle
+       else
+          ! calculate KGE for each basin:
+          kge_q(gg) = kge( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+          deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
+       end if
+
+    end do
+
+    ! calculate average KGE value for runoff
+    kge_q_avg = sum( kge_q(:), abs( kge_q - nodata_dp) .gt. eps_dp ) / &
+                     real(count( abs( kge_q - nodata_dp) .gt. eps_dp ),dp)
+    deallocate(kge_q)
+#else
+    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
+    stop
+#endif
+
+    !
+    objective_kge_q_rmse_tws = rmse_tws_avg * ( 1._dp - kge_q_avg )
+
+    call message('    objective_kge_q_rmse_tws = ', num2str(objective_kge_q_rmse_tws,'(F9.5)'))
+
+  END FUNCTION objective_kge_q_sse_sm
+
+! #################################################
+  
   ! ==================================================================
   ! PRIVATE ROUTINES =================================================
   ! ==================================================================

@@ -106,7 +106,7 @@ LIBNAME  := #libminpack.a # Name of library
 #
 # Options
 # Systems: eve and personal computers such as mcimac for Matthias Cuntz' iMac; look in $(MAKEDPATH) or type 'make info'
-system   := eve
+system   := mzmac
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
 compiler := nag
