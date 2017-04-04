@@ -589,7 +589,7 @@ CONTAINS
     if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
        call message()
        call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-       call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
+       call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))),'!')
        stop
     end if
     ! neutrons
@@ -603,7 +603,6 @@ CONTAINS
     !===============================================================
     fileTWS = file_TWS (1:nBasins)
 
-    ! if (opti_function .EQ. 15) then !OROROR
     allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
     allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
     

@@ -133,7 +133,7 @@ opti_method = 1
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                      \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 10
+opti_function = 28
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------

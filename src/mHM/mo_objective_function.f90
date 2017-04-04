@@ -119,8 +119,11 @@ CONTAINS
       ! KGE of catchment average SM
        objective = objective_neutrons_kge_catchment_avg(parameterset)
     case (27)
-       ! KGE of catchment average SM
+       ! KGE of catchment average ET
        objective = objective_et_kge_catchment_avg(parameterset)
+    case (28)
+       !  KGE for Q + SSE for SM (standarized scored)
+       objective = objective_kge_q_sm_corr(parameterset)
     case default
        stop "Error objective: opti_function not implemented yet."
     end select
@@ -924,375 +927,6 @@ CONTAINS
 
   END FUNCTION objective_kge_q_rmse_tws
 
-  ! -----------------------------------------------------------------
-
-  !      NAME
-  !          objective_kge_q_sse_sm(parameterset)
-
-  !>        \brief Objective function of KGE for runoff and SSE for SM (standarized scores)
-
-  !>        \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_rmse_tws &mdash; objective function value
-  !>       (which will be e.g. minimized by an optimization routine like DDS)
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized. \n
-  !>             For TWS required at least 5 years of data!
-
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge_q_sse_sm(parameterset)
-
-  !     LITERATURE
-  !         None
-
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Mar. 2017
-
-
-! #################################################
-
-
-  FUNCTION objective_kge_q_sse_sm(parameterset)
-
-    use mo_mhm_eval,             only: mhm_eval
-    use mo_constants,            only: eps_dp
-    use mo_errormeasures,        only: kge, rmse
-    use mo_global_variables,     only: nBasins, evalPer
-    use mo_julian,               only: caldat
-    use mo_message,              only: message
-    use mo_mrm_constants,        only: nodata_dp
-    use mo_moment,               only: mean
-    use mo_temporal_aggregation, only: day2mon_average
-    use mo_standard_score,       only: classified_standard_score
-    use mo_string_utils,         only: num2str
-#ifdef MRM2MHM
-    use mo_mrm_objective_function_runoff, only: extract_runoff
-#endif
-
-    implicit none
-
-    real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_kge_q_rmse_tws
-
-    ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    real(dp), allocatable, dimension(:,:) :: tws                      ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-
-    integer(i4)                           :: gg, ii, pp, mmm          ! gauges counter, basin counter, month counters
-    integer(i4)                           :: year, month, day
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(nBasins)          :: initTime
-
-    real(dp), dimension(:),   allocatable :: runoff_agg            ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs            ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask       ! mask for measured runoff
-
-    real(dp), dimension(:),   allocatable :: tws_sim               ! simulated tws
-    real(dp), dimension(:),   allocatable :: tws_obs               ! measured tws
-    logical,  dimension(:),   allocatable :: tws_obs_mask          ! mask for measured tws
-
-    integer(i4)                           :: nMonths               ! total number of months
-    integer(i4), dimension(:),allocatable :: month_classes         ! vector with months' classes
-
-    !
-    real(dp), DIMENSION(:), allocatable   :: tws_sim_m, tws_obs_m           ! monthly values original time series
-    real(dp), DIMENSION(:), allocatable   :: tws_sim_m_anom, tws_obs_m_anom ! monthly values anomaly time series
-    logical,  DIMENSION(:), allocatable   :: tws_obs_m_mask   !
-    real(dp), dimension(:), allocatable   :: rmse_tws, kge_q  ! rmse_tws(nBasins), kge_q(nGaugesTotal)
-    real(dp)                              :: rmse_tws_avg, kge_q_avg ! obj. functions
-
-    ! obtain hourly values of runoff and tws:
-    call mHM_eval(parameterset, runoff=runoff, sm_opti=sm_opti)
-
-    !--------------------------------------------
-    !! TWS
-    !--------------------------------------------
-
-    ! allocate
-    allocate( rmse_tws(nBasins) )
-    rmse_tws(:) = nodata_dp
-
-    do ii=1, nBasins
-
-       ! extract tws the same way as runoff using mrm
-       call extract_basin_avg_tws( ii, tws, tws_sim, tws_obs, tws_obs_mask )
-
-       ! check for whether to proceed with this basin or not
-       ! potentially 5 years of data
-       if (count(tws_obs_mask) .lt.  365*5 ) then
-          deallocate (tws_sim, tws_obs, tws_obs_mask)
-          call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(ii)))  , &
-                       ' less than 5 years: these data are not considered')
-          cycle
-       else
-          ! get initial time of the evaluation period
-          initTime(ii) = real(evalPer(ii)%julStart,dp)
-
-          ! get calendar days, months, year
-          call caldat(int(initTime(ii)), yy=year, mm=month, dd=day)
-
-          ! calculate monthly averages from daily values of the model
-          call day2mon_average(tws_sim,year,month,day,tws_sim_m, misval=nodata_dp)
-
-          ! remove mean from modelled time series
-          tws_sim_m(:) = tws_sim_m(:) - mean(tws_sim_m(:))
-
-          ! calculate monthly averages from daily values of the observations, which already have removed the long-term mean
-          call day2mon_average(tws_obs,year,month,day,tws_obs_m, misval=nodata_dp)
-
-          ! get number of months for given basin
-          nMonths = size(tws_obs_m)
-
-          allocate ( month_classes(  nMonths ) )
-          allocate ( tws_obs_m_mask( nMonths ) )
-          allocate ( tws_obs_m_anom( nMonths ) )
-          allocate ( tws_sim_m_anom( nMonths ) )
-
-          month_classes(:) = 0
-          tws_obs_m_mask(:) = .TRUE.
-          tws_obs_m_anom(:) = nodata_dp
-          tws_sim_m_anom(:) = nodata_dp
-
-          ! define months' classes
-          mmm = month
-          do pp = 1, nMonths
-             month_classes(pp) = mmm
-             if (mmm .LT. 12) then
-                mmm = mmm + 1
-             else
-                mmm = 1
-             end if
-          end do
-
-          ! define mask for missing data in observations (there are always data for simulations)
-          where( abs( tws_obs_m - nodata_dp) .lt. eps_dp ) tws_obs_m_mask = .FALSE.
-
-          ! calculate standard score
-          tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask)
-          tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask)
-          rmse_tws(ii) = rmse(tws_sim_m_anom,tws_obs_m_anom,  mask = tws_obs_m_mask)
-
-          deallocate ( month_classes )
-          deallocate ( tws_obs_m )
-          deallocate ( tws_sim_m )
-          deallocate ( tws_obs_m_mask )
-          deallocate ( tws_sim_m_anom )
-          deallocate ( tws_obs_m_anom )
-          deallocate (tws_sim, tws_obs, tws_obs_mask)
-       endif
-
-    end do
-
-    rmse_tws_avg = sum( rmse_tws(:), abs( rmse_tws - nodata_dp) .gt. eps_dp ) / &
-                                        real(count( abs( rmse_tws - nodata_dp) .gt. eps_dp),dp)
-    deallocate(rmse_tws)
-
-    !--------------------------------------------
-    !! RUNOFF
-    !--------------------------------------------
-#ifdef MRM2MHM
-    nGaugesTotal = size(runoff, dim=2)
-    allocate( kge_q(nGaugesTotal))
-    kge_q(:) = nodata_dp
-
-    do gg=1, nGaugesTotal
-
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-
-       ! check for whether to proceed with this basin or not
-       ! potentially 5 years of data
-       pp = count(runoff_agg .ge. 0.0_dp )
-       if (pp .lt.  365*5 ) then
-          deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
-          cycle
-       else
-          ! calculate KGE for each basin:
-          kge_q(gg) = kge( runoff_obs, runoff_agg, mask=runoff_obs_mask)
-          deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
-       end if
-
-    end do
-
-    ! calculate average KGE value for runoff
-    kge_q_avg = sum( kge_q(:), abs( kge_q - nodata_dp) .gt. eps_dp ) / &
-                     real(count( abs( kge_q - nodata_dp) .gt. eps_dp ),dp)
-    deallocate(kge_q)
-#else
-    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
-    stop
-#endif
-
-    !
-    objective_kge_q_rmse_tws = rmse_tws_avg * ( 1._dp - kge_q_avg )
-
-    call message('    objective_kge_q_rmse_tws = ', num2str(objective_kge_q_rmse_tws,'(F9.5)'))
-
-  END FUNCTION objective_kge_q_sse_sm
-
-! #################################################
-  
-  ! ==================================================================
-  ! PRIVATE ROUTINES =================================================
-  ! ==================================================================
-
-
-  ! ------------------------------------------------------------------
-
-  ! NAME
-  !         extract_basin_avg_tws
-
-  !>        \brief extracts basin average tws data from global variables
-
-  !>        \details extracts simulated and measured basin average tws from global variables,
-  !>                 such that they overlay exactly. For measured tws, only the tws
-  !>                 during the evaluation period are cut, not succeeding nodata values.
-  !>                 For simulated tws, warming days as well as succeeding nodata values
-  !>                 are neglected.\n
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: basinID"   - ID of the current basin to process
-  !>        \param[in] "real(dp)    :: tws(:)"    - simulated basin average tws
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)   :: tws_sim(:)"      - simulated basin average tws at this basin\n
-  !>        \param[out] "real(dp)   :: tws_obs(:)"      - extracted observed basin average tws\n
-  !>        \param[out] "logical    :: tws_obs_mask(:)" - masking non-negative values in tws_obs\n
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         see use in this module above
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Modified from the module extract_runoff by S. Thober
-  !>        \author O. Rakovec
-  !>        \date Oct 2015
-  !         Modified, Oct 2015, Stephan Thober - moved subroutine to objective_function_sm
-
-  ! ------------------------------------------------------------------
-  subroutine extract_basin_avg_tws( basinId, tws, tws_sim, tws_obs, tws_obs_mask )
-
-    use mo_global_variables, only: basin_avg_TWS_obs, nMeasPerDay_TWS, evalPer, warmingDays, nTstepDay
-    use mo_message,          only: message
-    use mo_constants,        only: eps_dp
-    use mo_mrm_constants,    only: nodata_dp
-
-    implicit none
-
-    ! input variables
-    integer(i4),               intent(in) :: basinId      ! current basin Id
-    real(dp),  dimension(:,:), intent(in) :: tws          ! simulated basin average tws
-
-    ! output variables
-    real(dp), dimension(:), allocatable, intent(out) :: tws_sim         ! aggregated simulated
-    ! tws to the resolution
-    ! of the measurement
-    real(dp), dimension(:), allocatable, intent(out) :: tws_obs         ! extracted measured
-    ! tws to exactly the
-    ! evaluation period
-    logical,  dimension(:), allocatable, intent(out) :: tws_obs_mask    ! mask of no data values
-    ! in tws_obs
-
-    ! local variables
-    integer(i4)                         :: iBasin  ! basin id
-    integer(i4)                         :: tt      ! timestep counter
-    integer(i4)                         :: length  ! length of extracted time series
-    integer(i4)                         :: factor  ! between simulated and measured time scale
-    integer(i4)                         :: TPD_sim ! simulated Timesteps per Day
-    integer(i4)                         :: TPD_obs ! observed Timesteps per Day
-    real(dp), dimension(:), allocatable :: dummy
-
-    ! copy time resolution to local variables
-    TPD_sim = nTstepDay
-    TPD_obs = nMeasPerDay_TWS
-
-    ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo( TPD_sim, TPD_obs) .eq. 0 ) then
-       factor = TPD_sim / TPD_obs
-    else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
-    end if
-
-    ! extract basin Id
-    iBasin = basin_avg_TWS_obs%basinId( basinId )
-
-    ! get length of evaluation period times TPD_obs
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
-
-    ! extract measurements
-    if ( allocated( tws_obs ) ) deallocate( tws_obs )
-    allocate( tws_obs( length ) )
-    tws_obs = basin_avg_TWS_obs%TWS( 1 : length, basinId )
-
-    ! create mask of observed tws
-    if ( allocated( tws_obs_mask ) ) deallocate( tws_obs_mask )
-    allocate( tws_obs_mask( length ) )
-    tws_obs_mask = .TRUE.
-    where( abs( tws_obs - nodata_dp) .lt. eps_dp ) tws_obs_mask = .FALSE.
-
-    ! extract and aggregate simulated tws
-    if ( allocated( tws_sim ) ) deallocate( tws_sim )
-    allocate( tws_sim( length ) )
-    ! remove warming days
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_sim
-    allocate( dummy( length ) )
-    dummy = tws( warmingDays(iBasin)*TPD_sim + 1:warmingDays(iBasin)*TPD_sim + length, basinId )
-    ! aggregate tws
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
-    forall(tt=1:length) tws_sim(tt) = sum( dummy( (tt-1)*factor+1: tt*factor ) ) / &
-         real(factor,dp)
-    ! clean up
-    deallocate( dummy )
-
-  end subroutine extract_basin_avg_tws
-
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -1414,7 +1048,7 @@ CONTAINS
 
           ! check for enough data points in time for correlation
           if ( all(.NOT. L1_neutronsdata_mask(s1:e1,iTime))) then
-              write (*,*) 'WARNING: neutrons data at time ', iTime, ' is empty.'
+              call message('WARNING: neutrons data at time ', num2str(iTime, 'i10'), ' is empty.')
              !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored currrent time step since less than')
              !call message('         10 valid cells available in soil moisture observation')
              mask_times(iTime) = .FALSE.
@@ -1442,6 +1076,172 @@ CONTAINS
 
   END FUNCTION objective_neutrons_kge_catchment_avg
 
+  ! -----------------------------------------------------------------
+
+  !      NAME
+  !          objective_kge_q_sse_sm(parameterset)
+
+  !>        \brief Objective function of KGE for runoff and correlation for SM
+
+  !>        \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
+  !>                 Further details can be found in the documentation of objective functions
+  !>                 '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge_q_sse_sm &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge_q_sse_sm(parameterset)
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Matthias Zink
+  !>        \date Mar. 2017
+
+  FUNCTION objective_kge_q_sm_corr(parameterset)
+
+    use mo_init_states,          only: get_basin_info
+    use mo_mhm_eval,             only: mhm_eval
+    use mo_errormeasures,        only: kge !, sse, rmse ! MZMZMZMZ
+    use mo_moment,               only: correlation ! mean ! MZMZMZMZ
+    use mo_message,              only: message
+    ! use mo_standard_score,       only: standard_score ! MZMZMZM
+    use mo_string_utils,         only: num2str
+    use mo_global_variables,     only: nBasins,             &
+                                       L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
+#ifdef MRM2MHM
+    use mo_mrm_objective_function_runoff, only: extract_runoff
+#endif
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)    :: parameterset
+    real(dp)                              :: objective_kge_q_sm_corr
+
+    ! local
+    real(dp)                              :: objective_sm
+    real(dp)                              :: objective_kge
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
+    integer(i4)                           :: iBasin             ! basin loop counter
+    integer(i4)                           :: iCell              ! cell loop counter
+    integer(i4)                           :: nrows1, ncols1     ! level 1 number of culomns and rows
+    integer(i4)                           :: s1, e1             ! start and end index for the current basin
+    integer(i4)                           :: ncells1            ! ncells1 of level 1
+    real(dp)                              :: objective_sm_basin ! basins wise objectives
+    ! runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    ! SM
+    real(dp), dimension(:,:), allocatable :: sm_opti                 ! simulated soil moisture
+    !                                                                  ! (dim1=ncells, dim2=time)
+    
+    real(dp),    parameter                   :: onesixth = 1.0_dp/6.0_dp
+
+    ! run mHM
+    call mHM_eval(parameterset, runoff=runoff, sm_opti=sm_opti)
+
+    ! -----------------------------
+    ! SOIL MOISTURE
+    ! -----------------------------
+    
+    ! initialize some variables
+    objective_sm          = 0.0_dp
+
+    ! loop over basin - for applying power law later on
+    do iBasin = 1, nBasins
+
+       ! init
+       objective_sm_basin = 0.0_dp
+       ! get basin information
+       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
+
+       ! standard_score signal is calculated on individual grid cells
+       do iCell = s1, e1
+
+          ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
+          if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
+             call message('WARNING: objective_sm: ignored currrent cell since less than 10 time steps')
+             call message('         available in soil moisture observation')
+             cycle
+          end if
+          objective_sm_basin = objective_sm_basin + &
+               correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
+       end do
+
+       ! calculate average soil moisture objective over all basins with power law
+       ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+       objective_sm = objective_sm + &
+            ( (1.0_dp - objective_sm_basin / real(nCells1,dp)) / real(nBasins,dp) )**6
+    end do
+
+    ! compromise solution - sixth root
+    objective_sm = objective_sm**onesixth
+
+    ! -----------------------------
+    ! RUNOFF
+    ! -----------------------------
+#ifdef MRM2MHM
+    nGaugesTotal = size(runoff, dim=2)
+
+    objective_kge = 0.0_dp
+    do gg=1, nGaugesTotal
+
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+
+       ! KGE
+       objective_kge = objective_kge + &
+            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6
+
+    end do
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    
+    ! compromise solution - sixth root
+    objective_kge = objective_kge**onesixth 
+
+#else
+    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
+    stop
+#endif
+
+    ! equal weighted compromise objective functions for discharge and soilmoisture
+    objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6 )**onesixth
+    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
+    
+    call message('    objective_kge_q_sm_corr = ', num2str(objective_kge_q_sm_corr,'(F9.5)'))
+
+  END FUNCTION objective_kge_q_sm_corr
+  
   ! ------------------------------------------------------------------
 
   !      NAME
@@ -1590,6 +1390,138 @@ CONTAINS
 
     call message('    objective_et_kge_catchment_avg = ', num2str(objective_et_kge_catchment_avg,'(F9.5)'))
 
-END FUNCTION objective_et_kge_catchment_avg
+  END FUNCTION objective_et_kge_catchment_avg
 
+
+  
+  ! ------------------------------------------------------------------
+
+  ! NAME
+  !         extract_basin_avg_tws
+
+  !>        \brief extracts basin average tws data from global variables
+
+  !>        \details extracts simulated and measured basin average tws from global variables,
+  !>                 such that they overlay exactly. For measured tws, only the tws
+  !>                 during the evaluation period are cut, not succeeding nodata values.
+  !>                 For simulated tws, warming days as well as succeeding nodata values
+  !>                 are neglected.\n
+
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4) :: basinID"   - ID of the current basin to process
+  !>        \param[in] "real(dp)    :: tws(:)"    - simulated basin average tws
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp)   :: tws_sim(:)"      - simulated basin average tws at this basin\n
+  !>        \param[out] "real(dp)   :: tws_obs(:)"      - extracted observed basin average tws\n
+  !>        \param[out] "logical    :: tws_obs_mask(:)" - masking non-negative values in tws_obs\n
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         see use in this module above
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !         Modified from the module extract_runoff by S. Thober
+  !>        \author O. Rakovec
+  !>        \date Oct 2015
+  !         Modified, Oct 2015, Stephan Thober - moved subroutine to objective_function_sm
+
+  ! ------------------------------------------------------------------
+  subroutine extract_basin_avg_tws( basinId, tws, tws_sim, tws_obs, tws_obs_mask )
+
+    use mo_global_variables, only: basin_avg_TWS_obs, nMeasPerDay_TWS, evalPer, warmingDays, nTstepDay
+    use mo_message,          only: message
+    use mo_constants,        only: eps_dp
+    use mo_mrm_constants,    only: nodata_dp
+
+    implicit none
+
+    ! input variables
+    integer(i4),               intent(in) :: basinId      ! current basin Id
+    real(dp),  dimension(:,:), intent(in) :: tws          ! simulated basin average tws
+
+    ! output variables
+    real(dp), dimension(:), allocatable, intent(out) :: tws_sim         ! aggregated simulated
+    ! tws to the resolution
+    ! of the measurement
+    real(dp), dimension(:), allocatable, intent(out) :: tws_obs         ! extracted measured
+    ! tws to exactly the
+    ! evaluation period
+    logical,  dimension(:), allocatable, intent(out) :: tws_obs_mask    ! mask of no data values
+    ! in tws_obs
+
+    ! local variables
+    integer(i4)                         :: iBasin  ! basin id
+    integer(i4)                         :: tt      ! timestep counter
+    integer(i4)                         :: length  ! length of extracted time series
+    integer(i4)                         :: factor  ! between simulated and measured time scale
+    integer(i4)                         :: TPD_sim ! simulated Timesteps per Day
+    integer(i4)                         :: TPD_obs ! observed Timesteps per Day
+    real(dp), dimension(:), allocatable :: dummy
+
+    ! copy time resolution to local variables
+    TPD_sim = nTstepDay
+    TPD_obs = nMeasPerDay_TWS
+
+    ! check if modelled timestep is an integer multiple of measured timesteps
+    if ( modulo( TPD_sim, TPD_obs) .eq. 0 ) then
+       factor = TPD_sim / TPD_obs
+    else
+       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+       stop
+    end if
+
+    ! extract basin Id
+    iBasin = basin_avg_TWS_obs%basinId( basinId )
+
+    ! get length of evaluation period times TPD_obs
+    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
+
+    ! extract measurements
+    if ( allocated( tws_obs ) ) deallocate( tws_obs )
+    allocate( tws_obs( length ) )
+    tws_obs = basin_avg_TWS_obs%TWS( 1 : length, basinId )
+
+    ! create mask of observed tws
+    if ( allocated( tws_obs_mask ) ) deallocate( tws_obs_mask )
+    allocate( tws_obs_mask( length ) )
+    tws_obs_mask = .TRUE.
+    where( abs( tws_obs - nodata_dp) .lt. eps_dp ) tws_obs_mask = .FALSE.
+
+    ! extract and aggregate simulated tws
+    if ( allocated( tws_sim ) ) deallocate( tws_sim )
+    allocate( tws_sim( length ) )
+    ! remove warming days
+    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_sim
+    allocate( dummy( length ) )
+    dummy = tws( warmingDays(iBasin)*TPD_sim + 1:warmingDays(iBasin)*TPD_sim + length, basinId )
+    ! aggregate tws
+    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
+    forall(tt=1:length) tws_sim(tt) = sum( dummy( (tt-1)*factor+1: tt*factor ) ) / &
+         real(factor,dp)
+    ! clean up
+    deallocate( dummy )
+
+  end subroutine extract_basin_avg_tws
+  
 END MODULE mo_objective_function
