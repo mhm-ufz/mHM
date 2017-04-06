@@ -232,6 +232,9 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_impervious
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious
     real(dp), dimension(nColPars)                   :: jarvis_sm_threshold_c1
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_sand
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_clay
+    
     ! directRunoff
     real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
     ! PET0
@@ -368,7 +371,15 @@ CONTAINS
          PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
          rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
          rootFractionCoefficient_pervious, infiltrationShapeFactor, jarvis_sm_threshold_c1
-    namelist /directRunoff1/ imperviousStorageCapacity
+    namelist/soilmoisture3/ orgMatterContent_forest, orgMatterContent_impervious, orgMatterContent_pervious, &
+         PTF_lower66_5_constant, PTF_lower66_5_clay, PTF_lower66_5_Db, PTF_higher66_5_constant,              &
+         PTF_higher66_5_clay, PTF_higher66_5_Db, PTF_Ks_constant,                                            &
+         PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
+         rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
+         rootFractionCoefficient_pervious, infiltrationShapeFactor, jarvis_sm_threshold_c1,                  &
+         rootFractionCoefficient_sand, rootFractionCoefficient_clay
+
+         namelist /directRunoff1/ imperviousStorageCapacity
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
     ! Hargreaves-Samani
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
@@ -949,6 +960,57 @@ CONTAINS
             'infiltrationShapeFactor           ', &
             'jarvis_sm_threshold_c1            '/))
 
+            
+    ! 3- Jarvis equation for ET reduction and FC dependency on root fraction coefficient
+    case(3)
+       call position_nml('soilmoisture3', unamelist_param)
+       read(unamelist_param, nml=soilmoisture3)
+       processMatrix(3, 1) = processCase(3)
+       processMatrix(3, 2) = 20_i4
+       processMatrix(3, 3) = sum(processMatrix(1:3, 2))
+       call append(global_parameters, reshape(orgMatterContent_forest,     (/1, nColPars/)))
+       call append(global_parameters, reshape(orgMatterContent_impervious, (/1, nColPars/)))
+       call append(global_parameters, reshape(orgMatterContent_pervious,   (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_constant,      (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_clay,          (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_lower66_5_Db,            (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_constant,     (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_clay,         (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_higher66_5_Db,           (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_constant,             (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_sand,                 (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_clay,                 (/1, nColPars/)))
+       call append(global_parameters, reshape(PTF_Ks_curveSlope,           (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_forest,     (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_impervious, (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_pervious,   (/1, nColPars/)))
+       call append(global_parameters, reshape(infiltrationShapeFactor,     (/1, nColPars/)))
+       call append(global_parameters, reshape(jarvis_sm_threshold_c1,      (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_sand,      (/1, nColPars/)))
+       call append(global_parameters, reshape(rootFractionCoefficient_clay,      (/1, nColPars/)))
+
+       call append(global_parameters_name, (/     &
+            'orgMatterContent_forest           ', &
+            'orgMatterContent_impervious       ', &
+            'orgMatterContent_pervious         ', &
+            'PTF_lower66_5_constant            ', &
+            'PTF_lower66_5_clay                ', &
+            'PTF_lower66_5_Db                  ', &
+            'PTF_higher66_5_constant           ', &
+            'PTF_higher66_5_clay               ', &
+            'PTF_higher66_5_Db                 ', &
+            'PTF_Ks_constant                   ', &
+            'PTF_Ks_sand                       ', &
+            'PTF_Ks_clay                       ', &
+            'PTF_Ks_curveSlope                 ', &
+            'rootFractionCoefficient_forest    ', &
+            'rootFractionCoefficient_impervious', &
+            'rootFractionCoefficient_pervious  ', &
+            'infiltrationShapeFactor           ', &
+            'jarvis_sm_threshold_c1            ', &
+            'rootFractionCoefficient_sand      ', &
+            'rootFractionCoefficient_clay      '/))
+            
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
           call message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &

@@ -55,6 +55,7 @@ CONTAINS
   !>        \param[in] "integer(i4),           :: processCase"          
   !>                                              1 - Feddes equation for PET reduction
   !>                                              2 - Jarvis equation for PET reduction
+  !>                                              3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
   !>        \param[in] "real(dp)               :: frac_sealed"
   !>                                              Fraction of sealed area
   !>        \param[in] "real(dp)               :: water_thresh_sealed"
@@ -254,7 +255,7 @@ CONTAINS
             soil_stress_factor = feddes_et_reduction(soil_moist(hh), soil_moist_FC(hh), wilting_point(hh), &
                                                      frac_roots(hh)) 
        ! JARVIS EQUATION
-       case(2)
+       case(2:3)
             !!!!!!!!! INTRODUCING STRESS FACTOR FOR SOIL MOISTURE ET REDUCTION !!!!!!!!!!!!!!!!! 
             soil_stress_factor = jarvis_et_reduction(soil_moist(hh), soil_moist_sat(hh), wilting_point(hh), &
                                                      frac_roots(hh), jarvis_thresh_c1) 

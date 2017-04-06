@@ -456,6 +456,21 @@ contains
 
            ! last parameter is jarvis parameter - no need to be regionalized               
            jarvis_thresh_c1 = param(proc_Mat(3,3))
+           !print*,"jarvis case 2", jarvis_thresh_c1
+    case(3)
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 7    
+
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 7 + 1
+           iEnd2   = proc_Mat(3,3) - 3
+
+           ! last parameter is jarvis parameter - no need to be regionalized               
+           jarvis_thresh_c1 = param(proc_Mat(3,3)-2) 
+           !print*,"jarvis case 3", jarvis_thresh_c1
+           
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "soil moisture parametrization" does not exist! mo_multi_param_reg')

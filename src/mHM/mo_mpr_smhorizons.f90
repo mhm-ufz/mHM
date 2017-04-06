@@ -10,6 +10,8 @@
 module mo_mpr_SMhorizons
 
   use mo_kind, only: i4, dp
+  use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
+
 
   implicit none
 
@@ -114,6 +116,8 @@ contains
   !                                                --> param(4) = infiltrationShapeFactor
   !                  Stephan Thober, Mar 2014 - added omp parallelization
   !                  Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
+  !                  Cuneyd Demirel, Apr 2017 - added FC dependency on root fraction coefficient
+
 
   subroutine mpr_SMhorizons( &
        ! Input -----------------------------------------------------------------
@@ -221,14 +225,40 @@ contains
     real(dp), dimension(size(LCOVER0,1))    :: FC0     ! [10^-3 m] field capacity
     real(dp), dimension(size(LCOVER0,1))    :: PW0     ! [10^-3 m] permanent wilting point
     real(dp), dimension(size(LCOVER0,1))    :: fRoots0 ! fraction of roots in soil horizons
+
     real(dp)                                :: tmp_rootFractionCoefficient_forest
     real(dp)                                :: tmp_rootFractionCoefficient_impervious
     real(dp)                                :: tmp_rootFractionCoefficient_pervious
+    real(dp)                                :: tmp_rootFractionCoefficient_perviousFC       ! Field capacity dependent root frac coeffiecient
 
+    real(dp)    							:: tmp_rootFractionCoefficient_sand             ! Model parameter describing the threshold for actual ET reduction for sand  
+	real(dp)    							:: tmp_rootFractionCoefficient_clay             ! Model parameter describing the threshold for actual ET reduction for clay 
+ 	real(dp)    							:: tmp_dummySAND                                ! a dummy parameter before calculating the real tmp_rootFractionCoefficient_sand
+   
+    real(dp)    							:: tmp_FC0min             						! Calculate FCmin at level 0 once to speed up the code
+	real(dp)    							:: tmp_FC0max             						! Calculate FCmax at level 0 once to speed up the code
+	integer(i4)    							:: iii  										! row number of new ET-SPACE parameters 
+	
     tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
     tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
+	
+	print*,"processMatrix(3, 1) is ",   processMatrix(3, :)
 
+ 
+    
+	do, iii=1,size(global_parameters_name,1)
+		if (global_parameters_name(iii)=="rootFractionCoefficient_sand") &
+        tmp_dummySAND=global_parameters(iii,3)
+		if (global_parameters_name(iii)=="rootFractionCoefficient_clay") &
+		tmp_rootFractionCoefficient_clay=global_parameters(iii,3)
+		tmp_rootFractionCoefficient_sand=tmp_rootFractionCoefficient_clay-tmp_dummySAND        
+	enddo	
+	
+	print*,"rootFractionCoefficient_sand is ",tmp_rootFractionCoefficient_sand
+	print*,"rootFractionCoefficient_clay is ",tmp_rootFractionCoefficient_clay	
+	
+					
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soil)
        ! classical mHM soil database format
@@ -291,7 +321,26 @@ contains
                 ! other soil properties [SMs, FC, PWP in mm]
                 SMs0(k) = SMs0(k) * (dpth_t - dpth_f)
                 FC0(k)  = FC0(k)  * (dpth_t - dpth_f)
-                PW0(k)  = PW0(k)  * (dpth_t - dpth_f)          
+                PW0(k)  = PW0(k)  * (dpth_t - dpth_f)
+			end do cellloop
+			!$OMP END DO
+			!$OMP END PARALLEL		
+			
+			
+			tmp_FC0min=minval(FC0(:))
+			tmp_FC0max=maxval(FC0(:))
+			
+			if(tmp_FC0min .lt. 0.0_dp) then 
+			print*,"CHECK FC0min, -9999 effect",tmp_FC0min
+			tmp_FC0min=minval(FC0(cell_id0))
+			print*,"NEW FC0min is",tmp_FC0min
+			end if
+			
+			!$OMP PARALLEL
+            !$OMP DO PRIVATE( l, s ) SCHEDULE( STATIC )
+             celllloop: do k = 1, size(LCOVER0,1)
+                l = LCOVER0(k)
+                s = soilID0(k,1)  !>> in this case the second dimension of soilId0 = 1			
                 !---------------------------------------------------------------------
                 ! Effective root fractions in soil horizon... 
                 !  as weightage sum (according to LC fraction)
@@ -327,7 +376,9 @@ contains
                 !  proportions. Also note that there are no obervations on the depth avialable ata a 
                 !  moment on these layers. 
                 !------------------------------------------------------------------------
-                select case(L)
+
+				
+				select case(L)
                 case(1)              
                    ! forest
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_t*0.1_dp)) &
@@ -336,14 +387,40 @@ contains
                    ! impervious
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_f*0.1_dp) )
-                case(3)               
+                case(3)
+
+                select case (processMatrix(3,1))
+                
+                case(1:2)        
                    ! permeable   
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t*0.1_dp)) &
-                        - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+				   
+                case(3)
+                
+				   !introducing FC dependency on root frac coef. 
+					tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
+					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
+					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &
+					tmp_rootFractionCoefficient_sand)  
+					
+					if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
+					print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+					
+					fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
+                    - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) )  
+					
+					if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
+					print*, "CHECK fRoots0(k)", fRoots0(k)
+										
+			   
                 end select
-             end do cellloop
+                end select
+
+             end do celllloop
              !$OMP END DO
              beta0 = Bd0*param(4)
+
              !---------------------------------------------
              ! Upscale the soil related parameters
              !---------------------------------------------
@@ -357,6 +434,7 @@ contains
                   Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, FC0 )
              L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
+
              !$OMP END PARALLEL
           end do
        ! to handle multiple soil horizons with unique soil class   
@@ -392,12 +470,27 @@ contains
                    FC0(k)  = thetaFC(s,1) * (dpth_t - dpth_f) ! in mm
                    PW0(k)  = thetaPW(s,1) * (dpth_t - dpth_f) ! in mm          
                 end if
+			 end do
+			
+						
+			tmp_FC0min=minval(FC0(:))
+			tmp_FC0max=maxval(FC0(:))
+			
+			if(tmp_FC0min .lt. 0.0_dp) then 
+			print*,"CHECK FC0min, -9999s effected",tmp_FC0min
+			tmp_FC0min=minval(FC0(cell_id0))
+			print*,"NEW FC0min is",tmp_FC0min
+			end if
+			
+
+			 do k = 1, size(LCOVER0,1)
                 !================================================================================
                 ! fRoots = f[LC] --> (fRoots(H) = 1 - beta^d)
                 ! see below for comments and references for the use of this simple equation
                 ! NOTE that in this equation the unit of soil depth is in cm 
                 !================================================================================
-                select case(L)
+ 				
+				select case(L)
                 case(1)              
                    ! forest
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_t*0.1_dp)) &
@@ -406,11 +499,36 @@ contains
                    ! impervious
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_f*0.1_dp) )
-                case(3)               
+                case(3)
+
+                select case (processMatrix(3,1))
+                
+                case(1:2)        
                    ! permeable   
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t*0.1_dp)) &
-                        - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+				   
+                case(3)
+                
+				   !introducing FC dependency on root frac coef. 
+					tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
+					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
+					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &
+					tmp_rootFractionCoefficient_sand)  
+					
+					if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
+					print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
+					
+					fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
+                    - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) )  
+					
+					if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
+					print*, "CHECK fRoots0(k)", fRoots0(k)
+										
+				   
                 end select
+                end select
+                
              end do !>> cellloop
 
              ! beta parameter
@@ -462,9 +580,15 @@ contains
              L1_fRoots(k, :) = 0.0_dp
           end If
        end do
-       !$OMP END DO
+	   
+
+	   
+       !$OMP END DO  
        !$OMP END PARALLEL
 
+	   
   end subroutine mpr_SMhorizons
 
 end module mo_mpr_SMhorizons
+
+					
