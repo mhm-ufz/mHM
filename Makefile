@@ -181,14 +181,15 @@ static   := shared
 #                  This means that all tests do not work which use netcdf and/or lapack.
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
 
-# Special compilation flags 
+# Special compilation flags
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
-EXTRA_LDFLAGS  :=
+EXTRA_LDFLAGS  += -Wl,--stack,12485760
 EXTRA_LIBS     :=
-EXTRA_CFLAGS   :=
+EXTRA_CFLAGS   += -Wl,--stack,12485760
+
 
 # Intel F2003 -assume realloc-lhs
 INTEL_EXCLUDE  := mo_multi_param_reg.f90 mo_mpr_soilmoist.f90 #mo_read_wrapper.f90

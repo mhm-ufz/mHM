@@ -7,14 +7,16 @@
 !> \authors Stephan Thober, Rohini Kumar
 !> \date Dec 2012
 
-!          created  Sa   16.02.2006
-!           update  Sa   17.09.2007 betas new number
-!           update  Sa   03.10.2007 new name, land cover state  
-!           update  Ku   25.03.2008 all parameters are regionalised  
-!           update  Ku   04.10.2010 vector version
-!           update  Th   20.12.2012 modular version
-!           update  MZ   27.11.2014 added parameterization of PET
-!                   Ku   Mar 2016 - changes for handling multiple soil database options
+!          created  Sa          16.02.2006
+!           update  Sa          17.09.2007 - betas new number
+!           update  Sa          03.10.2007 - new name, land cover state  
+!           update  Ku          25.03.2008 - all parameters are regionalised  
+!           update  Ku          04.10.2010 - vector version
+!           update  Th          20.12.2012 - modular version
+!           update  MZ          27.11.2014 - added parameterization of PET
+!           update  Ku          Mar  2016  - changes for handling multiple soil database options
+!  M.C.Demirel & S.Stisen       Apr  2017  - added ET reduction and FC dependency on root fraction coefficient at SM process(3)  
+
 
 MODULE mo_multi_param_reg
 
@@ -176,14 +178,15 @@ contains
   !     HISTORY
   !>        \author Stephan Thober, Rohini Kumar
   !>        \date Dec 2012
-  !         Written Stephan Thober, Dec 2012
-  !         Modified, Stephan Thober, Jan 2013 - updated calling sequence for upscaling operators
-  !                   Luis Samaniego, Feb 2013 - calling sequence, initial CHECK, call mpr_runoff
-  !                   Stephan Thober, Feb 2013 - added subroutine for karstic percolation loss
-  !                                              removed L1_, L0_ in variable names
-  !                   Stephan Thober, Aug 2015 - moved regionalization of routing to mRM
-  !                   Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
-  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !         Written Stephan Thober,                 Dec 2012 - created
+  !         Modified, Stephan Thober,               Jan 2013 - updated calling sequence for upscaling operators
+  !                   Luis Samaniego,               Feb 2013 - calling sequence, initial CHECK, call mpr_runoff
+  !                   Stephan Thober,               Feb 2013 - added subroutine for karstic percolation loss
+  !                                                            removed L1_, L0_ in variable names
+  !                   Stephan Thober,               Aug 2015 - moved regionalization of routing to mRM
+  !                   Rohini Kumar,                 Mar 2016 - changes for handling multiple soil database options
+  !                   Zink M. & Demirel M.C.,       Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !                   Demirel M.C. & S. Stisen,     Apr 2017 - Added FC dependency on root fraction coefficient at SM process(3)
 
 
   !TO DOS: all variable names have to be updated as in the mHM call and the sorted. Documentation has to be updated
@@ -311,6 +314,10 @@ contains
     real(dp), dimension(:,:),                intent(inout) :: beta1             ! Parameter that determines the rel.
     !                                                                           ! contribution to SM, upscal. Bulk den.
     real(dp), dimension(:),                  intent(inout) :: jarvis_thresh_c1  ! [1] jarvis critical value for norm SWC
+    real(dp)                    :: rootFractionCoefficient_sand  ! [1] root Fraction Coefficient for sand
+    real(dp)                    :: rootFractionCoefficient_clay  ! [1] root Fraction Coefficient for clay
+
+    
     real(dp), dimension(:,:),                intent(inout) :: SMs1              ! [10^-3 m] depth of saturated SM
     real(dp), dimension(:,:),                intent(inout) :: FC1               ! [10^-3 m] field capacity
     real(dp), dimension(:,:),                intent(inout) :: PW1               ! [10^-3 m] permanent wilting point
@@ -465,11 +472,18 @@ contains
            ! next four parameters go here
            ! (the first three for the fRoots and the fourth one for the beta)
            iStart2 = proc_Mat(3,3) - 7 + 1
-           iEnd2   = proc_Mat(3,3) - 3
+           iEnd2   = proc_Mat(3,3) - 1
 
            ! last parameter is jarvis parameter - no need to be regionalized               
-           jarvis_thresh_c1 = param(proc_Mat(3,3)-2) 
-           !print*,"jarvis case 3", jarvis_thresh_c1
+           
+           jarvis_thresh_c1 = param(proc_Mat(3,3))
+           !rootFractionCoefficient_sand = param(proc_Mat(3,3)-2)
+           !rootFractionCoefficient_clay = param(proc_Mat(3,3)-1) 
+
+           !print*,"MPR rootFractionCoefficient_sand", rootFractionCoefficient_sand
+           !print*,"MPR rootFractionCoefficient_clay", rootFractionCoefficient_clay
+           !print*,"MPR jarvis_thresh_c1", jarvis_thresh_c1
+
            
     case DEFAULT
        call message()

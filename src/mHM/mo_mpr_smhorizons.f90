@@ -10,7 +10,7 @@
 module mo_mpr_SMhorizons
 
   use mo_kind, only: i4, dp
-  use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
+  use mo_common_variables,    only : processMatrix
 
 
   implicit none
@@ -114,9 +114,11 @@ contains
   !                                                --> param(2) = rootFractionCoefficient_impervious 
   !                                                --> param(3) = delta_1 
   !                                                --> param(4) = infiltrationShapeFactor
+  !                                                --> param(5) = rootFractionCoefficient_sand
+  !                                                --> param(6) = rootFractionCoefficient_clay
   !                  Stephan Thober, Mar 2014 - added omp parallelization
   !                  Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
-  !                  Cuneyd Demirel, Apr 2017 - added FC dependency on root fraction coefficient
+  ! M. Cuneyd Demirel, Simon Stisen, Apr 2017 - added FC dependency on root fraction coefficient
 
 
   subroutine mpr_SMhorizons( &
@@ -161,7 +163,7 @@ contains
     implicit none
 
     ! Input
-    real(dp),    dimension(4),     intent(in) :: param         ! parameters
+    real(dp),    dimension(7),     intent(in) :: param         ! parameters
     real(dp),                      intent(in) :: nodata        ! no data value
     integer(i4),                   intent(in) :: iFlag_soil    ! flag to handle different soil database
     integer(i4),                   intent(in) :: nHorizons_mHM ! Number of Horizons in mHM
@@ -242,22 +244,12 @@ contains
     tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
     tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
-	
-	print*,"processMatrix(3, 1) is ",   processMatrix(3, :)
-
- 
     
-	do, iii=1,size(global_parameters_name,1)
-		if (global_parameters_name(iii)=="rootFractionCoefficient_sand") &
-        tmp_dummySAND=global_parameters(iii,3)
-		if (global_parameters_name(iii)=="rootFractionCoefficient_clay") &
-		tmp_rootFractionCoefficient_clay=global_parameters(iii,3)
-		tmp_rootFractionCoefficient_sand=tmp_rootFractionCoefficient_clay-tmp_dummySAND        
-	enddo	
-	
-	print*,"rootFractionCoefficient_sand is ",tmp_rootFractionCoefficient_sand
-	print*,"rootFractionCoefficient_clay is ",tmp_rootFractionCoefficient_clay	
-	
+    tmp_rootFractionCoefficient_sand       = param(6) - param(5) !delta approach is used as in tmp_rootFractionCoefficient_pervious
+    tmp_rootFractionCoefficient_clay       = param(6)            !the value in parameter namelist is before substraction i.e. param(5)      
+
+
+
 					
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soil)
@@ -379,11 +371,11 @@ contains
 
 				
 				select case(L)
-                case(1)              
+                case(1)      
                    ! forest
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_forest**(dpth_f*0.1_dp) )
-                case(2)              
+                case(2)
                    ! impervious
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_impervious**(dpth_f*0.1_dp) )
@@ -391,14 +383,14 @@ contains
 
                 select case (processMatrix(3,1))
                 
-                case(1:2)        
+                case(1:2)
                    ! permeable   
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t*0.1_dp)) &
                        - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
 				   
                 case(3)
                 
-				   !introducing FC dependency on root frac coef. 
+				   !introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
 					tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
 					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
 					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &
@@ -510,7 +502,7 @@ contains
 				   
                 case(3)
                 
-				   !introducing FC dependency on root frac coef. 
+				   !introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
 					tmp_rootFractionCoefficient_perviousFC=(((FC0(k) - tmp_FC0min)/&
 					((tmp_FC0max-tmp_FC0min)) * tmp_rootFractionCoefficient_clay))&
 					+ ((1-(FC0(k) - tmp_FC0min)/(tmp_FC0max-tmp_FC0min)) * &

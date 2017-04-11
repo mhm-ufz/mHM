@@ -544,7 +544,7 @@ processCase(2) = 1
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 3 - Jarvis equation for ET reduction and FC dependency on root fraction coefficient
-processCase(3) = 3
+processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
@@ -572,7 +572,7 @@ processCase(9) = 1
 !> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 !> 0 - deactivated
 !> 1 - inverse N0 based on Desilets et al. 2010
-!> 2 - COSMIC forward operator by Shuttlworth et al. 2013
+!> 2 - COSMIC forward operator by Shuttleworth et al. 2013
 processCase(10) = 0
 /
 

@@ -75,38 +75,39 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Zink
   !>        \date Dec 2012
-  !         Modified Luis Samaniego, Jan 2013 - messages
-  !                  Rohini Kumar
-  !                  Matthias Cuntz, Jan  2013 - namelist consolidation and positioning
-  !                  Matthias Zink,  Jan  2013 - bug fix, added gaugeinfo reading
-  !                  Rohini Kumar,   Jun  2013 - added restart flags
-  !                  R. Kumar &
-  !                  S. Thober,      Aug. 2013 - code change to incorporate output timestep
-  !                                              during writing of the netcdf file
-  !                  Rohini Kumar,   Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
-  !                  Rohini Kumar,   Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed in
-  !                                              namelist made accordingly
-  !                  Rohini Kumar,   Aug  2013 - added new namelist for LAI related datasets, and changed in
-  !                                              within the code made accordingly
-  !                  Matthias Zink,  Aug  2013 - changed read in for land cover period
-  !                  Juliane Mai,    Oct  2013 - adding global_parameters_name
-  !                  Matthias Zink,  Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
-  !                  Stephan Thober, Nov  2013 - added read of directories where latitude longitude fields are located
-  !                  Matthias Zink,  Feb  2014 - added multiple options for PET process
-  !                  Matthias Zink,  Mar  2014 - added inflow from upstream areas and gauge information as namelist
-  !                  Rohini Kumar,   May  2014 - added options for the model run coordinate system
-  !                  Stephan Thober, May  2014 - added switch for chunk read in
-  !                  Stephan Thober, Jun  2014 - added option for switching off mpr
-  !                  Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,  Dec  2014 - adopted inflow gauges to ignore headwater cells
-  !                  Matthias Zink,  Mar  2015 - added optional soil moisture read in for calibration
-  !                  Matthias Cuntz, Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
-  !                  Stephan Thober, Aug  2015 - added read_config_routing and read_routing_params from mRM
-  !                  Oldrich Rakovec,Oct  2015 - added reading of the basin average TWS data
-  !                  Rohini Kumar,   Mar  2016 - options to handle different soil databases
-  !                  Stephan Thober, Nov  2016 - moved nProcesses and processMatrix to common variables
-  !                  Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
-  !                  Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !         Modified Luis Samaniego,              Jan 2013 - messages
+  !                  Rohini Kumar              
+  !                  Matthias Cuntz,              Jan  2013 - namelist consolidation and positioning
+  !                  Matthias Zink,               Jan  2013 - bug fix, added gaugeinfo reading
+  !                  Rohini Kumar,                Jun  2013 - added restart flags
+  !                  R. Kumar &            
+  !                  S. Thober,                   Aug. 2013 - code change to incorporate output timestep
+  !                                                           during writing of the netcdf file
+  !                  Rohini Kumar,                Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
+  !                  Rohini Kumar,                Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed in
+  !                                                           namelist made accordingly
+  !                  Rohini Kumar,                Aug  2013 - added new namelist for LAI related datasets, and changed in
+  !                                                           within the code made accordingly
+  !                  Matthias Zink,               Aug  2013 - changed read in for land cover period
+  !                  Juliane Mai,                 Oct  2013 - adding global_parameters_name
+  !                  Matthias Zink,               Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
+  !                  Stephan Thober,              Nov  2013 - added read of directories where latitude longitude fields are located
+  !                  Matthias Zink,               Feb  2014 - added multiple options for PET process
+  !                  Matthias Zink,               Mar  2014 - added inflow from upstream areas and gauge information as namelist
+  !                  Rohini Kumar,                May  2014 - added options for the model run coordinate system
+  !                  Stephan Thober,              May  2014 - added switch for chunk read in
+  !                  Stephan Thober,              Jun  2014 - added option for switching off mpr
+  !                  Matthias Cuntz & Juliane Mai Nov  2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,               Dec  2014 - adopted inflow gauges to ignore headwater cells
+  !                  Matthias Zink,               Mar  2015 - added optional soil moisture read in for calibration
+  !                  Matthias Cuntz,              Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
+  !                  Stephan Thober,              Aug  2015 - added read_config_routing and read_routing_params from mRM
+  !                  Oldrich Rakovec,             Oct  2015 - added reading of the basin average TWS data
+  !                  Rohini Kumar,                Mar  2016 - options to handle different soil databases
+  !                  Stephan Thober,              Nov  2016 - moved nProcesses and processMatrix to common variables
+  !                  Rohini Kumar,                Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                  M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)  
+  !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added ET reduction and FC dependency on root fraction coefficient at SM process(3)  
 
   
   subroutine read_config()
@@ -985,9 +986,9 @@ CONTAINS
        call append(global_parameters, reshape(rootFractionCoefficient_impervious, (/1, nColPars/)))
        call append(global_parameters, reshape(rootFractionCoefficient_pervious,   (/1, nColPars/)))
        call append(global_parameters, reshape(infiltrationShapeFactor,     (/1, nColPars/)))
-       call append(global_parameters, reshape(jarvis_sm_threshold_c1,      (/1, nColPars/)))
        call append(global_parameters, reshape(rootFractionCoefficient_sand,      (/1, nColPars/)))
        call append(global_parameters, reshape(rootFractionCoefficient_clay,      (/1, nColPars/)))
+       call append(global_parameters, reshape(jarvis_sm_threshold_c1,      (/1, nColPars/)))
 
        call append(global_parameters_name, (/     &
             'orgMatterContent_forest           ', &
@@ -1007,9 +1008,9 @@ CONTAINS
             'rootFractionCoefficient_impervious', &
             'rootFractionCoefficient_pervious  ', &
             'infiltrationShapeFactor           ', &
-            'jarvis_sm_threshold_c1            ', &
             'rootFractionCoefficient_sand      ', &
-            'rootFractionCoefficient_clay      '/))
+            'rootFractionCoefficient_clay      ', &      
+            'jarvis_sm_threshold_c1            '/))            
             
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then

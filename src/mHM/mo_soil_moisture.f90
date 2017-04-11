@@ -115,7 +115,7 @@ CONTAINS
   !                                                    effective PET intensity are same for both areas.
   !                                                  - changes made for variables "water_thresh_sealed" when it becomes
   !                                                   zero
-  !                   Zink M. Demirel C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
+  !                 Zink M. Demirel M.C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, &
        evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
