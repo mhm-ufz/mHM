@@ -10,7 +10,6 @@
 module mo_mpr_SMhorizons
 
   use mo_kind, only: i4, dp
-  use mo_common_variables,    only : processMatrix
 
 
   implicit none
@@ -158,6 +157,8 @@ contains
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
     use mo_message,             only: message
+    use mo_common_variables,    only : processMatrix
+
 !$  use omp_lib
 
     implicit none
