@@ -315,6 +315,7 @@ end subroutine prepare_meteo_forcings_data
     integer(i4)                                :: nTimeSteps
     real(dp)                                   :: cellFactorHbyM   ! level-1_resolution/level-2_resolution
     integer(i4)                                :: t
+    integer(i4)                                :: k
 
     ! get basic basin information at level-1
     call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 )
@@ -384,8 +385,23 @@ end subroutine prepare_meteo_forcings_data
     nTimeSteps = size(L1_data, 3)
     allocate( L1_data_packed(nCells1, nTimeSteps))
     do t = 1, nTimeSteps
-       L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) ) 
+    
+       L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) )  
+       
     end do
+    
+    !if (ncvarName .EQ. 'pet') then !loop k cell and multiply with DSF
+    !     print*,"RAW", L1_data_packed(1,1)
+         
+    !       do k = 1, nCells1
+    
+    !L1_data_packed(k,:) = L1_data_packed(k,:) * 5.0_dp
+    !       end do
+           
+    !    print*,"AFTER", L1_data_packed(1,1)
+
+    !end if 
+
     ! free memory immediately
     deallocate(L1_data)
     

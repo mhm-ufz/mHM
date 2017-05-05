@@ -364,10 +364,10 @@ PROGRAM mhm_driver
      endif
 
     ! read optional spatio-temporal evapotranspiration data
-    if ( (opti_function .EQ. 27) .AND. optimize ) then
+    !if ( (opti_function .EQ. 27) .AND. optimize ) then
         call read_evapotranspiration(ii)
         call message('  evapotranpiration data read')
-    endif
+    !endif
 
   end do
 

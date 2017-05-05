@@ -52,7 +52,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
@@ -132,7 +132,7 @@ opti_method = 1
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 10
+opti_function = 27
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
@@ -234,10 +234,11 @@ inputFormat_meteo_forcings = "nc"
 dir_Precipitation(1) = "test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
 dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
@@ -256,11 +257,12 @@ dir_gridded_LAI(1)   = "test_basin/input/lai/"
 dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
 dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
+!>   if processCase(5) == 0  input directory of pet has to be specified
 dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
@@ -548,11 +550,12 @@ processCase(3) = 1
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
 !> potential evapotranspiration (PET)
-!> 0 - read in PET (aspect correction)
-!> 1 - Hargreaves-Samani
-!> 2 - Priestley-Taylor
-!> 3 - Penman-Monteith
-processCase(5) = 0
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
+processCase(5) = -1
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
@@ -585,7 +588,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i

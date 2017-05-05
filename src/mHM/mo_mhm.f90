@@ -37,6 +37,7 @@ MODULE mo_mHM
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
   use mo_message,       only: message
+  
   !$ USE omp_lib
 
   IMPLICIT NONE
@@ -92,30 +93,31 @@ CONTAINS
   !>        \author  Luis Samaniego & Rohini Kumar
   !>        \date    Dec 2012
 
-  !         Modified Luis Samaniego, Rohini Kumar,   Dec 2012 - modularization
-  !                  Luis Samaniego,                 Feb 2013 - call routine
-  !                  Rohini Kumar,                   Feb 2013 - MPR call and other pre-requisite
-  !                                                             variables for this call
-  !                  Rohini Kumar,                   May 2013 - Error checks
-  !                  Rohini Kumar,                   Jun 2013 - sealed area correction in total runoff
-  !                                                           - initalization of soil moist. at first timestep
-  !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within
-  !                                                             the code made accordingly (e.g., canopy intecpt.)
-  !                                                           - max. canopy interception is estimated outside of MPR
-  !                                                             call
-  !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-  !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
-  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
-  !                                                             and its parameterization (Process 5)
-  !                  Rohini Kumar,                   Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
-  !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
-  !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
-  !                  Rohini Kumar,                   Dec 2016 - changes for reading gridded mean monthly LAI fields
-  !                  Stephan Thober,                 Jan 2017 - added prescribed weights for tavg and pet
-  !                  Zink M. Demirel C.,             Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !         Modified Luis Samaniego, Rohini Kumar,  Dec 2012 - modularization
+  !                  Luis Samaniego,                Feb 2013 - call routine
+  !                  Rohini Kumar,                  Feb 2013 - MPR call and other pre-requisite
+  !                                                            variables for this call
+  !                  Rohini Kumar,                  May 2013 - Error checks
+  !                  Rohini Kumar,                  Jun 2013 - sealed area correction in total runoff
+  !                                                          - initalization of soil moist. at first timestep
+  !                  Rohini Kumar,                  Aug 2013 - dynamic LAI option included, and changed within
+  !                                                            the code made accordingly (e.g., canopy intecpt.)
+  !                                                          - max. canopy interception is estimated outside of MPR
+  !                                                            call
+  !                  Matthias Zink,                 Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                  Matthias Zink,                 Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                 Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
+  !                                                            and its parameterization (Process 5)
+  !                  Rohini Kumar,                  Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                  Stephan Thober,                Jun 2014 - added flag for switching of MPR
+  !                  Matthias Cuntz & Juliane Mai   Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,                 Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Stephan Thober,                Aug 2015 - moved routing to mRM
+  !                  Rohini Kumar,                  Mar 2016 - changes for handling multiple soil database options
+  !                  Rohini Kumar,                  Dec 2016 - changes for reading gridded mean monthly LAI fields
+  !                  Stephan Thober,                Jan 2017 - added prescribed weights for tavg and pet
+  !                  Zink M. Demirel M. C.,         Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !                  Demirel M.C., Stisen S.        May 2017 - Added PET correction based on LAI at PET process(5)  
 
   !
   ! ------------------------------------------------------------------
@@ -237,6 +239,7 @@ CONTAINS
       surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
       interc_max          , & ! Maximum interception
+      petLAIcorFactorL1   , & ! PET correction factor based on crop coefficient KC
       karst_loss          , & ! Karstic percolation loss
       k0                  , & ! Recession coefficient of the upper reservoir, upper outlet
       k1                  , & ! Recession coefficient of the upper reservoir, lower outlet
@@ -252,7 +255,8 @@ CONTAINS
       wilting_point         ) ! Permanent wilting point for each horizon
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
-    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
+    use mo_multi_param_reg,         only: mpr,canopy_intercept_param, &
+                                          crop_coefficient_fromLAI       ! reg. and scaling
     use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
                                           pet_penman
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
@@ -265,6 +269,9 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
+    use mo_global_variables, only: nBasins,             & ! number of basins
+                                   L1_et, L1_et_mask, L1_gridded_LAI, L1_PetLAIcorFactor      
+    !use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
 
     implicit none
 
@@ -392,6 +399,7 @@ CONTAINS
     real(dp), dimension(:,:),      intent(inout) ::  surfResist
     real(dp), dimension(:,:),      intent(inout) ::  frac_roots
     real(dp), dimension(:),        intent(inout) ::  interc_max
+    real(dp), dimension(:),        intent(inout) ::  petLAIcorFactorL1    
     real(dp), dimension(:),        intent(inout) ::  karst_loss
     real(dp), dimension(:),        intent(inout) ::  k0
     real(dp), dimension(:),        intent(inout) ::  k1
@@ -532,6 +540,7 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
+               
        end if
        ! Estimate max. inteception based on daily LAI values
     case(-1) ! daily
@@ -541,6 +550,9 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
+               
+            
+               
        endif
     case(-2) ! monthly
        if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
@@ -549,6 +561,7 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
+            
        endif
     case(-3) ! yearly
        if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
@@ -557,6 +570,9 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
+               
+
+               
        endif
     case default ! no output at all
        continue
@@ -570,7 +586,20 @@ CONTAINS
     !-------------------------------------------------------------------
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
-
+       select case (processMatrix(5,1))
+       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
+     
+            call crop_coefficient_fromLAI( processMatrix, global_parameters(:), &
+               LAI0, nTCells0_inL1, L0upBound_inL1,  &
+               L0downBound_inL1, L0leftBound_inL1,   &
+               L0rightBound_inL1, cellId0, mask0,    &
+               nodata_dp,LCover0, petLAIcorFactorL1 )
+               
+               
+        case(0:)
+        
+        end select
+    
     !$OMP parallel default(shared) &
     !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
@@ -578,8 +607,12 @@ CONTAINS
 
        ! PET calculation
        select case (processMatrix(5,1))
+       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
+
+         pet =  petLAIcorFactorL1(k) * pet_in(k)                   
+         !print*, pet,petLAIcorFactorL1(k)
        case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet =  fAsp(k) * pet_in(k)
+          pet =  fAsp(k) * pet_in(k)       
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
