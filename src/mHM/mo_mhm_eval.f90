@@ -126,7 +126,7 @@ CONTAINS
          GeoUnitList, GeoUnitKar, soilDB,                                           &
          iFlag_soilDB,                                                              & ! options to handle different types of soil databases
          L0_Id, L0_soilId,                                                          &
-         L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,                              &
+         L0_LCover, L0_asp,L0_petLAIcorFactor, L0_LCover_LAI, L0_geoUnit,           &
          soilDB, L1_nTCells_L0,                                                     &
          L0_slope_emp,                                                              &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,                           &
@@ -147,9 +147,9 @@ CONTAINS
          L1_slowRunoff, L1_snow, L1_Throughfall,                                    &
          L1_total_runoff, L1_alpha, L1_degDayInc,                                   &
          L1_degDayMax,                                                              &
-         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_HarSamCoeff,                        &
+         L1_degDayNoPre, L1_degDay, L1_fAsp, L1_petLAIcorFactor, L1_HarSamCoeff,    &
          L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,                             &
-         L1_fRoots, L1_maxInter, L1_PetLAIcorFactor, L1_karstLoss, L1_kfastFlow,     &
+         L1_fRoots, L1_maxInter, L1_karstLoss, L1_kfastFlow,                        &
          L1_kSlowFlow, L1_kBaseFlow, L1_kPerco,                                     &
          L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,                          &
          L1_jarvis_thresh_c1,                                                       &
@@ -538,8 +538,8 @@ CONTAINS
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                          & ! IN L0
                L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                                  & ! IN L0
                L0_Id(s0:e0), L0_soilId(s0:e0,:), L0_LCover_LAI(s0:e0),                                   & ! IN L0
-               L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), LAI(s0:e0),                           & ! IN L0
-               L0_geoUnit(s0:e0),                                                                        & ! IN L0
+               L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), L0_petLAIcorFactor(s0:e0),            & ! IN L0
+               LAI(s0:e0), L0_geoUnit(s0:e0),                                                            & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                                & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,                          & ! IN L0
                L1_nTCells_L0(s1:e1),                                                                     & ! IN L1
@@ -572,10 +572,10 @@ CONTAINS
                L1_runoffSeal(s1:e1), L1_slowRunoff(s1:e1), L1_snow(s1:e1),                               & ! INOUT X
                L1_Throughfall(s1:e1), L1_total_runoff(s1:e1),                                            & ! INOUT X
                L1_alpha(s1:e1), L1_degDayInc(s1:e1), L1_degDayMax(s1:e1),                                & ! INOUT E1
-               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1),                                  & ! INOUT E1
+               L1_degDayNoPre(s1:e1), L1_degDay(s1:e1), L1_fAsp(s1:e1), L1_petLAIcorFactor(s1:e1),       & ! INOUT E1
                L1_HarSamCoeff(s1:e1), L1_PrieTayAlpha(s1:e1,:), L1_aeroResist(s1:e1,:),                  & ! INOUT E1
                L1_surfResist(s1:e1,:), L1_fRoots(s1:e1,:),                                               & ! INOUT E1
-               L1_maxInter(s1:e1),L1_PetLAIcorFactor(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),  & ! INOUT E1
+               L1_maxInter(s1:e1), L1_karstLoss(s1:e1),  L1_kFastFlow(s1:e1),                            & ! INOUT E1
                L1_kSlowFlow(s1:e1), L1_kBaseFlow(s1:e1), L1_kPerco(s1:e1),                               & ! INOUT E1
                L1_soilMoistFC(s1:e1,:), L1_soilMoistSat(s1:e1,:), L1_soilMoistExp(s1:e1,:),              & ! INOUT E1
                L1_jarvis_thresh_c1(s1:e1),                                                               & ! INOUT E1

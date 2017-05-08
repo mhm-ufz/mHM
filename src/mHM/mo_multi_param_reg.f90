@@ -28,7 +28,7 @@ MODULE mo_multi_param_reg
 
   PUBLIC :: mpr                       ! calculates effective regionalised parameters
   PUBLIC :: canopy_intercept_param    ! estimate effective max. canopy interception
-  PUBLIC :: crop_coefficient_fromLAI  ! estimate PET correction factor with distributed LAI
+  !PUBLIC :: crop_coefficient_fromLAI  ! estimate PET correction factor with distributed LAI
 
 
   
@@ -220,8 +220,10 @@ contains
        fPerm1,              & ! IN:    fraction of permeable area at scale L1
        soilId0,             & ! IN:    soil Ids at level 0
        Asp0,                & ! IN:    [degree] Aspect at Level 0
+       petLAIcorFactorL0,   & ! IN:    PET correction using LAI at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
+       LAI0,                & ! IN:    LAI at level 0     
        slope_emp0,          & ! IN:    Empirical quantiles of slope at Level 0
        cell_id0,            & ! IN:    cell Ids at level 0
        upp_row_L1,          & ! IN:    upper row of L0 block within L1 cell
@@ -235,6 +237,7 @@ contains
        DDmax1,              & ! INOUT:           Maximum Degree-day factor
        DD1,                 & ! INOUT:           Degree-day factor with no precipitation
        fAsp1,               & ! INOUT: [1]       PET correction for Aspect at level 1
+       Pet_LAIcorFactorL1,  & ! INOUT: [1]       PET correction using LAI at level 1        
        HarSamCoeff1,        & ! INOUT: [1]       PET Hargreaves Samani coefficient at level 1
        PrieTayAlpha1,       & ! INOUT: [1]       PET Priestley Taylor coefficient at level 1
        aeroResist1,         & ! INOUT: [s m-1]   PET aerodynamical resitance at level 1
@@ -253,7 +256,7 @@ contains
        HL1_1,               & ! INOUT: [10^-3 m] Threshhold water depth in upper reservoir 
        !                      !                  (for Runoff  contribution)
        HL3,                 & ! INOUT:           threshold parameter for runoff generation on impervious Layer
-       PW1                  & ! INOUT: [10^-3 m] permanent wilting point 
+       PW1                  & ! INOUT: [10^-3 m] permanent wilting point
        )
 
     use mo_message,             only: message
@@ -297,8 +300,11 @@ contains
     real(dp),    dimension(:),               intent(in)    :: fPerm1            ! [1] fraction of permeable area
     integer(i4), dimension(:,:),             intent(in)    :: soilId0           ! soil Ids at level 0
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
+    real(dp),    dimension(:),               intent(inout) :: petLAIcorFactorL0 ! PET correction using LAI at Level 0
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
+    real(dp),    dimension(:),               intent(in)    :: LAI0              ! LAI at level 0
+    
 
     ! Ids of L0 cells beneath L1 cell
     real(dp),    dimension(:),               intent(in)    :: slope_emp0        ! Empirical quantiles of slope
@@ -331,6 +337,7 @@ contains
 
     ! Output for PET parameterization
     real(dp), dimension(:),                  intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
+    real(dp), dimension(:),                  intent(inout) :: Pet_LAIcorFactorL1! [1]     PET correction using LAI at level 1
     real(dp), dimension(:),                  intent(inout) :: HarSamCoeff1      ! [1]     PET Hargreaves Samani coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: PrieTayAlpha1     ! [1]     PET Priestley Taylor coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
@@ -510,10 +517,13 @@ contains
     ! potential evapotranspiration (PET)
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
-    case(-1) ! aspect correction of input PET based on LAI
-    
-    print*,"case -1 is selected"
-
+    case(-1) ! LAI based correction of input PET
+       iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
+       iEnd   = proc_Mat(5,3)
+       call pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param( iStart : iEnd), nodata, petLAIcorFactorL0 )
+       ! Upscale by arithmetic mean
+       Pet_LAIcorFactorL1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactorL0 )
     case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
@@ -969,6 +979,143 @@ contains
 
   end subroutine pet_correct
 
+  
+
+         
+! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        pet_correctbyLAI
+
+  !>       \brief estimate PET correction factor based on LAI at L1
+
+  !>       \details estimate PET correction factor based on LAI at L1 for a given 
+  !>                Leaf Area Index field. \n
+  !>                Global parameters needed (see mhm_parameter.nml):\n
+  !>                Process Case 5:\n
+  !>                   - param(1) = PET_a_forest \n
+  !>                   - param(2) = PET_a_impervious \n
+  !>                   - param(3) = PET_a_pervious \n
+  !>                   - param(4) = PET_b \n
+  !>                   - param(5) = PET_c \n
+  
+  !>     Example Kc=PET_a+PET_b*(1-exp(PET_c*LAI))
+  !>     Date: 4/5/2017
+  !      INTENT(IN)
+  !>       \param[in] "integer(i4)  :: cell_id0(:)"                  - Cell ids at level 0
+  !>       \param[in] "real(dp)     :: LCOVER0(:)"                   - Landcover at level-0
+  !>       \param[in] "real(dp)     :: LAI0(:)"                      - LAI at level-0
+  !>       \param[in] "real(dp)     :: param(:)"                     - array of global parameters
+  !>       \param[in] "real(dp)     :: nodata"                       - nodata value
+
+  !      INTENT(INOUT)
+  !          None
+  
+  !      INTENT(OUT)
+  !>       \param[out] "real(dp)    :: petLAIcorFactorL0(:)"         - PET correction factor based on LAI at Level-0
+
+  !      INTENT(IN), OPTIONAL
+  !          None
+
+  !      INTENT(INOUT), OPTIONAL
+  !          None
+
+  !      INTENT(OUT), OPTIONAL
+  !          None
+
+  !      RETURN
+  !          None
+
+  !      RESTRICTIONS
+  !          None
+
+  !      EXAMPLE
+  !          None
+
+  !      LITERATURE
+  !          None
+
+  !      EXAMPLE
+  !         calling sequence
+  !         call pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param( iStart : iEnd), nodata, petLAIcorFactorL0 )
+
+
+  !      HISTORY
+  !>         \author M. Cuneyd Demirel and Simon Stisen from GEUS.dk
+  !>         \date May. 2017
+
+  ! ------------------------------------------------------------------
+  subroutine pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param, nodata, petLAIcorFactorL0 )
+
+    
+       
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_string_utils,        only: num2str
+    use mo_message,             only: message
+    !$  use omp_lib
+
+    implicit none
+
+    ! input
+    integer(i4), dimension(:),   intent(in)  :: cell_id0       ! Cell ids at level 0
+    integer(i4), dimension(:),   intent(in)  :: LCOVER0        ! land cover field at level 0
+    real(dp),    dimension(:),   intent(in)  :: LAI0           ! LAI at level-0
+    real(dp),    dimension(5),   intent(in)  :: param          ! array of global parameters
+    real(dp),                    intent(in)  :: nodata         ! nodata value
+
+    ! output
+    real(dp),    dimension(:),   intent(out) :: petLAIcorFactorL0 ! max interception at level-1
+
+    ! local variables
+    integer(i4)                             :: k         ! loop index
+    integer(i4)                             :: L         ! loop index
+
+    ! ------------------------------------------------------------------
+    ! Estimate crop coefficient Kc=PET_a+PET_b*(1-exp(PET_c*LAI)) to correct PET as PET=Kc*PET
+    ! ------------------------------------------------------------------
+    
+
+       
+        print*, param
+
+
+
+            !$OMP PARALLEL
+            !$OMP DO PRIVATE( L ) SCHEDULE( STATIC )
+
+            ! need to be done for every landcover to get Kc 
+            do k = 1, size(LCover0, 1)
+                
+                L = LCover0(k)
+                
+                select case(L)
+                case(1) ! forest
+                    petLAIcorFactorL0(k) = param(1)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
+                case(2) ! impervious
+                    petLAIcorFactorL0(k) = param(2)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
+                case(3) ! permeable 
+                    petLAIcorFactorL0(k) = param(3)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
+                end select
+
+            end do 
+            
+            !$OMP END DO
+            !$OMP END PARALLEL
+
+            
+            
+
+
+
+
+  end subroutine pet_correctbyLAI
+
+  
+      
+         
+         
+         
+         
   ! ----------------------------------------------------------------------------
 
   !      NAME
@@ -1325,171 +1472,6 @@ contains
 
 
 
-  ! ----------------------------------------------------------------------------
-
-  !      NAME
-  !        crop_coefficient_fromLAI
-
-  !>       \brief estimate PET correction factor based on LAI at L1
-
-  !>       \details estimate PET correction factor based on LAI at L1 for a given 
-  !>                Leaf Area Index field. \n
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                Process Case 5:\n
-  !>                   - param(1) = PET_a_forest \n
-  !>                   - param(2) = PET_a_impervious \n
-  !>                   - param(3) = PET_a_pervious \n
-  !>                   - param(4) = PET_b \n
-  !>                   - param(5) = PET_c \n
-  
-  !>     Example Kc=PET_a+PET_b*(1-exp(PET_c*LAI))
-  !>     Date: 4/5/2017
-
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: proc_Mat(:,:)"  - process matrix
-  !>       \param[in] "real(dp)     :: param(:)"       - array of global parameters
-  !>       \param[in] "real(dp)     :: LAI0(:)"        - LAI at level-0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: upp_row_L1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: low_row_L1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: lef_col_L1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: rig_col_L1(:)"  - Right column of high resolution block
-  !>       \param[in] "integer(i4)  :: cell_id0  (:)"  - Cell ids at level 0
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value
-
-  !      INTENT(INOUT)
-  !          None
-  
-  !      INTENT(OUT)
-  !>       \param[out] "real(dp) :: Pet_LAIcorFactorL1(:)" - PET correction factor based on LAI at Level-1
-
-  !      INTENT(IN), OPTIONAL
-  !          None
-
-  !      INTENT(INOUT), OPTIONAL
-  !          None
-
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      EXAMPLE
-  !         calling sequence
-  !         call crop_coefficient_fromLAI(proc_Mat, param,             &    
-  !                     LAI0, nL0_in_L1, upp_row_L1, &    
-  !                     low_row_L1, lef_col_L1,      &   
-  !                     rig_col_L1, cell_id0, mask0, &  
-  !                     nodata, Pet_LAIcorFactorL1 ) 
-
-  !      HISTORY
-  !>         \author M. Cuneyd Demirel and Simon Stisen from GEUS.dk
-  !>         \date May. 2017
-
-  ! ------------------------------------------------------------------
-  subroutine crop_coefficient_fromLAI(proc_Mat, param,             &
-       LAI0, nL0_in_L1, upp_row_L1, &
-       low_row_L1, lef_col_L1,      &
-       rig_col_L1, cell_id0, mask0, &
-       nodata, LCover0, Pet_LAIcorFactorL1 ) 
-
-    
-       
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_string_utils,        only: num2str
-    use mo_message,             only: message
-
-    implicit none
-
-    ! input
-    integer(i4), dimension(:,:), intent(in)  :: proc_Mat       ! indicate processes
-    real(dp),    dimension(5),   intent(in)  :: param          ! array of global parameters
-    real(dp),    dimension(:),   intent(in)  :: LAI0           ! LAI at level-0
-    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1      ! Number of L0 cells within a L1 cell
-    integer(i4), dimension(:),   intent(in)  :: upp_row_L1     ! Upper row of high resolution block
-    integer(i4), dimension(:),   intent(in)  :: low_row_L1     ! Lower row of high resolution block
-    integer(i4), dimension(:),   intent(in)  :: lef_col_L1     ! Left column of high resolution block
-    integer(i4), dimension(:),   intent(in)  :: rig_col_L1     ! Right column of high resolution block
-    integer(i4), dimension(:),   intent(in)  :: cell_id0       ! Cell ids at level 0
-    logical,     dimension(:,:), intent(in)  :: mask0          ! mask at level 0 field
-    real(dp),                    intent(in)  :: nodata         ! nodata value
-    integer(i4), dimension(:),   intent(in)  :: LCover0        ! land cover field
-
-    ! output
-    real(dp),    dimension(:),   intent(out) :: Pet_LAIcorFactorL1 ! max interception at level-1
-
-    ! local variables
-    integer(i4)                             :: iStart, iEnd
-    real(dp), dimension(:), allocatable     :: Pet_LAIcorFactorL0
-    integer(i4)                             :: k         ! loop index
-    integer(i4)                             :: L         ! loop index
-    real(dp), dimension(:), allocatable     :: PETpars
-
-    ! ------------------------------------------------------------------
-    ! Estimate crop coefficient Kc=PET_a+PET_b*(1-exp(PET_c*LAI)) to correct PET as PET=Kc*PET
-    ! ------------------------------------------------------------------
-    
-    allocate( Pet_LAIcorFactorL0 (size(cell_id0, 1) ) )
-       
-       
-       iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
-       iEnd   = proc_Mat(5,3)    
-      
-        ! allocate space
-        allocate( PETpars(iEnd-iStart+1) )
-
-        PETpars(:) = param(iStart:iEnd)
-        print*, PETpars
-
-
-
-            !$OMP PARALLEL
-            !$OMP DO PRIVATE( L ) SCHEDULE( STATIC )
-
-            ! need to be done for every landcover to get Kc 
-            do k = 1, size(LCover0, 1)
-                
-                L = LCover0(k)
-                
-                select case(L)
-                case(1) ! forest
-                    Pet_LAIcorFactorL0(k) = (PETpars(1)+(PETpars(4)*(1.0_dp-exp(PETpars(5)*LAI0(k)))))
-                case(2) ! impervious
-                    Pet_LAIcorFactorL0(k) = (PETpars(2)+(PETpars(4)*(1.0_dp-exp(PETpars(5)*LAI0(k)))))
-                case(3) ! permeable 
-                    Pet_LAIcorFactorL0(k) = (PETpars(3)+(PETpars(4)*(2.0_dp-exp(PETpars(5)*LAI0(k)))))
-                end select
-
-            end do 
-            
-            !$OMP END DO
-            !$OMP END PARALLEL
-
-            
-            
-    ! Upscale by arithmetic mean
-    Pet_LAIcorFactorL1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1,      &
-                                       Rig_col_L1, cell_id0, mask0, nodata, Pet_LAIcorFactorL0 )
-
-    deallocate( Pet_LAIcorFactorL0 )        
-    deallocate( PETpars )
-
-
-
-  end subroutine crop_coefficient_fromLAI
-
-  
   
   
   

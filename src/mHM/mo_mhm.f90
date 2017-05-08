@@ -157,6 +157,7 @@ CONTAINS
       L0_LCover_LAI       , & ! land cover ID for LAI estimation
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
+      L0_petLAIcorFactor  , & ! PET cor factor based on LAI at Level 0
       LAI0                , & ! LAI at level 0
       geoUnit0            , & ! geological units at level 0
       SDB_is_present      , & ! indicates whether soiltype exists
@@ -233,13 +234,13 @@ CONTAINS
       deg_day_noprec      , & ! Degree-day factor with no precipitation
       deg_day             , & ! Degree-day factor
       fAsp                , & ! [1]     PET correction for Aspect at level 1
+      petLAIcorFactorL1   , & ! PET correction factor based on LAI at level 1    
       HarSamCoeff         , & ! [1]     PET Hargreaves Samani coefficient at level 1
       PrieTayAlpha        , & ! [1]     PET Priestley Taylor coefficient at level 1
       aeroResist          , & ! [s m-1] PET aerodynamical resitance at level 1
       surfResist          , & ! [s m-1] PET bulk surface resitance at level 1
       frac_roots          , & ! Fraction of Roots in soil horizon
       interc_max          , & ! Maximum interception
-      petLAIcorFactorL1   , & ! PET correction factor based on crop coefficient KC
       karst_loss          , & ! Karstic percolation loss
       k0                  , & ! Recession coefficient of the upper reservoir, upper outlet
       k1                  , & ! Recession coefficient of the upper reservoir, lower outlet
@@ -255,8 +256,8 @@ CONTAINS
       wilting_point         ) ! Permanent wilting point for each horizon
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
-    use mo_multi_param_reg,         only: mpr,canopy_intercept_param, &
-                                          crop_coefficient_fromLAI       ! reg. and scaling
+    use mo_multi_param_reg,         only: mpr,canopy_intercept_param! reg. and scaling
+
     use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
                                           pet_penman
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
@@ -269,10 +270,8 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-    use mo_global_variables, only: nBasins,             & ! number of basins
-                                   L1_et, L1_et_mask, L1_gridded_LAI, L1_PetLAIcorFactor      
-    !use mo_common_variables,    only : global_parameters,global_parameters_name,processMatrix
-
+    use mo_global_variables,        only: nBasins            ! number of basins
+        
     implicit none
 
     ! Intent
@@ -310,6 +309,8 @@ CONTAINS
     integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
     integer(i4), dimension(:),     intent(in) :: LCover0
     real(dp),    dimension(:),     intent(in) :: Asp0
+    real(dp),    dimension(:),     intent(inout) :: L0_petLAIcorFactor
+    
     real(dp),    dimension(:),     intent(in) :: LAI0
     integer(i4), dimension(:),     intent(in) :: geoUnit0
 
@@ -393,13 +394,13 @@ CONTAINS
     real(dp), dimension(:),        intent(inout) ::  deg_day_noprec
     real(dp), dimension(:),        intent(inout) ::  deg_day
     real(dp), dimension(:),        intent(inout) ::  fAsp
+    real(dp), dimension(:),        intent(inout) ::  petLAIcorFactorL1
     real(dp), dimension(:),        intent(inout) ::  HarSamCoeff
     real(dp), dimension(:,:),      intent(inout) ::  PrieTayAlpha
     real(dp), dimension(:,:),      intent(inout) ::  aeroResist
     real(dp), dimension(:,:),      intent(inout) ::  surfResist
     real(dp), dimension(:,:),      intent(inout) ::  frac_roots
     real(dp), dimension(:),        intent(inout) ::  interc_max
-    real(dp), dimension(:),        intent(inout) ::  petLAIcorFactorL1    
     real(dp), dimension(:),        intent(inout) ::  karst_loss
     real(dp), dimension(:),        intent(inout) ::  k0
     real(dp), dimension(:),        intent(inout) ::  k1
@@ -499,19 +500,19 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,   &
-                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,            &
-                SDB_is_present, SDB_nHorizons,                                            &
-                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
-                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,         &
-                soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
-                slope_emp0, cellId0,                                                      &
-                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
-                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                            &
-                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
-                fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
-                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
-                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),   &
+           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,      &
+                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,               &
+                SDB_is_present, SDB_nHorizons,                                               &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,         &
+                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,            &
+                soilId0, Asp0,L0_petLAIcorFactor, L0_LCover_LAI, LCover0,LAI0,               &
+                slope_emp0, cellId0,                                                         &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                          &
+                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                               &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1,    &
+                HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                          &
+                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                     &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),      &
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
         !-------------------------------------------------------------------
@@ -549,8 +550,7 @@ CONTAINS
                LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               )
-               
+               nodata_dp,  interc_max               )           
             
                
        endif
@@ -569,8 +569,7 @@ CONTAINS
                LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               )
-               
+               nodata_dp,  interc_max               )            
 
                
        endif
@@ -586,19 +585,6 @@ CONTAINS
     !-------------------------------------------------------------------
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
-       select case (processMatrix(5,1))
-       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
-     
-            call crop_coefficient_fromLAI( processMatrix, global_parameters(:), &
-               LAI0, nTCells0_inL1, L0upBound_inL1,  &
-               L0downBound_inL1, L0leftBound_inL1,   &
-               L0rightBound_inL1, cellId0, mask0,    &
-               nodata_dp,LCover0, petLAIcorFactorL1 )
-               
-               
-        case(0:)
-        
-        end select
     
     !$OMP parallel default(shared) &
     !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)

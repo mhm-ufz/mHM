@@ -76,74 +76,29 @@ CONTAINS
   subroutine prepare_gridded_daily_LAI_data(iBasin)
     
     use mo_global_variables,           only: dirgridded_LAI, inputFormat_gridded_LAI, &      
-                                             simPer, L0_gridded_LAI, timeStep_LAI_input, L1_gridded_LAI
+                                             simPer, L0_gridded_LAI, timeStep_LAI_input
     use mo_init_states,                only: get_basin_info            ! get basin information
     use mo_append,                     only: append                    ! append vector
     use mo_read_meteo,                 only: read_meteo_bin            ! Read binary files
     use mo_read_forcing_nc,            only: read_forcing_nc           ! Read netCDF files
-    
-    use mo_global_variables,           only: readPer, level1, level2
-    use mo_mhm_constants,              only: nodata_dp
-    !use mo_init_states,                only: get_basin_info
-    !use mo_read_meteo,                 only: read_meteo_bin
-    !use mo_read_forcing_nc,            only: read_forcing_nc
-    use mo_spatial_agg_disagg_forcing, only: spatial_aggregation, spatial_disaggregation
-    !use mo_append,                     only: append                    ! append vector
-    
+                                           
     implicit none
-
-    integer(i4),                          intent(in)    :: iBasin        ! Basin Id
-    !character(len=*),                     intent(in)    :: dataPath      ! Data path
-    !character(len=*),                     intent(in)    :: inputFormat   ! either 'bin' or 'nc'
-    !real(dp), dimension(:,:),allocatable, intent(inout) :: dataOut1      ! Packed meteorological variable
-    !real(dp),                   optional, intent(in)    :: lower         ! lower bound for data points
-    !real(dp),                   optional, intent(in)    :: upper         ! upper bound for data points
-    !character(len=*),           optional, intent(in)    :: ncvarName     ! name of the variable (for .nc files)
-
-    
-    integer(i4)                                :: nrows1, ncols1
-    logical, dimension(:,:), allocatable       :: mask1
-    integer(i4)                                :: ncells1
-
-    integer(i4)                                :: nrows2, ncols2
-    logical, dimension(:,:), allocatable       :: mask2
-
-    !real(dp), dimension(:,:,:), allocatable    :: L2_data            ! meteo data at level-2 
-    !real(dp), dimension(:,:,:), allocatable    :: L1_data            ! meteo data at level-1
-    !real(dp), dimension(:,:), allocatable      :: L1_data_packed     ! packed meteo data at level-1 from 3D to 2D
-
-    integer(i4)                                :: nTimeSteps
-    real(dp)                                   :: cellFactorHbyM   ! level-1_resolution/level-2_resolution
-    integer(i4)                                :: t
-    integer(i4)                                :: k
-
-                                     
     ! input 
-    !integer(i4),                   intent(in)  :: iBasin    ! Basin Id
+    integer(i4),                   intent(in)  :: iBasin    ! Basin Id
     !local variables
     ! basin info.
     integer(i4)                                :: nrows0, ncols0
     logical, dimension(:,:), allocatable       :: mask0
     integer(i4)                                :: ncells0
     !
-    real(dp), dimension(:,:,:), allocatable    :: LAI1_3D     !data at level-1 [nRow X nCols X nTimeSteps]
-    real(dp), dimension(:,:), allocatable    :: LAI1_2D     !data at level-1 [nRow X nCols X nTimeSteps]
-
     real(dp), dimension(:,:,:), allocatable    :: LAI0_3D     !data at level-0 [nRow X nCols X nTimeSteps]
     real(dp), dimension(:,:), allocatable      :: LAI0_2D     !data at level-0 [nCells X nTimeSteps]
 
-    !integer(i4)                                :: nTimeSteps
-    !integer(i4)                                :: t
+    integer(i4)                                :: nTimeSteps
+    integer(i4)                                :: t
 
     ! get basic basin information at level-0
     call get_basin_info( iBasin, 0, nRows0, nCols0, nCells=nCells0, mask=mask0 )
-    
-    ! get basic basin information at level-1
-    call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 )
-    
-    ! make  basic basin information at level-2
-    call get_basin_info( iBasin, 2, nrows2, ncols2, mask=mask2 )
-      
 
     ! select case depending on input data format
     SELECT CASE( trim(inputFormat_gridded_LAI) )       
@@ -152,11 +107,6 @@ CONTAINS
        CASE('nc')
           CALL read_forcing_nc( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
                'lai', LAI0_3D, mask0, lower=0.0_dp, upper=30.0_dp, nctimestep=timeStep_LAI_input)
-        !CUNEYD: Lai.nc is read at L0 level. We can upscale it to L1 and use it in Kc correction of PET  
-        !CALL read_forcing_nc( dataPath, nRows2, nCols2, readPer, ncvarName, L2_data, mask2, &
-        !       lower=lower, upper=upper )
-        call spatial_aggregation(LAI0_3D, level2%cellsize(iBasin), level1%cellsize(iBasin), mask1, mask2, LAI1_3D)
-       
        ! bin file input option
        CASE('bin')
           CALL read_meteo_bin( dirgridded_LAI(iBasin), nRows0, nCols0, simPer(iBasin), &
@@ -179,23 +129,6 @@ CONTAINS
     
     !free space
     deallocate(LAI0_2D, LAI0_3D) 
-    
-    
-    
-    ! pack variables
-    nTimeSteps = size(LAI1_3D, 3)
-    allocate( LAI1_2D(nCells1, nTimeSteps))
-
-    do t = 1, nTimeSteps
-       LAI1_2D(:,t) = pack( LAI1_3D(:,:,t), MASK=mask1(:,:) ) 
-    end do
-    
-    print*,"LAI1 ", LAI1_2D(1,1)
-    ! append to Global variable
-    call append(L1_gridded_LAI, LAI1_2D(:,:) )
-    
-    !free space
-    deallocate(LAI1_2D, LAI1_3D) 
  
  
 end subroutine prepare_gridded_daily_LAI_data
@@ -290,7 +223,7 @@ end subroutine prepare_gridded_daily_LAI_data
        stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
     if ( dimen(3) .ne. 12 ) then
-       stop '***ERROR: read_forcing_nc: the time dimension of LAI NetCDF file under the option-1 is not 12'
+       stop '***ERROR: read_forcing_nc: the time dimenion of LAI NetCDF file under the option-1 is not 12'
     end if
 
 

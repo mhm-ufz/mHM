@@ -400,8 +400,10 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable :: L1_fRoots                ! [1]    Fraction of roots in soil horizons
   real(dp), public, dimension(:), allocatable   :: L1_maxInter              ! [mm]   Maximum interception
   
-  real(dp), public, dimension(:), allocatable   :: L1_PetLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
+  real(dp), public, dimension(:), allocatable   :: L0_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
+  real(dp), public, dimension(:), allocatable   :: L1_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
 
+  
   real(dp), public, dimension(:), allocatable   :: L1_kfastFlow             ! [d-1]  Fast interflow recession coefficient
   real(dp), public, dimension(:), allocatable   :: L1_kSlowFlow             ! [d-1]  Slow interflow recession coefficient
   real(dp), public, dimension(:), allocatable   :: L1_kBaseFlow             ! [d-1]  Baseflow recession coefficient
