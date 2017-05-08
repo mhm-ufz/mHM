@@ -272,7 +272,7 @@ PROGRAM mhm_driver
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
-     case(0) ! PET is input
+     case(-1:0) ! PET is input
         call message('    PET directory:              ', trim(dirReferenceET(ii)  ))
      case(1) ! Hargreaves-Samani
         call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  ))
@@ -364,10 +364,10 @@ PROGRAM mhm_driver
      endif
 
     ! read optional spatio-temporal evapotranspiration data
-    !if ( (opti_function .EQ. 27) .AND. optimize ) then
+    if ( (opti_function .EQ. 27) .AND. optimize ) then
         call read_evapotranspiration(ii)
         call message('  evapotranpiration data read')
-    !endif
+    endif
 
   end do
 

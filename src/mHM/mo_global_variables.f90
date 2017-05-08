@@ -290,9 +290,9 @@ MODULE mo_global_variables
   !
   real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !     gridded LAI data used when timeStep_LAI_input < 0 or == 1
   !                                                                  !     dim1=number of grid cells, dim2=number of LAI time steps
-  real(dp),    public, dimension(:,:), allocatable :: L1_gridded_LAI !     gridded LAI data used to calculate Dynamic scaling function to correct PET
-  !                                                                  !     This is an alternative by GEUS to aspect driven uniform PET correction  
 
+  real(dp), public, dimension(:), allocatable   :: L0_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
+ 
   real(dp), public, dimension(:), allocatable      :: L0_areaCell    ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------
@@ -392,6 +392,8 @@ MODULE mo_global_variables
   real(dp), public, dimension(:), allocatable   :: L1_degDay                ! [mm d-1degC-1] Degree-day factor.
   real(dp), public, dimension(:), allocatable   :: L1_karstLoss             ! [1]    Karstic percolation loss
   real(dp), public, dimension(:), allocatable   :: L1_fAsp                  ! [1]    PET correction for aspect
+  real(dp), public, dimension(:), allocatable   :: L1_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
+  
   real(dp), public, dimension(:), allocatable   :: L1_HarSamCoeff           ! [1]    Hargreaves Samani coeffiecient
   real(dp), public, dimension(:,:), allocatable :: L1_PrieTayAlpha          ! [1]    Priestley Taylor coeffiecient
   real(dp), public, dimension(:,:), allocatable :: L1_aeroResist            ! [s m-1] aerodynamical resitance
@@ -400,8 +402,6 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable :: L1_fRoots                ! [1]    Fraction of roots in soil horizons
   real(dp), public, dimension(:), allocatable   :: L1_maxInter              ! [mm]   Maximum interception
   
-  real(dp), public, dimension(:), allocatable   :: L0_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
-  real(dp), public, dimension(:), allocatable   :: L1_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
 
   
   real(dp), public, dimension(:), allocatable   :: L1_kfastFlow             ! [d-1]  Fast interflow recession coefficient

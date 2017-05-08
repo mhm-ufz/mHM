@@ -163,7 +163,7 @@ CONTAINS
        ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
        select case (processMatrix(5,1))    
 
-       case(0) ! pet is input
+       case(-1:0) ! pet is input
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read pet                  ...' )
           call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
                L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )

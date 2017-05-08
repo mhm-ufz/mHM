@@ -452,7 +452,7 @@ CONTAINS
        deallocate( dummy_d3 )
 
        select case (processMatrix(5,1))
-       case(0) ! PET is input
+       case(-1:0) ! PET is input
 
           var = nc%setVariable("L1_fAsp","f64",(/rows1,cols1/))
           call var%setFillValue(nodata_dp)
@@ -993,6 +993,7 @@ CONTAINS
          L1_degDay, &
          L1_karstLoss, &
          L1_fAsp, &
+         L1_petLAIcorFactor, &
          L1_HarSamCoeff, &
          L1_PrieTayAlpha, &
          L1_aeroResist, &
@@ -1299,6 +1300,13 @@ CONTAINS
 
     ! different parameters dependent on PET formulation
     select case (processMatrix(5,1))
+    case(-1) ! PET is input
+
+       ! PET correction factor due to LAI
+       var = nc%getVariable("L1_petLAIcorFactor")
+       call var%getData(dummyD2)
+       L1_petLAIcorFactor(s1:e1) = pack( dummyD2, mask1 ) 
+       
     case(0) ! PET is input
 
        ! PET correction factor due to terrain aspect

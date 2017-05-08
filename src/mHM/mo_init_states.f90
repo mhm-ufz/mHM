@@ -83,18 +83,17 @@ CONTAINS
   subroutine variables_alloc(iBasin)
 
     use mo_global_variables, only: nSoilHorizons_mHM,            &
-         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &
-         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
-         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
-         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &
-         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &
-         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      &
-         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
-         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
-         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
-         L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
-         L1_jarvis_thresh_c1,                                                   &
-         L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
+         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,                    &
+         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                                   &
+         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                                    &
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                                      &
+         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,                         &
+         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,                       &
+         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,L1_petLAIcorFactor,      &
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,                          &
+         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,                       &
+         L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,                            &
+         L1_jarvis_thresh_c1, L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,   &
          L1_neutrons
 
     use mo_mhm_constants,    only: YearMonths_i4
@@ -253,11 +252,15 @@ CONTAINS
     ! Karstic percolation loss
     dummy_Vector(:) = 0.0_dp
     call append( L1_karstLoss,  dummy_Vector )
-
+   
     ! PET correction factor due to terrain aspect
     dummy_Vector(:) = 0.0_dp
     call append( L1_fAsp,  dummy_Vector )
 
+    ! PET correction factor due to LAI
+    dummy_Vector(:) = 0.0_dp
+    call append( L1_petLAIcorFactor,  dummy_Vector )
+    
     ! PET Hargreaves Samani coefficient
     dummy_Vector(:) = 0.0_dp
     call append( L1_HarSamCoeff,   dummy_Vector )
@@ -389,20 +392,19 @@ CONTAINS
 
   subroutine variables_default_init()
 
-    use mo_global_variables, only:                                              &
-         nSoilHorizons_mHM, HorizonDepth_mHM,                                   &
-         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,   &
-         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                  &
-         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                   &
-         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                     &
-         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,        &
-         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,      &
-         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp,        &
-         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,         &
-         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,      &
-         L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,           &
-         L1_jarvis_thresh_c1,                                                   &
-         L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,       &
+    use mo_global_variables, only:                                                                           &
+         nSoilHorizons_mHM, HorizonDepth_mHM,                                                                &
+         L1_fSealed, L1_fForest, L1_fPerm, L1_inter, L1_snowPack, L1_sealSTW,                                &
+         L1_soilMoist, L1_unsatSTW, L1_satSTW,                                                               &
+         L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed,                                                &
+         L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt,                                                  &
+         L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff,                                     &
+         L1_snow, L1_Throughfall, L1_total_runoff, L1_alpha, L1_degDayInc,                                   &
+         L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp, L1_petLAIcorFactor,                 &
+         L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist,                                      &
+         L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow,                                   &
+         L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp,                                        &
+         L1_jarvis_thresh_c1,L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint,                &
          L1_neutrons
 
     use mo_mhm_constants,    only:               &
@@ -528,6 +530,9 @@ CONTAINS
     ! Karstic percolation loss
     L1_karstLoss = P1_InitStateFluxes
 
+    ! PET correction factor due to LAI
+    L1_petLAIcorFactor = P1_InitStateFluxes
+    
     ! PET correction factor due to terrain aspect
     L1_fAsp = P1_InitStateFluxes
 

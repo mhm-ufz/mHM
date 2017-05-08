@@ -402,7 +402,7 @@ CONTAINS
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
-
+       
        ! allocate space for local tws field
        if (present(basin_avg_tws)) then
           allocate(TWS_field(s1:e1))
@@ -414,7 +414,7 @@ CONTAINS
        writeout_counter = 0
        hour = -timestep
        iGridLAI_TS = 0
-       do tt = 1, nTimeSteps !CUNEYD - LOOK HERE
+       do tt = 1, nTimeSteps 
           if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
@@ -444,7 +444,7 @@ CONTAINS
           ! process 5 - PET
           select case (processMatrix(5,1))
              !      (/pet,        tmax,    tmin,  netrad, absVapP,windspeed/)
-          case(0) ! PET is input
+          case(-1:0) ! PET is input
              s_p5 = (/s_meteo,       1,       1,       1,       1,       1/)
              e_p5 = (/e_meteo,       1,       1,       1,       1,       1/)
           case(1) ! Hargreaves-Samani
@@ -461,7 +461,7 @@ CONTAINS
           ! customize iMeteoTS for process 5 - PET
           select case (processMatrix(5,1))
           !              (/     pet,     tmin,     tmax,   netrad,  absVapP,windspeed /)
-          case(0) ! PET is input
+          case(-1:0) ! PET is input
              iMeteo_p5 = (/iMeteoTS,        1,        1,        1,        1,        1 /)
           case(1) ! Hargreaves-Samani
              iMeteo_p5 = (/iMeteoTS, iMeteoTS, iMeteoTS,        1,        1,        1 /)
