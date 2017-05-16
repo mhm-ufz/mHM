@@ -28,7 +28,6 @@ MODULE mo_multi_param_reg
 
   PUBLIC :: mpr                       ! calculates effective regionalised parameters
   PUBLIC :: canopy_intercept_param    ! estimate effective max. canopy interception
-  PUBLIC :: pet_correctbyLAI          ! estimate PET correction factor with distributed LAI
 
 
   
@@ -259,11 +258,12 @@ contains
        PW1                  & ! INOUT: [10^-3 m] permanent wilting point
        )
 
-    use mo_message,             only: message
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_mpr_soilmoist,       only: mpr_sm
-    use mo_mpr_SMhorizons,      only: mpr_SMhorizons
-    use mo_mpr_runoff,          only: mpr_runoff
+    use mo_message,                   only: message
+    use mo_upscaling_operators,       only: upscale_arithmetic_mean
+    use mo_mpr_soilmoist,             only: mpr_sm
+    use mo_mpr_SMhorizons,            only: mpr_SMhorizons
+    use mo_mpr_runoff,                only: mpr_runoff
+    use mo_mpr_petdynamicscaling,     only: pet_correctbyLAI
     
     implicit none
 
@@ -524,10 +524,9 @@ contains
     case(-1) ! LAI based correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)
-       call pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param( iStart : iEnd), nodata, petLAIcorFactor0 )
-       ! Upscale by arithmetic mean
-       Pet_LAIcorFactorL1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor0 )
+       call pet_correctbyLAI(param(iStart:iEnd) ,nodata, LCOVER0, LAI0, mask0, cell_id0,&
+           upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, Pet_LAIcorFactorL1)
+       
     case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
@@ -984,127 +983,6 @@ contains
   end subroutine pet_correct
 
   
-
-         
-! ----------------------------------------------------------------------------
-
-  !      NAME
-  !        pet_correctbyLAI
-
-  !>       \brief estimate PET correction factor based on LAI at L1
-
-  !>       \details estimate PET correction factor based on LAI at L1 for a given 
-  !>                Leaf Area Index field. \n
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                Process Case 5:\n
-  !>                   - param(1) = PET_a_forest \n
-  !>                   - param(2) = PET_a_impervious \n
-  !>                   - param(3) = PET_a_pervious \n
-  !>                   - param(4) = PET_b \n
-  !>                   - param(5) = PET_c \n
-  
-  !>     Example Kc=PET_a+PET_b*(1-exp(PET_c*LAI))
-  !>     Date: 4/5/2017
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: cell_id0(:)"                  - Cell ids at level 0
-  !>       \param[in] "real(dp)     :: LCOVER0(:)"                   - Landcover at level-0
-  !>       \param[in] "real(dp)     :: LAI0(:)"                      - LAI at level-0
-  !>       \param[in] "real(dp)     :: param(:)"                     - array of global parameters
-  !>       \param[in] "real(dp)     :: nodata"                       - nodata value
-
-  !      INTENT(INOUT)
-  !          None
-  
-  !      INTENT(OUT)
-  !>       \param[out] "real(dp)    :: petLAIcorFactor0(:)"         - PET correction factor based on LAI at Level-0
-
-  !      INTENT(IN), OPTIONAL
-  !          None
-
-  !      INTENT(INOUT), OPTIONAL
-  !          None
-
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      EXAMPLE
-  !         calling sequence
-  !         call pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param( iStart : iEnd), nodata, petLAIcorFactor0 )
-
-
-  !      HISTORY
-  !>         \author M. Cuneyd Demirel and Simon Stisen from GEUS.dk
-  !>         \date May. 2017
-
-  ! ------------------------------------------------------------------
-  subroutine pet_correctbyLAI( cell_id0, LCOVER0, LAI0, param, nodata, petLAIcorFactor0 )
-
-    
-       
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_string_utils,        only: num2str
-    use mo_message,             only: message
-
-    implicit none
-
-    ! input
-    integer(i4), dimension(:),   intent(in)  :: cell_id0             ! Cell ids at level 0
-    integer(i4), dimension(:),   intent(in)  :: LCOVER0              ! land cover field at level 0
-    real(dp),    dimension(:),   intent(in)  :: LAI0                 ! LAI at level-0
-    real(dp),    dimension(5),   intent(in)  :: param                ! array of global parameters
-    real(dp),                    intent(in)  :: nodata               ! nodata value
-
-    ! output
-    real(dp),    dimension(:),   intent(out) :: petLAIcorFactor0     ! pet cor factor at level-0
-
-    ! local variables
-    integer(i4)                             :: k         ! loop index
-    integer(i4)                             :: L         ! loop index
-
-    ! ------------------------------------------------------------------
-    ! Estimate crop coefficient Kc=PET_a+PET_b*(1-exp(PET_c*LAI)) to correct PET as PET=Kc*PET
-    ! ------------------------------------------------------------------
-
-            !$OMP PARALLEL
-            !$OMP DO PRIVATE( L ) SCHEDULE( STATIC )
-
-            ! need to be done for every landcover to get Kc 
-            celloop:do k = 1, size(cell_id0, 1)
-                
-                L = LCOVER0(k)
-                
-                select case(L)
-                case(1) ! forest
-                    petLAIcorFactor0(k) = param(1)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
-                case(2) ! impervious
-                    petLAIcorFactor0(k) = param(2)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
-                case(3) ! permeable 
-                    petLAIcorFactor0(k) = param(3)+(param(4)*(1.0_dp-exp(param(5)*LAI0(k))))
-                end select
-
-            end do celloop
-            
-            !$OMP END DO
-            !$OMP END PARALLEL
-
-
-  end subroutine pet_correctbyLAI
-
-  
-      
-         
          
          
          

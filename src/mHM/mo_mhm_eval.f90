@@ -487,32 +487,40 @@ CONTAINS
              ! and the corresponding LC file
              ! update LAI --> for 1st timestep and when month changes
              if( (tt .EQ. 1) .OR. (month_counter .NE. month) ) then
+             
                 do ll = 1, size(LAIUnitList)
                    where( L0_LCover_LAI(s0:e0) .EQ. LAIUnitList(ll) ) LAI(:) = LAILUT(ll, month)
                 end do
+                
              end if
-             
+                
           case(1) ! long term mean monthly gridded lai 
-             LAI(:) = L0_gridded_LAI(s0:e0, month)
-             
+                LAI(:) = L0_gridded_LAI(s0:e0, month)
+                
           case(-1) ! daily
              if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
-             endif
+             end if 
           case(-2) ! monthly
              if ( (tt .EQ. 1) .OR. (month .NE. month_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
-             endif
+             end if 
+  
           case(-3) ! yearly
              if ( (tt .EQ. 1) .OR. (year .NE. year_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
              endif
+
+
+          
           case default ! no output at all
              continue
           end select
+          
+     
           !
           ! -------------------------------------------------------------------------
           ! ARGUMENT LIST KEY FOR mHM

@@ -270,7 +270,6 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-    use mo_global_variables,        only: nBasins            ! number of basins
         
     implicit none
 
@@ -302,55 +301,55 @@ CONTAINS
     real(dp),    dimension(:,:),   intent(in) :: LAILUT
 
     ! Physiographic L0
-    real(dp),    dimension(:),     intent(in) :: slope_emp0
-    real(dp),    dimension(:),     intent(in) :: l0_latitude ! l1 ids of l0 cells
-    integer(i4), dimension(:),     intent(in) :: cellId0
-    integer(i4), dimension(:,:),   intent(in) :: soilId0
-    integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
-    integer(i4), dimension(:),     intent(in) :: LCover0
-    real(dp),    dimension(:),     intent(in) :: Asp0
+    real(dp),    dimension(:),     intent(in)    :: slope_emp0
+    real(dp),    dimension(:),     intent(in)    :: l0_latitude ! l1 ids of l0 cells
+    integer(i4), dimension(:),     intent(in)    :: cellId0
+    integer(i4), dimension(:,:),   intent(in)    :: soilId0
+    integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
+    integer(i4), dimension(:),     intent(in)    :: LCover0
+    real(dp),    dimension(:),     intent(in)    :: Asp0
     real(dp),    dimension(:),     intent(inout) :: petLAIcorFactor0
     
-    real(dp),    dimension(:),     intent(in) :: LAI0
-    integer(i4), dimension(:),     intent(in) :: geoUnit0
-
-    integer(i4), dimension(:),     intent(in) :: SDB_is_present
-    integer(i4), dimension(:),     intent(in) :: SDB_nHorizons
-    integer(i4), dimension(:),     intent(in) :: SDB_nTillHorizons
-    real(dp),    dimension(:,:),   intent(in) :: SDB_sand
-    real(dp),    dimension(:,:),   intent(in) :: SDB_clay
-    real(dp),    dimension(:,:),   intent(in) :: SDB_DbM
-    real(dp),    dimension(:,:,:), intent(in) :: SDB_Wd
-    real(dp),    dimension(:),     intent(in) :: SDB_RZdepth
+    real(dp),    dimension(:),     intent(in)    :: LAI0
+    integer(i4), dimension(:),     intent(in)    :: geoUnit0
+     
+    integer(i4), dimension(:),     intent(in)    :: SDB_is_present
+    integer(i4), dimension(:),     intent(in)    :: SDB_nHorizons
+    integer(i4), dimension(:),     intent(in)    :: SDB_nTillHorizons
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_sand
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_clay
+    real(dp),    dimension(:,:),   intent(in)    :: SDB_DbM
+    real(dp),    dimension(:,:,:), intent(in)    :: SDB_Wd
+    real(dp),    dimension(:),     intent(in)    :: SDB_RZdepth
 
     ! Physiographic L1
-    integer(i4), dimension(:),     intent(in) :: nTCells0_inL1
-    integer(i4), dimension(:),     intent(in) :: L0upBound_inL1
-    integer(i4), dimension(:),     intent(in) :: L0downBound_inL1
-    integer(i4), dimension(:),     intent(in) :: L0leftBound_inL1
-    integer(i4), dimension(:),     intent(in) :: L0rightBound_inL1
-    real(dp),    dimension(:),     intent(in) :: latitude
-
-    ! Forcings
-    real(dp),    dimension(:),     intent(in) :: evap_coeff
-    real(dp),    dimension(:),     intent(in) :: fday_prec
-    real(dp),    dimension(:),     intent(in) :: fnight_prec
-    real(dp),    dimension(:),     intent(in) :: fday_pet
-    real(dp),    dimension(:),     intent(in) :: fnight_pet
-    real(dp),    dimension(:),     intent(in) :: fday_temp
-    real(dp),    dimension(:),     intent(in) :: fnight_temp
-    real(dp),    dimension(:,:,:), intent(in) :: temp_weights
-    real(dp),    dimension(:,:,:), intent(in) :: pet_weights
-    real(dp),    dimension(:,:,:), intent(in) :: pre_weights
-    logical,                       intent(in) :: read_meteo_weights
-    real(dp),    dimension(:),     intent(in) :: pet_in
-    real(dp),    dimension(:),     intent(in) :: tmin_in
-    real(dp),    dimension(:),     intent(in) :: tmax_in
-    real(dp),    dimension(:),     intent(in) :: netrad_in
-    real(dp),    dimension(:),     intent(in) :: absvappres_in
-    real(dp),    dimension(:),     intent(in) :: windspeed_in
-    real(dp),    dimension(:),     intent(in) :: prec_in
-    real(dp),    dimension(:),     intent(in) :: temp_in
+    integer(i4), dimension(:),     intent(in)    :: nTCells0_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0upBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0downBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0leftBound_inL1
+    integer(i4), dimension(:),     intent(in)    :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in)    :: latitude
+     
+    ! Forcings   
+    real(dp),    dimension(:),     intent(in)    :: evap_coeff
+    real(dp),    dimension(:),     intent(in)    :: fday_prec
+    real(dp),    dimension(:),     intent(in)    :: fnight_prec
+    real(dp),    dimension(:),     intent(in)    :: fday_pet
+    real(dp),    dimension(:),     intent(in)    :: fnight_pet
+    real(dp),    dimension(:),     intent(in)    :: fday_temp
+    real(dp),    dimension(:),     intent(in)    :: fnight_temp
+    real(dp),    dimension(:,:,:), intent(in)    :: temp_weights
+    real(dp),    dimension(:,:,:), intent(in)    :: pet_weights
+    real(dp),    dimension(:,:,:), intent(in)    :: pre_weights
+    logical,                       intent(in)    :: read_meteo_weights
+    real(dp),    dimension(:),     intent(in)    :: pet_in
+    real(dp),    dimension(:),     intent(in)    :: tmin_in
+    real(dp),    dimension(:),     intent(in)    :: tmax_in
+    real(dp),    dimension(:),     intent(in)    :: netrad_in
+    real(dp),    dimension(:),     intent(in)    :: absvappres_in
+    real(dp),    dimension(:),     intent(in)    :: windspeed_in
+    real(dp),    dimension(:),     intent(in)    :: prec_in
+    real(dp),    dimension(:),     intent(in)    :: temp_in
 
     ! Configuration
     integer(i4),                   intent(inout) ::  yId
@@ -542,7 +541,9 @@ CONTAINS
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
                
-       end if
+       end if   
+       
+       
        ! Estimate max. inteception based on daily LAI values
     case(-1) ! daily
        if ( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then
@@ -595,11 +596,11 @@ CONTAINS
        select case (processMatrix(5,1))
        case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
          pet =  petLAIcorFactorL1(k) * pet_in(k)                   
-         print*, pet,petLAIcorFactorL1(k)
-             call sleep(30)
 
+        !print*,"petLAIcorFactorL1 is",petLAIcorFactorL1(20)
        case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet =  fAsp(k) * pet_in(k)       
+          pet =  fAsp(k) * pet_in(k)   
+        
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation
