@@ -157,7 +157,6 @@ CONTAINS
       L0_LCover_LAI       , & ! land cover ID for LAI estimation
       LCover0             , & ! land use cover at level 0
       Asp0                , & ! [degree] Aspect at Level 0
-      petLAIcorFactor0    , & ! PET cor factor based on LAI at Level 0
       LAI0                , & ! LAI at level 0
       geoUnit0            , & ! geological units at level 0
       SDB_is_present      , & ! indicates whether soiltype exists
@@ -308,7 +307,6 @@ CONTAINS
     integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
     integer(i4), dimension(:),     intent(in)    :: LCover0
     real(dp),    dimension(:),     intent(in)    :: Asp0
-    real(dp),    dimension(:),     intent(inout) :: petLAIcorFactor0
     
     real(dp),    dimension(:),     intent(in)    :: LAI0
     integer(i4), dimension(:),     intent(in)    :: geoUnit0
@@ -504,11 +502,11 @@ CONTAINS
                 SDB_is_present, SDB_nHorizons,                                               &
                 SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,         &
                 nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,            &
-                soilId0, Asp0, petLAIcorFactor0, L0_LCover_LAI, LCover0,LAI0,               &
+                soilId0, Asp0, L0_LCover_LAI, LCover0,LAI0,                                  &
                 slope_emp0, cellId0,                                                         &
                 L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                          &
                 L0rightBound_inL1, nTCells0_inL1, l0_latitude,                               &
-                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1(:),    &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1(:),  &
                 HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                          &
                 surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                     &
                 soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),      &
@@ -597,10 +595,8 @@ CONTAINS
        case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
          pet =  petLAIcorFactorL1(k) * pet_in(k)                   
 
-        !print*,"petLAIcorFactorL1 is",petLAIcorFactorL1(20)
        case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet =  fAsp(k) * pet_in(k)   
-        
+          pet =  fAsp(k) * pet_in(k)         
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation

@@ -315,7 +315,6 @@ end subroutine prepare_meteo_forcings_data
     integer(i4)                                :: nTimeSteps
     real(dp)                                   :: cellFactorHbyM   ! level-1_resolution/level-2_resolution
     integer(i4)                                :: t
-    integer(i4)                                :: k
 
     ! get basic basin information at level-1
     call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, mask=mask1 )
@@ -471,7 +470,7 @@ end subroutine prepare_meteo_forcings_data
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
   
-    use mo_global_variables,           only: readPer, level1, level2
+    use mo_global_variables,           only: level1, level2
     use mo_mhm_constants,              only: nodata_dp
     use mo_init_states,                only: get_basin_info
     use mo_read_forcing_nc,            only: read_weights_nc

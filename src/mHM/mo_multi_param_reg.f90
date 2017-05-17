@@ -219,7 +219,6 @@ contains
        fPerm1,              & ! IN:    fraction of permeable area at scale L1
        soilId0,             & ! IN:    soil Ids at level 0
        Asp0,                & ! IN:    [degree] Aspect at Level 0
-       petLAIcorFactor0,    & ! IN:    PET correction using LAI at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
        LAI0,                & ! IN:    LAI at level 0     
@@ -302,7 +301,6 @@ contains
     integer(i4), dimension(:),               intent(in)    :: cell_id0          ! Cell ids at level 0
 
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
-    real(dp),   dimension(size(cell_id0,1)), intent(inout) :: petLAIcorFactor0  ! PET correction using LAI at Level 0
 
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
@@ -524,6 +522,7 @@ contains
     case(-1) ! LAI based correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)
+	   
        call pet_correctbyLAI(param(iStart:iEnd) ,nodata, LCOVER0, LAI0, mask0, cell_id0,&
            upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, Pet_LAIcorFactorL1)
        

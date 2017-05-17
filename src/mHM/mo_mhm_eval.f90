@@ -120,13 +120,13 @@ CONTAINS
          read_restart, perform_mpr, fracSealed_CityArea,                            &
          timeStep_model_inputs,                                                     &
          timeStep, nBasins, simPer, readPer,                                        & ! [h] simulation time step, No. of basins
-         c2TSTu, HorizonDepth_mHM,            &                     
+         c2TSTu, HorizonDepth_mHM,                                                  &                     
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,                                    &
          LCyearId, LAIUnitList, LAILUT,                                             &
          GeoUnitList, GeoUnitKar, soilDB,                                           &
          iFlag_soilDB,                                                              & ! options to handle different types of soil databases
          L0_Id, L0_soilId,                                                          &
-         L0_LCover, L0_asp,L0_petLAIcorFactor, L0_LCover_LAI, L0_geoUnit,           &
+         L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,                              &
          soilDB, L1_nTCells_L0,                                                     &
          L0_slope_emp,                                                              &
          L1_upBound_L0, L1_downBound_L0, L1_leftBound_L0,                           &
@@ -546,7 +546,7 @@ CONTAINS
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                          & ! IN L0
                L0_slope_emp(s0:e0), L0_Latitude(s0:e0),                                                  & ! IN L0
                L0_Id(s0:e0), L0_soilId(s0:e0,:), L0_LCover_LAI(s0:e0),                                   & ! IN L0
-               L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0), L0_petLAIcorFactor(s0:e0),            & ! IN L0
+               L0_LCover(s0:e0, LCyearId(year,ii)), L0_asp(s0:e0),                                       & ! IN L0
                LAI(s0:e0), L0_geoUnit(s0:e0),                                                            & ! IN L0
                soilDB%is_present, soilDB%nHorizons, soilDB%nTillHorizons,                                & ! IN L0
                soilDB%sand, soilDB%clay, soilDB%DbM, soilDB%Wd, soilDB%RZdepth,                          & ! IN L0

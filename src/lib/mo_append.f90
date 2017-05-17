@@ -334,54 +334,54 @@ CONTAINS
 
   END SUBROUTINE append_i4_m_m
 
-  SUBROUTINE append_i4_3d(mat1, mat2, fill_value)
+!  SUBROUTINE append_i4_3d(mat1, mat2, fill_value)
 
-    implicit none
+!    implicit none
 
-    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
-    integer(i4), dimension(:,:,:), intent(in)                 :: mat2
-    integer(i4), optional,         intent(in)                 :: fill_value
+!   integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
+!    integer(i4), dimension(:,:,:), intent(in)                 :: mat2
+!    integer(i4), optional,         intent(in)                 :: fill_value
+!
+!    ! local variables
+!    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
+!    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
+!    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
+!    integer(i4), dimension(:,:,:), allocatable :: tmp
 
-    ! local variables
-    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
-    integer(i4), dimension(:,:,:), allocatable :: tmp
-
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
+!    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
     
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+!    m2 = size(mat2,1)    ! rows
+!    n2 = size(mat2,2)    ! columns
+!    j2 = size(mat2,3)    ! something else
 
-    if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+!    if (allocated(mat1)) then
+!       m1 = size(mat1,1)    ! rows
+!       n1 = size(mat1,2)    ! columns
+!       j1 = size(mat1,3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+!       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
+!          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+!               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
+!          STOP
+!       end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+!       allocate(tmp(m1,n1,j1))
+!       tmp=mat1
+!       deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+!      allocate(mat1(m1+m2,n1,j1))
+!       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
+!       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
 
-    else
+!    else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
+!       allocate(mat1(m2,n2,j2))
+!       mat1 = mat2
        
-    end if
+!    end if
 
-  END SUBROUTINE append_i4_3d
+!  END SUBROUTINE append_i4_3d
 
   SUBROUTINE append_i8_v_s(vec1, sca2)
 

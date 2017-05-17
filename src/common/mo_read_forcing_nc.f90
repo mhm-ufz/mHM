@@ -391,7 +391,7 @@ contains
     integer(i4)               :: datatype     ! datatype of attribute
     integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
     real(dp)                  :: nodata_value ! data nodata value
-    integer(i4)               :: dim3         ! time dim of input data
+!    integer(i4)               :: dim3         ! time dim of input data
     logical                   :: checking     ! check if model domain is covered by data
 
     checking = .TRUE.

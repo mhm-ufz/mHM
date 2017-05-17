@@ -127,7 +127,7 @@ openmp   := true
 # MPI parallelization - experimental: true, [anything else]
 mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
-static   := shared
+static   := dynamic
 
 # The Makefile sets the following variables depending on the above options:
 # FC, FCFLAGS, F90, F90FLAGS, CC, CFLAGS, CPP, DEFINES, INCLUDES, LD, LDFLAGS, LIBS
