@@ -11,7 +11,6 @@ module mo_mpr_SMhorizons
 
   use mo_kind, only: i4, dp
 
-
   implicit none
 
   public :: mpr_SMhorizons
@@ -123,6 +122,7 @@ contains
   subroutine mpr_SMhorizons( &
        ! Input -----------------------------------------------------------------
        param         , & ! global parameters, three are required
+       processMatrix , & ! matrix specifying user defined processes
        nodata        , & ! no data value
        iFlag_soil    , & ! flag to handle different soil database
        nHorizons_mHM , & ! number of horizons to model
@@ -157,7 +157,6 @@ contains
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
     use mo_message,             only: message
-    use mo_common_variables,    only : processMatrix
 
 !$  use omp_lib
 
@@ -165,6 +164,7 @@ contains
 
     ! Input
     real(dp),    dimension(7),     intent(in) :: param         ! parameters
+    integer(i4), dimension(:,:),   intent(in) :: processMatrix ! matrix specifying user defined processes
     real(dp),                      intent(in) :: nodata        ! no data value
     integer(i4),                   intent(in) :: iFlag_soil    ! flag to handle different soil database
     integer(i4),                   intent(in) :: nHorizons_mHM ! Number of Horizons in mHM

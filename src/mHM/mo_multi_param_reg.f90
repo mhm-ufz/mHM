@@ -491,20 +491,20 @@ contains
        stop
     end select
 
-    call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
-        SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
-        SDB_sand, SDB_clay, SDB_DbM,                       &
-        cell_id0, soilId0, LCOVER0,                        &
-        thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
+    call mpr_sm( param(iStart:iEnd),  nodata, iFlag_soil,    &
+        SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,    &
+        SDB_sand, SDB_clay, SDB_DbM,                         &
+        cell_id0, soilId0, LCOVER0,                          &
+        thetaS_till, thetaFC_till, thetaPW_till, thetaS,     &
         thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
         
-    call mpr_SMhorizons( param(iStart2:iEnd2), nodata, iFlag_soil,    &
-        nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
-        SDB_nHorizons, SDB_nTillHorizons,                          &
-        thetaS_till,thetaFC_till, thetaPW_till,                    &
-        thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,&
-        mask0, cell_id0,                                           &
-        Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
+    call mpr_SMhorizons( param(iStart2:iEnd2), proc_Mat, nodata,    &
+        iFlag_soil, nHorizons_mHM, horizon_depth, LCOVER0, soilId0, &
+        SDB_nHorizons, SDB_nTillHorizons,                           &
+        thetaS_till,thetaFC_till, thetaPW_till,                     &
+        thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth, &
+        mask0, cell_id0,                                            &
+        Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1,  &
         beta1, SMs1, FC1, PW1, fRoots1 )
    
     deallocate( thetaS_till ) 
