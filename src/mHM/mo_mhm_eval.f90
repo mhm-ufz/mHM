@@ -536,7 +536,6 @@ CONTAINS
           !  S    STATE VARIABLES L1
           !  X    FLUXES (L1, L11 levels)
           ! --------------------------------------------------------------------------
-          ! JBJBJBJB
           call mhm(perform_mpr, read_restart, fracSealed_cityArea,                                       & ! IN C
                timeStep_LAI_input, year_counter, month_counter, day_counter,                             & ! IN C
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                              & ! IN C
@@ -877,81 +876,76 @@ CONTAINS
                                         L1_unsatSTW(s1:e1) + L1_satSTW(s1:e1)
                do gg = 1, nSoilHorizons_mHM
                   TWS_field(s1:e1) =   TWS_field(s1:e1) + L1_soilMoist (s1:e1,gg)
-               end do
-               basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )
-            end if
-            !----------------------------------------------------------------------
+                            end do
+             basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )
+          end if
+          !----------------------------------------------------------------------
+          
+          !----------------------------------------------------------------------
+          ! FOR NEUTRONS
+          ! NOTE:: modeled neutrons are averaged daily
+          !----------------------------------------------------------------------
+          if (present(neutrons_opti)) then
+             if ( tt .EQ. 1 ) writeout_counter = 1
+             ! only for evaluation period - ignore warming days
+             if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
+                ! decide for daily, monthly or yearly aggregation
+                ! daily
+                if (day   .NE. day_counter)   then
+                   neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) / real(average_counter,dp)
+                   writeout_counter = writeout_counter + 1
+                   average_counter = 0
+                end if
 
-            !----------------------------------------------------------------------
-            ! FOR NEUTRONS
-            ! NOTE:: modeled neutrons are averaged daily
-            !----------------------------------------------------------------------
-            if (present(neutrons_opti)) then
-               if ( tt .EQ. 1 ) writeout_counter = 1
-               ! only for evaluation period - ignore warming days
-               if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
-                  ! decide for daily, monthly or yearly aggregation
-                  ! daily
-                  if (day   .NE. day_counter)   then
-                     neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) / real(average_counter,dp)
-                     writeout_counter = writeout_counter + 1
-                     average_counter = 0
-                  end if
+                ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
+                if (.not. (tt .eq. nTimeSteps) ) then
+                   ! aggregate neutrons to needed time step for optimization
+                   neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) + L1_neutrons(s1:e1)
+                end if
 
-                  ! last timestep is already done - write_counter exceeds size(sm_opti, dim=2)
-                  if (.not. (tt .eq. nTimeSteps) ) then
-                     ! aggregate neutrons to needed time step for optimization
-                     neutrons_opti(s1:e1,writeout_counter) = neutrons_opti(s1:e1,writeout_counter) + L1_neutrons(s1:e1)
-                  end if
+                average_counter = average_counter + 1
+             end if
+          end if
 
-                  average_counter = average_counter + 1
-               end if
-            end if
+          !----------------------------------------------------------------------
+          ! FOR EVAPOTRANSPIRATION
+          ! NOTE:: modeled evapotranspiration is averaged according to input time step
+          !        evapotranspiration (timeStep_sm_input)
+          !----------------------------------------------------------------------
+          if (present(et_opti)) then
+             if ( tt .EQ. 1 ) then
+                writeout_counter = 1
+                L1_fNotSealed = 1.0_dp - L1_fSealed
+             end if
+             
+             ! only for evaluation period - ignore warming days
+             if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
+                ! decide for daily, monthly or yearly aggregation
+                select case(timeStep_et_input)
+                case(-1) ! daily
+                   if (day   .NE. day_counter)   then
+                      writeout_counter = writeout_counter + 1
+                   end if
+                case(-2) ! monthly
+                   if (month .NE. month_counter) then
+                      writeout_counter = writeout_counter + 1
+                   end if
+                case(-3) ! yearly
+                   if (year  .NE. year_counter)  then
+                      writeout_counter = writeout_counter + 1
+                   end if
+                end select
 
-            !----------------------------------------------------------------------
-            ! FOR EVAPOTRANSPIRATION
-            ! NOTE:: modeled evapotranspiration is averaged according to input time step
-            !        evapotranspiration (timeStep_sm_input)
-            !----------------------------------------------------------------------
-            if (present(et_opti)) then
-               if ( tt .EQ. 1 ) writeout_counter = 1
-               ! only for evaluation period - ignore warming days
-               if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
-                  ! decide for daily, monthly or yearly aggregation
-                  select case(timeStep_et_input)
-                  case(-1) ! daily
-                     if (day   .NE. day_counter)   then
-                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
-                        writeout_counter = writeout_counter + 1
-                        average_counter = 0
-                     end if
-                  case(-2) ! monthly
-                     if (month .NE. month_counter) then
-                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
-                        writeout_counter = writeout_counter + 1
-                        average_counter = 0
-                     end if
-                  case(-3) ! yearly
-                     if (year  .NE. year_counter)  then
-                        et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) / real(average_counter,dp)
-                        writeout_counter = writeout_counter + 1
-                        average_counter = 0
-                     end if
-                  end select
-
-                  ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
-                  if (.not. (tt .eq. nTimeSteps) ) then
-                     ! aggregate evapotranspiration to needed time step for optimization
-                     et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) + &
-                          sum(L1_aETSoil(s1:e1,:), dim=2) * L1_fNotSealed(s1:e1) + &
-                          L1_aETCanopy(s1:e1) + &
-                          L1_aETSealed(s1:e1) * L1_fSealed(s1:e1)
-                  end if
-                  
-                  ! increase average counter by one
-                  average_counter = average_counter + 1
-               end if
-            end if
+                ! last timestep is already done - write_counter exceeds size(et_opti, dim=2)
+                if (.not. (tt .eq. nTimeSteps) ) then
+                   ! aggregate evapotranspiration to needed time step for optimization
+                   et_opti(s1:e1,writeout_counter) = et_opti(s1:e1,writeout_counter) + &
+                        sum(L1_aETSoil(s1:e1,:), dim=2) * L1_fNotSealed(s1:e1) + &
+                        L1_aETCanopy(s1:e1) + &
+                        L1_aETSealed(s1:e1) * L1_fSealed(s1:e1)
+                end if
+             end if
+          end if
 
        end do !<< TIME STEPS LOOP
 
