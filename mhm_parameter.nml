@@ -97,8 +97,8 @@ PET_b                              =  0.0000,      1.5000,         1.5000,     1
 PET_c                              =  -2.000,      0.0000,         -0.700,     1,       1
 / 
 &PET0 ! PET is input, aspect driven correction
-minCorrectionFactorPET             =  0.7000,      1.3000,           0.9,     1,       1
-maxCorrectionFactorPET             =  0.0000,      0.2000,           0.1,     1,       1
+minCorrectionFactorPET             =  0.7000,      1.3000,           1.0,     1,       1
+maxCorrectionFactorPET             =  0.0000,      0.2000,           0,     1,       1
 aspectTresholdPET                  =  160.00,      200.00,         180.0,     1,       1
 /                                                         
 &PET1 ! PET - Hargreaves Samani

@@ -457,7 +457,6 @@ contains
            ! (the first three for the fRoots and the fourth one for the beta)
            iStart2 = proc_Mat(3,3) - 4 + 1
            iEnd2   = proc_Mat(3,3)
-
     case(2)
            ! first thirteen parameters go to this routine
            iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
@@ -470,26 +469,38 @@ contains
 
            ! last parameter is jarvis parameter - no need to be regionalized               
            jarvis_thresh_c1 = param(proc_Mat(3,3))
+    case(3)
+           ! first thirteen parameters go to this routine
+           iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
+           iEnd   = proc_Mat(3,3) - 7    
+
+           ! next four parameters go here
+           ! (the first three for the fRoots and the fourth one for the beta)
+           iStart2 = proc_Mat(3,3) - 7 + 1
+           iEnd2   = proc_Mat(3,3) - 1
+
+           ! last parameter is jarvis parameter - no need to be regionalized
+           jarvis_thresh_c1 = param(proc_Mat(3,3)) 
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "soil moisture parametrization" does not exist! mo_multi_param_reg')
        stop
     end select
 
-    call mpr_sm( param(iStart:iEnd), nodata, iFlag_soil,    &
-        SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,  &
-        SDB_sand, SDB_clay, SDB_DbM,                       &
-        cell_id0, soilId0, LCOVER0,                        &
-        thetaS_till, thetaFC_till, thetaPW_till, thetaS,   &
+    call mpr_sm( param(iStart:iEnd),  nodata, iFlag_soil,    &
+        SDB_is_present, SDB_nHorizons, SDB_nTillHorizons,    &
+        SDB_sand, SDB_clay, SDB_DbM,                         &
+        cell_id0, soilId0, LCOVER0,                          &
+        thetaS_till, thetaFC_till, thetaPW_till, thetaS,     &
         thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
         
-    call mpr_SMhorizons( param(iStart2:iEnd2), nodata, iFlag_soil,    &
-        nHorizons_mHM, horizon_depth, LCOVER0, soilId0,            &
-        SDB_nHorizons, SDB_nTillHorizons,                          &
-        thetaS_till,thetaFC_till, thetaPW_till,                    &
-        thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth,&
-        mask0, cell_id0,                                           &
-        Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1, &
+    call mpr_SMhorizons( param(iStart2:iEnd2), proc_Mat, nodata,    &
+        iFlag_soil, nHorizons_mHM, horizon_depth, LCOVER0, soilId0, &
+        SDB_nHorizons, SDB_nTillHorizons,                           &
+        thetaS_till,thetaFC_till, thetaPW_till,                     &
+        thetaS, thetaFC, thetaPW, SDB_Wd, Db, SDB_DbM, SDB_RZdepth, &
+        mask0, cell_id0,                                            &
+        Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, nL0_in_L1,  &
         beta1, SMs1, FC1, PW1, fRoots1 )
    
     deallocate( thetaS_till ) 
@@ -521,9 +532,8 @@ contains
     select case( proc_Mat( 5,1 ) )
     case(-1) ! LAI based correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
-       iEnd   = proc_Mat(5,3)
-	   
-       call pet_correctbyLAI(param(iStart:iEnd) ,nodata, LCOVER0, LAI0, mask0, cell_id0,&
+       iEnd   = proc_Mat(5,3)  
+       call pet_correctbyLAI(param(iStart:iEnd), nodata, LCOVER0, LAI0, mask0, cell_id0, &
            upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, Pet_LAIcorFactorL1)
        
     case(0) ! aspect correction of input PET
@@ -532,6 +542,7 @@ contains
        call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
+            
     case(1) ! Hargreaves-Samani method
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
@@ -551,7 +562,7 @@ contains
        call aerodynamical_resistance(LCover0, LAILUT, param(iStart : iEnd - 1), mask0,   & 
             nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
             aeroResist1)
-       call bulksurface_resistance(LCover_LAI0, LAILUT, LAIUnitList, param(iEnd), mask0,                             & 
+       call bulksurface_resistance(LCover_LAI0, LAILUT, LAIUnitList, param(iEnd), mask0, & 
             nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
             surfResist1)
     case default

@@ -183,7 +183,8 @@ contains
                 end select
 
             end do
-            
+
+
             !$OMP END DO
 
             !L1_petLAIcorFactor(:) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
@@ -191,7 +192,7 @@ contains
             
             L1_petLAIcorFactor(:) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                               Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
-                              
+			
             !$OMP END PARALLEL
 
   end subroutine pet_correctbyLAI
