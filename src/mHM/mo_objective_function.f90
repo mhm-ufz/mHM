@@ -215,9 +215,11 @@ CONTAINS
     ! local
     integer(i4)                             :: iBasin                   ! basin loop counter
     integer(i4)                             :: iTime                    ! time loop counter
+    integer(i4)                             :: n_time_steps             ! number of time steps in simulated SM
     integer(i4)                             :: nrows1, ncols1           ! level 1 number of culomns and rows
     integer(i4)                             :: s1, e1                   ! start and end index for the current basin
     integer(i4)                             :: ncells1                  ! ncells1 of level 1
+    real(dp)                                :: invalid_times            ! number of invalid timesteps
     real(dp), parameter                     :: onesixth = 1.0_dp/6.0_dp ! for sixth root
     real(dp), dimension(:),   allocatable   :: sm_catch_avg_basin       ! spatial average of observed soil moisture
     real(dp), dimension(:),   allocatable   :: sm_opti_catch_avg_basin  ! spatial avergae of modeled  soil moisture
@@ -246,13 +248,15 @@ CONTAINS
        sm_catch_avg_basin      = nodata_dp
        sm_opti_catch_avg_basin = nodata_dp
 
+       invalid_times = 0.0_dp
        ! calculate catchment average soil moisture
-       do iTime = 1, size(sm_opti, dim=2)
+       n_time_steps = size(sm_opti, dim=2)
+       do iTime = 1, n_time_steps
 
-          ! check for enough data points in time for correlation
-          if ( all(.NOT. L1_sm_mask(s1:e1,iTime)) .OR. (count(L1_sm_mask(:,iTime)) .LE. 10) ) then
-             call message('WARNING: objective_sm_kge_catchment_avg: ignored currrent time step since less than')
-             call message('         10 valid cells available in soil moisture observation')
+          ! check for enough data points in timesteps for KGE calculation
+          ! more then 10 percent avaiable in current field
+          if ( count(L1_sm_mask(s1:e1,iTime)) .LE. (0.10_dp * real(nCells1,dp)) ) then
+             invalid_times = invalid_times + 1.0_dp
              mask_times(iTime) = .FALSE.
              cycle
           end if
@@ -260,6 +264,14 @@ CONTAINS
           sm_opti_catch_avg_basin(iTime) = average(sm_opti(s1:e1,iTime), mask=L1_sm_mask(s1:e1,iTime))
        end do
 
+       ! user information about invalid times
+       if (invalid_times .GT. 0.5_dp) then
+          call message('   WARNING: objective_sm: Detected invalid timesteps (.LT. 10 valid data points).')
+          call message('                          Fraction of invlauid timestpes: ', &
+                                                  num2str(invalid_times/real(n_time_steps,dp),'(F4.2)'))
+       end if
+
+       
        ! calculate average soil moisture KGE over all basins with power law
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
        objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
@@ -366,11 +378,12 @@ CONTAINS
     integer(i4)                             :: iCell              ! cell loop counter
     integer(i4)                             :: nrows1, ncols1     ! level 1 number of culomns and rows
     integer(i4)                             :: s1, e1             ! start and end index for the current basin
-    integer(i4)                             :: ncells1                 ! ncells1 of level 1
+    integer(i4)                             :: ncells1            ! ncells1 of level 1
+    real(dp)                                :: invalid_cells      ! number of invalid cells in catchment
     real(dp)                                :: objective_sm_corr_basin ! basins wise objectives
     real(dp), parameter                     :: onesixth = 1.0_dp/6.0_dp
-    real(dp), dimension(:,:), allocatable   :: sm_opti                 ! simulated soil moisture
-    !                                                                  ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:,:), allocatable   :: sm_opti            ! simulated soil moisture
+    !                                                             ! (dim1=ncells, dim2=time)
 
     call mhm_eval(parameterset, sm_opti=sm_opti)
 
@@ -385,18 +398,27 @@ CONTAINS
        ! get basin information
        call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
 
+       invalid_cells = 0.0_dp
        ! temporal correlation is calculated on individual gridd cells
+       
        do iCell = s1, e1
 
           ! check for enough data points in time for correlation
-          if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
-             call message('WARNING: objective_sm_corr: ignored currrent cell since less than 10 time steps')
-             call message('         available in soil moisture observation')
+          if ( count(L1_sm_mask(iCell,:)) .LE. 0.10_dp * real( size(L1_sm, dim=2) ,dp) ) then
+             invalid_cells = invalid_cells + 1.0_dp
              cycle
           end if
           objective_sm_corr_basin = objective_sm_corr_basin + &
                correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
        end do
+
+       ! user information about invalid cells
+       if (invalid_cells .GT. 0.5_dp) then
+          call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
+          call message('                          Fraction of invlauid cells: ', &
+                                                  num2str(invalid_cells/real(nCells1,dp),'(F4.2)'))
+       end if
+
 
        ! calculate average soil moisture correlation over all basins with power law
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
@@ -533,7 +555,7 @@ CONTAINS
        mask_times              = .FALSE.
        pd_time_series          = 0.0_dp
 
-       ! calculate catchment average soil moisture
+       ! calculate pattern similarity criterion
        do iTime = 1, size(sm_opti, dim=2)
           mat1    = unpack(     L1_sm(s1:e1,iTime), mask1, nodata_dp)
           mat2    = unpack(   sm_opti(s1:e1,iTime), mask1, nodata_dp)
@@ -543,7 +565,6 @@ CONTAINS
 
        if (count(mask_times) > 0_i4) then
           ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(nBasin,dp))**6
-          ! print*, 'PD(SM)', sum(pd_time_series, mask=mask_times) / real(count(mask_times), dp) ! MZMZMZMZ
           objective_sm_pd = objective_sm_pd + &
                ((1.0_dp - sum(pd_time_series, mask=mask_times) / real(count(mask_times), dp)) / real(nBasins,dp) )**6
        else
@@ -651,6 +672,7 @@ CONTAINS
     integer(i4)                              :: nrows1, ncols1     ! level 1 number of culomns and rows
     integer(i4)                              :: s1, e1             ! start and end index for the current basin
     integer(i4)                              :: ncells1            ! ncells1 of level 1
+    real(dp)                                 :: invalid_cells      ! number of invalid cells in catchment
     real(dp)                                 :: objective_sm_sse_standard_score_basin ! basins wise objectives
     real(dp),    parameter                   :: onesixth = 1.0_dp/6.0_dp
     real(dp),    dimension(:,:), allocatable :: sm_opti                 ! simulated soil moisture
@@ -669,13 +691,13 @@ CONTAINS
        ! get basin information
        call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
 
+       invalid_cells = 0.0_dp
        ! standard_score signal is calculated on individual grid cells
        do iCell = s1, e1
 
           ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
-          if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
-             call message('WARNING: objective_sm_sse_standard_score: ignored currrent cell since less than 10 time steps')
-             call message('         available in soil moisture observation')
+          if ( count(L1_sm_mask(iCell,:)) .LE. (0.10_dp * real(size(L1_sm, dim=2) ,dp)) ) then
+             invalid_cells = invalid_cells + 1.0_dp
              cycle
           end if
           objective_sm_sse_standard_score_basin = objective_sm_sse_standard_score_basin + &
@@ -683,7 +705,14 @@ CONTAINS
                standard_score(sm_opti(iCell,:), mask=L1_sm_mask(iCell,:)), mask=L1_sm_mask(iCell,:))
 
        end do
-       ! print*, iBasin,  objective_sm_sse_standard_score_basin
+
+       ! user information about invalid cells
+       if (invalid_cells .GT. 0.5_dp) then
+          call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
+          call message('                          Fraction of invlauid cells: ', &
+                                                  num2str(invalid_cells/real(nCells1,dp),'(F4.2)'))
+       end if
+
        ! calculate average soil moisture correlation over all basins with power law
        ! basins are weighted equally ( 1 / real(nBasin,dp))**6
        objective_sm_sse_standard_score = objective_sm_sse_standard_score + &
@@ -1075,172 +1104,6 @@ CONTAINS
     call message('    objective_neutrons_kge_catchment_avg = ', num2str(objective_neutrons_kge_catchment_avg,'(F9.5)'))
 
   END FUNCTION objective_neutrons_kge_catchment_avg
-
-  ! -----------------------------------------------------------------
-
-  !      NAME
-  !          objective_kge_q_sse_sm(parameterset)
-
-  !>        \brief Objective function of KGE for runoff and correlation for SM
-
-  !>        \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
-  !>                 Further details can be found in the documentation of objective functions
-  !>                 '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_sse_sm &mdash; objective function value
-  !>       (which will be e.g. minimized by an optimization routine like DDS)
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge_q_sse_sm(parameterset)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Mar. 2017
-
-  FUNCTION objective_kge_q_sm_corr(parameterset)
-
-    use mo_init_states,          only: get_basin_info
-    use mo_mhm_eval,             only: mhm_eval
-    use mo_errormeasures,        only: kge !, sse, rmse ! MZMZMZMZ
-    use mo_moment,               only: correlation ! mean ! MZMZMZMZ
-    use mo_message,              only: message
-    ! use mo_standard_score,       only: standard_score ! MZMZMZM
-    use mo_string_utils,         only: num2str
-    use mo_global_variables,     only: nBasins,             &
-                                       L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
-#ifdef MRM2MHM
-    use mo_mrm_objective_function_runoff, only: extract_runoff
-#endif
-
-    implicit none
-
-    real(dp), dimension(:), intent(in)    :: parameterset
-    real(dp)                              :: objective_kge_q_sm_corr
-
-    ! local
-    real(dp)                              :: objective_sm
-    real(dp)                              :: objective_kge
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    integer(i4)                           :: iBasin             ! basin loop counter
-    integer(i4)                           :: iCell              ! cell loop counter
-    integer(i4)                           :: nrows1, ncols1     ! level 1 number of culomns and rows
-    integer(i4)                           :: s1, e1             ! start and end index for the current basin
-    integer(i4)                           :: ncells1            ! ncells1 of level 1
-    real(dp)                              :: objective_sm_basin ! basins wise objectives
-    ! runoff
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
-    ! SM
-    real(dp), dimension(:,:), allocatable :: sm_opti                 ! simulated soil moisture
-    !                                                                  ! (dim1=ncells, dim2=time)
-    
-    real(dp),    parameter                   :: onesixth = 1.0_dp/6.0_dp
-
-    ! run mHM
-    call mHM_eval(parameterset, runoff=runoff, sm_opti=sm_opti)
-
-    ! -----------------------------
-    ! SOIL MOISTURE
-    ! -----------------------------
-    
-    ! initialize some variables
-    objective_sm          = 0.0_dp
-
-    ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
-
-       ! init
-       objective_sm_basin = 0.0_dp
-       ! get basin information
-       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
-
-       ! standard_score signal is calculated on individual grid cells
-       do iCell = s1, e1
-
-          ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
-          if ( all(.NOT. L1_sm_mask(iCell,:)) .OR. (count(L1_sm_mask(iCell,:)) .LE. 10) ) then
-             call message('WARNING: objective_sm: ignored currrent cell since less than 10 time steps')
-             call message('         available in soil moisture observation')
-             cycle
-          end if
-          objective_sm_basin = objective_sm_basin + &
-               correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
-       end do
-
-       ! calculate average soil moisture objective over all basins with power law
-       ! basins are weighted equally ( 1 / real(nBasin,dp))**6
-       objective_sm = objective_sm + &
-            ( (1.0_dp - objective_sm_basin / real(nCells1,dp)) / real(nBasins,dp) )**6
-    end do
-
-    ! compromise solution - sixth root
-    objective_sm = objective_sm**onesixth
-
-    ! -----------------------------
-    ! RUNOFF
-    ! -----------------------------
-#ifdef MRM2MHM
-    nGaugesTotal = size(runoff, dim=2)
-
-    objective_kge = 0.0_dp
-    do gg=1, nGaugesTotal
-
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-
-       ! KGE
-       objective_kge = objective_kge + &
-            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6
-
-    end do
-
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
-    
-    ! compromise solution - sixth root
-    objective_kge = objective_kge**onesixth 
-
-#else
-    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
-    stop
-#endif
-
-    ! equal weighted compromise objective functions for discharge and soilmoisture
-    objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6 )**onesixth
-    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
-    
-    call message('    objective_kge_q_sm_corr = ', num2str(objective_kge_q_sm_corr,'(F9.5)'))
-
-  END FUNCTION objective_kge_q_sm_corr
   
   ! ------------------------------------------------------------------
 
@@ -1392,7 +1255,186 @@ CONTAINS
 
   END FUNCTION objective_et_kge_catchment_avg
 
+  ! -----------------------------------------------------------------
 
+  !      NAME
+  !          objective_kge_q_sse_sm(parameterset)
+
+  !>        \brief Objective function of KGE for runoff and correlation for SM
+
+  !>        \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
+  !>                 Further details can be found in the documentation of objective functions
+  !>                 '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_kge_q_sse_sm &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_kge_q_sse_sm(parameterset)
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Matthias Zink
+  !>        \date Mar. 2017
+
+  FUNCTION objective_kge_q_sm_corr(parameterset)
+
+    use mo_init_states,          only: get_basin_info
+    use mo_mhm_eval,             only: mhm_eval
+    use mo_errormeasures,        only: kge !, sse, rmse ! MZMZMZMZ
+    use mo_moment,               only: correlation ! mean ! MZMZMZMZ
+    use mo_message,              only: message
+    ! use mo_standard_score,       only: standard_score ! MZMZMZM
+    use mo_string_utils,         only: num2str
+    use mo_global_variables,     only: nBasins,             &
+                                       L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
+#ifdef MRM2MHM
+    use mo_mrm_objective_function_runoff, only: extract_runoff
+#endif
+
+    implicit none
+
+    real(dp), dimension(:), intent(in)    :: parameterset
+    real(dp)                              :: objective_kge_q_sm_corr
+
+    ! local
+    real(dp)                              :: objective_sm
+    real(dp)                              :: objective_kge
+    real(dp)                              :: invalid_cells            ! number of invalid cells in catchment
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
+    integer(i4)                           :: iBasin             ! basin loop counter
+    integer(i4)                           :: iCell              ! cell loop counter
+    integer(i4)                           :: nrows1, ncols1     ! level 1 number of culomns and rows
+    integer(i4)                           :: s1, e1             ! start and end index for the current basin
+    integer(i4)                           :: ncells1            ! ncells1 of level 1
+    real(dp)                              :: objective_sm_basin ! basins wise objectives
+    ! runoff
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    ! SM
+    real(dp), dimension(:,:), allocatable :: sm_opti                 ! simulated soil moisture
+    !                                                                  ! (dim1=ncells, dim2=time)
+    
+    real(dp),    parameter                   :: onesixth = 1.0_dp/6.0_dp
+
+    ! run mHM
+    call mHM_eval(parameterset, runoff=runoff, sm_opti=sm_opti)
+
+    ! -----------------------------
+    ! SOIL MOISTURE
+    ! -----------------------------
+    
+    ! initialize some variables
+    objective_sm          = 0.0_dp
+
+    ! loop over basin - for applying power law later on
+    do iBasin = 1, nBasins
+
+       ! init
+       objective_sm_basin = 0.0_dp
+       ! get basin information
+       call get_basin_info( iBasin, 1, nrows1, ncols1, nCells=nCells1, iStart=s1,  iEnd=e1 )
+
+       ! correlation signal is calculated on individual grid cells
+       invalid_cells = 0.0_dp
+       do iCell = s1, e1
+
+          ! check for enough data points in time for statistical calculations (e.g. mean, stddev)
+          if ( count(L1_sm_mask(iCell,:)) .LE. (0.10_dp * real(size(L1_sm, dim=2) ,dp)) ) then
+             invalid_cells = invalid_cells + 1.0_dp
+             cycle
+          end if
+
+          ! calculate ojective function
+          objective_sm_basin = objective_sm_basin + &
+               correlation( L1_sm(iCell,:), sm_opti(iCell,:), mask=L1_sm_mask(iCell,:))
+       end do
+
+       ! user information about invalid cells
+       if (invalid_cells .GT. 0.5_dp) then
+          call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
+          call message('                          Fraction of invlauid cells: ', &
+                                                  num2str(invalid_cells/real(nCells1,dp),'(F4.2)'))
+       end if
+
+       ! calculate average soil moisture objective over all basins with power law
+       ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+       objective_sm = objective_sm + &
+            ( (1.0_dp - objective_sm_basin / real(nCells1,dp)) / real(nBasins,dp) )**6
+    end do
+
+    ! compromise solution - sixth root
+    objective_sm = objective_sm**onesixth
+
+    ! -----------------------------
+    ! RUNOFF
+    ! -----------------------------
+#ifdef MRM2MHM
+    nGaugesTotal = size(runoff, dim=2)
+
+    objective_kge = 0.0_dp
+    do gg=1, nGaugesTotal
+
+       ! extract runoff
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+
+       ! KGE
+       objective_kge = objective_kge + &
+            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6
+
+    end do
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    
+    ! compromise solution - sixth root
+    objective_kge = objective_kge**onesixth 
+
+#else
+    call message('***ERROR: objective_kge_q_rmse_tws: missing routing module for optimization')
+    stop
+#endif
+
+    ! equal weighted compromise objective functions for discharge and soilmoisture
+    objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6 )**onesixth
+!    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
+    
+    call message('    objective_kge_q_sm_corr = ', num2str(objective_kge_q_sm_corr,'(F9.5)'))
+
+  END FUNCTION objective_kge_q_sm_corr
+
+
+
+
+  
   
   ! ------------------------------------------------------------------
 
