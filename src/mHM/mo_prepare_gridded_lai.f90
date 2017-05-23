@@ -141,7 +141,9 @@ end subroutine prepare_gridded_daily_LAI_data
   !     PURPOSE
   !>        \brief prepare_gridded_mean_monthly_LAI_data
 
-  !>        \details Prepare long term mean monthly gridded LAI data at Level-0 (e.g., using MODIS datasets)
+  !>        \details Long term mean monthly gridded LAI data at Level-0 (e.g., using MODIS datasets)\n
+  !>                 The netcdf file should contain 12 (calender months) gridded fields of climatological \n
+  !>                 LAI data at the input L0 data resolution. 
 
   !     CALLING SEQUENCE
 
