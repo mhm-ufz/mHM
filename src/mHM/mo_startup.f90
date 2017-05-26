@@ -953,8 +953,10 @@ CONTAINS
          ( abs(yllcorner2 - level2%yllcorner(iBasin)) .gt. tiny(1.0_dp) )     .or. &
          ( abs(cellsize2  - level2%cellsize(iBasin))  .gt. tiny(1.0_dp) )             ) then
       call message()
-      call message('***ERROR: L2_variable_init: Resolution of meteorology differs in basin: ', &
+      call message('***ERROR: L2_variable_init: Header of meteorology and morphology do not fit for basin: ', &
            trim(adjustl(num2str(iBasin))))
+      call message('                            Rows, cols and cellsize need to be multipliers. x and y corners ')
+      call message('                            need to be equal.')
       stop
     end if
 
