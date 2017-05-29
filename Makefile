@@ -181,7 +181,7 @@ static   := shared
 #                  This means that all tests do not work which use netcdf and/or lapack.
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
 
-# Special compilation flags 
+# Special compilation flags
 EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_DEFINES  := -DMRM2MHM

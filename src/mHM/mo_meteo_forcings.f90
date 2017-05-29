@@ -455,7 +455,7 @@ end subroutine prepare_meteo_forcings_data
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
   
-    use mo_global_variables,           only: readPer, level1, level2
+    use mo_global_variables,           only: level1, level2
     use mo_mhm_constants,              only: nodata_dp
     use mo_init_states,                only: get_basin_info
     use mo_read_forcing_nc,            only: read_weights_nc

@@ -353,8 +353,6 @@ contains
   subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout)
 
     use mo_kind,             only: i4, dp
-    use mo_common_variables, only: period
-    use mo_julian,           only: caldat, julday
     use mo_message,          only: message
     use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
 
@@ -391,7 +389,6 @@ contains
     integer(i4)               :: datatype     ! datatype of attribute
     integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
     real(dp)                  :: nodata_value ! data nodata value
-    integer(i4)               :: dim3         ! time dim of input data
     logical                   :: checking     ! check if model domain is covered by data
 
     checking = .TRUE.
