@@ -12,7 +12,7 @@ MODULE mo_file
   IMPLICIT NONE
   
   !> Current mHM model version
-  CHARACTER(len=*), PARAMETER :: version                = '5.6'                         ! Version
+  CHARACTER(len=*), PARAMETER :: version                = '5.7'                         ! Version
   !> Time of current mHM model version release
   CHARACTER(len=*), PARAMETER :: version_date           = 'Dec 2016'                    ! Release date
   !> Driver file

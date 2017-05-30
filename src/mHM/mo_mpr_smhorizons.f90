@@ -35,7 +35,9 @@ contains
 
 
   !      INTENT(IN)
-  !>        \param[in] "real(dp)    :: param(4)"         - four global parameters
+  !>        \param[in] "real(dp)    :: param(:)"         - four or six global parameters depending on SM process
+  !>        \param[in] "integer(i4) :: processMatrix"    - matrix specifying user defined processes
+
   !>        \param[in] "real(dp)    :: nodata"           - no data value
   !>        \param[in] "integer(i4) :: iFlag_soil"       - flags for handling multiple soil databases
   !>        \param[in] "integer(i4) :: nHorizons_mHM"    - number of horizons to model

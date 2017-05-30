@@ -22,8 +22,18 @@ The mHM input and output file format is NETCDF, so the according library is requ
 The official netcdf documentation can be found under:\n
 <a href="http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html">http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html</a>
 
-Download the four dependencies zlib, hdf5, netcdf and netcdf fortran and unzip them to
-some folder (not the place where you will install them, e.g., /Downloads/). You may also need to install curl.
+If not jet available you need to <b>install curl</b> on ypur computer. Download and unpack curl,
+go to the related folders and use the following commands:
+\code
+  cd /Downloads/curl-7.52.1
+  CDIR=/usr/local   
+  ./configure --prefix=${CDIR}
+  sudo make check
+  sudo make install
+\endcode
+
+Download the five dependencies zlib, hdf5, szip, netcdf and netcdf fortran and unzip them to
+some folder (not the place where you will install them, e.g., /Downloads/). 
 
 <b>Download and unpack zlib</b>, go to the related folder and use the following commands:
 \code
@@ -33,6 +43,15 @@ some folder (not the place where you will install them, e.g., /Downloads/). You 
   make check
   sudo make install
 \endcode
+
+<b>Download and unpack szip</b>, go to the related folder and use the following commands:
+\code
+  cd /Downloads/szip-2.1
+  SDIR=/usr/local
+  ./configure --prefix=${SDIR} sudo make check
+  sudo make install
+\endcode
+
 
 <b>Download and unpack hdf5</b>, go to the related folder and use the following commands:
 \code
