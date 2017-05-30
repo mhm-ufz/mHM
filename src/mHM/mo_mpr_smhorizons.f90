@@ -112,6 +112,7 @@ contains
   !                                                --> param(2) = rootFractionCoefficient_impervious 
   !                                                --> param(3) = delta_1 
   !                                                --> param(4) = infiltrationShapeFactor
+  !                                                ! if processMatrix(3,1) = 3 additionally
   !                                                --> param(5) = rootFractionCoefficient_sand
   !                                                --> param(6) = rootFractionCoefficient_clay
   !                  Stephan Thober, Mar 2014 - added omp parallelization
@@ -246,13 +247,12 @@ contains
 
     ! decide which parameterization should be used for route fraction:
     ! 1:2 - dependent on land cover 
-    !   3 - dependent on land cover and soil texture
-    select case (processMatrix(3,1))
-    case(1:2)
-       tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
-       tmp_rootFractionCoefficient_impervious = param(2)
-       tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
-       
+    tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
+    tmp_rootFractionCoefficient_impervious = param(2)
+    tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
+
+    !   3 - dependent on land cover and additionally soil texture
+    select case (processMatrix(3,1))    
     case(3)
        !delta approach is used as in tmp_rootFractionCoefficient_pervious
        tmp_rootFractionCoefficient_sand       = param(6) - param(5)
