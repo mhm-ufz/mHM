@@ -33,3 +33,5 @@ Heße, F., Zink, M., Kumar, R., Samaniego, L., & Attinger, S. (2017). Spatially 
 Zink, M., Kumar, R., Cuntz, M., & Samaniego, L. (2017). A high-resolution dataset of water fluxes and states for Germany accounting for parametric uncertainty. Hydrology and Earth System Sciences, 21(3), 1769–1790. doi:10.5194/hess-21-1769-2017
 
 Baroni, G., Zink, M., Kumar, R., Samaniego, L., & Attinger, S. (2017). Effects of uncertainty in soil properties on simulated hydrological states and fluxes at different spatio-temporal scales. Hydrology and Earth System Sciences, 21(5), 2301–2320. doi:10.5194/hess-21-2301-2017
+
+Peichl, M., Thober, S., Meyer, V., and Samaniego, L.: The Effect of Soil Moisture Anomalies on Maize Yield in Germany, Nat. Hazards Earth Syst. Sci. Discuss., doi:10.5194/nhess-2017-144, in review, 2017.
