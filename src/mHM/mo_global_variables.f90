@@ -202,6 +202,7 @@ MODULE mo_global_variables
   real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index for LAIUnit
   !                                                                        ! dim1=land cover class, dim2=month of year
 
+
   ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
@@ -285,16 +286,16 @@ MODULE mo_global_variables
 
   ! mHM derived variables
   ! dim1 = number grid cells L0
-  integer(i4), public                                :: L0_nCells                 ! Number of valid cells
-  integer(i4), public, dimension(:,:), allocatable   :: L0_cellCoor               ! Cell coordinates (row,col) for each grid cell, dim2=2
-  integer(i4), public, dimension(:),   allocatable   :: L0_Id                     ! Level-0 id
-  real(dp),    public, dimension(:),   allocatable   :: L0_slope_emp              ! Empirical quantiles of slope
-  !                                                                                 
-  real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI            ! gridded LAI data used when timeStep_LAI_input < 0 or == 1
-  !                                                                               ! dim1=number of grid cells, dim2=number of LAI time steps
-
-  real(dp),    public, dimension(:),   allocatable   :: L0_petLAIcorFactor        ! [-]   PET correction based on LAI (KC by GEUS.dk)
- 
+  integer(i4), public                                :: L0_nCells            ! Number of valid cells
+  integer(i4), public, dimension(:,:), allocatable   :: L0_cellCoor          ! Cell coordinates (row,col) for each grid cell, dim2=2
+  integer(i4), public, dimension(:),   allocatable   :: L0_Id                ! Level-0 id
+  real(dp),    public, dimension(:),   allocatable   :: L0_slope_emp         ! Empirical quantiles of slope
+  !                                                                            
+  real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI       ! gridded LAI data used when timeStep_LAI_input < 0 or == 1
+  !                                                                          ! dim1=number of grid cells, dim2=number of LAI time steps
+                                                                             
+  real(dp),    public, dimension(:),   allocatable   :: L0_petLAIcorFactor   ! [-]   PET correction based on LAI (KC by GEUS.dk)
+  
   real(dp),    public, dimension(:),   allocatable   :: L0_areaCell               ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------

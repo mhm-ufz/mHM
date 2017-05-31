@@ -535,7 +535,7 @@ contains
        iEnd   = proc_Mat(5,3)  
        call pet_correctbyLAI(param(iStart:iEnd), nodata, LCOVER0, LAI0, mask0, cell_id0, &
            upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, Pet_LAIcorFactorL1)
-       
+
     case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    

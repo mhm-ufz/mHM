@@ -269,7 +269,8 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-        
+    use mo_global_variables,        only: timeStep                  
+		 
     implicit none
 
     ! Intent
@@ -420,15 +421,16 @@ CONTAINS
     integer(i4)            :: year        ! year
     integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
+    integer(i4)            :: total_day   ! accumulated counter_day
 
     real(dp)               :: pet         !
     real(dp)               :: prec        !
     real(dp)               :: temp        !
 
     ! temporary arrays so that inout of routines is contiguous array
-    real(dp), dimension(size(infiltration,2)) :: tmp_infiltration
-    real(dp), dimension(size(soilMoisture,2)) :: tmp_soilMoisture
-    real(dp), dimension(size(aet_soil,2))     :: tmp_aet_soil
+    real(dp), dimension(size(infiltration,2))    :: tmp_infiltration
+    real(dp), dimension(size(soilMoisture,2))    :: tmp_soilMoisture
+    real(dp), dimension(size(aet_soil,2))        :: tmp_aet_soil
 
     !-------------------------------------------------------------------
     ! date and month of this timestep
@@ -448,6 +450,167 @@ CONTAINS
     !      --> time independent variable: to be initalized every time
     !          with landcover change
     !-------------------------------------------------------------------
+    select case (processMatrix(5,1))
+    case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
+    
+    if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
+
+       ! abort if land cover change is there and mpr is switched off
+       if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
+          call message()
+          call message('***ERROR: land cover change detected and mpr is switched off!')
+          stop
+       end if
+
+        ! update yId to keep track of LC change
+        yId = LCyearId
+
+        ! estimate land cover fractions for dominant landcover class
+        ! --> time independent variable: to be initalized every time
+        !     with landcover change
+        fForest1(:) = L0_fractionalCover_in_Lx( LCover0, 1, mask0, &
+                                                L0upBound_inL1,    &
+                                                L0downBound_inL1,  &
+                                                L0leftBound_inL1,  &
+                                                L0rightBound_inL1, &
+                                                nTCells0_inL1      )
+        fSealed1(:) = L0_fractionalCover_in_Lx( LCover0, 2, mask0, &
+                                                L0upBound_inL1,    &
+                                                L0downBound_inL1,  &
+                                                L0leftBound_inL1,  &
+                                                L0rightBound_inL1, &
+                                                nTCells0_inL1      )
+        fPerm1(:)   = L0_fractionalCover_in_Lx( LCover0, 3, mask0, &
+                                                L0upBound_inL1,    &
+                                                L0downBound_inL1,  &
+                                                L0leftBound_inL1,  &
+                                                L0rightBound_inL1, &
+                                                nTCells0_inL1      )
+        !---------------------------------------------------------
+        ! Update fractions of sealed area fractions
+        ! based on the sealing fraction[0-1] in cities
+        !---------------------------------------------------------
+        fSealed1(:) = fSealedInCity*fSealed1(:)
+        fPerm1(:)   = fPerm1(:) + (1.0_dp - fSealedInCity)*fSealed1(:)
+
+        ! to make sure everything happens smoothly
+        fForest1(:) = fForest1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
+        fSealed1(:) = fSealed1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
+        fPerm1(:)   = fPerm1(:)   / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
+
+    end if
+  
+        if (timeStep .EQ. 1) then
+           total_day=ceiling(real(tt)/24)
+        else if (timeStep .EQ. 24) then
+           total_day=tt
+        end if 
+		
+       if ( (processMatrix(5,1) .EQ. -1) .and. (timeStep_LAI_input .NE. 1) ) then
+          call message()
+          call message('***ERROR: Please use 12 value lai(timeStep_LAI_input=1) for LAI driven PET correction (process(5) = -1)')
+          stop
+       end if
+	   
+
+    if((total_day .LT. 367) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! 24*366=8784
+    !if( ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! (total_day .LT. 366) .AND.
+    print*,year,month,day,total_day,tt
+       ! mpr only for first year to speed up the model
+
+        !-------------------------------------------------------------------
+        ! NOW call MPR
+        !-------------------------------------------------------------------
+        !if ( perform_mpr ) then
+           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,      &
+                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,               &
+                SDB_is_present, SDB_nHorizons,                                               &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,         &
+                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,            &
+                soilId0, Asp0, L0_LCover_LAI, LCover0,LAI0,                                  &
+                slope_emp0, cellId0,                                                         &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                          &
+                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                               &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1(:),  &
+                HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                          &
+                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                     &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),      &
+                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
+        !end if
+                if( (tt .EQ. 1) ) then ! 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL11.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 745) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL12.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (tt .EQ. 1417)  ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL13.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 2161) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL14.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (tt .EQ. 2881) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL15.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 3625) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL16.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 4345) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL17.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 5089) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL18.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 5833) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL19.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (tt .EQ. 6553) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL110.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (tt .EQ. 7297) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL111.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (tt .EQ. 8017) ) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL112.txt',action='write', form='formatted')   
+                 write(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                end if
+        !-------------------------------------------------------------------
+        ! Update the inital states of soil water content for the first time
+        ! step and when perform_mpr = FALSE
+        ! based on the half of the derived values of Field capacity
+        ! other states are kept at their inital values
+        !-------------------------------------------------------------------
+        if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
+          soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
+        end if
+    end if
+
+    case(0:3) ! For other cases update PET only once
+
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
 
        ! abort if land cover change is there and mpr is switched off
@@ -521,9 +684,14 @@ CONTAINS
         if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
-
+        print*, year, month, day
     end if
 
+    case default ! no output at all
+       continue
+    end select
+ 
+ 
     !-------------------------------------------------------------------
     ! CALL regionalization of parameters related to LAI
     ! IT is now outside of mHM since LAI is now dynamic variable
@@ -584,7 +752,77 @@ CONTAINS
     !-------------------------------------------------------------------
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
-    
+       select case (processMatrix(5,1))
+       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
+
+                if( (month .EQ. 1) .AND. (total_day .GT. 366)) then 
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL11.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 2) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL12.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 3) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL13.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 4) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL14.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 5) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL15.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 6) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL16.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (month .EQ. 7) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL17.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                else if( (month .EQ. 8) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL18.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 9) .AND. (total_day .GT. 366)) then  
+                  open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL19.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 10) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL110.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 11) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL111.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10)
+                else if( (month .EQ. 12) .AND. (total_day .GT. 366)) then  
+                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
+                 file='petLAIcorFactorL112.txt',action='read', form='formatted')  
+                 read(10, '(f10.7)') petLAIcorFactorL1 
+                 close(10) 
+                end if
+        case(0:3) 
+
+        end select
+
+ 
+
+ 
     !$OMP parallel default(shared) &
     !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
@@ -593,10 +831,17 @@ CONTAINS
        ! PET calculation
        select case (processMatrix(5,1))
        case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
-         pet =  petLAIcorFactorL1(k) * pet_in(k)                   
-
+        pet =  petLAIcorFactorL1(k) * pet_in(k)   
+        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then
+        print 1001,"DSF range: ",minval(petLAIcorFactorL1),"   ",maxval(petLAIcorFactorL1)," Year ",year," Month ",month
+        1001 format (1x,A,f10.8,A,f10.8,A,i5,A,i2)
+        end if 
+  
        case(0) ! PET is input ! correct pet for every day only once at the first time step
           pet =  fAsp(k) * pet_in(k)         
+        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then
+        print*,"Aspect range: ",minval(fAsp),maxval(fAsp)
+        end if 
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation

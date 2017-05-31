@@ -496,7 +496,7 @@ CONTAINS
                 
           case(1) ! long term mean monthly gridded lai 
                 LAI(:) = L0_gridded_LAI(s0:e0, month)
-                
+                !print*,minval(LAI),maxval(LAI),month
           case(-1) ! daily
              if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
