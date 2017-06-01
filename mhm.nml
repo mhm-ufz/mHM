@@ -131,6 +131,7 @@ opti_method = 1
 !>              where Q_highflow and Q_lowflow are calculated like in objective (19)                                                \n
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
+!> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                       \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 27
 !-----------------------------------------------------------------------------
@@ -576,7 +577,7 @@ processCase(9) = 1
 !> THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 !> 0 - deactivated
 !> 1 - inverse N0 based on Desilets et al. 2010
-!> 2 - COSMIC forward operator by Shuttlworth et al. 2013
+!> 2 - COSMIC forward operator by Shuttleworth et al. 2013
 processCase(10) = 0
 /
 

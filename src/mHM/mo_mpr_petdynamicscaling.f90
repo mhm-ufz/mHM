@@ -141,7 +141,7 @@ contains
                                                          
     ! Ids of L0 cells beneath L1 cell
     logical,     dimension(:,:), intent(in)   :: mask0
-    integer(i4), dimension(:),   intent(in)   :: cell_id0 ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)   :: cell_id0   ! Cell ids of hi res field
     integer(i4), dimension(:),   intent(in)   :: upp_row_L1 ! Upper row of hi res block
     integer(i4), dimension(:),   intent(in)   :: low_row_L1 ! Lower row of hi res block
     integer(i4), dimension(:),   intent(in)   :: lef_col_L1 ! Left column of hi res block

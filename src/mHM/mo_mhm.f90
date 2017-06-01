@@ -270,7 +270,7 @@ CONTAINS
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
     use mo_global_variables,        only: timeStep                  
-		 
+   
     implicit none
 
     ! Intent
@@ -431,6 +431,10 @@ CONTAINS
     real(dp), dimension(size(infiltration,2))    :: tmp_infiltration
     real(dp), dimension(size(soilMoisture,2))    :: tmp_soilMoisture
     real(dp), dimension(size(aet_soil,2))        :: tmp_aet_soil
+    real(dp), dimension(:), allocatable, save    :: tmp_KC1,tmp_KC2,tmp_KC3,tmp_KC4,tmp_KC5,tmp_KC6, &
+                                                    tmp_KC7,tmp_KC8,tmp_KC9,tmp_KC10,tmp_KC11,tmp_KC12
+
+    
 
     !-------------------------------------------------------------------
     ! date and month of this timestep
@@ -505,13 +509,13 @@ CONTAINS
         else if (timeStep .EQ. 24) then
            total_day=tt
         end if 
-		
+  
        if ( (processMatrix(5,1) .EQ. -1) .and. (timeStep_LAI_input .NE. 1) ) then
           call message()
           call message('***ERROR: Please use 12 value lai(timeStep_LAI_input=1) for LAI driven PET correction (process(5) = -1)')
           stop
        end if
-	   
+    
 
     if((total_day .LT. 367) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! 24*366=8784
     !if( ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! (total_day .LT. 366) .AND.
@@ -538,65 +542,29 @@ CONTAINS
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         !end if
                 if( (tt .EQ. 1) ) then ! 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL11.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC1=petLAIcorFactorL1
                 else if( (tt .EQ. 745) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL12.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 tmp_KC2=petLAIcorFactorL1
                 else if( (tt .EQ. 1417)  ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL13.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC3=petLAIcorFactorL1
                 else if( (tt .EQ. 2161) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL14.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 tmp_KC4=petLAIcorFactorL1
                 else if( (tt .EQ. 2881) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL15.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC5=petLAIcorFactorL1
                 else if( (tt .EQ. 3625) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL16.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC6=petLAIcorFactorL1
                 else if( (tt .EQ. 4345) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL17.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC7=petLAIcorFactorL1
                 else if( (tt .EQ. 5089) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL18.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC8=petLAIcorFactorL1
                 else if( (tt .EQ. 5833) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL19.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 tmp_KC9=petLAIcorFactorL1
                 else if( (tt .EQ. 6553) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL110.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 tmp_KC10=petLAIcorFactorL1
                 else if( (tt .EQ. 7297) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL111.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 tmp_KC11=petLAIcorFactorL1
                 else if( (tt .EQ. 8017) ) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL112.txt',action='write', form='formatted')   
-                 write(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 tmp_KC12=petLAIcorFactorL1
                 end if
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time
@@ -756,65 +724,29 @@ CONTAINS
        case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
 
                 if( (month .EQ. 1) .AND. (total_day .GT. 366)) then 
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL11.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC1
                 else if( (month .EQ. 2) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL12.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC2
                 else if( (month .EQ. 3) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL13.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC3
                 else if( (month .EQ. 4) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL14.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC4
                 else if( (month .EQ. 5) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL15.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC5
                 else if( (month .EQ. 6) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL16.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 petLAIcorFactorL1=tmp_KC6
                 else if( (month .EQ. 7) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL17.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 petLAIcorFactorL1=tmp_KC7
                 else if( (month .EQ. 8) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL18.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC8
                 else if( (month .EQ. 9) .AND. (total_day .GT. 366)) then  
-                  open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL19.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC9
                 else if( (month .EQ. 10) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL110.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC10
                 else if( (month .EQ. 11) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL111.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10)
+                 petLAIcorFactorL1=tmp_KC11
                 else if( (month .EQ. 12) .AND. (total_day .GT. 366)) then  
-                 open(unit = 10, status='unknown',ACCESS='SEQUENTIAL', &
-                 file='petLAIcorFactorL112.txt',action='read', form='formatted')  
-                 read(10, '(f10.7)') petLAIcorFactorL1 
-                 close(10) 
+                 petLAIcorFactorL1=tmp_KC12
                 end if
         case(0:3) 
 

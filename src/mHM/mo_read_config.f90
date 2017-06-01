@@ -100,14 +100,14 @@ CONTAINS
   !                  Matthias Cuntz & Juliane Mai Nov  2014 - LAI input from daily, monthly or yearly files
   !                  Matthias Zink,               Dec  2014 - adopted inflow gauges to ignore headwater cells
   !                  Matthias Zink,               Mar  2015 - added optional soil moisture read in for calibration
-  !                  Matthias Cuntz,              Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for compilation with PGI
+  !                  Matthias Cuntz,              Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for PGI compatibilty
   !                  Stephan Thober,              Aug  2015 - added read_config_routing and read_routing_params from mRM
   !                  Oldrich Rakovec,             Oct  2015 - added reading of the basin average TWS data
   !                  Rohini Kumar,                Mar  2016 - options to handle different soil databases
   !                  Stephan Thober,              Nov  2016 - moved nProcesses and processMatrix to common variables
   !                  Rohini Kumar,                Dec  2016 - option to handle monthly mean gridded fields of LAI
   !                  M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added ET reduction and FC dependency on root fraction coefficient at SM process(3)  
+  !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)  
 
 
   subroutine read_config()
@@ -233,7 +233,8 @@ CONTAINS
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_pervious
     real(dp), dimension(nColPars)                   :: jarvis_sm_threshold_c1
     real(dp), dimension(nColPars)                   :: rootFractionCoefficient_sand
-    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_clay    
+    real(dp), dimension(nColPars)                   :: rootFractionCoefficient_clay
+    
     ! directRunoff
     real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
     ! PET0   
@@ -381,8 +382,9 @@ CONTAINS
          PTF_Ks_sand, PTF_Ks_clay, PTF_Ks_curveSlope,                                                        &
          rootFractionCoefficient_forest, rootFractionCoefficient_impervious,                                 &
          rootFractionCoefficient_pervious, infiltrationShapeFactor, jarvis_sm_threshold_c1,                  &
-         rootFractionCoefficient_sand, rootFractionCoefficient_clay             
-    namelist /directRunoff1/ imperviousStorageCapacity
+         rootFractionCoefficient_sand, rootFractionCoefficient_clay
+
+         namelist /directRunoff1/ imperviousStorageCapacity
     ! PET is input, LAI driven correction
     namelist /PET0_lai/  PET_a_forest, PET_a_impervious, PET_a_pervious, PET_b, PET_c            
     ! PET is input, aspect driven correction
@@ -606,7 +608,7 @@ CONTAINS
     if ( nSoilHorizons_sm_input .GT. nSoilHorizons_mHM ) then
        call message()
        call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
-       call message('          defined number of soil horizions: ', trim(num2str(maxNoSoilHorizons)),'!')
+       call message('          defined number of soil horizions: ', adjustl(trim(num2str(maxNoSoilHorizons))),'!')
        stop
     end if
     ! neutrons
@@ -620,7 +622,6 @@ CONTAINS
     !===============================================================
     fileTWS = file_TWS (1:nBasins)
 
-    ! if (opti_function .EQ. 15) then !OROROR
     allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
     allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:)= num2str(nodata_i4)
     
@@ -1017,8 +1018,6 @@ CONTAINS
             'rootFractionCoefficient_clay      ', &      
             'jarvis_sm_threshold_c1            '/))            
             
-
-                  
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
           call message('***ERROR: parameter in namelist "soilmoisture1" out of bound in ', &

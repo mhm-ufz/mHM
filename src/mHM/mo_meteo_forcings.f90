@@ -431,8 +431,9 @@ end subroutine prepare_meteo_forcings_data
   !     CALLING SEQUENCE
 
   !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"        Basin Id
-  !>        \param[in] "character(len=*)          :: dataPath"      Data path where a given meteo. variable is stored
+  !>        \param[in] "integer(i4)               :: iBasin"             Basin Id
+  !>        \param[in] "logical                   :: read_meteo_weights" Flag for reading meteo weights
+  !>        \param[in] "character(len=*)          :: dataPath"           Data path where a given meteo. variable is stored
 
   !     INTENT(INOUT)
   !         None
@@ -443,7 +444,6 @@ end subroutine prepare_meteo_forcings_data
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
   !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values
-  !>        \param[in] "type(period), optional    :: readPer"  reading Period
   !>        \param[in] "character(len=*), optional:: ncvarName" name of the variable (for .nc files)
 
 
@@ -466,7 +466,7 @@ end subroutine prepare_meteo_forcings_data
   !     HISTORY
   !>        \author Stephan Thober & Rohini Kumar
   !>        \date Jan 2017
-  !         Modified, 
+  !         Modified, Stephan Thober, May 2017 -- updated documentation
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
   

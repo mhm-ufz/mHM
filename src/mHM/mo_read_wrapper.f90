@@ -97,7 +97,6 @@ CONTAINS
     USE mo_append,             ONLY: append, paste
     USE mo_string_utils,       ONLY: num2str
     USE mo_message,            ONLY: message
-    USE mo_orderpack,          ONLY: unista
     !
     USE mo_file,               ONLY: file_geolut        , ugeolut,        & ! file name and unit of hydrogeology LuT
                                      file_lailut        , ulailut,        & ! file name and unit of LAI LuT

@@ -351,44 +351,29 @@ PROGRAM mhm_driver
         end if
      endif
 
-     ! read optional optional data
-     ! e.g. for optimization against soil mopisture, soil moisture is read
-     if ((opti_function .GE. 10) .AND. (opti_function .LE. 13) .AND. optimize) then
-        call read_soil_moisture(ii)
-     endif
-
-     ! read optional spatio-temporal neutrons data
-    if ( (opti_function .EQ. 17) .AND. optimize ) then
-        call read_neutrons(ii)
-        call message('  neutrons data read')
-     endif
-
-    ! read optional spatio-temporal evapotranspiration data
-    if ( (opti_function .EQ. 27) .AND. optimize ) then
-        call read_evapotranspiration(ii)
-        call message('  evapotranpiration data read')
-    endif
+     ! read optional optional data if necessary
+     if (optimize) then
+        select case (opti_function)
+        case(10:13,28)
+           ! read optional spatio-temporal soil mositure data
+           call read_soil_moisture(ii)
+        case(17)
+           ! read optional spatio-temporal neutrons data
+           call read_neutrons(ii)
+        case(27)
+           ! read optional spatio-temporal evapotranspiration data
+           call read_evapotranspiration(ii)
+        case(15)
+           ! read optional basin average TWS data at once, therefore only read it
+           ! the last iteration of the basin loop to ensure same time for all basins
+           ! note: this is similar to how the runoff is read using mrm below
+           if ( ii == nbasins) then 
+              call read_basin_avg_TWS()
+           end if
+        end select
+     end if
 
   end do
-
-  ! read optional basin average TWS data at once, therefore outside of the basin loop to ensure same time for all basins
-  ! note this is similar to how the runoff is read using mrm below
-     if ( (opti_function .EQ. 15) .AND. optimize ) then
-        call read_basin_avg_TWS()
-        call message('  basin_avg TWS data read')
-     endif
-
-  ! The following block is for testing of the restart <<<<<<<<<<<<<<<<<<<<<<<<<<
-  ! if ( write_restart ) then
-  !    itimer = itimer + 1
-  !    call message()
-  !    call message( '  Write restart config file')
-  !    call timer_start(itimer)
-  !    call write_restart_config( dirRestartOut )
-  !    call timer_stop(itimer)
-  !    call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-  ! end if
-  ! stop 'Test restart' ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #ifdef MRM2MHM
   ! --------------------------------------------------------------------------
@@ -413,11 +398,12 @@ PROGRAM mhm_driver
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17,27)
+     case(10:13,15,17,27,28)
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
      case default 
-        call message('mhm_driver: 1: The kind (SO or MO) is not specified for the given objective function!') 
+        call message('***ERROR: mhm_driver: The given objective function number ', &
+             trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
         stop 
      end select
 

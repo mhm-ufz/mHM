@@ -16,8 +16,24 @@ Cuntz, M., Mai, J., Zink, M., Thober, S., Kumar, R., Schäfer, D., … Samaniego
 
 Thober, S., Kumar, R., Sheffield, J., Mai, J., Schäfer, D., & Samaniego, L. (2015). Seasonal Soil Moisture Drought Prediction over Europe Using the North American Multi-Model Ensemble (NMME). Journal of Hydrometeorology, 16(6), 2329–2344. doi:10.1175/JHM-D-15-0053.1
 
-Rakovec, O., Kumar, R., Mai, J., Cuntz, M., Thober, S., Zink, M., … Samaniego, L. (2016). Multiscale and Multivariate Evaluation of Water Fluxes and States over European River Basins. Journal of Hydrometeorology, 17(1), 287–307. doi:10.1175/JHM-D-15-0054.1
+Rakovec, O., Kumar, R., Attinger, S. and Samaniego, L. (2016). Improving the realism of hydrologic model functioning through multivariate parameter estimation. Water Resources Research, 52. doi:10.1002/2016WR019430
+
+Rakovec, O., Kumar, R., Mai, J., Cuntz, M., Thober, S., Zink, M., Attinger, S., Schäfer, D., Schrön, M., Samaniego, L. (2016). Multiscale and Multivariate Evaluation of Water Fluxes and States over European River Basins. Journal of Hydrometeorology, 17(1), 287–307. doi:10.1175/JHM-D-15-0054.1
 
 Nijzink, R. C., Samaniego, L., Mai, J., Kumar, R., Thober, S., Zink, M., & Hrachowitz, M. (2015). The importance of topography controlled sub-grid process heterogeneity in distributed hydrological models. Hydrology and Earth System Sciences Discussions, 12(12), 13301–13358. doi:10.5194/hessd-12-13301-2015
 
 Marx, A., Samaniego, L., Kumar, R., Thober, S., Mai, J., & Zink, M. (2016). Der Dürremonitor - Aktuelle Information zur Bodenfeuchte in Deutschland. In Wasserressourcen - Wissen in Flussgebieten vernetzen (pp. 131–142). Forum für Hydrologie und Wasserbewirtschaftung.
+
+Zink, M., Samaniego, L., Kumar, R., Thober, S., Mai, J., Schäfer, D., & Marx, A. (2016). The German drought monitor. Environmental Research Letters, 11(7), 74002. doi:10.1088/1748-9326/11/7/074002
+
+Mueller, C., Zink, M., Samaniego, L., Krieg, R., Merz, R., Rode, M., & Knöller, K. (2016). Discharge Driven Nitrogen Dynamics in a Mesoscale River Basin As Constrained by Stable Isotope Patterns. Environmental Science & Technology, 50(17), 9187–9196. doi:10.1021/acs.est.6b01057
+
+Wollschläger, U., Attinger, S., Borchardt, D., Brauns, M., Cuntz, M., Dietrich, P., … Zacharias, S. (2017). The Bode hydrological observatory: a platform for integrated, interdisciplinary hydro-ecological research within the TERENO Harz/Central German Lowland Observatory. Environmental Earth Sciences, 76(1), 29. doi:10.1007/s12665-016-6327-5
+
+Heße, F., Zink, M., Kumar, R., Samaniego, L., & Attinger, S. (2017). Spatially distributed characterization of soil-moisture dynamics using travel-time distributions. Hydrology and Earth System Sciences, 21(1), 549–570. doi:10.5194/hess-21-549-2017
+
+Zink, M., Kumar, R., Cuntz, M., & Samaniego, L. (2017). A high-resolution dataset of water fluxes and states for Germany accounting for parametric uncertainty. Hydrology and Earth System Sciences, 21(3), 1769–1790. doi:10.5194/hess-21-1769-2017
+
+Baroni, G., Zink, M., Kumar, R., Samaniego, L., & Attinger, S. (2017). Effects of uncertainty in soil properties on simulated hydrological states and fluxes at different spatio-temporal scales. Hydrology and Earth System Sciences, 21(5), 2301–2320. doi:10.5194/hess-21-2301-2017
+
+Peichl, M., Thober, S., Meyer, V., and Samaniego, L.: The Effect of Soil Moisture Anomalies on Maize Yield in Germany, Nat. Hazards Earth Syst. Sci. Discuss., doi:10.5194/nhess-2017-144, in review, 2017.

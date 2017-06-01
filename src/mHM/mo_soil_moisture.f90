@@ -8,7 +8,8 @@
 !> either using \n the Feddes equation - precessCase(1):
 !> \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$\n
 !> or using the Jarvis equation - precessCase(1):
-!> \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}} \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
+!> \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
+!> \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
 
 !> \authors Matthias Cuntz, Luis Samaniego
 !> \date Dec 2012
@@ -55,6 +56,7 @@ CONTAINS
   !>        \param[in] "integer(i4),           :: processCase"          
   !>                                              1 - Feddes equation for PET reduction
   !>                                              2 - Jarvis equation for PET reduction
+  !>                                              3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
   !>        \param[in] "real(dp)               :: frac_sealed"
   !>                                              Fraction of sealed area
   !>        \param[in] "real(dp)               :: water_thresh_sealed"
@@ -114,7 +116,7 @@ CONTAINS
   !                                                    effective PET intensity are same for both areas.
   !                                                  - changes made for variables "water_thresh_sealed" when it becomes
   !                                                   zero
-  !                   Zink M. Demirel C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
+  !                 Zink M. Demirel M.C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, &
        evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
