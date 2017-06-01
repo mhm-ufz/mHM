@@ -37,7 +37,6 @@ MODULE mo_mHM
   use mo_kind,          only: i4, dp
   use mo_mhm_constants, only: nodata_dp
   use mo_message,       only: message
-  
   !$ USE omp_lib
 
   IMPLICIT NONE
@@ -93,31 +92,30 @@ CONTAINS
   !>        \author  Luis Samaniego & Rohini Kumar
   !>        \date    Dec 2012
 
-  !         Modified Luis Samaniego, Rohini Kumar,  Dec 2012 - modularization
-  !                  Luis Samaniego,                Feb 2013 - call routine
-  !                  Rohini Kumar,                  Feb 2013 - MPR call and other pre-requisite
-  !                                                            variables for this call
-  !                  Rohini Kumar,                  May 2013 - Error checks
-  !                  Rohini Kumar,                  Jun 2013 - sealed area correction in total runoff
-  !                                                          - initalization of soil moist. at first timestep
-  !                  Rohini Kumar,                  Aug 2013 - dynamic LAI option included, and changed within
-  !                                                            the code made accordingly (e.g., canopy intecpt.)
-  !                                                          - max. canopy interception is estimated outside of MPR
-  !                                                            call
-  !                  Matthias Zink,                 Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-  !                  Matthias Zink,                 Mar 2014 - added inflow from upstream areas
-  !                  Matthias Zink,                 Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
-  !                                                            and its parameterization (Process 5)
-  !                  Rohini Kumar,                  Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  !                  Stephan Thober,                Jun 2014 - added flag for switching of MPR
-  !                  Matthias Cuntz & Juliane Mai   Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,                 Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                  Stephan Thober,                Aug 2015 - moved routing to mRM
-  !                  Rohini Kumar,                  Mar 2016 - changes for handling multiple soil database options
-  !                  Rohini Kumar,                  Dec 2016 - changes for reading gridded mean monthly LAI fields
-  !                  Stephan Thober,                Jan 2017 - added prescribed weights for tavg and pet
-  !                  Zink M. Demirel M. C.,         Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                  Demirel M.C., Stisen S.        May 2017 - Added PET correction based on LAI at PET process(5)  
+  !         Modified Luis Samaniego, Rohini Kumar,   Dec 2012 - modularization
+  !                  Luis Samaniego,                 Feb 2013 - call routine
+  !                  Rohini Kumar,                   Feb 2013 - MPR call and other pre-requisite
+  !                                                             variables for this call
+  !                  Rohini Kumar,                   May 2013 - Error checks
+  !                  Rohini Kumar,                   Jun 2013 - sealed area correction in total runoff
+  !                                                           - initalization of soil moist. at first timestep
+  !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within
+  !                                                             the code made accordingly (e.g., canopy intecpt.)
+  !                                                           - max. canopy interception is estimated outside of MPR
+  !                                                             call
+  !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
+  !                                                             and its parameterization (Process 5)
+  !                  Rohini Kumar,                   Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
+  !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
+  !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
+  !                  Rohini Kumar,                   Dec 2016 - changes for reading gridded mean monthly LAI fields
+  !                  Stephan Thober,                 Jan 2017 - added prescribed weights for tavg and pet
+  !                  Zink M. Demirel C.,             Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
 
   !
   ! ------------------------------------------------------------------
@@ -255,8 +253,7 @@ CONTAINS
       wilting_point         ) ! Permanent wilting point for each horizon
     ! subroutines required to estimate variables prior to the MPR call
     use mo_upscaling_operators,     only: L0_fractionalCover_in_Lx         ! land cover fraction
-    use mo_multi_param_reg,         only: mpr,canopy_intercept_param! reg. and scaling
-
+    use mo_multi_param_reg,         only: mpr,canopy_intercept_param       ! reg. and scaling
     use mo_pet,                     only: pet_hargreaves, pet_priestly,  & ! calc. of pot. evapotranspiration
                                           pet_penman
     use mo_Temporal_Disagg_Forcing, only: Temporal_Disagg_Forcing
@@ -269,8 +266,8 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-    use mo_global_variables,        only: timeStep                  
-   
+    use mo_mpr_petdynamicscaling,   only: pet_correctbyLAI
+
     implicit none
 
     ! Intent
@@ -301,54 +298,53 @@ CONTAINS
     real(dp),    dimension(:,:),   intent(in) :: LAILUT
 
     ! Physiographic L0
-    real(dp),    dimension(:),     intent(in)    :: slope_emp0
-    real(dp),    dimension(:),     intent(in)    :: l0_latitude ! l1 ids of l0 cells
-    integer(i4), dimension(:),     intent(in)    :: cellId0
-    integer(i4), dimension(:,:),   intent(in)    :: soilId0
-    integer(i4), dimension(:),     intent(in)    :: L0_LCover_LAI
-    integer(i4), dimension(:),     intent(in)    :: LCover0
-    real(dp),    dimension(:),     intent(in)    :: Asp0
-    
-    real(dp),    dimension(:),     intent(in)    :: LAI0
-    integer(i4), dimension(:),     intent(in)    :: geoUnit0
-     
-    integer(i4), dimension(:),     intent(in)    :: SDB_is_present
-    integer(i4), dimension(:),     intent(in)    :: SDB_nHorizons
-    integer(i4), dimension(:),     intent(in)    :: SDB_nTillHorizons
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_sand
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_clay
-    real(dp),    dimension(:,:),   intent(in)    :: SDB_DbM
-    real(dp),    dimension(:,:,:), intent(in)    :: SDB_Wd
-    real(dp),    dimension(:),     intent(in)    :: SDB_RZdepth
+    real(dp),    dimension(:),     intent(in) :: slope_emp0
+    real(dp),    dimension(:),     intent(in) :: l0_latitude ! l1 ids of l0 cells
+    integer(i4), dimension(:),     intent(in) :: cellId0
+    integer(i4), dimension(:,:),   intent(in) :: soilId0
+    integer(i4), dimension(:),     intent(in) :: L0_LCover_LAI
+    integer(i4), dimension(:),     intent(in) :: LCover0
+    real(dp),    dimension(:),     intent(in) :: Asp0
+    real(dp),    dimension(:),     intent(in) :: LAI0
+    integer(i4), dimension(:),     intent(in) :: geoUnit0
+
+    integer(i4), dimension(:),     intent(in) :: SDB_is_present
+    integer(i4), dimension(:),     intent(in) :: SDB_nHorizons
+    integer(i4), dimension(:),     intent(in) :: SDB_nTillHorizons
+    real(dp),    dimension(:,:),   intent(in) :: SDB_sand
+    real(dp),    dimension(:,:),   intent(in) :: SDB_clay
+    real(dp),    dimension(:,:),   intent(in) :: SDB_DbM
+    real(dp),    dimension(:,:,:), intent(in) :: SDB_Wd
+    real(dp),    dimension(:),     intent(in) :: SDB_RZdepth
 
     ! Physiographic L1
-    integer(i4), dimension(:),     intent(in)    :: nTCells0_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0upBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0downBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0leftBound_inL1
-    integer(i4), dimension(:),     intent(in)    :: L0rightBound_inL1
-    real(dp),    dimension(:),     intent(in)    :: latitude
-     
-    ! Forcings   
-    real(dp),    dimension(:),     intent(in)    :: evap_coeff
-    real(dp),    dimension(:),     intent(in)    :: fday_prec
-    real(dp),    dimension(:),     intent(in)    :: fnight_prec
-    real(dp),    dimension(:),     intent(in)    :: fday_pet
-    real(dp),    dimension(:),     intent(in)    :: fnight_pet
-    real(dp),    dimension(:),     intent(in)    :: fday_temp
-    real(dp),    dimension(:),     intent(in)    :: fnight_temp
-    real(dp),    dimension(:,:,:), intent(in)    :: temp_weights
-    real(dp),    dimension(:,:,:), intent(in)    :: pet_weights
-    real(dp),    dimension(:,:,:), intent(in)    :: pre_weights
-    logical,                       intent(in)    :: read_meteo_weights
-    real(dp),    dimension(:),     intent(in)    :: pet_in
-    real(dp),    dimension(:),     intent(in)    :: tmin_in
-    real(dp),    dimension(:),     intent(in)    :: tmax_in
-    real(dp),    dimension(:),     intent(in)    :: netrad_in
-    real(dp),    dimension(:),     intent(in)    :: absvappres_in
-    real(dp),    dimension(:),     intent(in)    :: windspeed_in
-    real(dp),    dimension(:),     intent(in)    :: prec_in
-    real(dp),    dimension(:),     intent(in)    :: temp_in
+    integer(i4), dimension(:),     intent(in) :: nTCells0_inL1
+    integer(i4), dimension(:),     intent(in) :: L0upBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0downBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0leftBound_inL1
+    integer(i4), dimension(:),     intent(in) :: L0rightBound_inL1
+    real(dp),    dimension(:),     intent(in) :: latitude
+
+    ! Forcings
+    real(dp),    dimension(:),     intent(in) :: evap_coeff
+    real(dp),    dimension(:),     intent(in) :: fday_prec
+    real(dp),    dimension(:),     intent(in) :: fnight_prec
+    real(dp),    dimension(:),     intent(in) :: fday_pet
+    real(dp),    dimension(:),     intent(in) :: fnight_pet
+    real(dp),    dimension(:),     intent(in) :: fday_temp
+    real(dp),    dimension(:),     intent(in) :: fnight_temp
+    real(dp),    dimension(:,:,:), intent(in) :: temp_weights
+    real(dp),    dimension(:,:,:), intent(in) :: pet_weights
+    real(dp),    dimension(:,:,:), intent(in) :: pre_weights
+    logical,                       intent(in) :: read_meteo_weights
+    real(dp),    dimension(:),     intent(in) :: pet_in
+    real(dp),    dimension(:),     intent(in) :: tmin_in
+    real(dp),    dimension(:),     intent(in) :: tmax_in
+    real(dp),    dimension(:),     intent(in) :: netrad_in
+    real(dp),    dimension(:),     intent(in) :: absvappres_in
+    real(dp),    dimension(:),     intent(in) :: windspeed_in
+    real(dp),    dimension(:),     intent(in) :: prec_in
+    real(dp),    dimension(:),     intent(in) :: temp_in
 
     ! Configuration
     integer(i4),                   intent(inout) ::  yId
@@ -421,20 +417,15 @@ CONTAINS
     integer(i4)            :: year        ! year
     integer(i4)            :: doy         ! doy of the year [1-365 or 1-366]
     integer(i4)            :: k           ! cell index
-    integer(i4)            :: total_day   ! accumulated counter_day
-
+    integer(i4)            :: iStart, iEnd 
     real(dp)               :: pet         !
     real(dp)               :: prec        !
     real(dp)               :: temp        !
 
     ! temporary arrays so that inout of routines is contiguous array
-    real(dp), dimension(size(infiltration,2))    :: tmp_infiltration
-    real(dp), dimension(size(soilMoisture,2))    :: tmp_soilMoisture
-    real(dp), dimension(size(aet_soil,2))        :: tmp_aet_soil
-    real(dp), dimension(:), allocatable, save    :: tmp_KC1,tmp_KC2,tmp_KC3,tmp_KC4,tmp_KC5,tmp_KC6, &
-                                                    tmp_KC7,tmp_KC8,tmp_KC9,tmp_KC10,tmp_KC11,tmp_KC12
-
-    
+    real(dp), dimension(size(infiltration,2)) :: tmp_infiltration
+    real(dp), dimension(size(soilMoisture,2)) :: tmp_soilMoisture
+    real(dp), dimension(size(aet_soil,2))     :: tmp_aet_soil
 
     !-------------------------------------------------------------------
     ! date and month of this timestep
@@ -454,131 +445,6 @@ CONTAINS
     !      --> time independent variable: to be initalized every time
     !          with landcover change
     !-------------------------------------------------------------------
-    select case (processMatrix(5,1))
-    case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
-    
-    if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
-
-       ! abort if land cover change is there and mpr is switched off
-       if ( (tt .ne. 1) .and. (.not. perform_mpr) ) then
-          call message()
-          call message('***ERROR: land cover change detected and mpr is switched off!')
-          stop
-       end if
-
-        ! update yId to keep track of LC change
-        yId = LCyearId
-
-        ! estimate land cover fractions for dominant landcover class
-        ! --> time independent variable: to be initalized every time
-        !     with landcover change
-        fForest1(:) = L0_fractionalCover_in_Lx( LCover0, 1, mask0, &
-                                                L0upBound_inL1,    &
-                                                L0downBound_inL1,  &
-                                                L0leftBound_inL1,  &
-                                                L0rightBound_inL1, &
-                                                nTCells0_inL1      )
-        fSealed1(:) = L0_fractionalCover_in_Lx( LCover0, 2, mask0, &
-                                                L0upBound_inL1,    &
-                                                L0downBound_inL1,  &
-                                                L0leftBound_inL1,  &
-                                                L0rightBound_inL1, &
-                                                nTCells0_inL1      )
-        fPerm1(:)   = L0_fractionalCover_in_Lx( LCover0, 3, mask0, &
-                                                L0upBound_inL1,    &
-                                                L0downBound_inL1,  &
-                                                L0leftBound_inL1,  &
-                                                L0rightBound_inL1, &
-                                                nTCells0_inL1      )
-        !---------------------------------------------------------
-        ! Update fractions of sealed area fractions
-        ! based on the sealing fraction[0-1] in cities
-        !---------------------------------------------------------
-        fSealed1(:) = fSealedInCity*fSealed1(:)
-        fPerm1(:)   = fPerm1(:) + (1.0_dp - fSealedInCity)*fSealed1(:)
-
-        ! to make sure everything happens smoothly
-        fForest1(:) = fForest1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
-        fSealed1(:) = fSealed1(:) / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
-        fPerm1(:)   = fPerm1(:)   / ( fForest1(:) + fSealed1(:)  + fPerm1(:) )
-
-    end if
-  
-        if (timeStep .EQ. 1) then
-           total_day=ceiling(real(tt)/24)
-        else if (timeStep .EQ. 24) then
-           total_day=tt
-        end if 
-  
-       if ( (processMatrix(5,1) .EQ. -1) .and. (timeStep_LAI_input .NE. 1) ) then
-          call message()
-          call message('***ERROR: Please use 12 value lai(timeStep_LAI_input=1) for LAI driven PET correction (process(5) = -1)')
-          stop
-       end if
-    
-
-    if((total_day .LT. 367) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! 24*366=8784
-    !if( ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then ! (total_day .LT. 366) .AND.
-    print*,year,month,day,total_day,tt
-       ! mpr only for first year to speed up the model
-
-        !-------------------------------------------------------------------
-        ! NOW call MPR
-        !-------------------------------------------------------------------
-        !if ( perform_mpr ) then
-           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,      &
-                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,               &
-                SDB_is_present, SDB_nHorizons,                                               &
-                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,         &
-                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,            &
-                soilId0, Asp0, L0_LCover_LAI, LCover0,LAI0,                                  &
-                slope_emp0, cellId0,                                                         &
-                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                          &
-                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                               &
-                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1(:),  &
-                HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                          &
-                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                     &
-                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),      &
-                temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
-        !end if
-                if( (tt .EQ. 1) ) then ! 
-                 tmp_KC1=petLAIcorFactorL1
-                else if( (tt .EQ. 745) ) then 
-                 tmp_KC2=petLAIcorFactorL1
-                else if( (tt .EQ. 1417)  ) then 
-                 tmp_KC3=petLAIcorFactorL1
-                else if( (tt .EQ. 2161) ) then 
-                 tmp_KC4=petLAIcorFactorL1
-                else if( (tt .EQ. 2881) ) then 
-                 tmp_KC5=petLAIcorFactorL1
-                else if( (tt .EQ. 3625) ) then 
-                 tmp_KC6=petLAIcorFactorL1
-                else if( (tt .EQ. 4345) ) then 
-                 tmp_KC7=petLAIcorFactorL1
-                else if( (tt .EQ. 5089) ) then 
-                 tmp_KC8=petLAIcorFactorL1
-                else if( (tt .EQ. 5833) ) then 
-                 tmp_KC9=petLAIcorFactorL1
-                else if( (tt .EQ. 6553) ) then 
-                 tmp_KC10=petLAIcorFactorL1
-                else if( (tt .EQ. 7297) ) then 
-                 tmp_KC11=petLAIcorFactorL1
-                else if( (tt .EQ. 8017) ) then 
-                 tmp_KC12=petLAIcorFactorL1
-                end if
-        !-------------------------------------------------------------------
-        ! Update the inital states of soil water content for the first time
-        ! step and when perform_mpr = FALSE
-        ! based on the half of the derived values of Field capacity
-        ! other states are kept at their inital values
-        !-------------------------------------------------------------------
-        if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
-          soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
-        end if
-    end if
-
-    case(0:3) ! For other cases update PET only once
-
     if( (LCyearId .NE. yId) .or. (tt .EQ. 1) ) then
 
        ! abort if land cover change is there and mpr is switched off
@@ -628,21 +494,22 @@ CONTAINS
         ! NOW call MPR
         !-------------------------------------------------------------------
         if ( perform_mpr ) then
-           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,      &
-                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,               &
-                SDB_is_present, SDB_nHorizons,                                               &
-                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,         &
-                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,            &
-                soilId0, Asp0, L0_LCover_LAI, LCover0,LAI0,                                  &
-                slope_emp0, cellId0,                                                         &
-                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                          &
-                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                               &
-                alpha, deg_day_incr, deg_day_max, deg_day_noprec,fAsp,petLAIcorFactorL1(:),  &
-                HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                          &
-                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                     &
-                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),      &
+           call mpr( processMatrix, iflag_soil_option, global_parameters(:), nodata_dp,   &
+                mask0, geoUnit0, GeoUnitList, GeoUnitKar, LAILUT, LAIUnitList,            &
+                SDB_is_present, SDB_nHorizons,                                            &
+                SDB_nTillHorizons, SDB_sand, SDB_clay, SDB_DbM, SDB_Wd, SDB_RZdepth,      &
+                nHorizons_mHM, horizon_depth, c2TSTu, fForest1, fSealed1, fPerm1,         &
+                soilId0, Asp0, L0_LCover_LAI, LCover0,                                    &
+                slope_emp0, cellId0,                                                      &
+                L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1,                       &
+                L0rightBound_inL1, nTCells0_inL1, l0_latitude,                            &
+                alpha, deg_day_incr, deg_day_max, deg_day_noprec,                         &
+                fAsp, HarSamCoeff(:), PrieTayAlpha(:,:), aeroResist(:,:),                 &
+                surfResist(:,:), frac_roots, k0, k1, k2, kp, karst_loss,                  &
+                soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),   &
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
+		
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time
         ! step and when perform_mpr = FALSE
@@ -652,14 +519,9 @@ CONTAINS
         if( (tt .EQ. 1) .AND. ( .not. read_states ) ) then
           soilMoisture(:,:) = 0.5_dp*soil_moist_FC(:,:)
         end if
-        print*, year, month, day
+
     end if
 
-    case default ! no output at all
-       continue
-    end select
- 
- 
     !-------------------------------------------------------------------
     ! CALL regionalization of parameters related to LAI
     ! IT is now outside of mHM since LAI is now dynamic variable
@@ -674,10 +536,14 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
-               
-       end if   
-       
-       
+
+               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+               iEnd   = processMatrix(5,3)  
+
+          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+
+       end if
        ! Estimate max. inteception based on daily LAI values
     case(-1) ! daily
        if ( (tt .EQ. 1) .OR. (day .NE. counter_day) ) then
@@ -685,9 +551,14 @@ CONTAINS
                LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               )           
-            
-               
+               nodata_dp,  interc_max               )
+ 
+               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+               iEnd   = processMatrix(5,3)  
+
+          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+
        endif
     case(-2) ! monthly
        if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
@@ -696,7 +567,13 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
-            
+
+               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+               iEnd   = processMatrix(5,3)  
+
+          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+
        endif
     case(-3) ! yearly
        if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
@@ -704,10 +581,16 @@ CONTAINS
                LAI0, nTCells0_inL1, L0upBound_inL1, &
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
-               nodata_dp,  interc_max               )            
+               nodata_dp,  interc_max               )
 
-               
+               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+               iEnd   = processMatrix(5,3)  
+
+          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+
        endif
+
     case default ! no output at all
        continue
     end select
@@ -720,41 +603,7 @@ CONTAINS
     !-------------------------------------------------------------------
     ! HYDROLOGICAL PROCESSES at L1-LEVEL
     !-------------------------------------------------------------------
-       select case (processMatrix(5,1))
-       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
 
-                if( (month .EQ. 1) .AND. (total_day .GT. 366)) then 
-                 petLAIcorFactorL1=tmp_KC1
-                else if( (month .EQ. 2) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC2
-                else if( (month .EQ. 3) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC3
-                else if( (month .EQ. 4) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC4
-                else if( (month .EQ. 5) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC5
-                else if( (month .EQ. 6) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC6
-                else if( (month .EQ. 7) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC7
-                else if( (month .EQ. 8) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC8
-                else if( (month .EQ. 9) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC9
-                else if( (month .EQ. 10) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC10
-                else if( (month .EQ. 11) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC11
-                else if( (month .EQ. 12) .AND. (total_day .GT. 366)) then  
-                 petLAIcorFactorL1=tmp_KC12
-                end if
-        case(0:3) 
-
-        end select
-
- 
-
- 
     !$OMP parallel default(shared) &
     !$OMP private(k, prec, pet, temp, tmp_soilmoisture, tmp_infiltration, tmp_aet_soil)
     !$OMP do SCHEDULE(STATIC)
@@ -762,18 +611,16 @@ CONTAINS
 
        ! PET calculation
        select case (processMatrix(5,1))
-       case(-1) ! PET is input ! correct pet using LAI (GEUS.dk)
-        pet =  petLAIcorFactorL1(k) * pet_in(k)   
+       case(-1) ! PET is input ! correct pet for every day only once at the first time step
+          pet =  petLAIcorFactorL1(k) * pet_in(k)
+
         if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then
         print 1001,"DSF range: ",minval(petLAIcorFactorL1),"   ",maxval(petLAIcorFactorL1)," Year ",year," Month ",month
         1001 format (1x,A,f10.8,A,f10.8,A,i5,A,i2)
-        end if 
-  
+        end if
+
        case(0) ! PET is input ! correct pet for every day only once at the first time step
-          pet =  fAsp(k) * pet_in(k)         
-        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then
-        print*,"Aspect range: ",minval(fAsp),maxval(fAsp)
-        end if 
+          pet =  fAsp(k) * pet_in(k)
 
        case(1) ! Hargreaves-Samani
           ! estimate day of the year (doy) for approximation of the extraterrestrial radiation

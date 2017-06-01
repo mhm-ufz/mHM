@@ -26,11 +26,9 @@ MODULE mo_multi_param_reg
 
   private
 
-  PUBLIC :: mpr                       ! calculates effective regionalised parameters
-  PUBLIC :: canopy_intercept_param    ! estimate effective max. canopy interception
+  PUBLIC :: mpr                     ! calculates effective regionalised parameters
+  PUBLIC :: canopy_intercept_param  ! estimate effective max. canopy interception
 
-
-  
 contains
   ! ---------------------------------------------------------------------------
 
@@ -222,7 +220,6 @@ contains
        Asp0,                & ! IN:    [degree] Aspect at Level 0
        LCover_LAI0,         & ! IN:    [1] land cover ID for LAI estimation
        LCover0,             & ! IN:    land use cover at level 0
-       LAI0,                & ! IN:    LAI at level 0     
        slope_emp0,          & ! IN:    Empirical quantiles of slope at Level 0
        cell_id0,            & ! IN:    cell Ids at level 0
        upp_row_L1,          & ! IN:    upper row of L0 block within L1 cell
@@ -236,7 +233,6 @@ contains
        DDmax1,              & ! INOUT:           Maximum Degree-day factor
        DD1,                 & ! INOUT:           Degree-day factor with no precipitation
        fAsp1,               & ! INOUT: [1]       PET correction for Aspect at level 1
-       Pet_LAIcorFactorL1,  & ! INOUT: [1]       PET correction using LAI at level 1        
        HarSamCoeff1,        & ! INOUT: [1]       PET Hargreaves Samani coefficient at level 1
        PrieTayAlpha1,       & ! INOUT: [1]       PET Priestley Taylor coefficient at level 1
        aeroResist1,         & ! INOUT: [s m-1]   PET aerodynamical resitance at level 1
@@ -255,15 +251,14 @@ contains
        HL1_1,               & ! INOUT: [10^-3 m] Threshhold water depth in upper reservoir 
        !                      !                  (for Runoff  contribution)
        HL3,                 & ! INOUT:           threshold parameter for runoff generation on impervious Layer
-       PW1                  & ! INOUT: [10^-3 m] permanent wilting point
+       PW1                  & ! INOUT: [10^-3 m] permanent wilting point 
        )
 
-    use mo_message,                   only: message
-    use mo_upscaling_operators,       only: upscale_arithmetic_mean
-    use mo_mpr_soilmoist,             only: mpr_sm
-    use mo_mpr_SMhorizons,            only: mpr_SMhorizons
-    use mo_mpr_runoff,                only: mpr_runoff
-    use mo_mpr_petdynamicscaling,     only: pet_correctbyLAI
+    use mo_message,             only: message
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_mpr_soilmoist,       only: mpr_sm
+    use mo_mpr_SMhorizons,      only: mpr_SMhorizons
+    use mo_mpr_runoff,          only: mpr_runoff
     
     implicit none
 
@@ -299,17 +294,13 @@ contains
     real(dp),    dimension(:),               intent(in)    :: fIperm1           ! [1] fraction of sealed area
     real(dp),    dimension(:),               intent(in)    :: fPerm1            ! [1] fraction of permeable area
     integer(i4), dimension(:,:),             intent(in)    :: soilId0           ! soil Ids at level 0
-    integer(i4), dimension(:),               intent(in)    :: cell_id0          ! Cell ids at level 0
-
     real(dp),    dimension(:),               intent(in)    :: Asp0              ! [degree] Aspect at Level 0
-
     integer(i4), dimension(:),               intent(in)    :: LCover_LAI0       ! land cover ID for LAI estimation at level 0
     integer(i4), dimension(:),               intent(in)    :: LCOVER0           ! land cover at level 0
-    real(dp),    dimension(:),               intent(in)    :: LAI0              ! LAI at level 0
-    
 
     ! Ids of L0 cells beneath L1 cell
     real(dp),    dimension(:),               intent(in)    :: slope_emp0        ! Empirical quantiles of slope
+    integer(i4), dimension(:),               intent(in)    :: cell_id0          ! Cell ids at level 0
     integer(i4), dimension(:),               intent(in)    :: upp_row_L1        ! Upper row of hi res block
     integer(i4), dimension(:),               intent(in)    :: low_row_L1        ! Lower row of hi res block
     integer(i4), dimension(:),               intent(in)    :: lef_col_L1        ! Left column of hi res block
@@ -323,6 +314,7 @@ contains
     real(dp), dimension(:,:),                intent(inout) :: beta1             ! Parameter that determines the rel.
     !                                                                           ! contribution to SM, upscal. Bulk den.
     real(dp), dimension(:),                  intent(inout) :: jarvis_thresh_c1  ! [1] jarvis critical value for norm SWC
+
     
     real(dp), dimension(:,:),                intent(inout) :: SMs1              ! [10^-3 m] depth of saturated SM
     real(dp), dimension(:,:),                intent(inout) :: FC1               ! [10^-3 m] field capacity
@@ -339,7 +331,6 @@ contains
 
     ! Output for PET parameterization
     real(dp), dimension(:),                  intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
-    real(dp), dimension(size(cell_id0,1)),   intent(inout) :: Pet_LAIcorFactorL1! [1]     PET correction using LAI at level 1
     real(dp), dimension(:),                  intent(inout) :: HarSamCoeff1      ! [1]     PET Hargreaves Samani coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: PrieTayAlpha1     ! [1]     PET Priestley Taylor coeff. at level 1
     real(dp), dimension(:,:),                intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
@@ -380,8 +371,6 @@ contains
     !                                                   ! field cap. w.r.t to saturation
     real(dp), dimension(size(cell_id0,1))   :: k2_0     ! L0 baseflow parameter
     real(dp), dimension(size(cell_id0,1))   :: fAsp0    ! L0 Aspect
-        
-    
     integer(i4)                             :: mSoil    ! number of soil classes
     integer(i4)                             :: mTill    ! maximum of number of Tillage horizons
     integer(i4)                             :: mHor     ! maximum number of horizons
@@ -459,6 +448,7 @@ contains
            ! (the first three for the fRoots and the fourth one for the beta)
            iStart2 = proc_Mat(3,3) - 4 + 1
            iEnd2   = proc_Mat(3,3)
+
     case(2)
            ! first thirteen parameters go to this routine
            iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
@@ -471,20 +461,26 @@ contains
 
            ! last parameter is jarvis parameter - no need to be regionalized               
            jarvis_thresh_c1 = param(proc_Mat(3,3))
-           
+           !print*,"jarvis case 2", jarvis_thresh_c1
     case(3)
            ! first thirteen parameters go to this routine
            iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
            iEnd   = proc_Mat(3,3) - 7    
 
            ! next four parameters go here
-           ! (the first three for the fRoots, the fourth one for the beta
-           !  the fifth and sixth for rootfraction coefficient depending on soil texture)
+           ! (the first three for the fRoots and the fourth one for the beta)
            iStart2 = proc_Mat(3,3) - 7 + 1
            iEnd2   = proc_Mat(3,3) - 1
 
            ! last parameter is jarvis parameter - no need to be regionalized               
+           
            jarvis_thresh_c1 = param(proc_Mat(3,3))
+           !rootFractionCoefficient_sand = param(proc_Mat(3,3)-2)
+           !rootFractionCoefficient_clay = param(proc_Mat(3,3)-1) 
+
+           !print*,"MPR rootFractionCoefficient_sand", rootFractionCoefficient_sand
+           !print*,"MPR rootFractionCoefficient_clay", rootFractionCoefficient_clay
+           !print*,"MPR jarvis_thresh_c1", jarvis_thresh_c1
 
            
     case DEFAULT
@@ -536,11 +532,7 @@ contains
     ! potential evapotranspiration (PET)
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
-    case(-1) ! LAI based correction of input PET
-       iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
-       iEnd   = proc_Mat(5,3)  
-       call pet_correctbyLAI(param(iStart:iEnd), nodata, LCOVER0, LAI0, mask0, cell_id0, &
-           upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, Pet_LAIcorFactorL1)
+    case(-1) ! LAI correction of input PET
 
     case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
@@ -548,7 +540,6 @@ contains
        call pet_correct( cell_id0, latitude, Asp0, param( iStart : iEnd), nodata, fAsp0 )
        fAsp1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fAsp0 )
-            
     case(1) ! Hargreaves-Samani method
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
@@ -568,7 +559,7 @@ contains
        call aerodynamical_resistance(LCover0, LAILUT, param(iStart : iEnd - 1), mask0,   & 
             nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
             aeroResist1)
-       call bulksurface_resistance(LCover_LAI0, LAILUT, LAIUnitList, param(iEnd), mask0, & 
+       call bulksurface_resistance(LCover_LAI0, LAILUT, LAIUnitList, param(iEnd), mask0,                             & 
             nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, Rig_col_L1, &
             surfResist1)
     case default
@@ -998,10 +989,6 @@ contains
 
   end subroutine pet_correct
 
-  
-         
-         
-         
   ! ----------------------------------------------------------------------------
 
   !      NAME
@@ -1324,7 +1311,6 @@ contains
     real(dp), dimension(:), allocatable     :: max_intercept0
     real(dp), dimension(:), allocatable     :: gamma_intercept
     
-    
     ! ------------------------------------------------------------------
     ! Maximum interception parameter 
     ! ------------------------------------------------------------------
@@ -1357,10 +1343,6 @@ contains
   end subroutine canopy_intercept_param
 
 
-
-  
-  
-  
   ! ----------------------------------------------------------------------------
 
   !      NAME
