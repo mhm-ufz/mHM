@@ -18,7 +18,7 @@ Thober, S., Kumar, R., Sheffield, J., Mai, J., Schäfer, D., & Samaniego, L. (20
 
 Rakovec, O., Kumar, R., Attinger, S. and Samaniego, L. (2016). Improving the realism of hydrologic model functioning through multivariate parameter estimation. Water Resources Research, 52. doi:10.1002/2016WR019430
 
-Rakovec, O., Kumar, R., Mai, J., Cuntz, M., Thober, S., Zink, M., … Samaniego, L. (2016). Multiscale and Multivariate Evaluation of Water Fluxes and States over European River Basins. Journal of Hydrometeorology, 17(1), 287–307. doi:10.1175/JHM-D-15-0054.1
+Rakovec, O., Kumar, R., Mai, J., Cuntz, M., Thober, S., Zink, M., Attinger, S., Schäfer, D., Schrön, M., Samaniego, L. (2016). Multiscale and Multivariate Evaluation of Water Fluxes and States over European River Basins. Journal of Hydrometeorology, 17(1), 287–307. doi:10.1175/JHM-D-15-0054.1
 
 Nijzink, R. C., Samaniego, L., Mai, J., Kumar, R., Thober, S., Zink, M., & Hrachowitz, M. (2015). The importance of topography controlled sub-grid process heterogeneity in distributed hydrological models. Hydrology and Earth System Sciences Discussions, 12(12), 13301–13358. doi:10.5194/hessd-12-13301-2015
 
