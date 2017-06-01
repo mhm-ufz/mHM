@@ -461,7 +461,6 @@ contains
 
            ! last parameter is jarvis parameter - no need to be regionalized               
            jarvis_thresh_c1 = param(proc_Mat(3,3))
-           !print*,"jarvis case 2", jarvis_thresh_c1
     case(3)
            ! first thirteen parameters go to this routine
            iStart = proc_Mat(3,3) - proc_Mat(3,2) + 1
@@ -473,14 +472,7 @@ contains
            iEnd2   = proc_Mat(3,3) - 1
 
            ! last parameter is jarvis parameter - no need to be regionalized               
-           
            jarvis_thresh_c1 = param(proc_Mat(3,3))
-           !rootFractionCoefficient_sand = param(proc_Mat(3,3)-2)
-           !rootFractionCoefficient_clay = param(proc_Mat(3,3)-1) 
-
-           !print*,"MPR rootFractionCoefficient_sand", rootFractionCoefficient_sand
-           !print*,"MPR rootFractionCoefficient_clay", rootFractionCoefficient_clay
-           !print*,"MPR jarvis_thresh_c1", jarvis_thresh_c1
 
            
     case DEFAULT
