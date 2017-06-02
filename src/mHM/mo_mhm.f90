@@ -19,7 +19,8 @@
 !>          2          | snow and melting          | 1     | Degree-day
 !>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey
 !>          4          | direct runoff             | 1     | Linear reservoir exceedance
-!>          5          | PET                       | 0     | PET is read as input
+!>          5          | PET                       | -1    | PET is read as input, LAI based correction
+!>          5          | PET                       | 0     | PET is read as input, Aspect based correction
 !>          5          |         ''                | 1     | Hargreaves-Samani
 !>          5          |         ''                | 2     | Priestley-Taylor
 !>          5          |         ''                | 3     | Penman-Monteith

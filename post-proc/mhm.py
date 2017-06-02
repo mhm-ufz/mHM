@@ -62,13 +62,13 @@ class MHM(object):
     
 ##-- init function ------------------------------------------------------------
 
-    def __init__(self, model_path, file_name = 'mhm.nml'):
+    def __init__(self, model_path, file_name = 'mhm.nml', 
+                 rel_path_name = False):
         
         # to do: - option for restart file
         #        - both implicite and explicite
         #        - adapt for use with several basins
         #        - onyl simple upscaling
-        #        - only absolute paths
         #        - documentation
         #        - doctests
         
@@ -103,14 +103,7 @@ class MHM(object):
         f_id.close()
         
         self.nBasins = int(self.nml['nBasins'])
-                
-        self.cellsize['L0'] = 100
-        self.cellsize['L1'] = int(self.nml['resolution_Hydrology(1)'])
-        self.cellsize['L2'] = 4000
-        
-        self.cellsize_ratio['L0'] = 1
-        self.cellsize_ratio['L1'] = float(self.nml['resolution_Hydrology(1)'])/self.cellsize['L0']
-        self.cellsize_ratio['L2'] = self.cellsize['L2']/self.cellsize['L0']
+
         
         if   self.nml['timeStep_sm_input'] == '-1':
             self.t_stepsize = 'daily'
@@ -118,10 +111,29 @@ class MHM(object):
             self.t_stepsize = 'monthly'
         elif self.nml['timeStep_sm_input'] == '-3':
             self.t_stepsize = 'yearly'
-            
-        # reading data from the 'dem.asc' file for domain information
-            
+        
+        if rel_path_name:
+            for k,v in self.nml.items():
+                if ('dir_' in k) or ('file_' in k):
+                    self.nml[k] = model_path + self.nml[k]
+        
+        # reading data from the 'dem.asc' file for domain information   
+             
         f_id = open(self.nml['dir_Morpho(1)'] + 'dem.asc')
+        
+        for i, line in enumerate(f_id):
+            if i == 4:
+                self.cellsize['L0'] = int(line[9:])
+        self.cellsize['L1'] = int(self.nml['resolution_Hydrology(1)'])
+        self.cellsize['L2'] = 4000
+        f_id.close()
+        
+        self.cellsize_ratio['L0'] = 1
+        self.cellsize_ratio['L1'] = float(self.nml['resolution_Hydrology(1)'])/self.cellsize['L0']
+        self.cellsize_ratio['L2'] = self.cellsize['L2']/self.cellsize['L0']
+        
+        f_id = open(self.nml['dir_Morpho(1)'] + 'dem.asc')
+        
         for line_i in range(6):
             line = f_id.next().strip()
             line = line.split()
@@ -152,18 +164,18 @@ class MHM(object):
                     self.mask['L0'][line_i - 6][col_i] = 1
         for row_i in range(0, self.nrows['L1']):
             for col_i in range(0, self.ncols['L1']):
-                row_a = row_i*self.cellsize_ratio['L1']
-                row_e = (row_i + 1)*self.cellsize_ratio['L1']
-                col_a = col_i*self.cellsize_ratio['L1']
-                col_e = (col_i + 1)*self.cellsize_ratio['L1']            
+                row_a = int(row_i*self.cellsize_ratio['L1'])
+                row_e = int((row_i + 1)*self.cellsize_ratio['L1'])
+                col_a = int(col_i*self.cellsize_ratio['L1'])
+                col_e = int((col_i + 1)*self.cellsize_ratio['L1'])
                 if np.mean(self.mask['L0'][row_a:row_e,col_a:col_e]) == 1: 
                     self.mask['L1'][row_i][col_i] = 1
         for row_i in range(0, self.nrows['L2']):
             for col_i in range(0, self.ncols['L2']):
-                row_a = row_i*self.cellsize_ratio['L2']
-                row_e = (row_i + 1)*self.cellsize_ratio['L2']
-                col_a = col_i*self.cellsize_ratio['L2']
-                col_e = (col_i + 1)*self.cellsize_ratio['L2']            
+                row_a = int(row_i*self.cellsize_ratio['L2'])
+                row_e = int((row_i + 1)*self.cellsize_ratio['L2'])
+                col_a = int(col_i*self.cellsize_ratio['L2'])
+                col_e = int((col_i + 1)*self.cellsize_ratio['L2'])          
                 if np.mean(self.mask['L0'][row_a:row_e,col_a:col_e]) == 1: 
                     self.mask['L2'][row_i][col_i] = 1            
         f_id.close()
@@ -174,13 +186,17 @@ class MHM(object):
         if data_type == 'states_and_fluxes':            
             self.import_states_and_fluxes( *kwargs )
         elif data_type == 'lat_lon_L0':
-            data_path = self.nml['dir_LatLon(1)']
-            self.lon_L0 = self.import_lat_lon(data_path, 'lon_l0')
-            self.lat_L0 = self.import_lat_lon(data_path, 'lat_l0')
+            data_path = str(kwargs[0])
+            self.lon_L0 = self.import_lat_lon(data_path, 'lon')
+            self.lat_L0 = self.import_lat_lon(data_path, 'lat')
         elif data_type == 'lat_lon':
-            data_path = self.nml['dir_LatLon(1)']
+            data_path = self.nml['file_LatLon(1)']
             self.lon_L1 = self.import_lat_lon(data_path, 'lon')
             self.lat_L1 = self.import_lat_lon(data_path, 'lat')
+        elif data_type == 'lat_lon_L2':
+            data_path = str(kwargs[0])
+            self.lon_L2 = self.import_lat_lon(data_path, 'lon')
+            self.lat_L2 = self.import_lat_lon(data_path, 'lat') 
         elif data_type == 'landcover':
             data_path = self.nml['dir_LCover(1)'] + str(kwargs[0])
             setattr(self, data_type, self.import_L0_data(data_path))
@@ -213,6 +229,7 @@ class MHM(object):
     def import_states_and_fluxes(self, *kwargs):
         
         f_path = self.nml['dir_Out(1)'] + 'mHM_Fluxes_States.nc'
+#        print(f_path)
     
         if kwargs[0] == 'all':
             var_list = [str(i) for i in readnetcdf(f_path, variables=True)]
@@ -224,8 +241,8 @@ class MHM(object):
                         'recharge', 'aET_L01', 'aET_L02', 'aET_L03',
                         'preEffect']
         else:
-            var_list = kwargs
-
+            var_list = kwargs[0]
+#        print(var_list)
         for var_i in range(0, len(var_list)):
             var = var_list[var_i]
             setattr(self, var, readnetcdf(f_path, var=var))
@@ -251,14 +268,14 @@ class MHM(object):
         
 ##-- importing restart file ---------------------------------------------------
 
-#    def import_restart_file(self, *kwargs):
-#        
-#        f_path = self.nml['dir_Out(1)'] + 'mHM_restart_001.nc'
-#        var_list = [str(i) for i in readnetcdf(f_path, variables=True)]
+    def import_restart_file(self, *kwargs):
+        
+        f_path = self.nml['dir_Out(1)'] + 'mHM_restart_001.nc'
+        var_list = [str(i) for i in readnetcdf(f_path, variables=True)]
 #        print(var_list)
-#        for var_i in range(0, len(var_list)):
-#            var = var_list[var_i]
-#            setattr(self, var, readnetcdf(f_path, var=var))
+        for var_i in range(0, len(var_list)):
+            var = var_list[var_i]
+            setattr(self, var, readnetcdf(f_path, var=var))
 
 ##-- upscaling and downscaling functions --------------------------------------
 
@@ -277,11 +294,11 @@ class MHM(object):
             for col_i in range(0, self.ncols['L1']):
                 if self.mask['L1'][row_i, col_i]:
                     continue
-                row_s = row_i*self.cellsize_ratio['L1']
-                row_e = (row_i + 1)*self.cellsize_ratio['L1']
+                row_s = int(row_i*self.cellsize_ratio['L1'])
+                row_e = int((row_i + 1)*self.cellsize_ratio['L1'])
                 row_c = int((row_s + row_e)/2)
-                col_s = col_i*self.cellsize_ratio['L1']
-                col_e = (col_i + 1)*self.cellsize_ratio['L1']
+                col_s = int(col_i*self.cellsize_ratio['L1'])
+                col_e = int((col_i + 1)*self.cellsize_ratio['L1'])
                 col_c = int((col_s + col_e)/2)
                 num += 1
                 if flag == 'any':
@@ -301,14 +318,18 @@ class MHM(object):
     def downscale_data(self, data_type):
         
         pre_L1 = np.zeros((self.nrows['L1'], self.ncols['L1']))
-        pre = np.mean(self.pre, axis = 0)
-        ratio = int(self.cellsize_ratio['L2']/self.cellsize_ratio['L1'])
+        pre = np.mean(self.pre, axis=0)
+        L2 = self.cellsize_ratio['L2']
+#        L2 = 10
+        ratio = int(L2/self.cellsize_ratio['L1'])
         
         for row_i in range(0, self.nrows['L1']):
             for col_i in range(0, self.ncols['L1']):
                 pre_L1[row_i, col_i] = pre[row_i/ratio, col_i/ratio]
         
-        self.pre_L1 = np.ma.array( np.mean(self.preEffect, axis = 0), mask = self.mask['L1'])
+        self.pre_L1 = np.ma.array(pre_L1, mask = self.mask['L1'])
+#        self.pre_L1 = np.ma.array( np.mean(self.preEffect, axis = 0), mask = self.mask['L1'])
+        
         
 ##-- flow direction functions -------------------------------------------------
 
@@ -399,6 +420,7 @@ class MHM(object):
         
         f_path = self.nml['dir_Out(1)'] + 'mHM_Fluxes_States.nc'
         var_list = [str(i) for i in readnetcdf(f_path, variables=True)]
+#        print(var_list)
         var_dict = {}
         for elem in my_list:
             var_dict[elem] = [s for s in var_list if elem + '_L0' in s]

@@ -8,24 +8,25 @@ get_basin_info! Emacs: -*- mode: f90 -*-
 !> \authors Matthias Zink, Matthias Cuntz
 !> \date Jan 2013
 ! Modified,
-! Rohini Kumar, Aug 2013      - added "fracSealed_cityArea" in the LCover namelist \n
-!                             - added new namelist "LAI_data_information" \n
-!                             - added new directory paths for soil and geology LUTs
-!                               which are common to all modeled basins \n
-! Luis Samaniego, Nov 2013    - process description
-! Matthias  Zink, Mar 2014    - added evaluation and inflow gauge namelists
-! Rohini Kumar,   May 2014    - options for different cordinate system for the model run\n
-! Stephan Thober, May 2014    - added switch for chunk read in
-! Stephan Thober, Jun 2014    - reorganized restart flags, added flag for performing mpr
-! Rohini Kumar and
-! Olda Rakovec  , Sep 2014    - added KGE estimator (OF number 9)
-! Matthias Zink,  Nov 2014    - added multiple options for process 5 - PET
-! Matthias Zink, Dec 2014     - adopted inflow gauges to ignore headwater cells
-! Matthias Zink, Mar 2015     - added optional soil mositure read in for calibration
-! Stephan Thober, Nov 2016    - added adaptive timestep scheme for routing  
-! Rohini  Kumar, Dec 2017     - added LAI option to read long term mean monthly fields 
-! Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  
+! Rohini Kumar,            Aug 2013  - added "fracSealed_cityArea" in the LCover namelist \n
+!                                    - added new namelist "LAI_data_information" \n
+!                                    - added new directory paths for soil and geology LUTs
+!                                      which are common to all modeled basins \n
+! Luis Samaniego,          Nov 2013  - process description
+! Matthias  Zink,          Mar 2014  - added evaluation and inflow gauge namelists
+! Rohini Kumar,            May 2014  - options for different cordinate system for the model run\n
+! Stephan Thober,          May 2014  - added switch for chunk read in
+! Stephan Thober,          Jun 2014  - reorganized restart flags, added flag for performing mpr
+! Rohini Kumar and                  
+! Olda Rakovec  ,          Sep 2014  - added KGE estimator (OF number 9)
+! Matthias Zink,           Nov 2014  - added multiple options for process 5 - PET
+! Matthias Zink,           Dec 2014  - adopted inflow gauges to ignore headwater cells
+! Matthias Zink,           Mar 2015  - added optional soil mositure read in for calibration
+! Stephan Thober,          Nov 2016  - added adaptive timestep scheme for routing  
+! Rohini  Kumar,           Dec 2017  - added LAI option to read long term mean monthly fields 
+! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)  
+! Demirel M.C., Stisen S., May 2017  - added PET correction based on LAI at PET process(5)
+ 
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -52,7 +53,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 1
+nBasins             = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
@@ -519,7 +520,7 @@ LCoverfName(3)     = 'lc_1990.asc'
 !>  1: read mean monthly gridded LAI values.\n
 !>     must be a separate *.nc file for every (modeled) basins.\n
 !-----------------------------------------------------------------------------------
-timeStep_LAI_input = 1
+timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
 !>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
@@ -548,7 +549,7 @@ processCase(2) = 1
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 3 - Jarvis equation for ET reduction and FC dependency on root fraction coefficient
-processCase(3) = 3
+processCase(3) = 1
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
@@ -558,7 +559,7 @@ processCase(4) = 1
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
-processCase(5) = -1
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
@@ -591,7 +592,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal = 2
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
