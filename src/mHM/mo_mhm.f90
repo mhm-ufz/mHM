@@ -15,19 +15,23 @@
 !>
 !>          Process    | Name                      | Flag  | Description
 !>          ---------- | ------------------------- | ----- | ------------------------------------------
-!>          1          | interception              | 1     | Maximum interception
-!>          2          | snow and melting          | 1     | Degree-day
-!>          3          | soil moisture             | 1     | Infiltration capacity, Brooks-Corey
-!>          4          | direct runoff             | 1     | Linear reservoir exceedance
-!>          5          | PET                       | -1    | PET is read as input, LAI based correction
-!>          5          | PET                       | 0     | PET is read as input, Aspect based correction
-!>          5          |         ''                | 1     | Hargreaves-Samani
-!>          5          |         ''                | 2     | Priestley-Taylor
-!>          5          |         ''                | 3     | Penman-Monteith
-!>          6          | interflow                 | 1     | Nonlinear reservoir with saturation excess
-!>          7          | percolation and base flow | 1     | GW linear reservoir
-!>          8          | routing                   | 0     | no routing
-!>          8          |         ''                | 1     | use mRM i.e. Muskingum
+!>          1          | interception              |   1   | Maximum interception
+!>          2          | snow and melting          |   1   | Degree-day
+!>          3          | soil moisture             |   1   | Feddes equation for ET reduction, Brooks-Corey like
+!>          3          | soil moisture             |   2   | Jarvis equation for ET reduction, Brooks-Corey like
+!>          3          | soil moisture             |   3   | Jarvis eq. for ET red. + FC dependency on root frac. coef.
+!>          4          | direct runoff             |   1   | Linear reservoir exceedance
+!>          5          | PET                       |  -1   | PET is input, LAI based correction, dynamic scaling func.
+!>          5          | PET                       |   0   | PET is input, Aspect based correction
+!>          5          | PET                       |   1   | Hargreaves-Samani
+!>          5          | PET                       |   2   | Priestley-Taylor
+!>          5          | PET                       |   3   | Penman-Monteith
+!>          6          | interflow                 |   1   | Nonlinear reservoir with saturation excess
+!>          7          | percolation and base flow |   1   | GW linear reservoir
+!>          8          | routing                   |   0   | no routing
+!>          8          | routing                   |   1   | use mRM i.e. Muskingum
+!>          8          | routing                   |   2   | use mRM i.e. adaptive timestep
+
 !>
 
 !> \author Luis Samaniego
@@ -93,32 +97,33 @@ CONTAINS
   !>        \author  Luis Samaniego & Rohini Kumar
   !>        \date    Dec 2012
 
-  !         Modified Luis Samaniego, Rohini Kumar,   Dec 2012 - modularization
-  !                  Luis Samaniego,                 Feb 2013 - call routine
-  !                  Rohini Kumar,                   Feb 2013 - MPR call and other pre-requisite
-  !                                                             variables for this call
-  !                  Rohini Kumar,                   May 2013 - Error checks
-  !                  Rohini Kumar,                   Jun 2013 - sealed area correction in total runoff
-  !                                                           - initalization of soil moist. at first timestep
-  !                  Rohini Kumar,                   Aug 2013 - dynamic LAI option included, and changed within
-  !                                                             the code made accordingly (e.g., canopy intecpt.)
-  !                                                           - max. canopy interception is estimated outside of MPR
-  !                                                             call
-  !                  Matthias Zink,                  Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-  !                  Matthias Zink,                  Mar 2014 - added inflow from upstream areas
-  !                  Matthias Zink,                  Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
-  !                                                             and its parameterization (Process 5)
-  !                  Rohini Kumar,                   Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  !                  Stephan Thober,                 Jun 2014 - added flag for switching of MPR
-  !                  Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,                  Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                  Stephan Thober,                 Aug 2015 - moved routing to mRM
-  !                  Rohini Kumar,                   Mar 2016 - changes for handling multiple soil database options
-  !                  Rohini Kumar,                   Dec 2016 - changes for reading gridded mean monthly LAI fields
-  !                  Stephan Thober,                 Jan 2017 - added prescribed weights for tavg and pet
-  !                  Zink M. Demirel C.,             Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                  Demirel M.C., Stisen S.         May 2017 - Added PET correction based on LAI at PET process(5)
-  !
+  !         Modified Luis Samaniego, Rohini Kumar     Dec 2012 - modularization
+  !                  Luis Samaniego,                  Feb 2013 - call routine
+  !                  Rohini Kumar,                    Feb 2013 - MPR call and other pre-requisite
+  !                                                              variables for this call
+  !                  Rohini Kumar,                    May 2013 - Error checks
+  !                  Rohini Kumar,                    Jun 2013 - sealed area correction in total runoff
+  !                                                            - initalization of soil moist. at first timestep
+  !                  Rohini Kumar,                    Aug 2013 - dynamic LAI option included, and changed within
+  !                                                              the code made accordingly (e.g., canopy intecpt.)
+  !                                                            - max. canopy interception is estimated outside of MPR
+  !                                                              call
+  !                  Matthias Zink,                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  !                  Matthias Zink,                   Mar 2014 - added inflow from upstream areas
+  !                  Matthias Zink,                   Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
+  !                                                              and its parameterization (Process 5)
+  !                  Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  !                  Stephan Thober,                  Jun 2014 - added flag for switching of MPR
+  !                  Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
+  !                  Matthias Zink,                   Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !                  Stephan Thober,                  Aug 2015 - moved routing to mRM
+  !                  Rohini Kumar,                    Mar 2016 - changes for handling multiple soil database options
+  !                  Rohini Kumar,                    Dec 2016 - changes for reading gridded mean monthly LAI fields
+  !                  Stephan Thober,                  Jan 2017 - added prescribed weights for tavg and pet
+  !                  Zink M. Demirel C.,              Mar 2017 - added Jarvis soil water stress function at SM process(3)  
+  !                  M.Cuneyd Demirel & Simon Stisen  May 2017 - added FC dependency on root fraction coef. at SM process(3)
+  !                  M.Cuneyd Demirel & Simon Stisen  Jun 2017 - added PET correction based on LAI at PET process(5)
+  !                                                  
   ! ------------------------------------------------------------------
 
   subroutine mHM(  &
