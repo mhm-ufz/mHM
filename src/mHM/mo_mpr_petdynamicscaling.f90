@@ -44,7 +44,7 @@ contains
 
   !>     Similar to the crop coefficient concept Kc=a+b*(1-exp(c*LAI)) by Allen, R. G., L. S. Pereira, 
   !>     D. Raes, and M. Smith (1998), Crop evapotranspiration - Guidelines for computing crop water requirements., 
-  !>	 FAO Irrigation and drainage paper 56. See Chapter 9, Equation 97  <http://www.fao.org/docrep/X0490E/x0490e0f.htm>
+  !>  FAO Irrigation and drainage paper 56. See Chapter 9, Equation 97  <http://www.fao.org/docrep/X0490E/x0490e0f.htm>
 
   !>     Date: 17/5/2017
 
@@ -124,7 +124,7 @@ contains
        ! Output ----------------------------------------------------------------
        L1_petLAIcorFactor )       ! fraction of roots in soil horizons
 
-    use mo_upscaling_operators, only: upscale_harmonic_mean,upscale_arithmetic_mean
+    use mo_upscaling_operators, only: upscale_harmonic_mean,upscale_arithmetic_mean,upscale_geometric_mean
     use mo_message,             only: message
     use mo_string_utils,        only: num2str
 
@@ -190,9 +190,15 @@ contains
             !L1_petLAIcorFactor(:) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
             !                    Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )            
             
-            L1_petLAIcorFactor(:) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-                              Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
-			
+            !L1_petLAIcorFactor(:) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            !                  Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
+
+
+            L1_petLAIcorFactor(:) = upscale_geometric_mean( Upp_row_L1, Low_row_L1, &
+                              Lef_col_L1, Rig_col_L1, mask0, nodata, petLAIcorFactor_0 )        
+         
+
+   
             !$OMP END PARALLEL
 
   end subroutine pet_correctbyLAI
