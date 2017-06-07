@@ -538,7 +538,7 @@ CONTAINS
        end if
     else
        DT_IN = 0.9_dp
-    endif
+    end if
 
     if (present(nITERmax)) then
        if (nITERmax .lt. 1_I4) then
@@ -548,7 +548,7 @@ CONTAINS
        end if
     else
        nITERmax_in = 1000_i4
-    endif
+    end if
 
     if (present(Len)) then
        if (Len .lt. Max(20_i4*n,250_i4)) then
@@ -559,7 +559,7 @@ CONTAINS
        end if
     else
        LEN_IN = Max(20_i4*n,250_i4)
-    endif
+    end if
 
     idummy = nITERmax_in/LEN_IN+1_i4
     allocate(history_out(idummy,2))
@@ -572,7 +572,7 @@ CONTAINS
        end if
     else
        nST_in = 5_i4
-    endif
+    end if
 
     allocate(iPos_iNeg_history(nST_in,2))
     iPos_iNeg_history = 0_i4
@@ -585,7 +585,7 @@ CONTAINS
        end if
     else
        eps_in = 0.0001_dp
-    endif
+    end if
 
     if (present(acc)) then
        if ( le(acc, 0.0_dp)  .or. ge(acc, 1.0_dp) ) then
@@ -595,20 +595,20 @@ CONTAINS
        end if
     else
        acc_in = 0.1_dp
-    endif
+    end if
 
     if (present(seeds)) then
        seeds_in = seeds
     else
        ! Seeds depend on actual time
        call get_timeseed(seeds_in)
-    endif
+    end if
 
     if (present(printflag)) then
        printflag_in = printflag
     else
        printflag_in = .false.
-    endif
+    end if
 
     if (present(maskpara)) then
        if (count(maskpara) .eq. 0_i4) then
@@ -618,7 +618,7 @@ CONTAINS
        end if
     else
        maskpara_in = .true.
-    endif
+    end if
 
     if (present(maxit)) then
        ldummy = maxit
@@ -630,7 +630,7 @@ CONTAINS
     else
        ldummy = .false.
        maxit_in = 1._dp
-    endif
+    end if
 
     if (present(temp)) then
        if ( (temp .lt. 0.0_dp) ) then
@@ -724,7 +724,7 @@ CONTAINS
           weight_in(:)    = 1.0_dp
           weightUni(:) = 1.0_dp
        end where
-    endif
+    end if
     ! scaling the weights
     weight_in    = weight_in/sum(weight_in)
     weightUni = weightUni/sum(weightUni)
@@ -835,7 +835,7 @@ CONTAINS
              else
                 iParRange(1) = prange(iPar,1)
                 iParRange(2) = prange(iPar,2)
-             endif
+             end if
              gamma(iPar)%min = iParRange(1)
              gamma(iPar)%max = iParRange(2)
              if (reflectionFlag_inin) then
@@ -855,7 +855,7 @@ CONTAINS
                 else
                    iParRange(1) = prange(iPar,1)
                    iParRange(2) = prange(iPar,2)
-                endif
+                end if
                 gamma(iPar)%min = iParRange(1)
                 gamma(iPar)%max = iParRange(2)
                 if (reflectionFlag_inin) then
@@ -882,7 +882,7 @@ CONTAINS
                    else
                       iParRange(1) = prange(iPar,1)
                       iParRange(2) = prange(iPar,2)
-                   endif
+                   end if
                    gamma(iPar)%min = iParRange(1)
                    gamma(iPar)%max = iParRange(2)
                    !
@@ -928,7 +928,7 @@ CONTAINS
                 if (fo < fBest) then
                    fBest =  fo
                    gamma(:)%best   = gamma(:)%new
-                endif
+                end if
              else
                 if ( df >  eps_in ) then
                    rho=-df/T_in
@@ -937,7 +937,7 @@ CONTAINS
                    else
                       pa=EXP(rho)
                    end if
-  	           !
+               !
                    call xor4096(seeds_in(1), RN1, save_state=save_state_1)
                    !
                    if (pa > RN1) then
@@ -1214,7 +1214,7 @@ CONTAINS
        end if
     else
        samplesize_in = Max(20_i4*n,250_i4)
-    endif
+    end if
 
     if (present(maskpara)) then
        if (count(maskpara) .eq. 0_i4) then
@@ -1224,7 +1224,7 @@ CONTAINS
        end if
     else
        maskpara_in = .true.
-    endif
+    end if
 
     if (present(seeds)) then
        seeds_in = seeds
@@ -1232,13 +1232,13 @@ CONTAINS
        ! Seeds depend on actual time
        call get_timeseed(seeds_in)
        print*,'temp: seeds(1)=', seeds_in(1)
-    endif
+    end if
 
     if (present(printflag)) then
        printflag_in = printflag
     else
        printflag_in = .false.
-    endif
+    end if
 
     if (present(maxit)) then
        if (maxit) then
@@ -1248,7 +1248,7 @@ CONTAINS
        end if
     else
        maxit_in = 1._dp
-    endif
+    end if
 
     allocate(Energy(samplesize_in,2))
 
@@ -1270,7 +1270,7 @@ CONTAINS
        where ( maskpara_in(:) )
           weight_in(:) = 1.0_dp
        end where
-    endif
+    end if
     ! scaling the weights
     weight_in = weight_in/sum(weight_in)
     ! cummulating the weights
@@ -1400,7 +1400,7 @@ CONTAINS
        if ( delta > dMaxScal) delta =  dMaxScal
        if ( delta <-dMaxScal) delta = -dMaxScal
        parGen_anneal_dp = old + dChange_dp(delta,iDigit,isZero)
-    endif
+    end if
 
     ! Parameter is bounded between Max and Min.
     ! Correction from Kumar and Luis
@@ -1458,9 +1458,9 @@ CONTAINS
              iDelta = -1_i8
           else
              iDelta = 1_i8
-          endif
-       endif
-    endif
+          end if
+       end if
+    end if
     dChange_dp=real(iDelta,dp)/real(ioszt,dp)
   end function  dChange_dp
 

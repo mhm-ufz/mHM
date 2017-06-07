@@ -567,7 +567,7 @@ CONTAINS
     else
        g = int((real(julian,dp)-1867216.25_dp)/36524.25_dp, i8) ! gregorian
        A = julian + 1_i8 + g - g/4_i8
-    endif
+    end if
 
     B = A + 1524_i8
     C = int((real(B,dp)-122.1_dp) / 365.25_dp, i8)
@@ -580,13 +580,13 @@ CONTAINS
        mm = int(E-1_i8, i4)
     else
        mm = int(E-13_i8, i4)
-    endif
+    end if
 
     if (mm > 2) then
        yy = int(C - 4716_i8, i4)
     else
        yy = int(C - 4715_i8, i4)
-    endif
+    end if
 
   END SUBROUTINE caldatJulian
 
@@ -706,7 +706,7 @@ CONTAINS
     else
        jm = int(imm+12, i8)
        jy = int(iyy-1, i8)
-    endif
+    end if
 
     jd = real(idd, dp)
     
@@ -719,7 +719,7 @@ CONTAINS
        B = 0_i8
     ! else
     !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
-    endif
+    end if
     
     ! Fractional Julian day starts at noon
     date2decJulian = floor(365.25_dp*real(jy+4716_i8,dp)) + floor(30.6001_dp*real(jm+1_i8,dp)) + jd + H + real(B,dp) - 1524.5_dp
@@ -830,7 +830,7 @@ CONTAINS
     else
        g = int((real(Z,dp)-1867216.25_dp)/36524.25_dp, i8) ! gregorian
        A = Z + 1_i8 + g - g/4_i8
-    endif
+    end if
 
     B = A + 1524_i8
     C = int((real(B,dp)-122.1_dp) / 365.25_dp, i8)
@@ -843,13 +843,13 @@ CONTAINS
        month = int(E-1_i8, i4)
     else
        month = int(E-13_i8, i4)
-    endif
+    end if
 
     if (month > 2) then
        year = int(C - 4716_i8, i4)
     else
        year = int(C - 4715_i8, i4)
-    endif
+    end if
 
     ! ! Fractional part
     ! eps = 1e-12_dp ! ~ 5000*epsilon(1.0_dp)
@@ -877,9 +877,9 @@ CONTAINS
           if (hour==24) then
              hour = 0
              call caldat(julday(day, month, year) + 1, day, month, year)
-          endif
-       endif
-    endif
+          end if
+       end if
+    end if
 
     if (present(dd)) dd = day
     if (present(mm)) mm = month
@@ -981,7 +981,7 @@ CONTAINS
     else
        jm = int(mm+12, i8)
        jy = int(yy-1, i8)
-    endif
+    end if
 
     jd = int(dd, i8)
 
@@ -992,7 +992,7 @@ CONTAINS
        B = 0_i8
     ! else
     !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
-    endif
+    end if
     
     ! add 0.5 to Wiki formula because formula was for fractional day
     ! juldayJulian = int(365.25_dp*real(jy+4716_i8,dp) + real(int(30.6001*real(jm+1_i8,dp),i8),dp) + real(jd+B,dp) - 1524.5_dp, i4)
@@ -1325,9 +1325,9 @@ CONTAINS
           if (hour==24) then
              hour = 0
              call caldat360(julday360(day, month, year) + 1, day, month, year)
-          endif
-       endif
-    endif
+          end if
+       end if
+    end if
     
     if (present(dd)) dd = day
     if (present(mm)) mm = month
@@ -1626,9 +1626,9 @@ CONTAINS
           if (hour==24) then
              hour = 0
              call caldat365(julday365(day, month, year) + 1, day, month, year)
-          endif
-       endif
-    endif
+          end if
+       end if
+    end if
     
     if (present(dd)) dd = day
     if (present(mm)) mm = month

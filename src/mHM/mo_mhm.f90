@@ -515,7 +515,7 @@ CONTAINS
                 soil_moist_FC, soil_moist_sat, soil_moist_exponen, jarvis_thresh_c1(:),   &
                 temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point            )
         end if
-		
+    
         !-------------------------------------------------------------------
         ! Update the inital states of soil water content for the first time
         ! step and when perform_mpr = FALSE
@@ -565,7 +565,7 @@ CONTAINS
           call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
            L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
 
-       endif
+       end if
     case(-2) ! monthly
        if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
@@ -580,7 +580,7 @@ CONTAINS
           call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
            L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
 
-       endif
+       end if
     case(-3) ! yearly
        if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
           call canopy_intercept_param( processMatrix, global_parameters(:), &
@@ -595,7 +595,7 @@ CONTAINS
           call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
            L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
 
-       endif
+       end if
 
     case default ! no output at all
        continue

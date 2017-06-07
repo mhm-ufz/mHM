@@ -1374,7 +1374,7 @@ contains
        fluxesUnit = 'mm a-1'
     else
        fluxesUnit = ''
-    endif
+    end if
 
   end function fluxesUnit
 

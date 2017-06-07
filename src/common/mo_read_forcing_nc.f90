@@ -546,7 +546,7 @@ contains
           allocate(timesteps(dimen(3)))
           call Get_NcVar(fName, 'time', itimesteps)
           timesteps = nint(itimesteps, i4)
-       endif
+       end if
     else
        call message('***ERROR: data type of time must be NF90_INT or NF90_DOUBLE in netcdf file.')
        stop

@@ -341,7 +341,7 @@ contains
        basin_mRM%L0_mask => L0_mask
     else
        basin_mRM%L0_mask => L0_mask_mRM
-    endif
+    end if
     if (present(L0_elev)) then
        L0_elev_mRM => L0_elev
     else

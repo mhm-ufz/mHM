@@ -433,7 +433,7 @@ CONTAINS
             call var%setData(unpack(L1_petLAIcorFactor(s1:e1), mask1, nodata_dp))
             call var%setAttribute("long_name","PET correction factor based on LAI")
        end if
-	   
+     
        var = nc%setVariable("L1_tempThresh","f64",(/rows1,cols1/))
        call var%setFillValue(nodata_dp)
        call var%setData(unpack(L1_tempThresh(s1:e1), mask1, nodata_dp))
@@ -1284,14 +1284,14 @@ CONTAINS
         call var%getData(dummyD2)
         L1_jarvis_thresh_c1(s1:e1) = pack( dummyD2, mask1 ) 
     end if
-	
+  
     if (processMatrix(5,1) == -1) then 
         ! PET correction factor based on LAI
         var = nc%getVariable("L1_petLAIcorFactor")
         call var%getData(dummyD2)
         L1_petLAIcorFactor(s1:e1) = pack( dummyD2, mask1 ) 
     end if
-	   
+     
     ! Threshold temperature for snow/rain 
     var = nc%getVariable("L1_tempThresh")
     call var%getData(dummyD2)

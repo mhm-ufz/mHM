@@ -824,7 +824,7 @@ contains
           case default ! no output at all
              continue
           end select
-       endif
+       end if
 
        ! write data
        if (writeout) call nc%writeTimestep(tIndex_out*timestep-1)

@@ -292,7 +292,7 @@ CONTAINS
           median_dp = 0.5_dp*(median_dp+tmp)
        else ! Odd
           median_dp = n_element(arr,(n+1)/2)
-       endif
+       end if
 
        deallocate(arr)
     else
@@ -304,8 +304,8 @@ CONTAINS
           median_dp = 0.5_dp*(median_dp+tmp)
        else ! Odd
           median_dp = n_element(arrin,(n+1)/2)
-       endif
-    endif
+       end if
+    end if
 
   END FUNCTION median_dp
 
@@ -334,7 +334,7 @@ CONTAINS
           median_sp = 0.5_sp*(median_sp+tmp)
        else ! Odd
           median_sp = n_element(arr,(n+1)/2)
-       endif
+       end if
 
        deallocate(arr)
     else
@@ -346,8 +346,8 @@ CONTAINS
           median_sp = 0.5_sp*(median_sp+tmp)
        else ! Odd
           median_sp = n_element(arrin,(n+1)/2)
-       endif
-    endif
+       end if
+    end if
 
   END FUNCTION median_sp
 
@@ -379,7 +379,7 @@ CONTAINS
        nn = size(idat)
        allocate(dat(nn))
        dat = idat
-    endif
+    end if
 
     if (n < 1)  stop 'n_element_dp: n < 1'
     if (n > nn) stop 'n_element_dp: n > size(pack(dat,mask))'
@@ -406,7 +406,7 @@ CONTAINS
              dat(j) = w
              i = i + 1
              j = j - 1
-          endif
+          end if
           if ( i > j ) exit
        enddo
        if ( j < k ) l = i
@@ -416,7 +416,7 @@ CONTAINS
     !    n_element_dp = 0.5_dp*(dat(k) + maxval(dat(:k-1)))
     ! else
     !    n_element_dp = dat(k)
-    ! endif
+    ! end if
     n_element_dp = dat(k)
 
     if (present(before))   before   = maxval(dat(:k-1))
@@ -454,7 +454,7 @@ CONTAINS
        nn = size(idat)
        allocate(dat(nn))
        dat = idat
-    endif
+    end if
 
     if (n < 1)  stop 'n_element_sp: n < 1'
     if (n > nn) stop 'n_element_sp: n > size(pack(dat,mask))'
@@ -481,7 +481,7 @@ CONTAINS
              dat(j) = w
              i = i + 1
              j = j - 1
-          endif
+          end if
           if ( i > j ) exit
        enddo
        if ( j < k ) l = i
@@ -491,7 +491,7 @@ CONTAINS
     !    n_element_sp = 0.5_sp*(dat(k) + maxval(dat(:k-1)))
     ! else
     !    n_element_sp = dat(k)
-    ! endif
+    ! end if
     n_element_sp = dat(k)
 
     if (present(before))   before   = maxval(dat(:k-1))
@@ -524,7 +524,7 @@ CONTAINS
        n = count(mask)
     else
        n = size(arrin)
-    endif
+    end if
 
     if (present(mode_in)) then
        mode = mode_in
@@ -611,7 +611,7 @@ CONTAINS
           ks2 = n_element(arrin,nn2,previous=ks1)
           percentile_0d_dp = ks1 + (ks2-ks1)*(kk-real(nn1,dp))
        end if
-    endif
+    end if
 
   END FUNCTION percentile_0d_dp
 
@@ -635,7 +635,7 @@ CONTAINS
        n = count(mask)
     else
        n = size(arrin)
-    endif
+    end if
 
     if (present(mode_in)) then
        mode = mode_in
@@ -722,7 +722,7 @@ CONTAINS
           ks2 = n_element(arrin,nn2,previous=ks1)
           percentile_0d_sp = ks1 + (ks2-ks1)*(kk-real(nn1,sp))
        end if
-    endif
+    end if
 
   END FUNCTION percentile_0d_sp
 
@@ -749,7 +749,7 @@ CONTAINS
        n = count(mask)
     else
        n = size(arrin)
-    endif
+    end if
 
     if (present(mode_in)) then
        mode = mode_in
@@ -842,7 +842,7 @@ CONTAINS
              percentile_1d_dp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),dp))
           end if
        end do
-    endif
+    end if
 
   END function percentile_1d_dp
 
@@ -869,7 +869,7 @@ CONTAINS
        n = count(mask)
     else
        n = size(arrin)
-    endif
+    end if
 
     if (present(mode_in)) then
        mode = mode_in
@@ -962,7 +962,7 @@ CONTAINS
              percentile_1d_sp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),sp))
           end if
        end do
-    endif
+    end if
 
   END function percentile_1d_sp
 
@@ -1000,7 +1000,7 @@ CONTAINS
              dat(j) = w
              i = i + 1
              j = j - 1
-          endif
+          end if
           if ( i > j ) exit
        enddo
        if ( j < k ) l = i
@@ -1010,7 +1010,7 @@ CONTAINS
        qmedian_dp = 0.5_dp*(dat(k) + maxval(dat(:k-1)))
     else
        qmedian_dp = dat(k)
-    endif
+    end if
 
   end function qmedian_dp
 
@@ -1047,7 +1047,7 @@ CONTAINS
              dat(j) = w
              i = i + 1
              j = j - 1
-          endif
+          end if
           if ( i > j ) exit
        enddo
        if ( j < k ) l = i
@@ -1057,7 +1057,7 @@ CONTAINS
        qmedian_sp = 0.5_sp*(dat(k) + maxval(dat(:k-1)))
     else
        qmedian_sp = dat(k)
-    endif
+    end if
 
   end function qmedian_sp
 

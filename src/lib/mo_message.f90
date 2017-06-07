@@ -173,7 +173,7 @@ CONTAINS
     if ((lle(trim(out),'') .and. lge(trim(out),''))) then
        nold = out
        write(out,'(A,A)') trim(nold), ' '
-    endif
+    end if
     write(iout,'(a)',advance=iadv) trim(out)
 #else
     if (present(t10)) out = t10//trim(out)
@@ -191,7 +191,7 @@ CONTAINS
        write(iout,'(a)',advance=iadv) trim(out)//' '
     else
        write(iout,'(a)',advance=iadv) trim(out)
-    endif
+    end if
 #endif
 
   END SUBROUTINE message

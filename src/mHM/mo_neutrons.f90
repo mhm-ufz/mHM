@@ -269,7 +269,7 @@ CONTAINS
           else
              isoimass(ll,pp) = COSMIC_bd*(0.5_dp*zthick(ll))*1.0_dp 
              iwatmass(ll,pp) = h2oeffdens(ll,pp)*(0.5_dp*zthick(ll))*1.0_dp
-          endif
+          end if
 
           hiflux(ll,pp)  = COSMIC_N*exp(-(isoimass(ll,pp)/COSMIC_L1 + iwatmass(ll,pp)/COSMIC_L2) )
           fastpot(ll,pp) = zthick(ll)*hiflux(ll,pp)*(COSMIC_alpha*COSMIC_bd + h2oeffdens(ll,pp))

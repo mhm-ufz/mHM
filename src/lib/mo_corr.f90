@@ -531,7 +531,7 @@ CONTAINS
        autocoeffk_dp = crosscoeffk(x, x, k, mask)
     else
        autocoeffk_dp = crosscoeffk(x, x, k)
-    endif
+    end if
 
   END FUNCTION autocoeffk_dp
 
@@ -550,7 +550,7 @@ CONTAINS
        autocoeffk_sp = crosscoeffk(x, x, k, mask)
     else
        autocoeffk_sp = crosscoeffk(x, x, k)
-    endif
+    end if
 
   END FUNCTION autocoeffk_sp
 
@@ -573,7 +573,7 @@ CONTAINS
        do i = 1, size(k)
           acf(i) = crosscoeffk(x, x, k(i))
        end do
-    endif
+    end if
 
   END FUNCTION autocoeffk_1d_dp
 
@@ -597,7 +597,7 @@ CONTAINS
        do i = 1, size(k)
           acf(i) = crosscoeffk(x, x, k(i))
        end do
-    endif
+    end if
 
   END FUNCTION autocoeffk_1d_sp
 
@@ -617,7 +617,7 @@ CONTAINS
        autocorr_dp = crosscoeffk(x, x, k, mask) / crosscoeffk(x, x, 0, mask)
     else
        autocorr_dp = crosscoeffk(x, x, k) / crosscoeffk(x, x, 0)
-    endif
+    end if
 
   END FUNCTION autocorr_dp
 
@@ -636,7 +636,7 @@ CONTAINS
        autocorr_sp = crosscoeffk(x, x, k, mask) / crosscoeffk(x, x, 0, mask)
     else
        autocorr_sp = crosscoeffk(x, x, k) / crosscoeffk(x, x, 0)
-    endif
+    end if
 
   END FUNCTION autocorr_sp
 
@@ -662,7 +662,7 @@ CONTAINS
        do i = 1, size(k)
           acf(i) = crosscoeffk(x, x, k(i)) / c0
        end do
-    endif
+    end if
 
   END FUNCTION autocorr_1d_dp
 
@@ -688,7 +688,7 @@ CONTAINS
        do i = 1, size(k)
           acf(i) = crosscoeffk(x, x, k(i)) / c0
        end do
-    endif
+    end if
 
   END FUNCTION autocorr_1d_sp
 
@@ -718,13 +718,13 @@ CONTAINS
        iwin = nwin
     else
        iwin = 1
-    endif
+    end if
 
     if (present(nhigh)) then
        ihigh = nhigh
     else
        ihigh = 0
-    endif
+    end if
 
     if (iand(n,n-1) /= 0) then
        if (present(nadjust)) then
@@ -732,12 +732,12 @@ CONTAINS
           nadjust = n
        else
           stop 'Error corr_dp: size(data1) must be a power of 2'
-       endif
+       end if
     else
        if (present(nadjust)) then
           nadjust = n
-       endif
-    endif
+       end if
+    end if
 
     allocate(dat1(n))
     allocate(dat2(n))
@@ -778,7 +778,7 @@ CONTAINS
        ! cdat2(1:no2) = cdat2(1:no2)*cwin1(1:no2)
        cdat1(1:no2) = cdat1(1:no2) * win1(1:no2)
        cdat2(1:no2) = cdat2(1:no2) * win1(1:no2)
-    endif
+    end if
 
     ! FxF*
     cdat1(1)  = cmplx(real(cdat1(1))*real(cdat2(1))*no2_1, &
@@ -798,7 +798,7 @@ CONTAINS
     if (ihigh > 0) then
        deallocate(win1)
        !deallocate(cwin1)
-    endif
+    end if
 
   END FUNCTION corr_dp
 
@@ -827,13 +827,13 @@ CONTAINS
        iwin = nwin
     else
        iwin = 1
-    endif
+    end if
 
     if (present(nhigh)) then
        ihigh = nhigh
     else
        ihigh = 0
-    endif
+    end if
 
     if (iand(n,n-1) /= 0) then
        if (present(nadjust)) then
@@ -841,12 +841,12 @@ CONTAINS
           nadjust = n
        else
           stop 'Error corr_sp: size(data1) must be a power of 2'
-       endif
+       end if
     else
        if (present(nadjust)) then
           nadjust = n
-       endif
-    endif
+       end if
+    end if
 
     allocate(dat1(n))
     allocate(dat2(n))
@@ -887,7 +887,7 @@ CONTAINS
        ! cdat2(1:no2) = cdat2(1:no2)*cwin1(1:no2)
        cdat1(1:no2) = cdat1(1:no2) * win1(1:no2)
        cdat2(1:no2) = cdat2(1:no2) * win1(1:no2)
-    endif
+    end if
 
     ! FxF*
     cdat1(1)  = cmplx(real(cdat1(1))*real(cdat2(1))*no2_1, &
@@ -907,7 +907,7 @@ CONTAINS
     if (ihigh > 0) then
        deallocate(win1)
        !deallocate(cwin1)
-    endif
+    end if
 
   END FUNCTION corr_sp
 
@@ -938,7 +938,7 @@ CONTAINS
        if (size(x) /= size(y)) stop 'Error crosscoeffk_dp: size(x) /= size(y)'
        if (size(mask) /= size(x)) stop 'Error crosscoeffk_dp: size(mask) /= size(x)'
        maske = mask
-    endif
+    end if
 
     nn    = count(maske)
     n     = real(nn,dp)
@@ -953,7 +953,7 @@ CONTAINS
        xdash = y - ave
        ave   = sum(x(:), mask=maske)/n
        ydash = x - ave
-    endif
+    end if
     kk = abs(k)
     nnn = size(x,1)
     n  = real(count(maske(1:nnn-kk).and.maske(1+kk:nnn)),dp)
@@ -986,7 +986,7 @@ CONTAINS
        if (size(x) /= size(y)) stop 'Error crosscoeffk_sp: size(x) /= size(y)'
        if (size(mask) /= size(x)) stop 'Error crosscoeffk_sp: size(mask) /= size(x)'
        maske = mask
-    endif
+    end if
 
     nn    = count(maske)
     n     = real(nn,sp)
@@ -1001,7 +1001,7 @@ CONTAINS
        xdash = y - ave
        ave   = sum(x(:), mask=maske)/n
        ydash = x - ave
-    endif
+    end if
     kk = abs(k)
     nnn = size(x,1)
     n  = real(count(maske(1:nnn-kk).and.maske(1+kk:nnn)),sp)
@@ -1027,7 +1027,7 @@ CONTAINS
        crosscorr_dp = crosscoeffk(x, y, k, mask) / crosscoeffk(x, y, 0, mask)
     else
        crosscorr_dp = crosscoeffk(x, y, k) / crosscoeffk(x, y, 0)
-    endif
+    end if
 
   END FUNCTION crosscorr_dp
 
@@ -1047,7 +1047,7 @@ CONTAINS
        crosscorr_sp = crosscoeffk(x, y, k, mask) / crosscoeffk(x, y, 0, mask)
     else
        crosscorr_sp = crosscoeffk(x, y, k) / crosscoeffk(x, y, 0)
-    endif
+    end if
 
   END FUNCTION crosscorr_sp
 

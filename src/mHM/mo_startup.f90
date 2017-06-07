@@ -203,7 +203,7 @@ CONTAINS
     if (mod(24,timeStep) > 0) then
        call message('mo_startup: timeStep must be a divisor of 24: ', num2str(timeStep))
        stop
-    endif
+    end if
     NTSTEPDAY  = 24_i4/timeStep            ! # of time steps per day
     c2TSTu     = real(timeStep,dp)/24.0_dp ! from per timeStep to per day
 
@@ -544,7 +544,7 @@ CONTAINS
        else 
           ! if not: assign rank / (data points + 1)
           temp(i) = real(i, dp) / real(nCells+1,dp)
-       endif
+       end if
     end do
 
     ! EXAMPLE

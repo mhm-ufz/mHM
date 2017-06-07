@@ -349,7 +349,7 @@ PROGRAM mhm_driver
            call timer_stop(itimer)
            call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
         end if
-     endif
+     end if
 
      ! read optional optional data if necessary
      if (optimize) then

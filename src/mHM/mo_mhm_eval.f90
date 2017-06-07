@@ -512,7 +512,7 @@ CONTAINS
              if ( (tt .EQ. 1) .OR. (year .NE. year_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
-             endif
+             end if
 
 
           
@@ -811,7 +811,7 @@ CONTAINS
                    case default ! no output at all
                       continue
                    end select
-                endif
+                end if
 
                 if (writeout) then
                    call nc%writeTimestep(tIndex_out*timestep-1)

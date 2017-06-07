@@ -657,7 +657,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'BIAS_sp_1d: number of arguments must be at least 2'
     !
@@ -694,7 +694,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'BIAS_dp_1d: number of arguments must be at least 2'
     !
     BIAS_dp_1d = average(y, mask=maske) - average(x, mask=maske)
@@ -731,7 +731,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'BIAS_sp_2d: number of arguments must be at least 2'
     !
@@ -771,7 +771,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'BIAS_dp_2d: number of arguments must be at least 2'
     !
@@ -812,7 +812,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
-    endif
+    end if
     !
     ! not really sopisticated, it has to be checked if the 3 numbers of x and y are matching in arry position
     if (n .LE. 1_i4) stop 'BIAS_sp_3d: number of arguments must be at least 2'
@@ -854,7 +854,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
-    endif
+    end if
     !
     ! not really sopisticated, it has to be checked if the 3 numbers of x and y are matching in arry position
     if (n .LE. 1_i4) stop 'BIAS_dp_3d: number of arguments must be at least 2'
@@ -901,7 +901,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_sp_1d: sample size must be at least 2'
 
     ! Mean
@@ -916,7 +916,7 @@ CONTAINS
     KGE_sp_1d = 1.0 - SQRT( &
          ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_sp - pearson_coor)**2             &  	   
+         ( 1.0_sp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_sp_1d
@@ -953,7 +953,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_sp_2d: sample size must be at least 2'
 
     ! Mean
@@ -980,7 +980,7 @@ CONTAINS
     KGE_sp_2d = 1.0 - SQRT( &
          ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_sp - pearson_coor)**2             &  	   
+         ( 1.0_sp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_sp_2d
@@ -1017,7 +1017,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_sp_3d: sample size must be at least 2'
 
     ! Mean
@@ -1044,7 +1044,7 @@ CONTAINS
     KGE_sp_3d = 1.0 - SQRT( &
          ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_sp - pearson_coor)**2             &  	   
+         ( 1.0_sp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_sp_3d
@@ -1082,7 +1082,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_dp_1d: sample size must be at least 2'
 
     ! Mean
@@ -1097,7 +1097,7 @@ CONTAINS
     KGE_dp_1d = 1.0 - SQRT( &
          ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_dp - pearson_coor)**2             &  	   
+         ( 1.0_dp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_dp_1d
@@ -1134,7 +1134,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_dp_2d: sample size must be at least 2'
 
     ! Mean
@@ -1161,7 +1161,7 @@ CONTAINS
     KGE_dp_2d = 1.0 - SQRT( &
          ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_dp - pearson_coor)**2             &  	   
+         ( 1.0_dp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_dp_2d
@@ -1198,7 +1198,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'KGE_dp_3d: sample size must be at least 2'
 
     ! Mean
@@ -1225,7 +1225,7 @@ CONTAINS
     KGE_dp_3d = 1.0 - SQRT( &
          ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
          ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 + &
-         ( 1.0_dp - pearson_coor)**2             &  	   
+         ( 1.0_dp - pearson_coor)**2             &       
          )
  
   END FUNCTION KGE_dp_3d
@@ -1260,7 +1260,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
@@ -1317,7 +1317,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
@@ -1374,7 +1374,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
@@ -1431,7 +1431,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
@@ -1488,7 +1488,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_sp) .or. y .lt. tiny(1.0_sp))
@@ -1545,7 +1545,7 @@ CONTAINS
        maske = mask
     else
        maske = .true.
-    endif
+    end if
 
     ! mask all negative and zero entries
     where (x .lt. tiny(1.0_dp) .or. y .lt. tiny(1.0_dp))
@@ -1600,7 +1600,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_sp_1d: number of arguments must be at least 2'
     !
     MAE_sp_1d = SAE_sp_1d(x,y,mask=maske) / real(n, sp)
@@ -1633,7 +1633,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_dp_1d: number of arguments must be at least 2'
     !
     MAE_dp_1d = SAE_dp_1d(x,y,mask=maske) / real(n, dp)
@@ -1666,7 +1666,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_sp_2d: number of arguments must be at least 2'
     !
     MAE_sp_2d = SAE_sp_2d(x,y,mask=maske) / real(n, sp)
@@ -1699,7 +1699,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_dp_2d: number of arguments must be at least 2'
     !
     MAE_dp_2d = SAE_dp_2d(x,y,mask=maske) / real(n, dp)
@@ -1733,7 +1733,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_sp_3d: number of arguments must be at least 2'
     !
     MAE_sp_3d = SAE_sp_3d(x,y,mask=maske) / real(n, sp)
@@ -1767,7 +1767,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MAE_dp_3d: number of arguments must be at least 2'
     !
     MAE_dp_3d = SAE_dp_3d(x,y,mask=maske) / real(n, dp)
@@ -1802,7 +1802,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_sp_1d: number of arguments must be at least 2'
     !
     MSE_sp_1d = SSE_sp_1d(x,y,mask=maske) / real(n, sp)
@@ -1835,7 +1835,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_dp_1d: number of arguments must be at least 2'
     !
     MSE_dp_1d = SSE_dp_1d(x,y,mask=maske) / real(n, dp)
@@ -1868,7 +1868,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_sp_2d: number of arguments must be at least 2'
     !
     MSE_sp_2d = SSE_sp_2d(x,y,mask=maske) / real(n, sp)
@@ -1901,7 +1901,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_dp_2d: number of arguments must be at least 2'
     !
     MSE_dp_2d = SSE_dp_2d(x,y,mask=maske) / real(n, dp)
@@ -1935,7 +1935,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_sp_3d: number of arguments must be at least 2'
     !
     MSE_sp_3d = SSE_sp_3d(x,y,mask=maske) / real(n, sp)
@@ -1969,7 +1969,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'MSE_dp_3d: number of arguments must be at least 2'
     !
     MSE_dp_3d = SSE_dp_3d(x,y,mask=maske) / real(n, dp)
@@ -2008,7 +2008,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'NSE_sp_1d: number of arguments must be at least 2'
     ! mean of x
     xmean = average(x, mask=maske)
@@ -2050,7 +2050,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'NSE_dp_1d: number of arguments must be at least 2'
     ! mean of x
     xmean = average(x, mask=maske)
@@ -2091,7 +2091,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'NSE_sp_2d: number of arguments must be at least 2'
     ! mean of x
@@ -2131,7 +2131,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'NSE_dp_2d: number of arguments must be at least 2'
     ! mean of x
@@ -2172,7 +2172,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'NSE_sp_3d: number of arguments must be at least 2'
     ! mean of x
@@ -2213,7 +2213,7 @@ CONTAINS
     else
        maske = .true.
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
-    endif
+    end if
     !
     if (n .LE. 1_i4) stop 'NSE_dp_3d: number of arguments must be at least 2'
     ! Average of x
@@ -2254,7 +2254,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_sp_1d: number of arguments must be at least 2'
     !
     SAE_sp_1d = sum(abs(y - x) ,mask = maske)
@@ -2288,7 +2288,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_dp_1d: number of arguments must be at least 2'
     !
     SAE_dp_1d = sum(abs(y - x) ,mask = maske)
@@ -2322,7 +2322,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_sp_2d: number of arguments must be at least 2'
     !
     SAE_sp_2d = SAE_sp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2)/)),                 &
@@ -2358,7 +2358,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_dp_2d: number of arguments must be at least 2'
     !
     SAE_dp_2d = SAE_dp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2)/)),                 &
@@ -2395,7 +2395,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_sp_3d: number of arguments must be at least 2'
     !
     SAE_sp_3d = SAE_sp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2) * size(x, dim=3)/)),                 &
@@ -2433,7 +2433,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SAE_dp_3d: number of arguments must be at least 2'
     !
     SAE_dp_3d = SAE_dp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2) * size(x, dim=3)/)),                 &
@@ -2472,7 +2472,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_sp_1d: number of arguments must be at least 2'
     !
     SSE_sp_1d = sum((y - x)**2_i4 ,mask = maske)
@@ -2505,7 +2505,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_dp_1d: number of arguments must be at least 2'
     !
     SSE_dp_1d = sum((y - x)**2_i4 ,mask = maske)
@@ -2538,7 +2538,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_sp_2d: number of arguments must be at least 2'
     !
     SSE_sp_2d = SSE_sp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2)/)),                 &
@@ -2573,7 +2573,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_dp_2d: number of arguments must be at least 2'
     !
     SSE_dp_2d = SSE_dp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2)/)),                 &
@@ -2609,7 +2609,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_sp_3d: number of arguments must be at least 2'
     !
     SSE_sp_3d = SSE_sp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2) * size(x, dim=3)/)),                 &
@@ -2646,7 +2646,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'SSE_dp_3d: number of arguments must be at least 2'
     !
     SSE_dp_3d = SSE_dp_1d(reshape(x, (/size(x, dim=1) * size(x, dim=2) * size(x, dim=3)/)),                 &
@@ -2684,7 +2684,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_sp_1d: number of arguments must be at least 2'
     !
     RMSE_sp_1d = sqrt(MSE_sp_1d(x,y,mask=maske))
@@ -2717,7 +2717,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_dp_1d: number of arguments must be at least 2'
     !
     RMSE_dp_1d = sqrt(MSE_dp_1d(x,y,mask=maske))
@@ -2750,7 +2750,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_sp_2d: number of arguments must be at least 2'
     !
     RMSE_sp_2d = sqrt(MSE_sp_2d(x,y,mask=maske))
@@ -2783,7 +2783,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_dp_2d: number of arguments must be at least 2'
     !
     RMSE_dp_2d = sqrt(MSE_dp_2d(x,y,mask=maske))
@@ -2817,7 +2817,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_sp_3d: number of arguments must be at least 2'
     !
     RMSE_sp_3d = sqrt(MSE_sp_3d(x,y,mask=maske))
@@ -2851,7 +2851,7 @@ CONTAINS
     else
        maske = .true.
        n = size(x,dim=1) * size(x,dim=2) * size(x,dim=3)
-    endif
+    end if
     if (n .LE. 1_i4) stop 'RMSE_dp_3d: number of arguments must be at least 2'
     !
     RMSE_dp_3d = sqrt(MSE_dp_3d(x,y,mask=maske))

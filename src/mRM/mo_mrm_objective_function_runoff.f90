@@ -302,7 +302,7 @@ CONTAINS
           loglikelihood = loglikelihood_evin2013_2(parameterset, regularize=.true.)
        else
           loglikelihood = loglikelihood_evin2013_2(parameterset)
-       endif
+       end if
     case default
        stop "Error loglikelihood: chosen opti_function is no loglikelihood."
     end select
@@ -584,7 +584,7 @@ CONTAINS
        loglikelihood_evin2013_2 = tmp
     else
        write(*,*) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, -loglikelihood_evin2013_2/real(nmeas,dp)
-    endif
+    end if
 
     deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
     deallocate(obs, calc, out, errors, sigma, eta, y)
@@ -625,7 +625,7 @@ CONTAINS
           !    ! in bound
           !    parameter_regularization = 0.0_dp
           ! end if
-       endif
+       end if
     end do
 
   END FUNCTION parameter_regularization

@@ -198,13 +198,13 @@ CONTAINS
        missing = misval
     else
        missing = -9999._dp
-    endif   
+    end if   
    
     if (present(rm_misval)) then
        remove = rm_misval
     else
        remove = .FALSE.
-    endif   
+    end if   
     
     ! get total number of days 
     ndays   = SIZE(daily_data)
@@ -260,7 +260,7 @@ CONTAINS
              mon_avg(kk) = mon_sum(y,m) / real( nCounter_m(y,m), dp)
           else if ( ( nCounter_m(y,m) .GT. 0 ) .AND. remove) then
              mon_avg(kk) = mon_sum(y,m) / real( nCounter_m(y,m), dp)
-          endif    
+          end if    
        end do
     end do
     
@@ -302,13 +302,13 @@ CONTAINS
        missing = misval
     else
        missing = -9999._dp
-    endif   
+    end if   
 
     if (present(rm_misval)) then
        remove = rm_misval
     else
        remove = .FALSE.
-    endif   
+    end if   
    
     ! get total number of hours 
     nhours   = SIZE(hourly_data)
@@ -341,7 +341,7 @@ CONTAINS
        else
           day_sum(dd) = day_sum(dd) + hourly_data(tt)
           nCounter_h(dd) = nCounter_h(dd) + 1
-       endif  
+       end if  
        if ( (hourEd .EQ. 23) .AND. (tt .LT. nhours)) dd = dd + 1    
     end do
 
@@ -356,7 +356,7 @@ CONTAINS
           day_avg(kk) = day_sum(kk) / real( nCounter_h(kk), dp)
        else if ( ( nCounter_h(kk) .GT. 0 ) .AND. remove) then
           day_avg(kk) = day_sum(kk) / real( nCounter_h(kk), dp)
-       endif
+       end if
     end do   
     
     deallocate(nCounter_h_full)
