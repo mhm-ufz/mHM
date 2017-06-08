@@ -1277,7 +1277,7 @@ contains
        rig_col_L1, cell_id0, mask0, &
        nodata, max_intercept1 ) 
 
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_upscaling_operators, only: upscale_arithmetic_mean 
     use mo_string_utils,        only: num2str
     use mo_message,             only: message
 
@@ -1322,9 +1322,9 @@ contains
        !$OMP END PARALLEL
 
        ! Upscale by arithmetic mean
-       max_intercept1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1,      &
-            Rig_col_L1, cell_id0, mask0, nodata, max_intercept0 )
-
+       max_intercept1 = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1,      & 
+            Rig_col_L1, cell_id0, mask0, nodata, max_intercept0 ) 
+       
        deallocate( gamma_intercept)
        deallocate( max_intercept0 )        
     CASE DEFAULT
