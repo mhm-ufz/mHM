@@ -527,6 +527,7 @@ contains
   !>         \author Giovanni Dalmasso, Rohini Kumar
   !>         \date Dec 2012
   !          Written, Giovanni Dalmasso, Dec 2012
+  !          Modified, Rohini Kumar, Jun 2016 - fixed bug
 
   function upscale_geometric_mean( &
        L1_upper_rowId_cell,        &   ! upper row boundary (level-0) of a level-1 cell
@@ -537,7 +538,7 @@ contains
        nodata_value,               &   ! no data value
        L0_fineScale_data           &   ! high resolution data
        )
-
+    use  mo_utils, only: ne, eq
     implicit none
 
     ! input
@@ -552,36 +553,36 @@ contains
     real(dp),    dimension( size(L1_upper_rowId_cell,1) ) :: upscale_geometric_mean
 
     ! loca variables
-    integer(i4)                                           :: L1_nCells
     integer(i4)                                           :: iu, id, jl, jr
     integer(i4)                                           :: kk
     integer(i4)                                           :: nCells_L0_in_L1
     real(dp),    dimension(size(mask0,1),size(mask0,2))   :: L0_fineScale_2D_data
     real(dp),    dimension(size(mask0,1),size(mask0,2))   :: nodata_2d
+    real(dp),    dimension(:), allocatable                :: dummy_V
 
     ! allocation and initialisation
-    upscale_geometric_mean(:)      = nodata_value
-    nodata_2d                      = nodata_value
-    L0_fineScale_2D_data           = unpack( L0_fineScale_data, mask0, nodata_2d )
+    upscale_geometric_mean(:) = nodata_value
+    nodata_2d                 = nodata_value
+    L0_fineScale_2D_data      = unpack( L0_fineScale_data, mask0, nodata_2d )
 
-    L1_nCells = size(upscale_geometric_mean,1)
-    where(L0_fineScale_2D_data > 0.0_dp) L0_fineScale_2D_data = log(L0_fineScale_2D_data)
-
-    do kk = 1, L1_nCells
+    do kk = 1, size(upscale_geometric_mean,1)
        iu = L1_upper_rowId_cell(kk)
        id = L1_lower_rowId_cell(kk)
        jl = L1_left_colonId_cell(kk)
        jr = L1_right_colonId_cell(kk)
-       nCells_L0_in_L1 = count(L0_fineScale_2D_data(iu:id, jl:jr) > 0.0_dp)
-
-       if(nCells_L0_in_L1 > 0_i4) then
-          upscale_geometric_mean(kk) = sum(L0_fineScale_2D_data(iu:id, jl:jr),    &
-               L0_fineScale_2D_data(iu:id, jl:jr) > 0.0_dp ) / real(nCells_L0_in_L1, dp)
-          upscale_geometric_mean(kk) = exp( upscale_geometric_mean(kk) )
+       nCells_L0_in_L1 = count( L0_fineScale_2D_data(iu:id, jl:jr) .ne. nodata_value )
+       allocate( dummy_V(nCells_L0_in_L1) )
+       dummy_V(:) = PACK( L0_fineScale_2D_data(iu:id,jl:jr), MASK=(L0_fineScale_2D_data(iu:id,jl:jr) .ne. nodata_value) )
+       upscale_geometric_mean(kk) = PRODUCT( dummy_V(:) )
+       if( upscale_geometric_mean(kk) .ne. 0.0_dp ) then
+          upscale_geometric_mean(kk) = upscale_geometric_mean(kk)**(1.0_dp/real(nCells_L0_in_L1,dp))
        else
           upscale_geometric_mean(kk) = 0.0_dp
        end if
+       deallocate(dummy_V)
+       !!
     end do
+    
 
   end function upscale_geometric_mean
 
