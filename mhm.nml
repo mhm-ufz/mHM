@@ -53,7 +53,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 1
+nBasins             = 2
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
@@ -520,7 +520,7 @@ LCoverfName(3)     = 'lc_1990.asc'
 !>  1: read mean monthly gridded LAI values.\n
 !>     must be a separate *.nc file for every (modeled) basins.\n
 !-----------------------------------------------------------------------------------
-timeStep_LAI_input = -2
+timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
 !>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
@@ -559,7 +559,7 @@ processCase(4) = 1
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
-processCase(5) = -1
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
@@ -592,7 +592,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 1
+nGaugesTotal = 2
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i

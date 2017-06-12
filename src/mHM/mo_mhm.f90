@@ -620,7 +620,7 @@ CONTAINS
        case(-1) ! PET is input ! correct pet for every day only once at the first time step
           pet =  petLAIcorFactorL1(k) * pet_in(k)
 
-        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (month .NE. counter_month)) ) then
+        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (tt .EQ. 9555)) ) then
         print 1001,"DSF range: ",minval(petLAIcorFactorL1),"   ",maxval(petLAIcorFactorL1)," Year ",year," Month ",month
         1001 format (1x,A,f10.8,A,f10.8,A,i5,A,i2)
         end if
