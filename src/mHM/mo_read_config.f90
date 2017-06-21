@@ -386,7 +386,7 @@ CONTAINS
 
          namelist /directRunoff1/ imperviousStorageCapacity
     ! PET is input, LAI driven correction
-    namelist /PET0_lai/  PET_a_forest, PET_a_impervious, PET_a_pervious, PET_b, PET_c            
+    namelist /PETminus1/  PET_a_forest, PET_a_impervious, PET_a_pervious, PET_b, PET_c            
     ! PET is input, aspect driven correction
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
     ! Hargreaves-Samani
@@ -1060,8 +1060,8 @@ CONTAINS
     ! Process 5 - potential evapotranspiration (PET)
     select case (processCase(5))
     case(-1) ! 0 - PET is input, correct PET by LAI
-       call position_nml('PET0_lai', unamelist_param)
-       read(unamelist_param, nml=PET0_lai)
+       call position_nml('PETminus1', unamelist_param)
+       read(unamelist_param, nml=PETminus1)
        processMatrix(5, 1) = processCase(5)
        processMatrix(5, 2) = 5_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
@@ -1080,7 +1080,7 @@ CONTAINS
                                                                                  
        ! check if parameter are in range                                         
        if ( .not. in_bound(global_parameters) ) then                             
-          call message('***ERROR: parameter in namelist "PET0_lai" out of bound  n ', &
+          call message('***ERROR: parameter in namelist "PETminus1" out of bound  n ', &
                trim(adjustl(file_namelist_param)))                               
           stop                                                                   
        end if                                                                    

@@ -89,7 +89,7 @@ imperviousStorageCapacity          =  0.0000,      5.0000,           0.5,     1,
 /                                                         
                                                        
 ! potential evapotranspiration
-&PET0_lai ! PET is input, LAI driven correction
+&PETminus1 ! PET is input, LAI driven correction
 PET_a_forest                       =  0.3000,      1.3000,         0.3000,     1,       1
 PET_a_impervious                   =  0.3000,      1.3000,         0.8000,     1,       1
 PET_a_pervious                     =  0.3000,      1.3000,         1.3000,     1,       1

@@ -559,7 +559,7 @@ processCase(4) = 1
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
-processCase(5) = -1
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response
 processCase(6) = 1
