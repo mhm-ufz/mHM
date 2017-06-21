@@ -388,18 +388,6 @@ end subroutine prepare_meteo_forcings_data
        L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) )  
        
     end do
-    
-    !if (ncvarName .EQ. 'pet') then !loop k cell and multiply with DSF
-    !     print*,"RAW", L1_data_packed(1,1)
-         
-    !       do k = 1, nCells1
-    
-    !L1_data_packed(k,:) = L1_data_packed(k,:) * 5.0_dp
-    !       end do
-           
-    !    print*,"AFTER", L1_data_packed(1,1)
-
-    !end if 
 
     ! free memory immediately
     deallocate(L1_data)
@@ -414,33 +402,25 @@ end subroutine prepare_meteo_forcings_data
 
 
   ! ------------------------------------------------------------------
-
   !     NAME
-  !         meteo_weights_wrapper
-  
+  !         meteo_weights_wrapper 
   !     PURPOSE
   !>        \brief Prepare weights for meteorological forcings data for mHM at Level-1
-
   !>        \details Prepare meteorological weights data for mHM, which include \n
   !>         1) Reading meteo. weights datasets at their native resolution for every basin \n
   !>         2) Perform aggregation or disaggregation of meteo. weights datasets from their \n
   !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
   !>         3) Pad the above datasets of every basin to their respective global ones
   !>                 
-
   !     CALLING SEQUENCE
-
   !     INTENT(IN)
   !>        \param[in] "integer(i4)               :: iBasin"             Basin Id
   !>        \param[in] "logical                   :: read_meteo_weights" Flag for reading meteo weights
   !>        \param[in] "character(len=*)          :: dataPath"           Data path where a given meteo. variable is stored
-
   !     INTENT(INOUT)
   !         None
-
   !     INTENT(OUT)
   !>        \param[in] "real(dp), dimension(:,:,:) :: dataOut1"      Packed meterological variable for the whole simulation period
-
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
   !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values

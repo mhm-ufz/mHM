@@ -272,7 +272,7 @@ CONTAINS
     use mo_julian,                  only: dec2date, date2dec
     use mo_string_utils,            only: num2str
     use mo_mhm_constants,           only: HarSamConst ! parameters for Hargreaves-Samani Equation
-    use mo_mpr_petdynamicscaling,   only: pet_correctbyLAI
+    use mo_mpr_pet,                 only: pet_correctbyLAI
 
     implicit none
 
@@ -619,11 +619,6 @@ CONTAINS
        select case (processMatrix(5,1))
        case(-1) ! PET is input ! correct pet for every day only once at the first time step
           pet =  petLAIcorFactorL1(k) * pet_in(k)
-
-        if ( (k .EQ. 1) .AND. ((tt .EQ. 1) .OR. (tt .EQ. 9555)) ) then
-        print 1001,"DSF range: ",minval(petLAIcorFactorL1),"   ",maxval(petLAIcorFactorL1)," Year ",year," Month ",month
-        1001 format (1x,A,f10.8,A,f10.8,A,i5,A,i2)
-        end if
 
        case(0) ! PET is input ! correct pet for every day only once at the first time step
           pet =  fAsp(k) * pet_in(k)

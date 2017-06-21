@@ -296,7 +296,7 @@ MODULE mo_global_variables
                                                                              
   real(dp),    public, dimension(:),   allocatable   :: L0_petLAIcorFactor   ! [-]   PET correction based on LAI (KC by GEUS.dk)
   
-  real(dp),    public, dimension(:),   allocatable   :: L0_areaCell               ! [m2] Area of a cell at level-0
+  real(dp),    public, dimension(:),   allocatable   :: L0_areaCell          ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
