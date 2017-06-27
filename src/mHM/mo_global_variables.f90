@@ -293,9 +293,7 @@ MODULE mo_global_variables
   !                                                                            
   real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI       ! gridded LAI data used when timeStep_LAI_input < 0 or == 1
   !                                                                          ! dim1=number of grid cells, dim2=number of LAI time steps
-                                                                             
-  real(dp),    public, dimension(:),   allocatable   :: L0_petLAIcorFactor   ! [-]   PET correction based on LAI (KC by GEUS.dk)
-  
+
   real(dp),    public, dimension(:),   allocatable   :: L0_areaCell          ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------
