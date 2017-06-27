@@ -20,9 +20,9 @@
 ! Rohini Kumar and
 ! Olda Rakovec  , Sep 2014 - added KGE estimator (OF number 9)
 ! Matthias Zink,  Nov 2014 - added multiple options for process 5 - PET
+! Matthias Zink, Dec 2014 - adopted inflow gauges to ignore headwater cells
 !******************************************************************************************
 !
-
 !******************************************************************************************
 ! MRM COUPLING MODE
 !******************************************************************************************
@@ -79,23 +79,12 @@ dir_RestartOut(1)    = "output_b1/"
 dir_Out(1)           = "output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
 file_LatLon(1)        = "../../test_basin/input/latlon/latlon_1.nc"
-!
-!**** for Basin 2
-!> directory where morphological files are located
-dir_Morpho(2)        = "../../test_basin/input/morph/"
-!> directory where land cover files are located
-dir_LCover(2)        = "../../test_basin/input/luse/"
-!> directory where restart input is located
-dir_RestartIn(2)     = "restart/"
-!> directory where restart output should be written
-dir_RestartOut(2)    = "output_b2/"
-!> directory where output should be written
-dir_Out(2)           = "output_b2/"
-!> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)        = "../../test_basin/input/latlon/latlon_1.nc"
 /
 
 &directories_mHM
+!-----------------------------------------------------
+! Directory for common files (to all basins) 
+!-----------------------------------------------------
 !> input format specification for the meteorological forcings: 'nc' or 'bin'.
 !> this format is common to all basins to be modeled
 inputFormat_meteo_forcings = "nc"
@@ -104,7 +93,7 @@ inputFormat_meteo_forcings = "nc"
 !> basin wise directory paths
 !-----------------------------------------------------
 !
-!**** basin 1
+!**** for Basin 1
 !> directory where meteorological input is located
 dir_Precipitation(1) = "../../test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "../../test_basin/input/meteo/tavg/"
@@ -125,28 +114,6 @@ dir_absVapPressure(1)  = "../../test_basin/input/meteo/"
 dir_windspeed(1)       = "../../test_basin/input/meteo/"
 !> directory where gridded LAI files are located
 dir_gridded_LAI(1)   = "../../test_basin/input/lai/"
-!
-!**** Basin 2
-!> directory where meteorological input is located
-dir_Precipitation(2) = "../../test_basin/input/meteo/pre/"
-dir_Temperature(2)   = "../../test_basin/input/meteo/tavg/"
-!> paths depending on PET process (processCase(5))
-!> 0 - PET is input 
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "../../test_basin/input/meteo/pet/"
-!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "../../test_basin/input/meteo/"
-dir_MaxTemperature(2)  = "../../test_basin/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "../../test_basin/input/meteo/"
-!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "../../test_basin/input/meteo/"
-dir_windspeed(2)       = "../../test_basin/input/meteo/"
-!> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "../../test_basin/input/lai/"
 /
 
 !> data which are optionally needed for optimization
@@ -195,14 +162,13 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n  
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n  
 !-----------------------------------------------------------------------------
 resolution_Hydrology(1) = 24000 
-resolution_Hydrology(2) = 24000 
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -211,14 +177,12 @@ resolution_Hydrology(2) = 24000
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n 
 !-----------------------------------------------------------------------------
 resolution_Routing(1)   = 24000 
-resolution_Routing(2)   = 24000
 !----------------------------------------------------------------------------
 !> specify same integer for basins to share L0_data to save memory \n
 !> same integer HAVE TO FOLLOW EACH OTHER DIRECTLY and are not allowed to be \n
 !> intersected by other integers \n
 !-----------------------------------------------------------------------------
 L0Basin(1)            = 1
-L0Basin(2)            = 1
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition 
@@ -270,25 +234,18 @@ perform_mpr   = .TRUE.
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
 warming_Days(1)       = 360
-warming_Days(2)       = 360
 !> first year of wanted simulation period
 eval_Per(1)%yStart    = 1990
-eval_Per(2)%yStart    = 1990
 !> first month of wanted simulation period
 eval_Per(1)%mStart    = 01
-eval_Per(2)%mStart    = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart    = 01
-eval_Per(2)%dStart    = 01
 !> last year   of wanted simulation period
 eval_Per(1)%yEnd      = 1993
-eval_Per(2)%yEnd      = 1993
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd      = 12
-eval_Per(2)%mEnd      = 12
 !> last day    of wanted simulation period
 eval_Per(1)%dEnd      = 31
-eval_Per(2)%dEnd      = 31
 !> switch to control read input frequency of the gridded meteo input, 
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -299,7 +256,6 @@ eval_Per(2)%dEnd      = 31
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
 time_step_model_inputs(1) = -2
-time_step_model_inputs(2) = -2
 /
 
 !******************************************************************************************
@@ -405,7 +361,7 @@ processCase(2) = 1
 !> 1 - Feddes equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 2 - Jarvis equation for ET reduction, multi-layer infiltration capacity approach, Brooks-Corey like
 !> 3 - Jarvis equation for ET reduction and FC dependency on root fraction coefficient
-processCase(3) = 2
+processCase(3) = 3
 !> directRunoff
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
@@ -414,7 +370,7 @@ processCase(4) = 1
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 2
+processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1
@@ -424,7 +380,7 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-processCase(8) = 0
+processCase(8) = 1
 !> geoparameter
 !> 1 - geological parameters (not regionalized yet)
 processCase(9) = 1
@@ -446,7 +402,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal           = 2
+nGaugesTotal           = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -459,22 +415,6 @@ NoGauges_basin(1)       = 1
 Gauge_id(1,1)           = 398
 !> name of file with timeseries of gauge(1) for subbasin(1) --> (1,1) 
 gauge_filename(1,1)     = "00398.txt"
-!
-!> basin 2
-!> number of gauges for subbasin (2)
-NoGauges_basin(2)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(2,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(2,1)     = "00398.txt"
-!
-!> basin 3
-!> number of gauges for subbasin (2)
-NoGauges_basin(3)       = 1
-!> id of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_id(3,1)           = 398
-!> name of file with timeseries of gauge(1) for subbasin(2) --> (2,1) 
-Gauge_filename(3,1)     = "00398.txt"
 /
 
 &inflow_gauges
@@ -496,6 +436,8 @@ NoInflowGauges_basin(1)       = 0
 InflowGauge_id(1,1)           = 398
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1) 
 InflowGauge_filename(1,1)     = "00398.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(1) --> (1,1) 
+InflowGauge_Headwater(1,1) = .FALSE.
 /
 
 !******************************************************************************************

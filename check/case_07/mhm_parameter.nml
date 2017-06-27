@@ -38,6 +38,50 @@ rootFractionCoefficient_impervious =  0.9000,      0.9500,          0.93,     1,
 rootFractionCoefficient_pervious   =  0.0010,      0.0900,          0.02,     1,       1
 infiltrationShapeFactor            =  1.0000,      4.0000,          1.75,     1,       1
 /                                                         
+
+&soilmoisture2                                            
+orgMatterContent_forest            =  0.0000,      20.000,           3.4,     1,       1
+orgMatterContent_impervious        =  0.0000,      1.0000,           0.1,     1,       1
+orgMatterContent_pervious          =  0.0000,      4.0000,           0.6,     1,       1
+PTF_lower66_5_constant             =  0.6462,      0.9506,          0.76,     1,       1
+PTF_lower66_5_clay                 =  0.0001,      0.0029,        0.0009,     1,       1
+PTF_lower66_5_Db                   = -0.3727,     -0.1871,        -0.264,     1,       1
+PTF_higher66_5_constant            =  0.5358,      1.1232,          0.89,     1,       1
+PTF_higher66_5_clay                = -0.0055,      0.0049,        -0.001,     1,       1
+PTF_higher66_5_Db                  = -0.5513,     -0.0913,        -0.324,     1,       1
+PTF_Ks_constant                    = -1.2000,     -0.2850,        -0.585,     1,       1
+PTF_Ks_sand                        =  0.0060,      0.0260,        0.0125,     1,       1
+PTF_Ks_clay                        =  0.0030,      0.0130,        0.0063,     1,       1
+PTF_Ks_curveSlope                  =  60.960,      60.960,        60.960,     0,       1
+rootFractionCoefficient_forest     =  0.9000,      0.9990,          0.97,     1,       1
+rootFractionCoefficient_impervious =  0.9000,      0.9500,          0.93,     1,       1
+rootFractionCoefficient_pervious   =  0.0010,      0.0900,          0.02,     1,       1
+infiltrationShapeFactor            =  1.0000,      4.0000,          1.75,     1,       1
+jarvis_sm_threshold_c1             =  0.0000,      1.0000,          0.50,     1,       1
+/                                                         
+
+&soilmoisture3                                            
+orgMatterContent_forest            =  0.0000,      20.000,           3.4,     1,       1
+orgMatterContent_impervious        =  0.0000,      1.0000,           0.1,     1,       1
+orgMatterContent_pervious          =  0.0000,      4.0000,           0.6,     1,       1
+PTF_lower66_5_constant             =  0.6462,      0.9506,          0.76,     1,       1
+PTF_lower66_5_clay                 =  0.0001,      0.0029,        0.0009,     1,       1
+PTF_lower66_5_Db                   = -0.3727,     -0.1871,        -0.264,     1,       1
+PTF_higher66_5_constant            =  0.5358,      1.1232,          0.89,     1,       1
+PTF_higher66_5_clay                = -0.0055,      0.0049,        -0.001,     1,       1
+PTF_higher66_5_Db                  = -0.5513,     -0.0913,        -0.324,     1,       1
+PTF_Ks_constant                    = -1.2000,     -0.2850,        -0.585,     1,       1
+PTF_Ks_sand                        =  0.0060,      0.0260,        0.0125,     1,       1
+PTF_Ks_clay                        =  0.0030,      0.0130,        0.0063,     1,       1
+PTF_Ks_curveSlope                  =  60.960,      60.960,        60.960,     0,       1
+rootFractionCoefficient_forest     =  0.9000,      0.9990,          0.97,     1,       1
+rootFractionCoefficient_impervious =  0.9000,      0.9500,          0.93,     1,       1
+rootFractionCoefficient_pervious   =  0.0010,      0.0900,          0.02,     1,       1
+infiltrationShapeFactor            =  1.0000,      4.0000,          1.75,     1,       1
+rootFractionCoefficient_sand 	   =  0.0010,      0.0900,          0.09,     1,       1
+rootFractionCoefficient_clay   	   =  0.9000,      0.9990,          0.98,     1,       1
+jarvis_sm_threshold_c1             =  0.0000,      1.0000,          0.50,     1,       1
+/ 
                                                           
 ! directSealedAreaRunoff                                  
 &directRunoff1                                            
@@ -87,7 +131,7 @@ rechargeFactor_karstic             = -5.0000,      5.0000,          -1.0,     1,
 gain_loss_GWreservoir_karstic      =  1.0000,      1.0000,           1.0,     0,       1
 /                                                         
                                                           
-! routing                                                 
+! Muskingum routing parameters with MPR
 &routing1                                                 
 muskingumTravelTime_constant       =  0.3100,      0.3500,         0.325,     1,       1
 muskingumTravelTime_riverLength    =  0.0700,      0.0800,         0.075,     1,       1
@@ -95,6 +139,12 @@ muskingumTravelTime_riverSlope     =  1.9500,      2.1000,           2.0,     1,
 muskingumTravelTime_impervious     =  0.0900,      0.1100,           0.1,     1,       1
 muskingumAttenuation_riverSlope    =  0.0100,      0.5000,           0.3,     1,       1
 /
+
+! adaptive timestep routing
+&routing2
+streamflow_celerity                =     0.1,         15.,           1.5,     0,       1
+/
+
 ! ground albedo neutrons                                  
 ! THIS IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH
 &neutrons1                                                 
