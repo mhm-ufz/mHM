@@ -31,7 +31,7 @@ MODULE mo_global_variables
   !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
   !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
   !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
-  !           Demirel M.C.        May 2017 - added L0_petLAIcorFactor and L1_petLAIcorFactor for PET correction
+  !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
 
 
   
