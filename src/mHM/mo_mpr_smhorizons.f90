@@ -252,9 +252,6 @@ contains
     tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
     tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
-    
-    tmp_rootFractionCoefficient_sand       = param(6) - param(5) !delta approach is used as in tmp_rootFractionCoefficient_pervious
-    tmp_rootFractionCoefficient_clay       = param(6)            !the value in parameter namelist is before substraction i.e. param(5)      
                               
     !   3 - dependent on land cover and additionally soil texture
     select case (processMatrix(3,1))    
