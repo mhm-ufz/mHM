@@ -66,9 +66,11 @@ case 1 :: RESTART READING AND WRITING, MPR deactivated, PET: Hargreaves-Samani
    mhm_outputs.nml:
    timeStep_model_outputs     = 0                                               (default:      -1)
 
-case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly, output written monthly
+case 2 :: ROUTING DEACTIVATED, PET: Priestley Taylor, CHUNK READ IN: monthly, output written monthly,
+          Jarvis SM-dependent ET reduction
    nBasins                    = 2                                               (default:       1)
    nGaugesTotal               = 2                                               (default:       1)
+   processCase(3)             = 2                                               (default:       1)
    processCase(5)             = 2                                               (default:       0)
    processCase(8)             = 0                                               (default:       1)
    timestep_model_inputs      = -2                                              (default:       1)
@@ -172,12 +174,12 @@ case 5 :: INFLOW GAUGE, LAI FROM GRIDDED DATA, output written every 14 days
    timeStep_model_outputs     = 336 (= 14*24 hours)                             (default:      -1)
 
 
-case 6 :: SOIL MOISTURE OPTIMIZATION ACTIVATED
+case 6 :: COMBINED SOIL MOISTURE - STREAMFLOW OPTIMIZATION ACTIVATED
    nBasins                    = 2                                               (default:       1)
    nGaugesTotal               = 2                                               (default:       1)
    optimize                   = .TRUE.                                          (default: .FALSE.)
    opti_method                = 1                                               (default:       3)
-   opti_function              = 13                                              (default:       3)
+   opti_function              = 28                                              (default:       3)
    nIterations                = 6                                               (default:     400)
    -----
    mhm_outputs.nml:
@@ -213,6 +215,13 @@ case 9 :: ADAPTIVE TIMESTEPPING IN ROUTING, RESTART WRITING, PET: Hargreaves-Sam
    -----
    mhm_outputs.nml:
    timeStep_model_outputs     = 0                                               (default:      -1)
+
+case 10 :: SOIL MOISTURE ET: Jarvis SM-dependent ET reduction &soil texture dependent root fraction
+   processCase(3)             = 3                                               (default:       1)
+   -----
+   mhm_outputs.nml:
+   timeStep_model_outputs     = -2                                              (default:      -1)
+
 
 # -------------------------------------------------------------------------------------------
 #

@@ -1,0 +1,27 @@
+
+! Emacs: -*- mode: f90 -*-
+!1)  First give the timestep for writing gridded model outputs
+!    It should be integer and has to be perfectly divisible 
+!    by the number of total modeling time steps
+!2) Define main outputs of the model as namelist
+!   the particular output flag is specified as .TRUE. / .FALSE
+!   for writing /not writing the output to a file
+! SYNTAX = ".TRUE." or ".FALSE."
+&NLoutputResults
+!
+! switch to control write out frequency of the gridded model outputs below
+! >0: after each <timeStep_model_outputs> time steps
+!  0: only at end of run
+! -1: daily
+! -2: monthly
+! -3: yearly
+timeStep_model_outputs_mrm = -1
+!
+!----------------
+! 1. Fluxes
+!----------------
+!
+! routed streamflow                      (L1_qMod)     [mm]    -- case  1
+outputFlxState_mrm(1)=.TRUE.
+/
+

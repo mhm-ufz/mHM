@@ -246,7 +246,7 @@ opti_method = 1
 !> (9) 1.0 - KGE (Kling-Gupta efficiency measure)  \n
 !> (13) 1.0 - average temporal correlation of soil moisture  \n
 !> further functions can be implemented in mo_objective_function
-opti_function = 13
+opti_function = 28
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
