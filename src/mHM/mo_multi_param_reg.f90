@@ -260,7 +260,7 @@ contains
     use mo_mpr_SMhorizons,      only: mpr_SMhorizons
     use mo_mpr_runoff,          only: mpr_runoff
     use mo_mpr_pet,             only: pet_correctbyLAI, pet_correctbyASP, priestley_taylor_alpha, &
-                                      aerodynamical_resistance, bulksurface_resistance
+                                      bulksurface_resistance!, aerodynamical_resistance
     
     implicit none
 
@@ -474,9 +474,7 @@ contains
            iEnd2   = proc_Mat(3,3) - 1
 
            ! last parameter is jarvis parameter - no need to be regionalized               
-           jarvis_thresh_c1 = param(proc_Mat(3,3))
-
-           
+           jarvis_thresh_c1 = param(proc_Mat(3,3))           
     case DEFAULT
        call message()
        call message('***ERROR: Process description for process "soil moisture parametrization" does not exist! mo_multi_param_reg')
@@ -527,7 +525,7 @@ contains
     ! ------------------------------------------------------------------
     select case( proc_Mat( 5,1 ) )
     case(-1) ! LAI correction of input PET
-
+       iEnd   = -9999 ! dummy statement
     case(0) ! aspect correction of input PET
        iStart = proc_Mat(5,3) - proc_Mat(5,2) + 1
        iEnd   = proc_Mat(5,3)    
@@ -1219,4 +1217,163 @@ contains
 
   end subroutine canopy_intercept_param
 
+  
+  ! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        aerodynamical_resistance
+
+  !>       \brief Regionalization of aerodynamic resistance
+
+  !>       \details estimation of aerodynamical resistance
+  !>                Global parameters needed (see mhm_parameter.nml):\n
+  !>                   - param(1) = canopyheigth_forest             \n
+  !>                   - param(2) = canopyheigth_impervious         \n
+  !>                   - param(3) = canopyheigth_pervious           \n
+  !>                   - param(4) = displacementheight_coeff        \n
+  !>                   - param(5) = roughnesslength_momentum_coeff  \n
+  !>                   - param(6) = roughnesslength_heat_coeff      \n
+
+  !      INTENT(IN)
+  !>       \param[in] "integer(i4)  :: LCover0(:)"     - land cover at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
+  !>       \param[in] "real(dp)     :: param(:)"       - vector with global parameters
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0  (:)"  - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+
+  !     INTENT(INOUT)
+  !        None
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp)    :: aerodyn_resistance1(:)" - [s m-1] aerodynamical resistance
+
+  !     INTENT(IN), OPTIONAL
+  !        None
+
+  !     INTENT(INOUT), OPTIONAL
+  !        None
+
+  !     INTENT(OUT), OPTIONAL
+  !        None
+
+  !     RETURN
+  !        None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !        None
+
+  !     HISTORY
+  !>       \author Matthias Zink
+  !>       \date   Apr 2013
+  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+
+  subroutine aerodynamical_resistance( &
+       LCover0,                        & ! land cover at level 0
+       LAILUT,                         & ! look up table for LAI
+       param,                          & ! parameter values (size=6)
+       mask0,                          & ! mask at level 0
+       nodata,                         & ! given nodata value
+       cell_id0,                       & ! cell id at Level 0
+       nL0_in_L1,                      & ! number of l0 cells within a l1 cell
+       Upp_row_L1,                     & ! upper row of a l1 cell in l0 grid
+       Low_row_L1,                     & ! lower row of a l1 cell in l0 grid
+       Lef_col_L1,                     & ! left col of a l1 cell in l0 grid
+       Rig_col_L1,                     & ! right col of a l1 cell in l0 grid
+       aerodyn_resistance1             & ! aerodynmaical resistance
+       )
+
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_mhm_constants,       only: YearMonths_i4, WindMeasHeight, karman
+    use mo_constants,           only: eps_dp
+
+    implicit none
+
+    integer(i4), dimension(:),   intent(in)  :: LCover0    ! land cover field
+    real(dp),    dimension(:,:), intent(in)  :: LAILUT     ! look up table for LAI
+    !                                                      ! dim1=land cover class, dim2=month of year
+    real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
+    logical,     dimension(:,:), intent(in)  :: mask0      ! mask at level 0
+    real(dp),                    intent(in)  :: nodata     ! given nodata value
+    integer(i4), dimension(:),   intent(in)  :: cell_id0   ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1  ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1 ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Low_row_L1 ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1 ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
+    ! Output
+    real(dp),    dimension(:,:), intent(out) :: aerodyn_resistance1
+
+    ! local
+    integer(i4)                            :: iMon
+    real(dp)                               :: maxLAI
+    real(dp), dimension(:),   allocatable  :: zm
+    real(dp), dimension(:),   allocatable  :: canopy_height0
+    real(dp), dimension(:),   allocatable  :: zm_zero, zh_zero, displace
+    real(dp), dimension(:,:), allocatable  :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
+    !                                                                    ! dim2=month of year
+    ! ID   LAI classes                 
+    ! 1    Coniferous-forest        
+    ! 2    Deciduous-forest         
+    ! 3    Mixed-forest             
+    ! 4    Sparsely-populated-forest
+    ! 5    Sealed-Water-bodies      
+    ! 6    Viniculture              
+    ! 7    Intensive-orchards       
+    ! 8    Pasture                  
+    ! 9    Fields                   
+    ! 10   Wetlands                 
+
+    ! initialize some things
+    allocate(zm                  (size(LCover0, dim=1)               )) ; zm                  = nodata
+    allocate(zm_zero             (size(LCover0, dim=1)               )) ; zm_zero             = nodata
+    allocate(zh_zero             (size(LCover0, dim=1)               )) ; zh_zero             = nodata
+    allocate(displace            (size(LCover0, dim=1)               )) ; displace            = nodata
+    allocate(canopy_height0      (size(LCover0, dim=1)               )) ; canopy_height0      = nodata
+    allocate(aerodyn_resistance0 (size(LCover0, dim=1), YearMonths_i4)) ; aerodyn_resistance0 = nodata
+    
+    ! regionalization of canopy height
+    ! substitute with canopy height
+    canopy_height0 = merge(param(1), canopy_height0, LCover0 == 1)  ! forest
+    canopy_height0 = merge(param(2), canopy_height0, LCover0 == 2)  ! impervious
+    
+    maxLAI = MAXVAL(LAILUT(7,:))
+    
+    do iMon = 1, YearMonths_i4
+       
+       ! pervious canopy height is scaled with LAI
+       canopy_height0 = merge( (param(3) * LAILUT(7,iMon) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
+
+       ! estimation of the aerodynamic resistance on the lower level
+       ! see FAO Irrigation and Draingae Paper No. 56 (p. 19 ff) for more information
+       zm     = WindMeasHeight
+       ! correction: if wind measurement height is below canopy height loagarithm becomes negative
+       zm = merge(canopy_height0 + zm, zm, ((abs(zm - nodata) .GT. eps_dp) .AND. (zm .LT. canopy_height0)))
+       !
+       ! zh       = zm
+       displace = param(4) * canopy_height0 
+       zm_zero  = param(5) * canopy_height0 
+       zh_zero  = param(6) * zm_zero
+       !
+       ! calculate aerodynamic resistance (changes monthly)
+       aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (karman**2.0_dp)
+       aerodyn_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, aerodyn_resistance0(:,iMon))
+
+    end do
+    
+  end subroutine aerodynamical_resistance
+  
 END MODULE mo_multi_param_reg

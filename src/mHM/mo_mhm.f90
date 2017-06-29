@@ -543,12 +543,13 @@ CONTAINS
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
 
-               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
-               iEnd   = processMatrix(5,3)  
+          if (processMatrix(5,1) == -1) then 
+             iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+             iEnd   = processMatrix(5,3)  
 
-          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
-           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
-
+             call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+          end if
        end if
        ! Estimate max. inteception based on daily LAI values
     case(-1) ! daily
@@ -558,13 +559,14 @@ CONTAINS
                L0downBound_inL1, L0leftBound_inL1,  &
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
- 
-               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
-               iEnd   = processMatrix(5,3)  
 
-          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
-           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+          if (processMatrix(5,1) == -1) then 
+             iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+             iEnd   = processMatrix(5,3)  
 
+             call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+          end if
        end if
     case(-2) ! monthly
        if ( (tt .EQ. 1) .OR. (month .NE. counter_month) ) then
@@ -574,12 +576,13 @@ CONTAINS
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
 
-               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
-               iEnd   = processMatrix(5,3)  
+          if (processMatrix(5,1) == -1) then 
+             iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+             iEnd   = processMatrix(5,3)  
 
-          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
-           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
-
+             call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+          end if
        end if
     case(-3) ! yearly
        if ( (tt .EQ. 1) .OR. (year .NE. counter_year) ) then
@@ -589,12 +592,13 @@ CONTAINS
                L0rightBound_inL1, cellId0, mask0,   &
                nodata_dp,  interc_max               )
 
-               iStart = processMatrix(5,3) - processMatrix(5,2) + 1
-               iEnd   = processMatrix(5,3)  
-
-          call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
-           L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
-
+          if (processMatrix(5,1) == -1) then
+             iStart = processMatrix(5,3) - processMatrix(5,2) + 1
+             iEnd   = processMatrix(5,3)  
+             
+             call pet_correctbyLAI(global_parameters(iStart:iEnd), nodata_dp, LCOVER0, LAI0, mask0, cellId0, &
+                  L0upBound_inL1, L0downBound_inL1, L0leftBound_inL1, L0rightBound_inL1, nTCells0_inL1, petLAIcorFactorL1)
+          end if
        end if
 
     case default ! no output at all

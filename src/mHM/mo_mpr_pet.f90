@@ -16,7 +16,7 @@ module mo_mpr_pet
   PUBLIC :: pet_correctbyLAI          ! estimate PET correction factor with distributed LAI
   PUBLIC :: pet_correctbyASP          ! estimate PET correction factor with distributed Aspect
   PUBLIC :: priestley_taylor_alpha    ! factor (alpha) for Presley-Taylor ET estimation
-  PUBLIC :: aerodynamical_resistance  ! aerodynamical resistance (ra) for Penman-Monteith ET estimation
+  !PUBLIC :: aerodynamical_resistance  ! aerodynamical resistance (ra) for Penman-Monteith ET estimation
   PUBLIC :: bulksurface_resistance    ! bulk surface (stomatal) resistance (rs) for Penman-Monteith ET estimation
 
   private
@@ -70,9 +70,6 @@ contains
   !>        \param[in] "integer(i4) :: nL0_in_L1(:)"     - Number of high resolution cells (L0)
   !>                                                       in low resolution cell (L1 cell)
 
- 
-
-
   !      INTENT(OUT)
   !>       \param[in,out] "real(dp) :: L1_petLAIcorFactor(:)"   - PET correction using LAI.
 
@@ -106,9 +103,6 @@ contains
   !>         \author M. Cuneyd Demirel and Simon Stisen from GEUS.dk
   !>         \date May. 2017
 
- 
-
-  
   subroutine pet_correctbyLAI( &
        ! Input -----------------------------------------------------------------
        param         , & ! global parameters, three are required
@@ -126,10 +120,7 @@ contains
        L1_petLAIcorFactor )       ! fraction of roots in soil horizons
 
     use mo_upscaling_operators, only: upscale_harmonic_mean,upscale_arithmetic_mean,upscale_geometric_mean
-    use mo_message,             only: message
     use mo_string_utils,        only: num2str
-
-    
     !$  use omp_lib
 
     implicit none
@@ -160,46 +151,42 @@ contains
     integer(i4)                             :: kk         ! loop index
     integer(i4)                             :: LL         ! loop index   
     
-    
-    
     ! ------------------------------------------------------------------
     ! Estimate DSF=PET_a+PET_b*(1-exp(PET_c*LAI)) to correct PET as PET=DSF*PET
     ! ------------------------------------------------------------------
 
-            !$OMP PARALLEL
-            !$OMP DO PRIVATE( LL ) SCHEDULE( STATIC )
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE( LL ) SCHEDULE( STATIC )
+    
+    ! need to be done for every landcover to get DSF 
+    do kk = 1, size(LCOVER0, 1)
 
-            ! need to be done for every landcover to get DSF 
-            do kk = 1, size(LCOVER0, 1)
+       LL = LCOVER0(kk)
+       
+       select case(LL)
+       case(1) ! forest
+          petLAIcorFactor_0(kk) = param(1)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
+       case(2) ! impervious
+          petLAIcorFactor_0(kk) = param(2)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
+       case(3) ! permeable 
+          petLAIcorFactor_0(kk) = param(3)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
+       end select
 
-                LL = LCOVER0(kk)
-                
-                select case(LL)
-                case(1) ! forest
-                    petLAIcorFactor_0(kk) = param(1)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
-                case(2) ! impervious
-                    petLAIcorFactor_0(kk) = param(2)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
-                case(3) ! permeable 
-                    petLAIcorFactor_0(kk) = param(3)+(param(4)*(1.0_dp-exp(param(5)*LAI0(kk))))
-                end select
-
-            end do
-
-
-            !$OMP END DO
-
-            !L1_petLAIcorFactor(:) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-            !                    Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
-            L1_petLAIcorFactor(:) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-                              Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
-            !L1_petLAIcorFactor(:) = upscale_geometric_mean( Upp_row_L1, Low_row_L1, &
-            !                  Lef_col_L1, Rig_col_L1, mask0, nodata, petLAIcorFactor_0 )        
-
-            !$OMP END PARALLEL
+    end do
+    
+    !$OMP END DO
+    
+    !L1_petLAIcorFactor(:) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+    !                    Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
+    L1_petLAIcorFactor(:) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+         Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, petLAIcorFactor_0 )
+    !L1_petLAIcorFactor(:) = upscale_geometric_mean( Upp_row_L1, Low_row_L1, &
+    !                  Lef_col_L1, Rig_col_L1, mask0, nodata, petLAIcorFactor_0 )        
+    
+    !$OMP END PARALLEL
 
   end subroutine pet_correctbyLAI
 
-  
   ! ----------------------------------------------------------------------------
 
   !      NAME
@@ -269,6 +256,8 @@ contains
 
   subroutine pet_correctbyASP( Id0, latitude_l0, Asp0, param, nodata, fAsp0 )
 
+    !$ use omp_lib
+    
     implicit none
 
     ! Input
@@ -316,300 +305,6 @@ contains
     !$OMP END PARALLEL 
 
   end subroutine pet_correctbyASP
-
-  ! ----------------------------------------------------------------------------
-
-  !      NAME
-  !        aerodynamical_resistance
-
-  !>       \brief Regionalization of aerodynamic resistance
-
-  !>       \details estimation of aerodynamical resistance
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                   - param(1) = canopyheigth_forest             \n
-  !>                   - param(2) = canopyheigth_impervious         \n
-  !>                   - param(3) = canopyheigth_pervious           \n
-  !>                   - param(4) = displacementheight_coeff        \n
-  !>                   - param(5) = roughnesslength_momentum_coeff  \n
-  !>                   - param(6) = roughnesslength_heat_coeff      \n
-
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover0(:)"     - land cover at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
-  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
-  !>       \param[in] "real(dp)     :: param(:)"       - vector with global parameters
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
-  !>       \param[in] "integer(i4)  :: cell_id0  (:)"  - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
-
-  !     INTENT(INOUT)
-  !        None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)    :: aerodyn_resistance1(:)" - [s m-1] aerodynamical resistance
-
-  !     INTENT(IN), OPTIONAL
-  !        None
-
-  !     INTENT(INOUT), OPTIONAL
-  !        None
-
-  !     INTENT(OUT), OPTIONAL
-  !        None
-
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !        None
-
-  !     HISTORY
-  !>       \author Matthias Zink
-  !>       \date   Apr 2013
-  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
-
-  subroutine aerodynamical_resistance( &
-       LCover0,                        & ! land cover at level 0
-       LAILUT,                         & ! look up table for LAI
-       param,                          & ! parameter values (size=6)
-       mask0,                          & ! mask at level 0
-       nodata,                         & ! given nodata value
-       cell_id0,                       & ! cell id at Level 0
-       nL0_in_L1,                      & ! number of l0 cells within a l1 cell
-       Upp_row_L1,                     & ! upper row of a l1 cell in l0 grid
-       Low_row_L1,                     & ! lower row of a l1 cell in l0 grid
-       Lef_col_L1,                     & ! left col of a l1 cell in l0 grid
-       Rig_col_L1,                     & ! right col of a l1 cell in l0 grid
-       aerodyn_resistance1             & ! aerodynmaical resistance
-       )
-
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_mhm_constants,       only: YearMonths_i4, WindMeasHeight, karman
-    use mo_constants,           only: eps_dp
-
-    implicit none
-
-    integer(i4), dimension(:),   intent(in)  :: LCover0    ! land cover field
-    real(dp),    dimension(:,:), intent(in)  :: LAILUT     ! look up table for LAI
-    real(dp),    dimension(6),   intent(in)  :: param      ! input parameter
-    !                                                      ! dim1=land cover class, dim2=month of year
-    logical,     dimension(:,:), intent(in)  :: mask0      ! mask at level 0
-    real(dp),                    intent(in)  :: nodata     ! given nodata value
-    integer(i4), dimension(:),   intent(in)  :: cell_id0   ! Cell ids of hi res field
-    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1  ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1 ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Low_row_L1 ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1 ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1 ! right col of a l1 cell in l0 grid
-    ! Output
-    real(dp),    dimension(:,:), intent(out) :: aerodyn_resistance1
-
-    ! local
-    integer(i4)                            :: iMon
-    real(dp)                               :: maxLAI
-    real(dp), dimension(:),   allocatable  :: zm
-    real(dp), dimension(:),   allocatable  :: canopy_height0
-    real(dp), dimension(:),   allocatable  :: zm_zero, zh_zero, displace
-    real(dp), dimension(:,:), allocatable  :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
-    !                                                                    ! dim 2 = number of months in year (12)
-    !
-    ! ID   LAI classes                 
-    ! 1    Coniferous-forest        
-    ! 2    Deciduous-forest         
-    ! 3    Mixed-forest             
-    ! 4    Sparsely-populated-forest
-    ! 5    Sealed-Water-bodies      
-    ! 6    Viniculture              
-    ! 7    Intensive-orchards       
-    ! 8    Pasture                  
-    ! 9    Fields                   
-    ! 10   Wetlands                 
-
-    ! initialize some things
-    allocate(zm                  (size(LCover0, dim=1)               )) ; zm                  = nodata
-    allocate(zm_zero             (size(LCover0, dim=1)               )) ; zm_zero             = nodata
-    allocate(zh_zero             (size(LCover0, dim=1)               )) ; zh_zero             = nodata
-    allocate(displace            (size(LCover0, dim=1)               )) ; displace            = nodata
-    allocate(canopy_height0      (size(LCover0, dim=1)               )) ; canopy_height0      = nodata
-    allocate(aerodyn_resistance0 (size(LCover0, dim=1), YearMonths_i4)) ; aerodyn_resistance0 = nodata
-    aerodyn_resistance1 = nodata
-    !
-    ! regionalization of canopy height
-    ! substitute with canopy height
-    canopy_height0 = merge(param(1), canopy_height0, LCover0 == 1)  ! forest
-    canopy_height0 = merge(param(2), canopy_height0, LCover0 == 2)  ! impervious
-    !
-    maxLAI = MAXVAL(LAILUT(7,:))
-    !
-    do iMon = 1, YearMonths_i4
-       !
-       ! pervious canopy height is scaled with LAI
-       canopy_height0 = merge( (param(3) * LAILUT(7,iMon) / maxLAI), canopy_height0, LCover0 == 3)  ! pervious
-
-       ! estimation of the aerodynamic resistance on the lower level
-       ! see FAO Irrigation and Draingae Paper No. 56 (p. 19 ff) for more information
-       zm     = WindMeasHeight
-       ! correction: if wind measurement height is below canopy height loagarithm becomes negative
-       zm = merge(canopy_height0 + zm, zm, ((abs(zm - nodata) .GT. eps_dp) .AND. (zm .LT. canopy_height0)))
-       !
-       ! zh       = zm
-       displace = param(4) * canopy_height0 
-       zm_zero  = param(5) * canopy_height0 
-       zh_zero  = param(6) * zm_zero
-       !
-       ! calculate aerodynamic resistance (changes monthly)
-       aerodyn_resistance0(:,iMon) = log((zm - displace)/zm_zero) * log((zm - displace)/zh_zero)  / (karman**2.0_dp)
-       aerodyn_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, aerodyn_resistance0(:,iMon))
-       !
-    end do
-    !
-  end subroutine aerodynamical_resistance
-
-
-  ! ----------------------------------------------------------------------------
-
-  !      NAME
-  !        bulksurface_resistance
-
-  !>       \brief Regionalization of bulk surface resistance
-
-  !>       \details estimation of bulk surface resistance
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                - param(1) = stomatal_resistance  \n
-
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
-  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
-  !>       \param[in] "real(dp)     :: param"          - global parameter
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
-  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
-
-  !     INTENT(INOUT)
-  !        None
-
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)    :: bulksurface_resistance1(:)" - [s m-1] bulk surface resistance
-
-  !     INTENT(IN), OPTIONAL
-  !        None
-
-  !     INTENT(INOUT), OPTIONAL
-  !        None
-
-  !     INTENT(OUT), OPTIONAL
-  !        None
-
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !>        McMahon et al, 2013: Estimating actual, potential, reference crop and pan evaporation using standard 
-  !>        meteorological data: a pragmatic synthesis , HESS
-
-  !     HISTORY
-  !>       \author Matthias Zink
-  !>       \date   Apr 2013
-  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
-
-
-  subroutine bulksurface_resistance( &
-       LCover_LAI0,                  & ! land cover id for LAI at level 0
-       LAILUT,                       & ! look up table for LAI
-       LAIUnitList,                  & ! List of ids of each LAI class in LAILUT
-       param,                        & ! parameter values (size=1)
-       mask0,                        & ! mask at level 0
-       nodata,                       & ! given nodata value
-       cell_id0,                     & ! cell id at Level 0
-       nL0_in_L1,                    & ! number of l0 cells within a l1 cell
-       Upp_row_L1,                   & ! upper row of a l1 cell in l0 grid
-       Low_row_L1,                   & ! lower row of a l1 cell in l0 grid
-       Lef_col_L1,                   & ! left col of a l1 cell in l0 grid
-       Rig_col_L1,                   & ! right col of a l1 cell in l0 grid
-       bulksurface_resistance1       & ! bulk surface resistance
-       )
-
-    use mo_upscaling_operators, only: upscale_arithmetic_mean
-    use mo_mhm_constants,       only: YearMonths_i4, LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist
-    use mo_constants,           only: eps_dp
-
-    implicit none
-
-    integer(i4), dimension(:),   intent(in)  :: LCover_LAI0 ! land cover id for LAI
-    real(dp),    dimension(:,:), intent(in)  :: LAILUT      ! look up table for LAI
-    !                                                       ! dim1=land cover class, dim2=month of year
-    integer(i4), dimension(:),   intent(in)  :: LAIUnitList ! List of ids of each LAI class in LAILUT
-    real(dp),                    intent(in)  :: param       ! input parameter
-    logical,     dimension(:,:), intent(in)  :: mask0       ! mask at level 0
-    real(dp),                    intent(in)  :: nodata      ! given nodata value
-    integer(i4), dimension(:),   intent(in)  :: cell_id0    ! Cell ids of hi res field
-    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1   ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Low_row_L1  ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1  ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1  ! right col of a l1 cell in l0 grid
-    ! Output
-    real(dp),    dimension(:,:), intent(out) :: bulksurface_resistance1
-
-    ! local
-    integer(i4)                            :: iMon, ll
-    real(dp), dimension(:,:), allocatable  :: leafarea0
-    real(dp), dimension(:,:), allocatable  :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
-    !                                                                    ! dim 2 = number of months in year (12)
-
-    ! initialize some things
-    allocate(bulksurface_resistance0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; bulksurface_resistance0 = nodata
-    allocate(leafarea0               (size(LCover_LAI0, dim=1), YearMonths_i4)) ; leafarea0               = nodata
-    bulksurface_resistance1 = nodata
-    !
-    do iMon = 1, YearMonths_i4
-
-       ! determine LAIs 
-       do ll = 1, size(LAILUT, dim=1)
-          leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAIUnitList(ll))
-       end do
-       ! correction for 0 LAI values
-       leafarea0(:,iMon) = merge( 1.00E-10_dp,  leafarea0(:,iMon), leafarea0(:,iMon) .LT. eps_dp)
-
-       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / &
-            (LAI_factor_surfResi * leafarea0(:,iMon) + LAI_offset_surfResi))
-       ! efeective LAI from McMahon et al ,2013 , HESS supplements
-
-       ! since LAI may be very low, rs becomes very high 
-       ! thus the values are restricted to maximum literaure values (i.e. McMahon et al ,2013 , HESS)
-       bulksurface_resistance0(:,iMon) = merge(max_surfResist, bulksurface_resistance0(:,iMon), &
-            bulksurface_resistance0(:,iMon) .GT. max_surfResist)
-
-       bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
-            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
-    end do
-
-  end subroutine bulksurface_resistance
-
 
   ! ----------------------------------------------------------------------------
 
@@ -711,7 +406,6 @@ contains
     integer(i4)                            :: iMon, ll
     real(dp), dimension(:,:), allocatable  :: leafarea0
     real(dp), dimension(:,:), allocatable  :: priestley_taylor_alpha0    ! dim 1 = number of cells on level 0,
-    !                                                                    ! dim 2 = number of months in year (12)
 
     ! initialize some things
     allocate(priestley_taylor_alpha0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; priestley_taylor_alpha0 = nodata
@@ -734,5 +428,135 @@ contains
 
   end subroutine priestley_taylor_alpha
 
+  ! ----------------------------------------------------------------------------
+
+  !      NAME
+  !        bulksurface_resistance
+
+  !>       \brief Regionalization of bulk surface resistance
+
+  !>       \details estimation of bulk surface resistance
+  !>                Global parameters needed (see mhm_parameter.nml):\n
+  !>                - param(1) = stomatal_resistance  \n
+
+  !      INTENT(IN)
+  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
+  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
+  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
+  !>       \param[in] "real(dp)     :: param"          - global parameter
+  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
+  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
+  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
+  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
+  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
+  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
+  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+
+  !     INTENT(INOUT)
+  !        None
+
+  !     INTENT(OUT)
+  !>       \param[out] "real(dp)    :: bulksurface_resistance1(:)" - [s m-1] bulk surface resistance
+
+  !     INTENT(IN), OPTIONAL
+  !        None
+
+  !     INTENT(INOUT), OPTIONAL
+  !        None
+
+  !     INTENT(OUT), OPTIONAL
+  !        None
+
+  !     RETURN
+  !        None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !>        McMahon et al, 2013: Estimating actual, potential, reference crop and pan evaporation using standard 
+  !>        meteorological data: a pragmatic synthesis , HESS
+
+  !     HISTORY
+  !>       \author Matthias Zink
+  !>       \date   Apr 2013
+  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+
+  subroutine bulksurface_resistance( &
+       LCover_LAI0,                  & ! land cover id for LAI at level 0
+       LAILUT,                       & ! look up table for LAI
+       LAIUnitList,                  & ! List of ids of each LAI class in LAILUT
+       param,                        & ! parameter values (size=1)
+       mask0,                        & ! mask at level 0
+       nodata,                       & ! given nodata value
+       cell_id0,                     & ! cell id at Level 0
+       nL0_in_L1,                    & ! number of l0 cells within a l1 cell
+       Upp_row_L1,                   & ! upper row of a l1 cell in l0 grid
+       Low_row_L1,                   & ! lower row of a l1 cell in l0 grid
+       Lef_col_L1,                   & ! left col of a l1 cell in l0 grid
+       Rig_col_L1,                   & ! right col of a l1 cell in l0 grid
+       bulksurface_resistance1       & ! bulk surface resistance
+       )
+
+    use mo_upscaling_operators, only: upscale_arithmetic_mean
+    use mo_mhm_constants,       only: YearMonths_i4, LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist
+    use mo_constants,           only: eps_dp
+
+    implicit none
+
+    integer(i4), dimension(:),   intent(in)  :: LCover_LAI0 ! land cover id for LAI
+    real(dp),    dimension(:,:), intent(in)  :: LAILUT      ! look up table for LAI
+    !                                                       ! dim1=land cover class, dim2=month of year
+    integer(i4), dimension(:),   intent(in)  :: LAIUnitList ! List of ids of each LAI class in LAILUT
+    real(dp),                    intent(in)  :: param       ! input parameter
+    logical,     dimension(:,:), intent(in)  :: mask0       ! mask at level 0
+    real(dp),                    intent(in)  :: nodata      ! given nodata value
+    integer(i4), dimension(:),   intent(in)  :: cell_id0    ! Cell ids of hi res field
+    integer(i4), dimension(:),   intent(in)  :: nL0_in_L1   ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:),   intent(in)  :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Low_row_L1  ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Lef_col_L1  ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:),   intent(in)  :: Rig_col_L1  ! right col of a l1 cell in l0 grid
+    ! Output
+    real(dp),    dimension(:,:), intent(out) :: bulksurface_resistance1
+
+    ! local
+    integer(i4)                            :: iMon, ll
+    real(dp), dimension(:,:), allocatable  :: leafarea0
+    real(dp), dimension(:,:), allocatable  :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
+    !                                                                    ! dim 2 = number of months in year (12)
+
+    ! initialize some things
+    allocate(bulksurface_resistance0 (size(LCover_LAI0, dim=1), YearMonths_i4)) ; bulksurface_resistance0 = nodata
+    allocate(leafarea0               (size(LCover_LAI0, dim=1), YearMonths_i4)) ; leafarea0               = nodata
+    bulksurface_resistance1 = nodata
+    !
+    do iMon = 1, YearMonths_i4
+
+       ! determine LAIs 
+       do ll = 1, size(LAILUT, dim=1)
+          leafarea0(:,iMon) = merge( LAILUT(ll, iMon),  leafarea0(:,iMon), LCover_LAI0(:) .EQ. LAIUnitList(ll))
+       end do
+       ! correction for 0 LAI values
+       leafarea0(:,iMon) = merge( 1.00E-10_dp,  leafarea0(:,iMon), leafarea0(:,iMon) .LT. eps_dp)
+
+       bulksurface_resistance0(:,iMon) = param / (  leafarea0(:,iMon) / &
+            (LAI_factor_surfResi * leafarea0(:,iMon) + LAI_offset_surfResi))
+       ! efeective LAI from McMahon et al ,2013 , HESS supplements
+
+       ! since LAI may be very low, rs becomes very high 
+       ! thus the values are restricted to maximum literaure values (i.e. McMahon et al ,2013 , HESS)
+       bulksurface_resistance0(:,iMon) = merge(max_surfResist, bulksurface_resistance0(:,iMon), &
+            bulksurface_resistance0(:,iMon) .GT. max_surfResist)
+
+       bulksurface_resistance1(:,iMon) = upscale_arithmetic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
+            Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, bulksurface_resistance0(:,iMon))
+    end do
+
+  end subroutine bulksurface_resistance
   
 end module mo_mpr_pet

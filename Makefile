@@ -106,12 +106,12 @@ LIBNAME  := #libminpack.a # Name of library
 #
 # Options
 # Systems: eve and personal computers such as mcimac for Matthias Cuntz' iMac; look in $(MAKEDPATH) or type 'make info'
-system   := cygwin
+system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
 compiler := gnu
 # Releases: debug, release
-release  := release
+release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
@@ -186,9 +186,9 @@ EXTRA_FCFLAGS  :=
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
-EXTRA_LDFLAGS  += -Wl,--stack,12485760
+EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
-EXTRA_CFLAGS   += -Wl,--stack,12485760
+EXTRA_CFLAGS   += #-Wl,--stack,12485760
 
 
 # Intel F2003 -assume realloc-lhs

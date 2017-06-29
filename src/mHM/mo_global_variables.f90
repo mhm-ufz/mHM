@@ -290,9 +290,9 @@ MODULE mo_global_variables
   integer(i4), public, dimension(:,:), allocatable   :: L0_cellCoor          ! Cell coordinates (row,col) for each grid cell, dim2=2
   integer(i4), public, dimension(:),   allocatable   :: L0_Id                ! Level-0 id
   real(dp),    public, dimension(:),   allocatable   :: L0_slope_emp         ! Empirical quantiles of slope
-  !                                                                            
-  real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI       ! gridded LAI data used when timeStep_LAI_input < 0 or == 1
-  !                                                                          ! dim1=number of grid cells, dim2=number of LAI time steps
+  !
+  real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI       ! gridded AI data used when timeStep_LAI_input<0 or==1
+  !                                                                          ! dim1=number of gridcells, dim2=number LAI timesteps
 
   real(dp),    public, dimension(:),   allocatable   :: L0_areaCell          ! [m2] Area of a cell at level-0
 
@@ -417,11 +417,11 @@ MODULE mo_global_variables
   real(dp), public, dimension(:),   allocatable :: L1_jarvis_thresh_c1      ![1] jarvis critical value for normalized soil 
   !                                                                         !        water content 
   real(dp), public, dimension(:), allocatable   :: L1_tempThresh            ! [degC]   Threshold temperature for snow/rain
-  real(dp), public, dimension(:), allocatable   :: L1_unsatThresh           ! [mm]   Threshhold water depth controlling fast interflow
-  real(dp), public, dimension(:), allocatable   :: L1_sealedThresh          ! [mm]   Threshhold water depth for surface runoff
-  !                                                                         !        in sealed surfaces
-  real(dp), public, dimension(:,:), allocatable :: L1_wiltingPoint          ! [mm]   Permanent wilting point: below which neither
-  !                                                                         !        plant can take water nor water can drain in
+  real(dp), public, dimension(:), allocatable   :: L1_unsatThresh           ! [mm]  Threshold waterdepth controlling fast interflow
+  real(dp), public, dimension(:), allocatable   :: L1_sealedThresh          ! [mm]  Threshold waterdepth for surface runoff
+  !                                                                         !       in sealed surfaces
+  real(dp), public, dimension(:,:), allocatable :: L1_wiltingPoint          ! [mm]  Permanent wilting point: below which neither
+  !                                                                         !       plant can take water nor water can drain in
             
   ! -------------------------------------------------------------------
   ! Monthly day/night variation of Meteorological variables
