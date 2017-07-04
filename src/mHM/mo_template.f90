@@ -195,7 +195,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n <= (1.0_dp+tiny(1.0_dp))) stop 'mean_dp: n must be at least 2'
 
     ! Mean
@@ -223,7 +223,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n <= (1.0_sp+tiny(1.0_sp))) stop 'mean_sp: n must be at least 2'
 
     ! Mean

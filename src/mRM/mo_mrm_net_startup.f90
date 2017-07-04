@@ -825,7 +825,7 @@ contains
             case default
                stop 'Error L11_flow_direction: side = -1'
             end select
-         endif
+         end if
 
       end do
       

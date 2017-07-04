@@ -160,6 +160,7 @@ contains
 
     use mo_upscaling_operators, only: upscale_harmonic_mean
     use mo_message,             only: message
+    use mo_string_utils,        only: num2str
 
     !$  use omp_lib
 
@@ -252,7 +253,7 @@ contains
     tmp_rootFractionCoefficient_forest     = param(1)            ! min(1.0_dp, param(2) + param(3) + param(1))
     tmp_rootFractionCoefficient_impervious = param(2)
     tmp_rootFractionCoefficient_pervious   = param(1) - param(3) ! min(1.0_dp, param(2) + param(3))
-
+                              
     !   3 - dependent on land cover and additionally soil texture
     select case (processMatrix(3,1))    
     case(3)
@@ -330,14 +331,11 @@ contains
           !$OMP END DO
           !$OMP END PARALLEL    
 
-
           tmp_FC0min=minval(FC0(:))
           tmp_FC0max=maxval(FC0(:))
 
-          if(tmp_FC0min .lt. 0.0_dp) then 
-             print*,"CHECK FC0min, -9999 effect",tmp_FC0min
+          if(tmp_FC0min .lt. 0.0_dp) then
              tmp_FC0min=minval(FC0(cell_id0))
-             print*,"NEW FC0min is",tmp_FC0min
           end if
 
           !$OMP PARALLEL
@@ -395,7 +393,8 @@ contains
                 case(1:2)
                    ! permeable   
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t*0.1_dp)) &
-                        - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+                     
                 case(3)
                    ! permeable 
                    ! introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
@@ -410,8 +409,11 @@ contains
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) )  
                    
-                   if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
-                        print*, "CHECK fRoots0(k)", fRoots0(k)
+                   if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
+                      call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
+                           num2str(k), ' has value ', num2str(fRoots0(k)))
+                      ! stop
+                   end if
                 end select
              end select
 
@@ -511,8 +513,8 @@ contains
                 case(1:2)        
                    ! permeable   
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_t*0.1_dp)) &
-                        - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
-
+                       - (1.0_dp - tmp_rootFractionCoefficient_pervious**(dpth_f*0.1_dp) )
+                           
                 case(3)
                    ! permeable 
                    !introducing FC dependency on root frac coef. by Simon Stisen and M. Cuneyd Demirel from GEUS.dk
@@ -527,8 +529,11 @@ contains
                    fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t*0.1_dp)) &
                         - (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_f*0.1_dp) )  
 
-                   if(fRoots0(k) .lt. 0.0_dp .OR. fRoots0(k) .gt. 1.0_dp) &
-                        print*, "CHECK fRoots0(k)", fRoots0(k)
+                   if((fRoots0(k) .lt. 0.0_dp) .OR. (fRoots0(k) .gt. 1.0_dp)) then
+                      call message('***ERROR: Fraction of roots out of range [0,1]. Cell', &
+                           num2str(k), ' has value ', num2str(fRoots0(k)))
+                      ! stop
+                   end if
                 end select
              end select
 

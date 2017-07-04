@@ -109,9 +109,9 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := nag
+compiler := gnu
 # Releases: debug, release
-release  := release
+release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
@@ -123,11 +123,11 @@ proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
-openmp   := 
+openmp   := true
 # MPI parallelization - experimental: true, [anything else]
 mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
-static   := shared
+static   := dynamic
 
 # The Makefile sets the following variables depending on the above options:
 # FC, FCFLAGS, F90, F90FLAGS, CC, CFLAGS, CPP, DEFINES, INCLUDES, LD, LDFLAGS, LIBS
@@ -182,13 +182,14 @@ static   := shared
 #     -C=intovf    check integer overflow, which is intentional in UFZ mo_xor4096.
 
 # Special compilation flags
-EXTRA_FCFLAGS  :=
+EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
-EXTRA_LDFLAGS  :=
+EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
-EXTRA_CFLAGS   :=
+EXTRA_CFLAGS   += #-Wl,--stack,12485760
+
 
 # Intel F2003 -assume realloc-lhs
 INTEL_EXCLUDE  := mo_multi_param_reg.f90 mo_mpr_soilmoist.f90 #mo_read_wrapper.f90

@@ -163,7 +163,7 @@ CONTAINS
        ! 0 - input, 1 - Hargreaves-Samani, 2 - Priestley-Taylor, 3 - Penman-Monteith
        select case (processMatrix(5,1))    
 
-       case(0) ! pet is input
+       case(-1:0) ! pet is input
           if ( timeStep_model_inputs(iBasin) .eq. 0 ) call message( '    read pet                  ...' )
           call meteo_forcings_wrapper( iBasin, dirReferenceET(iBasin), inputFormat_meteo_forcings, &
                L1_pet, lower=0.0_dp, upper = 1000._dp, ncvarName='pet' )
@@ -384,8 +384,11 @@ end subroutine prepare_meteo_forcings_data
     nTimeSteps = size(L1_data, 3)
     allocate( L1_data_packed(nCells1, nTimeSteps))
     do t = 1, nTimeSteps
-       L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) ) 
+    
+       L1_data_packed(:,t) = pack( L1_data(:,:,t), MASK=mask1(:,:) )  
+       
     end do
+
     ! free memory immediately
     deallocate(L1_data)
     
@@ -399,33 +402,25 @@ end subroutine prepare_meteo_forcings_data
 
 
   ! ------------------------------------------------------------------
-
   !     NAME
-  !         meteo_weights_wrapper
-  
+  !         meteo_weights_wrapper 
   !     PURPOSE
   !>        \brief Prepare weights for meteorological forcings data for mHM at Level-1
-
   !>        \details Prepare meteorological weights data for mHM, which include \n
   !>         1) Reading meteo. weights datasets at their native resolution for every basin \n
   !>         2) Perform aggregation or disaggregation of meteo. weights datasets from their \n
   !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
   !>         3) Pad the above datasets of every basin to their respective global ones
   !>                 
-
   !     CALLING SEQUENCE
-
   !     INTENT(IN)
   !>        \param[in] "integer(i4)               :: iBasin"             Basin Id
   !>        \param[in] "logical                   :: read_meteo_weights" Flag for reading meteo weights
   !>        \param[in] "character(len=*)          :: dataPath"           Data path where a given meteo. variable is stored
-
   !     INTENT(INOUT)
   !         None
-
   !     INTENT(OUT)
   !>        \param[in] "real(dp), dimension(:,:,:) :: dataOut1"      Packed meterological variable for the whole simulation period
-
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
   !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values

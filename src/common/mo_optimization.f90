@@ -172,20 +172,20 @@ contains
           local_parameters(npara+1,3) = mcmc_error_params(1)
           local_parameters(npara+2,3) = mcmc_error_params(2)
           local_maskpara(npara+1:)    = .false.
-       endif
+       end if
     else
        allocate(local_parameters(npara,size(global_parameters,2)))
        allocate(local_maskpara(npara))
        local_parameters = global_parameters
        local_maskpara   = maskpara
-    endif
+    end if
 
     ! Seed for random numbers in optimisation
     if (seed .gt. 0_i8) then    ! fixed user-defined seed
        iseed = seed
     else                        ! flexible clock-time seed
        call get_timeseed(iseed)
-    endif
+    end if
 
     select case (opti_method)
     case (0)
@@ -214,7 +214,7 @@ contains
                ParaSelectMode_in=2_i4, tmp_file=tFile,                                                                     &
                maskpara_in=local_maskpara,                                                                                 &
                seed_in=iseed, loglike_in=.true., printflag_in=.true.)
-       endif
+       end if
 
     case (1)
        call message('    Use DDS')

@@ -638,13 +638,13 @@ CONTAINS
        irestart = restart
     else
        irestart = .false.
-    endif
+    end if
 
     if (present(restart_file)) then
        isrestart_file = restart_file
     else
        isrestart_file = 'mo_mcmc.restart'
-    endif
+    end if
 
     if (.not. irestart) then
 
@@ -670,7 +670,7 @@ CONTAINS
           end if
        else
           maskpara = .true.
-       endif
+       end if
 
        allocate ( truepara(count(maskpara)) )
        idummy = 0_i4
@@ -699,7 +699,7 @@ CONTAINS
           end if
        else
           iter_burnin = Max(250_i4, 1000_i4*n)
-       endif
+       end if
 
        ! how many iterations ('jumps') are performed in MCMC
        ! iter_mcmc_in is handled later properly (after acceptance ratio of burn_in is known)
@@ -711,7 +711,7 @@ CONTAINS
           end if
        else
           iter_mcmc = 1000_i4 * n
-       endif
+       end if
 
        if (present(chains_in)) then
           if (chains_in .lt. 2_i4)  then
@@ -720,7 +720,7 @@ CONTAINS
           chains = chains_in
        else
           chains = 5_i4
-       endif
+       end if
 
        if (present(stepsize_in)) then
           stepsize   = stepsize_in
@@ -733,7 +733,7 @@ CONTAINS
           printflag = printflag_in
        else
           printflag = .false.
-       endif
+       end if
 
        n_threads = 1
        !$  write(*,*) '--------------------------------------------------'
@@ -768,7 +768,7 @@ CONTAINS
        else
           ! Seeds depend on actual time
           call get_timeseed(seeds(1,:))
-       endif
+       end if
        do chain=2,chains
           seeds(chain,:) = seeds(chain-1_i4,:) + 3000_i8
        end do
@@ -1038,7 +1038,7 @@ CONTAINS
           allocate(mcmc_paras_3d(iter_mcmc,size(para),chains))
        end if
 
-    endif
+    end if
 
     !----------------------------------------------------------------------
     ! (2) MCMC
@@ -1076,7 +1076,7 @@ CONTAINS
           allocate(mcmc_paras_3d(iter_mcmc,size(para),chains))
           mcmc_paras_3d(1:idummy,:,:) = tmp(:,:,:)
           deallocate(tmp)
-       endif
+       end if
 
        !$OMP parallel default(shared) &
        !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara)
@@ -1282,7 +1282,7 @@ CONTAINS
              iter_mcmc = iter_mcmc + iter_mcmc_in
           else
              iter_mcmc = iter_mcmc + 1000_i4 * n
-          endif
+          end if
 
           if ( printflag ) then
              write(*,*) '   --> not converged (not all less than 1.1)'
@@ -1484,7 +1484,7 @@ CONTAINS
        end if
     else
        maskpara = .true.
-    endif
+    end if
 
     allocate ( truepara(count(maskpara)) )
     idummy = 0_i4
@@ -1513,7 +1513,7 @@ CONTAINS
        end if
     else
        iter_burnin = Max(250_i4, 1000_i4*n)
-    endif
+    end if
 
     ! how many iterations ('jumps') are performed in MCMC
     ! iter_mcmc_in is handled later properly (after acceptance ratio of burn_in is known)
@@ -1525,7 +1525,7 @@ CONTAINS
        end if
     else
        iter_mcmc = 1000_i4 * n
-    endif
+    end if
 
     if (present(chains_in)) then
        if (chains_in .lt. 2_i4)  then
@@ -1534,7 +1534,7 @@ CONTAINS
        chains = chains_in
     else
        chains = 5_i4
-    endif
+    end if
 
     if (present(stepsize_in)) then
        stepsize   = stepsize_in
@@ -1544,7 +1544,7 @@ CONTAINS
        printflag = printflag_in
     else
        printflag = .false.
-    endif
+    end if
 
     !$  write(*,*) '--------------------------------------------------'
     !$  write(*,*) ' This program is parallel.'
@@ -1571,7 +1571,7 @@ CONTAINS
     else
        ! Seeds depend on actual time
        call get_timeseed(seeds(1,:))
-    endif
+    end if
     do chain=2,chains
        seeds(chain,:) = seeds(chain-1_i4,:) + 3000_i8
     end do
@@ -2038,7 +2038,7 @@ CONTAINS
              iter_mcmc = iter_mcmc + iter_mcmc_in
           else
              iter_mcmc = iter_mcmc + 1000_i4 * n
-          endif
+          end if
 
           if ( printflag ) then
              write(*,*) '   --> not converged (not all less than 1.1)'

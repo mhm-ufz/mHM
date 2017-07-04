@@ -220,7 +220,7 @@ CONTAINS
        maske = mask
     else
        maske(:) = .true.
-    endif
+    end if
 
     ! check if enough values (>1) are available
     if (count(maske) .LE. 2) stop '***Error: standard_score_sp: less than 2 elements avaiable'
@@ -249,7 +249,7 @@ CONTAINS
        maske = mask
     else
        maske(:) = .true.
-    endif
+    end if
 
     ! check if enough values (>1) are available
     if (count(maske) .LE. 2) stop '***Error: standard_score_dp: less than 2 elements avaiable'
@@ -289,7 +289,7 @@ CONTAINS
        maske = mask
     else
        maske(:) = .true.
-    endif
+    end if
 
     ! check if enough values (>1) are available
     if (count(maske) .LE. 2) stop '***Error: classified_standard_score_sp: less than 2 elements avaiable'
@@ -345,7 +345,7 @@ CONTAINS
        maske = mask
     else
        maske(:) = .true.
-    endif
+    end if
 
     ! check if enough values (>1) are available
     if (count(maske) .LE. 2) stop '***Error: classified_standard_score_dp: less than 2 elements avaiable'

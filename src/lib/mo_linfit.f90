@@ -139,7 +139,7 @@ CONTAINS
        mod2 = model2
     else
        mod2 = .false.
-    endif
+    end if
 
     if (mod2) then
        nx = real(size(x),dp)
@@ -157,7 +157,7 @@ CONTAINS
        if (present(chi2)) then
           t(:) = y(:)-linfit_dp(:)
           chi2 = dot_product(t,t)
-       endif
+       end if
        if (present(siga) .or. present(sigb)) then
           syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_dp)
           sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_dp)
@@ -172,8 +172,8 @@ CONTAINS
              ! They take the error estimate of the chi-squared error for a.
              ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
              siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
-          endif
-       endif
+          end if
+       end if
     else
        nx = real(size(x),dp)
        sx = sum(x)
@@ -196,14 +196,14 @@ CONTAINS
              if (present(siga)) then
                 siga = sqrt((1.0_dp+sx*sx/(nx*st2))/nx)
                 siga = siga*sigdat
-             endif
+             end if
              if (present(sigb)) then
                 sigb = sqrt(1.0_dp/st2)
                 sigb = sigb*sigdat
-             endif
-          endif
-       endif
-    endif
+             end if
+          end if
+       end if
+    end if
 
   END FUNCTION linfit_dp
 
@@ -230,7 +230,7 @@ CONTAINS
        mod2 = model2
     else
        mod2 = .false.
-    endif
+    end if
 
     if (mod2) then
        nx = real(size(x),sp)
@@ -248,7 +248,7 @@ CONTAINS
        if (present(chi2)) then
           t(:) = y(:)-linfit_sp(:)
           chi2 = dot_product(t,t)
-       endif
+       end if
        if (present(siga) .or. present(sigb)) then
           syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_sp)
           sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_sp)
@@ -263,8 +263,8 @@ CONTAINS
              ! They take the error estimate of the chi-squared error for a.
              ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
              siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
-          endif
-       endif
+          end if
+       end if
     else
        nx = real(size(x),sp)
        sx = sum(x)
@@ -287,14 +287,14 @@ CONTAINS
              if (present(siga)) then
                 siga = sqrt((1.0_sp+sx*sx/(nx*st2))/nx)
                 siga = siga*sigdat
-             endif
+             end if
              if (present(sigb)) then
                 sigb = sqrt(1.0_sp/st2)
                 sigb = sigb*sigdat
-             endif
-          endif
-       endif
-    endif
+             end if
+          end if
+       end if
+    end if
 
   END FUNCTION linfit_sp
 

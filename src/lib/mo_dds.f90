@@ -204,7 +204,7 @@ CONTAINS
     imaxit = 1.0_dp
     if (present(maxit)) then
        if (maxit) imaxit = -1.0_dp
-    endif
+    end if
     ! Given seed
     iseed = 0
     if (present(seed)) iseed = seed
@@ -218,7 +218,7 @@ CONTAINS
        end if
     else
        maske = .true.
-    endif
+    end if
 
     allocate ( truepara(count(maske)) )
     idummy = 0_i4
@@ -239,7 +239,7 @@ CONTAINS
     else
        call xor4096(iseed,ranval)
        call xor4096g(iseed,ranval)
-    endif
+    end if
 
     ! Temporal file writing
     if(present(tmp_file)) then
@@ -483,7 +483,7 @@ CONTAINS
     imaxit = 1.0_dp
     if (present(maxit)) then
        if (maxit) imaxit = -1.0_dp
-    endif
+    end if
     ! Given seed
     iseed = 0
     if (present(seed)) iseed = seed
@@ -499,7 +499,7 @@ CONTAINS
     else
        call xor4096(iseed,ranval)
        call xor4096g(iseed,ranval)
-    endif
+    end if
 
     ! Masked parameters
     if (present(mask)) then
@@ -510,7 +510,7 @@ CONTAINS
        end if
     else
        maske = .true.
-    endif
+    end if
 
     allocate ( truepara(count(maske)) )
     idummy = 0_i4
@@ -598,7 +598,7 @@ CONTAINS
           if (exp(-(of_new-of_best)/of_best) > (1.0_dp-ranval*Pn)) then
              of_best = of_new
              MDDS    = pnew
-          endif
+          end if
        end if
        if (present(history)) then
           if (present(maxit)) then
@@ -678,8 +678,8 @@ CONTAINS
        if (new_value < x_min) then
           ! if reflection goes past x_min then value should be x_max for same reasons as above.
           new_value = x_max
-       endif
-    endif
+       end if
+    end if
 
   end subroutine neigh_value
 

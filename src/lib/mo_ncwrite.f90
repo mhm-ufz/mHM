@@ -436,7 +436,7 @@ contains
           ! let the netcdf library chose a buffersize, that results in lesser write system calls
           call check(nf90_create(trim(Filename), NF90_CLOBBER, ncId, chunksize=buffersize))
        end if
-    endif
+    end if
 
     ! 2  Define dimensions                                 -> get dimId
     do i=1, nDims
@@ -474,7 +474,7 @@ contains
                chunksizes=chunksizes(1:V(i)%nDims), shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncId, V(i)%name, V(i)%xtype, V(i)%dimids(1:V(i)%nDims), V(i)%varId))
-       endif
+       end if
        do k = 1, V(i)%nAtt
           select case (V(i)%att(k)%xType)
           case (NF90_CHAR)
@@ -498,7 +498,7 @@ contains
     do k = 1, nGAtt
        if (nonull(Gatt(k)%name)) then
           call check(nf90_put_att(ncId, NF90_GLOBAL, Gatt(k)%name, Gatt(k)%values))
-       endif
+       end if
     end do
 
     ! 6 end definitions: leave define mode
@@ -546,10 +546,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -578,7 +578,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_sp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_1d_sp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -600,7 +600,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -617,14 +617,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -634,7 +634,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -653,7 +653,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -696,10 +696,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -728,7 +728,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_sp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_2d_sp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -750,7 +750,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -767,14 +767,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -784,7 +784,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -803,7 +803,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -846,10 +846,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -878,7 +878,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_sp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_3d_sp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -900,7 +900,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -916,14 +916,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -933,7 +933,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -952,7 +952,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -995,10 +995,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1027,7 +1027,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_sp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_4d_sp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1049,7 +1049,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -1065,14 +1065,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1082,7 +1082,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1101,7 +1101,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1144,10 +1144,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1176,7 +1176,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_sp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_5d_sp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1198,7 +1198,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -1214,14 +1214,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1231,7 +1231,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1250,7 +1250,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1293,10 +1293,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1325,7 +1325,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_dp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_1d_dp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1347,7 +1347,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -1364,14 +1364,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1381,7 +1381,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1400,7 +1400,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1443,10 +1443,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1475,7 +1475,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_dp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_2d_dp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1497,7 +1497,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -1514,14 +1514,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1531,7 +1531,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1550,7 +1550,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1593,10 +1593,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1625,7 +1625,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_dp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_3d_dp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1648,7 +1648,7 @@ contains
           else
              call check(nf90_create(trim(Filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -1664,14 +1664,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1681,7 +1681,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1700,7 +1700,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1743,10 +1743,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1775,7 +1775,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_dp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_4d_dp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1797,7 +1797,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -1813,14 +1813,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1830,7 +1830,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1849,7 +1849,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -1892,10 +1892,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -1924,7 +1924,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_dp: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_5d_dp: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -1946,7 +1946,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -1962,14 +1962,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -1979,7 +1979,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -1998,7 +1998,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2041,10 +2041,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -2073,7 +2073,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_i4: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_1d_i4: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -2095,7 +2095,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -2112,14 +2112,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -2129,7 +2129,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -2148,7 +2148,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2191,10 +2191,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -2223,7 +2223,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_i4: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_2d_i4: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -2245,7 +2245,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims(1:ndim) = shape(arr)
@@ -2262,14 +2262,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -2279,7 +2279,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -2298,7 +2298,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2341,10 +2341,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -2373,7 +2373,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_i4: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_3d_i4: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -2395,7 +2395,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -2411,14 +2411,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -2428,7 +2428,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -2447,7 +2447,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2490,10 +2490,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -2522,7 +2522,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_i4: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_4d_i4: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -2544,7 +2544,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -2560,14 +2560,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -2577,7 +2577,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -2596,7 +2596,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2639,10 +2639,10 @@ contains
           iappend = .true.
        else
           iappend = .false.
-       endif
+       end if
     else
        iappend = .false.
-    endif
+    end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
     inetcdf4 = .false.
@@ -2671,7 +2671,7 @@ contains
              if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_i4: variable dimension /= file variable dimension."
           else
              if (trim(name) /= 'time') stop "dump_netcdf_5d_i4: time name problem."
-          endif
+          end if
        enddo
 
        ! append
@@ -2693,7 +2693,7 @@ contains
           else
              call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
           end if
-       endif
+       end if
 
        ! define dims
        dims = shape(arr)
@@ -2709,14 +2709,14 @@ contains
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
           else
              call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          endif
+          end if
        end do
        ! define time variable
        if (inetcdf4) then
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
        else
           call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       endif
+       end if
 
        ! define variable
        if (inetcdf4) then
@@ -2726,7 +2726,7 @@ contains
                chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
        else
           call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       endif
+       end if
 
        ! end define mode
        call check(nf90_enddef(ncid))
@@ -2745,7 +2745,7 @@ contains
           call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
           call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
        end do
-    endif
+    end if
 
     ! close netcdf file
     call check(nf90_close(ncid))
@@ -2837,15 +2837,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -2868,7 +2868,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimension
        do i = 1, ndim
@@ -2923,7 +2923,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_1d_i4
 
@@ -3008,15 +3008,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3039,7 +3039,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimension
        do i = 1, ndim
@@ -3093,7 +3093,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_1d_sp
 
@@ -3178,15 +3178,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3209,7 +3209,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimension
        do i = 1, ndim
@@ -3263,7 +3263,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_1d_dp
 
@@ -3356,15 +3356,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3388,7 +3388,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -3443,7 +3443,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_2d_i4
 
@@ -3536,15 +3536,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3568,7 +3568,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -3623,7 +3623,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_2d_sp
 
@@ -3716,15 +3716,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3748,7 +3748,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -3803,7 +3803,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_2d_dp
 
@@ -3896,15 +3896,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -3928,7 +3928,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -3983,7 +3983,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_3d_i4
 
@@ -4077,15 +4077,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4109,7 +4109,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -4164,7 +4164,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_3d_sp
 
@@ -4257,15 +4257,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4289,7 +4289,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -4344,7 +4344,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_3d_dp
 
@@ -4439,15 +4439,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4471,7 +4471,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -4526,7 +4526,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_4d_i4
 
@@ -4621,15 +4621,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4653,7 +4653,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -4708,7 +4708,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_4d_sp
 
@@ -4803,15 +4803,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -4835,7 +4835,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -4890,7 +4890,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_4d_dp
 
@@ -4975,15 +4975,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -5007,7 +5007,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -5062,7 +5062,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_5d_i4
 
@@ -5147,15 +5147,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -5179,7 +5179,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -5234,7 +5234,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_5d_sp
 
@@ -5319,15 +5319,15 @@ contains
        else
           openfile = .false.
           f_handle = ncid
-       endif
+       end if
     else
        openfile = .true.
-    endif
+    end if
     if (openfile) then
        create_loc = .false.
        if (present(create)) create_loc = create
        f_handle = open_netcdf(f_name, create=create_loc)
-    endif
+    end if
     ! check whether variable exists
     if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
        ! append
@@ -5351,7 +5351,7 @@ contains
              call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
           end do
           start(d_unlimit) = start(d_unlimit) + 1
-       endif
+       end if
     else
        ! define dimensions
        do i = 1, ndim
@@ -5406,7 +5406,7 @@ contains
        if (ncid < 0_i4) ncid = f_handle
     else
        call close_netcdf( f_handle )
-    endif
+    end if
     !
   end subroutine var2nc_5d_dp
 

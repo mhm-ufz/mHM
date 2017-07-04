@@ -109,7 +109,7 @@ CONTAINS
   !                  M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)  
   !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)  
 
-  
+
   subroutine read_config()
 
     use mo_julian,           only: date2dec, dec2date
@@ -197,7 +197,6 @@ CONTAINS
          mcmc_error_params                                    !       parameters of error model used in likelihood
 
     implicit none
-
     ! LOCAL variables
     ! PARAMETERS
     integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
@@ -238,7 +237,12 @@ CONTAINS
     
     ! directRunoff
     real(dp), dimension(nColPars)                   :: imperviousStorageCapacity
-    ! PET0
+    ! PET0   
+    real(dp), dimension(nColPars)                   :: PET_a_forest
+    real(dp), dimension(nColPars)                   :: PET_a_impervious
+    real(dp), dimension(nColPars)                   :: PET_a_pervious
+    real(dp), dimension(nColPars)                   :: PET_b
+    real(dp), dimension(nColPars)                   :: PET_c 
     real(dp), dimension(nColPars)                   :: minCorrectionFactorPET
     real(dp), dimension(nColPars)                   :: maxCorrectionFactorPET
     real(dp), dimension(nColPars)                   :: aspectTresholdPET
@@ -381,6 +385,9 @@ CONTAINS
          rootFractionCoefficient_sand, rootFractionCoefficient_clay
 
          namelist /directRunoff1/ imperviousStorageCapacity
+    ! PET is input, LAI driven correction
+    namelist /PETminus1/  PET_a_forest, PET_a_impervious, PET_a_pervious, PET_b, PET_c            
+    ! PET is input, aspect driven correction
     namelist /PET0/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET
     ! Hargreaves-Samani
     namelist /PET1/  minCorrectionFactorPET, maxCorrectionFactorPET, aspectTresholdPET, HargreavesSamaniCoeff
@@ -1052,21 +1059,48 @@ CONTAINS
 
     ! Process 5 - potential evapotranspiration (PET)
     select case (processCase(5))
-    case(0) ! 0 - PET is input, correct PET by aspect
-       call position_nml('PET0', unamelist_param)
-       read(unamelist_param, nml=PET0)
+    case(-1) ! 0 - PET is input, correct PET by LAI
+       call position_nml('PETminus1', unamelist_param)
+       read(unamelist_param, nml=PETminus1)
        processMatrix(5, 1) = processCase(5)
-       processMatrix(5, 2) = 3_i4
+       processMatrix(5, 2) = 5_i4
        processMatrix(5, 3) = sum(processMatrix(1:5, 2))
+       call append(global_parameters, reshape(PET_a_forest,     (/1, nColPars/)))
+       call append(global_parameters, reshape(PET_a_impervious, (/1, nColPars/)))
+       call append(global_parameters, reshape(PET_a_pervious,   (/1, nColPars/)))
+       call append(global_parameters, reshape(PET_b,            (/1, nColPars/)))
+       call append(global_parameters, reshape(PET_c,            (/1, nColPars/)))
+                                                                 
+       call append(global_parameters_name, (/ &                                  
+            'PET_a_forest     ', &                                                   
+            'PET_a_impervious ', &                                               
+            'PET_a_pervious   ', &                                             
+            'PET_b            ', &                                             
+            'PET_c            '/))                                                   
+                                                                                 
+       ! check if parameter are in range                                         
+       if ( .not. in_bound(global_parameters) ) then                             
+          call message('***ERROR: parameter in namelist "PETminus1" out of bound  n ', &
+               trim(adjustl(file_namelist_param)))                               
+          stop                                                                   
+       end if                                                                    
+                                                                                 
+                                                                                 
+    case(0) ! 0 - PET is input, correct PET by aspect                            
+       call position_nml('PET0', unamelist_param)                                
+       read(unamelist_param, nml=PET0)                                           
+       processMatrix(5, 1) = processCase(5)                                      
+       processMatrix(5, 2) = 3_i4                                                
+       processMatrix(5, 3) = sum(processMatrix(1:5, 2))                          
        call append(global_parameters, reshape(minCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(maxCorrectionFactorPET,             (/1, nColPars/)))
        call append(global_parameters, reshape(aspectTresholdPET,                  (/1, nColPars/)))
-
-       call append(global_parameters_name, (/ &
-            'minCorrectionFactorPET ', &
-            'maxCorrectionFactorPET ', &
-            'aspectTresholdPET      '/))
-
+                                                                                 
+       call append(global_parameters_name, (/ &                                  
+            'minCorrectionFactorPET ', &                                         
+            'maxCorrectionFactorPET ', &                                         
+            'aspectTresholdPET      '/))                                         
+                                                                                 
        ! check if parameter are in range
        if ( .not. in_bound(global_parameters) ) then
           call message('***ERROR: parameter in namelist "PET0" out of bound in ', &

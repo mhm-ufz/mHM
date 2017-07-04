@@ -162,7 +162,7 @@ contains
     if (status(timer) .eq. 'running') then
        call timer_stop (timer)
        call timer_start(timer)
-    endif
+    end if
 
   end subroutine timer_check
 
@@ -219,7 +219,7 @@ contains
        cputime(timer) = 0.0_sp ! clear the timer
     else
        cputime(:)     = 0.0_sp ! clear all timers
-    endif
+    end if
 
   end subroutine timer_clear
 
@@ -280,7 +280,7 @@ contains
        call timer_stop(timer)
        timer_get = cputime(timer)
        call timer_start(timer)
-    endif
+    end if
 
   end function timer_get
 
@@ -344,7 +344,7 @@ contains
        write(*,"(' CPU time for timer',i3,':',1p,e16.8)")   &
             timer,cputime(timer)
        call timer_start(timer)
-    endif
+    end if
 
   end subroutine timer_print
 
@@ -402,7 +402,7 @@ contains
     if (status(timer) .eq. 'stopped') then
        call system_clock(count=cycles1(timer))
        status(timer) = 'running'
-    endif
+    end if
 
   end subroutine timer_start
 
@@ -471,7 +471,7 @@ contains
        else
           cputime(timer) = cputime(timer) + clock_rate*   &
                (cycles2(timer) - cycles1(timer) + cycles_max)
-       endif
+       end if
 
        !---
        !--- Change timer status.
@@ -479,7 +479,7 @@ contains
 
        status(timer)='stopped'
 
-    endif
+    end if
 
   end subroutine timer_stop
 
@@ -558,7 +558,7 @@ contains
     else
        clock_rate = 0.0_sp
        print *, '--- No system clock available ---'
-    endif
+    end if
 
   end subroutine timers_init
 

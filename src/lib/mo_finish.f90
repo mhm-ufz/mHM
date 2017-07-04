@@ -121,7 +121,7 @@ CONTAINS
        END IF
 
        WRITE (*,'(a)') separator
-    ENDIF
+    end if
 
     STOP
 

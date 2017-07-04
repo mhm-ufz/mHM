@@ -88,68 +88,69 @@ CONTAINS
     use mo_netcdf,           only: NcDataset, NcDimension, NcVariable
     use mo_mhm_constants,    only: nodata_dp, nodata_i4
     use mo_global_variables, only: &
-         L1_fSealed, &
-         L1_fForest, &
-         L1_fPerm, &
-         L1_Inter, &
-         L1_snowPack, &
-         L1_sealSTW, &
-         L1_soilMoist, &
-         L1_unsatSTW, &
-         L1_satSTW, &
-         L1_aETSoil, &
-         L1_aETCanopy, &
-         L1_aETSealed, &
-         L1_baseflow, &
-         L1_infilSoil, &
-         L1_fastRunoff, &
-         L1_melt, &
-         L1_percol, &
-         L1_preEffect, &
-         L1_rain, &
-         L1_runoffSeal, &
-         L1_slowRunoff, &
-         L1_snow, &
-         L1_Throughfall, &
-         L1_total_runoff, &
-         L1_alpha, &
-         L1_degDayInc, &
-         L1_degDayMax, &
-         L1_degDayNoPre, &
-         L1_degDay, &
-         L1_karstLoss, &
-         L1_fAsp, &
-         L1_HarSamCoeff, &
-         L1_PrieTayAlpha, &
-         L1_aeroResist, &
-         L1_surfResist, &
-         L1_fRoots, &
-         L1_maxInter, &
-         L1_kfastFlow, &
-         L1_kSlowFlow, &
-         L1_kBaseFlow, &
-         L1_kPerco, &
-         L1_soilMoistFC, &
-         L1_soilMoistSat, &
-         L1_soilMoistExp, &
-         L1_jarvis_thresh_c1, &
-         L1_tempThresh, &
-         L1_unsatThresh, &
-         L1_sealedThresh, &
-         L1_wiltingPoint, &
-         basin, &
-         L0_cellCoor    ,          & 
-         L0_Id         ,           & ! Ids of grid at level-0 
-         L0_slope_emp  ,           & ! Empirical quantiles of slope
-         L0_areaCell,              & ! Ids of grid at level-0
-         L1_areaCell,              & ! [km2] Effective area of cell at this level
-         L1_Id         ,           & ! Ids of grid at level-1
-         L1_cellCoor    ,          &
-         L1_upBound_L0 ,           & ! Row start at finer level-0 scale 
-         L1_downBound_L0,          & ! Row end at finer level-0 scale
-         L1_leftBound_L0,          & ! Col start at finer level-0 scale
-         L1_rightBound_L0,         & ! Col end at finer level-0 scale
-         L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
+        L1_fSealed, &
+        L1_fForest, &
+        L1_fPerm, &
+        L1_Inter, &
+        L1_snowPack, &
+        L1_sealSTW, &
+        L1_soilMoist, &
+        L1_unsatSTW, &
+        L1_satSTW, &
+        L1_aETSoil, &
+        L1_aETCanopy, &
+        L1_aETSealed, &
+        L1_baseflow, &
+        L1_infilSoil, &
+        L1_fastRunoff, &
+        L1_melt, &
+        L1_percol, &
+        L1_preEffect, &
+        L1_rain, &
+        L1_runoffSeal, &
+        L1_slowRunoff, &
+        L1_snow, &
+        L1_Throughfall, &
+        L1_total_runoff, &
+        L1_alpha, &
+        L1_degDayInc, &
+        L1_degDayMax, &
+        L1_degDayNoPre, &
+        L1_degDay, &
+        L1_karstLoss, &
+        L1_fAsp, &
+        L1_HarSamCoeff, &
+        L1_PrieTayAlpha, &
+        L1_aeroResist, &
+        L1_surfResist, &
+        L1_fRoots, &
+        L1_maxInter, &
+        L1_kfastFlow, &
+        L1_kSlowFlow, &
+        L1_kBaseFlow, &
+        L1_kPerco, &
+        L1_soilMoistFC, &
+        L1_soilMoistSat, &
+        L1_soilMoistExp, &
+        L1_jarvis_thresh_c1, &
+        L1_petLAIcorFactor, &
+        L1_tempThresh, &
+        L1_unsatThresh, &
+        L1_sealedThresh, &
+        L1_wiltingPoint, &
+        basin, &
+        L0_cellCoor    ,          & 
+        L0_Id         ,           & ! Ids of grid at level-0 
+        L0_slope_emp  ,           & ! Empirical quantiles of slope
+        L0_areaCell,              & ! Ids of grid at level-0
+        L1_areaCell,              & ! [km2] Effective area of cell at this level
+        L1_Id         ,           & ! Ids of grid at level-1
+        L1_cellCoor    ,          &
+        L1_upBound_L0 ,           & ! Row start at finer level-0 scale 
+        L1_downBound_L0,          & ! Row end at finer level-0 scale
+        L1_leftBound_L0,          & ! Col start at finer level-0 scale
+        L1_rightBound_L0,         & ! Col end at finer level-0 scale
+        L1_nTCells_L0               ! Total number of valid L0 cells in a given L1 cell
     use mo_common_variables, only: &
          processMatrix                                        ! process configuration
 
@@ -426,6 +427,13 @@ CONTAINS
             call var%setAttribute("long_name","jarvis critical value for normalized soil water content")
        end if
        
+       if (processMatrix(5,1) == -1) then 
+            var = nc%setVariable("L1_petLAIcorFactor","f64",(/rows1,cols1/))
+            call var%setFillValue(nodata_dp)
+            call var%setData(unpack(L1_petLAIcorFactor(s1:e1), mask1, nodata_dp))
+            call var%setAttribute("long_name","PET correction factor based on LAI")
+       end if
+     
        var = nc%setVariable("L1_tempThresh","f64",(/rows1,cols1/))
        call var%setFillValue(nodata_dp)
        call var%setData(unpack(L1_tempThresh(s1:e1), mask1, nodata_dp))
@@ -452,7 +460,7 @@ CONTAINS
        deallocate( dummy_d3 )
 
        select case (processMatrix(5,1))
-       case(0) ! PET is input
+       case(-1:0) ! PET is input
 
           var = nc%setVariable("L1_fAsp","f64",(/rows1,cols1/))
           call var%setFillValue(nodata_dp)
@@ -962,56 +970,58 @@ CONTAINS
     use mo_init_states,      only: get_basin_info
     use mo_mhm_constants,    only: YearMonths_i4
     use mo_global_variables, only: &
-         L1_fSealed, &
-         L1_fForest, &
-         L1_fPerm, &
-         L1_Inter, &
-         L1_snowPack, &
-         L1_sealSTW, &
-         L1_soilMoist, &
-         L1_unsatSTW, &
-         L1_satSTW, &
-         L1_aETSoil, &
-         L1_aETCanopy, &
-         L1_aETSealed, &
-         L1_baseflow, &
-         L1_infilSoil, &
-         L1_fastRunoff, &
-         L1_melt, &
-         L1_percol, &
-         L1_preEffect, &
-         L1_rain, &
-         L1_runoffSeal, &
-         L1_slowRunoff, &
-         L1_snow, &
-         L1_Throughfall, &
-         L1_total_runoff, &
-         L1_alpha, &
-         L1_degDayInc, &
-         L1_degDayMax, &
-         L1_degDayNoPre, &
-         L1_degDay, &
-         L1_karstLoss, &
-         L1_fAsp, &
-         L1_HarSamCoeff, &
-         L1_PrieTayAlpha, &
-         L1_aeroResist, &
-         L1_surfResist, &
-         L1_fRoots, &
-         L1_maxInter, &
-         L1_kfastFlow, &
-         L1_kSlowFlow, &
-         L1_kBaseFlow, &
-         L1_kPerco, &
-         L1_soilMoistFC, &
-         L1_soilMoistSat, &
-         L1_soilMoistExp, &
-         L1_jarvis_thresh_c1, &
-         L1_tempThresh, &
-         L1_unsatThresh, &
-         L1_sealedThresh, &
-         L1_wiltingPoint, &
-         nSoilHorizons_mHM
+        L1_fSealed, &
+        L1_fForest, &
+        L1_fPerm, &
+        L1_Inter, &
+        L1_snowPack, &
+        L1_sealSTW, &
+        L1_soilMoist, &
+        L1_unsatSTW, &
+        L1_satSTW, &
+        L1_aETSoil, &
+        L1_aETCanopy, &
+        L1_aETSealed, &
+        L1_baseflow, &
+        L1_infilSoil, &
+        L1_fastRunoff, &
+        L1_melt, &
+        L1_percol, &
+        L1_preEffect, &
+        L1_rain, &
+        L1_runoffSeal, &
+        L1_slowRunoff, &
+        L1_snow, &
+        L1_Throughfall, &
+        L1_total_runoff, &
+        L1_alpha, &
+        L1_degDayInc, &
+        L1_degDayMax, &
+        L1_degDayNoPre, &
+        L1_degDay, &
+        L1_karstLoss, &
+        L1_fAsp, &
+        L1_petLAIcorFactor, &
+        L1_HarSamCoeff, &
+        L1_PrieTayAlpha, &
+        L1_aeroResist, &
+        L1_surfResist, &
+        L1_fRoots, &
+        L1_maxInter, &
+        L1_kfastFlow, &
+        L1_kSlowFlow, &
+        L1_kBaseFlow, &
+        L1_kPerco, &
+        L1_soilMoistFC, &
+        L1_soilMoistSat, &
+        L1_soilMoistExp, &
+        L1_jarvis_thresh_c1, &
+        L1_petLAIcorFactor, &
+        L1_tempThresh, &
+        L1_unsatThresh, &
+        L1_sealedThresh, &
+        L1_wiltingPoint, &
+        nSoilHorizons_mHM
     use mo_common_variables, only: &
          processMatrix                                        ! process configuration
 
@@ -1274,7 +1284,14 @@ CONTAINS
         call var%getData(dummyD2)
         L1_jarvis_thresh_c1(s1:e1) = pack( dummyD2, mask1 ) 
     end if
-    
+  
+    if (processMatrix(5,1) == -1) then 
+        ! PET correction factor based on LAI
+        var = nc%getVariable("L1_petLAIcorFactor")
+        call var%getData(dummyD2)
+        L1_petLAIcorFactor(s1:e1) = pack( dummyD2, mask1 ) 
+    end if
+     
     ! Threshold temperature for snow/rain 
     var = nc%getVariable("L1_tempThresh")
     call var%getData(dummyD2)
@@ -1299,6 +1316,13 @@ CONTAINS
 
     ! different parameters dependent on PET formulation
     select case (processMatrix(5,1))
+    case(-1) ! PET is input
+
+       ! PET correction factor due to LAI
+       var = nc%getVariable("L1_petLAIcorFactor")
+       call var%getData(dummyD2)
+       L1_petLAIcorFactor(s1:e1) = pack( dummyD2, mask1 ) 
+       
     case(0) ! PET is input
 
        ! PET correction factor due to terrain aspect

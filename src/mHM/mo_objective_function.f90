@@ -905,7 +905,7 @@ CONTAINS
           deallocate ( tws_sim_m_anom )
           deallocate ( tws_obs_m_anom )
           deallocate (tws_sim, tws_obs, tws_obs_mask)
-       endif
+       end if
 
     end do
 

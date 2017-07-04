@@ -736,7 +736,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT (1)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, NDAT - 2
           IDCR = IDCR - 1
@@ -746,7 +746,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              XWRK = XWRK1
              IWRK = IWRK1
-          Endif
+          end if
        End Do
        IWRKT (1) = IWRK
        !
@@ -802,7 +802,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT(IDEB)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, 5
           IDCR = IDCR - 1
@@ -812,7 +812,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              IWRK = IWRK1
              XWRK = XWRK1
-          Endif
+          end if
        End Do
        IWRKT (IDEB) = IWRK
        If (XWRK < XMIN) Then
@@ -836,7 +836,7 @@ CONTAINS
                 XWRK1 = XDATT (IWRK1)
              End Do
              IWRKT (IDCR) = IWRK
-          EndIf
+          end if
        End Do
        If (XWRK > XMAX) Then
           IMAX = IWRK
@@ -919,15 +919,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XDATT (IWRKT (IMED)) < XMED7) Then
           IMED = IMED + 2
           If (XDATT (IWRKT (IMED)) > XMED7) Then
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XDATT (IWRKT (IMED)) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -958,7 +958,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -995,7 +995,7 @@ CONTAINS
                          IWRKT (ICRS1) = IWRKT (ICRS)
                          IWRK1 = IWRKT (ICRS1)
                          XWRK1 = XDATT (IWRK1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -1068,7 +1068,7 @@ CONTAINS
                 IWRK1 = IWRKT(ICRS1)
                 XWRK1 = XDATT(IWRK1)
              End Do
-          Endif
+          end if
        End Do
        !
        ires_med = IWRK1
@@ -1134,7 +1134,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT (1)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, NDAT - 2
           IDCR = IDCR - 1
@@ -1144,7 +1144,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              XWRK = XWRK1
              IWRK = IWRK1
-          Endif
+          end if
        End Do
        IWRKT (1) = IWRK
        !
@@ -1200,7 +1200,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT(IDEB)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, 5
           IDCR = IDCR - 1
@@ -1210,7 +1210,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              IWRK = IWRK1
              XWRK = XWRK1
-          Endif
+          end if
        End Do
        IWRKT (IDEB) = IWRK
        If (XWRK < XMIN) Then
@@ -1234,7 +1234,7 @@ CONTAINS
                 XWRK1 = XDATT (IWRK1)
              End Do
              IWRKT (IDCR) = IWRK
-          EndIf
+          end if
        End Do
        If (XWRK > XMAX) Then
           IMAX = IWRK
@@ -1317,15 +1317,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XDATT (IWRKT (IMED)) < XMED7) Then
           IMED = IMED + 2
           If (XDATT (IWRKT (IMED)) > XMED7) Then
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XDATT (IWRKT (IMED)) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -1356,7 +1356,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -1393,7 +1393,7 @@ CONTAINS
                          IWRKT (ICRS1) = IWRKT (ICRS)
                          IWRK1 = IWRKT (ICRS1)
                          XWRK1 = XDATT (IWRK1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -1466,7 +1466,7 @@ CONTAINS
                 IWRK1 = IWRKT(ICRS1)
                 XWRK1 = XDATT(IWRK1)
              End Do
-          Endif
+          end if
        End Do
        !
        ires_med = IWRK1
@@ -1532,7 +1532,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT (1)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, NDAT - 2
           IDCR = IDCR - 1
@@ -1542,7 +1542,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              XWRK = XWRK1
              IWRK = IWRK1
-          Endif
+          end if
        End Do
        IWRKT (1) = IWRK
        !
@@ -1598,7 +1598,7 @@ CONTAINS
        Else
           IWRK = IWRKT (IDCR)
           IWRKT (IDCR) = IWRKT(IDEB)
-       Endif
+       end if
        XWRK = XDATT (IWRK)
        Do ITMP = 1, 5
           IDCR = IDCR - 1
@@ -1608,7 +1608,7 @@ CONTAINS
              IWRKT (IDCR) = IWRK
              IWRK = IWRK1
              XWRK = XWRK1
-          Endif
+          end if
        End Do
        IWRKT (IDEB) = IWRK
        If (XWRK < XMIN) Then
@@ -1632,7 +1632,7 @@ CONTAINS
                 XWRK1 = XDATT (IWRK1)
              End Do
              IWRKT (IDCR) = IWRK
-          EndIf
+          end if
        End Do
        If (XWRK > XMAX) Then
           IMAX = IWRK
@@ -1715,15 +1715,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XDATT (IWRKT (IMED)) < XMED7) Then
           IMED = IMED + 2
           If (XDATT (IWRKT (IMED)) > XMED7) Then
              IMED = IMED - 1
           Else If (XDATT (IWRKT (IMED)) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XDATT (IWRKT (IMED)) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -1754,7 +1754,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -1791,7 +1791,7 @@ CONTAINS
                          IWRKT (ICRS1) = IWRKT (ICRS)
                          IWRK1 = IWRKT (ICRS1)
                          XWRK1 = XDATT (IWRK1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -1864,7 +1864,7 @@ CONTAINS
                 IWRK1 = IWRKT(ICRS1)
                 XWRK1 = XDATT(IWRK1)
              End Do
-          Endif
+          end if
        End Do
        !
        ires_med = IWRK1
@@ -3557,7 +3557,7 @@ CONTAINS
     Else
        XMIN = XDONT (NDON)
        XDONT (NDON) = XDONT (1)
-    Endif
+    end if
     Do IDCR = NDON-1, 2, -1
        XWRK = XDONT(IDCR)
        IF (XWRK < XMIN) Then
@@ -3621,7 +3621,7 @@ CONTAINS
     Else
        XMIN = XDONT (NDON)
        XDONT (NDON) = XDONT (1)
-    Endif
+    end if
     Do IDCR = NDON-1, 2, -1
        XWRK = XDONT(IDCR)
        IF (XWRK < XMIN) Then
@@ -3685,7 +3685,7 @@ CONTAINS
     Else
        XMIN = XDONT (NDON)
        XDONT (NDON) = XDONT (1)
-    Endif
+    end if
     Do IDCR = NDON-1, 2, -1
        XWRK = XDONT(IDCR)
        IF (XWRK < XMIN) Then
@@ -4076,7 +4076,7 @@ CONTAINS
              JHIG = JLOW - INTH + 1
           Else
              JHIG = JLOW - INTH + 2
-          Endif
+          end if
           XHIGT (1) = XLOWT (1)
           Do ICRS = 2, JHIG
              XWRK = XLOWT (ICRS)
@@ -4098,7 +4098,7 @@ CONTAINS
                       XHIGT (IDCR-1) = XHIGT (IDCR)
                    else
                       exit
-                   endif
+                   end if
                 End Do
                 XHIGT (IDCR-1) = XWRK
              End If
@@ -4108,7 +4108,7 @@ CONTAINS
              median = XHIGT(1)
           Else
              median = 0.5*(XHIGT(1)+XHIGT(2))
-          Endif
+          end if
           Return
           !
           !
@@ -4212,11 +4212,11 @@ CONTAINS
                 XWRK  = XLOWT (ICRS)
              Else
                 XWRK1 = XLOWT (ICRS)
-             ENDIF
-          ENDIF
+             end if
+          end if
        ENDDO
        median = 0.5*(XWRK+XWRK1)
-    endif
+    end if
     Return
     !
   End Function D_median
@@ -4578,7 +4578,7 @@ CONTAINS
              JHIG = JLOW - INTH + 1
           Else
              JHIG = JLOW - INTH + 2
-          Endif
+          end if
           XHIGT (1) = XLOWT (1)
           Do ICRS = 2, JHIG
              XWRK = XLOWT (ICRS)
@@ -4600,7 +4600,7 @@ CONTAINS
                       XHIGT (IDCR-1) = XHIGT (IDCR)
                    else
                       exit
-                   endif
+                   end if
                 End Do
                 XHIGT (IDCR-1) = XWRK
              End If
@@ -4610,7 +4610,7 @@ CONTAINS
              median = XHIGT(1)
           Else
              median = 0.5*(XHIGT(1)+XHIGT(2))
-          Endif
+          end if
           Return
           !
           !
@@ -4714,11 +4714,11 @@ CONTAINS
                 XWRK  = XLOWT (ICRS)
              Else
                 XWRK1 = XLOWT (ICRS)
-             ENDIF
-          ENDIF
+             end if
+          end if
        ENDDO
        median = 0.5*(XWRK+XWRK1)
-    endif
+    end if
     Return
     !
   End Function R_median
@@ -5080,7 +5080,7 @@ CONTAINS
              JHIG = JLOW - INTH + 1
           Else
              JHIG = JLOW - INTH + 2
-          Endif
+          end if
           XHIGT (1) = XLOWT (1)
           Do ICRS = 2, JHIG
              XWRK = XLOWT (ICRS)
@@ -5102,7 +5102,7 @@ CONTAINS
                       XHIGT (IDCR-1) = XHIGT (IDCR)
                    else
                       exit
-                   endif
+                   end if
                 End Do
                 XHIGT (IDCR-1) = XWRK
              End If
@@ -5112,7 +5112,7 @@ CONTAINS
              median = XHIGT(1)
           Else
              median = (XHIGT(1)+XHIGT(2))/2
-          Endif
+          end if
           Return
           !
           !
@@ -5216,11 +5216,11 @@ CONTAINS
                 XWRK  = XLOWT (ICRS)
              Else
                 XWRK1 = XLOWT (ICRS)
-             ENDIF
-          ENDIF
+             end if
+          end if
        ENDDO
        median = (XWRK+XWRK1)/2
-    endif
+    end if
     Return
     !
   End Function I_median
@@ -6381,7 +6381,7 @@ CONTAINS
           ILOWT (2) = NDON
        else
           ILOWT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -6903,7 +6903,7 @@ CONTAINS
           ILOWT (2) = NDON
        else
           ILOWT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -7425,7 +7425,7 @@ CONTAINS
           ILOWT (2) = NDON
        else
           ILOWT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -8754,7 +8754,7 @@ CONTAINS
           IHIGT (2) = NDON
        else
           IHIGT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -9274,7 +9274,7 @@ CONTAINS
           IHIGT (2) = NDON
        else
           IHIGT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -9794,7 +9794,7 @@ CONTAINS
           IHIGT (2) = NDON
        else
           IHIGT (3) = NDON
-       endif
+       end if
     End If
     !
     If (NDON < 5) Then
@@ -10435,7 +10435,7 @@ CONTAINS
        XTST = NEARLESS (Min(XDONT(JWRKT(1)), XDONT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XDONT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -10682,7 +10682,7 @@ CONTAINS
        XTST = NEARLESS (Min(XDONT(JWRKT(1)), XDONT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XDONT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -10929,7 +10929,7 @@ CONTAINS
        XTST = NEARLESS (Min(XDONT(JWRKT(1)), XDONT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XDONT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -13014,7 +13014,7 @@ CONTAINS
        XTST = NEARLESS (Min(XVALT(JWRKT(1)), XVALT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XVALT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -13262,7 +13262,7 @@ CONTAINS
        XTST = NEARLESS (Min(XVALT(JWRKT(1)), XVALT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XVALT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -13510,7 +13510,7 @@ CONTAINS
        XTST = NEARLESS (Min(XVALT(JWRKT(1)), XVALT(IRNGT(IINDB))))
     Else
        XTST = NEARLESS (XVALT(JWRKT(1)))
-    Endif
+    end if
     Do IWRK = 1, NVAL
        !
        !  We still have unprocessed values in both A and B
@@ -13675,7 +13675,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (1)
-       Endif
+       end if
        Do IWRK = 1, NDON - 2
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -13684,7 +13684,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (1) = XWRK
        !
@@ -13733,7 +13733,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (IDEB)
-       Endif
+       end if
        Do IWRK = 1, 5
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -13742,7 +13742,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (IDEB) = XWRK
        Do ICRS = IDEB+2, IDEB+6
@@ -13758,7 +13758,7 @@ CONTAINS
                 XWRK1 = XWRKT (IDCR-1)
              End Do
              XWRKT (IDCR) = XWRK
-          EndIf
+          end if
        End Do
     End Do
     !
@@ -13777,7 +13777,7 @@ CONTAINS
              If (ne(XWRK1 , XHUGE)) NMED = NMED + 1
              XWRKT (ICRS) = XWRK1
              XWRK1 = - XWRK1
-          Endif
+          end if
        End Do
        !
        Do ICRS = IDEB+2, IDEB+7
@@ -13824,15 +13824,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XWRKT (IMED) < XMED7) Then
           IMED = IMED + 2
           If (XWRKT (IMED) > XMED7) Then
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XWRKT (IMED) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -13863,7 +13863,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -13895,7 +13895,7 @@ CONTAINS
                       If (ICRS2 < NORD) Then
                          XWRKT (ICRS1) = XWRKT (ICRS)
                          XWRK1 = XWRKT(ICRS1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -13964,7 +13964,7 @@ CONTAINS
                    Exit
                 End If
              End Do
-          Endif
+          end if
        End Do
        !
        res_med = XWRK1
@@ -14011,7 +14011,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (1)
-       Endif
+       end if
        Do IWRK = 1, NDON - 2
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -14020,7 +14020,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (1) = XWRK
        !
@@ -14069,7 +14069,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (IDEB)
-       Endif
+       end if
        Do IWRK = 1, 5
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -14078,7 +14078,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (IDEB) = XWRK
        Do ICRS = IDEB+2, IDEB+6
@@ -14094,7 +14094,7 @@ CONTAINS
                 XWRK1 = XWRKT (IDCR-1)
              End Do
              XWRKT (IDCR) = XWRK
-          EndIf
+          end if
        End Do
     End Do
     !
@@ -14113,7 +14113,7 @@ CONTAINS
              If (ne(XWRK1 , XHUGE)) NMED = NMED + 1
              XWRKT (ICRS) = XWRK1
              XWRK1 = - XWRK1
-          Endif
+          end if
        End Do
        !
        Do ICRS = IDEB+2, IDEB+7
@@ -14160,15 +14160,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XWRKT (IMED) < XMED7) Then
           IMED = IMED + 2
           If (XWRKT (IMED) > XMED7) Then
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XWRKT (IMED) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -14199,7 +14199,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -14231,7 +14231,7 @@ CONTAINS
                       If (ICRS2 < NORD) Then
                          XWRKT (ICRS1) = XWRKT (ICRS)
                          XWRK1 = XWRKT(ICRS1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -14300,7 +14300,7 @@ CONTAINS
                    Exit
                 End If
              End Do
-          Endif
+          end if
        End Do
        !
        res_med = XWRK1
@@ -14347,7 +14347,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (1)
-       Endif
+       end if
        Do IWRK = 1, NDON - 2
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -14356,7 +14356,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (1) = XWRK
        !
@@ -14405,7 +14405,7 @@ CONTAINS
        Else
           XWRK = XDONT (IDCR)
           XWRKT (IDCR) = XDONT (IDEB)
-       Endif
+       end if
        Do IWRK = 1, 5
           IDCR = IDCR - 1
           XWRK1 = XDONT (IDCR)
@@ -14414,7 +14414,7 @@ CONTAINS
              XWRK = XWRK1
           Else
              XWRKT (IDCR) = XWRK1
-          Endif
+          end if
        End Do
        XWRKT (IDEB) = XWRK
        Do ICRS = IDEB+2, IDEB+6
@@ -14430,7 +14430,7 @@ CONTAINS
                 XWRK1 = XWRKT (IDCR-1)
              End Do
              XWRKT (IDCR) = XWRK
-          EndIf
+          end if
        End Do
     End Do
     !
@@ -14449,7 +14449,7 @@ CONTAINS
              If (XWRK1 /= XHUGE) NMED = NMED + 1
              XWRKT (ICRS) = XWRK1
              XWRK1 = - XWRK1
-          Endif
+          end if
        End Do
        !
        Do ICRS = IDEB+2, IDEB+7
@@ -14496,15 +14496,15 @@ CONTAINS
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
+          end if
        Else If (XWRKT (IMED) < XMED7) Then
           IMED = IMED + 2
           If (XWRKT (IMED) > XMED7) Then
              IMED = IMED - 1
           Else If (XWRKT (IMED) < XMED7) Then
              IMED = IMED + 1
-          Endif
-       Endif
+          end if
+       end if
        If (XWRKT (IMED) > XMED7) Then
           NLEQ = NLEQ + IMED - IDON
           IENDT (IDON1) = IMED - 1
@@ -14535,7 +14535,7 @@ CONTAINS
                 Exit
              End If
           End Do
-       Endif
+       end if
        IDON1 = IDON1 + 1
     End Do
     !
@@ -14567,7 +14567,7 @@ CONTAINS
                       If (ICRS2 < NORD) Then
                          XWRKT (ICRS1) = XWRKT (ICRS)
                          XWRK1 = XWRKT(ICRS1)
-                      Endif
+                      end if
                    End If
                    ICRS1 = MIN (NORD, ICRS1 + 1)
                    ICRS2 = MIN (NORD, ICRS2 + 1)
@@ -14636,7 +14636,7 @@ CONTAINS
                    Exit
                 End If
              End Do
-          Endif
+          end if
        End Do
        !
        res_med = XWRK1

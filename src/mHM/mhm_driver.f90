@@ -272,7 +272,7 @@ PROGRAM mhm_driver
      call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
      call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
      select case (processMatrix(5,1))
-     case(0) ! PET is input
+     case(-1:0) ! PET is input
         call message('    PET directory:              ', trim(dirReferenceET(ii)  ))
      case(1) ! Hargreaves-Samani
         call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  ))
@@ -349,7 +349,7 @@ PROGRAM mhm_driver
            call timer_stop(itimer)
            call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
         end if
-     endif
+     end if
 
      ! read optional optional data if necessary
      if (optimize) then

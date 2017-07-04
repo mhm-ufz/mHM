@@ -218,7 +218,8 @@ case 9 :: ADAPTIVE TIMESTEPPING IN ROUTING, RESTART WRITING, PET: Hargreaves-Sam
 
 case 10 :: SOIL MOISTURE ET: Jarvis SM-dependent ET reduction &soil texture dependent root fraction
    processCase(3)             = 3                                               (default:       1)
-   -----
+   processCase(5)             = -1                                              (default:       0)  
+-----
    mhm_outputs.nml:
    timeStep_model_outputs     = -2                                              (default:      -1)
 

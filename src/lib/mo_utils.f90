@@ -428,7 +428,7 @@ CONTAINS
        equal_dp = .false.
     else
        equal_dp = .true.
-    endif
+    end if
 
   END FUNCTION equal_dp
 
@@ -445,7 +445,7 @@ CONTAINS
        equal_sp = .false.
     else
        equal_sp = .true.
-    endif
+    end if
 
   END FUNCTION equal_sp
 
@@ -525,7 +525,7 @@ CONTAINS
        notequal_dp = .true.
     else
        notequal_dp = .false.
-    endif
+    end if
 
   END FUNCTION notequal_dp
 
@@ -542,7 +542,7 @@ CONTAINS
        notequal_sp = .true.
     else
        notequal_sp = .false.
-    endif
+    end if
 
   END FUNCTION notequal_sp
   
@@ -687,7 +687,7 @@ CONTAINS
        locate_0d_dp = c(1)
     else
        locate_0d_dp = c(1)-1
-    endif
+    end if
 
   END FUNCTION locate_0d_dp
 
@@ -706,7 +706,7 @@ CONTAINS
        locate_0d_sp = c(1)
     else
        locate_0d_sp = c(1)-1
-    endif
+    end if
 
   END FUNCTION locate_0d_sp
 
@@ -731,7 +731,7 @@ CONTAINS
           locate_1d_dp(i) = c(1)
        else
           locate_1d_dp(i) = c(1)-1
-       endif
+       end if
     end do
 
   END FUNCTION locate_1d_dp
@@ -757,7 +757,7 @@ CONTAINS
           locate_1d_sp(i) = c(1)
        else
           locate_1d_sp(i) = c(1)-1
-       endif
+       end if
     end do
 
   END FUNCTION locate_1d_sp

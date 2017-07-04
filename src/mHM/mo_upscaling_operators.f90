@@ -538,7 +538,7 @@ contains
        nodata_value,               &   ! no data value
        L0_fineScale_data           &   ! high resolution data
        )
-    use  mo_utils, only: ne, eq
+    use  mo_utils, only: ne
     implicit none
 
     ! input
@@ -570,11 +570,11 @@ contains
        id = L1_lower_rowId_cell(kk)
        jl = L1_left_colonId_cell(kk)
        jr = L1_right_colonId_cell(kk)
-       nCells_L0_in_L1 = count( L0_fineScale_2D_data(iu:id, jl:jr) .ne. nodata_value )
+       nCells_L0_in_L1 = count( NE(L0_fineScale_2D_data(iu:id, jl:jr), nodata_value) )
        allocate( dummy_V(nCells_L0_in_L1) )
-       dummy_V(:) = PACK( L0_fineScale_2D_data(iu:id,jl:jr), MASK=(L0_fineScale_2D_data(iu:id,jl:jr) .ne. nodata_value) )
+       dummy_V(:) = PACK( L0_fineScale_2D_data(iu:id,jl:jr), MASK=(NE(L0_fineScale_2D_data(iu:id,jl:jr), nodata_value)) )
        upscale_geometric_mean(kk) = PRODUCT( dummy_V(:) )
-       if( upscale_geometric_mean(kk) .ne. 0.0_dp ) then
+       if( NE(upscale_geometric_mean(kk), 0.0_dp) ) then
           upscale_geometric_mean(kk) = upscale_geometric_mean(kk)**(1.0_dp/real(nCells_L0_in_L1,dp))
        else
           upscale_geometric_mean(kk) = 0.0_dp

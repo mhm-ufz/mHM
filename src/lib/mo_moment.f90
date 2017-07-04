@@ -866,7 +866,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'absdev_dp: n must be at least 2'
 
     ! Average
@@ -897,7 +897,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'absdev_sp: n must be at least 2'
 
     ! Average
@@ -927,7 +927,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
 
     ! Average
     average_dp  = sum(dat(:), mask=maske)/n
@@ -953,7 +953,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
 
     ! Average
     average_sp  = sum(dat(:), mask=maske)/n
@@ -977,11 +977,11 @@ CONTAINS
     if (r .lt. 0) then
        central_moment_dp = 0.0_dp
        return
-    endif
+    end if
     if (r .eq. 0) then
        central_moment_dp = 1.0_dp
        return
-    endif
+    end if
 
     if (present(mask)) then
        if (size(mask) .ne. size(x)) stop 'Error central_moment_dp: size(mask) .ne. size(x)'
@@ -990,7 +990,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'central_moment_dp: n must be at least 3'
 
     ! average
@@ -1016,11 +1016,11 @@ CONTAINS
     if (r .lt. 0) then
        central_moment_sp = 0.0_sp
        return
-    endif
+    end if
     if (r .eq. 0) then
        central_moment_sp = 1.0_sp
        return
-    endif
+    end if
 
     if (present(mask)) then
        if (size(mask) .ne. size(x)) stop 'Error central_moment_sp: size(mask) .ne. size(x)'
@@ -1029,7 +1029,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'central_moment_sp: n must be at least 3'
 
     ! average
@@ -1056,7 +1056,7 @@ CONTAINS
     if (r.le.1) then
        central_moment_var_dp = 0.0_dp
        return
-    endif
+    end if
 
     if (present(mask)) then
        if (size(mask) .ne. size(x)) stop 'Error central_moment_var_dp: size(mask) .ne. size(x)'
@@ -1065,7 +1065,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'central_moment_var_dp: n must be at least 3'
 
     u2r  = central_moment(x, 2*r, mask=maske)
@@ -1094,7 +1094,7 @@ CONTAINS
     if (r.le.1) then
        central_moment_var_sp = 0.0_sp
        return
-    endif
+    end if
 
     if (present(mask)) then
        if (size(mask) .ne. size(x)) stop 'Error central_moment_var_sp: size(mask) .ne. size(x)'
@@ -1103,7 +1103,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'central_moment_var_sp: n must be at least 3'
 
     u2r  = central_moment(x, 2*r, mask=maske)
@@ -1140,7 +1140,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'correlation_dp: n must be at least 2'
 
     ! Mean and Stddev of x and y
@@ -1175,7 +1175,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'correlation_sp: n must be at least 2'
 
     ! Mean and Stddev of x and y
@@ -1210,7 +1210,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'covariance_dp: n must be at least 2'
 
     ! Mean of x and y
@@ -1242,7 +1242,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'covariance_sp: n must be at least 2'
 
     ! Mean of x and y
@@ -1275,7 +1275,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'kurtosis_dp: n must be at least 2'
 
     ! Average
@@ -1316,7 +1316,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'kurtosis_sp: n must be at least 2'
 
     ! Average
@@ -1356,7 +1356,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
 
     ! Mean
     mean_dp  = sum(dat(:), mask=maske)/n
@@ -1383,7 +1383,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
 
     ! Mean
     mean_sp  = sum(dat(:), mask=maske)/n
@@ -1410,7 +1410,7 @@ CONTAINS
     if (r.lt.0 .or. s.lt.0) then
        mixed_central_moment_dp = 0.0_dp
        return
-    endif
+    end if
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_dp: size(x) .ne. size(y)'
     if (present(mask)) then
@@ -1420,7 +1420,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'mixed_central_moment_dp: n must be at least 3'
 
     ! Averages of x and y
@@ -1431,12 +1431,12 @@ CONTAINS
        xx = (x-mx)**r
     else
        xx = 1._dp
-    endif
+    end if
     if (s>0) then
        yy = (y-my)**s
     else
        yy = 1._dp
-    endif
+    end if
     mixed_central_moment_dp = sum(xx*yy, mask=maske) / n
 
   END FUNCTION mixed_central_moment_dp
@@ -1460,7 +1460,7 @@ CONTAINS
     if (r.lt.0 .or. s.lt.0) then
        mixed_central_moment_sp = 0.0_sp
        return
-    endif
+    end if
 
     if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_sp: size(x) .ne. size(y)'
     if (present(mask)) then
@@ -1470,7 +1470,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'mixed_central_moment_sp: n must be at least 3'
 
     ! Averages of x and y
@@ -1481,12 +1481,12 @@ CONTAINS
        xx = (x-mx)**r
     else
        xx = 1._sp
-    endif
+    end if
     if (s>0) then
        yy = (y-my)**s
     else
        yy = 1._sp
-    endif
+    end if
     mixed_central_moment_sp = sum(xx*yy, mask=maske) / n
 
   END FUNCTION mixed_central_moment_sp
@@ -1516,7 +1516,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),dp)
-    endif
+    end if
     if (n .le. (2.0_dp+tiny(2.0_dp))) stop 'mixed_central_moment_var_dp: n must be at least 3'
 
     u2r2s = mixed_central_moment(x, y, 2*r, 2*s, mask=maske)
@@ -1562,7 +1562,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(x),sp)
-    endif
+    end if
     if (n .le. (2.0_sp+tiny(2.0_sp))) stop 'mixed_central_moment_var_sp: n must be at least 3'
 
     u2r2s = mixed_central_moment(x, y, 2*r, 2*s, mask=maske)
@@ -1613,7 +1613,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'moment_dp: n must be at least 2'
 
     ! Any optional argument
@@ -1645,7 +1645,7 @@ CONTAINS
     if (present(skewness)) then
        skewness = sum(p(:), mask=maske)
        skewness = skewness/(n*stddev*stddev*stddev)
-    endif
+    end if
     ! Kurtosis
     if (present(kurtosis)) then
        p(:) = p(:)*s(:)
@@ -1683,7 +1683,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'moment_sp: n must be at least 2'
 
     ! Any optional argument
@@ -1715,7 +1715,7 @@ CONTAINS
     if (present(skewness)) then
        skewness = sum(p(:), mask=maske)
        skewness = skewness/(n*stddev*stddev*stddev)
-    endif
+    end if
     ! Kurtosis
     if (present(kurtosis)) then
        p(:) = p(:)*s(:)
@@ -1748,7 +1748,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'stddev_dp: n must be at least 2'
 
     ! Average
@@ -1785,7 +1785,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'stddev_sp: n must be at least 2'
 
     ! Average
@@ -1823,7 +1823,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'skewness_dp: n must be at least 2'
 
     ! Average
@@ -1865,7 +1865,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'skewness_sp: n must be at least 2'
 
     ! Average
@@ -1908,7 +1908,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),dp)
-    endif
+    end if
     if (n .le. (1.0_dp+tiny(1.0_dp))) stop 'variance_dp: n must be at least 2'
 
     ! Average
@@ -1944,7 +1944,7 @@ CONTAINS
     else
        maske(:) = .true.
        n = real(size(dat),sp)
-    endif
+    end if
     if (n .le. (1.0_sp+tiny(1.0_sp))) stop 'variance_sp: n must be at least 2'
 
     ! Average

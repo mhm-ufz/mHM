@@ -12,25 +12,27 @@ MODULE mo_global_variables
   ! This module provides
 
   !
-  ! Written   Luis Samaniego, Dec 2005
-  ! Modified  Luis Samaniego, Feb 2013  - new variable names, new modules, units
-  !           Rohini Kumar,   Jul 2013  - fraction of perfectly sealed area within city added
-  !           Rohini Kumar,   Aug 2013  - name changed "inputFormat" to "inputFormat_meteo_forcings"
-  !           Rohini Kumar,   Aug 2013  - name changed from "L0_LAI" to "L0_LCover_LAI"
-  !           Rohini Kumar,   Aug 2013  - added dirSoil_LUT and dirGeology_LUT
-  !           Luis Samaniego, Nov 2013  - documentation of dimensions
-  !           Matthias Zink,  Nov 2013  - added "InflowGauge" and inflow gauge variabels in basin
-  !           Rohini Kumar,   May 2014  - added options for the model run cordinate system
-  !           Stephan Thober, Jun 2014  - added timeStep_model_inputs and readPer
-  !           Stephan Thober, Jun 2014  - added perform_mpr, updated restart flags
-  !           Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
-  !           Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !           Matthias Zink,  Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
-  !           Stephan Thober, Aug 2015 - moved routing related variables to mRM
-  !           Oldrich Rakovec,Oct 2015 - added definition of basin averaged TWS data
-  !           Rohini Kumar,   Mar 2016 - new variables for handling different soil databases
-  !           Johann Brenner, Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
-  !           Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress variable for SM process(3) 
+  ! Written   Luis Samaniego,     Dec 2005
+  ! Modified  Luis Samaniego,     Feb 2013 - new variable names, new modules, units
+  !           Rohini Kumar,       Jul 2013 - fraction of perfectly sealed area within city added
+  !           Rohini Kumar,       Aug 2013 - name changed "inputFormat" to "inputFormat_meteo_forcings"
+  !           Rohini Kumar,       Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
+  !           Rohini Kumar,       Aug 2013 - added dirSoil_LUT and dirGeology_LUT
+  !           Luis Samaniego,     Nov 2013 - documentation of dimensions
+  !           Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in basin
+  !           Rohini Kumar,       May 2014 - added options for the model run cordinate system
+  !           Stephan Thober,     Jun 2014 - added timeStep_model_inputs and readPer
+  !           Stephan Thober,     Jun 2014 - added perform_mpr, updated restart flags
+  !           Cuntz M. & Mai J.,  Nov 2014 - LAI input from daily, monthly or yearly files
+  !           Matthias Zink,      Dec 2014 - adopted inflow gauges to ignore headwater cells
+  !           Matthias Zink,      Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
+  !           Stephan Thober,     Aug 2015 - moved routing related variables to mRM
+  !           Oldrich Rakovec,    Oct 2015 - added definition of basin averaged TWS data
+  !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
+  !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
+  !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
+  !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
+
 
   
   USE mo_kind,             ONLY: i4, i8, dp
@@ -200,6 +202,7 @@ MODULE mo_global_variables
   real(dp),       public, dimension(:,:), allocatable :: LAILUT            ! [m2/m2] Leaf area index for LAIUnit
   !                                                                        ! dim1=land cover class, dim2=month of year
 
+
   ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
@@ -283,14 +286,15 @@ MODULE mo_global_variables
 
   ! mHM derived variables
   ! dim1 = number grid cells L0
-  integer(i4), public                              :: L0_nCells     !      Number of valid cells
-  integer(i4), public, dimension(:,:), allocatable :: L0_cellCoor   !      Cell coordinates (row,col) for each grid cell, dim2=2
-  integer(i4), public, dimension(:), allocatable   :: L0_Id         !      Level-0 id
-  real(dp), public, dimension(:), allocatable      :: L0_slope_emp  !      Empirical quantiles of slope
+  integer(i4), public                                :: L0_nCells            ! Number of valid cells
+  integer(i4), public, dimension(:,:), allocatable   :: L0_cellCoor          ! Cell coordinates (row,col) for each grid cell, dim2=2
+  integer(i4), public, dimension(:),   allocatable   :: L0_Id                ! Level-0 id
+  real(dp),    public, dimension(:),   allocatable   :: L0_slope_emp         ! Empirical quantiles of slope
   !
-  real(dp),    public, dimension(:,:), allocatable :: L0_gridded_LAI !     gridded LAI data used when timeStep_LAI_input < 0 or == 1
-  !                                                                  !     dim1=number of grid cells, dim2=number of LAI time steps
-  real(dp), public, dimension(:), allocatable      :: L0_areaCell    ! [m2] Area of a cell at level-0
+  real(dp),    public, dimension(:,:), allocatable   :: L0_gridded_LAI       ! gridded AI data used when timeStep_LAI_input<0 or==1
+  !                                                                          ! dim1=number of gridcells, dim2=number LAI timesteps
+
+  real(dp),    public, dimension(:),   allocatable   :: L0_areaCell          ! [m2] Area of a cell at level-0
 
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
@@ -356,7 +360,7 @@ MODULE mo_global_variables
   real(dp), public, dimension(:,:), allocatable :: L1_soilMoist    ! [mm]  Soil moisture of each horizon
   real(dp), public, dimension(:), allocatable   :: L1_unsatSTW     ! [mm]  upper soil storage
   real(dp), public, dimension(:), allocatable   :: L1_satSTW       ! [mm]  groundwater storage
-  real(dp), public, dimension(:), allocatable   :: L1_neutrons    ! [mm]  Ground Albedo Neutrons
+  real(dp), public, dimension(:), allocatable   :: L1_neutrons     ! [mm]  Ground Albedo Neutrons
 
   ! Fluxes
   ! dim1 = number grid cells L1
@@ -381,39 +385,44 @@ MODULE mo_global_variables
   ! Effective parameters
   ! dim1 = number grid cells L1
   ! dim2 = number model soil horizons
-  real(dp), public, dimension(:), allocatable   :: L1_alpha        ! [1]            Exponent for the upper reservoir
-  real(dp), public, dimension(:), allocatable   :: L1_degDayInc    ! [d-1 degC-1]   Increase of the Degree-day factor
-  !                                                                !                per mm of increase in precipitation
-  real(dp), public, dimension(:), allocatable   :: L1_degDayMax    ! [mm-1 degC-1]  Maximum Degree-day factor
-  real(dp), public, dimension(:), allocatable   :: L1_degDayNoPre  ! [mm-1 degC-1]  Degree-day factor with no precipitation.
-  real(dp), public, dimension(:), allocatable   :: L1_degDay       ! [mm d-1degC-1] Degree-day factor.
-  real(dp), public, dimension(:), allocatable   :: L1_karstLoss    ! [1]    Karstic percolation loss
-  real(dp), public, dimension(:), allocatable   :: L1_fAsp         ! [1]    PET correction for aspect
-  real(dp), public, dimension(:), allocatable   :: L1_HarSamCoeff  ! [1]    Hargreaves Samani coeffiecient
-  real(dp), public, dimension(:,:), allocatable :: L1_PrieTayAlpha ! [1]    Priestley Taylor coeffiecient
-  real(dp), public, dimension(:,:), allocatable :: L1_aeroResist   ! [s m-1] aerodynamical resitance
-  real(dp), public, dimension(:,:), allocatable :: L1_surfResist   ! [s m-1] bulk surface resitance
-  !                                                                ! dim1 = No cells for basin, dim2 = No of Months in year
-  real(dp), public, dimension(:,:), allocatable :: L1_fRoots       ! [1]    Fraction of roots in soil horizons
-  real(dp), public, dimension(:), allocatable   :: L1_maxInter     ! [mm]   Maximum interception
-  real(dp), public, dimension(:), allocatable   :: L1_kfastFlow    ! [d-1]  Fast interflow recession coefficient
-  real(dp), public, dimension(:), allocatable   :: L1_kSlowFlow    ! [d-1]  Slow interflow recession coefficient
-  real(dp), public, dimension(:), allocatable   :: L1_kBaseFlow    ! [d-1]  Baseflow recession coefficient
-  real(dp), public, dimension(:), allocatable   :: L1_kPerco       ! [d-1]  percolation coefficient
-  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistFC  ! [mm]   Soil moisture below which actual ET
-  !                                                                !        is reduced linearly till PWP
-  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistSat ! [mm]   Saturation soil moisture for each horizon [mm]
-  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistExp ! [1]    Exponential parameter to how non-linear
-  !                                                                !        is the soil water retention
-  real(dp), public, dimension(:),   allocatable :: L1_jarvis_thresh_c1 ![1] jarvis critical value for normalized soil 
-  !                                                                !        water content 
-  real(dp), public, dimension(:), allocatable   :: L1_tempThresh   ! [degC]   Threshold temperature for snow/rain
-  real(dp), public, dimension(:), allocatable   :: L1_unsatThresh  ! [mm]   Threshhold water depth controlling fast interflow
-  real(dp), public, dimension(:), allocatable   :: L1_sealedThresh ! [mm]   Threshhold water depth for surface runoff
-  !                                                                !        in sealed surfaces
-  real(dp), public, dimension(:,:), allocatable :: L1_wiltingPoint ! [mm]   Permanent wilting point: below which neither
-  !                                                                !        plant can take water nor water can drain in
+  real(dp), public, dimension(:), allocatable   :: L1_alpha                 ! [1]            Exponent for the upper reservoir
+  real(dp), public, dimension(:), allocatable   :: L1_degDayInc             ! [d-1 degC-1]   Increase of the Degree-day factor
+  !                                                                         !                per mm of increase in precipitation
+  real(dp), public, dimension(:), allocatable   :: L1_degDayMax             ! [mm-1 degC-1]  Maximum Degree-day factor
+  real(dp), public, dimension(:), allocatable   :: L1_degDayNoPre           ! [mm-1 degC-1]  Degree-day factor with no precipitation.
+  real(dp), public, dimension(:), allocatable   :: L1_degDay                ! [mm d-1degC-1] Degree-day factor.
+  real(dp), public, dimension(:), allocatable   :: L1_karstLoss             ! [1]    Karstic percolation loss
+  real(dp), public, dimension(:), allocatable   :: L1_fAsp                  ! [1]    PET correction for aspect
+  real(dp), public, dimension(:), allocatable   :: L1_petLAIcorFactor       ! [-]   PET correction based on LAI (KC by GEUS.dk)
 
+  real(dp), public, dimension(:), allocatable   :: L1_HarSamCoeff           ! [1]    Hargreaves Samani coeffiecient
+  real(dp), public, dimension(:,:), allocatable :: L1_PrieTayAlpha          ! [1]    Priestley Taylor coeffiecient
+  real(dp), public, dimension(:,:), allocatable :: L1_aeroResist            ! [s m-1] aerodynamical resitance
+  real(dp), public, dimension(:,:), allocatable :: L1_surfResist            ! [s m-1] bulk surface resitance
+  !                                                                         ! dim1 = No cells for basin, dim2 = No of Months in year
+  real(dp), public, dimension(:,:), allocatable :: L1_fRoots                ! [1]    Fraction of roots in soil horizons
+  real(dp), public, dimension(:), allocatable   :: L1_maxInter              ! [mm]   Maximum interception
+  
+
+  
+  real(dp), public, dimension(:), allocatable   :: L1_kfastFlow             ! [d-1]  Fast interflow recession coefficient
+  real(dp), public, dimension(:), allocatable   :: L1_kSlowFlow             ! [d-1]  Slow interflow recession coefficient
+  real(dp), public, dimension(:), allocatable   :: L1_kBaseFlow             ! [d-1]  Baseflow recession coefficient
+  real(dp), public, dimension(:), allocatable   :: L1_kPerco                ! [d-1]  percolation coefficient
+  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistFC           ! [mm]   Soil moisture below which actual ET
+  !                                                                         !        is reduced linearly till PWP
+  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistSat          ! [mm]   Saturation soil moisture for each horizon [mm]
+  real(dp), public, dimension(:,:), allocatable :: L1_soilMoistExp          ! [1]    Exponential parameter to how non-linear
+  !                                                                         !        is the soil water retention
+  real(dp), public, dimension(:),   allocatable :: L1_jarvis_thresh_c1      ![1] jarvis critical value for normalized soil 
+  !                                                                         !        water content 
+  real(dp), public, dimension(:), allocatable   :: L1_tempThresh            ! [degC]   Threshold temperature for snow/rain
+  real(dp), public, dimension(:), allocatable   :: L1_unsatThresh           ! [mm]  Threshold waterdepth controlling fast interflow
+  real(dp), public, dimension(:), allocatable   :: L1_sealedThresh          ! [mm]  Threshold waterdepth for surface runoff
+  !                                                                         !       in sealed surfaces
+  real(dp), public, dimension(:,:), allocatable :: L1_wiltingPoint          ! [mm]  Permanent wilting point: below which neither
+  !                                                                         !       plant can take water nor water can drain in
+            
   ! -------------------------------------------------------------------
   ! Monthly day/night variation of Meteorological variables
   ! for temporal disaggregation

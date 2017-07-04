@@ -874,7 +874,7 @@ contains
     real(dp),         intent(out), allocatable :: lat(:,:), lon(:,:)
     integer(i4)                                :: ncols, nrows
     integer(i4)                                :: ii, pos 
- 	 
+    
     nrows = level%nrows(ibasin) 
     ncols = level%ncols(ibasin)
       
@@ -958,7 +958,7 @@ contains
        fluxesUnit = 'mm a-1'
     else
        fluxesUnit = ''
-    endif
+    end if
 
   end function fluxesUnit
 

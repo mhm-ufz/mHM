@@ -1,6 +1,6 @@
-get_basin_info! Emacs: -*- mode: f90 -*-
+! Emacs: -*- mode: f90 -*-
 !> \file mhm.nml
-39.35185!
+!
 !> \brief Namelists of mHM
 !
 !> \details This files provides all namelists for mHM.
@@ -8,24 +8,25 @@ get_basin_info! Emacs: -*- mode: f90 -*-
 !> \authors Matthias Zink, Matthias Cuntz
 !> \date Jan 2013
 ! Modified,
-! Rohini Kumar, Aug 2013      - added "fracSealed_cityArea" in the LCover namelist \n
-!                             - added new namelist "LAI_data_information" \n
-!                             - added new directory paths for soil and geology LUTs
-!                               which are common to all modeled basins \n
-! Luis Samaniego, Nov 2013    - process description
-! Matthias  Zink, Mar 2014    - added evaluation and inflow gauge namelists
-! Rohini Kumar,   May 2014    - options for different cordinate system for the model run\n
-! Stephan Thober, May 2014    - added switch for chunk read in
-! Stephan Thober, Jun 2014    - reorganized restart flags, added flag for performing mpr
-! Rohini Kumar and
-! Olda Rakovec  , Sep 2014    - added KGE estimator (OF number 9)
-! Matthias Zink,  Nov 2014    - added multiple options for process 5 - PET
-! Matthias Zink, Dec 2014     - adopted inflow gauges to ignore headwater cells
-! Matthias Zink, Mar 2015     - added optional soil mositure read in for calibration
-! Stephan Thober, Nov 2016    - added adaptive timestep scheme for routing  
-! Rohini  Kumar, Dec 2017     - added LAI option to read long term mean monthly fields 
-! Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  
+! Rohini Kumar,            Aug 2013  - added "fracSealed_cityArea" in the LCover namelist \n
+!                                    - added new namelist "LAI_data_information" \n
+!                                    - added new directory paths for soil and geology LUTs
+!                                      which are common to all modeled basins \n
+! Luis Samaniego,          Nov 2013  - process description
+! Matthias  Zink,          Mar 2014  - added evaluation and inflow gauge namelists
+! Rohini Kumar,            May 2014  - options for different cordinate system for the model run\n
+! Stephan Thober,          May 2014  - added switch for chunk read in
+! Stephan Thober,          Jun 2014  - reorganized restart flags, added flag for performing mpr
+! Kumar R., Rakovec O.     Sep 2014  - added KGE estimator (OF number 9)
+! Matthias Zink,           Nov 2014  - added multiple options for process 5 - PET
+! Matthias Zink,           Dec 2014  - adopted inflow gauges to ignore headwater cells
+! Matthias Zink,           Mar 2015  - added optional soil mositure read in for calibration
+! Stephan Thober,          Nov 2016  - added adaptive timestep scheme for routing  
+! Rohini  Kumar,           Dec 2017  - added LAI option to read long term mean monthly fields 
+! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)=2  
+! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
+! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
+
 !******************************************************************************************
 !
 !******************************************************************************************
@@ -235,10 +236,11 @@ inputFormat_meteo_forcings = "nc"
 dir_Precipitation(1) = "test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
 dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
@@ -257,11 +259,12 @@ dir_gridded_LAI(1)   = "test_basin/input/lai/"
 dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
 dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
-!> 0 - PET is input
-!> 1 - Hargreaves-Sammani method
-!> 2 - Priestley-Taylor mehtod
-!> 3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
+!>   if processCase(5) == 0  input directory of pet has to be specified
 dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
 dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
@@ -310,6 +313,7 @@ dir_neutrons(1)        = "test_basin/input/optional_data/"
 !> directory to evapotranspiration data
 ! expected file name: et.nc, expected variable name: et
 dir_evapotranspiration(1)   = "test_basin/input/optional_data/"
+
 !> time stepping of the soil moisture input
 !>     -1: daily   ET values\n
 !>     -2: monthly ET values\n
@@ -550,10 +554,11 @@ processCase(3) = 1
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
 !> potential evapotranspiration (PET)
-!> 0 - read in PET (aspect correction)
-!> 1 - Hargreaves-Samani
-!> 2 - Priestley-Taylor
-!> 3 - Penman-Monteith
+!>  -1 - PET is input, LAI driven correction
+!>   0 - PET is input, aspect driven correction 
+!>   1 - Hargreaves-Sammani method
+!>   2 - Priestley-Taylor mehtod
+!>   3 - Penman-Monteith method
 processCase(5) = 0
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response

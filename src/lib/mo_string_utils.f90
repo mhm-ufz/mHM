@@ -505,7 +505,7 @@ CONTAINS
        nonull = .true.
     else
        nonull = .false.
-    endif
+    end if
 
   END FUNCTION nonull
 

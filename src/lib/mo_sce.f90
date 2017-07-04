@@ -432,13 +432,13 @@ CONTAINS
        irestart = restart
     else
        irestart = .false.
-    endif
+    end if
 
     if (present(restart_file)) then
        isrestart_file = restart_file
     else
        isrestart_file = 'mo_sce.restart'
-    endif
+    end if
 
     if (.not. irestart) then
 
@@ -576,7 +576,7 @@ CONTAINS
              idot = .true.
           else
              iprint = myprint
-          endif
+          end if
        else
           iprint = 2_i4  ! no printing
           iprint = 0_i4
@@ -596,7 +596,7 @@ CONTAINS
           ipopul_file_append = popul_file_append
        else
           ipopul_file_append = .false.
-       endif
+       end if
 
        if (present(tmp_file)) then
           itmp_file  = .true.
@@ -621,7 +621,7 @@ CONTAINS
        else
           ipopul_file  = .false.
           ispopul_file = ''
-       endif
+       end if
 
        if (ipopul_file .and. (.not. ipopul_file_append)) then
           open(999, file=trim(adjustl(ispopul_file)), action='write', status = 'unknown')
@@ -645,7 +645,7 @@ CONTAINS
           large = -0.5_dp*huge(1.0_dp)
        else
           large = 0.5_dp*huge(1.0_dp)
-       endif
+       end if
        history_tmp(:) = large
        criter(:)      = large
        !
@@ -823,7 +823,7 @@ CONTAINS
        else
           large = maxval(xf(1:npt1))
           large = merge(1.1_dp*large, 0.9_dp*large, large>0._dp)
-       endif
+       end if
        xf(1:npt1) = merge(xf(1:npt1), large, is_finite(xf(1:npt1))) ! NaN and Infinite
        ! sort does not work with NaNs
        ! -> get history_tmp w/o NaN, sort it, and set the rest to NaN
@@ -837,7 +837,7 @@ CONTAINS
           deallocate(htmp)
        else
           call sort(history_tmp(1:npt1))
-       endif
+       end if
        call sort_matrix(x(1:npt1,1:nn),xf(1:npt1))
        !
        !  record the best and worst points
@@ -915,7 +915,7 @@ CONTAINS
        write(999, restartnml1)
        write(999, restartnml2)
        close(999)
-    endif ! restart or not
+    end if ! restart or not
 
     if (irestart) then
        ! read 1st namelist with allocated/scalar variables
@@ -945,7 +945,7 @@ CONTAINS
        allocate(history_tmp(maxn+3*ngs*nspl))
        allocate(xtmp(npg,nn))
        allocate(ftmp(npg))
-    endif
+    end if
 
     !
     !  begin the main loop
@@ -1052,7 +1052,7 @@ CONTAINS
                 else
                    large = maxval(cf(1:npg))
                    large = merge(1.1_dp*large, 0.9_dp*large, large>0._dp)
-                endif
+                end if
                 !
                 !  use the sub-complex to generate new point(s)
                 icall_merk = icall
@@ -1178,7 +1178,7 @@ CONTAINS
                 else
                    large = maxval(cf(1:npg))
                    large = merge(1.1_dp*large, 0.9_dp*large, large>0._dp)
-                endif
+                end if
                 !
                 !  use the sub-complex to generate new point(s)
                 call cce(s(1:nps,1:nn),sf(1:nps),bl(1:nn),bu(1:nn),maskpara,xnstd(1:nn),  &
@@ -1205,7 +1205,7 @@ CONTAINS
                       call write_best_final()
                    end if
                    exit
-                endif
+                end if
                 !
              end do subcomploop ! <alpha loop>
              !
@@ -1224,7 +1224,7 @@ CONTAINS
                    call write_best_final()
                 end if
                 exit
-             endif
+             end if
              !
              !  end loop on complexes
           end do comploop  ! <beta loop>

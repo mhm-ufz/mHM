@@ -366,11 +366,12 @@ processCase(3) = 3
 !> 1 - linear reservoir exceedance approach
 processCase(4) = 1
 !> potential evapotranspiration (PET)
+!> -1 - PET is input, LAI driven correction
 !> 0 - read in PET (aspect correction)
 !> 1 - Hargreaves-Samani
 !> 2 - Priestley-Taylor
 !> 3 - Penman-Monteith
-processCase(5) = 0
+processCase(5) = -1
 !> interflow
 !> 1 - storage reservoir with one outflow threshold and nonlinear response 
 processCase(6) = 1
