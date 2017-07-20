@@ -184,7 +184,7 @@ PROGRAM mhm_driver
   USE mo_mhm_eval,            ONLY : mhm_eval
   USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data, & ! prepare daily LAI gridded fields
                              prepare_gridded_mean_monthly_LAI_data  ! prepare mean monthly LAI gridded fields
-  
+
   USE mo_read_optional_data,  ONLY : read_soil_moisture,     &      ! optional soil moisture reader, basin_avg_TWS reader
                                      read_basin_avg_TWS,     &
                                      read_neutrons,          &
@@ -360,14 +360,14 @@ PROGRAM mhm_driver
         case(17)
            ! read optional spatio-temporal neutrons data
            call read_neutrons(ii)
-        case(27)
+        case(27,29)
            ! read optional spatio-temporal evapotranspiration data
            call read_evapotranspiration(ii)
         case(15)
            ! read optional basin average TWS data at once, therefore only read it
            ! the last iteration of the basin loop to ensure same time for all basins
            ! note: this is similar to how the runoff is read using mrm below
-           if ( ii == nbasins) then 
+           if ( ii == nbasins) then
               call read_basin_avg_TWS()
            end if
         end select
@@ -391,20 +391,20 @@ PROGRAM mhm_driver
   iTimer = iTimer + 1
   call message()
   if ( optimize ) then
-     
-     select case(opti_function) 
+
+     select case(opti_function)
 #ifdef MRM2MHM
-     case(1:9,14) 
+     case(1:9,14)
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17,27,28)
+     case(10:13,15,17,27,28,29)
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
-     case default 
+     case default
         call message('***ERROR: mhm_driver: The given objective function number ', &
              trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
-        stop 
+        stop
      end select
 
      ! write a file with final objective function and the best parameter set
