@@ -34,6 +34,7 @@ MODULE mo_errormeasures
 
   PUBLIC :: BIAS                         ! bias
   PUBLIC :: KGE                          ! Kling-Gupta efficiency measure
+  PUBLIC :: KGEnocorr                    ! KGE without correlation
   PUBLIC :: LNNSE                        ! Logarithmic Nash Sutcliffe efficiency
   PUBLIC :: MAE                          ! Mean of absolute errors
   PUBLIC :: MSE                          ! Mean of squared errors
@@ -184,6 +185,89 @@ MODULE mo_errormeasures
   INTERFACE KGE
      MODULE PROCEDURE KGE_dp_1d, KGE_dp_2d, KGE_dp_3d, KGE_sp_1d, KGE_sp_2d, KGE_sp_3d
   END INTERFACE KGE
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          KGEnocorr
+
+  !>        \brief Kling-Gupta-Efficiency measure without correlation
+
+  !>        \details The modified Kling-Gupta model efficiency coefficient \f$ KGEnocorr \f$ is
+  !>                     \f[ KGEnocorr = 1 - \sqrt{( (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>                 where \n
+  !>                     \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
+  !>                     \f$ \beta  \f$ = ratio of simulated standard deviation to 
+  !>                                      observed standard deviation \n
+  !>                 This two measures are calculated between two arrays (1d, 2d, or 3d). 
+  !>                 Usually, one is an observation and the second is a modelled variable.\n
+  !>
+  !>                 The higher the KGEnocorr the better the observation and simulation are matching. 
+  !>                 The upper limit of KGEnocorr is 1.\n
+  !>                 
+  !>                 Therefore, if you apply a minimization algorithm to calibrate regarding 
+  !>                 KGEnocorr you have to use the objective function 
+  !>                     \f[ obj\_value = 1.0 - KGEnocorr \f]
+  !>                 which has then the optimum at 0.0.
+  !>                 (Like for the NSE where you always optimize 1-NSE.)\n
+  !>
+
+  !     INTENT(IN)
+  !>        real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
+  !             OR
+  !>        real(sp/dp), dimension(:,:)   :: x, y    2D-array with input numbers
+  !             OR
+  !>        real(sp/dp), dimension(:,:,:) :: x, y    3D-array with input numbers
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !>        logical     :: mask(:)     1D-array of logical values with size(x/y).
+  !             OR
+  !>        logical     :: mask(:,:)   2D-array of logical values with size(x/y).
+  !             OR
+  !>        logical     :: mask(:,:,:) 3D-array of logical values with size(x/y).
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return  kgenocorr &mdash; Kling-Gupta-Efficiency without correlation (value less equal 1.0)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         kgenocorr = kgenocorr(x,y,mask=mask)
+
+  !     LITERATURE
+  !>        Gupta, Hoshin V., et al. 
+  !>           "Decomposition of the mean squared error and NSE performance criteria: 
+  !>           Implications for improving hydrological modelling." 
+  !>           Journal of Hydrology 377.1 (2009): 80-91.
+
+
+  !     HISTORY
+  !>        \author Rohini Kumar
+  !>        \date August 2014
+  !         Modified, M. Schroen            - Jul 2017 add KGEnocorr (KGE without correlation) 
+  !	              R. Kumar & O. Rakovec - Sep. 2014
+  !                   J. Mai                - remove double packing of input data (bug)
+  !                                         - KGE instead of 1.0-KGE
+  !                                         - 1d, 2d, 3d, version in sp and dp
+
+  INTERFACE KGEnocorr
+     MODULE PROCEDURE KGEnocorr_dp_1d, KGEnocorr_dp_2d, KGEnocorr_dp_3d, KGEnocorr_sp_1d, KGEnocorr_sp_2d, KGEnocorr_sp_3d
+  END INTERFACE KGEnocorr
+
 
   ! ------------------------------------------------------------------
 
@@ -1229,6 +1313,335 @@ CONTAINS
          )
  
   END FUNCTION KGE_dp_3d
+
+  ! ------------------------------------------------------------------
+
+  FUNCTION KGEnocorr_sp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                          :: KGEnocorr_sp_1d
+
+    ! local variables
+    INTEGER(i4)                             :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) ) :: shapemask
+    LOGICAL,     DIMENSION(size(x))         :: maske
+    
+    REAL(sp)                                :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_sp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_sp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask=maske) 
+    mu_Sim = average(y, mask=maske)  
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask=maske)
+    sigma_Sim = stddev(y, mask=maske)
+
+    ! 
+    KGEnocorr_sp_1d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_sp_1d
+
+  FUNCTION KGEnocorr_sp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                            :: KGEnocorr_sp_2d
+
+    ! local variables
+    INTEGER(i4)                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2)) :: maske
+    REAL(sp)                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_sp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_sp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! 
+    KGEnocorr_sp_2d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_sp_2d
+
+  FUNCTION KGEnocorr_sp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                            :: KGEnocorr_sp_3d
+
+    ! local variables
+    INTEGER(i4)                                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2), size(x, dim=3)) :: maske
+    REAL(sp)                                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp)                                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_sp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_sp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+
+    ! 
+    KGEnocorr_sp_3d = 1.0 - SQRT( &
+         ( 1.0_sp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_sp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_sp_3d
+
+  FUNCTION KGEnocorr_dp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                          :: KGEnocorr_dp_1d
+
+    ! local variables
+    INTEGER(i4)                             :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) ) :: shapemask
+    LOGICAL,     DIMENSION(size(x))         :: maske
+    
+    REAL(dp)                                :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_dp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask=maske) 
+    mu_Sim = average(y, mask=maske)  
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask=maske)
+    sigma_Sim = stddev(y, mask=maske)
+
+    ! 
+    KGEnocorr_dp_1d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_dp_1d
+
+  FUNCTION KGEnocorr_dp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                            :: KGEnocorr_dp_2d
+
+    ! local variables
+    INTEGER(i4)                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2)) :: maske
+    REAL(dp)                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_dp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_dp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(x, dim=1)*size(x, dim=2)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:), (/size(y, dim=1)*size(y, dim=2)/)), &
+         mask=reshape(maske(:,:),  (/size(y, dim=1)*size(y, dim=2)/))) 
+    ! 
+    KGEnocorr_dp_2d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_dp_2d
+
+  FUNCTION KGEnocorr_dp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:,:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                            :: KGEnocorr_dp_3d
+
+    ! local variables
+    INTEGER(i4)                                                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )                                :: shapemask
+    LOGICAL,     DIMENSION(size(x, dim=1), size(x, dim=2), size(x, dim=3)) :: maske
+    REAL(dp)                                                               :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp)                                                               :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'KGEnocorr_dp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEnocorr_dp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/))) 
+    mu_Sim = average( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+    ! Standard Deviation
+    sigma_Obs = stddev( &
+         reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    sigma_Sim = stddev( &
+         reshape(y(:,:,:), (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/)), &
+         mask=reshape(maske(:,:,:),  (/size(y, dim=1)*size(y, dim=2)*size(y, dim=3)/))) 
+
+    ! 
+    KGEnocorr_dp_3d = 1.0 - SQRT( &
+         ( 1.0_dp - (mu_Sim/mu_Obs)       )**2 + &
+         ( 1.0_dp - (sigma_Sim/sigma_Obs) )**2 &
+         )
+ 
+  END FUNCTION KGEnocorr_dp_3d
+
 
   ! ------------------------------------------------------------------
 
