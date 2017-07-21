@@ -360,7 +360,7 @@ PROGRAM mhm_driver
         case(17)
            ! read optional spatio-temporal neutrons data
            call read_neutrons(ii)
-        case(27,29)
+        case(27,29,30)
            ! read optional spatio-temporal evapotranspiration data
            call read_evapotranspiration(ii)
         case(15)
@@ -398,7 +398,7 @@ PROGRAM mhm_driver
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17,27,28,29)
+     case(10:13,15,17,27,28,29,30)
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
      case default

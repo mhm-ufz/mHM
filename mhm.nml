@@ -77,7 +77,7 @@ resolution_Routing(2) = 24000
 !> .True.  -> ALMA convention
 !> CAUTION: at the moment, only Qall as input for mRM is affected
 !-----------------------------------------------------------------------------
-! ALMA_convention = .True.
+! ALMA_convention = .TRUE.
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
@@ -135,6 +135,7 @@ opti_method = 1
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                       \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 !> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted                                                       \n
+!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)$
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 10
 !-----------------------------------------------------------------------------
