@@ -21,9 +21,9 @@
 ! Matthias Zink,           Nov 2014  - added multiple options for process 5 - PET
 ! Matthias Zink,           Dec 2014  - adopted inflow gauges to ignore headwater cells
 ! Matthias Zink,           Mar 2015  - added optional soil mositure read in for calibration
-! Stephan Thober,          Nov 2016  - added adaptive timestep scheme for routing  
-! Rohini  Kumar,           Dec 2017  - added LAI option to read long term mean monthly fields 
-! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)=2  
+! Stephan Thober,          Nov 2016  - added adaptive timestep scheme for routing
+! Rohini  Kumar,           Dec 2017  - added LAI option to read long term mean monthly fields
+! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)=2
 ! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
 ! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
 
@@ -77,7 +77,7 @@ resolution_Routing(2) = 24000
 !> .True.  -> ALMA convention
 !> CAUTION: at the moment, only Qall as input for mRM is affected
 !-----------------------------------------------------------------------------
-! ALMA_convention = .True.
+! ALMA_convention = .TRUE.
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
@@ -133,6 +133,9 @@ opti_method = 1
 !> (22-26) (reserved MC/JM/ST) please use the next number when implementing a new one                                               \n
 !> (27) SO: ET: 1.0 - KGE of catchment average evapotranspiration                                                                   \n
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                       \n
+!> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
+!> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted                                                       \n
+!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)$
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 10
 !-----------------------------------------------------------------------------
@@ -237,7 +240,7 @@ dir_Precipitation(1) = "test_basin/input/meteo/pre/"
 dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
-!>   0 - PET is input, aspect driven correction 
+!>   0 - PET is input, aspect driven correction
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
@@ -260,7 +263,7 @@ dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
 dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
-!>   0 - PET is input, aspect driven correction 
+!>   0 - PET is input, aspect driven correction
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
@@ -373,7 +376,7 @@ time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
-! INPUT SOIL DATABASE AND mHM LAYERING 
+! INPUT SOIL DATABASE AND mHM LAYERING
 !******************************************************************************************
 !> Namelist controlling the layer information of the soil database
 !> Variables given in this namelist are common to all basins to be modeled.
@@ -387,7 +390,7 @@ time_step_model_inputs(2) = 0
 !> iFlag_soilDB = 0:
 !>            Read and process the soil database in a classical mHM format which requires:\n
 !>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)\n
-!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of 
+!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of
 !>                  soil textural properties for every horizon.\n
 !
 !>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
@@ -396,7 +399,7 @@ time_step_model_inputs(2) = 0
 !>            The tillage depth is flexible in this case.\n
 !
 !>            The depth of last mHM modeling layer is determined according the information given in the
-!>            input soil database, which could vary spatially depending on the soil type. Therefore the 
+!>            input soil database, which could vary spatially depending on the soil type. Therefore the
 !>            user should not provide the depth of the last modeling layer. For example if you choose
 !>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
 !>            Any additional depth related information would be discarded
@@ -411,7 +414,7 @@ time_step_model_inputs(2) = 0
 !>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
 !>                 The horizon is numbered sequentially from top to bottom soil layers.
 !>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
-!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n               
+!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n
 !
 !>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
 !>                  Note that there should be no horizon specific information in this LUT file
@@ -421,7 +424,7 @@ time_step_model_inputs(2) = 0
 !
 !>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.\n
 !
-!>            The tillage depth should conform with one of the horizon (lower) layer depths.\n     
+!>            The tillage depth should conform with one of the horizon (lower) layer depths.\n
 !
 !>            There is an overhead cost of reading and storing multiple (horizon specific) gridded ASCII files\n
 !
@@ -509,7 +512,7 @@ LCoverfName(3)     = 'lc_1990.asc'
 !>         in the PET estimation approaches of the Priestley-Taylor method and
 !>         the Penman monteith equation. The PET estimation approaches uses these datasets
 !>         in various ways; and are currently not flexible enough to use other LAI options.
-!>         
+!>
 !> **: THE BELOW MENTIONED OPTIONS ARE CURRENTLY USED FOR ONLY REGIONALIZING THE INTERCEPTION PARAMETERS
 !>
 !> < 0: Read gridded LAI files.\n
@@ -555,7 +558,7 @@ processCase(3) = 1
 processCase(4) = 1
 !> potential evapotranspiration (PET)
 !>  -1 - PET is input, LAI driven correction
-!>   0 - PET is input, aspect driven correction 
+!>   0 - PET is input, aspect driven correction
 !>   1 - Hargreaves-Sammani method
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method

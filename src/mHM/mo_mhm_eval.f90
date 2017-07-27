@@ -36,7 +36,7 @@ CONTAINS
 
   !     INTENT(INOUT)
   !         None
-  
+
 
   !     INTENT(OUT)
   !         None
@@ -54,6 +54,10 @@ CONTAINS
   !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: basin_avg_tws"
   !>           returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: neutron_opti"
+  !>           returns neuton counts time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
+  !>        \param[out] "real(dp), dimension(:,:), optional  :: et_opti"
+  !>           returns evapotranspiration time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
 
   !     RETURN
   !         None
@@ -95,9 +99,9 @@ CONTAINS
   !                   Stephan Thober,       Nov 2016 - added two options for routing
   !                   Rohini Kuamr,         Dec  2016 - option to handle monthly mean gridded fields of LAI
   !                   Stephan Thober,       Jan 2017 - added prescribed weights for tavg and pet
-  !                   Zink M. Demirel C.,   Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
+  !                   Zink M. Demirel C.,   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
 
-  
+
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 
     use mo_init_states,         only : get_basin_info
@@ -120,7 +124,7 @@ CONTAINS
          read_restart, perform_mpr, fracSealed_CityArea,                            &
          timeStep_model_inputs,                                                     &
          timeStep, nBasins, simPer, readPer,                                        & ! [h] simulation time step, No. of basins
-         c2TSTu, HorizonDepth_mHM,                                                  &                     
+         c2TSTu, HorizonDepth_mHM,                                                  &
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,                                    &
          LCyearId, LAIUnitList, LAILUT,                                             &
          GeoUnitList, GeoUnitKar, soilDB,                                           &
@@ -160,7 +164,7 @@ CONTAINS
          timeStep_LAI_input,                                                        & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                                              & ! restart directory location
          timeStep_sm_input,                                                         & ! time step of soil moisture input (day, month, year)
-         timeStep_et_input,                                                         & ! time step of soil moisture input (day, month, year)
+         timeStep_et_input,                                                         & ! time step of evapotranspiration input (day, month, year)
          nSoilHorizons_sm_input,                                                    & ! no. of mhm soil horizons equivalent to sm input
          nTimeSteps_L1_sm,                                                          & ! total number of timesteps in soil moisture input
          nTimeSteps_L1_neutrons,                                                    & ! total number of timesteps in neutrons input
@@ -402,7 +406,7 @@ CONTAINS
        ! allocate space for local LAI grid
        allocate( LAI(s0:e0) )
        LAI(:) = nodata_dp
-       
+
        ! allocate space for local tws field
        if (present(basin_avg_tws)) then
           allocate(TWS_field(s1:e1))
@@ -414,7 +418,7 @@ CONTAINS
        writeout_counter = 0
        hour = -timestep
        iGridLAI_TS = 0
-       do tt = 1, nTimeSteps 
+       do tt = 1, nTimeSteps
           if ( timeStep_model_inputs(ii) .eq. 0_i4 ) then
              ! whole meteorology is already read
 
@@ -487,27 +491,27 @@ CONTAINS
              ! and the corresponding LC file
              ! update LAI --> for 1st timestep and when month changes
              if( (tt .EQ. 1) .OR. (month_counter .NE. month) ) then
-             
+
                 do ll = 1, size(LAIUnitList)
                    where( L0_LCover_LAI(s0:e0) .EQ. LAIUnitList(ll) ) LAI(:) = LAILUT(ll, month)
                 end do
-                
+
              end if
-                
-          case(1) ! long term mean monthly gridded lai 
+
+          case(1) ! long term mean monthly gridded lai
                 LAI(:) = L0_gridded_LAI(s0:e0, month)
                 !print*,minval(LAI),maxval(LAI),month
           case(-1) ! daily
              if ( (tt .EQ. 1) .OR. (day .NE. day_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
-             end if 
+             end if
           case(-2) ! monthly
              if ( (tt .EQ. 1) .OR. (month .NE. month_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
                 LAI(:) = L0_gridded_LAI(s0:e0, iGridLAI_TS)
-             end if 
-  
+             end if
+
           case(-3) ! yearly
              if ( (tt .EQ. 1) .OR. (year .NE. year_counter) ) then
                 iGridLAI_TS = iGridLAI_TS + 1_i4
@@ -515,12 +519,12 @@ CONTAINS
              end if
 
 
-          
+
           case default ! no output at all
              continue
           end select
-          
-     
+
+
           !
           ! -------------------------------------------------------------------------
           ! ARGUMENT LIST KEY FOR mHM
@@ -707,7 +711,7 @@ CONTAINS
                 ! reset Input variables
                 InflowDischarge = 0._dp
                 RunToRout = 0._dp
-             else if (processMatrix(8, 1) .eq. 2) then             
+             else if (processMatrix(8, 1) .eq. 2) then
                 if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
                    do jj = 1, nint(tsRoutFactorIn)
                       mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
@@ -880,7 +884,7 @@ CONTAINS
              basin_avg_TWS_sim(tt,ii) = ( dot_product( TWS_field (s1:e1), L1_areaCell(s1:e1) ) / area_basin )
           end if
           !----------------------------------------------------------------------
-          
+
           !----------------------------------------------------------------------
           ! FOR NEUTRONS
           ! NOTE:: modeled neutrons are averaged daily
@@ -917,7 +921,7 @@ CONTAINS
                 writeout_counter = 1
                 L1_fNotSealed = 1.0_dp - L1_fSealed
              end if
-             
+
              ! only for evaluation period - ignore warming days
              if ( (tt-warmingDays(ii)*NTSTEPDAY) .GT. 0 ) then
                 ! decide for daily, monthly or yearly aggregation
@@ -959,9 +963,9 @@ CONTAINS
           ! clean runoff variable
           deallocate(RunToRout)
        end if
-#endif       
+#endif
 
-       
+
     end do !<< BASIN LOOP
 
 #ifdef MRM2MHM
