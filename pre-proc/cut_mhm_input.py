@@ -36,7 +36,7 @@ def check_dir(dir):
 # default variables
 indir = '../test_basin/input/'
 outdir = './test_cut_mhm_input/'
-lc_file = 'lc_1990.asc'
+lc_file = ['lc_1990.asc','lc_2000.asc','lc_2006.asc']
 gauge_id = -9999.
 
 parser.add_argument('-g', '--gauge_id', action='store', dest='gauge_id', default=gauge_id, 
@@ -64,13 +64,20 @@ del args
 ## START PROCESSING
 #############################################
 ## mHM files to process
+
 files = ['morph/aspect.asc',
          'morph/idgauges.asc',
          'morph/dem.asc',
          'morph/slope.asc',
          'morph/facc.asc',
          'morph/fdir.asc',
-         'luse/' + lc_file]
+         'morph/soil_class.asc',
+         'morph/geology_class.asc',
+         'morph/LAI_class.asc',]
+
+## append landuse files    
+for lcf in lc_file:    
+    files.append('luse/' + lcf)
 #############################################
 
 
@@ -78,8 +85,9 @@ import numpy as np # array manipulation
 from os.path import isdir
 from os import makedirs
 from fread import fread
-from river_network import river_network
-from fwrite import fwrite # from ufz
+from ufz import river_network, fwrite
+#from river_network import river_network
+#from fwrite import fwrite # from ufz
 from subprocess import call # for system call
 
 # read gauge_id file

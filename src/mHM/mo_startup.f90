@@ -118,6 +118,7 @@ CONTAINS
     end if
     
     ! L0 and L1 initialization
+    
     if ( perform_mpr ) then
        if (iBasin .eq. 1) then
           call L0_check_input(iBasin)
@@ -125,10 +126,11 @@ CONTAINS
           call L0_check_input(iBasin)
        end if
     end if
-
+    
     if ( .not. read_restart ) then
        if (iBasin .eq. 1) then
           call L0_variable_init(iBasin, soilDB%is_present)
+          
        else if (L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1 )) then
           call L0_variable_init(iBasin, soilDB%is_present)
        end if
