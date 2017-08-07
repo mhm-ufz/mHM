@@ -155,7 +155,7 @@ perform_mpr   = .TRUE.
 !>                              2 = coupling to mHM\n
 !-----------------------------------------------------------------------------
 &coupling_config
-mrm_coupling_mode = 2
+mrm_coupling_mode = 0
 /
 
 !******************************************************************************************
@@ -223,107 +223,6 @@ dir_Out(2)           = "test_basin_2/output/"
 file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 /
 
-! directories used only by mhm
-&directories_mHM
-!
-!> input format specification for the meteorological forcings: 'nc' or 'bin'.
-!> this format is common to all basins to be modeled
-inputFormat_meteo_forcings = "nc"
-!
-!-----------------------------------------------------
-!> basin wise directory paths
-!-----------------------------------------------------
-!
-!**** for Basin 1
-!> directory where meteorological input is located
-dir_Precipitation(1) = "test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
-!> paths depending on PET process (processCase(5))
-!>  -1 - PET is input, LAI driven correction
-!>   0 - PET is input, aspect driven correction
-!>   1 - Hargreaves-Sammani method
-!>   2 - Priestley-Taylor mehtod
-!>   3 - Penman-Monteith method
-!> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
-!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "test_basin/input/meteo/"
-dir_MaxTemperature(1)  = "test_basin/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "test_basin/input/meteo/"
-!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "test_basin/input/meteo/"
-dir_windspeed(1)       = "test_basin/input/meteo/"
-!> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
-!
-!**** for Basin 2
-!> directory where meteorological input is located
-dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
-dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
-!> paths depending on PET process (processCase(5))
-!>  -1 - PET is input, LAI driven correction
-!>   0 - PET is input, aspect driven correction
-!>   1 - Hargreaves-Sammani method
-!>   2 - Priestley-Taylor mehtod
-!>   3 - Penman-Monteith method
-!>   if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
-!> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
-dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
-!> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
-!> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
-dir_windspeed(2)       = "test_basin_2/input/meteo/"
-!> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_basin/input/lai/"
-/
-
-!> data which are optionally needed for optimization
-&optional_data
-!> soil moisture data
-!> currently mhm can be calibrated against the fraction of moisture
-!> down to a specific mhm soil layer (integral over the layers)
-!> here soil moisture is defined as fraction between water content within the
-!> soil column and saturated water content (porosity). \n
-!
-!> directory to soil moisture data
-! expected file name: sm.nc, expected variable name: sm
-dir_soil_moisture(1)   = "test_basin/input/optional_data/"
-!> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
-!> input is representative for (counted top to down)
-nSoilHorizons_sm_input = 1
-!> time stepping of the soil moisture input
-!>     -1: daily   SM values\n
-!>     -2: monthly SM values\n
-!>     -3: yearly  SM values\n
-!-----------------------------
-timeStep_sm_input = -2
-!
-!> basin average total water storage (tws) \n
-!> file name including path with timeseries of GRACE-based data
-file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
-file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
-!
-!> directory to neutron data
-! expected file name: neutrons.nc, expected variable name: neutrons
-dir_neutrons(1)        = "test_basin/input/optional_data/"
-
-!> evapotranspiration data
-!
-!> directory to evapotranspiration data
-! expected file name: et.nc, expected variable name: et
-dir_evapotranspiration(1)   = "test_basin/input/optional_data/"
-
-!> time stepping of the soil moisture input
-!>     -1: daily   ET values\n
-!>     -2: monthly ET values\n
-!>     -3: yearly  ET values\n
-!-----------------------------
-timeStep_et_input = -2
-/
 
 &time_periods
 !-----------------------------------------------------------------------------
@@ -375,81 +274,6 @@ time_step_model_inputs(1) = 0
 time_step_model_inputs(2) = 0
 /
 
-!******************************************************************************************
-! INPUT SOIL DATABASE AND mHM LAYERING
-!******************************************************************************************
-!> Namelist controlling the layer information of the soil database
-!> Variables given in this namelist are common to all basins to be modeled.
-&soilLayer
-!----------------------------------------------------------------------------------------------------------
-!> iFlag_soilDB:
-!>            flag to handle multiple types of soil databases and their processing within the mHM.\n
-!>            This flag is unique and valid for all basins.\n
-!>            Depending on the choice of this flag you need to process your soil database differently.\n
-!
-!> iFlag_soilDB = 0:
-!>            Read and process the soil database in a classical mHM format which requires:\n
-!>               i) a single gridded ASCII file of soil-id (soil_class.asc - hard coded file name)\n
-!>              ii) a single soil look-up-table file (soil_classdefinition.txt) with information of
-!>                  soil textural properties for every horizon.\n
-!
-!>            Here mHM is quite flexible to handle multiple soil layers as specified in "nSoilHorizons_mHM"
-!>            and depths provided in "soil_Depth(:)".\n
-!
-!>            The tillage depth is flexible in this case.\n
-!
-!>            The depth of last mHM modeling layer is determined according the information given in the
-!>            input soil database, which could vary spatially depending on the soil type. Therefore the
-!>            user should not provide the depth of the last modeling layer. For example if you choose
-!>            nSoilHorizons_mHM = 3, then soil_Depth should be given for only soil_Depth(1) and soil_Depth(2).
-!>            Any additional depth related information would be discarded
-!
-!> iFlag_soilDB = 1:
-!>            Handle the harmonised horizon specific soil information, requires
-!>               i) multiple (horizon specific) gridded ASCII files containing info of soil-ids.
-!>                 (e.g., soil_class_horizon001.asc, soil_class_horizon002.asc, ....)
-!>                 File names are automatically generated within mHM as per the given soil_Depth(:).
-!>                 The format follows the FORTRAN coding style: "soil_class_horizon_"XX".asc"
-!>                 where XX represents the horizon id with 2 spaces allocated for this number
-!>                 and the empty spaces are (trailed) filled with Zeros. FORTRAN CODE I2.2
-!>                 The horizon is numbered sequentially from top to bottom soil layers.
-!>                 E.g., for 1st horizon it is soil_class_horizon_01.asc,
-!>                 for 2nd it is soil_class_horizon_02.asc, ... and so on. \n
-!
-!>              ii) a single soil look-up-table file with information of soil textural properties for each soil type.
-!>                  Note that there should be no horizon specific information in this LUT file
-!>                  (soil_classdefinition_iFlag_soilDB_1.txt - filename is hard coded).\n
-!
-!>            The modeling soil horizons is as per the input data (i.e. for which the gridded ASCII files are available).
-!
-!>            The depth of the last mHM horizon should be specified. It is fixed and uniform across the entire modeling domain.\n
-!
-!>            The tillage depth should conform with one of the horizon (lower) layer depths.\n
-!
-!>            There is an overhead cost of reading and storing multiple (horizon specific) gridded ASCII files\n
-!
-!> Note: For both cases: The present model code mHM can handle maximum of 10 soil horizons (hard coded).
-!>        To increase this number, edit the variable "maxNoSoilHorizons" in the "/src/mhm/mo_mhm_constants.f90" file
-!
-!----------------------------------------------------------------------------------------------------------
-iFlag_soilDB = 0
-!
-!> [mm] soil depth down to which organic matter is possible
-tillageDepth = 200
-!
-!> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
-!
-! soil depth information
-!> IF (iFlag_soilDB = 0)
-!>    Provide below the soil_Depth() for 1,2,..,*n-1* soil horizons. Depth of the last layer(n) is taken from the soil LUT
-!> IF (iFlag_soilDB = 1)
-!>    Provide below the soil_Depth() for every 1,2..n-1,*n* soil horizons. You must have soil_class-id gridded file for each layer
-!>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
-!
-!> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
-soil_Depth(1) = 200
-/
 
 !******************************************************************************************
 ! LAND COVER
@@ -488,49 +312,6 @@ LCoverYearEnd(3)   = 2004
 LCoverfName(3)     = 'lc_1990.asc'
 /
 
-!******************************************************************************************
-! INFORMATION RELATED TO LAI DATA
-!******************************************************************************************
-&LAI_data_information
-!
-!-----------------------------------------------------------------------------------
-!> Flag timeStep_LAI_input identifies how LAI is read in mHM.
-!> This flag is unique and valid for all basins.\n
-!
-!> timeStep_LAI_input
-!>
-!>  0: read LAI from longterm monthly mean lookup table (related to land cover file).
-!>     The filename (LAI_classdefinition.txt) for the LUT is hard coded in mo_file.f90
-!>         Information regarding long-term monthly mean LAI for land cover classes
-!>         appearing in all modeled basins should be included in this LUT file.
-!>         This is an unique file applicable to all basins to be modeled. \n
-!>     The respective plant functional type is in LAI_class.asc, which must be also given
-!>         and should be located in each basin's morph directory.
-!>
-!>*NOTE: In this option-0, the LAI-LUT and the corresponding LC_LAI datasets are used in
-!>         regionalising the max. interception capacity parameter and some parameters
-!>         in the PET estimation approaches of the Priestley-Taylor method and
-!>         the Penman monteith equation. The PET estimation approaches uses these datasets
-!>         in various ways; and are currently not flexible enough to use other LAI options.
-!>
-!> **: THE BELOW MENTIONED OPTIONS ARE CURRENTLY USED FOR ONLY REGIONALIZING THE INTERCEPTION PARAMETERS
-!>
-!> < 0: Read gridded LAI files.\n
-!>     -1: gridded LAI are daily values\n
-!>     -2: gridded LAI are monthly values\n
-!>     -3: gridded LAI are yearly values\n
-!
-!>  1: read mean monthly gridded LAI values.\n
-!>     must be a separate *.nc file for every (modeled) basins.\n
-!-----------------------------------------------------------------------------------
-timeStep_LAI_input = 0
-!> input file format of gridded file (if timeStep_LAI_input < 0)
-!>     bin - assume yearly files with name YYYY.bin
-!>     nc  - assume one file with name lai.nc
-!> input file format of gridded file (if timeStep_LAI_input == 1)
-!>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates
-inputFormat_gridded_LAI = "nc"
-/
 
 !
 !******************************************************************************************
@@ -639,35 +420,6 @@ InflowGauge_id(1,1)       = -9
 InflowGauge_filename(1,1) = ""
 !> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(1) --> (1,1)
 InflowGauge_Headwater(1,1) = .FALSE.
-/
-
-!******************************************************************************************
-! ANNUAL CYCLE PAN EVAPORATION
-!******************************************************************************************
-&panEvapo
-! MONTH       Jan     Feb     Mar     Apr    May    Jun    Jul    Aug    Sep    Oct    Nov    Dec
-!> monthly free pan evaporation
-evap_coeff =  1.30,   1.20,   0.72,   0.75,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.00,  1.50
-/
-
-!******************************************************************************************
-! ANNUAL CYCLE METEOROLOGICAL FORCINGS
-!******************************************************************************************
-&nightDayRatio
-!> Alternatively to night day ratios, explicit weights for pet and average temperature can
-!> be read. The dimension for the weights are in FORTRAN-notation (rows, colums, months=12, hours=24)
-!> and in C-notation (hours=24, months=12, colums, rows).
-!> The array for temperature weights are called tavg_weight in the file: <dir_Temperature>/tavg_weight.nc
-!> The array for pet weights are called pet_weight in the file: <dir_ReferenceET>/pet_weight.nc
-!> If read_meteo_weights is False than night fractions below are used
-read_meteo_weights = .FALSE.
-!> night ratio for precipitation
-!> only night values required because day values are the opposite
-fnight_prec  =  0.46,   0.50,   0.52,   0.51,  0.48,  0.50,  0.49,  0.48,  0.52,  0.56,  0.50,  0.47
-!> night ratio for PET
-fnight_pet   =  0.10,   0.10,   0.10,   0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10,  0.10
-!> night correction factor for temperature
-fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44, -1.60, -0.94, -0.53
 /
 
 !******************************************************************************************
