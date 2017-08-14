@@ -242,7 +242,7 @@ file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
 warming_Days(1)    = 0
-warming_Days(2)    = 180
+warming_Days(2)    = 0
 !> first year of wanted simulation period
 eval_Per(1)%yStart = 1990
 eval_Per(2)%yStart = 1993
@@ -354,7 +354,7 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 !> 2 - adaptive timestep
-processCase(8) = 2
+processCase(8) = 1
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
