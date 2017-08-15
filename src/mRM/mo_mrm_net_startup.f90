@@ -29,7 +29,6 @@ module mo_mrm_net_startup
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: get_distance_two_lat_lon_points
   PUBLIC :: L11_flow_accumulation
-  PUBLIC :: calculate_L11_flow_accumulation
 contains
   ! --------------------------------------------------------------------------
 
@@ -2314,8 +2313,10 @@ contains
 
   !     PURPOSE
 
-  !>       \brief 
-  !>       \details 
+  !>       \brief Calculates L11 flow accumulation per grid cell
+  !>       \details Calculates L11 flow accumulation per grid cell using L11_fDir
+  !>                and L11_areaCell. L11_flow_accumulation includes the recursiv subroutine
+  !>                calculate_L11_flow_accumulation
 
   !     INTENT(IN)
   !>
@@ -2348,17 +2349,16 @@ contains
   !         None
   
   !     HISTORY
-  !>
-  !>
+  !>        \author Matthias Kelbling
+  !>        \date   Aug 2017
 
   ! --------------------------------------------------------------------------
   subroutine L11_flow_accumulation(iBasin)
 
     use mo_mrm_global_variables, only: &
       L11_fDir,          & !  IN: flow direction at L11 (standard notation)
-      L11_areaCell       !  IN: m^2 in basin
-   ! DONT FORGETT TO SET COMMA AND &
-   !   L11_fAcc             ! OUT: flow accumulation at L11 [m^2]
+      L11_areaCell,      & !  IN: km^2 of grid in basin
+      L11_fAcc             ! OUT: flow accumulation at L11 [km^2]
     use mo_mrm_tools,            only: get_basin_info_mrm
     use mo_mrm_constants,        only: nodata_i4, nodata_dp
     use mo_append,               only: append
@@ -2367,18 +2367,19 @@ contains
 
     ! local variables
     integer(i4), intent(in)                   :: iBasin
-    real(dp),    dimension(:,:), allocatable  :: fAcc11
-    integer(i4)                               :: kk, ll
-    integer(i4)                               :: iStart11, iEnd11
-    integer(i4)                               :: nrows11, ncols11
-    integer(i4), dimension(:,:), allocatable  :: fDir11 
-    real(dp),    dimension(:,:), allocatable  :: areaCell11
-    logical,     dimension(:,:), allocatable  :: mask11
+    real(dp),    dimension(:,:), allocatable  :: fAcc11             ! L11_fAcc array
+    integer(i4)                               :: ii, jj             ! row and col index
+    integer(i4)                               :: iStart11, iEnd11   ! Vec. position iBasin - fAcc
+    integer(i4)                               :: nrows11, ncols11   ! array size basin
+    integer(i4), dimension(:,:), allocatable  :: fDir11             ! L11_fDir array
+    real(dp),    dimension(:,:), allocatable  :: areaCell11         ! L11_cellArea array
+    logical,     dimension(:,:), allocatable  :: mask11             ! Basin mask
 
+    ! get basin information
     call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, iStart=iStart11, & 
                            iEnd=iEnd11, mask=mask11)
 
-    ! allocate
+    ! allocate arrays
     allocate(fDir11      (nrows11, ncols11))
     allocate(areaCell11  (nrows11, ncols11))
     allocate(fAcc11      (nrows11, ncols11))
@@ -2387,7 +2388,7 @@ contains
     fDir11(:,:)     = nodata_i4
     areaCell11(:,:) = nodata_dp
 
-    ! get fDir11 and areaCell11
+    ! get fDir11 and areaCell11 data
     fDir11(:,:)     = UNPACK( L11_fDir     (iStart11:iEnd11),  mask11, nodata_i4 )
     areaCell11(:,:) = UNPACK( L11_areaCell (iStart11:iEnd11),  mask11, nodata_dp )
 
@@ -2395,93 +2396,106 @@ contains
     fAcc11          = areaCell11
 
     ! For each sink call "calculate_L11_flow_accumulation"
-    do ll=1, ncols11
-      do kk=1, nrows11
-        if (fDir11(kk,ll) .eq. 0) then
-          call calculate_L11_flow_accumulation(fAcc=fAcc11,fDir=fDir11,ii=kk,jj=ll,nrow=nrows11,ncol=ncols11)
+    do jj=1, ncols11
+      do ii=1, nrows11
+        if (fDir11(ii,jj) .eq. 0) then
+          call calculate_L11_flow_accumulation(iii = ii, jjj = jj)
         end if
       end do
     end do
 
-  end subroutine L11_flow_accumulation
+    ! Append L11_fAcc
+    call append( L11_fAcc, pack( fAcc11(:,:),mask11))
 
-  recursive subroutine calculate_L11_flow_accumulation(fAcc,fDir,ii,jj,nrow,ncol,carea)
+  contains
+
+  recursive subroutine calculate_L11_flow_accumulation(iii, jjj, carea)
 
     implicit none
 
-    integer(i4), intent(in)            :: ii, jj         ! row and col index
-    integer(i4), intent(in)            :: nrow, ncol     ! number of rows and cols
-    real(dp),    optional              :: carea          ! m^2 of cumualted flow accumulation 
-    real(dp),    intent(inout)         :: fAcc(nrow,ncol)
-    integer(i4), intent(in)            :: fDir(nrow,ncol)
-    real(dp)                           :: zz             ! temporal variable, carea
-    real(dp)                           :: xx             ! temporal variable
+    integer(i4), intent(in)            :: iii, jjj       ! row and col index
+    real(dp),    optional              :: carea          ! opt. OUT: m^2 flow accumulation, required for rekursion
+    real(dp)                           :: zz, xx         ! temporal variables
 
-    xx = fAcc(ii,jj)
+    ! fAcc(x,y) = L11_cellArea(x,y) + ...
+    xx = fAcc11(iii,jjj)
 
-    if (jj+1 .le. ncol) then
-      if (fDir(ii,jj+1) .eq. 16_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii,jj+1,nrow,ncol,zz)
+    ! Scan order:
+    !
+    !    6 7 8
+    !    5 x 1
+    !    4 3 2
+    !
+    ! Each:
+    ! 1. Check if cell is inflow cell to current grid
+    ! 2. If yes: Call calculate_subroutine and add result
+
+    if (jjj+1 .le. ncols11) then
+      if (fDir11(iii,jjj+1) .eq. 16_i4) then
+        call calculate_L11_flow_accumulation(iii,jjj+1, zz)
         xx = xx + zz
       end if
     end if
 
-    if ((ii+1 .le. nrow) .and. (jj+1 .le. ncol)) then
-      if (fDir(ii+1,jj+1) .eq. 32_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii+1,jj+1,nrow,ncol,zz)
+    if ((iii+1 .le. nrows11) .and. (jjj+1 .le. ncols11)) then
+      if (fDir11(iii+1,jjj+1) .eq. 32_i4) then
+        call calculate_L11_flow_accumulation(iii+1,jjj+1, zz)
         xx = xx + zz
       end if
     end if
 
-    if (ii+1 .le. nrow) then
-      if (fDir(ii+1,jj) .eq. 64_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii+1,jj,nrow,ncol,zz)
+    if (iii+1 .le. nrows11) then
+      if (fDir11(iii+1,jjj) .eq. 64_i4) then
+        call calculate_L11_flow_accumulation(iii+1,jjj, zz)
         xx = xx + zz
       end if
     end if
 
-    if ((ii+1 .le. nrow) .and. (jj-1 .ge. 1)) then
-      if (fDir(ii+1,jj-1) .eq. 128_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii+1,jj-1,nrow,ncol,zz)
+    if ((iii+1 .le. nrows11) .and. (jjj-1 .ge. 1)) then
+      if (fDir11(iii+1,jjj-1) .eq. 128_i4) then
+        call calculate_L11_flow_accumulation(iii+1,jjj-1, zz)
         xx = xx + zz
       end if
     end if
 
-    if (jj-1 .ge. 1) then
-      if (fDir(ii,jj-1) .eq. 1_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii,jj-1,nrow,ncol,zz)
+    if (jjj-1 .ge. 1) then
+      if (fDir11(iii,jjj-1) .eq. 1_i4) then
+        call calculate_L11_flow_accumulation(iii,jjj-1, zz)
         xx = xx + zz
       end if
     end if
 
-    if ((ii-1 .ge. 1) .and. (jj-1 .ge. 1)) then
-      if (fDir(ii-1,jj-1) .eq. 2_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii-1,jj-1,nrow,ncol,zz)
+    if ((iii-1 .ge. 1) .and. (jjj-1 .ge. 1)) then
+      if (fDir11(iii-1,jjj-1) .eq. 2_i4) then
+        call calculate_L11_flow_accumulation(iii-1,jjj-1, zz)
         xx = xx + zz
       end if
     end if
 
-    if (ii-1 .ge. 1) then
-      if (fDir(ii-1,jj) .eq. 4_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii-1,jj,nrow,ncol,zz)
+    if (iii-1 .ge. 1) then
+      if (fDir11(iii-1,jjj) .eq. 4_i4) then
+        call calculate_L11_flow_accumulation(iii-1,jjj, zz)
         xx = xx + zz
       end if
     end if
 
-    if ((ii-1 .ge. 1) .and. (jj+1 .le. ncol)) then
-      if (fDir(ii-1,jj+1) .eq. 8_i4) then
-        call calculate_L11_flow_accumulation(fAcc,fDir,ii-1,jj+1,nrow,ncol,zz)
+    if ((iii-1 .ge. 1) .and. (jjj+1 .le. ncols11)) then
+      if (fDir11(iii-1,jjj+1) .eq. 8_i4) then
+        call calculate_L11_flow_accumulation(iii-1,jjj+1, zz)
         xx = xx + zz
       end if
     end if    
   
-    fAcc(ii,jj) = xx
+    ! Set flow accumulation of cell
+    fAcc11(iii,jjj) = xx
 
+    ! If carea is used (in case of rekursion) set carea
     if ( present( carea)) then
       carea = xx
     end if
     
   end subroutine calculate_L11_flow_accumulation
 
+  end subroutine L11_flow_accumulation
 
 end module mo_mrm_net_startup

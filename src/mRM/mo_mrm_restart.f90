@@ -68,6 +68,7 @@ contains
   !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
   !                                              because multiple outlets could exist
   !                   Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
+  !                   Aug 2017, Matthias Kelbling - added L11_fAcc
   
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
@@ -106,6 +107,7 @@ contains
          L11_rowOut,        &
          L11_colOut,        &
          L11_fDir,          &
+         L11_fAcc,          &
          L11_upBound_L0,    &
          L11_downBound_L0,  &
          L11_leftBound_L0,  &
@@ -328,6 +330,11 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(L11_areaCell(s11:e11), mask11, nodata_dp))
     call var%setAttribute("long_name", "cell area at Level 11")
+
+    var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
+    call var%setFillValue(nodata_dp)
+    call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
+    call var%setAttribute("long_name", "flow accumulation at Level 11")
 
     var = nc%setVariable("L11_fDir", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
@@ -714,6 +721,7 @@ contains
   !                                             resolution higher than hydrology resolution
   !                  Mar 2016, David Schaefer - mo_netcdf
   !                  Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
+  !                  Aug 2017, Matthias Kelbling - Added L11_fAcc
 
   subroutine mrm_read_restart_config( iBasin, InPath )
     use mo_kind, only: i4, dp
@@ -750,6 +758,7 @@ contains
          L11_TSrout,        &
          L11_L1_Id,         &
          L11_fDir,          &
+         L11_fAcc,          &
          L11_rowOut,        &
          L11_colOut,        &
          L11_upBound_L0,    &
@@ -1090,6 +1099,11 @@ contains
     call append(L11_fDir, pack(dummyI2, mask11))
     ! append Number of Outlets at Level 11 (where facc == 0 )
     call append(L11_nOutlets, count((dummyI2 .eq. 0_i4)))
+
+    ! Flow accumulation
+    var = nc%getVariable("L11_fAcc")
+    call var%getData(dummyI2)
+    call append(L11_fAcc, pack(dummyD2, mask11))
     
     ! Grid vertical location of the Outlet
     var = nc%getVariable("L11_rowOut")

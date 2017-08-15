@@ -73,6 +73,7 @@ CONTAINS
   !>        \date Aug 2015
   !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
   !                   May 2016 - Stephan Thober, added warning message in case no gauge is found in modelling domain
+  !                   Aug 2017 - Matthias Kelbling, added L11_flow_accumulation to Initialize Stream Network
 
   subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
 
@@ -88,7 +89,8 @@ CONTAINS
          L11_routing_order, &
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
-         L11_stream_features
+         L11_stream_features, &
+         L11_flow_accumulation
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
          mrm_L1_variable_init, &
@@ -184,6 +186,7 @@ CONTAINS
           call L11_set_drain_outlet_gauges(iBasin)
           ! stream characteristics
           call L11_stream_features(iBasin)
+          call L11_flow_accumulation(iBasin)
        end do
        ! check whether there are gauges within the modelling domain
        if (allocated(basin_mrm%gaugeNodeList)) then

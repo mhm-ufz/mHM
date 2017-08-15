@@ -231,6 +231,7 @@ module mo_mrm_global_variables
   !                                                                ! -> <only domain> Routing
   integer(i4), public, dimension(:), allocatable :: L1_L11_ID  ! Mapping of L1 Id on L11
   real(dp),    public, dimension(:), allocatable :: L11_areaCell ! [km2] Effective area of cell at this level
+  real(dp),    public, dimension(:), allocatable :: L11_fAcc ! [km2] flow Accumulation of cell at this level
   integer(i4), public, dimension(:), allocatable :: L11_Id ! Ids of grid at level-11           
   integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
   integer(i4), public, dimension(:), allocatable :: L11_nOutlets
