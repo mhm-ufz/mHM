@@ -186,7 +186,7 @@ CONTAINS
           call L11_set_drain_outlet_gauges(iBasin)
           ! stream characteristics
           call L11_stream_features(iBasin)
-          call L11_flow_accumulation(iBasin)
+          call L11_flow_accumulation(iBasin) ! requires L11_fDir, L11_cellArea
        end do
        ! check whether there are gauges within the modelling domain
        if (allocated(basin_mrm%gaugeNodeList)) then
