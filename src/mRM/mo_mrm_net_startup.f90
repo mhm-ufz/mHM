@@ -2643,4 +2643,78 @@ contains
 
   end subroutine L11_calc_meandering
 
+  ! --------------------------------------------------------------------------
+
+  !     NAME
+  !         L11_init_celerity
+
+  !     PURPOSE
+
+  !>       \brief Initialize celerity per Link
+  !>       \details Initialize celerity per Link.
+
+  !     INTENT(IN)
+  !>
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+  
+  !     LITERATURE
+  !         None
+  
+  !     HISTORY
+  !>        \author Matthias Kelbling
+  !>        \date   Aug 2017
+
+  ! --------------------------------------------------------------------------
+
+  subroutine L11_init_celerity(iBasin)
+
+  use mo_mrm_mpr,         only: &
+            L11_calc_celerity
+  use mo_mrm_global_variables,    only: &
+            L11_LinkIn_fAcc,    &
+            L11_slope,        &
+            L11_meandering,     &
+            L11_nOutlets
+  use mo_mrm_tools,         only: &
+            get_basin_info_mrm
+
+  implicit none
+  
+  integer                         :: iBasin, nNodes
+  integer                         :: ncol, nrow, s11, e11
+
+  call get_basin_info_mrm(iBasin, 11, nrow, ncol, ncells=nNodes, iStart = s11, iEnd = e11)
+
+  call L11_calc_celerity(slope11       = L11_slope(s11:e11),       &
+                         LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
+                         meandering11  = L11_meandering(s11:e11),  &
+                         nNodes        = nNodes,                   &
+                         nOutlets      = L11_nOutlets(iBasin))
+
+  end subroutine L11_init_celerity
+
+
 end module mo_mrm_net_startup
