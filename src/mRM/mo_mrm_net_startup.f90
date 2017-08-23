@@ -29,6 +29,7 @@ module mo_mrm_net_startup
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: get_distance_two_lat_lon_points
   PUBLIC :: L11_flow_accumulation
+  PUBLIC :: L11_calc_meandering
 contains
   ! --------------------------------------------------------------------------
 
@@ -2358,7 +2359,9 @@ contains
     use mo_mrm_global_variables, only: &
       L11_fDir,          & !  IN: flow direction at L11 (standard notation)
       L11_areaCell,      & !  IN: km^2 of grid in basin
-      L11_fAcc             ! OUT: flow accumulation at L11 [km^2]
+      L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
+      L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
+      L11_CellCoor       
     use mo_mrm_tools,            only: get_basin_info_mrm
     use mo_mrm_constants,        only: nodata_i4, nodata_dp
     use mo_append,               only: append
@@ -2371,26 +2374,34 @@ contains
     integer(i4)                               :: ii, jj             ! row and col index
     integer(i4)                               :: iStart11, iEnd11   ! Vec. position iBasin - fAcc
     integer(i4)                               :: nrows11, ncols11   ! array size basin
+    integer(i4)                               :: nNodes
     integer(i4), dimension(:,:), allocatable  :: fDir11             ! L11_fDir array
     real(dp),    dimension(:,:), allocatable  :: areaCell11         ! L11_cellArea array
     logical,     dimension(:,:), allocatable  :: mask11             ! Basin mask
+    real(dp),    dimension(:),   allocatable  :: LinkIn_fAcc        ! fAcc inflow per Link
+    integer(i4), dimension(:,:), allocatable  :: CellCoor11
 
     ! get basin information
-    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, iStart=iStart11, & 
-                           iEnd=iEnd11, mask=mask11)
+    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+                            iStart=iStart11, iEnd=iEnd11, mask=mask11)
 
     ! allocate arrays
     allocate(fDir11      (nrows11, ncols11))
     allocate(areaCell11  (nrows11, ncols11))
     allocate(fAcc11      (nrows11, ncols11))
+    allocate(LinkIn_fAcc (nNodes))
+    allocate(CellCoor11  (nNodes , 2))
 
-    ! initialize fDir11 and areaCell11
+    ! initialize
     fDir11(:,:)     = nodata_i4
     areaCell11(:,:) = nodata_dp
+    LinkIn_fAcc(:)  = nodata_dp
+    CellCoor11(:,:) = nodata_i4
 
-    ! get fDir11 and areaCell11 data
+    ! get data
     fDir11(:,:)     = UNPACK( L11_fDir     (iStart11:iEnd11),  mask11, nodata_i4 )
     areaCell11(:,:) = UNPACK( L11_areaCell (iStart11:iEnd11),  mask11, nodata_dp )
+    CellCoor11(:,:) = L11_cellCoor(iStart11:iEnd11, :)
 
     ! initialize fAcc11
     fAcc11          = areaCell11
@@ -2409,11 +2420,20 @@ contains
       end do
     end do
 
-    ! Append L11_fAcc
+    ! Transfer to LinkIn_fAcc
+    do jj=1, nNodes
+      if ( (CellCoor11(jj, 1) .ne. nodata_i4) .and. &
+            CellCoor11(jj, 2) .ne. nodata_i4) then
+        LinkIn_fAcc(jj) = fAcc11(CellCoor11(jj, 1), CellCoor11(jj, 2))
+      end if
+    end do
+
+    ! Append
     call append( L11_fAcc, pack( fAcc11(:,:),mask11))
+    call append( L11_LinkIn_fAcc, LinkIn_fAcc(:))
   
     ! free space
-    deallocate(fDir11, areaCell11, fAcc11, mask11)
+    deallocate(fDir11, areaCell11, fAcc11, mask11, LinkIn_fAcc, CellCoor11)
 
   contains
 
@@ -2495,5 +2515,132 @@ contains
   end subroutine calculate_L11_flow_accumulation
 
   end subroutine L11_flow_accumulation
+
+  ! --------------------------------------------------------------------------
+
+  !     NAME
+  !         L11_meandering
+
+  !     PURPOSE
+
+  !>       \brief Calculates meandering per L11 grid cell
+  !>       \details Calculates meandering per L11 grid cell. The meandering is calculated
+  !>                based on the L0 underlying data. It is calculated as:
+  !>                L11_length/Lopt, with:
+  !>                Lopt := min( |L11_fRow - L11_tRow|, |L11_fCol - L11_tCol|) * ld + 
+  !>                        ( max( |L11_fRow - L11_tRow|, |L11_fCol - L11_tCol|) - 
+  !>                        min( |L11_fRow - L11_tRow|, |L11_fCol - L11_tCol|) ) * lk
+  !>                        ld = length diagonal L0
+  !>                        lk = resolution L0
+
+  !     INTENT(IN)
+  !>
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+  
+  !     LITERATURE
+  !         None
+  
+  !     HISTORY
+  !>        \author Matthias Kelbling
+  !>        \date   Aug 2017
+
+  ! --------------------------------------------------------------------------
+
+  subroutine L11_calc_meandering(iBasin)
+
+    use mo_mrm_global_variables, only:  &
+                      L11_length,     &   ! IN
+                      L11_fRow,       &   ! IN
+                      L11_fCol,       &   ! IN
+                      L11_tRow,       &   ! IN
+                      L11_tCol,       &   ! IN
+                      level0,         &   ! IN
+                      L11_nOutlets,   &   ! IN
+                      L11_meandering       ! OUT
+    use mo_mrm_tools,            only: get_basin_info_mrm
+    use mo_mrm_constants,        only: nodata_i4, nodata_dp
+    use mo_append,               only: append
+
+    implicit none
+    
+    integer(i4)                            :: iBasin
+    real(dp), dimension(:), allocatable    :: length11
+    integer(i4), dimension(:), allocatable :: frow0, fcol0, trow0, tcol0
+    integer(i4)                            :: nrows11, ncols11, nNodes11, iStart11, iEnd11, nLinks11
+    real(dp)                               :: cell0_res, cell0_diag
+    real(dp), dimension(:), allocatable    :: meandering
+    real(dp)                               :: Lopt
+    integer(i4)                            :: ii
+
+    ! get basin information
+    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes11, &
+                            iStart=iStart11, iEnd=iEnd11)
+
+    nLinks11 = nNodes11 - L11_nOutlets(iBasin)
+
+    ! allocate
+    allocate(length11  (nNodes11))
+    allocate(frow0     (nNodes11))
+    allocate(fcol0     (nNodes11))
+    allocate(trow0     (nNodes11))
+    allocate(tcol0     (nNodes11))
+    allocate(meandering(nNodes11))
+
+    ! initialize
+    length11(:)=   nodata_dp
+    frow0(:)=      nodata_i4
+    fcol0(:)=      nodata_i4
+    trow0(:)=      nodata_i4
+    tcol0(:)=      nodata_i4
+    meandering(:)= nodata_dp
+
+    ! set data
+    length11(:) =   L11_length(iStart11:iEnd11)
+    frow0(:)    =   L11_frow  (iStart11:iEnd11)
+    trow0(:)    =   L11_trow  (iStart11:iEnd11)
+    fcol0(:)    =   L11_fcol  (iStart11:iEnd11)
+    tcol0(:)    =   L11_tcol  (iStart11:iEnd11)
+
+    ! set Level0 cell resolution and diagonal size
+    cell0_res  = level0%cellsize(iBasin)
+    cell0_diag = cell0_res * 1.4142135
+
+    do ii=1, nLinks11
+      Lopt = min( abs(frow0(ii) - trow0(ii)), abs(fcol0(ii)- tcol0(ii))) * cell0_diag + ( &
+             max( abs(frow0(ii) - trow0(ii)), abs(fcol0(ii)- tcol0(ii))) -                &
+             min( abs(frow0(ii) - trow0(ii)), abs(fcol0(ii)- tcol0(ii))) ) * cell0_res
+      if(Lopt .gt. 0) then
+        meandering(ii) = length11(ii)/Lopt
+      else
+        meandering(ii) = nodata_dp
+      end if
+    end do
+    
+    call append( L11_meandering, meandering(:))
+
+  end subroutine L11_calc_meandering
 
 end module mo_mrm_net_startup

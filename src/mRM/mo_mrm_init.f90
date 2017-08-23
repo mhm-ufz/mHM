@@ -90,7 +90,8 @@ CONTAINS
          L11_link_location, &
          L11_set_drain_outlet_gauges, &
          L11_stream_features, &
-         L11_flow_accumulation
+         L11_flow_accumulation, &
+         L11_calc_meandering
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
          mrm_L1_variable_init, &
@@ -187,6 +188,7 @@ CONTAINS
           ! stream characteristics
           call L11_stream_features(iBasin)
           call L11_flow_accumulation(iBasin) ! requires L11_fDir, L11_cellArea
+          call L11_calc_meandering(iBasin)
        end do
        ! check whether there are gauges within the modelling domain
        if (allocated(basin_mrm%gaugeNodeList)) then

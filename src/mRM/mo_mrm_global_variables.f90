@@ -235,6 +235,11 @@ module mo_mrm_global_variables
   integer(i4), public, dimension(:), allocatable :: L11_Id ! Ids of grid at level-11           
   integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
   integer(i4), public, dimension(:), allocatable :: L11_nOutlets
+  real(dp),    public, dimension(:), allocatable :: L11_celerity ! [m/s] celerity per grid-cell, only for
+                                                                 ! routing-case = 3
+  real(dp),    public, dimension(:), allocatable :: L11_meandering ! Proxy: L11_length/Lopt
+                                                                   ! Lopt := shortest possible way of flow
+  real(dp),    public, dimension(:), allocatable :: L11_LinkIn_fAcc ! fAcc inflow per Link
 
   ! Reference
   ! dim1 = number grid cells L11

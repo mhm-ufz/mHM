@@ -131,6 +131,9 @@ contains
          L11_tCol,          &
          L11_length,        &
          L11_aFloodPlain,   &
+         L11_celerity,      &    !!! celerity
+         L11_meandering,    &    !!! meandering
+         L11_LinkIn_fAcc,   &
          L11_slope
     implicit none
     ! input variables
@@ -426,6 +429,16 @@ contains
     call var%setData(L11_length(s11:e11))
     call var%setAttribute("long_name", "Total length of river link [m]")
 
+    var = nc%setVariable("L11_meandering", "f64", (/links/))
+    call var%setFillValue(nodata_dp)
+    call var%setData(L11_meandering(s11:e11))
+    call var%setAttribute("long_name", "Meandering: Proxy derived from L and Lopt")
+
+    var = nc%setVariable("L11_LinkIn_fAcc", "f64", (/links/))
+    call var%setFillValue(nodata_dp)
+    call var%setData(L11_LinkIn_fAcc(s11:e11))
+    call var%setAttribute("long_name", "fAcc inflow per Link.")
+
     var = nc%setVariable("L11_aFloodPlain", "f64", (/links/))
     call var%setFillValue(nodata_dp)
     call var%setData(L11_aFloodPlain(s11:e11))
@@ -435,6 +448,11 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setData(L11_slope(s11:e11))
     call var%setAttribute("long_name", "Average slope of river link")
+
+    var = nc%setVariable("L11_celerity", "f64", (/links/))   ! celerity
+    call var%setFillValue(nodata_dp)
+    call var%setData(L11_celerity(s11:e11))
+    call var%setAttribute("long_name", "celerity at Level 11")
 
     var = nc%setVariable("L0_draCell", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)

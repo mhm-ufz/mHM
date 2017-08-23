@@ -80,6 +80,9 @@ contains
          L0_areaCell, &
          L1_areaCell, &
          L1_L11_ID, &
+         L11_nCells,  &   ! Added for process-case 3
+         L11_LinkIn_fAcc, &
+         L11_meandering, &
          L11_areaCell, &
          L11_aFloodPlain, & ! flood plains at L11 level
          L11_length, & ! link length
@@ -115,6 +118,7 @@ contains
     use mo_mrm_write,        only: mrm_write_output_fluxes
     use mo_julian,           only: caldat, julday
     use mo_mrm_constants,    only: HourSecs
+    use mo_mrm_mpr,          only: L11_calc_celerity
 
     implicit none
 
@@ -269,6 +273,16 @@ contains
                 end if
              end if
           end if
+          ! -------------------------------------------------------------------
+          ! calculate celerity - TEST - CHANGE TO PROCESSCASE 3
+          ! -------------------------------------------------------------------
+          !if (processMatrix(8, 1) .eq. 2) then
+            call L11_calc_celerity(slope11       = L11_slope(s11:e11),       &
+                                   LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
+                                   meandering11  = L11_meandering(s11:e11),  &
+                                   nNodes        = L11_nCells)
+          !end if
+
           ! -------------------------------------------------------------------
           ! execute routing
           ! -------------------------------------------------------------------
