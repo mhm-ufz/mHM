@@ -159,34 +159,22 @@ contains
   !>        \author Matthias Kelbling
   !>        \date Aug 2017
 
-  subroutine L11_calc_celerity(slope11, LinkIn_fAcc11, meandering11, nOutlets, nNodes)
+  subroutine L11_calc_celerity(param, slope11, LinkIn_fAcc11, meandering11, nOutlets, nNodes)
 
     use mo_kind,                 only: i4, dp
     use mo_mrm_constants,        only: nodata_dp
     use mo_append,               only: append
-    use mo_nml,                  only: open_nml, position_nml, close_nml
-    use mo_mrm_file,             only: &
-                file_namelist_param_mrm,   & 
-                unamelist_param
     use mo_utils,                only: notequal
     use mo_mrm_global_variables, only: L11_celerity
 
     implicit none
 
-    real(dp)                                 :: g1(5), g2(5), g3(5), g4(5) ! Parameter, CHANGE NAMES
+    real(dp), intent(in)                     :: param(:)
     real(dp), dimension(:)                   :: meandering11
     real(dp), dimension(:)                   :: LinkIn_fAcc11
     real(dp), dimension(:)                   :: slope11
     real(dp), dimension(:), allocatable      :: celerity11
     integer(i4)                              :: nNodes, nOutlets, nLinks
-    integer(i4)                              :: kk
-
-    ! Namelists are likely unnecessary
-    namelist /routing3/g1,g2,g3,g4
-    call open_nml(file_namelist_param_mrm, unamelist_param, quiet = .true.)
-    call position_nml('routing3',unamelist_param)
-    read(unamelist_param, nml=routing3)
-    call close_nml(unamelist_param)
 
     nLinks = nNodes - nOutlets
 
@@ -196,18 +184,11 @@ contains
     ! initilize
     celerity11(:)    = nodata_dp
 
-    ! calculate celerity
-    !do kk=1, nNodes
-    !  if(  notequal(meandering11  (kk),    nodata_dp) .and.  &
-    !       notequal(slope11       (kk),    nodata_dp) .and.  &
-    !       notequal(LinkIn_fAcc11 (kk),    nodata_dp) ) then
-    !    celerity11(kk) = ((g1(3)*LinkIn_fAcc11(kk)**g2(3))**(2.0/3.0) * & 
-    !                     slope11(kk)**(1.0/2.0) ) / (g3(3)*meandering11(kk)**g4(3))
-    !  end if
-    !end do
+    celerity11(1:nLinks) = (param(1)* LinkIn_fAcc11(1:nLinks)**param(2) * & 
+                           slope11(1:nLinks)**(1.0/2.0) / meandering11(1:nLinks)**param(3) )
 
-    celerity11(1:nLinks) = ((g1(3)*LinkIn_fAcc11(1:nLinks)**g2(3))**(2.0/3.0) * & 
-                           slope11(1:nLinks)**(1.0/2.0) ) / (g3(3)*meandering11(1:nLinks)**g4(3))
+    !celerity11(1:nLinks) = (param(1)* LinkIn_fAcc11(1:nLinks)**param(2) * & 
+    !                       slope11(1:nLinks)**param(3) / meandering11(1:nLinks)**param(4) )
 
     call append(L11_celerity, celerity11(:))
 

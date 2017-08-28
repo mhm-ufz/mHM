@@ -238,7 +238,7 @@ module mo_mrm_global_variables
   real(dp),    public, dimension(:), allocatable :: L11_celerity ! [m/s] celerity per grid-cell, only for
                                                                  ! routing-case = 3
   real(dp),    public, dimension(:), allocatable :: L11_meandering ! Proxy: L11_length/Lopt
-                                                                   ! Lopt := shortest possible way of flow
+                                                                   ! Lopt := shortest possible way of stream
   real(dp),    public, dimension(:), allocatable :: L11_LinkIn_fAcc ! fAcc inflow per Link
 
   ! Reference

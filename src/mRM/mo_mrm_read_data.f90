@@ -319,7 +319,8 @@ contains
                 deallocate(data_i4_2d)
              end do
           end if
-          if (processMatrix(8, 1) .eq. 2) then
+          if ((processMatrix(8, 1) .eq. 2) .or. &
+              (processMatrix(8, 1) .eq. 3)) then
              allocate(dataMatrix_i4(count(mask_global), 1))
              dataMatrix_i4 = nodata_i4
           end if

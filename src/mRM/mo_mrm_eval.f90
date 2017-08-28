@@ -80,9 +80,6 @@ contains
          L0_areaCell, &
          L1_areaCell, &
          L1_L11_ID, &
-!         L11_nCells,  &   ! Added for process-case 3
-!         L11_LinkIn_fAcc, &
-!         L11_meandering, &
          L11_areaCell, &
          L11_aFloodPlain, & ! flood plains at L11 level
          L11_length, & ! link length
@@ -186,9 +183,12 @@ contains
        call get_basin_info_mrm(ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11 )
        call get_basin_info_mrm(ii, 110, nrows, ncols, iStart=s110,  iEnd=e110)
        !
-       ! initialize routing parameters (has to be called only for Routing option 2)
-       if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii, &
-            parameterset(processMatrix(8,3) - processMatrix(8,2) + 1:processMatrix(8,3)))
+       ! initialize routing parameters (has to be called only for Routing option 2 + 3)
+       if ((processMatrix(8, 1) .eq. 2) .or. &
+           (processMatrix(8, 1) .eq. 3)) then 
+         call mrm_update_param(ii, parameterset(processMatrix(8,3) - &
+              processMatrix(8,2) + 1:processMatrix(8,3)))
+       end if
        ! calculate NtimeSteps for this basin
        nTimeSteps = (simPer(ii)%julEnd - simPer(ii)%julStart + 1) * NTSTEPDAY
        ! initialize timestep
@@ -232,7 +232,8 @@ contains
              RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
              InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
              !
-          else if (processMatrix(8, 1) .eq. 2) then
+          else if ((processMatrix(8, 1) .eq. 2) .or. &
+                   (processMatrix(8, 1) .eq. 3)) then
              ! >>>
              ! >>> adaptive timestep
              ! >>>
@@ -273,16 +274,6 @@ contains
                 end if
              end if
           end if
-          ! -------------------------------------------------------------------
-          ! calculate celerity - TEST - CHANGE TO PROCESSCASE 3
-          ! -------------------------------------------------------------------
-          !if (processMatrix(8, 1) .eq. 2) then
-          !  call L11_calc_celerity(slope11       = L11_slope(s11:e11),       &
-          !                         LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
-          !                         meandering11  = L11_meandering(s11:e11),  &
-          !                         nNodes        = L11_nCells,               &
-          !                         nOutlets      = L11_nOutlets(ii))
-          !end if
 
           ! -------------------------------------------------------------------
           ! execute routing
@@ -338,7 +329,8 @@ contains
              ! reset Input variables
              InflowDischarge = 0._dp
              RunToRout = 0._dp
-          else if (processMatrix(8, 1) .eq. 2) then             
+          else if ((processMatrix(8, 1) .eq. 2) .or. &
+                   (processMatrix(8, 1) .eq. 3)) then             
              if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
                 do jj = 1, nint(tsRoutFactorIn)
                    mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)

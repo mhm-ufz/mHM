@@ -1775,7 +1775,8 @@ contains
 
     ! >>> CAUTION: only calculate link flood plain area if
     ! >>> CAUTION: original routing is used
-    FParea: if (processMatrix(8, 1) .eq. 1_i4) then 
+    FParea: if ( (processMatrix(8, 1) .eq. 1_i4) .or. &
+                 (processMatrix(8, 1) .eq. 3_i4)) then 
         ! for a single node model run
         if(nNodes .GT. 1) then
           ! get L0 fields
@@ -2359,6 +2360,8 @@ contains
     use mo_mrm_global_variables, only: &
       L11_fDir,          & !  IN: flow direction at L11 (standard notation)
       L11_areaCell,      & !  IN: km^2 of grid in basin
+      L11_fromN,         &
+      L11_nOutlets,      &
       L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
       L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
       L11_CellCoor       
@@ -2380,6 +2383,7 @@ contains
     logical,     dimension(:,:), allocatable  :: mask11             ! Basin mask
     real(dp),    dimension(:),   allocatable  :: LinkIn_fAcc        ! fAcc inflow per Link
     integer(i4), dimension(:,:), allocatable  :: CellCoor11
+    integer(i4), dimension(:),   allocatable  :: fromN11
 
     ! get basin information
     call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes, &
@@ -2390,6 +2394,7 @@ contains
     allocate(areaCell11  (nrows11, ncols11))
     allocate(fAcc11      (nrows11, ncols11))
     allocate(LinkIn_fAcc (nNodes))
+    allocate(fromN11     (nNodes))
     allocate(CellCoor11  (nNodes , 2))
 
     ! initialize
@@ -2397,11 +2402,13 @@ contains
     areaCell11(:,:) = nodata_dp
     LinkIn_fAcc(:)  = nodata_dp
     CellCoor11(:,:) = nodata_i4
+    fromN11(:)      = nodata_i4
 
     ! get data
     fDir11(:,:)     = UNPACK( L11_fDir     (iStart11:iEnd11),  mask11, nodata_i4 )
     areaCell11(:,:) = UNPACK( L11_areaCell (iStart11:iEnd11),  mask11, nodata_dp )
     CellCoor11(:,:) = L11_cellCoor(iStart11:iEnd11, :)
+    fromN11(:)      = L11_fromN(iStart11:iEnd11)
 
     ! initialize fAcc11
     fAcc11          = areaCell11
@@ -2421,11 +2428,9 @@ contains
     end do
 
     ! Transfer to LinkIn_fAcc
-    do jj=1, nNodes
-      if ( (CellCoor11(jj, 1) .ne. nodata_i4) .and. &
-            CellCoor11(jj, 2) .ne. nodata_i4) then
-        LinkIn_fAcc(jj) = fAcc11(CellCoor11(jj, 1), CellCoor11(jj, 2))
-      end if
+    do jj=1, (nNodes - L11_nOutlets(iBasin))
+      ii = fromN11(jj)
+      LinkIn_fAcc(jj) = fAcc11(CellCoor11(ii, 1), CellCoor11(ii, 2))
     end do
 
     ! Append
@@ -2635,86 +2640,12 @@ contains
       if(Lopt .gt. 0) then
         meandering(ii) = length11(ii)/Lopt
       else
-        meandering(ii) = nodata_dp
+        meandering(ii) = length11(ii)/cell0_res
       end if
     end do
     
     call append( L11_meandering, meandering(:))
 
   end subroutine L11_calc_meandering
-
-  ! --------------------------------------------------------------------------
-
-  !     NAME
-  !         L11_init_celerity
-
-  !     PURPOSE
-
-  !>       \brief Initialize celerity per Link
-  !>       \details Initialize celerity per Link.
-
-  !     INTENT(IN)
-  !>
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-  
-  !     LITERATURE
-  !         None
-  
-  !     HISTORY
-  !>        \author Matthias Kelbling
-  !>        \date   Aug 2017
-
-  ! --------------------------------------------------------------------------
-
-  subroutine L11_init_celerity(iBasin)
-
-  use mo_mrm_mpr,         only: &
-            L11_calc_celerity
-  use mo_mrm_global_variables,    only: &
-            L11_LinkIn_fAcc,    &
-            L11_slope,        &
-            L11_meandering,     &
-            L11_nOutlets
-  use mo_mrm_tools,         only: &
-            get_basin_info_mrm
-
-  implicit none
-  
-  integer                         :: iBasin, nNodes
-  integer                         :: ncol, nrow, s11, e11
-
-  call get_basin_info_mrm(iBasin, 11, nrow, ncol, ncells=nNodes, iStart = s11, iEnd = e11)
-
-  call L11_calc_celerity(slope11       = L11_slope(s11:e11),       &
-                         LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
-                         meandering11  = L11_meandering(s11:e11),  &
-                         nNodes        = nNodes,                   &
-                         nOutlets      = L11_nOutlets(iBasin))
-
-  end subroutine L11_init_celerity
-
 
 end module mo_mrm_net_startup

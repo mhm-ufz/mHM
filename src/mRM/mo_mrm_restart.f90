@@ -449,11 +449,6 @@ contains
     call var%setData(L11_slope(s11:e11))
     call var%setAttribute("long_name", "Average slope of river link")
 
-    var = nc%setVariable("L11_celerity", "f64", (/links/))   ! celerity
-    call var%setFillValue(nodata_dp)
-    call var%setData(L11_celerity(s11:e11))
-    call var%setAttribute("long_name", "celerity at Level 11")
-
     var = nc%setVariable("L0_draCell", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L0_draCell(s110:e110), mask0, nodata_i4))
@@ -527,6 +522,13 @@ contains
     call var%setFillValue(nodata_i4)
     call var%setData(basin_mrm%InflowGaugeNodeList(iBasin,:))
     call var%setAttribute("long_name", "cell ID of gauges")
+
+    if (processMatrix(8, 1) .eq. 3) then
+      var = nc%setVariable("L11_celerity", "f64", (/links/))   ! celerity
+      call var%setFillValue(nodata_dp)
+      call var%setData(L11_celerity(s11:e11))
+      call var%setAttribute("long_name", "celerity at Level 11")
+    end if
 
     ! free dummy variables
     deallocate( dummy_d3 )
