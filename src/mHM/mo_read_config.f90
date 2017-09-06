@@ -129,7 +129,7 @@ CONTAINS
     use mo_file,             only:                          &
          file_namelist, unamelist,                          & ! file containing main configurations
          file_namelist_param, unamelist_param,              & ! file containing parameter values
-         file_defOutput, udefOutput                          ! file specifying which output to write
+         file_defOutput, udefOutput                           ! file specifying which output to write
     use mo_global_variables, only:                          &
          timestep,                                          & ! model time step
          period,                                            & ! data structure for period
@@ -320,7 +320,7 @@ CONTAINS
     !
     real(dp), dimension(maxNoBasins)                :: resolution_Hydrology
     real(dp), dimension(maxNoBasins)                :: resolution_Routing
-    integer(i4), dimension(maxNoBasins)             :: L0Basin  
+    integer(i4), dimension(maxNoBasins)             :: L0Basin
 
     ! define namelists
     ! namelist directories
@@ -1397,27 +1397,7 @@ CONTAINS
        processMatrix(10, 2) = 0_i4
        processMatrix(10, 3) = sum(processMatrix(1:10, 2))
     end if
-    !---------------------------------------------
-    !*wqm* *Nitrate parameters*
-    ! Process 11 - nutrient submodel(nitrogen)
-    ! 0 - deactivated
-    ! 1 - nitrogen submodel included
-	!parameters are read in "mo_wqm_read::wqm_readconfig"
-    !here just read in index of whether wqm activated or not
 
-    select case (processCase(11))
-    case (1)
-       processMatrix(11,1) = processCase(11)
-       !will be replicated in wam_readconfig
-       !processMatrix(11,2) = 11  !five land-use dep. and one general
-       !processMatrix(11,3) = sum(processMatrix(1:11,2))
-    case (0)
-       call message(' INFO: WATER QUALITY(Nitrogen submodel) IS DEACTIVATED.')
-    case default
-       call message()
-       call message('***ERROR: Process description for process "water quality" does not exist!')
-       stop
-    end select
     call close_nml(unamelist_param)
 
     !===============================================================
