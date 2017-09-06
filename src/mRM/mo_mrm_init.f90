@@ -164,6 +164,12 @@ CONTAINS
        do iBasin = 1, nBasins
           call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
        end do
+       ! ----------------------------------------------------------
+       ! INITIALIZE STATES AND ROUTING PARAMETERS
+       ! ----------------------------------------------------------
+       do iBasin = 1, nBasins
+          call variables_alloc_routing(iBasin)
+       end do
     else
        ! ----------------------------------------------------------
        ! LEVEL 1 DATA
@@ -188,7 +194,7 @@ CONTAINS
           call L11_set_drain_outlet_gauges(iBasin)
           ! stream characteristics
           call L11_stream_features(iBasin)
-          call L11_flow_accumulation(iBasin) ! requires L11_fDir, L11_cellArea
+          call L11_flow_accumulation(iBasin)
           call L11_calc_meandering(iBasin)
        end do
        ! check whether there are gauges within the modelling domain
@@ -199,6 +205,12 @@ CONTAINS
           end if
        end if
        ! ----------------------------------------------------------
+       ! INITIALIZE STATES AND ROUTING PARAMETERS
+       ! ----------------------------------------------------------
+       do iBasin = 1, nBasins
+          call variables_alloc_routing(iBasin)
+       end do
+       ! ----------------------------------------------------------
        ! INITIALIZE PARAMETERS
        ! ----------------------------------------------------------
        do iBasin = 1, nBasins
@@ -207,13 +219,6 @@ CONTAINS
           call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
        end do
     end if
-
-    ! ----------------------------------------------------------
-    ! INITIALIZE STATES AND ROUTING PARAMETERS
-    ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
-       call variables_alloc_routing(iBasin)
-    end do
 
     ! -------------------------------------------------------
     ! READ INPUT DATA AND OBSERVED DISCHARGE DATA
@@ -475,7 +480,7 @@ CONTAINS
     use mo_append,           only: append                      ! append vector
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: L11_Qmod, L11_qOUT, L11_qTIN, &
-         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp
+         L11_qTR, L11_K, L11_xi,L11_C1, L11_C2, L11_FracFPimp, L11_celerity
 
     implicit none
     ! input variables
@@ -528,6 +533,10 @@ CONTAINS
     ! Fraction of the flood plain with impervious cover
     dummy_Vector11(:) = 0.0_dp
     call append( L11_FracFPimp, dummy_Vector11 )
+
+    ! Celerity at each link
+    dummy_Vector11(:) = 0.0_dp
+    call append( L11_celerity, dummy_Vector11 )
     
     ! free space
     if ( allocated( dummy_Vector11        ) ) deallocate( dummy_Vector11        )
@@ -540,6 +549,7 @@ CONTAINS
   ! --------------------------------------------------------------------------
   ! The parameters are set following Thober et al. 2017
   ! Modified: 
+  ! Aug 2017 - Matthias Kelbling: Process case 3 added
   subroutine mrm_init_param(iBasin, param)
 
     use mo_kind, only: i4, dp
@@ -548,17 +558,15 @@ CONTAINS
          ! input variables
          resolutionRouting, timeStep, iFlag_cordinate_sys, &
          basin_mrm, nBasins, &
+         L11_celerity, &
          ! output variables
-         L11_tsRout, &
-         ! added for case 3
-         L11_slope, L11_LinkIn_fAcc, L11_meandering, L11_nOutlets, L11_celerity
+         L11_tsRout
     use mo_mrm_constants,        only: HourSecs, given_TS
     use mo_message,              only: message
     use mo_string_utils,         only: num2str
     use mo_utils,                only: notequal, locate
-    ! added for case 3
     use mo_mrm_tools,            only: get_basin_info_mrm
-    use mo_mrm_mpr,              only: L11_calc_celerity
+    use mo_mrm_net_startup,      only: L11_calc_celerity
     
     implicit none
 
@@ -570,8 +578,7 @@ CONTAINS
     integer(i4) :: index   ! index selected from given_TS
     real(dp)    :: deltaX  ! spatial routing resolution
     real(dp)    :: K       ! [s] wave travel time parameter
-    ! added for case 3
-    integer(i4) :: nrow, ncol, nNodes, s11, e11
+    integer(i4) :: nrow, ncol, s11, e11
 
     ! temporal resolution of routing
     if (iBasin .eq. 1) then
@@ -581,6 +588,19 @@ CONTAINS
 
     if (processMatrix(8, 1) .eq. 1) then
        L11_tsRout = timestep * HourSecs
+
+    call message('')
+    call message('    Basin: '//num2str(iBasin, '(i3)'))
+    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
+    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
+
+    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
+        (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
+       call message('***WARNING: routing timestep is not a multiple of 24 h.')
+       call message('            Inflowgauge timeseries is averaged over values')
+       call message('            of different days, small mismatches at')
+       call message('            inflowgauge location might occur.')
+    end if
 
     else if (processMatrix(8, 1) .eq. 2) then
 
@@ -598,18 +618,14 @@ CONTAINS
     else if (processMatrix(8, 1) .eq. 3) then
  
        ! get basin info
-       call get_basin_info_mrm(iBasin, 11, nrow, ncol, ncells=nNodes, iStart=s11, iEnd = e11)
+       call get_basin_info_mrm(iBasin, 11, nrow, ncol, iStart=s11, iEnd = e11)
 
        ! adjust spatial resolution
        deltaX = resolutionRouting(iBasin)
        if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
-       call L11_calc_celerity( param        = param(:), &
-                              slope11       = L11_slope(s11:e11), &
-                              LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
-                              meandering11  = L11_meandering(s11:e11), &
-                              nOutlets      = L11_nOutlets(iBasin), &
-                              nNodes        = nNodes)
+       ! calculate time step of routing model in [s]
+       call L11_calc_celerity( iBasin, param)
        K = deltaX / maxval( L11_celerity(s11:e11))
 
        ! determine routing timestep
@@ -617,42 +633,32 @@ CONTAINS
        L11_TSrout(iBasin) = given_TS(index)
 
     end if
- 
-    call message('')
-    call message('    Basin: '//num2str(iBasin, '(i3)'))
-    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
-    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
-
-    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-        (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
-       call message('***WARNING: routing timestep is not a multiple of 24 h.')
-       call message('            Inflowgauge timeseries is averaged over values')
-       call message('            of different days, small mismatches at')
-       call message('            inflowgauge location might occur.')
-    end if
 
   end subroutine mrm_init_param
 
   subroutine mrm_update_param(iBasin, param)
 
     use mo_kind, only: i4, dp
-    use mo_common_variables, only: processMatrix
+    use mo_common_variables, only: processMatrix, optimize
     use mo_mrm_global_variables, only: &
          ! input variable
-         resolutionRouting, L11_TSrout, iFlag_cordinate_sys, & ! case 2 + 3
-         L11_slope, L11_LinkIn_fAcc, L11_meandering, L11_nOutlets, L11_celerity, &
+         resolutionRouting, L11_TSrout, iFlag_cordinate_sys, &
+         L11_celerity, L11_nOutlets, timeStep,   & 
          ! output variables
          L11_C1, L11_C2
-    use mo_mrm_constants, only: rout_space_weight, given_TS
-    use mo_mrm_tools,     only: get_basin_info_mrm
-    use mo_utils,         only: locate
-    use mo_mrm_mpr,       only: L11_calc_celerity
+    use mo_mrm_constants,   only: rout_space_weight, given_TS
+    use mo_mrm_tools,       only: get_basin_info_mrm
+    use mo_utils,           only: locate
+    use mo_mrm_net_startup, only: L11_calc_celerity
+    use mo_mrm_constants,   only: HourSecs, given_TS
+    use mo_message,         only: message
+    use mo_string_utils,    only: num2str
     
     implicit none
 
     ! Input
     integer(i4), intent(in) :: iBasin   ! Basin number
-    real(dp),    intent(in) :: param(:) ! celerity parameter [m s-1]
+    real(dp),    intent(in) :: param(:) ! routing parameter
 
     ! local variables
     integer(i4)           :: nrows
@@ -662,8 +668,7 @@ CONTAINS
     integer(i4)           :: ind
     integer(i4)           :: nNodes
     real(dp)              :: deltaX          ! spatial routing resolution
-    real(dp)              :: K               ! [s] wave travel time parameter
-    real(dp), allocatable :: wave_tt(:) ! [s] wave travel time per link
+    real(dp), allocatable :: K(:)            ! [s] wave travel time parameter
     real(dp)              :: xi              ! [1] Muskingum diffusion parameter (attenuation)
 
     ! get basin information
@@ -674,6 +679,8 @@ CONTAINS
     if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
     if      (ProcessMatrix(8, 1) .eq. 2_i4) then
+     
+      allocate(K(1))
       ! [s] wave travel time parameter
       K = deltaX / param(1)
     
@@ -681,47 +688,48 @@ CONTAINS
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
       ! determine routing timestep
-      ind = locate(given_TS, K)
+      ind = locate(given_TS, K(1))
       L11_TSrout(iBasin) = given_TS(ind)
     
       ! Muskingum parameters 
-      L11_C1(s11: e11) = L11_TSrout(iBasin) / ( K * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
-      L11_C2(s11: e11) = 1.0_dp - L11_C1(s11) * K / L11_TSrout(iBasin)
+      L11_C1(s11: e11) = L11_TSrout(iBasin) / ( K(1) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
+      L11_C2(s11: e11) = 1.0_dp - L11_C1(s11) * K(1) / L11_TSrout(iBasin)
 
     else if (ProcessMatrix(8, 1) .eq. 3_i4) then
 
       ! [s] wave travel time parameter
-      call L11_calc_celerity( param         = param(:), &
-                              slope11       = L11_slope(s11:e11), &
-                              LinkIn_fAcc11 = L11_LinkIn_fAcc(s11:e11), &
-                              meandering11  = L11_meandering(s11:e11), &
-                              nOutlets      = L11_nOutlets(iBasin), &
-                              nNodes        = nNodes)
-      K       = deltaX / maxval( L11_celerity(s11:e11))
+      call L11_calc_celerity( iBasin, param)
 
-      allocate(wave_tt(nNodes))
-      ! K = minval(wave_tt)
-      wave_tt = deltaX / L11_celerity(s11:e11)
+      ! Allocate and calculate K
+      allocate(K(nNodes))
+      K = deltaX / L11_celerity(s11:e11)
 
       ! set time-weighting scheme
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
       ! determine routing timestep
-      ind = locate(given_TS, K)
+      ! minval(K) is chosen due to the courant condition
+      ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
       L11_TSrout(iBasin) = given_TS(ind)
-
-      ! constrains on wave_tt - CHECK!!!   L11_TSrout ~ min(wave_tt) => abhängig von ausreisser in celerity
-      ! wave_tt = merge( (/ ((0.5_dp), ii=1,nNodes) /), wave_tt, wave_tt < 0.5 )
     
       ! Muskingum parameters 
-      L11_C1(s11: (e11-nNodes)) = L11_TSrout(iBasin) / ( wave_tt * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
-      !L11_C2(s11: (e11-nNodes)) = 1.0_dp - L11_C1(s11) * wave_tt / L11_TSrout(iBasin)
-      L11_C2(s11: (e11-nNodes)) = (L11_TSrout(iBasin)*0.5 - wave_tt*xi) / (wave_tt * (1.0_dp - xi) + 0.5 * L11_TSrout(iBasin))
+      L11_C1(s11:e11) = L11_TSrout(iBasin) / ( K * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
+      L11_C2(s11:(nNodes-L11_nOutlets(iBasin))) = 1.0_dp - L11_C1(s11:(nNodes-L11_nOutlets(iBasin))) &
+        * K / L11_TSrout(iBasin)
+    end if
+
+    deallocate(K)
+
+    if (.not. optimize) then
+      call message('')
+      call message('    Basin: '//num2str(iBasin, '(i3)'))
+      call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
+      call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
     end if
 
     ! optional print
-    ! print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
-    ! print *, 'C2 Muskingum routing parameter: ', L11_C2(s11)
+     print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
+     print *, 'C2 Muskingum routing parameter: ', L11_C2(s11)
 
   end subroutine mrm_update_param
 END MODULE mo_mrm_init

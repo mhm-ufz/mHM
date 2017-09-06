@@ -115,7 +115,6 @@ contains
     use mo_mrm_write,        only: mrm_write_output_fluxes
     use mo_julian,           only: caldat, julday
     use mo_mrm_constants,    only: HourSecs
-!    use mo_mrm_mpr,          only: L11_calc_celerity
 
     implicit none
 

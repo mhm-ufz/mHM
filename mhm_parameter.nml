@@ -154,9 +154,9 @@ streamflow_celerity                =     0.1,         15.,           1.5,     0,
 
 ! adaptive timestep routing - varying celerity
 &routing3
-g1                                 =      .1,       1000.,           80.,     0,       1
-g2                                 =     -2.,          2.,        -0.225,     0,       1
-g3                                 =   0.001,          3.,            1.,     0,       1
+g1                                 =    100.,      10000.,         1000.,     0,       1
+g2                                 =     -1.,        -0.1,        -0.225,     0,       1
+g3                                 =     0.5,         10.,            1.,     0,       1
 /
 
 ! ground albedo neutrons                                  

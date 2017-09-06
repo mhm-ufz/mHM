@@ -46,5 +46,7 @@ module mo_mrm_constants
        600._dp, 720._dp, 900._dp, 1200._dp, 1800._dp, 3600._dp, &
        7200._dp, 10800._dp, 14400._dp, 21600._dp, 28800._dp, 43200._dp, &
        86400._dp/)
+  ! square root of 2
+  real(dp), parameter :: sqrt2 = 1.414213562373095
 
 end module mo_mrm_constants
