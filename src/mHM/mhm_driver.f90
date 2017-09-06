@@ -145,6 +145,7 @@
 !                                                modified MPR to included soil horizon specific properties/parameters
 !                     Stephan Thober, Nov 2016 - implemented adaptive timestep for routing
 !                       Rohini Kumar, Dec 2016 - options to read (monthly mean) LAI fields
+!                     Xiaoqiang Yang, Jul 2017 - implemented water quality model (for nitrate simulation)
 !
 ! --------------------------------------------------------------------------
 
@@ -208,6 +209,14 @@ PROGRAM mhm_driver
   USE mo_mrm_init,            ONLY : mrm_init
   USE mo_mrm_write,           only : mrm_write
 #endif
+  ! *wqm* Water quality model 
+  USE mo_wqm_read,            ONLY : wqm_readinputdata, wqm_variables_initalloc, & 
+                                 wqm_readconfig, wqm_readobsdata  
+
+  USE mo_wqm_write,           ONLY : wqm_write
+  USE mo_wqm_restart,         ONLY : wqm_write_restart_files
+  USE mo_wqm_objective_function, ONLY : wqm_objective
+
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
@@ -370,6 +379,7 @@ PROGRAM mhm_driver
            if ( ii == nbasins) then
               call read_basin_avg_TWS()
            end if
+
         end select
      end if
 
@@ -381,6 +391,26 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
 #endif
+
+  !-------------------------
+  !*wqm* READ AND INITIALISE WATER QUALITY MODEL
+  !-------------------------
+  if (processMatrix(11,1) .eq. 1) then
+     call message('')
+     call message('  *******************************************')
+     call message('  Water Quality Model (mHM-Nitrate) activated')
+     call message('         ... by X. Yang, Jul. 2017 ...')
+     call message('  *******************************************')
+     call message('')
+     call message('  Reading and initialising water quality data ...')
+     call timer_start(itimer)
+     call wqm_readconfig()
+     call wqm_readinputdata()
+     call wqm_variables_initalloc()
+     call wqm_readobsdata()
+     call timer_stop(itimer)
+     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  end if
 
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
@@ -401,6 +431,9 @@ PROGRAM mhm_driver
      case(10:13,15,17,27,28,29,30)
         ! call optimization for other variables
         call optimization(objective, dirConfigOut, funcBest, maskpara)
+     case(31)
+        ! *wqm* objective function for water quality model (multivariables)
+        call optimization(wqm_objective, dirConfigOut, funcBest, maskpara)
      case default
         call message('***ERROR: mhm_driver: The given objective function number ', &
              trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
@@ -436,6 +469,8 @@ PROGRAM mhm_driver
      call message( '  Write restart file')
      call timer_start(itimer)
      call write_restart_files( dirRestartOut )
+     !*wqm*
+     if (processMatrix(11,1) .ne. 0_i4) call wqm_write_restart_files(dirRestartOut) 
      call timer_stop(itimer)
      call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
   end if
@@ -448,6 +483,10 @@ PROGRAM mhm_driver
   if (processMatrix(8, 1) .ne. 0) call mrm_write()
 #endif
 
+  ! ---------------------------------------------------------------------------  
+  ! *wqm*WRITE NUTRIENTS
+  ! ---------------------------------------------------------------------------
+  if (processMatrix(11,1) .ne. 0_i4) call wqm_write()
 
   ! --------------------------------------------------------------------------
   ! FINISH UP

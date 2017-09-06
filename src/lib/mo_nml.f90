@@ -136,7 +136,8 @@ CONTAINS
 
     nunitnml = unit
     if (.not. iquiet) CALL message('    This is namelist ', trim(file))
-    OPEN (nunitnml, file=file, iostat=istat, status='old', action='read', delim='apostrophe')
+
+    OPEN (nunitnml, file=file, iostat=istat, status='old', action='read', delim='apostrophe', position = 'rewind')
 
     IF (istat .ne. 0) THEN
        write(message_text,'(A,A)') 'Could not open namelist file ', trim(file)

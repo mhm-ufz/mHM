@@ -26,6 +26,7 @@
 ! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)=2
 ! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
 ! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
+! Xiaoqiang Yang,          Jul 2017  - added all configurations for water quality model (mHM-Nitrate)
 
 !******************************************************************************************
 !
@@ -39,7 +40,7 @@
 !-----------------------------------------------------------------------------
 !> model run timestep [h] either 1 or 24
 !-----------------------------------------------------------------------------
-timestep = 1
+timestep = 24
 !-----------------------------------------------------------------------------
 !> input data & model run cordinate system
 !> 0 -> regular   X & Y   coordinate system (e.g., GK-4 or Lambert equal area system)
@@ -53,14 +54,14 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Hydrology is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Hydrology(1) = 24000
-resolution_Hydrology(2) = 24000
+resolution_Hydrology(1) = 1000
+!resolution_Hydrology(2) = 24000
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per basin \n
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -68,8 +69,8 @@ resolution_Hydrology(2) = 24000
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Routing is in [m] \n
 !>       if iFlag_cordinate_sys = 1, then resolution_Routing is in [degree-decimal] \n
 !-----------------------------------------------------------------------------
-resolution_Routing(1) = 24000
-resolution_Routing(2) = 24000
+resolution_Routing(1) = 8000
+!resolution_Routing(2) = 24000
 !-----------------------------------------------------------------------------
 !> use ALMA convention for input and output variables
 !> see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
@@ -84,7 +85,7 @@ resolution_Routing(2) = 24000
 !> but not 1,2,1. The correct way should be: 1,1,2.\n
 !-----------------------------------------------------------------------------
 L0Basin(1) = 1
-L0Basin(2) = 2
+!L0Basin(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
@@ -135,14 +136,16 @@ opti_method = 1
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                       \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 !> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted                                                       \n
-!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)$
+!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)    \n
+! *wqm*
+!> (31) SO: Q + nutrient: ((1-NSE)**6+(1-lnNSE)**6)**(1/6) $
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
-opti_function = 10
+opti_function = 5
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
 !-----------------------------------------------------------------------------
 read_restart  = .FALSE.
-write_restart = .TRUE.
+write_restart = .FALSE.
 perform_mpr   = .TRUE.
 /
 
@@ -174,11 +177,11 @@ mrm_coupling_mode = 2
 !-----------------------------------------------------
 !
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_basin/input/gauge/"
-dir_Gauges(2)        = "test_basin_2/input/gauge/"
+dir_Gauges(1)        = "./selke/input/gauge/"
+!dir_Gauges(2)        = "test_basin_2/input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
-dir_Total_Runoff(1) = 'test_basin/output_b1/'
-dir_Total_Runoff(2) = 'test_basin_2/output/'
+dir_Total_Runoff(1) = './selke/output/'
+!dir_Total_Runoff(2) = 'test_basin_2/output/'
 /
 
 ! general directories used by mRM and mHM
@@ -188,39 +191,39 @@ dir_Total_Runoff(2) = 'test_basin_2/output/'
 ! Directory for common files (to all basins)
 !-----------------------------------------------------
 !> config run out file common to all modeled basins should be written to directory
-dirConfigOut = "test_basin/"
+dirConfigOut = "./selke/output"
 !
 !> directory where common input files should be located for all modeled basins
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_basin/input/morph/"
+dirCommonFiles = "./selke/input/morph/"
 !
 !**** for Basin 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_basin/input/morph/"
+dir_Morpho(1)        = "./selke/input/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_basin/input/luse/"
+dir_LCover(1)        = "./selke/input/luse/"
 !> directory where restart input is located
-dir_RestartIn(1)     = "test_basin/restart/"
+dir_RestartIn(1)     = "./selke/output/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_basin/restart/"
+dir_RestartOut(1)    = "./selke/output/"
 !> directory where output should be written
-dir_Out(1)           = "test_basin/output_b1/"
+dir_Out(1)           = "./selke/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
+file_LatLon(1)       = "./selke/input/latlon/latlon_1km.nc"
 
 ! **** for Basin 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "test_basin_2/input/morph/"
+!dir_Morpho(2)        = "test_basin_2/input/morph/"
 !> directory where land cover files are located
-dir_LCover(2)        = "test_basin_2/input/luse/"
+!dir_LCover(2)        = "test_basin_2/input/luse/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "test_basin_2/restart/"
+!dir_RestartIn(2)     = "test_basin_2/restart/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin_2/restart/"
+!dir_RestartOut(2)    = "test_basin_2/restart/"
 !> directory where output should be written
-dir_Out(2)           = "test_basin_2/output/"
+!dir_Out(2)           = "test_basin_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
+!file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 /
 
 ! directories used only by mhm
@@ -236,8 +239,8 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Basin 1
 !> directory where meteorological input is located
-dir_Precipitation(1) = "test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
+dir_Precipitation(1) = "./selke/input/meteo/"
+dir_Temperature(1)   = "./selke/input/meteo/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -245,22 +248,22 @@ dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
+dir_ReferenceET(1)     = "./selke/input/meteo/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "test_basin/input/meteo/"
-dir_MaxTemperature(1)  = "test_basin/input/meteo/"
+dir_MinTemperature(1)  = "./selke/input/meteo/"
+dir_MaxTemperature(1)  = "./selke/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "test_basin/input/meteo/"
+dir_NetRadiation(1)    = "./selke/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "test_basin/input/meteo/"
-dir_windspeed(1)       = "test_basin/input/meteo/"
+dir_absVapPressure(1)  = "./selke/input/meteo/"
+dir_windspeed(1)       = "./selke/input/meteo/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
+dir_gridded_LAI(1)   = "./selke/input/lai/"
 !
 !**** for Basin 2
 !> directory where meteorological input is located
-dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
-dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
+!dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
+!dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -268,17 +271,17 @@ dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !>   if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
+!dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
-dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
+!dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
+!dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
+!dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
-dir_windspeed(2)       = "test_basin_2/input/meteo/"
+!dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
+!dir_windspeed(2)       = "test_basin_2/input/meteo/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_basin/input/lai/"
+!dir_gridded_LAI(2)   = "test_basin/input/lai/"
 /
 
 !> data which are optionally needed for optimization
@@ -305,7 +308,7 @@ timeStep_sm_input = -2
 !> basin average total water storage (tws) \n
 !> file name including path with timeseries of GRACE-based data
 file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
-file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
+!file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
@@ -342,26 +345,27 @@ timeStep_et_input = -2
 !>    day, which is 2001/01/01 = 1), THEN all dynamic datasets should be given for
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
-warming_Days(1)    = 0
-warming_Days(2)    = 180
+!------1997/2010 :1460/6207
+warming_Days(1)    = 6207
+!warming_Days(2)    = 180
 !> first year of wanted simulation period
-eval_Per(1)%yStart = 1990
-eval_Per(2)%yStart = 1993
+eval_Per(1)%yStart = 2010
+!eval_Per(2)%yStart = 1993
 !> first month of wanted simulation period
 eval_Per(1)%mStart = 01
-eval_Per(2)%mStart = 01
+!eval_Per(2)%mStart = 01
 !> first day   of wanted simulation period
 eval_Per(1)%dStart = 01
-eval_Per(2)%dStart = 01
+!eval_Per(2)%dStart = 01
 !> last year   of wanted simulation period
-eval_Per(1)%yEnd   = 1993
-eval_Per(2)%yEnd   = 1993
+eval_Per(1)%yEnd   = 2015
+!eval_Per(2)%yEnd   = 1993
 !> last month  of wanted simulation period
 eval_Per(1)%mEnd   = 12
-eval_Per(2)%mEnd   = 12
+!eval_Per(2)%mEnd   = 12
 !> last day    of wanted simulation period
 eval_Per(1)%dEnd   = 31
-eval_Per(2)%dEnd   = 31
+!eval_Per(2)%dEnd   = 31
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature\n
 !>      >0: after each <timeStep_model_inputs> days\n
@@ -372,7 +376,7 @@ eval_Per(2)%dEnd   = 31
 !> if timestep_model_inputs is non-zero, than it has to be non-zero\n
 !> for all basins\n
 time_step_model_inputs(1) = 0
-time_step_model_inputs(2) = 0
+!time_step_model_inputs(2) = 0
 /
 
 !******************************************************************************************
@@ -438,7 +442,7 @@ iFlag_soilDB = 0
 tillageDepth = 200
 !
 !> No. of soil horizons to be modeled
-nSoilHorizons_mHM =2
+nSoilHorizons_mHM =3
 !
 ! soil depth information
 !> IF (iFlag_soilDB = 0)
@@ -449,6 +453,7 @@ nSoilHorizons_mHM =2
 !
 !> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
 soil_Depth(1) = 200
+soil_Depth(2) = 500
 /
 
 !******************************************************************************************
@@ -463,29 +468,29 @@ fracSealed_cityArea = 0.6
 !> The land cover scene periods are shared by all catchments.
 !> The names should be equal for all basins. The land cover scnes have to be ordered
 !> chronologically.
-nLcover_scene = 3
+nLcover_scene = 1
 ! indicate period with brackets behind variable
 ! first scene
 !> starting year of land cover scene 1
-LCoverYearStart(1) = 1975
+LCoverYearStart(1) = 1990
 !> ending year of land cover scnene 1
-LCoverYearEnd(1)   = 1989
+LCoverYearEnd(1)   = 2015
 !> name of land cover file for scnene 1
 LCoverfName(1)     = 'lc_1990.asc'
 
 !> starting year of land cover scene 2
-LCoverYearStart(2) = 1990
+!LCoverYearStart(2) = 1990
 !> ending year of land cover scnene 2
-LCoverYearEnd(2)   = 1993
+!LCoverYearEnd(2)   = 1993
 !> name of land cover file for scnene 2
-LCoverfName(2)     = 'lc_1990.asc'
+!LCoverfName(2)     = 'lc_1990.asc'
 
 !> starting year of land cover scene 3
-LCoverYearStart(3) = 1994
+!LCoverYearStart(3) = 1994
 !> ending year of land cover scnene 3
-LCoverYearEnd(3)   = 2004
+!LCoverYearEnd(3)   = 2004
 !> name of land cover file for scnene 3
-LCoverfName(3)     = 'lc_1990.asc'
+!LCoverfName(3)     = 'lc_1990.asc'
 /
 
 !******************************************************************************************
@@ -573,7 +578,7 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 !> 2 - adaptive timestep
-processCase(8) = 2
+processCase(8) = 1
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
@@ -583,6 +588,11 @@ processCase(9) = 1
 !> 1 - inverse N0 based on Desilets et al. 2010
 !> 2 - COSMIC forward operator by Shuttleworth et al. 2013
 processCase(10) = 0
+!added by X. Yang FOR *wqm*
+!> water quality
+!> 0 - deactivited
+!> 1 - water quality model (mHM-Nitrate)
+processCase(11) = 1
 /
 
 !******************************************************************************************
@@ -595,7 +605,7 @@ processCase(10) = 0
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 3
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -603,28 +613,28 @@ nGaugesTotal = 2
 !
 !> basin 1
 !> number of gauges for subbasin (1)
-NoGauges_basin(1)   = 1
+NoGauges_basin(1)   = 3
 !> in subbasin(1), this is the id of gauge(1)  --> (1,1)
-Gauge_id(1,1)       = 398
+Gauge_id(1,1)       = 1
 !> name of file with timeseries for subbasin(1) at gauge(1) --> (1,1)
-gauge_filename(1,1) = "00398.txt"
-!
-!> basin 2
-!> number of gauges for subbasin (2)
-NoGauges_basin(2)       = 1
-!> in subbasin(2), this is the id of gauge(1) --> (2,1)
-Gauge_id(2,1)           = 45
-!> name of file with timeseries for subbasin(2) at gauge(1) --> (2,1)
-Gauge_filename(2,1)     = "45.txt"
+gauge_filename(1,1) = "1.txt"
+!> in subbasin(1), this is the id of gauge(2)  --> (1,2)
+Gauge_id(1,2)       = 2
+!> name of file with timeseries for subbasin(1) at gauge(2) --> (1,2)
+gauge_filename(1,2) = "2.txt"
+!> in subbasin(1), this is the id of gauge(3)  --> (1,3)
+Gauge_id(1,3)       = 3
+!> name of file with timeseries for subbasin(1) at gauge(3) --> (1,3)
+gauge_filename(1,3) = "3.txt"
 /
 
 &inflow_gauges
 !> Gauges / gridpoints used for inflow to the model domain
 !> e.g. in the case of upstream/headwater areas which are
-!>      not included in the model domain
-!
+!>      not included in the model domain; \n
+!>      *wqm* Also, for water quality model, discharge inputs from WWTPs are included here.  
 !> Total number of inflow gauges (sum of all gauges in all subbains)
-nInflowGaugesTotal = 0
+nInflowGaugesTotal = 5
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
@@ -632,13 +642,78 @@ nInflowGaugesTotal = 0
 !
 !> basin 1
 !> number of gauges for subbasin (1)
-NoInflowGauges_basin(1)   = 0
+NoInflowGauges_basin(1)   = 5
 !> id of inflow gauge(1) for subbasin(1) --> (1,1)
-InflowGauge_id(1,1)       = -9
+InflowGauge_id(1,1)       = 1001
 !> name of file with timeseries of inflow gauge(1) for subbasin(1) --> (1,1)
-InflowGauge_filename(1,1) = ""
+InflowGauge_filename(1,1) = "1001.txt"
 !> consider flows from upstream/headwater cells of inflow gauge(1) for subbasin(1) --> (1,1)
 InflowGauge_Headwater(1,1) = .FALSE.
+!> id of inflow gauge(2) for subbasin(1) --> (1,2)
+InflowGauge_id(1,2)       = 1002
+!> name of file with timeseries of inflow gauge(2) for subbasin(1) --> (1,2)
+InflowGauge_filename(1,2) = "1002.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(2) for subbasin(1) --> (1,2)
+InflowGauge_Headwater(1,2) = .FALSE.
+!> id of inflow gauge(3) for subbasin(1) --> (1,3)
+InflowGauge_id(1,3)       = 1003
+!> name of file with timeseries of inflow gauge(3) for subbasin(1) --> (1,3)
+InflowGauge_filename(1,3) = "1003.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(3) for subbasin(1) --> (1,3)
+InflowGauge_Headwater(1,3) = .FALSE.
+!> id of inflow gauge(4) for subbasin(1) --> (1,4)
+InflowGauge_id(1,4)       = 1004
+!> name of file with timeseries of inflow gauge(4) for subbasin(1) --> (1,4)
+InflowGauge_filename(1,4) = "1004.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(4) for subbasin(1) --> (1,4)
+InflowGauge_Headwater(1,4) = .FALSE.
+!> id of inflow gauge(5) for subbasin(1) --> (1,5)
+InflowGauge_id(1,5)       = 1005
+!> name of file with timeseries of inflow gauge(5) for subbasin(1) --> (1,5)
+InflowGauge_filename(1,5) = "1005.txt"
+!> consider flows from upstream/headwater cells of inflow gauge(5) for subbasin(1) --> (1,5)
+InflowGauge_Headwater(1,5) = .FALSE.
+/
+!******************************************************************************************
+! *wqm* WATER QUALITY MODEL
+!******************************************************************************************
+!Configure only for water quality model
+!basin1
+&directories_wqm
+!> directory where water quality input files are located, including crop information,
+!> rotation information and initial vaules for land-use dependent variables. \n
+dir_inputdata_wqm(1) = "./selke/input/water_quality/"
+!> directory where measured water quality information are stored, including guaging station 
+!> measured concentration data and additional inflow concentration data
+!> of swage plants or inflow gauges).\n
+dir_gauges_wqm(1) = "./selke/input/water_quality/wqm_gauge/"
+/
+
+&wqm_evaluation_gauges
+!> Water quality gauges always locate in the same position as discharge gauging stations. Thus,
+!> the structure of gauge id and gauge filename variables are the same with discharge gauges. 
+!> name of file with timeseries of measured nutrient concentration at guage (1,1)
+wqm_evalgauge_filename(1,1) = "wq_1.txt"  
+!> name of file with timeseries of measured nutrient concentration at guage (1,2)
+wqm_evalgauge_filename(1,2) = "wq_2.txt"  
+!> name of file with timeseries of measured nutrient concentration at guage (1,3)
+wqm_evalgauge_filename(1,3) = "wq_3.txt"  
+/
+!
+&wqm_addinflow_gauges
+!> Here, apart from above upstream/headwater inflow, additional inflow gauges also include 
+!> point-source inputs.\n
+!> the structure of additional inflow gauge id and filename variables are the same with discharge.
+!> name of file with timeseries of input concentration at addinflow gauge (1,1)
+wqm_inflowgauge_filename(1,1) = "wq_1001.txt"
+!> name of file with timeseries of input concentration at addinflow gauge (1,2)
+wqm_inflowgauge_filename(1,2) = "wq_1002.txt"
+!> name of file with timeseries of input concentration at addinflow gauge (1,3)
+wqm_inflowgauge_filename(1,3) = "wq_1003.txt"
+!> name of file with timeseries of input concentration at addinflow gauge (1,4)
+wqm_inflowgauge_filename(1,4) = "wq_1004.txt"
+!> name of file with timeseries of input concentration at addinflow gauge (1,5)
+wqm_inflowgauge_filename(1,5) = "wq_1005.txt"
 /
 
 !******************************************************************************************
@@ -678,10 +753,10 @@ fnight_temp  = -0.76,  -1.30,  -1.88,  -2.38, -2.72, -2.75, -2.74, -3.04, -2.44,
 !> General: \n
 !  -------------------------------------
 !> number of iteration steps by parameterset
-nIterations = 7
+nIterations = 50000
 !> seed of random number gemerator (default: -9)
 !> if default: seed is obtained from system clock
-seed = 1235876
+seed = -9
 !  -------------------------------------
 !> DDS specific: \n
 !  -------------------------------------

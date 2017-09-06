@@ -588,6 +588,7 @@ CONTAINS
   !         Modified,
   !                 Stephan Thober, Nov  2016 - moved nProcesses to common variables
   !                 Stephan Thober, Nov  2016 - write namelist for routing process 2
+  !                 Xiaoqiang Yang, Jul  2017 - added parameter namelist for water quality model
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
@@ -622,6 +623,8 @@ CONTAINS
     Process_descr(8)  = 'routing'
     Process_descr(9)  = 'geology'
     Process_descr(10) = 'neutrons'
+    !*wqm*
+    Process_descr(11) = 'water quality model'
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))
@@ -693,6 +696,11 @@ CONTAINS
        case(10)
           if (processMatrix(iProc,1) .ge. 1) then
              write(uopti_nml,*) '&neutrons1'
+          end if
+       case(11)
+	      !*wqm*
+          if (processMatrix(iProc,1) .eq. 1) then
+             write(uopti_nml,*) '&nutrientparameter'
           end if
        end select
 

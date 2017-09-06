@@ -837,13 +837,14 @@ contains
           call read_timeseries(trim(fName), udischarge, &
                start_tmp, end_tmp, optimize, opti_function, &
                data_dp_1d, mask=mask_1d, nMeasPerDay=nMeasPerDay)
-          if ( .NOT. (all(mask_1d)) ) then
-             call message()
-             call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
-             call message('          During simulation period from ', num2str(simPer(iBasin)%yStart) &
-                  ,' to ', num2str(simPer(iBasin)%yEnd))
-             stop
-          end if
+          ! if ( .NOT. (all(mask_1d)) ) then
+             ! call message()
+             ! call message('***ERROR: Nodata values in inflow gauge time series. File: ', trim(fName))
+             ! call message('          During simulation period from ', num2str(simPer(iBasin)%yStart) &
+                  ! ,' to ', num2str(simPer(iBasin)%yEnd))
+             ! stop
+          ! end if
+          ! commonted by X.Yang 2017-08
           data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
           call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
           deallocate (data_dp_1d)
