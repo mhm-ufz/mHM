@@ -607,8 +607,9 @@ CONTAINS
          resolutionRouting, L11_TSrout, iFlag_cordinate_sys, &
          ! output variables
          L11_C1, L11_C2
-    use mo_mrm_constants, only: rout_space_weight
+    use mo_mrm_constants, only: rout_space_weight, given_TS
     use mo_mrm_tools,     only: get_basin_info_mrm
+    use mo_utils,         only: locate
     
     implicit none
 
@@ -621,6 +622,7 @@ CONTAINS
     integer(i4) :: ncols
     integer(i4) :: s11
     integer(i4) :: e11
+    integer(i4) :: index   ! index selected from given_TS
     real(dp)    :: deltaX  ! spatial routing resolution
     real(dp)    :: K       ! [s] wave travel time parameter
     real(dp)    :: xi      ! [1] Muskingum diffusion parameter (attenuation)
@@ -636,6 +638,10 @@ CONTAINS
     K = deltaX / param(1)    
     ! set time-weighting scheme
     xi = abs(rout_space_weight) ! set weighting factor to 0._dp
+
+    ! determine routing timestep
+    index = locate(given_TS, K)
+    L11_TSrout(iBasin) = given_TS(index)
     
     ! Muskingum parameters 
     L11_C1(s11: e11) = L11_TSrout(iBasin) / ( K * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
