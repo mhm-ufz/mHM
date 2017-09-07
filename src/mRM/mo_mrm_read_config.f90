@@ -876,6 +876,7 @@ contains
              'muskingumAttenuation_riverSlope'/)
      ! adaptive timestep routing
      else if (processCase .eq. 2_i4) then
+        processMatrix(8, 1) = processCase
         processMatrix(8, 2) = 1_i4
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
@@ -905,7 +906,6 @@ contains
              'muskingumAttenuation_riverSlope'/))
      ! adaptive timestep routing
      else if (processCase .eq. 2_i4) then
-        print *, 'ha...'
         processMatrix(8, 1) = processCase
         processMatrix(8, 2) = 1_i4
         processMatrix(8, 3) = processMatrix(8, 2)
