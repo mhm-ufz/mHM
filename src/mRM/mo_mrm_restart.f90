@@ -982,7 +982,7 @@ contains
     ! Read L11 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! read L11 mask
-    var = nc%getVariable("L1_basin_Mask")
+    var = nc%getVariable("L11_basin_Mask")
     call var%getData(dummyI2)
     mask11 = (dummyI2 .eq. 1_i4)
     call append(basin_mrm%L11_Mask, reshape(mask11, (/nrows11*ncols11/)))
