@@ -839,11 +839,12 @@ contains
     real(dp), dimension(nColPars) :: g1
     real(dp), dimension(nColPars) :: g2
     real(dp), dimension(nColPars) :: g3
+    real(dp), dimension(nColPars) :: g4
 
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
          muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
     namelist /routing2/ streamflow_celerity
-    namelist /routing3/ g1, g2, g3
+    namelist /routing3/ g1, g2, g3, g4
     !
     call open_nml(file_namelist, unamelist_param, quiet=.true.)
 
@@ -895,17 +896,19 @@ contains
      else if (processCase .eq. 3_i4) then
         ! insert parameter values and names at position required by mhm
         processMatrix(8, 1) = processCase
-        processMatrix(8, 2) = 3_i4
+        processMatrix(8, 2) = 4_i4
         processMatrix(8, 3) = sum(processMatrix(1:8, 2))
         start_index         = processMatrix(8, 3) - processMatrix(8, 2)
         global_parameters(start_index + 1, :) = g1
         global_parameters(start_index + 2, :) = g2
         global_parameters(start_index + 3, :) = g3
+        global_parameters(start_index + 3, :) = g4
     
         global_parameters_name(start_index + 1 : start_index + processMatrix(8,2)) = (/ &
              'g1', &
              'g2', &
-             'g3'/)
+             'g3', &
+             'g4'/)
      end if
 #else
     ! Muskingum routing parameters with MPR
@@ -939,17 +942,19 @@ contains
      ! adaptive timestep routing - varying celerity
      else if (processCase .eq. 3_i4) then
         processMatrix(8, 1) = processCase
-        processMatrix(8, 2) = 3_i4
+        processMatrix(8, 2) = 4_i4
         processMatrix(8, 3) = processMatrix(8, 2)
         ! set variables of mrm (redundant in case of coupling to mhm)
         call append(global_parameters, reshape(g1, (/1, nColPars/)))
         call append(global_parameters, reshape(g2, (/1, nColPars/)))
-        call append(global_parameters, reshape(g3,  (/1, nColPars/)))
+        call append(global_parameters, reshape(g3, (/1, nColPars/)))
+        call append(global_parameters, reshape(g4, (/1, nColPars/)))
 
         call append(global_parameters_name, (/ &
              'g1', &
              'g2', &
-             'g3'/))
+             'g3', &
+             'g4'/))
      end if
 #endif
 

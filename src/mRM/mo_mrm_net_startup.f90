@@ -2641,7 +2641,11 @@ contains
       if(Lopt .gt. 0._dp) then
         meandering(ii) = length11(ii)/Lopt
       else
-        meandering(ii) = length11(ii)/(cell0_res* sqrt2)
+        if( length11(ii)/(cell0_res* sqrt2) .ge. 1) then
+          meandering(ii) = length11(ii)/(cell0_res* sqrt2)
+        else
+          meandering(ii) = 1
+        end if
       end if
     end do
     
@@ -2738,7 +2742,7 @@ contains
 
     ! calculate celerity
     celerity11(1:nLinks) = (param(1)* fAcc11(1:nLinks)**param(2) * & 
-                           slope11(1:nLinks)**(1.0/2.0) / meandering11(1:nLinks)**param(3) )
+                           atan(1 + param(4) * slope11(1:nLinks)) / meandering11(1:nLinks)**param(3) )
 
     ! Write L11_celerity
     L11_celerity(s11:e11) = celerity11(:)

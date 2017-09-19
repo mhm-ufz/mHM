@@ -710,6 +710,10 @@ CONTAINS
       ! determine routing timestep
       ! minval(K) is chosen due to the courant condition
       ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
+      ! set min-wave traveltime to min given_TS
+      if (ind .lt. 1) then
+        ind = 1
+      end if
       L11_TSrout(iBasin) = given_TS(ind)
     
       ! Muskingum parameters 
@@ -728,8 +732,8 @@ CONTAINS
     end if
 
     ! optional print
-     print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
-     print *, 'C2 Muskingum routing parameter: ', L11_C2(s11)
+    ! print *, 'C1 Muskingum routing parameter: ', L11_C1(s11)
+    ! print *, 'C2 Muskingum routing parameter: ', L11_C2(s11)
 
   end subroutine mrm_update_param
 END MODULE mo_mrm_init
