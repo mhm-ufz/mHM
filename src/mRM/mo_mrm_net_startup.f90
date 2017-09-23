@@ -331,9 +331,9 @@ contains
              kk = kk + 1
              !
              iu = (icc - 1) * cellFactorRbyH_inv + 1
-             id =       icc * cellFactorRbyH_inv
+             id =   min(icc * cellFactorRbyH_inv, nrows11)
              jl = (jcc - 1) * cellFactorRbyH_inv + 1
-             jr =       jcc * cellFactorRbyH_inv
+             jr =   min(jcc * cellFactorRbyH_inv, ncols11)
              !
              Id1(icc,jcc) = kk
              L1Id_on_L11(iu:id, jl:jr) = merge(Id1(icc,jcc), nodata_i4, mask11(iu:id, jl:jr))
