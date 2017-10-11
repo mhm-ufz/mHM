@@ -1657,6 +1657,7 @@ contains
   !                  R. Kumar      , Oct 2013 - stack size increased from nNodes to 100 
   !                  Stephan Thober, Aug 2015 - ported to mRM
   !                  Stephan Thober, Nov 2016 - only read flood plain area if processMatrix for routing equals 1
+  !                  Matthias Kelbling, Sep 2017 - Added ProcessCase8 = 3
   ! ------------------------------------------------------------------
 
   subroutine L11_stream_features(iBasin)
@@ -2587,7 +2588,8 @@ contains
                       L11_nOutlets,   &   ! IN
                       L11_meandering       ! OUT
     use mo_mrm_tools,            only: get_basin_info_mrm
-    use mo_mrm_constants,        only: nodata_i4, nodata_dp, sqrt2
+    use mo_mrm_constants,        only: nodata_i4, nodata_dp
+!    use mo_constants,            only: SQRT2_dp
     use mo_append,               only: append
 
     implicit none
@@ -2598,7 +2600,7 @@ contains
     integer(i4)                            :: nrows11, ncols11, nNodes11, iStart11, iEnd11, nLinks11
     real(dp)                               :: cell0_res, cell0_diag
     real(dp), dimension(:), allocatable    :: meandering
-    real(dp)                               :: Lopt
+    real(dp)                               :: Lopt, SQRT2_dp = 1.4142135623
     integer(i4)                            :: ii
 
     ! get basin information
@@ -2632,7 +2634,7 @@ contains
 
     ! set Level0 cell resolution and diagonal size
     cell0_res  = level0%cellsize(iBasin)
-    cell0_diag = cell0_res * sqrt2
+    cell0_diag = cell0_res * SQRT2_dp
 
     do ii=1, nLinks11
       Lopt = min( abs(frow0(ii) - trow0(ii)), abs(fcol0(ii)- tcol0(ii))) * cell0_diag + ( &
@@ -2641,8 +2643,8 @@ contains
       if(Lopt .gt. 0._dp) then
         meandering(ii) = length11(ii)/Lopt
       else
-        if( length11(ii)/(cell0_res* sqrt2) .ge. 1) then
-          meandering(ii) = length11(ii)/(cell0_res* sqrt2)
+        if( length11(ii)/(cell0_res* SQRT2_dp) .ge. 1) then
+          meandering(ii) = length11(ii)/(cell0_res* SQRT2_dp)
         else
           meandering(ii) = 1
         end if
@@ -2698,58 +2700,300 @@ contains
   !>        \author Matthias Kelbling
   !>        \date Aug 2017
 
-  subroutine L11_calc_celerity(iBasin, param)
+!  subroutine L11_calc_celerity(iBasin, param)
 
-    use mo_kind,                 only: i4, dp
+!    use mo_kind,                 only: i4, dp
+!    use mo_mrm_global_variables, only: &
+!                L11_meandering,        &      ! Meandering Proxy
+!                L11_LinkIn_fAcc,       &      ! Flow accumulation
+!                L11_slope,             &      ! Avg. slope of river link
+!                L11_nOutlets,          &      ! Number of sinks in Basin
+!                ! OUT
+!                L11_celerity                  ! celerity per grid
+!    use mo_mrm_tools,            only: get_basin_info_mrm
+!    use mo_mrm_constants,        only: nodata_dp
+
+!    implicit none
+
+!    integer(i4), intent(in)                  :: iBasin
+!    real(dp), dimension(:), intent(in)       :: param 
+!    real(dp), dimension(:), allocatable      :: meandering11
+!    real(dp), dimension(:), allocatable      :: fAcc11
+!    real(dp), dimension(:), allocatable      :: slope11
+!    real(dp), dimension(:), allocatable      :: celerity11
+!    integer(i4)                              :: nrows11, ncols11, nNodes, nLinks, s11, e11
+
+!    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+!                            iStart=s11, iEnd=e11)
+
+!    nLinks = nNodes - L11_nOutlets(iBasin)
+
+    ! allocate
+!    allocate(meandering11 (nNodes))
+!    allocate(slope11      (nNodes))
+!    allocate(fAcc11       (nNodes))
+!    allocate(celerity11   (nNodes))
+
+    ! initilize
+!    celerity11(:)   = nodata_dp
+
+    ! set data
+!    meandering11(:) = L11_meandering (s11:e11)
+!    slope11(:)      = L11_slope      (s11:e11)
+!    fAcc11(:)       = L11_LinkIn_fAcc(s11:e11)
+
+    ! calculate celerity
+!    celerity11(1:nLinks) = (param(1)* fAcc11(1:nLinks)**param(2) * & 
+!                           atan(1 + param(4) * slope11(1:nLinks)) / meandering11(1:nLinks)**param(3) )
+
+    ! Write L11_celerity
+!    L11_celerity(s11:e11) = celerity11(:)
+
+    ! Free space
+!    deallocate(meandering11, slope11, fAcc11, celerity11)
+
+!  end subroutine L11_calc_celerity
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         L11_L0_celerity
+  
+  !     PURPOSE
+  !>        \brief L11 celerity based on L0 elevation and L0 fAcc
+
+  !>        \details L11 celerity based on L0 elevation and L0 fAcc
+
+  !     INTENT(IN)
+  !>        \param[in] 
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author  Matthias Kelbling
+  !>        \date    Oct 2017
+
+  ! ------------------------------------------------------------------
+
+  subroutine L11_calc_celerity(iBasin, param)
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: &
-                L11_meandering,        &      ! Meandering Proxy
-                L11_LinkIn_fAcc,       &      ! Flow accumulation
-                L11_slope,             &      ! Avg. slope of river link
-                L11_nOutlets,          &      ! Number of sinks in Basin
-                ! OUT
-                L11_celerity                  ! celerity per grid
-    use mo_mrm_tools,            only: get_basin_info_mrm
-    use mo_mrm_constants,        only: nodata_dp
+         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
+         iFlag_cordinate_sys, & ! IN:    coordinate system
+         L0_Id,               & ! IN:    level-0 id
+         L0_fDir,             & ! IN:    flow direction (standard notation) L0
+         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
+         L0_areaCell,         & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
+         L11_fRow,            & ! IN:    from row in L0 grid 
+         L11_fCol,            & ! IN:    from col in L0 grid
+         L11_tRow,            & ! IN:    to row in L0 grid 
+         L11_tCol,            & ! IN:    to col in L0 grid 
+         L11_netPerm,         & ! IN:    routing order (permutation)
+         L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
+         L11_celerity           ! INOUT: averaged celerity
 
     implicit none
 
-    integer(i4), intent(in)                  :: iBasin
+    integer(i4), intent(in)                  :: iBasin         ! basin 
     real(dp), dimension(:), intent(in)       :: param 
-    real(dp), dimension(:), allocatable      :: meandering11
-    real(dp), dimension(:), allocatable      :: fAcc11
-    real(dp), dimension(:), allocatable      :: slope11
-    real(dp), dimension(:), allocatable      :: celerity11
-    integer(i4)                              :: nrows11, ncols11, nNodes, nLinks, s11, e11
 
-    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes, &
-                            iStart=s11, iEnd=e11)
+    ! local
+    integer(i4)                              :: nCells0
+    integer(i4)                              :: nNodes
+    integer(i4)                              :: nLinks
+    integer(i4)                              :: nrows0, ncols0
+    integer(i4)                              :: iStart0, iEnd0
+    integer(i4)                              :: nrows11, ncols11
+    integer(i4)                              :: iStart11, iEnd11
+    logical,     dimension(:,:), allocatable :: mask0
+    integer(i4), dimension(:,:), allocatable :: iD0
+    integer(i4), dimension(:,:), allocatable :: fDir0
+    integer(i4), dimension(:,:), allocatable :: fAcc0
+    real(dp),    dimension(:,:), allocatable :: elev0
+    real(dp),    dimension(:,:), allocatable :: areaCell0
+    integer(i4), dimension(:),   allocatable :: netPerm         ! routing order (permutation)
+    integer(i4), dimension(:),   allocatable :: nLinkFromRow   
+    integer(i4), dimension(:),   allocatable :: nLinkFromCol
+    integer(i4), dimension(:),   allocatable :: nLinkToRow     
+    integer(i4), dimension(:),   allocatable :: nLinkToCol  
+    integer(i4)                              :: ii, rr, ns
+    integer(i4)                              :: frow, fcol, trow, tcol
+    integer(i4)                              :: fId,  tId
+    real(dp),    dimension(:),   allocatable :: stack, append_chunk ! Stacks celerity along the L0 river-path
+    integer(i4), dimension(:),   allocatable :: dummy_1d
+    real(dp)                                 :: length
 
-    nLinks = nNodes - L11_nOutlets(iBasin)
+    real(dp)                                 :: L0_link_slope, L0_link_fAcc
+    real(dp),    dimension(:),   allocatable :: celerity11
+
+    integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
+    real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
+
+    ! level-0 information
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+         iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
+
+    ! level-11 information
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+
+    nLinks  = nNodes - L11_nOutlets(iBasin)
 
     ! allocate
-    allocate(meandering11 (nNodes))
-    allocate(slope11      (nNodes))
-    allocate(fAcc11       (nNodes))
-    allocate(celerity11   (nNodes))
+    allocate ( iD0           ( nrows0, ncols0 ) )
+    allocate ( elev0         ( nrows0, ncols0 ) )
+    allocate ( fDir0         ( nrows0, ncols0 ) )
+    allocate ( fAcc0         ( nrows0, ncols0 ) )
+    allocate ( areaCell0     ( nrows0, ncols0 ) )
 
-    ! initilize
-    celerity11(:)   = nodata_dp
+    !  Routing network vectors have nNodes size instead of nLinks to
+    !  avoid the need of having two extra indices to identify a basin.
+    allocate ( stack             ( 1 ) )
+    allocate ( append_chunk      ( 1 ) ) 
+    allocate ( dummy_1d          ( 2 ))
+    allocate ( netPerm           ( nNodes ) )  
+    allocate ( nLinkFromRow      ( nNodes ) )
+    allocate ( nLinkFromCol      ( nNodes ) )
+    allocate ( nLinkToRow        ( nNodes ) )  
+    allocate ( nLinkToCol        ( nNodes ) ) 
+    allocate ( celerity11        ( nNodes ) )
 
-    ! set data
-    meandering11(:) = L11_meandering (s11:e11)
-    slope11(:)      = L11_slope      (s11:e11)
-    fAcc11(:)       = L11_LinkIn_fAcc(s11:e11)
+    allocate (nodata_i4_tmp      ( nrows0, ncols0 ) )
+    allocate (nodata_dp_tmp      ( nrows0, ncols0 ) )
 
-    ! calculate celerity
-    celerity11(1:nLinks) = (param(1)* fAcc11(1:nLinks)**param(2) * & 
-                           atan(1 + param(4) * slope11(1:nLinks)) / meandering11(1:nLinks)**param(3) )
+    ! initialize
+    iD0(:,:)             = nodata_i4
+    elev0(:,:)           = nodata_dp
+    fDir0(:,:)           = nodata_i4
+    fAcc0(:,:)           = nodata_i4
+    areaCell0(:,:)       = nodata_dp
 
-    ! Write L11_celerity
-    L11_celerity(s11:e11) = celerity11(:)
+    stack(:)             = nodata_dp
+    append_chunk(:)      = nodata_dp
+    netPerm(:)           = nodata_i4
+    nLinkFromRow(:)      = nodata_i4
+    nLinkFromCol(:)      = nodata_i4
+    nLinkToRow(:)        = nodata_i4
+    nLinkToCol(:)        = nodata_i4
+    celerity11(:)        = nodata_dp
 
-    ! Free space
-    deallocate(meandering11, slope11, fAcc11, celerity11)
+    nodata_i4_tmp(:,:)   = nodata_i4
+    nodata_dp_tmp(:,:)   = nodata_dp
 
-  end subroutine L11_calc_celerity
+      ! for a single node model run
+      if(nNodes .GT. 1) then
+        ! get L0 fields
+        iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        elev0(:,:) =       UNPACK( L0_elev_mRM (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+        fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        fAcc0(:,:) =       UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+
+        ! get network vectors of L11 
+        netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
+        nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
+        nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
+        nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
+        nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
+
+        do rr = 1, nLinks
+
+!        print *, 'Start celerity calculation on L11 grid No.: ', rr
+
+           ii   = netPerm(rr)
+           frow = nLinkFromRow(ii)
+           fcol = nLinkFromCol(ii)
+
+           ! Init
+           stack(:) = 0_dp
+           ns    = 1
+           trow = frow
+           tcol = fcol
+
+           fId = iD0( frow, fcol )
+           tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
+
+           do 
+
+              ! move downstream
+              call moveDownOneCell( fDir0(frow,fcol), trow, tcol )
+
+              call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, & 
+                              iFlag_cordinate_sys, length )
+
+              L0_link_slope = (elev0(frow, fcol) - elev0(trow, tcol))/length
+              if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
+              L0_link_fAcc  = fAcc0(frow, fcol) * 0.01_dp ! CAREFUL ONLY FOR 100x100
+              stack(ns) = (1_dp/0.05_dp) * ( (param(1) * L0_link_fAcc) / & 
+                          (2 * L0_link_fAcc**(0.4_dp) +      &
+                           L0_link_fAcc**(0.6_dp)) )**0.66666_dp *  &
+                           sqrt(L0_link_slope)
+              ns = ns + 1                
+              fId = iD0(frow, fcol)
+              frow = trow
+              fcol = tcol
+              if( .NOT. (fID == tID)) then
+                call append(stack, append_chunk)
+              end if
+              if (fId == tId) exit
+!           print *, 'stack1', 1_dp/0.05_dp
+!           print *, 'stack2', ( (param(1) * L0_link_fAcc) / & 
+!                          (2 * param(1) * L0_link_fAcc**(0.4_dp) +      &
+!                           param(1)*L0_link_fAcc**(0.6_dp)) )**0.66666_dp
+!           print *, 'stack3', sqrt(L0_link_slope)
+!           print *, 'Link', L0_link_slope
+!           print *, 'fAcc', L0_link_fAcc
+!           print *, 'stack', stack(ns-1)
+
+           end do
+
+           celerity11(ii) = size(stack) / sum(1/stack(:))
+           ! if(celerity11(ii) .EQ. 0_dp)celerity11(ii) = 0.5
+!            print *, ns
+!           print *, 'celerity: ', celerity11(ii)
+
+           deallocate(stack)
+           allocate  (stack(1))
+
+        end do
+
+         ! end of multi-node network design loop
+      end if
+     
+     ! Write L11_celerity
+     L11_celerity(iStart11:iEnd11) = celerity11(:)
+
+     ! free space
+     deallocate (&
+          mask0, iD0, elev0, fDir0, areaCell0,   &
+          stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
+
+   end subroutine L11_calc_celerity
 
 end module mo_mrm_net_startup

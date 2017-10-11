@@ -708,7 +708,7 @@ CONTAINS
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
       ! determine routing timestep
-      ! minval(K) is chosen due to the courant condition
+      ! minval(K) 
       ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
       ! set min-wave traveltime to min given_TS
       if (ind .lt. 1) then

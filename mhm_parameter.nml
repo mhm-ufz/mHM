@@ -154,7 +154,7 @@ streamflow_celerity                =     0.1,         15.,           1.5,     0,
 
 ! adaptive timestep routing - varying celerity
 &routing3
-g1                                 =      1.,      10000.,         1000.,     0,       1
+g1                                 =    0.01,         0.9,           0.1,     0,       1
 g2                                 =     -1.,      -0.001,        -0.225,     0,       1
 g3                                 =     0.5,         10.,            1.,     0,       1
 g4                                 =      1.,       1000.,           10.,     0,       1
