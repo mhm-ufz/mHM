@@ -455,7 +455,8 @@ contains
     !===============================================================
     ! Read land cover information
     !===============================================================
-    if (processCase(8) .eq. 1) then
+    if ((processCase(8) .eq. 1) .or. &
+        (processCase(8) .eq. 3)) then
        call position_nml('LCover', unamelist_mrm)
        read(unamelist_mrm, nml=LCover)
     end if
@@ -617,7 +618,8 @@ contains
     !===============================================================
     !  determine land cover periods
     !===============================================================
-    if (processCase(8) .eq. 1) then       
+    if ((processCase(8) .eq. 1) .or. &
+        (processCase(8) .eq. 3)) then       
        ! countercheck if land cover covers simulation period
        if (LCoverYearStart(1) .GT. minval(evalPer(1:nBasins)%yStart) ) then
           call message()

@@ -66,7 +66,9 @@ contains
   !>        \author Juliane Mai, Matthias Zink, and Stephan Thober
   !>        \date Aug 2015
   !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
-  subroutine mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
+  !         Modified, Oct 2017 - Matthias Kelbling, added L0_slope
+
+  subroutine mrm_read_L0_data(L0_mask, L0_elev, L0_LCover, L0_slope)
     use mo_mrm_constants, only: nodata_i4, nodata_dp ! mRM's global nodata vales
     use mo_append, only: append, paste
     use mo_string_utils, only: num2str
@@ -77,7 +79,8 @@ contains
          file_fdir, ufdir, & ! file name and unit of flow dir map
          file_gaugeloc, ugaugeloc, & ! file name and unit of gauge locations m
          file_dem, udem, &
-         uLCoverClass
+         uLCoverClass, &
+         file_slope, uslope
     use mo_mrm_global_variables, only: &
          mrm_coupling_mode, &
          nBasins, &
@@ -92,6 +95,8 @@ contains
          L0_Basin, &
          L0_elev_mRM, & ! level 0 elevation
          L0_elev_read, &
+         L0_slope_mRM, & ! level 0 slope
+         L0_slope_read, &
          L0_LCover_mRM, &
          L0_LCover_read, &
          L0_fAcc, & ! flow accumulation on input resolution (L0)
@@ -108,6 +113,7 @@ contains
     logical, dimension(:), target, intent(in), optional :: L0_mask ! L0 mask
     real(dp), dimension(:), target, intent(in), optional :: L0_elev ! L0 elevation
     integer(i4), dimension(:,:), target, intent(in), optional :: L0_LCover ! L0 land cover
+    real(dp), dimension(:), target, intent(in), optional :: L0_slope ! L0 slope
     
     ! local variables
     integer(i4) :: iBasin
@@ -305,7 +311,8 @@ contains
        !
        if (.not. present(L0_LCover)) then
           ! LCover read in is realized seperated because of unknown number of scenes
-          if (processMatrix(8, 1) .eq. 1) then
+          if ((processMatrix(8, 1) .eq. 1) .or. &
+              (processMatrix(8, 1) .eq. 3)) then
              do iVar = 1, nLCoverScene
                 fName = trim(adjustl(dirLCover(iBasin)))//trim(adjustl(LCfilename(iVar)))
                 call read_spatial_data_ascii(trim(fName), ulcoverclass,                        &
@@ -319,8 +326,7 @@ contains
                 deallocate(data_i4_2d)
              end do
           end if
-          if ((processMatrix(8, 1) .eq. 2) .or. &
-              (processMatrix(8, 1) .eq. 3)) then
+          if (processMatrix(8, 1) .eq. 2) then
              allocate(dataMatrix_i4(count(mask_global), 1))
              dataMatrix_i4 = nodata_i4
           end if
@@ -328,6 +334,27 @@ contains
           call append( L0_LCover_read, dataMatrix_i4 )
           ! free memory
           deallocate(dataMatrix_i4)
+       end if
+
+       if (.not. present(L0_slope)) then
+         if (processMatrix(8, 1) .eq. 3) then
+            fName = trim(adjustl(dirMorpho(iBasin)))//trim(adjustl(file_slope))
+
+            ! reading and transposing
+            call read_spatial_data_ascii(trim(fName), uslope, &
+                 level0%nrows(iBasin),     level0%ncols(iBasin), level0%xllcorner(iBasin), &
+                 level0%yllcorner(iBasin), level0%cellsize(iBasin), data_dp_2d, mask_2d)
+            ! put global nodata value into array (probably not all grid cells have values)
+            data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_2d)
+           deallocate(mask_2d)
+         end if
+         if ((processMatrix(8, 1) .eq. 1) .or. &
+            (processMatrix(8, 1) .eq. 2)) then
+           allocate(data_dp_2d(size(mask_global, dim = 1), size(mask_global, dim = 2)))
+           data_dp_2d = nodata_dp
+         end if
+       call append( L0_slope_read,    pack(data_dp_2d, mask_global) )
+       deallocate(data_dp_2d)
        end if
 
        ! free memory
@@ -352,6 +379,11 @@ contains
        L0_LCover_mRM => L0_LCover
     else
        L0_LCover_mRM => L0_LCover_read
+    end if
+    if (present(L0_slope)) then
+       L0_slope_mRM => L0_slope
+    else
+       L0_slope_mRM => L0_slope_read
     end if
 
   end subroutine mrm_read_L0_data

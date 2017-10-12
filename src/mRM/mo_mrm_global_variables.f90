@@ -181,6 +181,8 @@ module mo_mrm_global_variables
   ! input data - morphological variables
   real(dp), public, dimension(:), allocatable, target  :: L0_elev_read ! only read if not coupled to mhm
   real(dp), public, dimension(:), pointer :: L0_elev_mRM ! [m] Elevation (sinks removed) variable used for routing
+  real(dp), public, dimension(:), allocatable, target  :: L0_slope_read ! only read if not coupled to mhm
+  real(dp), public, dimension(:), pointer :: L0_slope_mRM ! [%] slope
   integer(i4), public, dimension(:), allocatable :: L0_fAcc ! Flow accumulation
   integer(i4), public, dimension(:), allocatable :: L0_fDir ! Flow direction (standard ArcGIS)
   integer(i4), public, dimension(:,:), pointer :: L0_LCover_mRM ! Normal  landcover id (upto 3 classes) 

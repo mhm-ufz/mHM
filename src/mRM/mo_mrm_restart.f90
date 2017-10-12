@@ -68,7 +68,7 @@ contains
   !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
   !                                              because multiple outlets could exist
   !                   Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
-  !                   Aug 2017, Matthias Kelbling - added L11_fAcc
+  !                   Aug 2017, Matthias Kelbling - added L11_fAcc, L0_slope
   
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
@@ -134,7 +134,8 @@ contains
          L11_celerity,      &    !!! celerity
          L11_meandering,    &    !!! meandering
          L11_LinkIn_fAcc,   &
-         L11_slope
+         L11_slope,         &
+         L0_slope_mRM
     implicit none
     ! input variables
     integer(i4), intent(in)                  :: iBasin
@@ -223,6 +224,11 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(L0_areaCell(s0:e0), mask0, nodata_dp))
     call var%setAttribute("long_name", "Area of a cell at level-0 [m2]")
+
+    var = nc%setVariable("L0_slope_mRM", "f64", (/rows0, cols0/))
+    call var%setFillValue(nodata_dp)
+    call var%setData(unpack(L0_slope_mRM(s0:e0), mask0, nodata_dp))
+    call var%setAttribute("long_name", "slope at Level 0 [%]")
 
     var = nc%setVariable("L1_basin_Mask", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)

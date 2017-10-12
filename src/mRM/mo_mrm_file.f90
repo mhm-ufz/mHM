@@ -7,6 +7,8 @@
 !> \author Matthias Cuntz, Stephan Thober
 !> \date Aug 2015
 
+!> Modified, Oct. 2017 - Matthias Kelbling, added slope
+
 MODULE mo_mrm_file
 
   IMPLICIT NONE
@@ -38,6 +40,10 @@ MODULE mo_mrm_file
   CHARACTER(len=*), PARAMETER :: file_fdir               = 'fdir.asc'                    ! flow direction
   !> Unit for  flow direction input data file
   INTEGER,          PARAMETER :: ufdir                   = 57                            ! 
+  !> flow direction input data file
+  CHARACTER(len=*), PARAMETER :: file_slope              = 'slope.asc'                    ! flow direction
+  !> Unit for  flow direction input data file
+  INTEGER,          PARAMETER :: uslope                  = 59                            ! 
   !> Unit for  LCover input data file
   INTEGER,          PARAMETER :: ulcoverclass            = 61                            ! 
 

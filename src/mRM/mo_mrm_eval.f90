@@ -237,8 +237,12 @@ contains
              ! >>> adaptive timestep
              ! >>>
              !
-             ! set dummy lcover_yID
-             Lcover_yID = 1_i4
+             if (processMatrix(8, 1) .eq. 2) then
+               ! set dummy lcover_yID
+               Lcover_yID = 1_i4
+             else
+               Lcover_yID = LCyearId(year, ii)
+             end if
              !
              do_rout = .False.
              ! calculate factor

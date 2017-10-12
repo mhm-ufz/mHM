@@ -75,7 +75,7 @@ CONTAINS
   !                   May 2016 - Stephan Thober, added warning message in case no gauge is found in modelling domain
   !                   Aug 2017 - Matthias Kelbling, added L11_flow_accumulation to Initialize Stream Network
 
-  subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
+  subroutine mrm_init(L0_mask, L0_elev, L0_LCover, L0_slope)
 
     use mo_kind,    only: i4, dp
     use mo_message, only: message
@@ -105,6 +105,7 @@ CONTAINS
     ! input variables
     logical,     target, intent(in), optional :: L0_mask(:)     ! L0 mask
     real(dp),    target, intent(in), optional :: L0_elev(:)     ! L0 elevation
+    real(dp),    target, intent(in), optional :: L0_slope(:)    ! L0 slope
     integer(i4), target, intent(in), optional :: L0_LCover(:,:) ! L0 land cover
 
     ! local variables
@@ -145,7 +146,7 @@ CONTAINS
     ! level 0 data
     if (processMatrix(8, 1) .eq. 1) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
     if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev)
-    if (processMatrix(8, 1) .eq. 3) call mrm_read_L0_data(L0_mask, L0_elev)
+    if (processMatrix(8, 1) .eq. 3) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover, L0_slope)
     
     if (perform_mpr) then
        do iBasin = 1, nBasins

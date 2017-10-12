@@ -2805,7 +2805,9 @@ contains
     use mo_append, only: append
     use mo_mrm_tools, only: get_basin_info_mrm
     use mo_mrm_global_variables, only: &
-         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
+!         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
+         L0_slope_mRM,        & ! IN:    slope [%]
+         L0_LCover_mRM,       & ! IN:    Normal Landcover
          iFlag_cordinate_sys, & ! IN:    coordinate system
          L0_Id,               & ! IN:    level-0 id
          L0_fDir,             & ! IN:    flow direction (standard notation) L0
@@ -2836,7 +2838,9 @@ contains
     integer(i4), dimension(:,:), allocatable :: iD0
     integer(i4), dimension(:,:), allocatable :: fDir0
     integer(i4), dimension(:,:), allocatable :: fAcc0
-    real(dp),    dimension(:,:), allocatable :: elev0
+!    real(dp),    dimension(:,:), allocatable :: elev0
+    real(dp),    dimension(:,:), allocatable :: slope0
+    integer(i4), dimension(:,:), allocatable :: lcover0
     real(dp),    dimension(:,:), allocatable :: areaCell0
     integer(i4), dimension(:),   allocatable :: netPerm         ! routing order (permutation)
     integer(i4), dimension(:),   allocatable :: nLinkFromRow   
@@ -2848,9 +2852,11 @@ contains
     integer(i4)                              :: fId,  tId
     real(dp),    dimension(:),   allocatable :: stack, append_chunk ! Stacks celerity along the L0 river-path
     integer(i4), dimension(:),   allocatable :: dummy_1d
-    real(dp)                                 :: length
+!    real(dp)                                 :: length
 
-    real(dp)                                 :: L0_link_slope, L0_link_fAcc
+    real(dp)                                 :: L0_link_fAcc
+    real(dp)                                 :: L0_link_slope
+    real(dp)                                 :: manningsN
     real(dp),    dimension(:),   allocatable :: celerity11
 
     integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
@@ -2867,7 +2873,9 @@ contains
 
     ! allocate
     allocate ( iD0           ( nrows0, ncols0 ) )
-    allocate ( elev0         ( nrows0, ncols0 ) )
+!    allocate ( elev0         ( nrows0, ncols0 ) )
+    allocate ( slope0        ( nrows0, ncols0 ) )
+    allocate ( lcover0       ( nrows0, ncols0 ) )
     allocate ( fDir0         ( nrows0, ncols0 ) )
     allocate ( fAcc0         ( nrows0, ncols0 ) )
     allocate ( areaCell0     ( nrows0, ncols0 ) )
@@ -2889,10 +2897,12 @@ contains
 
     ! initialize
     iD0(:,:)             = nodata_i4
-    elev0(:,:)           = nodata_dp
+!    elev0(:,:)           = nodata_dp
     fDir0(:,:)           = nodata_i4
     fAcc0(:,:)           = nodata_i4
     areaCell0(:,:)       = nodata_dp
+    slope0(:,:)          = nodata_dp
+    lcover0(:,:)         = nodata_i4
 
     stack(:)             = nodata_dp
     append_chunk(:)      = nodata_dp
@@ -2910,10 +2920,12 @@ contains
       if(nNodes .GT. 1) then
         ! get L0 fields
         iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
-        elev0(:,:) =       UNPACK( L0_elev_mRM (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+!        elev0(:,:) =       UNPACK( L0_elev_mRM (iStart0:iEnd0),  mask0, nodata_dp_tmp )
         fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
         fAcc0(:,:) =       UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4_tmp )
         areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+        slope0(:,:) =      UNPACK( L0_slope_mRM(iStart0:iEnd0),  mask0, nodata_dp_tmp )
+        lcover0(:,:) =     UNPACK( L0_LCover_mRM(iStart0:iEnd0, 1), mask0, nodata_i4_tmp )
 
         ! get network vectors of L11 
         netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
@@ -2944,13 +2956,24 @@ contains
               ! move downstream
               call moveDownOneCell( fDir0(frow,fcol), trow, tcol )
 
-              call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, & 
-                              iFlag_cordinate_sys, length )
+!              call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, & 
+!                              iFlag_cordinate_sys, length )
 
-              L0_link_slope = (elev0(frow, fcol) - elev0(trow, tcol))/length
+!              L0_link_slope = (elev0(frow, fcol) - elev0(trow, tcol))/length
+              L0_link_slope = slope0(frow, fcol) / 100
               if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
               L0_link_fAcc  = fAcc0(frow, fcol) * 0.01_dp ! CAREFUL ONLY FOR 100x100
-              stack(ns) = (1_dp/0.05_dp) * ( (param(1) * L0_link_fAcc) / & 
+              select case (lcover0(frow, fcol))
+                case(1) ! Forest
+                  manningsN = 0.05_dp
+                case(2) ! Impervious
+                  manningsN = 0.01_dp
+                case(3) ! Pervious
+                  manningsN = 0.03_dp
+                case default
+                  manningsN = nodata_dp
+              end select
+              stack(ns) = (1_dp/manningsN) * ( (param(1) * L0_link_fAcc) / & 
                           (2 * L0_link_fAcc**(0.4_dp) +      &
                            L0_link_fAcc**(0.6_dp)) )**0.66666_dp *  &
                            sqrt(L0_link_slope)
@@ -2991,7 +3014,9 @@ contains
 
      ! free space
      deallocate (&
-          mask0, iD0, elev0, fDir0, areaCell0,   &
+          mask0, iD0, &
+!          elev0, &
+          slope0, fDir0, areaCell0,   &
           stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
 
    end subroutine L11_calc_celerity
