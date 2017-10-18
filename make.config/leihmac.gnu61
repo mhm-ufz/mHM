@@ -1,0 +1,92 @@
+# -*- Makefile -*-
+
+#
+# Setup file for Gnu compiler 4.9 at Luis' iMac
+#
+# LICENSE
+#    This file is part of the UFZ makefile project.
+#
+#    The UFZ makefile project is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    The UFZ makefile project is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with the UFZ makefile project. If not, see <http://www.gnu.org/licenses/>.
+#
+#    Copyright 2012 Matthias Cuntz
+
+# The Makefile assumes the standard bin, include and lib directories
+# i.e. if SOMEDIR = /path/to/lib, the make file will define the two dirs
+#   SOMEINC ?= SOMEDIR/include
+#   SOMELIB ?= SOMEDIR/lib
+# Define subirectories if another structure
+
+# Paths
+GNUDIR := /usr/local
+GNULIB := $(GNUDIR)/lib
+GNUBIN := $(GNUDIR)/bin
+
+# Compiling
+F90 := $(GNUBIN)/gfortran
+FC  := $(F90)
+CC  := /usr/bin/gcc
+CPP := /usr/bin/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
+ifeq ($(release),debug)
+    F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
+    CFLAGS   += -pedantic -Wall -W -O -g -Wno-maybe-uninitialized
+else
+    F90FLAGS += -O3
+    FCFLAGS  += -O3
+    CFLAGS   += -O3
+endif
+F90FLAGS += -cpp -ffree-form -ffixed-line-length-132
+FCFLAGS  += -ffixed-form -ffixed-line-length-132
+CFLAGS   +=
+MODFLAG  := -J# space significant
+DEFINES  += -DGFORTRAN -DgFortran
+
+# Linking
+LIBS += -L$(GNULIB)
+RPATH += -Wl,-rpath,$(GNULIB)
+
+# IMSL
+IMSLDIR :=
+
+# MKL
+MKLDIR :=
+MKL95DIR :=
+
+# NETCDF
+ifeq ($(netcdf),netcdf3)
+    NCDIR :=
+else
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.3-gfortran
+    CURLLIB := /usr/lib
+    SZLIB   := /usr/local/lib
+    HDF5LIB := /usr/local/lib
+endif
+
+# PROJ
+PROJ4DIR := /usr/local/
+FPROJDIR := 
+
+# LAPACK
+LAPACKDIR   := 
+GFORTRANDIR := $(GNUDIR)
+
+# MPI
+MPIDIR :=
+
+# Documentation
+DOXYGENDIR := /usr/local/bin
+DOTDIR     := /usr/local/bin
+TEXDIR     := /usr/texbin
+PERLDIR    := /usr/bin
