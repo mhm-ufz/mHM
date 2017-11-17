@@ -97,7 +97,8 @@ contains
 
   !      EXAMPLE
   !         calling sequence
-  !         call pet_correctbyLAI(param,nodata,LCOVER0,LAI0,mask0,cell_id0,upp_row_L1,low_row_L1,lef_col_L1,rig_col_L1,nL0_in_L1,L1_petLAIcorFactor)
+  !         call pet_correctbyLAI(param,nodata,LCOVER0,LAI0,mask0,cell_id0,upp_row_L1,low_row_L1, &
+  !                               lef_col_L1,rig_col_L1,nL0_in_L1,L1_petLAIcorFactor)
   
   !      HISTORY
   !>         \author M. Cuneyd Demirel and Simon Stisen from GEUS.dk

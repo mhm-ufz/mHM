@@ -10,12 +10,15 @@
 !      Modified:
 !          David Schaefer, Aug 2015 - major rewrite
 !          Stephan Thober, Oct 2015 - adapted to mRM
-!       
+!    O. Rakovec, R. Kumar, Nov 2017 - added project description for the netcdf outputs
+!
+
 module mo_mrm_write_fluxes_states
 
   use mo_kind                 , only: i4, dp
   use mo_string_utils         , only: num2str
-  use mo_mrm_global_variables , only: gridGeoRef
+  use mo_mrm_global_variables , only: gridGeoRef, project_details, setup_description, simulation_type, &
+         Conventions, contact, mHM_details, history
   use mo_mrm_constants        , only: nodata_dp
   use mo_netcdf               , only: NcDataset, NcDimension, NcVariable
 
@@ -687,11 +690,13 @@ contains
     write(datetime,"(a4,'-',a2,'-',a2,1x,a2,':',a2,':',a2)") date(1:4), &
          date(5:6), date(7:8), time(1:2), time(3:4), time(5:6)
 
-    call nc%setAttribute("title","mRMv"//trim(version)//" simulation outputs")
-    call nc%setAttribute("creation_date",datetime)
-    call nc%setAttribute("institution",&
-         "Helmholtz Center for Environmental Research - UFZ, "// &
-         "Department Computational Hydrosystems, Stochastic Hydrology Group")
+    call nc%setAttribute("project", project_details )
+    call nc%setAttribute("setup_description",setup_description)
+    call nc%setAttribute("simulation_type",simulation_type)
+    call nc%setAttribute("Conventions",Conventions)
+    call nc%setAttribute("contact",contact)
+    call nc%setAttribute("mHM_details",trim(mHM_details)//", release mRMv"//trim(version))
+    call nc%setAttribute("history", trim(datetime)//", "//history)
 
   end function createOutputFile
 

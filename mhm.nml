@@ -26,6 +26,30 @@
 ! Zink M. Demirel M.C.,    Mar 2017  - added Jarvis soil water stress function at SM process(3)=2
 ! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
 ! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
+! O. Rakovec, R. Kumar     Nov 2017  - added project description for the netcdf outputs
+
+!******************************************************************************************
+! PROJECT DESCRIPTION
+!******************************************************************************************
+!-----------------------------------------------------------------------------
+!> Provide details on the model simulations, to appear in the netcdf output attributes
+!-----------------------------------------------------------------------------
+&project_description
+!> project name
+project_details="mHM test basin project"
+!> any specific description of simulation
+setup_description="model run for the Mosel basin, forced with the E-OBS meteorologic data"
+!> e.g. hindcast simulation, seasonal forecast, climate projection
+simulation_type="historical simulation"
+!> convention used for dataset
+Conventions="XXX"
+!> contact details, incl. PI name, modellers
+contact="mHM developers (email:mhm-developers@ufz.de)"
+!> developing institution, specific mHM revision, latest release version (automatically included)
+mHM_details="Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group"
+!> some details on data/model run version (creation date is included automatically)
+history="model run version 1"
+/
 
 !******************************************************************************************
 !
