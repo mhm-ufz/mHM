@@ -215,14 +215,14 @@ CONTAINS
   !>                 (1 if stomata are on one side only, 2 if they are on both sides) and
   !>                 \f$ a_sh [1] \f$ is the fraction of projected area exchanging exchanging sensible heat with the air (2)
   !>                 Implementation refers to the so-called Penman-Montheith equation for transpiration.
-  !>                 Adjusting the factors \f$ a_sh $\f and \f$ a_s $\f we obtain a corrected MU equation (for details
+  !>                 Adjusting the arguments \f$ a_sh $\f and \f$ a_s $\f we obtain the corrected MU equation (for details
   !>                 see Schymanski and Or, 2017). If $\f a_sh = 1 = a_s $\f Penman-Montheith equation for transpiration
   !>                 is preserved. For reproducing characteristics of symmetrical amphistomatous leaves use
   !>                 $\f a_sh = 2 = a_s $\f, in which case the classic PM equation is only missing a factor
   !>                 of 2 in the nominator, as pointed out by Jarvis and McNaughton (1986, Eq. A9).
   !>                 These analytical solutions eliminated the non-linearity problem of the saturation vapour pressure curve,
   !>                 but they do not consider the dependency of the long-wave component of the soil surface or leaf energy balance
-  !>                 (\f$ R_ll \f$) on soil or leaf temperature (\f$ T_l \f$). We assumed that net radiation
+  !>                 (\f$ R_ll \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
   !>                 equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
 
   !     INTENT(IN)
@@ -270,6 +270,8 @@ CONTAINS
   !     HISTORY
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
+  ! Modified,
+  ! Johannes Brenner, Nov 2017 - include arguments a_s and a_sh to enable corrected MU approach
 
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, a_sh)
 
@@ -439,8 +441,8 @@ CONTAINS
   !     HISTORY
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
-
-  ! 
+  !
+  
   elemental pure FUNCTION slope_satpressure(tavg)
 
     use mo_mhm_constants, only: satpressureslope1, tetens_c3
