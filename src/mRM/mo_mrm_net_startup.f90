@@ -2819,7 +2819,8 @@ contains
          L11_tCol,            & ! IN:    to col in L0 grid 
          L11_netPerm,         & ! IN:    routing order (permutation)
          L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
-         L11_celerity           ! INOUT: averaged celerity
+         L11_celerity,        & ! INOUT: averaged celerity
+         L0_celerity            ! INOUT
 
     implicit none
 
@@ -2858,14 +2859,16 @@ contains
     real(dp)                                 :: L0_link_slope
     real(dp)                                 :: manningsN
     real(dp),    dimension(:),   allocatable :: celerity11
+    real(dp),    dimension(:,:), allocatable :: celerity0
 
     integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
     real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
+    real(dp)                                 :: cellsize0
 
     ! level-0 information
     call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
-         iStart=iStart0, iEnd=iEnd0, mask=mask0     ) 
-
+         iStart=iStart0, iEnd=iEnd0, mask=mask0, cellsize = cellsize0 ) 
+  print *, cellsize0
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
@@ -2879,6 +2882,7 @@ contains
     allocate ( fDir0         ( nrows0, ncols0 ) )
     allocate ( fAcc0         ( nrows0, ncols0 ) )
     allocate ( areaCell0     ( nrows0, ncols0 ) )
+    allocate ( celerity0     ( nrows0, ncols0 ) )
 
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a basin.
@@ -2912,6 +2916,7 @@ contains
     nLinkToRow(:)        = nodata_i4
     nLinkToCol(:)        = nodata_i4
     celerity11(:)        = nodata_dp
+    celerity0(:,:)       = nodata_dp
 
     nodata_i4_tmp(:,:)   = nodata_i4
     nodata_dp_tmp(:,:)   = nodata_dp
@@ -2950,19 +2955,17 @@ contains
 
            fId = iD0( frow, fcol )
            tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
-
+!         print *, 'Link: ', ii
+!         print *, 'Slope: '
            do 
-
-              ! move downstream
-              call moveDownOneCell( fDir0(frow,fcol), trow, tcol )
-
 !              call cellLength(iBasin, fDir0(frow,fcol), fRow, fCol, & 
 !                              iFlag_cordinate_sys, length )
 
 !              L0_link_slope = (elev0(frow, fcol) - elev0(trow, tcol))/length
-              L0_link_slope = slope0(frow, fcol) / 100
+              L0_link_slope = slope0(frow, fcol) / 100._dp
               if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
-              L0_link_fAcc  = fAcc0(frow, fcol) * 0.01_dp ! CAREFUL ONLY FOR 100x100
+              if(L0_link_slope .GT. 0.01_dp) L0_link_slope = 0.01_dp
+              L0_link_fAcc  = fAcc0(frow, fcol) * cellsize0**2 * 0.000001_dp
               select case (lcover0(frow, fcol))
                 case(1) ! Forest
                   manningsN = 0.05_dp
@@ -2973,44 +2976,43 @@ contains
                 case default
                   manningsN = nodata_dp
               end select
-              stack(ns) = (1_dp/manningsN) * ( (param(1) * L0_link_fAcc) / & 
-                          (2 * L0_link_fAcc**(0.4_dp) +      &
-                           L0_link_fAcc**(0.6_dp)) )**0.66666_dp *  &
+              print *, 'Slope: ',L0_link_slope
+              print *, 'fAcc: ', L0_link_fAcc
+              stack(ns) = param(1) * (1_dp/manningsN) * &
+                          ( (0.1_dp * L0_link_fAcc) / (2 * L0_link_fAcc**(1.0_dp - param(2)) + L0_link_fAcc**(param(2))) )**0.66666_dp *  &
                            sqrt(L0_link_slope)
+              celerity0(frow, fcol) = stack(ns)
               ns = ns + 1                
               fId = iD0(frow, fcol)
-              frow = trow
-              fcol = tcol
               if( .NOT. (fID == tID)) then
                 call append(stack, append_chunk)
               end if
               if (fId == tId) exit
-!           print *, 'stack1', 1_dp/0.05_dp
-!           print *, 'stack2', ( (param(1) * L0_link_fAcc) / & 
-!                          (2 * param(1) * L0_link_fAcc**(0.4_dp) +      &
-!                           param(1)*L0_link_fAcc**(0.6_dp)) )**0.66666_dp
-!           print *, 'stack3', sqrt(L0_link_slope)
-!           print *, 'Link', L0_link_slope
-!           print *, 'fAcc', L0_link_fAcc
-!           print *, 'stack', stack(ns-1)
+              ! move downstream
+              call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
 
            end do
 
+!           print*, 'Celerity Stack: ', stack(:)
            celerity11(ii) = size(stack) / sum(1/stack(:))
-           ! if(celerity11(ii) .EQ. 0_dp)celerity11(ii) = 0.5
-!            print *, ns
-!           print *, 'celerity: ', celerity11(ii)
+!           print *, 'Clerity L11: ', celerity11(ii)
+!           print *, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+!           print *, 'Next link'
+!               if(stack(ns) .gt. 10.0_dp) then
+!                 stack(ns) = 10.0_dp
+! !                print *, "In link:", ii, ":", ns, "celerity gt 10"
+!               end if
 
            deallocate(stack)
            allocate  (stack(1))
 
         end do
 
-         ! end of multi-node network design loop
       end if
      
      ! Write L11_celerity
      L11_celerity(iStart11:iEnd11) = celerity11(:)
+     L0_celerity(iStart0:iEnd0)  = PACK( celerity0(:,:), mask0)
 
      ! free space
      deallocate (&

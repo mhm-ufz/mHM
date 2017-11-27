@@ -197,6 +197,7 @@ module mo_mrm_global_variables
   integer(i4), public, dimension(:), allocatable :: L0_L11_Id ! Mapping of L11 Id on L0  
   !                                                           ! (sub-cat. id. == cell Id L11)
   real(dp), public, dimension(:), allocatable :: L0_areaCell ! [m2] Area of a cell at level-0 
+  real(dp), public, dimension(:), allocatable :: L0_celerity ! [m/s] Celerity at L0 along the river path 
 
   !
   ! mRM derived variables

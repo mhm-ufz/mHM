@@ -1860,6 +1860,7 @@ CONTAINS
     do gg=1, nGaugesTotal
        ! extract runoff
        call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       ! runoff_agg = runoff_agg - mean_runoff_agg + mean_runoff_obs
        ! KGE
        objective_kge = objective_kge + &
             kge( runoff_obs, runoff_agg, mask=runoff_obs_mask)

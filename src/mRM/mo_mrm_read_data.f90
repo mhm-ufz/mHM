@@ -443,6 +443,7 @@ contains
   !         Matthias Cuntz,                May 2014 - changed empirical distribution function
   !                                                   so that doubles get the same value
   !         Stephan Thober,                Aug 2015 - adapted for mRM
+  !         Matthias Kelbling              Oct 2017 - added init L0_celerity
 
   subroutine mrm_L0_variable_init(iBasin)
     use mo_append,        only: append
@@ -455,7 +456,8 @@ contains
          L0_cellCoor, &
          L0_Id, &
          L0_nCells, &
-         iFlag_cordinate_sys
+         iFlag_cordinate_sys, &
+         l0_celerity
     
     implicit none
 
@@ -467,6 +469,7 @@ contains
     integer(i4), dimension(:), allocatable    :: Id
     real(dp), dimension(:), allocatable       :: areaCell
     real(dp), dimension(:,:), allocatable     :: areaCell_2D
+    real(dp), dimension(:), allocatable       :: celerity
 
     integer(i4)                               :: nrows, ncols
     integer(i4)                               :: iStart, iEnd
@@ -488,11 +491,13 @@ contains
     allocate(       Id(nCells  ) )
     allocate( areaCell(nCells  ) )
     allocate( areaCell_2D(nrows,ncols) )
+    allocate( celerity(nCells  ) )
 
     cellCoor(:,:) =  nodata_i4
     Id(:)         =  nodata_i4
     areaCell(:)   =  nodata_dp
     areaCell_2D(:,:) =  nodata_dp
+    celerity(:)   =  nodata_dp
 
     !------------------------------------------------
     ! start looping for cell cordinates and ids
@@ -538,6 +543,7 @@ contains
     call append( L0_cellCoor, cellCoor )
     call append( L0_Id, Id             )
     call append( L0_areaCell, areaCell )
+    call append( L0_celerity, celerity )
 
     ! ----------------------------------------------------------------
     ! set number of cells at Level 0
