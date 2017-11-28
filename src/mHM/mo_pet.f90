@@ -213,16 +213,16 @@ CONTAINS
   !>                 \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance,
   !>                 \f$ a_s [1] \f$ is the fraction of one-sided leaf area covered by stomata
   !>                 (1 if stomata are on one side only, 2 if they are on both sides) and
-  !>                 \f$ a_sh [1] \f$ is the fraction of projected area exchanging exchanging sensible heat with the air (2)
+  !>                 \f$ a_{sh} [-] \f$ is the fraction of projected area exchanging sensible heat with the air (2)
   !>                 Implementation refers to the so-called Penman-Montheith equation for transpiration.
-  !>                 Adjusting the arguments \f$ a_sh $\f and \f$ a_s $\f we obtain the corrected MU equation (for details
-  !>                 see Schymanski and Or, 2017). If $\f a_sh = 1 = a_s $\f Penman-Montheith equation for transpiration
+  !>                 Adjusting the arguments \f$ a_{sh} \f$ and \f$ a_s \f$ we obtain the corrected MU equation (for details
+  !>                 see Schymanski and Or, 2017). If \f$ a_{sh} = 1 = a_s \f$ Penman-Montheith equation for transpiration
   !>                 is preserved. For reproducing characteristics of symmetrical amphistomatous leaves use
-  !>                 $\f a_sh = 2 = a_s $\f, in which case the classic PM equation is only missing a factor
+  !>                 \f$ a_{sh} = 2 = a_s \f$, in which case the classic PM equation is only missing a factor
   !>                 of 2 in the nominator, as pointed out by Jarvis and McNaughton (1986, Eq. A9).
   !>                 These analytical solutions eliminated the non-linearity problem of the saturation vapour pressure curve,
   !>                 but they do not consider the dependency of the long-wave component of the soil surface or leaf energy balance
-  !>                 (\f$ R_ll \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
+  !>                 (\f$ R_l \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
   !>                 equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
 
   !     INTENT(IN)
@@ -233,7 +233,7 @@ CONTAINS
   !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: a_s"                    fraction of one-sided leaf area covered by stomata \f$1\f$
   !>        \param[in] "real(dp), intent(in) :: a_sh"                   fraction of projected area exchanging sensible heat with the air \f$1\f$
-  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s-1]\f$
+  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s^{-1}]\f$
 
   !     INTENT(INOUT) 
   !         None
