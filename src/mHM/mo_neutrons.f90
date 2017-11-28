@@ -26,6 +26,9 @@ MODULE mo_neutrons
   
   ! inverse \theta(N) relation based on Desilets et al. 2010
   PUBLIC :: DesiletsN0 
+
+  ! integration tabular for approximating the neutron flux integral 
+  PUBLIC :: TabularIntegralAFast
   
   PRIVATE
 
@@ -51,7 +54,7 @@ CONTAINS
   !                          N0-parameter, output(cells) )
   !
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: sm" Soil Moisture
+  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
   !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
   !>        \param[in] "real(dp)                 :: N0" dry neutron counts
   !
@@ -59,7 +62,7 @@ CONTAINS
   !         None
   !
   !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(sm,1)) :: neutrons" Neutron counts
+  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
   !
   !     INTENT(IN), OPTIONAL
   !         None
@@ -77,7 +80,7 @@ CONTAINS
   !         Horizons(1) must not be zero.
   !
   !     EXAMPLE
-  !         N0=1500cph, sm(1,1)=700mm, Horizons(1)=200mm
+  !         N0=1500cph, SoilMoisture(1,1)=700mm, Horizons(1)=200mm
   !         1500*(0.372+0.0808/ (70mm/200mm + 0.115))
   !         DesiletsN0 = 819cph
   !
@@ -90,18 +93,18 @@ CONTAINS
   !>        \author Martin Schroen
   !>        \date Mar 2015
 
-  subroutine DesiletsN0(sm, Horizons, N0, neutrons)
+  subroutine DesiletsN0(SoilMoisture, Horizons, N0, neutrons)
 
     use mo_mhm_constants, only: Desilets_a0, Desilets_a1, Desilets_a2
     implicit none
     
-    real(dp), dimension(:,:),        intent(in)  :: sm
+    real(dp), dimension(:),          intent(in)  :: SoilMoisture
     real(dp), dimension(:),          intent(in)  :: Horizons
     real(dp),                        intent(in)  :: N0          ! from global parameters
-    real(dp), dimension(size(sm,1)), intent(out) :: neutrons
+    real(dp),                        intent(inout) :: neutrons
     
     ! only use first soil layer
-    neutrons(:) = N0 * ( Desilets_a1 + Desilets_a0 / (sm(:,1)/Horizons(1) + Desilets_a2))
+    neutrons = N0 * ( Desilets_a1 + Desilets_a0 / (SoilMoisture(1)/Horizons(1) + Desilets_a2))
   
   end subroutine DesiletsN0
 
@@ -123,18 +126,19 @@ CONTAINS
   !
   !     CALLING SEQUENCE
   !         call COSMIC( Moisture(cells,layers), Depths(layers), &
-  !                          COSMIC-parameterset, output(cells) )
+  !                          COSMIC-parameterset, neutron_integral_AFast, output(cells) )
   !
   !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: sm" Soil Moisture
+  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
   !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
   !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
+  !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
   !
   !     INTENT(INOUT)
   !         None
   !
   !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(sm,1)) :: neutrons" Neutron counts
+  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
   !
   !     INTENT(IN), OPTIONAL
   !         None
@@ -164,7 +168,7 @@ CONTAINS
   !>        \author Martin Schroen, originally written by Rafael Rosolem
   !>        \date Mar 2015
   
-  subroutine COSMIC(sm, Horizons, params, neutrons)
+  subroutine COSMIC(SoilMoisture, Horizons, params, neutron_integral_AFast, neutrons)
     
     use mo_mhm_constants, only: H2Odens, &
         COSMIC_bd, COSMIC_vwclat, COSMIC_N, COSMIC_alpha, &
@@ -172,138 +176,386 @@ CONTAINS
     use mo_constants, only: PI_dp
     implicit none
     
-    real(dp), dimension(:,:),        intent(in)  :: sm
+    real(dp), dimension(:),          intent(in)  :: SoilMoisture
     real(dp), dimension(:),          intent(in)  :: Horizons
     real(dp), dimension(:),          intent(in)  :: params ! 1: N0, 2: N1, 3: N2, 4: alpha0, 5: alpha1, 6: L30, 7. L31
-    real(dp), dimension(size(sm,1)), intent(out) :: neutrons
+    real(dp), dimension(:),          intent(in)  :: neutron_integral_AFast
+    real(dp),                        intent(inout) :: neutrons
 
     ! local variables
-    real(dp) :: zdeg         
-    real(dp) :: zrad         
-    real(dp) :: ideg         
-    real(dp) :: costheta     
-    real(dp) :: dtheta       
+    real(dp) :: lambdaHigh
+    real(dp) :: lambdaFast
+    real(dp) :: totflux
    
-    real(dp), dimension(size(Horizons))   :: dz          ! Soil layers (cm)
     real(dp), dimension(size(Horizons))   :: zthick      ! Soil layer thickness (cm)
-    real(dp), dimension(:,:), allocatable :: wetsoidens  ! Density of wet soil layer (g/cm3)
-    real(dp), dimension(:,:), allocatable :: wetsoimass  ! Mass of wet soil layer (g)
-    real(dp), dimension(:,:), allocatable :: isoimass    ! Integrated dry soil mass above layer (g)
-    real(dp), dimension(:,:), allocatable :: iwatmass    ! Integrated water mass above layer (g)
-    real(dp), dimension(:,:), allocatable :: iwetsoimass ! Integrated wet soil mass above layer (g)
-    real(dp), dimension(:,:), allocatable :: hiflux      ! High energy neutron flux
-    real(dp), dimension(:,:), allocatable :: fastpot     ! Fast neutron source strength of layer
-    real(dp), dimension(:,:), allocatable :: h2oeffdens  ! "Effective" density of water in layer (g/cm3)
-    real(dp), dimension(:,:), allocatable :: h2oeffmass  ! "Effective" mass of water in layer (g)
-    real(dp), dimension(:,:), allocatable :: ih2oeffmass ! Integrated water mass above layer (g)
-    real(dp), dimension(:,:), allocatable :: idegrad     ! Integrated neutron degradation factor (-)
-    real(dp), dimension(:,:), allocatable :: fastflux    ! Contribution to above-ground neutron flux
-    real(dp), dimension(:)  , allocatable :: totflux     ! Total flux of above-ground fast neutrons
-    real(dp), dimension(:,:), allocatable :: normfast    ! Normalized contribution to neutron flux (-) [weighting factors]
-    real(dp), dimension(:,:), allocatable :: inormfast   ! Cumulative fraction of neutrons (-)
+    real(dp), dimension(:), allocatable   :: isoimass    ! Integrated dry soil mass above layer (g)
+    real(dp), dimension(:), allocatable   :: iwatmass    ! Integrated water mass above layer (g)
+    real(dp), dimension(:), allocatable   :: hiflux      ! High energy neutron flux
+    real(dp), dimension(:), allocatable   :: xeff        ! Fast neutron source strength of layer
+    real(dp), dimension(:), allocatable   :: h2oeffdens  ! "Effective" density of water in layer (g/cm3)
+    real(dp), dimension(:), allocatable   :: fastflux    ! Contribution to above-ground neutron flux
+
     !
     integer(i4) :: layers=1                 ! Total number of soil layers
-    integer(i4) :: profiles=1               ! Total number of soil moisture profiles
-    integer(i4) :: ll=1,pp=0
-    integer(i4) :: angle, angledz, maxangle ! loop indices for an integration interval
+    integer(i4) :: ll=1
     !
-    layers   = size(sm,2) ! 2
-    profiles = size(sm,1) ! 34
+    layers   = size(SoilMoisture) ! 2
     
-    allocate(totflux(profiles))
-    allocate(wetsoidens(layers,profiles),wetsoimass(layers,profiles),&
-             iwetsoimass(layers,profiles),hiflux(layers,profiles),fastpot(layers,profiles),&
-             h2oeffdens(layers,profiles),h2oeffmass(layers,profiles),ih2oeffmass(layers,profiles),&
-             idegrad(layers,profiles),fastflux(layers,profiles),normfast(layers,profiles),&
-             inormfast(layers,profiles),isoimass(layers,profiles),iwatmass(layers,profiles))
+    allocate(hiflux(layers),xeff(layers),&
+             h2oeffdens(layers),&
+             fastflux(layers),&
+             isoimass(layers),iwatmass(layers))
 
-    dz(:)            = 0.0_dp * params(1) ! <-- this multiplication with params(1) is not needed, only to make params USED
+    zthick(:)        = 0.0_dp * params(1) ! <-- this multiplication with params(1) is not needed, only to make params USED
     !                                     !     PLEASE remove when possible 
-    zthick(:)        = 0.0_dp
-    wetsoidens(:,:)  = 0.0_dp
-    wetsoimass(:,:)  = 0.0_dp
-    iwetsoimass(:,:) = 0.0_dp
-    isoimass(:,:)    = 0.0_dp
-    iwatmass(:,:)    = 0.0_dp
-    hiflux(:,:)      = 0.0_dp
-    fastpot(:,:)     = 0.0_dp
-    h2oeffdens(:,:)  = 0.0_dp
-    h2oeffmass(:,:)  = 0.0_dp
-    ih2oeffmass(:,:) = 0.0_dp
-    idegrad(:,:)     = 0.0_dp
-    fastflux(:,:)    = 0.0_dp
-    normfast(:,:)    = 0.0_dp
-    inormfast(:,:)   = 0.0_dp 
-    totflux(:)       = 0.0_dp
+    isoimass(:)      = 0.0_dp
+    iwatmass(:)      = 0.0_dp
+    hiflux(:)        = 0.0_dp
+    xeff(:)          = 0.0_dp
+    h2oeffdens(:)    = 0.0_dp
+    fastflux(:)      = 0.0_dp
+    lambdaHigh       = 0.0_dp
+    lambdaFast       = 0.0_dp
+    totflux          = 0.0_dp
     
     ! Soil Layers and Thicknesses are constant in mHM, they could be defined outside of this function
-    dz(:) = Horizons(:)/10.0_dp ! from mm to cm
-    zthick(1) = dz(1) - 0.0_dp
+    zthick(1) = Horizons(1)/10.0_dp - 0.0_dp
     do ll = 2,layers
-       zthick(ll) = dz(ll) - dz(ll-1)
+       zthick(ll) = (Horizons(ll) - Horizons(ll-1))/10.0_dp
     enddo
-    
-    !
-    ! Angle distribution parameters (HARDWIRED)
-    ! rr: Using 0.5 deg angle intervals appears to be sufficient
-    ! rr: (smaller angles increase the computing time for COSMIC)
-    ideg     = 0.5_dp                   ! ideg ultimately controls the number of trips through
-    angledz  = nint(ideg*10.0_dp,i4)    ! the ANGLE loop. Make sure the 10.0 is enough
-    maxangle = 900_i4 - angledz         ! to create integers with no remainder
-    dtheta   = ideg*(PI_dp/180.0_dp)
 
-    !
-    do pp = 1,profiles
-       do ll = 1,layers
+    do ll = 1,layers
           
-          ! High energy neutron downward flux
-          ! The integration is now performed at the node of each layer (i.e., center of the layer)
-          h2oeffdens(ll,pp) = ((sm(pp,ll) / zthick(ll) / 10.0_dp +COSMIC_vwclat)*H2Odens)/1000.0_dp  
+       ! High energy neutron downward flux
+       ! The integration is now performed at the node of each layer (i.e., center of the layer)
+       h2oeffdens(ll) = ((SoilMoisture(ll) / zthick(ll) / 10.0_dp +COSMIC_vwclat)*H2Odens)/1000.0_dp  
 
-          ! Assuming an area of 1 cm2
-          if(ll > 1) then
-             isoimass(ll,pp) = isoimass(ll-1,pp) + COSMIC_bd*(0.5_dp*zthick(ll-1))*1.0_dp &
-                                             + COSMIC_bd*(0.5_dp*zthick(ll))*1.0_dp
-             iwatmass(ll,pp) = iwatmass(ll-1,pp) + h2oeffdens(ll-1,pp)*(0.5_dp*zthick(ll-1))*1.0_dp &
-                                             + h2oeffdens(ll,pp)*(0.5_dp*zthick(ll))*1.0_dp
-          else
-             isoimass(ll,pp) = COSMIC_bd*(0.5_dp*zthick(ll))*1.0_dp 
-             iwatmass(ll,pp) = h2oeffdens(ll,pp)*(0.5_dp*zthick(ll))*1.0_dp
-          end if
+       ! Assuming an area of 1 cm2
+       if(ll > 1) then
+          isoimass(ll) = isoimass(ll-1) + COSMIC_bd*(0.5_dp*zthick(ll-1))*1.0_dp &
+                                          + COSMIC_bd*(0.5_dp*zthick(ll))*1.0_dp
+          iwatmass(ll) = iwatmass(ll-1) + h2oeffdens(ll-1)*(0.5_dp*zthick(ll-1))*1.0_dp &
+                                          + h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
+       else
+          isoimass(ll) = COSMIC_bd*(0.5_dp*zthick(ll))*1.0_dp 
+          iwatmass(ll) = h2oeffdens(ll)*(0.5_dp*zthick(ll))*1.0_dp
+       end if
 
-          hiflux(ll,pp)  = COSMIC_N*exp(-(isoimass(ll,pp)/COSMIC_L1 + iwatmass(ll,pp)/COSMIC_L2) )
-          fastpot(ll,pp) = zthick(ll)*hiflux(ll,pp)*(COSMIC_alpha*COSMIC_bd + h2oeffdens(ll,pp))
+       lambdaHigh = isoimass(ll)/COSMIC_L1 + iwatmass(ll)/COSMIC_L2
+       lambdaFast = isoimass(ll)/COSMIC_L3 + iwatmass(ll)/COSMIC_L4
+       
+       hiflux(ll)  = exp(-lambdaHigh)
+       xeff(ll) = zthick(ll)*(COSMIC_alpha*COSMIC_bd + h2oeffdens(ll))
+       
+       call lookUpIntegral(fastflux(ll),neutron_integral_AFast,lambdaFast)
 
-          ! This second loop needs to be done for the distribution of angles for fast neutron release
-          ! the intent is to loop from 0 to 89.5 by 0.5 degrees - or similar.
-          ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.  
+       ! After contribution from all directions are taken into account,
+       ! need to multiply fastflux by 2/pi
+       fastflux(ll) = (2.0_dp/PI_dp)*fastflux(ll)
 
-          do angle=0,maxangle,angledz
-             zdeg     = real(angle,dp)/10.0_dp   ! 0.0  0.5  1.0  1.5 ...
-             zrad     = (zdeg*PI_dp)/180.0_dp
-             costheta = cos(zrad)
+       ! Low energy (fast) neutron upward flux
+       totflux = totflux + hiflux(ll)*xeff(ll)*fastflux(ll)
 
-             ! Angle-dependent low energy (fast) neutron upward flux
-             fastflux(ll,pp) = fastflux(ll,pp) + fastpot(ll,pp) * &
-                               exp(-(isoimass(ll,pp)/COSMIC_L3 + iwatmass(ll,pp)/COSMIC_L4)/costheta)*dtheta
-          enddo
-
-          ! After contribution from all directions are taken into account,
-          ! need to multiply fastflux by 2/pi
-          fastflux(ll,pp) = (2.0_dp/PI_dp)*fastflux(ll,pp)
-
-          ! Low energy (fast) neutron upward flux
-          totflux(pp) = totflux(pp) + fastflux(ll,pp)
-
-       enddo
     enddo
+    neutrons=COSMIC_N*totflux
     
-    neutrons = totflux(:)
 
-    deallocate(totflux, wetsoidens, wetsoimass, iwetsoimass, hiflux,&
-           fastpot, h2oeffdens, h2oeffmass, ih2oeffmass, idegrad, fastflux,&
-           normfast, inormfast, isoimass, iwatmass)
+    deallocate(hiflux,&
+           xeff, h2oeffdens, fastflux,&
+           isoimass, iwatmass)
            
   end subroutine COSMIC
+
+  subroutine oldIntegration(res,c)
+     use mo_constants, only: PI_dp
+     implicit none
+     real(dp)                                     :: res
+     real(dp),                        intent(in)  :: c
+
+     ! local variables
+     real(dp) :: zdeg         
+     real(dp) :: zrad         
+     real(dp) :: costheta     
+     real(dp) :: dtheta       
+
+     integer(i4) :: angle ! loop indices for an integration interval
+     ! Angle distribution parameters (HARDWIRED)
+     ! rr: Using 0.5 deg angle intervals appears to be sufficient
+     ! rr: (smaller angles increase the computing time for COSMIC)
+
+     dtheta   = 0.5_dp*(PI_dp/180.0_dp)
+
+     ! This second loop needs to be done for the distribution of angles for fast neutron release
+     ! the intent is to loop from 0 to 89.5 by 0.5 degrees - or similar.
+     ! Because Fortran loop indices are integers, we have to divide the indices by 10 - you get the idea.  
+
+     res=0.0_dp
+     do angle=0,179
+        zdeg     = real(angle,dp)*0.5_dp
+        zrad     = (zdeg*PI_dp)/180.0_dp
+        costheta = cos(zrad)
+
+        ! Angle-dependent low energy (fast) neutron upward flux
+        res  = res + exp(-c/costheta)*dtheta
+     enddo
+  end subroutine
   
+  ! -----------------------------------------------------------------------------------
+  !     NAME
+  !         TabularIntegralAFast
+  !
+  !     PURPOSE
+  !>        \brief Save approximation data for A_fast
+  !>        \details The COSMIC subroutine needs A_fast to be calculated.
+  !>            A_fast=int_{0}^{pi/2} exp(-Lambda_fast(z)/cos(phi) dphi)
+  !>            This subroutine stores data for intsize values for
+  !>            c:=Lambda_fast(z) between 0 and maxC, and will be written
+  !>            into the global array variable neutron_integral_AFast.
+  !>            The calculation of the values is done with a very precise
+  !>            recursive approximation subroutine. That recursive subroutine
+  !>            should not be used inside the time, cells and layer loops, because
+  !>            it is slow.
+  !>            Inside the loops in the module COSMIC the tabular is used to
+  !>            estimate A_fast, if 0<c<maxC, otherwise the recursive
+  !>            approximation is used.
+  !         ------------------------------------------------------------------
+  !         TabularIntegralAFast: a tabular for calculations with splines                
+  !         ------------------------------------------------------------------
+  !
+  !     CALLING SEQUENCE
+  !         call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
+  !
+  !     INTENT(IN)
+  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
+  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
+  !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
+  !>        \param[in] "integer(i4)              :: intsize" ! number of values for the approximation
+  !>        \param[in] "real(dp)                 :: maxC" ! maximum value for A_fast
+  !
+  !     INTENT(INOUT)
+  !>        \param[out] "real(dp), dimension(intsize) :: neutron_integral_AFast" approximation values
+  !
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !         None
+  !
+  !     RESTRICTIONS
+  !         intsize and maxC must be positive
+  !
+  !     EXAMPLE
+  !         intsize=8000, maxC=20.0_dp
+  !
+  !     LITERATURE
+  !         see splines for example
+  !
+  !     HISTORY
+  !>        \author Maren Kaluza
+  !>        \date Nov 2017
+
+  subroutine TabularIntegralAFast(integral,maxC)
+     use mo_constants, only: PI_dp
+     implicit none
+     real(dp), dimension(:)              :: integral
+     real(dp), intent(in)                :: maxC
+
+     !local variables
+     integer(i4)                         :: i
+     real(dp)                            :: c
+     integer(i4)                         :: intsize
+
+     intsize=size(integral)-2
+
+     do i=1,intsize+1
+       c =real(i-1,dp)*maxC/real(intsize,dp)
+       call approx_mon_int(integral(i),&
+           intgrandFast,c,0.0_dp,PI_dp/2.0_dp,steps=1024,fxmax=0.0_dp)
+     enddo
+     integral(intsize+2)=maxC
+  end subroutine
+
+  ! integrade a monotonuous function f, dependend on two parameters c and phi
+  ! xmin and xmax are the borders for the integration
+  ! if the values for f(xmin) or f(xmax) are undefinde (like exp(-1/0)), they
+  ! can be set with fxmin, fxmax.
+  ! eps is for the accuracy of the result. If the function f is monotonuous, the
+  ! error is at most eps.
+  ! steps is the maximum number of interpolation points. It is overriding the
+  ! error and is the maximum number of steps. A specification of the error
+  ! though still has an impact. If the function is interpolated well enough
+  ! in a specific flat region regarding the error it can be interpolated better
+  ! in a less flat region.
+  !
+  !For the specific given integral it is very precise with steps=1024
+  subroutine approx_mon_int(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
+     implicit none
+     real(dp)                                     :: res
+     real(dp), external                           :: f
+     real(dp),                        intent(in)  :: c
+     real(dp),                        intent(in)  :: xmax
+     real(dp),                        intent(in)  :: xmin
+     real(dp),                        optional    :: eps
+     integer(i4),                     optional    :: steps
+     real(dp),                        optional    :: fxmin
+     real(dp),                        optional    :: fxmax
+
+     !locale variables
+     real(dp)  :: epstemp
+     integer(i4) :: stepstemp
+     real(dp)  :: fxmintemp
+     real(dp)  :: fxmaxtemp
+     
+     ! init
+     if (.not. present(eps)) then
+        epstemp=0.001_dp
+     else
+        epstemp=eps
+     endif
+
+     if (.not. present(steps)) then
+        stepstemp=0
+     else
+        stepstemp=steps
+     endif
+
+     if (.not. present(fxmin)) then
+        fxmintemp=f(c,xmin)
+     else
+        fxmintemp=fxmin
+     endif
+
+     if (.not. present(fxmax)) then
+        fxmaxtemp=f(c,xmax)
+     else
+        fxmaxtemp=fxmax
+     endif
+
+     res=0.0_dp
+
+     if (stepstemp .gt. 0) then
+        call approx_mon_int_steps(res,f,c,xmin,xmax,epstemp,stepstemp,fxmintemp,fxmaxtemp)
+     else
+        call approx_mon_int_eps(res,f,c,xmin,xmax,epstemp,fxmintemp,fxmaxtemp)
+     endif
+
+  end subroutine
+
+  recursive subroutine approx_mon_int_steps(res,f,c,xmin,xmax,eps,steps,fxmin,fxmax)
+     implicit none
+     real(dp)                                     :: res
+     real(dp), external                           :: f
+     real(dp),                        intent(in)  :: c
+     real(dp),                        intent(in)  :: xmax
+     real(dp),                        intent(in)  :: xmin
+     real(dp),                        intent(in)  :: eps
+     integer(i4),                     intent(in)  :: steps
+     real(dp),                        intent(in)  :: fxmin
+     real(dp),                        intent(in)  :: fxmax
+
+     !locale variables
+     real(dp)  :: xm
+     real(dp)  :: fxm
+     real(dp)  :: err
+
+     xm = (xmax+xmin)/2.0_dp
+     fxm= f(c,xm)
+     
+     err=abs((fxmax-fxm)*(xmax-xm))
+     if ((err .gt. eps).and.(steps .gt. 1)) then
+        call approx_mon_int_steps(res,f,c,xm,xmax,eps/2.0,steps-steps/2,fxm,fxmax)
+     else
+        res=res+(xmax-xm)*(fxmax+fxm)/2.0_dp
+     endif
+
+     err=abs((fxm-fxmin)*(xm-xmin))
+     if ((err .gt. eps).and.(steps .gt. 1)) then
+        call approx_mon_int_steps(res,f,c,xmin,xm,eps/2.0,steps/2,fxmin,fxm)
+     else
+        res=res+(xm-xmin)*(fxm+fxmin)/2.0_dp
+     endif
+  end subroutine
+
+  recursive subroutine approx_mon_int_eps(res,f,c,xmin,xmax,eps,fxmin,fxmax)
+     implicit none
+     real(dp)                                     :: res
+     real(dp), external                           :: f
+     real(dp),                        intent(in)  :: c
+     real(dp),                        intent(in)  :: xmax
+     real(dp),                        intent(in)  :: xmin
+     real(dp),                        intent(in)  :: eps
+     real(dp),                        intent(in)  :: fxmin
+     real(dp),                        intent(in)  :: fxmax
+
+     !locale variables
+     real(dp)  :: xm
+     real(dp)  :: fxm
+     real(dp)  :: err
+
+     xm = (xmax+xmin)/2.0_dp
+     fxm= f(c,xm)
+     
+     err=abs((fxmax-fxm)*(xmax-xm))
+     if (err .gt. eps) then
+        call approx_mon_int_eps(res,f,c,xm,xmax,eps/2.0,fxm,fxmax)
+     else
+        res=res+(xmax-xm)*(fxmax+fxm)/2.0_dp
+     endif
+
+     err=abs((fxm-fxmin)*(xm-xmin))
+     if (err .gt. eps) then
+        call approx_mon_int_eps(res,f,c,xmin,xm,eps/2.0,fxmin,fxm)
+     else
+        res=res+(xm-xmin)*(fxm+fxmin)/2.0_dp
+     endif
+  end subroutine
+
+  ! if c>1.0, the function can be fitted very nice with gnuplot
+  ! pi/2*exp(a*x**b)
+  subroutine lookUpIntegral(res,integral,c)
+     use mo_constants, only: PI_dp
+     implicit none
+     real(dp)                         :: res
+     real(dp), dimension(:),intent(in):: integral
+     real(dp), intent(in)             :: c
+
+     !local variables
+     integer(i4) :: place
+     real(dp)    :: mu
+     integer(i4) :: intsize
+     real(dp)    :: maxC
+
+     intsize=size(integral)-2
+     maxC=integral(intsize+2)
+     mu=c*real(intsize,dp)/maxC
+     place=int(mu,i4)+1
+     if (place .gt. intsize) then 
+       !call approx_mon_int(res,intgrandFast,c,0.0_dp,PI_dp/2.0_dp,steps=1024,fxmax=0.0_dp)
+       !write(*,*) 'Warning: Lambda_Fast is huge. Slow integration used.'
+       res=(PI_dp/2.0_dp)*exp(-1.57406_dp*c**0.815488_dp)
+     else
+        mu=mu-real(place-1,dp)
+        res=(1.0_dp-mu)*integral(place)+mu*integral(place+1)
+        res=res
+     end if
+  end subroutine
+
+  function intgrandFast(c,phi)
+     implicit none
+     real(dp) :: intgrandFast
+     real(dp), intent(in) :: c
+     real(dp), intent(in) :: phi
+     intgrandFast=exp(-c/cos(phi))
+     return
+  end function
+
 END MODULE mo_neutrons

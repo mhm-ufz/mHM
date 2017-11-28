@@ -455,4 +455,12 @@ MODULE mo_global_variables
   !                                                            dim1 = number of output variables to be written
   !
 
+  ! -------------------------------------------------------------------
+  ! AUXILIARY VARIABLES
+  ! -------------------------------------------------------------------
+  !
+
+  real(dp), public, dimension(:), allocatable :: neutron_integral_AFast ! pre-calculated integrand for
+                                                                        ! vertical projection of isotropic neutron flux
+
 END MODULE mo_global_variables

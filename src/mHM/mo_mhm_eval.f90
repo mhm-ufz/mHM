@@ -168,7 +168,8 @@ CONTAINS
          nSoilHorizons_sm_input,                                                    & ! no. of mhm soil horizons equivalent to sm input
          nTimeSteps_L1_sm,                                                          & ! total number of timesteps in soil moisture input
          nTimeSteps_L1_neutrons,                                                    & ! total number of timesteps in neutrons input
-         nTimeSteps_L1_et                                                             ! total number of timesteps in evapotranspiration input
+         nTimeSteps_L1_et,                                                          & ! total number of timesteps in evapotranspiration input
+         neutron_integral_AFast                                                       ! pre-calculated integrand for neutron flux projection
     use mo_common_variables, only: &
          optimize, &
          processMatrix
@@ -544,6 +545,7 @@ CONTAINS
                timeStep_LAI_input, year_counter, month_counter, day_counter,                             & ! IN C
                tt, newTime-0.5_dp, processMatrix, c2TSTu, HorizonDepth_mHM,                              & ! IN C
                nCells, nSoilHorizons_mHM, real(NTSTEPDAY,dp), mask0,                                     & ! IN C
+               neutron_integral_AFast,                                                                   & ! IN C
                iFlag_soilDB,                                                                             & ! IN C
                parameterset,                                                                             & ! IN P
                LCyearId(year,ii), GeoUnitList, GeoUnitKar, LAIUnitList, LAILUT,                          & ! IN L0

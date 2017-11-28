@@ -195,9 +195,11 @@ CONTAINS
 
   subroutine constants_init( )
 
-    use mo_global_variables, only: NTSTEPDAY, c2TSTu, timeStep
+    use mo_global_variables, only: NTSTEPDAY, c2TSTu, timeStep, neutron_integral_AFast
+    use mo_common_variables, only: processMatrix
     use mo_message,          only: message
     use mo_string_utils,     only: num2str
+    use mo_neutrons,         only: TabularIntegralAFast
 
     implicit none
 
@@ -208,6 +210,15 @@ CONTAINS
     end if
     NTSTEPDAY  = 24_i4/timeStep            ! # of time steps per day
     c2TSTu     = real(timeStep,dp)/24.0_dp ! from per timeStep to per day
+
+    !Fill Tabular for neutron flux integral
+    if ( processMatrix(10, 1) .eq. 2 ) then
+       allocate(neutron_integral_AFast(10000+2))
+       call TabularIntegralAFast(neutron_integral_AFast,20.0_dp)
+    else
+       allocate(neutron_integral_AFast(1))
+       neutron_integral_AFast(:)=0.0_dp
+    endif
 
   end subroutine constants_init
 
