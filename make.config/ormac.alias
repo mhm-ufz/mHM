@@ -1,6 +1,6 @@
 # Set aliases so that one can, for example, say ifort to invoke standard intel11 on eve
 ifneq (,$(findstring $(compiler),gnu gfortran gcc gfortran49 gcc49))
-    icompiler := gnu48
+    icompiler := gnu71
 endif
 
 
