@@ -200,8 +200,8 @@ CONTAINS
   !>        \details Calculates the reference evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
   !>                 Penman-Monteith model for every given cell by applying the equation
   !>                 \f[ PET = \frac{1}{\lambda}  \cdot
-  !>                           \frac{\Delta \cdot R_n + \frac{\rho \cdot c_p \cdot (e_s-e)}{r_a}}
-  !>                           {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
+  !>                           \frac{\Delta \cdot R_n + \rho \cdot c_p \cdot (e_s-e) \cdot \frac{a_sh}{r_a}}
+  !>                           {\Delta + \gamma \cdot \frac{a_sh}{a_s} \cdot \left( 1 + \frac{r_s}{r_a} \right) }         \f]
   !>                 where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation,
   !>                 \f$\Delta\;[kPa\;K^{-1}]\f$ is the slope of the saturation-vapour pressure curve, 
   !>                 \f$ \lambda\;[MJ\;kg^{-1}] \f$ is the latent heat of vaporization, 
@@ -263,7 +263,7 @@ CONTAINS
   !>        \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
   !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.
   !>        \note Schymanski, S. J., & Or, D. (2017). Leaf-scale experiments reveal an important omission in the
-  !>             Penman-Monteith equation. HESS, 21(2), 685–706.
+  !>             Penman-Monteith equation. HESS, 21(2), 685-706.
   !>        \note Monteith, J. L. and Unsworth, M. H. (2013) Principles of environmental physics: plants, animals,
   !>             and the atmosphere, 4th Edn., Elsevier/Academic Press, Amsterdam, Boston.
 
