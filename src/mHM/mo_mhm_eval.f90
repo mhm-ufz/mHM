@@ -51,13 +51,16 @@ CONTAINS
   !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff"
   !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: sm_opti"
-  !>           returns soil moisture time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
+  !>           returns soil moisture time series for all grid cells (of multiple basins concatenated),
+  !>            DIMENSION [nCells, nTimeSteps]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: basin_avg_tws"
   !>           returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: neutron_opti"
-  !>           returns neuton counts time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
+  !>           returns neuton counts time series for all grid cells (of multiple basins concatenated),
+  !>            DIMENSION [nCells, nTimeSteps]
   !>        \param[out] "real(dp), dimension(:,:), optional  :: et_opti"
-  !>           returns evapotranspiration time series for all grid cells (of multiple basins concatenated), DIMENSION [nCells, nTimeSteps]
+  !>           returns evapotranspiration time series for all grid cells (of multiple basins concatenated),
+  !>           DIMENSION [nCells, nTimeSteps]
 
   !     RETURN
   !         None
@@ -128,7 +131,7 @@ CONTAINS
          nSoilHorizons_mHM, NTSTEPDAY, timeStep,                                    &
          LCyearId, LAIUnitList, LAILUT,                                             &
          GeoUnitList, GeoUnitKar, soilDB,                                           &
-         iFlag_soilDB,                                                              & ! options to handle different types of soil databases
+         iFlag_soilDB,                                                              & ! to handle dif. types of soil databases
          L0_Id, L0_soilId,                                                          &
          L0_LCover, L0_asp, L0_LCover_LAI, L0_geoUnit,                              &
          soilDB, L1_nTCells_L0,                                                     &
@@ -163,13 +166,13 @@ CONTAINS
          warmingDays,                                                               &
          timeStep_LAI_input,                                                        & ! flag on how LAI data has to be read
          L0_gridded_LAI, dirRestartIn,                                              & ! restart directory location
-         timeStep_sm_input,                                                         & ! time step of soil moisture input (day, month, year)
-         timeStep_et_input,                                                         & ! time step of evapotranspiration input (day, month, year)
-         nSoilHorizons_sm_input,                                                    & ! no. of mhm soil horizons equivalent to sm input
-         nTimeSteps_L1_sm,                                                          & ! total number of timesteps in soil moisture input
-         nTimeSteps_L1_neutrons,                                                    & ! total number of timesteps in neutrons input
-         nTimeSteps_L1_et,                                                          & ! total number of timesteps in evapotranspiration input
-         neutron_integral_AFast                                                       ! pre-calculated integrand for neutron flux projection
+         timeStep_sm_input,                                                         & ! time step of SM input (d, m, y)
+         timeStep_et_input,                                                         & ! time step of ET input (d, m, y)
+         nSoilHorizons_sm_input,                                                    & ! no. of mhm soil horizons equal to sm input
+         nTimeSteps_L1_sm,                                                          & ! tot. no. of timesteps in SM input
+         nTimeSteps_L1_neutrons,                                                    & ! tot. no. of timesteps in neutrons input
+         nTimeSteps_L1_et,                                                          & ! tot. no. of timesteps in ET input
+         neutron_integral_AFast                                                       ! pre-calc. integrand for neutron flux projec
     use mo_common_variables, only: &
          optimize, &
          processMatrix

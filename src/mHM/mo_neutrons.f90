@@ -309,7 +309,7 @@ CONTAINS
   !>        \details The COSMIC subroutine needs A_fast to be calculated.
   !>            A_fast=int_{0}^{pi/2} exp(-Lambda_fast(z)/cos(phi) dphi)
   !>            This subroutine stores data for intsize values for
-  !>            c:=Lambda_fast(z) between 0 and maxC, and will be written
+  !>            c=Lambda_fast(z) between 0 and maxC, and will be written
   !>            into the global array variable neutron_integral_AFast.
   !>            The calculation of the values is done with a very precise
   !>            recursive approximation subroutine. That recursive subroutine
@@ -384,9 +384,9 @@ CONTAINS
      integral(intsize+2)=maxC
   end subroutine
 
-  ! integrade a monotonuous function f, dependend on two parameters c and phi
+  ! integrate a monotonuous function f, dependend on two parameters c and phi
   ! xmin and xmax are the borders for the integration
-  ! if the values for f(xmin) or f(xmax) are undefinde (like exp(-1/0)), they
+  ! if the values for f(xmin) or f(xmax) are undefined (like exp(-1/0)), they
   ! can be set with fxmin, fxmax.
   ! eps is for the accuracy of the result. If the function f is monotonuous, the
   ! error is at most eps.

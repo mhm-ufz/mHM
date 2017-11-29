@@ -232,7 +232,7 @@ CONTAINS
   !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: a_s"                    fraction of one-sided leaf area covered by stomata \f$1\f$
-  !>        \param[in] "real(dp), intent(in) :: a_sh"                   fraction of projected area exchanging sensible heat with the air \f$1\f$
+  !>        \param[in] "real(dp), intent(in) :: a_sh"     fraction of projected area exchanging sensible heat with the air \f$1\f$
   !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s^{-1}]\f$
 
   !     INTENT(INOUT) 
