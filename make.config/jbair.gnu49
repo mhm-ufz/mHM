@@ -44,7 +44,7 @@ CC  := /usr/bin/gcc
 CPP := /usr/bin/cpp
     # The compiler switch "-w=ques" turns off the message:
     #   Comment begins with the OpenMP sentinel but the -openmp option was not used
-    # but it also turns of 
+    # but it also turns of
     #   Intrinsic function CMPLX with double precision argument and no KIND argument returns single precision result
     #   KIND argument to intrinsic LBOUND specifies a small integer kind
     #   KIND argument to intrinsic LEN specifies a small integer kind
@@ -80,7 +80,7 @@ MKL95DIR :=
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
-    NCDIR := 
+    NCDIR :=
 else
     NCDIR   := /usr/local
     NCFDIR  := /usr/local/netcdf-fortran-4.4.3-gfortran
@@ -91,17 +91,17 @@ endif
 
 # PROJ
 PROJ4DIR := /usr/local/
-FPROJDIR := 
+FPROJDIR :=
 
 # LAPACK
-LAPACKDIR   := 
+LAPACKDIR   :=
 GFORTRANDIR := $(GNUDIR)
 
 # MPI
-MPIDIR := 
+MPIDIR :=
 
 # Documentation
 DOXYGENDIR := /usr/local/bin
-DOTDIR     := /usr/local/bin
-TEXDIR     := /usr/texbin
+DOTDIR     := /opt/local/bin
+TEXDIR     := /Library/TeX/texbin
 PERLDIR    := /usr/bin
