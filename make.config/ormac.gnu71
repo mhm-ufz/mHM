@@ -83,6 +83,6 @@ GFORTRANDIR := $(GNUDIR)
 
 # Documentation
 DOXYGENDIR := /Applications/Doxygen.app/Contents/Resources
-DOTDIR     := /usr/local/bin
+DOTDIR     := /opt/local/bin/dot
 TEXDIR     := /Library/TeX/texbin
 PERLDIR    := /usr/bin
