@@ -34,7 +34,7 @@ Kriging is available upon request.
 The mHM hydrologic model is based on numerical approximations of
 dominant hydrological processes that have been tested in various
 models: HBV \cite Bergstroem1976, \cite HB2004, \cite BRK2008 and VIC
-\cite LLW1994. This model includes also a number of new features that
+\cite LLW1994 . This model includes also a number of new features that
 will be described in the next section. In general, this model
 simulates the following processes: canopy interception, snow
 accumulation and melting, soil moisture dynamics, infiltration and
@@ -42,14 +42,14 @@ surface runoff, evapotranspiration, subsurface storage and discharge
 generation, deep percolation and baseflow, and discharge attenuation
 and flood routing (\ref fig_mhm "mHM"). More information about the model
 can be found in
-\cite SKA2010.
+\cite SKA2010 .
 
 \image html mhm5-logo.png "Typical mHM cell" 
 \anchor fig_mhm \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm 
 
 
 Dominant processes of the hydrological cycle at mesoscale span over
-several orders of magnitude \cite BS1995. In this model, three
+several orders of magnitude \cite BS1995 . In this model, three
 levels (\ref fig_levels "mHM levels") will be differentiated to better
 represent the spatial variability of state and inputs variables:
 
@@ -156,9 +156,9 @@ catchment. This, in turn, would tend to increase the predictive
 uncertainty of the model due to the \e equifinality \cite Beven1993
 of feasible solutions. Moreover, the high dimensionality of this
 optimization problem is also a daunting task for the state-of-the-art
-optimization algorithms \cite PG2009. To overcome this problem a
+optimization algorithms \cite PG2009 . To overcome this problem a
 multiscale parameter regionalization (MPR) was employed in the mHM
-model \cite SKA2010.
+model \cite SKA2010 .
 
 \image html upscaling.png "MPR"
 \anchor fig_mpr \image latex upscaling.pdf "MPR" width=10cm
@@ -247,7 +247,7 @@ In general, \f$\gamma\f$ can be estimated, for example, by
 
 where \f$\|\cdot\|\f$ denotes a robust estimator. Many procedures to
 estimate global parameters are provided in mHM (e.g. simulated
-annealing \cite AK90, dynamically dimensioned search \cite TS2007.
+annealing \cite AK90, dynamically dimensioned search \cite TS2007 .
 Other techniques can be found in the CHS Fortran Library. 
 
 
@@ -255,13 +255,13 @@ Other techniques can be found in the CHS Fortran Library.
 
 Good parameter sets for \f$ \gamma \f$ were identified with a
 split-sampling technique using an adaptive constrained optimization
-algorithm based on simulated annealing (SA) \cite AK90. The overall
+algorithm based on simulated annealing (SA) \cite AK90 . The overall
 model efficiency was estimated as a weighted combination of four
 estimators based on the Nash-Sutcliffe efficiency (NSE) between
 observed and calculated streamflows using three different time scales
 (daily, monthly and annual) as well as the logarithms of the
 streamflow to downplay the effects of the peak flows over the low
-flows \cite HB2005. These objective functions are denoted by
+flows \cite HB2005 . These objective functions are denoted by
 \f$\phi_k,\, k=1,4\f$. Every objective function should be normalized
 in the interval [0,1], with 1 representing the best posible solution.
 The overall objective function to be minimized is then
