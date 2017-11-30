@@ -153,8 +153,8 @@ Second, the following hdf5 version has to be installed for netcdf-4 support. Ple
 \image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
 \image latex cygwin_hdf5.png "hdf5 packages for CYGWIN" width=14cm
 
-\image html cygwin_netcdf.PNG "hdf5 packages for CYGWIN" 
-\image latex cygwin_netcdf.PNG "hdf5 packages for CYGWIN" width=14cm
+\image html cygwin_netcdf.png "hdf5 packages for CYGWIN" 
+\image latex cygwin_netcdf.png "hdf5 packages for CYGWIN" width=14cm
 
 Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_liggfortran) have to be installed
 

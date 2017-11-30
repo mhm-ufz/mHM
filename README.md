@@ -6,12 +6,20 @@
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
 
+
 ## Cite as
 
 Please refer to the main model by citing Samaniego et al. (2010) and Kumar et al. (2013):
 
 - Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter regionalization of a grid-based hydrologic model at the mesoscale. Water Resour. Res., 46,W05523, doi:10.1029/2008WR007327, http://onlinelibrary.wiley.com/doi/10.1029/2008WR007327/abstract
 - Kumar, R., L. Samaniego, and S. Attinger (2013): Implications of distributed hydrologic model parameterization on water fluxes at multiple scales and locations, Water Resour. Res., 49, doi:10.1029/2012WR012195, http://onlinelibrary.wiley.com/doi/10.1029/2012WR012195/abstract
+
+
+## Install
+
+Please see the file [DEPENDENCIES][8] for external software required to run mHM.
+See also the [users manual][5] for detailed instructions to setup mHM.
+
 
 ## Quick start
 
@@ -27,3 +35,4 @@ Please refer to the main model by citing Samaniego et al. (2010) and Kumar et al
 [5]: doc/mhm_manual_v5.8.pdf
 [6]: LICENSE
 [7]: doc/mhm_papers.md
+[8]: doc/DEPENDENCIES.md
