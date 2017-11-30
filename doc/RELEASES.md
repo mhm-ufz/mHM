@@ -1,5 +1,32 @@
 # mHM RELEASE NOTES
 
+## mHM v5.8 (Dec 2017)
+
+### New Features:
+
+- Implementation of a new process for PET correction based on LAI at PET `process(5)=-1` (Cuneyd Demirel + *GEUS* colleagues);
+- Pre-processor code for SOILGRIDS data as used for the EDgE project (Rohini Kumar);
+- Reduced computational time of the neutron forward model COSMIC by factors of 30--100 (Maren Kaluza);
+- Compression of the netCDF output files (David Schaefer);
+- Optional project description added into the [mhm.nml](mhm.nml)
+
+### Bugs resolved from release 5.7:
+
+- `processCase(3)=3` did not work when compiled with openMP.
+- openMP declarations missing in [mo_mpr_smhorizons.f90](src/mHM/mo_mpr_smhorizons.f90) for the case of `iFlag_soil=1` 
+
+### Known bugs:
+
+None.
+
+### Restrictions:
+
+- For `gfortran` compilers mHM supports only v4.8 and higher.
+- If you wish to use a special process description of evapotranspiration (`processCase(4)`) please contact [Matthias Zink](mailto:matthias.zink@ufz.de).
+- If you wish to use features connected to ground albedo neutrons (`processCase(9)`), please contact [Martin Schrön](mailto:martin.schroen@ufz.de).
+- If you wish to use the multi-scale Routing Model as stand-alone version, please contact [Stephan Thober](mailto:stephan.thober@ufz.de).
+
+
 ## mHM v5.7 (Jun 2017)
 
 ### New Features:
@@ -19,7 +46,7 @@
 
 ### Known bugs:
 
-None
+None 
 
 ### Restrictions:
 
