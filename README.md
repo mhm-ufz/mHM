@@ -6,6 +6,11 @@
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
 
+**Please note:** This Git repository grants read access to the code of the release versions only.
+For the time being, please develop your code using the [SVN repository](https://svn.ufz.de/mhm/),
+access can be granted through the [registration form](http://www.ufz.de/index.php?en=40116) on the [mHM website](http://www.ufz.de/mhm/).
+In the course of 2018, we are planning to migrate our development repository from SVN to [GitLab](https://git.ufz.de/mhm).
+The [repository on GitHub.com](https://github.com/mhm-ufz/mhm) will be always a mirror of the releases at [GitLab](https://git.ufz.de/mhm).
 
 ## Cite as
 
@@ -13,6 +18,11 @@ Please refer to the main model by citing Samaniego et al. (2010) and Kumar et al
 
 - Samaniego L., R. Kumar, S. Attinger (2010): Multiscale parameter regionalization of a grid-based hydrologic model at the mesoscale. Water Resour. Res., 46,W05523, doi:10.1029/2008WR007327, http://onlinelibrary.wiley.com/doi/10.1029/2008WR007327/abstract
 - Kumar, R., L. Samaniego, and S. Attinger (2013): Implications of distributed hydrologic model parameterization on water fluxes at multiple scales and locations, Water Resour. Res., 49, doi:10.1029/2012WR012195, http://onlinelibrary.wiley.com/doi/10.1029/2012WR012195/abstract
+
+The model code can be cited as:
+
+- **mHM:** Luis Samaniego et al. (2017), mesoscale Hydrologic Model, doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
+- **mHM v5.8:** Luis Samaniego et al. (2017), mesoscale Hydrologic Model (Version 5.8), doi:10.5281/zenodo.1069203, https://doi.org/10.5281/zenodo.1069203
 
 
 ## Install
