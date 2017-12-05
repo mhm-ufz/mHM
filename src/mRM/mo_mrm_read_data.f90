@@ -911,7 +911,9 @@ contains
          timestep, &
          simPer, & ! simulation period
          dirTotalRunoff, & ! directory of total_runoff file for each basin
-         L1_total_runoff_in ! simulated runoff at L1
+         L1_total_runoff_in, & ! simulated runoff at L1
+         filenameTotalRunoff, & ! filename
+         varnameTotalRunoff ! varname
     use mo_common_variables, only: ALMA_convention
 
     implicit none
@@ -933,11 +935,10 @@ contains
     ! get basin information at level 1
     call get_basin_info_mrm(iBasin, 1, nrows, ncols, ncells=ncells, mask=mask)
 
-    !
     if (timestep .eq. 1) nctimestep = -4 ! hourly input
     if (timestep .eq. 24) nctimestep = -1 ! daily input
     call read_forcing_nc(trim(dirTotalRunoff(iBasin)), nrows, ncols, simPer(iBasin), &
-         'total_runoff', L1_data, mask, nctimestep=nctimestep)
+         varnameTotalRunoff, L1_data, mask, nctimestep=nctimestep, filename=filenameTotalRunoff)
 
     ! pack variables
     nTimeSteps = size(L1_data, 3)

@@ -102,6 +102,17 @@ resolution_Routing(2) = 24000
 !> CAUTION: at the moment, only Qall as input for mRM is affected
 !-----------------------------------------------------------------------------
 ! ALMA_convention = .TRUE.
+!-----------------------------------------------------------------------------
+!> for using mRM as the routing module for input other than from mHM
+!> additional specifications for filename and netCDF variable can be made
+!> default behaviour:
+!> none given: get variable 'total_runoff' from file 'total_runoff.nc'
+!> varnametotalrunoff given: get variable '$varnametotalrunoff' from file '$varnametotalrunoff.nc'
+!> filenametotalrunoff given: get variable 'total_runoff' from file '$varnametotalrunoff.nc'
+!> both given: get variable '$varnametotalrunoff' from file '$filenametotalrunoff.nc'
+!-----------------------------------------------------------------------------
+! varnametotalrunoff = 'total_runoff'
+! filenametotalrunoff = 'total_runoff'
 !----------------------------------------------------------------------------
 !> specify same index for basins to share L0_data to save memory \n
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3 \n
