@@ -24,50 +24,39 @@ from __future__ import print_function
 
 
 class BaseGrid(object):
-    REQUIRED_ATTR = {'nrows': int, 'ncols':int, 'cellsize': float,
-                     'xllcorner':float, 'yllcorner': float, 'nodata_value': float}
-
-    def __init__(self, filename=None, headerlines=6, nrows=None, ncols=None,
-                 cellsize=None, xllcorner=None, yllcorner=None, nodata_value=None,
-                 *args, **kwargs):
-        self.nodata_value = nodata_value
-        self.yllcorner = yllcorner
-        self.xllcorner = xllcorner
-        self.cellsize = cellsize
-        self.ncols = ncols
-        self.nrows = nrows
+    def __init__(self, filename, headerlines=6, *args, **kwargs):
         self._filename = filename
         self._headerlines = headerlines
-
-        if self._filename is None:
-            self._check_attr()
-
+        self.nrows = None
+        self.ncols = None
+        self.cellsize = None
+        self.xllcorner = None
+        self.yllcorner = None
+        self.nodata_value = None
+        
     def read(self):
-        if self._filename is not None:
-            with open(self._filename,"r") as f:
-                # correct for line feed and decimal delimiter
-                data = f.read().replace("\r\n","\n").replace(",",".").strip() + "\n"
-
-            start = 0
-            for i in range(self._headerlines):
-                end = data.find("\n",start)
-                k,v = [e.strip().lower() for e in data[start:end].split()]
-                try:
-                    setattr(self,k,int(v))
-                except ValueError:
-                    setattr(self,k,float(v))
-                start = end + 1
-            self.data = data[start:].strip()
-
-            # Ensure that the grid origin is definied as the lower-left corner
-            # of the lower-left cell
+        with open(self._filename,"r") as f:
+            # correct for line feed and decimal delimiter
+            data = f.read().replace("\r\n","\n").replace(",",".").strip() + "\n"
+            
+        start = 0       
+        for i in range(self._headerlines):            
+            end = data.find("\n",start)
+            k,v = [e.strip().lower() for e in data[start:end].split()]
             try:
-                self.yllcorner = float(self.yllcenter) - float(self.cellsize)/2
-                self.xllcorner = float(self.xllcenter) - float(self.cellsize)/2
-            except AttributeError:
-                pass
+                setattr(self,k,int(v))
+            except ValueError:
+                setattr(self,k,float(v))
+            start = end + 1
+        self.data = data[start:].strip()
 
-            self._check_attr()
+        # Ensure that the grid origin is definied as the lower-left corner
+        # of the lower-left cell
+        try:
+            self.yllcorner = float(self.yllcenter) - float(self.cellsize)/2
+            self.xllcorner = float(self.xllcenter) - float(self.cellsize)/2
+        except AttributeError:
+            pass
 
     def getBbox(self):
         return {"ymin":self.yllcorner,
@@ -100,12 +89,6 @@ class BaseGrid(object):
         if x_offset > .5: x_offset -= 1
         self.yllcorner += self.cellsize * y_offset
         self.xllcorner += self.cellsize * x_offset
-
-    def _check_attr(self):
-        for attr, attr_type in self.REQUIRED_ATTR.items():
-            if not isinstance(getattr(self, attr, None), attr_type):
-                raise Exception('the attribute {} of type {} must be supplied'.format(attr, attr_type))
-
 
 class AsciiGrid(BaseGrid):
     def __init__(self, *args, **kwargs):

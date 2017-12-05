@@ -284,7 +284,7 @@ contains
 
     ! namelist spatial & temporal resolution, optmization information
     namelist /project_description/ project_details, setup_description, simulation_type, &
-         Conventions, contact, mHM_details, history    
+         Conventions, contact, mHM_details, history
     namelist /project_description/ project_details, setup_description, simulation_type, &
          Conventions, contact, mHM_details, history    
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
@@ -441,7 +441,7 @@ contains
        ! determine warming period
        warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays_mrm(ii)
        warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1
-       
+
        call caldat(warmPer(ii)%julStart, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
        call caldat(warmPer(ii)%julEnd, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd)
 

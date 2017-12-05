@@ -429,7 +429,7 @@ contains
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         get_time_vector
+  !         get_time_vector_and_select
 
 
   !     PURPOSE
