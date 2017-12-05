@@ -20,6 +20,8 @@ Written:
 
 import sys,os
 from math import floor, ceil
+from __future__ import print_function
+
 
 class BaseGrid(object):
     def __init__(self, filename, headerlines=6, *args, **kwargs):
@@ -211,8 +213,8 @@ if __name__== "__main__":
     if (len(sys.argv) < 4) or \
        (len(sys.argv) > 5) or \
         not all([os.path.isfile(a) for a in sys.argv[1:-1]]):
-        print "Invalid arguments !\n"
-        print usage(sys.argv[0])
+        print("Invalid arguments !\n")
+        print(usage(sys.argv[0]))
         sys.exit(2)
 
     # initialize ncfile
@@ -225,12 +227,12 @@ if __name__== "__main__":
     target_grid = AsciiGrid(sys.argv[2])
 
     if target_grid.cellsize%source_grid.cellsize != 0:
-        print "\n".join(
+        print("\n".join(
             ["The cellsizes of 'grid_infile' and 'header_or_gridfile'",
              "are not divisable. If you are sure you gave the right",
              "arguments in the right order, your data processing",
              "for mHM was not succesfull!"
-         ])
+         ]))
         sys.exit(2)
         
     source_grid.snapGrid(target_grid)

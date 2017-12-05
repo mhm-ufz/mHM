@@ -5,15 +5,15 @@
 !> \details This module is to read forcing input data contained in netcdf files, e.g. temperature, precipitation,
 !> total_runoff, lai. Timesteps can be hourly, daily, monthly, and annual. The module provides a subroutine
 !> for NetCDF files only. First, the dimensions given are cross-checked with header.txt information. Second,
-!> the data of the specified period are read from the specified directory. The names of files in this directory
-!> have to be always "<var_name.nc".\n
+!> the data of the specified period are read from the specified directory.\n
 !> If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
 !> The program is stopped if any value lies out of range.
 
 !> \authors Juliane Mai
 !> \date Dec 2012
-!  Modified Sep 2015, Stephan Thober - separated routines for netcdf files from routines for binary files
-!           Jan 2017, Stephan Thober - added reading weights for disaggregation of daily meteorological values to hourly ones
+!  Modified Sep 2015, Stephan Thober  - separated routines for netcdf files from routines for binary files
+!           Jan 2017, Stephan Thober  - added reading weights for disaggregation of daily meteorological values to hourly ones
+!           Nov 2017, Robert Schweppe - switched to mo_netcdf library and restuctured routines
 
 module mo_read_forcing_nc
   implicit none
@@ -110,146 +110,105 @@ contains
   !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
   !                        Matthias Zink      Mar 2014 - added optional nocheck flag and optional maskout
   !                        Stephan Thober     Sep 2015 - added read for hourly data
+  !                        Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routines
 
-  subroutine read_forcing_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, nocheck, maskout)
+  subroutine read_forcing_nc(folder, nRows, nCols, periode, varName, data, mask, lower, upper, nctimestep, &
+          nocheck, maskout, fileName)
 
     use mo_kind,             only: i4, dp
     use mo_common_variables, only: period
-    use mo_julian,           only: caldat, julday
     use mo_message,          only: message
-    use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
-
-    use mo_string_utils,      only: num2str
-    use mo_utils,             only: eq, ne
+    use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
+    use mo_string_utils,     only: num2str
+    use mo_utils,            only: eq, ne
 
     implicit none
 
-    character(len=*),                                  intent(in)  :: folder    ! folder where data are stored
-    integer(i4),                                       intent(in)  :: nRows     ! number of rows of data fields:
-    ! LONGITUDE dimension
-    integer(i4),                                       intent(in)  :: nCols     ! number of columns of data fields:
-    ! LATITUDE dimension
-    type(period),                                      intent(in)  :: periode   ! time period
-    character(len=*),                                  intent(in)  :: varName   ! name of NetCDF variable
-    logical, dimension(:,:),                           intent(in)  :: mask      ! mask of valid data fields
-    real(dp),                                optional, intent(in)  :: lower     ! lower bound for data points
-    real(dp),                                optional, intent(in)  :: upper     ! upper bound for data points
+    character(len=*),                                  intent(in)  :: folder     ! folder where data are stored
+    integer(i4),                                       intent(in)  :: nRows      ! number of rows of data fields:
+    integer(i4),                                       intent(in)  :: nCols      ! number of columns of data fields:
+    type(period),                                      intent(in)  :: periode    ! time period
+    character(len=*),                                  intent(in)  :: varName    ! name of NetCDF variable
+    logical, dimension(:,:),                           intent(in)  :: mask       ! mask of valid data fields
+    real(dp),                                optional, intent(in)  :: lower      ! lower bound for data points
+    real(dp),                                optional, intent(in)  :: upper      ! upper bound for data points
     integer(i4),                             optional, intent(in)  :: nctimestep ! -1: daily (default);
     !                                                                            ! -2: monthly;
     !                                                                            ! -3: yearly;
-    !                                                                            ! -4: hourly;
+    !                                                                            ! -4: hourly; DEPRECATED!!!
+    character(256),                          optional, intent(in)  :: fileName   ! name of variable, defaults to fileName
     logical,                                 optional, intent(in)  :: nocheck    ! .TRUE. if check for nodata values deactivated
     !                                                                            ! default = .FALSE. - check is done
-    real(dp), dimension(:,:,:), allocatable,           intent(out) :: data      ! data read in
-    logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout    ! mask of data to read
+    real(dp), dimension(:,:,:), allocatable,           intent(out) :: data       ! data read in
+    logical,  dimension(:,:,:), allocatable, optional, intent(out) :: maskout    ! mask of data to read
 
     !
     ! local variables
-    character(256)            :: fName        ! name of NetCDF file
-    character(256)            :: AttValues    ! netcdf attribute values
-    integer(i4)               :: i            ! loop variable
-    integer(i4)               :: ncJulSta     ! start time of nc dataset
-    integer(i4)               :: ncJulEnd     ! end time of nc dataset
-    integer(i4)               :: datatype     ! datatype of attribute
-    integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
-    real(dp)                  :: nodata_value ! data nodata value
-    integer(i4)               :: dim3         ! time dim of input data
-    integer(i4)               :: ncdim3start  ! start of reading in nc file
-    integer(i4)               :: inctimestep  ! local nctimestep
-    logical                   :: checking     ! check if model domain is covered by data
-    ! time helpers
-    integer(i4)               :: julStart1, julEnd1, ncJulSta1, ncJulEnd1, dd
-    integer(i4)               :: mmcalstart, mmcalend, yycalstart, yycalend
-    integer(i4)               :: mmncstart, mmncend, yyncstart, yyncend
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: var, time_var! variables for data and time form netcdf
+    integer(i4), allocatable, dimension(:) :: var_shape    ! shape of NetCDF variable
+    integer(i4)                            :: time_start   ! index for selecting time vector
+    integer(i4)                            :: time_cnt     ! length of vector of selected time values
+
+    character(256)                         :: fName        ! name of NetCDF file
+    integer(i4)                            :: i            ! loop variable
+    real(dp)                               :: nodata_value ! data nodata value
+    logical                                :: checking     ! check if model domain is covered by data
+    integer(i4)                            :: inctimestep  ! check if model domain is covered by data
 
     ! check optional nctimestep
     inctimestep = -1
     if (present(nctimestep)) inctimestep = nctimestep
 
+    ! default value for performing checks on read input
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
-    
-    fName = trim(folder) // trim(varName) // '.nc'
-    ! get dimensions
-    dimen = Get_NcDim(trim(fName), trim(varName))
-    if ( (dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols) ) then
+
+    ! default: fName = varname + '.nc'
+    ! optional: fName = filename + '.nc'
+    fName = varName
+    if (present(fileName)) then
+      fName = trim(folder) // trim(fileName) // '.nc'
+    else
+      fName = trim(folder) // trim(fName) // '.nc'
+    end if
+
+    ! read the Dataset
+    nc = NcDataset(fname, "r")
+    ! get the variable
+    var = nc%getVariable(trim(varName))
+
+    ! get dimensions and check if plane is correct
+    var_shape = var%getShape()
+    if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
        stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
 
-    ! determine no data value
-    call Get_NcVarAtt(fName, varName, '_FillValue', AttValues, dtype=datatype)
-    ! convert to number
-    read(AttValues, *) nodata_value
-
-    ! get time intervall & check time steps
-    call get_time(fName, varName, ncJulSta, ncJulEnd, nctimestep=inctimestep)
-
-    !
-    select case(inctimestep)
-    case(-1) ! daily
-       julStart1 = periode%julStart
-       ncJulSta1 = ncJulSta
-       julEnd1   = periode%julEnd
-       ncJulEnd1 = ncJulEnd
-       dim3 = periode%julEnd - periode%julStart + 1_i4
-       ncdim3start = periode%julStart-ncJulSta+1
-    case(-2) ! monthly
-       call caldat(periode%julStart, dd, mmcalstart, yycalstart)
-       julStart1 = julday(1, mmcalstart, yycalstart)
-       call caldat(ncJulSta, dd, mmncstart, yyncstart)
-       ncJulSta1 = julday(1, mmncstart, yyncstart)
-       call caldat(periode%julEnd, dd, mmcalend, yycalend)
-       julEnd1 = julday(1, mmcalend, yycalend)
-       call caldat(ncJulEnd, dd, mmncend, yyncend)
-       ncJulEnd1 = julday(1, mmncend, yyncend)
-       dim3 = (yycalend*12+mmcalend) - (yycalstart*12+mmcalstart) + 1_i4
-       ncdim3start = (yycalstart*12+mmcalstart) - (yyncstart*12+mmncstart) + 1_i4
-    case(-3) ! yearly
-       call caldat(periode%julStart, dd, mmcalstart, yycalstart)
-       julStart1 = julday(1, 1, yycalstart)
-       call caldat(ncJulSta, dd, mmncstart, yyncstart)
-       ncJulSta1 = julday(1, 1, yyncstart)
-       call caldat(periode%julEnd, dd, mmcalend, yycalend)
-       julEnd1 = julday(1, 1, yycalend)
-       call caldat(ncJulEnd, dd, mmncend, yyncend)
-       ncJulEnd1 = julday(1, 1, yyncend)
-       dim3 = yycalend - yycalstart + 1_i4
-       ncdim3start = yycalstart - yyncstart + 1_i4
-    case(-4) ! hourly
-       julStart1 = periode%julStart
-       ncJulSta1 = ncJulSta
-       julEnd1   = periode%julEnd
-       ncJulEnd1 = ncJulEnd
-       dim3 = (periode%julEnd - periode%julStart + 1_i4) * 24_i4 ! convert to hours
-       ncdim3start = (periode%julStart-ncJulSta) * 24_i4 + 1_i4 ! convert to hours; always starts at one
-    case default ! no output at all
-       call message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
-       stop
-    end select
-
-    ! Check if time steps in file cover simulation period
-    if (.not. ((ncJulSta1 .LE. julStart1) .AND. (ncJulEnd1 .GE. julEnd1))) then
-       call message('***ERROR: read_forcing_nc: time period of input data: ', trim(varName), &
-            '          is not matching modelling period.')
-       stop
+    ! determine no data value, use _FillValue first, fall back to missing_value
+    if (var%hasAttribute("_FillValue")) then
+      call var%getAttribute('_FillValue', nodata_value)
+    else if (var%hasAttribute("missing_value")) then
+      call var%getAttribute('missing_value', nodata_value)
+    else
+      stop '***ERROR: read_forcing_nc: there must be either the attribute "missing_value" or "_FillValue"'
     end if
 
-    !
-    ! alloc and read
-    allocate(data(dimen(1), dimen(2), dim3))
-    call Get_NcVar(trim(fName), trim(varName), data, &
-              start = (/ 1_i4, 1_i4, ncdim3start /), &
-            a_count = (/ dimen(1), dimen(2), dim3 /) )
+    ! get time variable
+    time_var = nc%getVariable('time')
+    ! read the time vector and get start index and count of selection
+    call get_time_vector_and_select(time_var, fname, inctimestep, periode, time_start, time_cnt)
+    ! extract data and select time slice
+    call var%getData(data, start=(/1,1,time_start/), cnt=(/nRows,nCols,time_cnt/))
 
     ! save output mask if optional maskout is given
     if (present(maskout)) then
-       allocate(maskout(dimen(1), dimen(2), dim3))
-       maskout = ne(data(:,:,:),nodata_value)
+       allocate(maskout(var_shape(1), var_shape(2), var_shape(3)))
+       maskout = ne(data(:,:,:), nodata_value)
     end if
-       
+
     ! start checking values
-    do i = 1, dim3
-       ! neglect checking for naodata values if optional nocheck is given
+    do i = 1, size(data, dim=3)
+       ! neglect checking for nodata values if optional nocheck is given
        if (checking) then
           if (any(eq(data(:,:,i),nodata_value) .and. (mask))) then
              call message('***ERROR: read_forcing_nc: nodata value within basin ')
@@ -266,8 +225,8 @@ contains
                   '" are lower than ', trim(num2str(lower,'(F7.2)')) )
              call message('          at timestep  : ', trim(num2str(i)))
              call message('File: ', trim(fName))
-             call message('Minval at timestep: ', trim(num2str(minval(data(:,:,i)),'(F7.2)')))
-             call message('Total minval: ', trim(num2str(minval(data(:,:,:)),'(F7.2)')))
+             call message('Minval at timestep: ', trim(num2str(minval(data(:,:,i)))))
+             call message('Total minval: ', trim(num2str(minval(data(:,:,:)))))
              stop
           end if
        end if
@@ -279,8 +238,9 @@ contains
                   '" are greater than ', trim(num2str(upper,'(F7.2)')) )
              call message('          at timestep  : ', trim(num2str(i)))
              call message('File: ', trim(fName))
-             call message('Maxval at timestep: ', trim(num2str(maxval(data(:,:,i)),'(F7.2)')))
-             call message('Total maxval: ', trim(num2str(maxval(data(:,:,:)),'(F7.2)')))
+             call message('Maxval at timestep: ', trim(num2str(maxval(data(:,:,i)))))
+             call message('Total maxval: ', trim(num2str(maxval(data(:,:,:)))))
+             print*, data(:,:,i)
              stop
           end if
        end if
@@ -312,7 +272,7 @@ contains
   !>        \param[in] "integer(i4)             :: nRows"         Number of datapoints in longitudinal direction
   !>        \param[in] "integer(i4)             :: nCols"         Number of datapoints in latitudinal  direction
   !>        \param[in] "character(len=*)        :: varName"       Name of variable name to read
-  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
+  !>        \param[in] "logical, dimension(:,:) :: mask"          mask of valid data fields
 
   !     INTENT(INOUT)
   !         None
@@ -348,13 +308,14 @@ contains
   !     HISTORY
   !>        \author Stephan Thober & Matthias Zink
   !>        \date Jan 2017
-  !               modified
+  !               modified Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routine
+
   
-  subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout)
+  subroutine read_weights_nc(folder, nRows, nCols, varName, data, mask, lower, upper, nocheck, maskout, fileName)
 
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
-    use mo_ncread,           only: Get_NcDim, Get_NcVar, Get_NcVarAtt
+    use mo_netcdf,           only: NcDataset, NcVariable
 
     use mo_string_utils,      only: num2str
     use mo_utils,             only: eq, ne
@@ -372,55 +333,58 @@ contains
     real(dp),                                  optional, intent(in)  :: upper   ! upper bound for data points
     logical,                                   optional, intent(in)  :: nocheck ! .TRUE. if check for nodata values deactivated
     !                                                                           ! default = .FALSE. - check is done
+    character(256),                            optional, intent(in)  :: fileName! name of variable, defaults to fileName
     real(dp), dimension(:,:,:,:), allocatable,           intent(out) :: data    ! data read in
     !                                                                           ! dim 1 = rows
     !                                                                           ! dim 2 = cols
     !                                                                           ! dim 3 = months
     !                                                                           ! dim 4 = hours
-    !
     logical,  dimension(:,:,:,:), allocatable, optional, intent(out) :: maskout ! mask of data to read
 
-    !
     ! local variables
-    character(256)            :: fName        ! name of NetCDF file
-    character(256)            :: AttValues    ! netcdf attribute values
-    integer(i4)               :: i            ! loop variable
-    integer(i4)               :: j            ! loop variable
-    integer(i4)               :: datatype     ! datatype of attribute
-    integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
-    real(dp)                  :: nodata_value ! data nodata value
-    logical                   :: checking     ! check if model domain is covered by data
+    character(256)                         :: fName        ! name of NetCDF file
+    integer(i4)                            :: i            ! loop variable
+    integer(i4)                            :: j            ! loop variable
+    real(dp)                               :: nodata_value ! data nodata value
+    logical                                :: checking     ! check if model domain is covered by data
+    type(NcDataset)                        :: nc           ! container for Netcdf data
+    type(NcVariable)                       :: var          ! container for Netcdf variable
+    integer(i4), allocatable, dimension(:) :: var_shape    ! shape of NetCDF variable
 
     checking = .TRUE.
     if (present(nocheck)) checking = .NOT. nocheck
-    
-    fName = trim(folder) // trim(varName) // '.nc'
-    ! get dimensions
-    dimen = Get_NcDim(trim(fName), trim(varName))
 
-    if ( (dimen(1) .ne. nRows) .or. (dimen(2) .ne. nCols) ) then
+    fName = varName
+    if (present(fileName)) then
+      fName = trim(folder) // fileName
+    else
+      fName = trim(folder) // trim(fName) // '.nc'
+    end if
+
+    nc = NcDataset(fname, "r")
+    var = nc%getVariable(trim(varName))
+
+    ! get dimensions
+    var_shape = var%getShape()
+    if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
        stop '***ERROR: read_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
     end if
 
     ! determine no data value
-    call Get_NcVarAtt(fName, varName, 'missing_value', AttValues, dtype=datatype)
-    ! convert to number
-    read(AttValues, *) nodata_value
+    call var%getAttribute('missing_value', nodata_value)
 
-    !
-    ! alloc and read
-    allocate(data(dimen(1), dimen(2), dimen(3), dimen(4)))
-    call Get_NcVar(trim(fName), trim(varName), data)
+    ! extract data
+    call var%getData(data)
 
     ! save output mask if optional maskout is given
     if (present(maskout)) then
-       allocate(maskout(dimen(1), dimen(2), dimen(3), dimen(4)))
+       allocate(maskout(var_shape(1), var_shape(2), var_shape(3), var_shape(4)))
        maskout = ne(data(:,:,:,:),nodata_value)
     end if
        
     ! start checking values
-    do i = 1, dimen(3)
-       do j = 1, dimen(4)
+    do i = 1, var_shape(3)
+       do j = 1, var_shape(4)
           ! neglect checking for naodata values if optional nocheck is given
           if (checking) then
              if (any(eq(data(:,:,i,j),nodata_value) .and. (mask))) then
@@ -462,11 +426,14 @@ contains
 
   end subroutine read_weights_nc
 
-  !     PORPOSE
-  !         Determine data time interval & check timesteps
+  ! ------------------------------------------------------------------
 
-  !     RESTRICTIONS
-  !         Input values must be floating points.
+  !     NAME
+  !         get_time_vector_and_select
+
+
+  !     PURPOSE
+  !         Extract time vector in unit julian hours and get supposed time step in hours
 
   !     LITERATURE
   !         None
@@ -474,144 +441,168 @@ contains
   !     HISTORY
   !         Written,  Matthias Zink, Oct 2012
   !         Modified  Matthias Cuntz & Juliane Mai Nov 2014 - time int or double
-  !                   Stephan Thober Sep 2015 - added read for hourly data
+  !                   Stephan Thober               Sep 2015 - added read for hourly data
+  !                   Robert Schweppe              Nov 2017 - restructured routine, reads vector now
 
-  subroutine get_time(fName, vName, julStart, julEnd, nctimestep)
+
+   subroutine get_time_vector_and_select(var, fname, inctimestep, periode, time_start, time_cnt)
     !
     use mo_kind,         only: i4, dp
-    use mo_julian,       only: date2dec
+    use mo_julian,       only: julday, caldat, dec2date
     use mo_message,      only: message
-    use mo_NcRead,       only: Get_NcVar, Get_NcDim, Get_NcVarAtt
-    use mo_utils,        only: ne
+    use mo_netcdf,       only: NcVariable
     use mo_string_utils, only: DIVIDE_STRING
-    use netcdf,          only: NF90_INT, NF90_DOUBLE, NF90_NOWRITE
-    use netcdf,          only: nf90_open, nf90_close, nf90_inq_varid, nf90_inquire_variable
+    use mo_common_variables, only: period
+    use mo_constants,    only: DaySecs, DayHours, YearDays
     !
     implicit none
-    !
-    character(len=*)            , intent(in)  :: fName               ! name of NetCDF file
-    character(len=*)            , intent(in)  :: vName               ! name of variable
-    integer(i4)                 , intent(out) :: julStart
-    integer(i4)                 , intent(out) :: julEnd
-    integer(i4),        optional, intent(in)  :: nctimestep          ! -1: daily (default); -2:monthly; -3:yearly
-    !
-    integer(i4)                               :: i
-    integer(i4)                               :: yRef, dRef, mRef    ! reference time of NetCDF (unit attribute of
-    integer(i4)                               :: datatype            ! datatype of attribute
-    integer(i4),    dimension(5)              :: dimen
-    !
-    integer(i4),   dimension(:), allocatable  :: timesteps           ! time variable of NetCDF
-    real(dp),      dimension(:), allocatable  :: itimesteps          ! time variable of NetCDF
-    !
-    character(256)                            :: AttValues           ! netcdf attribute values
-    character(256), dimension(:), allocatable :: strArr              ! dummy for netcdf attribute handling
-    character(256), dimension(:), allocatable :: date                ! dummy for netcdf attribute handling date
-    real(dp)                                  :: jday_frac           ! julian day from dec2date
-    integer(i4)                               :: inctimestep         ! local nctimestep
-    integer(i4) :: ncid    ! id of input stream
-    integer(i4) :: varid   ! id of variable to be read
-    integer(i4) :: status  ! netcdf inquire return
-    real(dp) :: deltaT ! diff between single time steps in NetCDF in days
-    real(dp) :: nTStepDay ! number of timesteps per day
-    !
-    ! check optional nctimestep
-    inctimestep = -1 !ST: to do inctimestep should be determined from file
-    nTStepDay = -1.
-    if (present(nctimestep)) inctimestep = nctimestep
+    ! intent(in)
+    type(NcVariable),             intent(in)  :: var           ! variable of interest
+    character(256),               intent(in)  :: fname         ! fname of ncfile for error message
+    integer(i4),                  intent(in)  :: inctimestep   ! flag for requested time step
+    type(period),                 intent(in)  :: periode       ! reference period
+    ! intent(out)
+    integer(i4),                  intent(out) :: time_start    ! time_start index of time selection
+    integer(i4),                  intent(out) :: time_cnt      ! time_count of indexes of time selection
 
-    dimen = Get_NCDim(fName, trim(vName))
-    ! get unit attribute of variable 'time'
-    call Get_NcVarAtt(fName, 'time', 'units', AttValues, dtype=datatype)
-    ! AttValues looks like "<unit> since YYYY-MM-DD HH:MM:SS"
+    ! local
+    integer(i4)                               :: yRef, dRef, mRef, hRef, jRef ! reference time of NetCDF
+    character(256)                            :: AttValues                    ! netcdf attribute values
+    character(256), dimension(:), allocatable :: strArr, date, time           ! dummies for netcdf attribute handling
+    integer(i4)                               :: time_step_seconds            ! native time step converter in ncfile
+    integer(i4), allocatable, dimension(:)    :: time_data                    ! time vector
+    type(period)                              :: nc_period                    ! period of ncfile
+
+    ! time helpers
+    integer(i4)                               :: ncJulSta1, dd, n_time
+    integer(i4)                               :: mmcalstart, mmcalend, yycalstart, yycalend
+    integer(i4)                               :: mmncstart, yyncstart
+    integer(i4)                               :: hstart_int, hend_int ! helper variable for error output
+    character(256)                            :: error_msg            ! helper variable for error output
+
+    call var%getAttribute('units', AttValues)
+    ! AttValues looks like "<unit> since YYYY-MM-DD[ HH:MM:SS]"
+    ! split at space
     call DIVIDE_STRING(trim(AttValues), ' ', strArr)
-    !
-    ! determine reference time and convert to integer
+
+    ! determine reference time at '-' and convert to integer
     call DIVIDE_STRING(trim(strArr(3)), '-', date)
     read(date(1),*) yRef
     read(date(2),*) mRef
     read(date(3),*) dRef
-    jday_frac = date2dec(dd=dRef, mm=mRef, yy=yRef)
-    !
-    status = nf90_open(fName, NF90_NOWRITE, ncid)
-    status = nf90_inq_varid(ncid, 'time', varid)
-    status = nf90_inquire_variable(ncid, varid, xtype=datatype)
-    status = nf90_close(ncid)
-    status = status + 0  ! this is only to make the variable used
-    if ((datatype .eq. NF90_INT) .or. (datatype .eq. NF90_DOUBLE)) then
-       if (datatype .eq. NF90_INT) then
-          allocate(timesteps(dimen(3)))
-          call Get_NcVar(fName, 'time', timesteps)
-       else
-          allocate(itimesteps(dimen(3)))
-          allocate(timesteps(dimen(3)))
-          call Get_NcVar(fName, 'time', itimesteps)
-          timesteps = nint(itimesteps, i4)
-       end if
-    else
-       call message('***ERROR: data type of time must be NF90_INT or NF90_DOUBLE in netcdf file.')
-       stop
+
+    jRef = julday(dd=dRef, mm=mRef, yy=yRef)
+
+    ! if existing also read in the time (only hour so far)
+    hRef = 0
+    if( len(strArr) .gt. 3 ) then
+      call DIVIDE_STRING(trim(strArr(4)), ':', time)
+      read(time(1),*) hRef
     end if
-    !
-    ! strArr(1) is <unit>
+
+    ! determine the step_size
     if (strArr(1) .EQ. 'days') then
-       nTStepDay = 1
+       time_step_seconds = int(DaySecs)
     else if (strArr(1) .eq. 'hours') then
-       nTStepDay = 24
+      time_step_seconds = int(DaySecs / DayHours)
+    else if (strArr(1) .eq. 'minutes') then
+      time_step_seconds = int(DaySecs / DayHours / 60._dp)
+    else if (strArr(1) .eq. 'seconds') then
+      time_step_seconds = 1_i4
     else
-       call message('***ERROR: Please provide the input data in (days or hours) since YYYY-MM-DD HH:MM:SS in ', trim(vName))
+       call message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
+                    'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(AttValues))
        stop
     end if
-    !
-    ! check consistency of timesteps
+
+    ! get the time vector
+    call var%getData(time_data)
+    ! convert array from units since to seconds
+    time_data = time_data * time_step_seconds
+
+    ! check for length of time vector, needs to be at least of length 2, otherwise step width check fails
+    if (size(time_data) .le. 1) then
+      call message('***ERROR: length of time dimension needs to be at least 2 in file: '//trim(fname))
+      stop
+    end if
+
+    ! check for equal timesteps and timestep must not be multiple of native timestep
+    error_msg = '***ERROR: time_steps are not equal over all times in file and/or do not conform to'// &
+                     ' requested timestep in file ('//trim(fname)//') : '
+
+    ! compare the read period from ncfile to the period required
+    ! convert julian second information back to date via conversion to float
+    ! the 0.5_dp is for the different reference of fractional julian days, hours are truncated
+    n_time = size(time_data)
+    call dec2date(time_data(1) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, nc_period%dStart, nc_period%mStart, &
+            nc_period%yStart, hstart_int)
+    nc_period%julStart=int(time_data(1) / DaySecs + jRef + hRef / 24._dp)
+    call dec2date(time_data(n_time) / DaySecs - 0.5_dp + jRef + hRef / 24._dp, nc_period%dEnd,   nc_period%mEnd, &
+            nc_period%yEnd, hend_int)
+    nc_period%julEnd=int(time_data(n_time) / DaySecs + jRef + hRef / 24._dp)
+
+    ! prepare the selection and check for required time_step
     select case(inctimestep)
     case(-1) ! daily
-       do i = 2, dimen(3)
-          deltaT = real(timesteps(i) - timesteps(i-1), dp) / nTStepDay
-          ! deltaT has to be one but with integer conversion
-          if ( ne(deltaT, 1._dp) ) then
-             call message('***ERROR: ', trim(vName),' must have daily time steps.')
-             stop
-          end if
-       end do
+      ! difference must be 1 day
+      if (.not. all(abs((time_data(2:n_time) - time_data(1:n_time-1)) / DaySecs - 1._dp) .lt. 1.e-6 )) then
+        call message(error_msg//trim('daily'))
+        stop
+      end if
+      ncJulSta1 = nc_period%julStart
+      time_start = periode%julStart-ncJulSta1 + 1_i4
+      time_cnt = periode%julEnd - periode%julStart + 1_i4
     case(-2) ! monthly
-       do i = 2, dimen(3)
-          deltaT = real(timesteps(i) - timesteps(i-1), dp) / nTStepDay
-          ! deltaT has to be one but with integer conversion
-          if (( deltaT .lt. 28._dp) .or. ( deltaT .gt. 31._dp)) then
-             call message('***ERROR: ', trim(vName),' must have monthly time steps.')
-             stop
-          end if
-       end do
+      ! difference must be between 28 and 31 days
+      if ( any(abs((time_data(2:n_time) - time_data(1:n_time-1)) / DaySecs) .gt. 31._dp) .or. &
+          any(abs((time_data(2:n_time) - time_data(1:n_time-1)) / DaySecs) .lt. 28._dp)) then
+        call message(error_msg//trim('monthly'))
+        stop
+      end if
+
+      call caldat(periode%julStart, dd, mmcalstart, yycalstart)
+      call caldat(nc_period%julStart, dd, mmncstart, yyncstart)
+      ! monthly timesteps are usually set by month end, so for beginning, we need 1st of month
+      ncJulSta1 = julday(1, mmncstart, yyncstart)
+      call caldat(periode%julEnd, dd, mmcalend, yycalend)
+      time_start = (yycalstart*12+mmcalstart) - (yyncstart*12+mmncstart) + 1_i4
+      time_cnt = (yycalend*12+mmcalend) - (yycalstart*12+mmcalstart) + 1_i4
     case(-3) ! yearly
-       do i = 2, dimen(3)
-          deltaT = real(timesteps(i) - timesteps(i-1), dp) / nTStepDay
-          ! deltaT has to be one but with integer conversion
-          if ( deltaT .lt. 360._dp) then
-             call message('***ERROR: ', trim(vName),' must have yearly time steps.')
-             stop
-          end if
-       end do
+      ! difference must be between 365 and 366 days
+      if ( any(abs((time_data(2:n_time) - time_data(1:n_time-1)) / DaySecs) .gt. (YearDays + 1._dp)) .or. &
+      any(abs((time_data(2:n_time) - time_data(1:n_time-1)) / DaySecs) .lt. YearDays)) then
+        call message(error_msg//'yearly')
+        stop
+      end if
+      call caldat(periode%julStart, dd, mmcalstart, yycalstart)
+      call caldat(nc_period%julStart, dd, mmncstart, yyncstart)
+      ! yearly timesteps are usually set by year end, so for beginning, we need 1st of year
+      ncJulSta1 = julday(1, 1, yyncstart)
+      call caldat(periode%julEnd, dd, mmcalend, yycalend)
+      time_start = yycalstart - yyncstart + 1_i4
+      time_cnt = yycalend - yycalstart + 1_i4
     case(-4) ! hourly
-       do i = 2, dimen(3)
-          deltaT = real(timesteps(i) - timesteps(i-1), dp)
-          ! deltaT has to be one but with integer conversion
-          if ( ne(deltaT, 1._dp) ) then
-             call message('***ERROR: ', trim(vName),' must have hourly time steps.')
-             stop
-          end if
-       end do
-    case default
-       call message('***ERROR: get_time: unknown nctimestep switch.')
+      ! difference must be 1 hour
+      if (.not. all(abs((time_data(2:n_time) - time_data(1:n_time-1) ) / 3600._dp - 1._dp) .lt. 1.e-6 )) then
+        call message(error_msg//'hourly')
+        stop
+      end if
+      ncJulSta1 = nc_period%julStart
+      time_start = (periode%julStart-ncJulSta1) * 24_i4 + 1_i4 ! convert to hours; always starts at one
+      time_cnt = (periode%julEnd - periode%julStart + 1_i4) * 24_i4 ! convert to hours
+    case default ! no output at all
+       call message('***ERROR: read_forcing_nc: unknown nctimestep switch.')
        stop
     end select
-    !
-    ! determine starting and ending julian day of the dataset
-    i  = nint(jday_frac, i4 )
-    ! calculate days
-    julStart = i + timesteps(1) / int(nTStepDay, i4)
-    julEnd   = i + timesteps(dimen(3)) / int(nTStepDay, i4)
-    !
-  end subroutine get_time
+
+    ! Check if time steps in file cover simulation period
+    if (.not. ((ncJulSta1 .LE. periode%julStart) .AND. (nc_period%julEnd .GE. periode%julEnd))) then
+       call message('***ERROR: read_forcing_nc: time period of input data: ', trim(fname), &
+            '          is not matching modelling period.')
+       stop
+    end if
+
+   end subroutine get_time_vector_and_select
 
 end module mo_read_forcing_nc
 

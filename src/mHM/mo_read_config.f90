@@ -108,11 +108,12 @@ CONTAINS
   !                  Rohini Kumar,                Dec  2016 - option to handle monthly mean gridded fields of LAI
   !                  M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)  
   !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)  
+  !                  Robert Schweppe              Dec  2017 - switched from fractional julian day to integer
 
 
   subroutine read_config()
 
-    use mo_julian,           only: date2dec, dec2date
+    use mo_julian,           only: julday, caldat
     use mo_append,           only: append
     use mo_message,          only: message
     use mo_utils,            only: EQ
@@ -320,7 +321,7 @@ CONTAINS
     character(256), dimension(maxNLCovers)          :: LCoverfName     ! filename of Lcover file
     real(dp),       dimension(maxGeoUnit, nColPars) :: GeoParam        ! geological parameters
     !
-    real(dp)                                        :: jday_frac
+    integer(i4)                                     :: jday
     integer(i4),    dimension(maxNoBasins)          :: warming_Days
     type(period),   dimension(maxNoBasins)          :: eval_Per
     integer(i4),    dimension(maxNoBasins)          :: time_step_model_inputs
@@ -524,22 +525,19 @@ CONTAINS
     !  basin
     !===============================================================
     do ii = 1, nBasins
-       ! julain days for evaluation period
-       jday_frac = date2dec(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
-       evalPer(ii)%julStart = nint(jday_frac)
+       ! julian days for evaluation period
+       jday = julday(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
+       evalPer(ii)%julStart = jday
 
-       jday_frac = date2dec(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
-       evalPer(ii)%julEnd  = nint(jday_frac, i4 )
+       jday = julday(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
+       evalPer(ii)%julEnd  = jday
 
        ! determine warming period
        warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays(ii)
        warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1
 
-       jday_frac = real(warmPer(ii)%julStart,dp)
-       call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
-
-       jday_frac = real(warmPer(ii)%julEnd,dp)
-       call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd  )
+       call caldat(warmPer(ii)%julStart, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
+       call caldat(warmPer(ii)%julEnd, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd)
 
        ! sumulation Period = warming Period + evaluation Period
        simPer(ii)%dStart   = warmPer(ii)%dStart
