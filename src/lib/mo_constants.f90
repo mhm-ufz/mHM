@@ -77,16 +77,11 @@ MODULE mo_constants
   !> radian to degree conversion (180/pi) in single precision
   REAL(sp), PARAMETER :: rad2deg_sp = 180._sp/PI_sp
 
-  !> Time conversion
-  !> Seconds per day [s] in single precision
-  REAL(sp),    public, PARAMETER :: secday_sp          =  86400.0_sp
-  REAL(dp),    public, PARAMETER :: secday_dp          =  86400.0_dp  ! secday [s]
-  REAL(dp),    public, parameter :: DayHours           =     24.0_dp  ! hours per day
-  real(dp),    public, parameter :: YearMonths         =     12.0_dp  ! months per year
-  real(dp),    public, parameter :: YearDays           =    365.0_dp  ! days in a year
-  real(dp),    public, parameter :: DaySecs            =  86400.0_dp  ! sec in a day
-
   ! Physical
+  !> Seconds per day [s] in double precision
+  REAL(dp), PARAMETER :: secday_dp = 86400._dp                       ! secday [s]
+  !> Seconds per day [s] in single precision
+  REAL(sp), PARAMETER :: secday_sp = 86400._sp
   !> Psychrometric constant [kPa K^-1] in double precision
   REAL(dp), PARAMETER :: Psychro_dp      = 0.0646_dp                 ! psychrometric constant [kPa C-1]
   !> Psychrometric constant [kPa K^-1] in sibgle precision

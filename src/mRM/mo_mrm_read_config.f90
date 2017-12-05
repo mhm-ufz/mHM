@@ -172,7 +172,7 @@ contains
          mcmc_error_params,                       & !       parameters of error model used in likelihood 
          global_parameters,                       &
          ALMA_convention
-    use mo_julian,               only: julday, caldat
+    use mo_julian,               only: dec2date, date2dec
     use mo_message,              only: message
     use mo_mrm_constants,        only: nodata_i4, &
          maxNoGauges,                             & ! maximum number of allowed gauges
@@ -218,8 +218,6 @@ contains
          basin_mrm,                               &
          timeStep_model_outputs_mrm,              & ! timestep for writing model outputs
          outputFlxState_mrm,                      & ! definition which output to write
-         filenameTotalRunoff,                     & ! filename for total runoff file
-         varnameTotalRunoff,                      & ! varname for total runoff
          period,                                  & ! structure for time periods
          project_details,                         & ! project including funding instituion., PI, etc.
          setup_description,                       & ! any specific description of simulation 
@@ -274,7 +272,7 @@ contains
     integer(i4), dimension(maxNLCovers)                :: LCoverYearEnd   ! ending year  of LCover
     character(256), dimension(maxNLCovers)             :: LCoverfName     ! filename of Lcover file
     ! namelist variables: time_periods
-    integer(i4)                                        :: jday
+    real(dp)                                           :: jday_frac
     integer(i4), dimension(maxNoBasins)                :: warming_Days
     type(period), dimension(maxNoBasins)               :: eval_Per
     integer(i4), dimension(maxNoBasins)                :: time_step_model_inputs
@@ -282,17 +280,15 @@ contains
     ! for output file namelist
     logical                                            :: file_exists
 
-    ! namelist spatial & temporal resolution, optmization information
-    namelist /project_description/ project_details, setup_description, simulation_type, &
-         Conventions, contact, mHM_details, history    
+    ! namelist spatial & temporal resolution, otmization information
     namelist /project_description/ project_details, setup_description, simulation_type, &
          Conventions, contact, mHM_details, history    
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
          ALMA_convention, L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, &
-         read_restart, write_restart, perform_mpr, filenameTotalRunoff, varnameTotalRunoff
+         read_restart, write_restart, perform_mpr
     ! namelist for time settings
     namelist /time_periods/ warming_Days, eval_Per, time_step_model_inputs
-    ! namelist process selection
+    ! namelsit process selection
     namelist /processSelection/ processCase
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
@@ -323,12 +319,7 @@ contains
     NoGauges_basin = nodata_i4
     Gauge_id       = nodata_i4
     gauge_filename = num2str(nodata_i4)
-
-    ! default arguments
-    ALMA_convention = .false.
-    filenameTotalRunoff = 'total_runoff'
-    varnameTotalRunoff = 'total_runoff'
-
+    
     !===============================================================
     !  Read namelist main directories
     !===============================================================
@@ -345,6 +336,7 @@ contains
     !===============================================================
     call position_nml('mainconfig', unamelist_mrm)
     read(unamelist_mrm, nml=mainconfig)
+    ALMA_convention = .false.
     
     if (nBasins .GT. maxNoBasins) then
        call message()
@@ -431,19 +423,22 @@ contains
     !  basin
     !===============================================================
     do ii = 1, nBasins
-       ! julian days for evaluation period
-       jday = julday(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
-       evalPer(ii)%julStart = jday
+       ! julain days for evaluation period
+       jday_frac = date2dec(dd=evalPer(ii)%dStart, mm=evalPer(ii)%mStart, yy=evalPer(ii)%yStart)
+       evalPer(ii)%julStart = nint(jday_frac)
 
-       jday = julday(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
-       evalPer(ii)%julEnd  = jday
+       jday_frac = date2dec(dd=evalPer(ii)%dEnd, mm=evalPer(ii)%mEnd, yy=evalPer(ii)%yEnd)
+       evalPer(ii)%julEnd  = nint(jday_frac, i4 )
 
        ! determine warming period
        warmPer(ii)%julStart = evalPer(ii)%julStart - warmingDays_mrm(ii)
        warmPer(ii)%julEnd   = evalPer(ii)%julStart - 1
-       
-       call caldat(warmPer(ii)%julStart, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
-       call caldat(warmPer(ii)%julEnd, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd)
+
+       jday_frac = real(warmPer(ii)%julStart,dp)
+       call dec2date(jday_frac, dd=warmPer(ii)%dStart, mm=warmPer(ii)%mStart, yy=warmPer(ii)%yStart)
+
+       jday_frac = real(warmPer(ii)%julEnd,dp)
+       call dec2date(jday_frac, dd=warmPer(ii)%dEnd,   mm=warmPer(ii)%mEnd,   yy=warmPer(ii)%yEnd)
 
        ! sumulation Period = warming Period + evaluation Period
        simPer(ii)%dStart   = warmPer(ii)%dStart
@@ -509,7 +504,7 @@ contains
           call message()
           call message('***ERROR: mhm.nml: Number of evaluation gauges for subbasin ', &
                trim(adjustl(num2str(iBasin))),' is not defined!')
-          call message('          Error occured in namelist: evaluation_gauges')
+          call message('          Error occured in namlist: evaluation_gauges')
           stop
        end if
 
@@ -519,18 +514,17 @@ contains
           ! check if NoGauges_basin has a valid value
           if (Gauge_id(iBasin,iGauge) .EQ. nodata_i4) then
              call message()
-             call message('***ERROR: mhm.nml: ID ', &
-                  trim(adjustl(num2str(Gauge_id(iBasin,iGauge)))), ' of evaluation gauge ', &
+             call message('***ERROR: mhm.nml: ID of evaluation gauge ',        &
                   trim(adjustl(num2str(iGauge))),' for subbasin ', &
                   trim(adjustl(num2str(iBasin))),' is not defined!')
-             call message('          Error occured in namelist: evaluation_gauges')
+             call message('          Error occured in namlist: evaluation_gauges')
              stop
           else if (trim(gauge_filename(iBasin,iGauge)) .EQ. trim(num2str(nodata_i4))) then
              call message()
              call message('***ERROR: mhm.nml: Filename of evaluation gauge ', &
                   trim(adjustl(num2str(iGauge))),' for subbasin ',  &
                   trim(adjustl(num2str(iBasin))),' is not defined!')
-             call message('          Error occured in namelist: evaluation_gauges')
+             call message('          Error occured in namlist: evaluation_gauges')
              stop
           end if
           !
@@ -547,7 +541,7 @@ contains
        call message()
        call message('***ERROR: mhm.nml: Total number of evaluation gauges (', trim(adjustl(num2str(nGaugesTotal))), &
             ') different from sum of gauges in subbasins (', trim(adjustl(num2str(idx))), ')!')
-       call message('          Error occured in namelist: evaluation_gauges')
+       call message('          Error occured in namlist: evaluation_gauges')
        stop
     end if
     
