@@ -91,7 +91,8 @@ CONTAINS
          L11_set_drain_outlet_gauges, &
          L11_stream_features, &
          L11_flow_accumulation, &
-         L11_calc_meandering
+         L11_calc_meandering, &
+         L0_smooth_riverslope
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
          mrm_L1_variable_init, &
@@ -147,7 +148,7 @@ CONTAINS
     if (processMatrix(8, 1) .eq. 1) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover)
     if (processMatrix(8, 1) .eq. 2) call mrm_read_L0_data(L0_mask, L0_elev)
     if (processMatrix(8, 1) .eq. 3) call mrm_read_L0_data(L0_mask, L0_elev, L0_LCover, L0_slope)
-    
+       
     if (perform_mpr) then
        do iBasin = 1, nBasins
           if (iBasin .eq. 1) then
@@ -197,6 +198,7 @@ CONTAINS
           call L11_stream_features(iBasin)
           call L11_flow_accumulation(iBasin)
           call L11_calc_meandering(iBasin)
+          if(processMatrix(8, 1) .eq. 3) call L0_smooth_riverslope(iBasin)
        end do
        ! check whether there are gauges within the modelling domain
        if (allocated(basin_mrm%gaugeNodeList)) then
@@ -685,10 +687,6 @@ CONTAINS
       allocate(K(1))
       ! [s] wave travel time parameter
       K = deltaX / param(1)
-
-    ! determine routing timestep
-    index = locate(given_TS, K)
-    L11_TSrout(iBasin) = given_TS(index)
     
       ! set time-weighting scheme
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp

@@ -31,6 +31,7 @@ module mo_mrm_net_startup
   PUBLIC :: L11_flow_accumulation
   PUBLIC :: L11_calc_meandering
   PUBLIC :: L11_calc_celerity
+  PUBLIC :: L0_smooth_riverslope
 contains
   ! --------------------------------------------------------------------------
 
