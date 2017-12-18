@@ -94,14 +94,14 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM # where are the source files
+SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/mHM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
 CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
 DOXCONFIG  := ./doc/doxygen-1.8.7.config # the doxygen config file
 #
-PROGNAME := mrm # Name of executable
+PROGNAME := mhm # Name of executable
 LIBNAME  := #libminpack.a # Name of library
 #
 # Options
@@ -109,9 +109,9 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := gnu
+compiler := intel
 # Releases: debug, release
-release  := debug
+release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
@@ -123,7 +123,7 @@ proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
-openmp   := true
+openmp   := 
 # MPI parallelization - experimental: true, [anything else]
 mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
@@ -184,7 +184,7 @@ static   := dynamic
 # Special compilation flags
 EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := #-DMRM2MHM
+EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=

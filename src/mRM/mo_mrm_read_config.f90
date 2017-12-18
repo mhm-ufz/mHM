@@ -218,7 +218,15 @@ contains
          basin_mrm,                               &
          timeStep_model_outputs_mrm,              & ! timestep for writing model outputs
          outputFlxState_mrm,                      & ! definition which output to write
-         period                                     ! structure for time periods
+         period,                                  & ! structure for time periods
+         project_details,                         & ! project including funding instituion., PI, etc.
+         setup_description,                       & ! any specific description of simulation 
+         simulation_type,                         & ! e.g. seasonal forecast, climate projection, ...
+         Conventions,                             & ! convention used for dataset
+         contact,                                 & ! contact details, incl. PI name, modellers
+         mHM_details,                             & ! developing institution, version, specific mHM revision
+         history                                    ! details on version/creation date
+
     use mo_nml,                  only: open_nml, position_nml, close_nml
     use mo_string_utils,         only: num2str
     
@@ -273,6 +281,8 @@ contains
     logical                                            :: file_exists
 
     ! namelist spatial & temporal resolution, otmization information
+    namelist /project_description/ project_details, setup_description, simulation_type, &
+         Conventions, contact, mHM_details, history    
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
          ALMA_convention, L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, &
          read_restart, write_restart, perform_mpr
@@ -314,6 +324,12 @@ contains
     !  Read namelist main directories
     !===============================================================
     call open_nml(file_namelist_mrm, unamelist_mrm, quiet=.true.)
+
+    !===============================================================
+    !  Read namelist specifying the project description
+    !===============================================================
+    call position_nml('project_description', unamelist_mrm)
+    read(unamelist_mrm, nml=project_description)
 
     !===============================================================
     !  Read namelist specifying the model configuration
@@ -840,13 +856,11 @@ contains
     real(dp), dimension(nColPars) :: streamflow_celerity
     real(dp), dimension(nColPars) :: g1
     real(dp), dimension(nColPars) :: g2
-    real(dp), dimension(nColPars) :: g3
-    real(dp), dimension(nColPars) :: g4
 
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
          muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope
     namelist /routing2/ streamflow_celerity
-    namelist /routing3/ g1, g2, g3, g4
+    namelist /routing3/ g1, g2
     !
     call open_nml(file_namelist, unamelist_param, quiet=.true.)
 

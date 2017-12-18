@@ -10,12 +10,15 @@
 !      Modified:
 !          David Schaefer, Aug 2015 - major rewrite
 !          Stephan Thober, Oct 2015 - adapted to mRM
-!       
+!    O. Rakovec, R. Kumar, Nov 2017 - added project description for the netcdf outputs
+!
+
 module mo_mrm_write_fluxes_states
 
   use mo_kind                 , only: i4, dp
   use mo_string_utils         , only: num2str
-  use mo_mrm_global_variables , only: gridGeoRef
+  use mo_mrm_global_variables , only: gridGeoRef, project_details, setup_description, simulation_type, &
+         Conventions, contact, mHM_details, history
   use mo_mrm_constants        , only: nodata_dp
   use mo_netcdf               , only: NcDataset, NcDimension, NcVariable
 
@@ -110,19 +113,40 @@ contains
   !     HISTORY
   !>        \author David Schaefer
   !>        \date June 2015
-  function newOutputVariable(nc, ncells, mask, avg) result(out)
-    type(NcVariable), intent(in) :: nc
-    integer(i4), intent(in)      :: ncells
-    logical, target              :: mask(:,:)
-    logical, optional            :: avg
-    type(OutputVariable)         :: out
+  !
+  !     Modified
+  !         David Schaefer, Nov 2017, added NcVariable initialization
+  function newOutputVariable(nc, name, dtype, dims, ncells, mask, avg) result(out)
+
+    type(NcDataset), intent(in)   :: nc
+    character(*), intent(in)      :: name
+    character(*), intent(in)      :: dtype
+    character(16), intent(in)     :: dims(3)
+    integer(i4), intent(in)       :: ncells
+    logical, intent(in), target   :: mask(:,:)
+    logical, intent(in), optional :: avg
+    type(OutputVariable)          :: out
 
     allocate(out%data(ncells))
-    out%nc   =  nc
-    out%mask => mask
+    out%nc   =  nc%setVariable(name, dtype, dims, deflate_level=1, shuffle=.true.)
     out%data =  0
+    out%mask => mask
     if (present(avg)) out%avg = avg
   end function newOutputVariable
+
+  ! function newOutputVariable(nc, ncells, mask, avg) result(out)
+  !   type(NcVariable), intent(in) :: nc
+  !   integer(i4), intent(in)      :: ncells
+  !   logical, target              :: mask(:,:)
+  !   logical, optional            :: avg
+  !   type(OutputVariable)         :: out
+
+  !   allocate(out%data(ncells))
+  !   out%nc   =  nc
+  !   out%mask => mask
+  !   out%data =  0
+  !   if (present(avg)) out%avg = avg
+  ! end function newOutputVariable
 
   !------------------------------------------------------------------
   !     NAME
@@ -299,7 +323,8 @@ contains
   !             Matthias Zink       , Feb. 2014 - added aditional output: pet
   !             V. Prykhodk, J. Mai , Nov. 2014 - adding new variable infilSoil - case 16
   !             David Schaefer      , Jun. 2015 - major rewrite
-  !             Stephan Thober      , Oct  2015 - adapted to mRM
+  !             Stephan Thober      , Oct. 2015 - adapted to mRM
+  !             David Schaefer      , Nov. 2016 - moved NcVariable initialization to newOutputVariable
   function newOutputDataset(ibasin, mask) result(out)
 
     use mo_mrm_global_variables,  only : outputFlxState_mrm
@@ -325,9 +350,8 @@ contains
 
     if (outputFlxState_mrm(1)) then
        ii = ii + 1
-       tmpvars(ii) = OutputVariable( &
-            nc%setVariable("Qrouted", dtype, dims1), &
-            ncells, mask, .true.)
+       tmpvars(ii) = OutputVariable(&
+            nc, "Qrouted", dtype, dims1, ncells, mask, .true.)
        call writeVariableAttributes(tmpvars(ii), "routed streamflow", "m3 s-1")
     end if
 
@@ -666,11 +690,13 @@ contains
     write(datetime,"(a4,'-',a2,'-',a2,1x,a2,':',a2,':',a2)") date(1:4), &
          date(5:6), date(7:8), time(1:2), time(3:4), time(5:6)
 
-    call nc%setAttribute("title","mRMv"//trim(version)//" simulation outputs")
-    call nc%setAttribute("creation_date",datetime)
-    call nc%setAttribute("institution",&
-         "Helmholtz Center for Environmental Research - UFZ, "// &
-         "Department Computational Hydrosystems, Stochastic Hydrology Group")
+    call nc%setAttribute("project", project_details )
+    call nc%setAttribute("setup_description",setup_description)
+    call nc%setAttribute("simulation_type",simulation_type)
+    call nc%setAttribute("Conventions",Conventions)
+    call nc%setAttribute("contact",contact)
+    call nc%setAttribute("mHM_details",trim(mHM_details)//", release mRMv"//trim(version))
+    call nc%setAttribute("history", trim(datetime)//", "//history)
 
   end function createOutputFile
 

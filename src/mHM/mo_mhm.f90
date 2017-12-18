@@ -643,7 +643,8 @@ CONTAINS
 
        case(3) ! Penman-Monteith
           pet = pet_penman  (max(netrad_in(k), 0.0_dp), temp_in(k), absvappres_in(k)/1000.0_dp, &
-               aeroResist(k,month) / windspeed_in(k), surfResist(k,month))
+               aeroResist(k,month) / windspeed_in(k), surfResist(k,month), 1.0_dp, 1.0_dp)
+  
        end select
 
        ! temporal disaggreagtion of forcing variables

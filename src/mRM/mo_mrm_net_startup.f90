@@ -334,9 +334,9 @@ contains
              kk = kk + 1
              !
              iu = (icc - 1) * cellFactorRbyH_inv + 1
-             id =       icc * cellFactorRbyH_inv
+             id =   min(icc * cellFactorRbyH_inv, nrows11)
              jl = (jcc - 1) * cellFactorRbyH_inv + 1
-             jr =       jcc * cellFactorRbyH_inv
+             jr =   min(jcc * cellFactorRbyH_inv, ncols11)
              !
              Id1(icc,jcc) = kk
              L1Id_on_L11(iu:id, jl:jr) = merge(Id1(icc,jcc), nodata_i4, mask11(iu:id, jl:jr))
@@ -2868,7 +2868,6 @@ contains
     ! level-0 information
     call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
          iStart=iStart0, iEnd=iEnd0, mask=mask0, cellsize = cellsize0 ) 
-  print *, cellsize0
     ! level-11 information
     call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
 
@@ -2963,8 +2962,8 @@ contains
 
 !              L0_link_slope = (elev0(frow, fcol) - elev0(trow, tcol))/length
               L0_link_slope = slope0(frow, fcol) / 100._dp
-              if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
-              if(L0_link_slope .GT. 0.01_dp) L0_link_slope = 0.01_dp
+!              if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
+!              if(L0_link_slope .GT. 0.01_dp) L0_link_slope = 0.01_dp
               L0_link_fAcc  = fAcc0(frow, fcol) * cellsize0**2 * 0.000001_dp
               select case (lcover0(frow, fcol))
                 case(1) ! Forest
@@ -2976,11 +2975,12 @@ contains
                 case default
                   manningsN = nodata_dp
               end select
-              print *, 'Slope: ',L0_link_slope
-              print *, 'fAcc: ', L0_link_fAcc
-              stack(ns) = param(1) * (1_dp/manningsN) * &
-                          ( (0.1_dp * L0_link_fAcc) / (2 * L0_link_fAcc**(1.0_dp - param(2)) + L0_link_fAcc**(param(2))) )**0.66666_dp *  &
-                           sqrt(L0_link_slope)
+!              print *, 'Slope: ',L0_link_slope
+!              print *, 'fAcc: ', L0_link_fAcc
+              ! stack(ns) = param(1) * (1_dp/manningsN) * &
+              !             ( (0.1_dp * L0_link_fAcc) / (2 * L0_link_fAcc**(1.0_dp - param(2)) + L0_link_fAcc**(param(2))) )**0.66666_dp *  &
+              !              sqrt(L0_link_slope)
+              stack(ns) = param(1) * sqrt(L0_link_slope )
               celerity0(frow, fcol) = stack(ns)
               ns = ns + 1                
               fId = iD0(frow, fcol)
@@ -3022,5 +3022,104 @@ contains
           stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
 
    end subroutine L11_calc_celerity
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         L0_smooth_riverslope
+  
+  !     PURPOSE
+  !>        \brief 
+
+  !>        \details 
+
+  !     INTENT(IN)
+  !>        \param[in] 
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author  Matthias Kelbling
+  !>        \date    Dec 2017
+
+  ! ------------------------------------------------------------------
+
+  subroutine L0_smooth_riverslope(iBasin)
+    use mo_mad,                  only: mad2
+    use mo_mrm_constants,        only: nodata_i4, nodata_dp
+    use mo_mrm_tools,            only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         L0_slope_mRM,        & ! IN:    slope [%]
+         L0_streamNet           ! IN:    L0 stream network, Cells outside the river-net = nodata_i4
+
+    implicit none
+
+    integer(i4), intent(in)                  :: iBasin         ! basin 
+
+    ! local
+    integer(i4)                            :: nrows0, ncols0, nCells0
+    integer(i4)                            :: iStart0, iEnd0
+    real(dp)                               :: maxslope
+    logical,     dimension(:), allocatable :: streammask0
+    real(dp),    dimension(:), allocatable :: slope0
+!    real(dp),    dimension(:)              :: mad2
+    integer(i4), dimension(:), allocatable :: streamNet0
+
+    ! level-0 information
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0,& 
+                              iStart=iStart0, iEnd=iEnd0) 
+
+    ! allocate
+    allocate ( slope0        ( nCells0 ) )
+    allocate ( streammask0   ( nCells0 ) )
+    allocate ( streamNet0    ( nCells0 ) )
+
+    ! initialize
+    slope0(:)          = nodata_dp
+    streamNet0(:)      = nodata_i4
+    streammask0(:)      = .FALSE.
+
+    ! for a single node model run
+ !   if(nNodes .GT. 1) then ! ????????????????????????????
+      ! get L0 data
+      slope0(:)       =   L0_slope_mRM(iStart0:iEnd0)
+      streamNet0(:)   =   L0_streamNet(iStart0:iEnd0)
+ !   end if
+    print *, "Smoothing river slope ..."
+    streammask0(:) = (streamNet0 .ne. nodata_i4)
+    where ( slope0 .lt. 0.0001_dp ) slope0 = 0.0001_dp
+    L0_slope_mRM(iStart0:iEnd0) = mad2(arr = slope0, z = 7.0_dp, mask = streammask0)
+!    L0_slope_mRM(iStart0:iEnd0) = slope0(:)
+    
+    ! free space
+    deallocate (&
+         slope0, streamNet0, streammask0) 
+
+   end subroutine L0_smooth_riverslope
 
 end module mo_mrm_net_startup

@@ -176,8 +176,15 @@ CONTAINS
          outputFlxState,                                    & ! definition which output to write
          inputFormat_gridded_LAI,                           & ! format of gridded LAI data(bin or nc)
          timeStep_LAI_input,                                & ! time step of gridded LAI input
-         iFlag_cordinate_sys                                  ! model run cordinate system
-
+         iFlag_cordinate_sys,                               & ! model run cordinate system
+         project_details,                                   & ! project including funding instituion., PI, etc.
+         setup_description,                                 & ! any specific description of simulation 
+         simulation_type,                                   & ! e.g. seasonal forecast, climate projection, ...
+         Conventions,                                       & ! convention used for dataset
+         contact,                                           & ! contact details, incl. PI name, modellers
+         mHM_details,                                       & ! developing institution, version, specific mHM revision
+         history                                              ! details on version/creation date
+    
     use mo_common_variables, only: &
          nProcesses, processMatrix,                         & ! process configuration
          global_parameters,                                 & ! global parameters
@@ -202,6 +209,7 @@ CONTAINS
     integer(i4), dimension(nProcesses)              :: processCase             ! Choosen process description number
     real(dp), dimension(5, nColPars)                :: dummy_2d_dp = nodata_dp ! space holder for routing parameters
     real(dp), dimension(1, nColPars)                :: dummy_2d_dp_2 = nodata_dp ! space holder for routing parameters
+    real(dp), dimension(2, nColPars)                :: dummy_2d_dp_3 = nodata_dp ! space holder for routing parameters
     ! interception
     real(dp), dimension(nColPars)                   :: canopyInterceptionFactor
     ! snow
@@ -324,6 +332,8 @@ CONTAINS
 
     ! define namelists
     ! namelist directories
+    namelist /project_description/ project_details, setup_description, simulation_type, &
+         Conventions, contact, mHM_details, history    
     namelist /directories_general/ dirConfigOut, dirCommonFiles, &
          dir_Morpho, dir_LCover,                                 &
          dir_Out, dir_RestartOut,                                &
@@ -412,6 +422,12 @@ CONTAINS
     !===============================================================
     call open_nml(file_namelist, unamelist, quiet=.true.)
 
+    !===============================================================
+    !  Read namelist specifying the project description
+    !===============================================================
+    call position_nml('project_description', unamelist)
+    read(unamelist, nml=project_description)
+    
     !===============================================================
     !  Read namelist specifying the model configuration
     !===============================================================
@@ -1299,6 +1315,16 @@ CONTAINS
        processMatrix(8, 2) = 1_i4
        processMatrix(8, 3) = sum(processMatrix(1:8, 2))
        call append(global_parameters, dummy_2d_dp_2)
+       call append(global_parameters_name, (/'dummy'/))
+    case(3)
+#ifndef MRM2MHM
+       call message('***ERROR processCase(8) equals 3, but MRM2MHM preprocessor flag is not given in Makefile')
+       stop
+#endif
+       processMatrix(8, 1) = processCase(8)
+       processMatrix(8, 2) = 2_i4
+       processMatrix(8, 3) = sum(processMatrix(1:8, 2))
+       call append(global_parameters, dummy_2d_dp_3)
        call append(global_parameters_name, (/'dummy'/))
     case DEFAULT
        call message()

@@ -26,6 +26,17 @@ module mo_mrm_global_variables
   logical :: is_start              ! flag for first timestep for mpr
 
   ! -------------------------------------------------------------------
+  ! PROJECT DESCRIPTION for the NETCDF output file
+  ! -------------------------------------------------------------------
+  character(1024),public                             :: project_details            ! project including funding instituion., PI, etc.
+  character(1024),public                             :: setup_description          ! any specific description of simulation 
+  character(1024),public                             :: simulation_type            ! e.g. seasonal forecast, climate projection, ...
+  character(256),public                              :: Conventions                ! convention used for dataset
+  character(1024),public                             :: contact                    ! contact details, incl. PI name
+  character(1024),public                             :: mHM_details                ! developing institution, specific mHM revision
+  character(1024),public                             :: history                    ! details on version/creation date
+
+  ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mRM
   ! -------------------------------------------------------------------
   integer(i4),              public :: timeStep ! [h] simulation time step (= TS) in [h]

@@ -396,8 +396,11 @@ CONTAINS
           call get_basin_info_mrm ( ii,  11, nrows, ncols,  iStart=s11,  iEnd=e11, mask=mask11  )
           call get_basin_info_mrm ( ii, 110, nrows, ncols, iStart=s110,  iEnd=e110 )
           ! initialize routing parameters (has to be called for routing option 2)
-          if (processMatrix(8, 1) .eq. 2) call mrm_update_param(ii, &
+          if ((processMatrix(8, 1) .eq. 2) .or. &
+              (processMatrix(8, 1) .eq. 3)) then 
+               call mrm_update_param(ii, &
                parameterset(processMatrix(8,3) - processMatrix(8,2) + 1:processMatrix(8,3)))
+          end if
           ! initialize variable for runoff for routing
           allocate(RunToRout(e1 - s1 + 1))
           RunToRout = 0._dp
@@ -618,7 +621,8 @@ CONTAINS
                 InflowDischarge = InflowGauge%Q(iDischargeTS,:) ! inflow discharge in [m3 s-1]
                 timestep_rout   = timestep
                 !
-             else if (processMatrix(8, 1) .eq. 2) then
+             else if ((processMatrix(8, 1) .eq. 2).or. &
+                      (processMatrix(8, 1) .eq. 3)) then
                 ! >>>
                 ! >>> adaptive timestep
                 ! >>>
@@ -711,7 +715,8 @@ CONTAINS
                 ! reset Input variables
                 InflowDischarge = 0._dp
                 RunToRout = 0._dp
-             else if (processMatrix(8, 1) .eq. 2) then
+             else if ((processMatrix(8, 1) .eq. 2) .or. &
+                      (processMatrix(8, 1) .eq. 3)) then
                 if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
                    do jj = 1, nint(tsRoutFactorIn)
                       mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)

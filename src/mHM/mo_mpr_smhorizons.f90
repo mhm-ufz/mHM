@@ -419,6 +419,8 @@ contains
 
           end do celllloop0
           !$OMP END DO
+          !$OMP END PARALLEL
+
           beta0 = Bd0*param(4)
 
           !---------------------------------------------
@@ -435,7 +437,6 @@ contains
           L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
 
-          !$OMP END PARALLEL
        end do
        ! to handle multiple soil horizons with unique soil class   
     CASE(1)
@@ -539,6 +540,7 @@ contains
 
           end do celllloop1
           !$OMP END DO
+          !$OMP END PARALLEL
 
           ! beta parameter
           beta0 = Bd0*param(4)
@@ -555,7 +557,6 @@ contains
           L1_fRoots(:,h) = upscale_harmonic_mean( nL0_in_L1, Upp_row_L1, Low_row_L1, &
                Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata, fRoots0 )
 
-          !$OMP END PARALLEL
        end do
        ! anything else   
     CASE DEFAULT

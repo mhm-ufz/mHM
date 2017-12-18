@@ -22,7 +22,7 @@ Bugs resolved
 - Streamflow output is now properly written to the NetCDF. 
 
 Known bugs
-None
+- mRM restart does not work if routing resolution is different from hydrololgy resolution
 
 Restrictions
 1. For gfortran compilers mHM supports only v4.8 and higher. 

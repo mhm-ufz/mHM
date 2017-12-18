@@ -194,9 +194,9 @@ def writenetcdf(fhandle, vhandle=None, var=None, time=None, isdim=False, name=No
         for i in range(len(attributes)):
             hand.setncattr(attributes[i][0], attributes[i][1])
 
-    if var != None:
+    if var is not None:
         shand = hand.shape
-        if time != None:
+        if time is not None:
             svar = np.shape(var)
             if np.size(np.shape(time)) == 0:
                 if np.size(svar) != (np.size(shand)-1):

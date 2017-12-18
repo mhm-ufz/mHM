@@ -209,8 +209,21 @@ CONTAINS
   !>                 \f$ \rho\;[kg\;m^{-3}] \f$ is the mean atmospheric density, 
   !>                 \f$ c_p=1005.0\;J\;kg^{-1}\;K^{-1} \f$ is the specific heat of the air, 
   !>                 \f$ \gamma [kPa\;K^{-1}] \f$ is the psychrometric constant,
-  !>                 \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance and
-  !>                 \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance.
+  !>                 \f$ r_s [s m^{-1}] \f$ is the bulk canopy resistance,
+  !>                 \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance,
+  !>                 \f$ a_s [1] \f$ is the fraction of one-sided leaf area covered by stomata
+  !>                 (1 if stomata are on one side only, 2 if they are on both sides) and
+  !>                 \f$ a_sh [1] \f$ is the fraction of projected area exchanging exchanging sensible heat with the air (2)
+  !>                 Implementation refers to the so-called Penman-Montheith equation for transpiration.
+  !>                 Adjusting the arguments \f$ a_sh $\f and \f$ a_s $\f we obtain the corrected MU equation (for details
+  !>                 see Schymanski and Or, 2017). If $\f a_sh = 1 = a_s $\f Penman-Montheith equation for transpiration
+  !>                 is preserved. For reproducing characteristics of symmetrical amphistomatous leaves use
+  !>                 $\f a_sh = 2 = a_s $\f, in which case the classic PM equation is only missing a factor
+  !>                 of 2 in the nominator, as pointed out by Jarvis and McNaughton (1986, Eq. A9).
+  !>                 These analytical solutions eliminated the non-linearity problem of the saturation vapour pressure curve,
+  !>                 but they do not consider the dependency of the long-wave component of the soil surface or leaf energy balance
+  !>                 (\f$ R_ll \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
+  !>                 equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
 
   !     INTENT(IN)
   !>        \param[in] "real(dp), intent(in) :: net_rad"                net radiation \f$[W m^{-2}]\f$
@@ -218,6 +231,8 @@ CONTAINS
   !>        \param[in] "real(dp), intent(in) :: act_vap_pressure"       actual vapur pressure \f$[kPa]\f$ 
   !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
+  !>        \param[in] "real(dp), intent(in) :: a_s"                    fraction of one-sided leaf area covered by stomata \f$1\f$
+  !>        \param[in] "real(dp), intent(in) :: a_sh"                   fraction of projected area exchanging sensible heat with the air \f$1\f$
   !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s-1]\f$
 
   !     INTENT(INOUT) 
@@ -246,13 +261,19 @@ CONTAINS
 
   !     LITERATURE
   !>        \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
-  !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.  
+  !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.
+  !>        \note Schymanski, S. J., & Or, D. (2017). Leaf-scale experiments reveal an important omission in the
+  !>             Penman-Monteith equation. HESS, 21(2), 685–706.
+  !>        \note Monteith, J. L. and Unsworth, M. H. (2013) Principles of environmental physics: plants, animals,
+  !>             and the atmosphere, 4th Edn., Elsevier/Academic Press, Amsterdam, Boston.
 
   !     HISTORY
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
+  ! Modified,
+  ! Johannes Brenner, Nov 2017 - include arguments a_s and a_sh to enable corrected MU approach
 
-  elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance)
+  elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, a_sh)
 
     use mo_mhm_constants, only: DaySecs
     use mo_constants,     only: Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
@@ -264,12 +285,14 @@ CONTAINS
     real(dp), intent(in) :: act_vap_pressure       ! actual vapur pressure
     real(dp), intent(in) :: aerodyn_resistance     ! aerodynmaical resistance
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
+    real(dp), intent(in) :: a_s                    ! fraction of one-sided leaf area covered by stomata
+    real(dp), intent(in) :: a_sh                   ! bulk surface resistance
     real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
 
     pet_penman =  DaySecs / SpecHeatET_dp  *           & ! conversion factor [W m-2] to [mm d-1]
                   (slope_satpressure(tavg) * net_rad + &
-                  rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure ) / aerodyn_resistance) / &
-                  (slope_satpressure(tavg) + Psychro_dp * (1.0_dp + bulksurface_resistance/aerodyn_resistance))
+                  rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure ) * a_sh / aerodyn_resistance) / &
+                  (slope_satpressure(tavg) + Psychro_dp * a_sh / a_s * (1.0_dp + bulksurface_resistance/aerodyn_resistance))
     
   END FUNCTION pet_penman
 
@@ -418,8 +441,8 @@ CONTAINS
   !     HISTORY
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
-
-  ! 
+  !
+  
   elemental pure FUNCTION slope_satpressure(tavg)
 
     use mo_mhm_constants, only: satpressureslope1, tetens_c3

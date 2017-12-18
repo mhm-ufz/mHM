@@ -17,6 +17,28 @@
 !******************************************************************************************
 !
 !******************************************************************************************
+! PROJECT DESCRIPTION
+!******************************************************************************************
+!-----------------------------------------------------------------------------
+!> Provide details on the model simulations, to appear in the netcdf output attributes
+!-----------------------------------------------------------------------------
+&project_description
+!> project name
+project_details="mHM test basin project"
+!> any specific description of simulation
+setup_description="model run for the Mosel basin, forced with the E-OBS meteorologic data"
+!> e.g. hindcast simulation, seasonal forecast, climate projection
+simulation_type="historical simulation"
+!> convention used for dataset
+Conventions="XXX"
+!> contact details, incl. PI name, modellers
+contact="mHM developers (email:mhm-developers@ufz.de)"
+!> developing institution, specific mHM revision, latest release version (automatically included)
+mHM_details="Helmholtz Center for Environmental Research - UFZ, Department Computational Hydrosystems, Stochastic Hydrology Group"
+!> some details on data/model run version (creation date is included automatically)
+history="model run version 1"
+/
+!******************************************************************************************
 ! MRM COUPLING MODE
 !******************************************************************************************
 !-----------------------------------------------------------------------------

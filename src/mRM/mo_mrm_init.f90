@@ -654,6 +654,7 @@ CONTAINS
     use mo_mrm_constants,   only: HourSecs, given_TS
     use mo_message,         only: message
     use mo_string_utils,    only: num2str
+    use mo_utils,         only: locate
     
     implicit none
 
@@ -684,6 +685,10 @@ CONTAINS
       allocate(K(1))
       ! [s] wave travel time parameter
       K = deltaX / param(1)
+
+    ! determine routing timestep
+    index = locate(given_TS, K)
+    L11_TSrout(iBasin) = given_TS(index)
     
       ! set time-weighting scheme
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp

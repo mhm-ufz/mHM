@@ -173,7 +173,8 @@ Once the installation of CYGWIN including the packages outlined above is complet
 
 Note that Cygwin users are advised to define following flag in the Makefile, otherwise compilation won't be successful.
 \code
-EXTRA_LDFLAGS += #-Wl,--stack,12485760
+EXTRA_LDFLAGS += -Wl,--stack,12485760
+EXTRA_CFLAGS  += -Wl,--stack,12485760
 \endcode
 
 \section compile Compile mHM
@@ -195,7 +196,7 @@ Open <code>Makefile</code> and adjust at least the following settings:
 Additional assistance for editing Makefiles are available throughout the internet.
 Finally, mHM can be compiled with the simple command
 \code
-make
+make system=cygwin compiler=gnu release=debug
 \endcode
 In between two compilations, it might be useful to apply the command <code>make cleanclean</code> in order to start the next <code>make</code> from scratch
 (without using old temporary files).

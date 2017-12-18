@@ -226,9 +226,10 @@ contains
           data_dp_2d = merge(data_dp_2d,  nodata_dp, mask_global)
           ! put data in variable
           call append(L0_elev_read, pack(data_dp_2d, mask_global))
-          ! deallocate arrays
-          deallocate(data_dp_2d)
+          
        end if
+       ! deallocate arrays
+       deallocate(data_dp_2d)
        
        ! Read additional L0 data, if restart is false
        read_L0_data: if ( perform_mpr ) then
@@ -350,12 +351,12 @@ contains
          end if
          if ((processMatrix(8, 1) .eq. 1) .or. &
             (processMatrix(8, 1) .eq. 2)) then
-           allocate(data_dp_2d(size(mask_global, dim = 1), size(mask_global, dim = 2)))
-           data_dp_2d = nodata_dp
+            allocate(data_dp_2d(size(mask_global, dim = 1), size(mask_global, dim = 2)))
+            data_dp_2d = nodata_dp
          end if
-       call append( L0_slope_read,    pack(data_dp_2d, mask_global) )
-       deallocate(data_dp_2d)
-       end if
+         call append( L0_slope_read,    pack(data_dp_2d, mask_global) )
+         deallocate(data_dp_2d)
+      end if
 
        ! free memory
        deallocate(mask_global)

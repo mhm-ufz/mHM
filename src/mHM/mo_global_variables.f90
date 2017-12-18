@@ -32,8 +32,7 @@ MODULE mo_global_variables
   !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
   !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
   !           Demirel M.C.        May 2017 - added L1_petLAIcorFactor for PET correction
-
-
+  !           O. Rakovec, R.Kumar Nov 2017 - added project description for the netcdf outputs
   
   USE mo_kind,             ONLY: i4, i8, dp
   use mo_common_variables, ONLY: period
@@ -47,6 +46,17 @@ MODULE mo_global_variables
   PUBLIC :: soilType
   PUBLIC :: gridGeoRef
   PUBLIC :: basinInfo
+
+  ! -------------------------------------------------------------------
+  ! PROJECT DESCRIPTION for the NETCDF output file
+  ! -------------------------------------------------------------------
+  character(1024),public                             :: project_details            ! project including funding instituion., PI, etc.
+  character(1024),public                             :: setup_description          ! any specific description of simulation 
+  character(1024),public                             :: simulation_type            ! e.g. seasonal forecast, climate projection, ...
+  character(256),public                              :: Conventions                ! convention used for dataset
+  character(1024),public                             :: contact                    ! contact details, incl. PI name
+  character(1024),public                             :: mHM_details                ! developing institution, specific mHM revision
+  character(1024),public                             :: history                    ! details on version/creation date
 
   ! -------------------------------------------------------------------
   ! INPUT variables for configuration of mHM
