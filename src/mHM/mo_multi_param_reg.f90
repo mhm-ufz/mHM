@@ -259,7 +259,7 @@ contains
     use mo_mpr_soilmoist,       only: mpr_sm
     use mo_mpr_SMhorizons,      only: mpr_SMhorizons
     use mo_mpr_runoff,          only: mpr_runoff
-    use mo_mpr_pet,             only: pet_correctbyLAI, pet_correctbyASP, priestley_taylor_alpha, &
+    use mo_mpr_pet,             only: pet_correctbyASP, priestley_taylor_alpha, &
                                       bulksurface_resistance!, aerodynamical_resistance
     
     implicit none

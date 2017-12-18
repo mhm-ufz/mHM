@@ -200,8 +200,8 @@ CONTAINS
   !>        \details Calculates the reference evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the 
   !>                 Penman-Monteith model for every given cell by applying the equation
   !>                 \f[ PET = \frac{1}{\lambda}  \cdot
-  !>                           \frac{\Delta \cdot R_n + \frac{\rho \cdot c_p \cdot (e_s-e)}{r_a}}
-  !>                           {\Delta + \gamma \left( 1 + \frac{r_s}{r_a} \right) }         \f]
+  !>                           \frac{\Delta \cdot R_n + \rho \cdot c_p \cdot (e_s-e) \cdot \frac{a_sh}{r_a}}
+  !>                           {\Delta + \gamma \cdot \frac{a_sh}{a_s} \cdot \left( 1 + \frac{r_s}{r_a} \right) }         \f]
   !>                 where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation,
   !>                 \f$\Delta\;[kPa\;K^{-1}]\f$ is the slope of the saturation-vapour pressure curve, 
   !>                 \f$ \lambda\;[MJ\;kg^{-1}] \f$ is the latent heat of vaporization, 
@@ -213,16 +213,16 @@ CONTAINS
   !>                 \f$ r_a [s m^{-1}] \f$ is the aerodynamic resistance,
   !>                 \f$ a_s [1] \f$ is the fraction of one-sided leaf area covered by stomata
   !>                 (1 if stomata are on one side only, 2 if they are on both sides) and
-  !>                 \f$ a_sh [1] \f$ is the fraction of projected area exchanging exchanging sensible heat with the air (2)
+  !>                 \f$ a_{sh} [-] \f$ is the fraction of projected area exchanging sensible heat with the air (2)
   !>                 Implementation refers to the so-called Penman-Montheith equation for transpiration.
-  !>                 Adjusting the arguments \f$ a_sh $\f and \f$ a_s $\f we obtain the corrected MU equation (for details
-  !>                 see Schymanski and Or, 2017). If $\f a_sh = 1 = a_s $\f Penman-Montheith equation for transpiration
+  !>                 Adjusting the arguments \f$ a_{sh} \f$ and \f$ a_s \f$ we obtain the corrected MU equation (for details
+  !>                 see Schymanski and Or, 2017). If \f$ a_{sh} = 1 = a_s \f$ Penman-Montheith equation for transpiration
   !>                 is preserved. For reproducing characteristics of symmetrical amphistomatous leaves use
-  !>                 $\f a_sh = 2 = a_s $\f, in which case the classic PM equation is only missing a factor
+  !>                 \f$ a_{sh} = 2 = a_s \f$, in which case the classic PM equation is only missing a factor
   !>                 of 2 in the nominator, as pointed out by Jarvis and McNaughton (1986, Eq. A9).
   !>                 These analytical solutions eliminated the non-linearity problem of the saturation vapour pressure curve,
   !>                 but they do not consider the dependency of the long-wave component of the soil surface or leaf energy balance
-  !>                 (\f$ R_ll \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
+  !>                 (\f$ R_l \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
   !>                 equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
 
   !     INTENT(IN)
@@ -232,8 +232,8 @@ CONTAINS
   !>        \param[in] "real(dp), intent(in) :: aerodyn_resistance"     aerodynmaical resistance \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: bulksurface_resistance" bulk surface resistance  \f$s\;m^{-1}\f$
   !>        \param[in] "real(dp), intent(in) :: a_s"                    fraction of one-sided leaf area covered by stomata \f$1\f$
-  !>        \param[in] "real(dp), intent(in) :: a_sh"                   fraction of projected area exchanging sensible heat with the air \f$1\f$
-  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s-1]\f$
+  !>        \param[in] "real(dp), intent(in) :: a_sh"     fraction of projected area exchanging sensible heat with the air \f$1\f$
+  !>        \param[in] "real(dp)             :: pet_penman"             reference evapotranspiration \f$[mm\;s^{-1}]\f$
 
   !     INTENT(INOUT) 
   !         None
@@ -263,7 +263,7 @@ CONTAINS
   !>        \note Allen, R. G. R., Pereira, L., Raes, D., & Smith, M. (1998). Crop evapotranspiration - Guidelines for 
   !>             computing crop water requirements - FAO Irrigation and drainage paper 56. Rome.
   !>        \note Schymanski, S. J., & Or, D. (2017). Leaf-scale experiments reveal an important omission in the
-  !>             Penman-Monteith equation. HESS, 21(2), 685–706.
+  !>             Penman-Monteith equation. HESS, 21(2), 685-706.
   !>        \note Monteith, J. L. and Unsworth, M. H. (2013) Principles of environmental physics: plants, animals,
   !>             and the atmosphere, 4th Edn., Elsevier/Academic Press, Amsterdam, Boston.
 

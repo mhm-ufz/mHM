@@ -978,7 +978,7 @@ CONTAINS
   !>                       neutrons (N) is calculated
   !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
   !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
+  !>                       \f$ r \f$ = Pearson product-moment CORRELATION coefficient \n
   !>                       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM \n
   !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
   !>                 is calculated and the objective function for a given basin \f$ i \f$ is
@@ -1491,7 +1491,7 @@ CONTAINS
     use mo_init_states,          only: get_basin_info
     use mo_mhm_eval,             only: mhm_eval
     use mo_errormeasures,        only: kge !, sse, rmse
-    use mo_moment,               only: correlation ! mean ! JBJBJBJB
+    ! use mo_moment,               only: correlation ! mean ! JBJBJBJB
     use mo_message,              only: message
     ! use mo_standard_score,       only: standard_score ! JBJBJBJB
     use mo_string_utils,         only: num2str

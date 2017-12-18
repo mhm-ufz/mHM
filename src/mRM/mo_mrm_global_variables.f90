@@ -58,12 +58,15 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
   character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
-  character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory wherse simulated total runoff files are located
+  character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
-  
+
+  character(256),                            public :: filenameTotalRunoff ! Filename of simulated total runoff file
+  character(256),                            public :: varnameTotalRunoff ! variable name of total runoff
+
   ! ------------------------------------------------------------------
   ! CONSTANT 
   ! ------------------------------------------------------------------

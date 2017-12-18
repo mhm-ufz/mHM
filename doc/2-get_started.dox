@@ -25,7 +25,7 @@ The official netcdf documentation can be found under:\n
 If not jet available you need to <b>install curl</b> on ypur computer. Download and unpack curl,
 go to the related folders and use the following commands:
 \code
-  cd /Downloads/curl-7.52.1
+  cd /Downloads/curl-7.57
   CDIR=/usr/local   
   ./configure --prefix=${CDIR}
   sudo make check
@@ -37,7 +37,7 @@ some folder (not the place where you will install them, e.g., /Downloads/).
 
 <b>Download and unpack zlib</b>, go to the related folder and use the following commands:
 \code
-  cd /Downloads/zlib-1.2.10
+  cd /Downloads/zlib-1.2.11
   ZDIR=/usr/local
   ./configure --prefix=${ZDIR}
   make check
@@ -46,7 +46,7 @@ some folder (not the place where you will install them, e.g., /Downloads/).
 
 <b>Download and unpack szip</b>, go to the related folder and use the following commands:
 \code
-  cd /Downloads/szip-2.1
+  cd /Downloads/szip-2.1.1
   SDIR=/usr/local
   ./configure --prefix=${SDIR} sudo make check
   sudo make install
@@ -55,7 +55,7 @@ some folder (not the place where you will install them, e.g., /Downloads/).
 
 <b>Download and unpack hdf5</b>, go to the related folder and use the following commands:
 \code
-  cd /Downloads/hdf5-1.8.18
+  cd /Downloads/hdf5-1.8.19
   H5DIR=/usr/local
   ./configure --with-zlib=${ZDIR} --prefix=${H5DIR}
   make check
@@ -64,7 +64,7 @@ some folder (not the place where you will install them, e.g., /Downloads/).
 
 <b>Download and unpack netCDF for C </b>, which is needed for Fortran. Go to the related folder and use with the following commands:
 \code
-  cd /Downloads/netcdf-4.4.1.1
+  cd /Downloads/netcdf-4.4.4
   NCDIR=/usr/local
   LD_LIBRARY_PATH=/usr/local/lib
   CPPFLAGS=-I${H5DIR}/include LDFLAGS=-L${H5DIR}/lib ./configure --prefix=${NCDIR}
@@ -83,9 +83,9 @@ some folder (not the place where you will install them, e.g., /Downloads/).
 
 \subsection netcdfmacos Short Guide Install to NETCDF on MacOS
 
-<b>Download and unpack zlib v. 1.2.5</b>, go to the related folder and use the following commands:
+<b>Download and unpack zlib v. 1.2.11</b>, go to the related folder and use the following commands:
 \code
-    cd /Downloads/zlib-1.2.5/
+    cd /Downloads/zlib-1.2.11/
     ./configure --prefix=/usr/local
     make
     make check
@@ -93,9 +93,9 @@ some folder (not the place where you will install them, e.g., /Downloads/).
     sudo make install
 \endcode
 
-<b>Download and unpack szib v. 2.1</b>, go to the related folder and use the following commands:
+<b>Download and unpack szib v. 2.1.1</b>, go to the related folder and use the following commands:
 \code
-    cd /Downloads/szip-2.1/
+    cd /Downloads/szip-2.1.1/
     sudo ./configure --prefix=/usr/local
     F77=/usr/local/bin/gfortran ./configure --prefix=/usr/local
     make
@@ -103,34 +103,33 @@ some folder (not the place where you will install them, e.g., /Downloads/).
     sudo make install
 \endcode
 
-<b>Download and unpack hdf5 v. 1.8.12</b>, go to the related folder and use the following commands:
+<b>Download and unpack hdf5 v. 1.8.19</b>, go to the related folder and use the following commands:
 \code
-    cd /Downloads/hdf5-1.8.12/
+    cd /Downloads/hdf5-1.8.19/
     FC=gfortran ./configure --prefix=/usr/local --with-zlib=/usr/local --with-szlib=/usr/local --enable-production --enable-hl --with-pthread --with-pic
     make
     make check
     sudo make install
 \endcode
 
-<b>Download and unpack netCDF for C v. 4.3.0</b>, which is needed for Fortran. This fixes a bug in source <code>ncgen3/load.c</code> ONLY for OSX 10.9 Mavericks.
-Include <code>#include <config.h></code> before <code>#include <stdio.h></code>. Go to the related folder and use with the following commands:
+<b>Download and unpack netCDF for C v. 4.4.4</b>, which is needed for Fortran. Go to the related folder and use with the following commands:
 \code
-    cd /Downloads/netcdf-4.3.0/
+    cd /Downloads/netcdf-4.4.4/
     CPPFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure --prefix=/usr/local/
     make
     make check
     sudo make install
 \endcode
 
-<b>Download and unpack netCDF for Fortran v. 4.2.0</b>, go to the related folder and use the following commands:
+<b>Download and unpack netCDF for Fortran v. 4.4.4</b>, go to the related folder and use the following commands:
 
 For NAG compiler only:
 \code
-  FC=nagfor LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' FCFLAGS="-fpp -mismatch_all -kind=byte" FFLAGS="-fpp -mismatch_all -kind=byte" ./configure --prefix=/usr/local/netcdf_4.2_nag53
+  FC=nagfor LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' FCFLAGS="-fpp -mismatch_all -kind=byte" FFLAGS="-fpp -mismatch_all -kind=byte" ./configure --prefix=/usr/local/netcdf_4.4_nag53
 \endcode
 For gfortran compiler only:
 \code
-  FC=gfortran LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' ./configure --prefix=/usr/local/netcdf_4.2_gfortran49
+  FC=gfortran LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' ./configure --prefix=/usr/local/netcdf_4.4_gfortran71
 \endcode
 Compile. Note that it is possible that some tests fail during the make check according to the settings of your compiler.
 \code
@@ -153,8 +152,8 @@ Second, the following hdf5 version has to be installed for netcdf-4 support. Ple
 \image html cygwin_hdf5.png "hdf5 packages for CYGWIN"
 \image latex cygwin_hdf5.png "hdf5 packages for CYGWIN" width=14cm
 
-\image html cygwin_netcdf.PNG "hdf5 packages for CYGWIN" 
-\image latex cygwin_netcdf.PNG "hdf5 packages for CYGWIN" width=14cm
+\image html cygwin_netcdf.png "hdf5 packages for CYGWIN" 
+\image latex cygwin_netcdf.png "hdf5 packages for CYGWIN" width=14cm
 
 Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_liggfortran) have to be installed
 
@@ -249,7 +248,6 @@ Gridded LAI data must be provided on a daily time-step at the Level-0 resolution
 *      -# PET after Penman-Monteith (processCase(5)=3)
 *  - Proccess case 8 - routing  can be activated (=1) or deactivated (=0). 
 \li <b>Annual Cycles:</b> Values for pan evaporation hold in impervious regions only. The meteorological forcing table disaggregates daily input data to hourly values.
-*/
 
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
 
@@ -284,6 +282,9 @@ Objective functions currently implemented in mHM are:
 \li <b>lnNSE:</b> logarithmic Nash-Sutcliffe Efficiency, recommended for fitting low flows.
 \li <b>0.5*(NSE+lnNSE):</b> weights both NSE and lnNSE by 50%, roughly fits high and low flows.
 \li <b>Likelihood:</b> The confidence bands are probability density functions that capture variable errors, recommended for hydrological discharge.
+\li <b>KGE:</b> Kling Gupta model efficiency: combined measure for variability, bias and correlation
+\li <b>PD:</b> Pattern dissimilarity (PD) of spatially distributed soil moisture  
+\li <b>ETC:</b> Combination of other multi-objective functions (streamflow, TWS anomaly, evapotranspiration, soil moisture), see mhm.nml for details
 
 \subsection optisettings Calibration Settings for mHM
 
