@@ -73,7 +73,8 @@ type(NcDimension)        :: dim_y, dim_x, dim_time
 type(NcVariable)         :: var_lat, var_lon, var_x, var_y, var_time
 type(NcVariable)         :: var_pre, var_tmin, var_tmax
 type(NcVariable)         :: var_eabs, var_swin, var_swrad_dif
-type(NcVariable)         :: var_net_rad, var_lwrad, var_lradnet, var_albedo
+type(NcVariable)         :: var_net_rad, var_sradnet, var_lwrad, var_lradnet
+type(NcVariable)         :: var_albedo
 type(NcVariable)         :: var_alb_ws, var_alb_bs
 !
 character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon"
@@ -81,8 +82,8 @@ character(*), parameter  :: vname_y="yc", vname_x="xc"
 character(*), parameter  :: vname_pre="pre", vname_tmin="tmin", vname_tmax="tmax"
 character(*), parameter  :: vname_eabs="eabs", vname_vpd="vpd"
 character(*), parameter  :: vname_swin="swrad_in", vname_swdif="swrad_diffuse"
-character(*), parameter  :: vname_net_rad="net_rad", vname_lradnet="net_lwrad"
-character(*), parameter  :: vname_lwrad="lwrad_in"
+character(*), parameter  :: vname_net_rad="net_rad", vname_sradnet="net_swrad"
+character(*), parameter  :: vname_lwrad="lwrad_in", vname_lradnet="net_lwrad"
 character(*), parameter  :: vname_alb_ws="albedo_ws", vname_alb_bs="albedo_bs", vname_albedo="albedo"
 real(dp),    allocatable :: wlat(:,:), wlon(:,:)
 integer(i4), allocatable :: wtime(:), wxc(:), wyc(:)
@@ -116,6 +117,7 @@ real(dp),     dimension(:), allocatable :: s_hum        !/* array of site humidi
 real(dp),     dimension(:), allocatable :: s_srad       !/* array of site shortwave radiation values */
 real(dp),     dimension(:), allocatable :: s_srad_dif   !/* array of site shortwave radiation values */
 real(dp),     dimension(:), allocatable :: s_lrad       !/* array of site longwave radiation values */
+real(dp),     dimension(:), allocatable :: s_sradnet    !/* array of site net shortwave radiation values */
 real(dp),     dimension(:), allocatable :: s_lradnet    !/* array of site net longwave radiation values */
 real(dp),     dimension(:), allocatable :: s_dayl       !/* array of site daylength values */
 real(dp),     dimension(:), allocatable :: s_swe        !/* array of site snow water equivalent values (cm) */
@@ -127,6 +129,7 @@ real(dp),     dimension(:,:,:), allocatable :: out_srad_dif !/* array of shortwa
 !
 ! additional optional output
 real(dp),     dimension(:,:,:), allocatable :: out_net_rad  !/* array of site net radiation values (W m-2) */
+real(dp),     dimension(:,:,:), allocatable :: out_sradnet  !/* array of site net longwave radiation values (W m-2) */
 real(dp),     dimension(:,:,:), allocatable :: out_lradnet  !/* array of site net longwave radiation values (W m-2) */
 real(dp),     dimension(:,:,:), allocatable :: out_lwrad    !/* array of longwave radiation (W m-2) */
 real(dp),     dimension(:,:,:), allocatable :: out_albedo   !/* array of albedo (--) */
@@ -333,6 +336,7 @@ allocate(out_swrad(dim_size(1),dim_size(2),ndays))
 allocate(out_srad_dif(dim_size(1),dim_size(2),ndays))
 if (netrad .gt. 0_i4) then
   allocate(out_net_rad(dim_size(1),dim_size(2),ndays))
+  allocate(out_sradnet(dim_size(1),dim_size(2),ndays))
   allocate(out_albedo(dim_size(1),dim_size(2),ndays))
 end if
 if (netlwrad .gt. 0_i4) then
@@ -406,6 +410,7 @@ do row = 1, dim_size(1), 1
       allocate(s_srad_dif(ndays_m))
       allocate(s_lrad(ndays_m))
       allocate(s_lradnet(ndays_m))
+      allocate(s_sradnet(ndays_m))
       allocate(s_dayl(ndays_m))
       !
       ! fill variables
@@ -437,6 +442,7 @@ do row = 1, dim_size(1), 1
     if (all(mask) .or. (dem .le. wfvalue)) then
       if (netrad .gt. 0_i4) then
         out_net_rad(row,col,:) = wfvalue
+        out_sradnet(row,col,:) = wfvalue
         out_albedo(row,col,:)  = wfvalue
       end if
       if (netlwrad .gt. 0_i4) then
@@ -612,6 +618,7 @@ do row = 1, dim_size(1), 1
           albedo = alb_ws * s_srad_dif(ii) / s_srad(ii) + alb_bs * &
           ( 1.0_dp - s_srad_dif(ii) / s_srad(ii))
           out_albedo(row,col,ii)  = albedo
+          out_sradnet(row,col,ii) = s_srad(ii) *albedo
           out_net_rad(row,col,ii) = s_srad(ii) *albedo + s_lradnet(ii)
         end do
       end if
@@ -636,6 +643,7 @@ do row = 1, dim_size(1), 1
       deallocate(s_srad_dif)
       deallocate(s_lrad)
       deallocate(s_lradnet)
+      deallocate(s_sradnet)
       deallocate(s_dayl)
       !
     end if
@@ -679,6 +687,8 @@ if (netrad .gt. 0_i4) then
   var_net_rad = nc%setVariable(vname_net_rad, "f64", (/dim_x, dim_y, dim_time/))
   ! albedo (--)
   var_albedo = nc%setVariable(vname_albedo, "f64", (/dim_x, dim_y, dim_time/))
+  ! net shortwave radiation
+  var_sradnet = nc%setVariable(vname_sradnet, "f64", (/dim_x, dim_y, dim_time/))
 end if
 !
 if (netlwrad .gt. 0_i4) then
@@ -695,6 +705,7 @@ call var_swrad_dif%setFillValue(wfvalue)
 if (netrad .gt. 0_i4) then
   call var_net_rad%setFillValue(wfvalue)
   call var_albedo%setFillValue(wfvalue)
+  call var_sradnet%setFillValue(wfvalue)
 end if
 if (netlwrad .gt. 0_i4) then
   call var_lradnet%setFillValue(wfvalue)
@@ -721,6 +732,7 @@ do ii=1, ndays_m, 1
     ! net radiation (W/m2)
     call var_net_rad%setData(out_net_rad(:,:,ii), start=(/1,1,ii/))
     call var_albedo%setData(out_albedo(:,:,ii),   start=(/1,1,ii/))
+    call var_sradnet%setData(out_sradnet(:,:,ii), start=(/1,1,ii/))
   end if
   !
   if (netlwrad .gt. 0_i4) then
@@ -768,6 +780,11 @@ if (netrad .gt. 0_i4) then
   call var_albedo%setAttribute("long_name",   "Albedo")
   call var_albedo%setAttribute("units",   "-")
   call var_albedo%setAttribute("missing_value", wfvalue)
+  ! net shortwave radiation (--)
+  call var_sradnet%setAttribute("standard_name", vname_sradnet)
+  call var_sradnet%setAttribute("long_name",   "Net shortwave radiation")
+  call var_sradnet%setAttribute("units",   "W m-2")
+  call var_sradnet%setAttribute("missing_value", wfvalue)
 end if
 !
 if (netlwrad .gt. 0_i4) then
@@ -819,6 +836,7 @@ deallocate(prcp_f)
 !
 if (netrad .gt. 0_i4) then
   deallocate(out_net_rad)
+  deallocate(out_sradnet)
 end if
 !
 if (netlwrad .gt. 0_i4) then

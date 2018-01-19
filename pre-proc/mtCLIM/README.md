@@ -1,4 +1,5 @@
 ## mtCLIM preprocessor 
+## version 1.001
 
 Adapted pre-processing of meteorological input for the mesoscale hydrological model. 
 This Fortran module is based on [mtCLIM v4.3](http://www.ntsg.umt.edu/project/mt-clim.php)  
@@ -37,4 +38,4 @@ Thanks.
 Johannes Brenner, CHS - UFZ Leipzig, johannes.brenner@ufz.de  
 
 current version according to last gitlab commit:  
-ebde2c8f, origin master, 2018-01-15
+c9aaae4c, origin master, 2018-01-19
