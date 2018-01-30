@@ -244,7 +244,8 @@ set -e
 if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
-        source /etc/profile.d/000-modules.sh
+	## Following line needs to be commented out when Lmod is used (OR, 30Jan2017)
+        ## source /etc/profile.d/000-modules.sh
         if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
             module load cdo
 	else
