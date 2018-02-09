@@ -663,13 +663,13 @@ contains
     var = nc%setVariable("northing", "f64", (/ dimids1(2) /))
     call var%setData(northing)
     call var%setAttribute("units","m")
-    call var%setAttribute("long_name","y-coordinate in cartesian coordinates GK4")
+    call var%setAttribute("long_name","y-coordinate in the given coordinate system")
 
     ! easting
     var = nc%setVariable("easting", "f64", (/ dimids1(1) /))
     call var%setData(easting)
     call var%setAttribute("units","m")
-    call var%setAttribute("long_name","x-coordinate in cartesian coordinates GK4")
+    call var%setAttribute("long_name","x-coordinate in the given coordinate system")
 
     ! lon
     var = nc%setVariable("lon","f64",dimids1(1:2))

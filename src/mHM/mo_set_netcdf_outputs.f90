@@ -127,7 +127,7 @@ CONTAINS
     V(i)%att(2)%name   = "long_name"
     V(i)%att(2)%xType  = NF90_CHAR
     V(i)%att(2)%nValues= 1
-    V(i)%att(2)%values = "x-coordinate in cartesian coordinates GK4"   
+    V(i)%att(2)%values = "x-coordinate in the given coordinate system"   
     !
     i                =  2
     V(i)%name        =  Dnc(i)%name
@@ -149,7 +149,7 @@ CONTAINS
     V(i)%att(2)%name   = "long_name"
     V(i)%att(2)%xType  = NF90_CHAR
     V(i)%att(2)%nValues= 1
-    V(i)%att(2)%values = "y-coordinate in cartesian coordinates GK4"
+    V(i)%att(2)%values = "y-coordinate in the given coordinate system"
     !
     i                =  3
     V(i)%name        =  Dnc(i)%name

@@ -430,6 +430,8 @@ CONTAINS
        else if( iFlag_soilDB .eq. 1) then
           fName = file_soil_database_1
        end if
+       ! If you are getting segmentation fault with intel on large file (e.g. here on soils), then 
+       ! make sure to include following into your Marefile: INTEL_EXCLUDE  := mo_read_wrapper.f90
        call check_consistency_lut_map( reshape(L0_soilId, (/ size( L0_soilId, 1) * size( L0_soilId, 2) /)), &
             soilDB%id(:), fName)
        ! LAI
