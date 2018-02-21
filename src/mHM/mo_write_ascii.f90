@@ -686,6 +686,9 @@ CONTAINS
           if (processMatrix(iProc,1) .eq. 2) then
              write(uopti_nml,*) '&routing2'
           end if
+          if (processMatrix(iProc,1) .eq. 3) then
+             write(uopti_nml,*) '&routing3'
+          end if
        case(9)
           if (processMatrix(iProc,1) .eq. 1) then
              write(uopti_nml,*) '&geoparameter'

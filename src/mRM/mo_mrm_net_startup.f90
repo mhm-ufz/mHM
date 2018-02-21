@@ -2809,7 +2809,7 @@ contains
 !         L0_elev_mRM,         & ! IN:    elevation (sinks removed)  [m]
          L0_slope_mRM,        & ! IN:    slope [%]
          L0_LCover_mRM,       & ! IN:    Normal Landcover
-         iFlag_cordinate_sys, & ! IN:    coordinate system
+!         iFlag_cordinate_sys, & ! IN:    coordinate system
          L0_Id,               & ! IN:    level-0 id
          L0_fDir,             & ! IN:    flow direction (standard notation) L0
          L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
@@ -2850,15 +2850,15 @@ contains
     integer(i4), dimension(:),   allocatable :: nLinkToRow     
     integer(i4), dimension(:),   allocatable :: nLinkToCol  
     integer(i4)                              :: ii, rr, ns
-    integer(i4)                              :: frow, fcol, trow, tcol
+    integer(i4)                              :: frow, fcol!, trow, tcol
     integer(i4)                              :: fId,  tId
     real(dp),    dimension(:),   allocatable :: stack, append_chunk ! Stacks celerity along the L0 river-path
     integer(i4), dimension(:),   allocatable :: dummy_1d
 !    real(dp)                                 :: length
 
-    real(dp)                                 :: L0_link_fAcc
+!    real(dp)                                 :: L0_link_fAcc
     real(dp)                                 :: L0_link_slope
-    real(dp)                                 :: manningsN
+!    real(dp)                                 :: manningsN
     real(dp),    dimension(:),   allocatable :: celerity11
     real(dp),    dimension(:,:), allocatable :: celerity0
 
@@ -2950,8 +2950,8 @@ contains
            ! Init
            stack(:) = 0_dp
            ns    = 1
-           trow = frow
-           tcol = fcol
+           ! trow = frow
+           ! tcol = fcol
 
            fId = iD0( frow, fcol )
            tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
@@ -2965,17 +2965,17 @@ contains
               L0_link_slope = slope0(frow, fcol) / 100._dp
 !              if(L0_link_slope .LT. 0.0001_dp) L0_link_slope = 0.0001_dp
 !              if(L0_link_slope .GT. 0.01_dp) L0_link_slope = 0.01_dp
-              L0_link_fAcc  = fAcc0(frow, fcol) * cellsize0**2 * 0.000001_dp
-              select case (lcover0(frow, fcol))
-                case(1) ! Forest
-                  manningsN = 0.05_dp
-                case(2) ! Impervious
-                  manningsN = 0.01_dp
-                case(3) ! Pervious
-                  manningsN = 0.03_dp
-                case default
-                  manningsN = nodata_dp
-              end select
+!              L0_link_fAcc  = fAcc0(frow, fcol) * cellsize0**2 * 0.000001_dp
+              ! select case (lcover0(frow, fcol))
+              !   case(1) ! Forest
+              !     manningsN = 0.05_dp
+              !   case(2) ! Impervious
+              !     manningsN = 0.01_dp
+              !   case(3) ! Pervious
+              !     manningsN = 0.03_dp
+              !   case default
+              !     manningsN = nodata_dp
+              ! end select
 !              print *, 'Slope: ',L0_link_slope
 !              print *, 'fAcc: ', L0_link_fAcc
               ! stack(ns) = param(1) * (1_dp/manningsN) * &
@@ -3072,6 +3072,7 @@ contains
 
   subroutine L0_smooth_riverslope(iBasin)
     use mo_mad,                  only: mad2
+!    use mo_3sf,                  only: sf_dp
     use mo_mrm_constants,        only: nodata_i4, nodata_dp
     use mo_mrm_tools,            only: get_basin_info_mrm
     use mo_mrm_global_variables, only: &
@@ -3085,10 +3086,8 @@ contains
     ! local
     integer(i4)                            :: nrows0, ncols0, nCells0
     integer(i4)                            :: iStart0, iEnd0
-    real(dp)                               :: maxslope
-    logical,     dimension(:), allocatable :: streammask0
+    logical,     dimension(:), allocatable :: slopemask0
     real(dp),    dimension(:), allocatable :: slope0
-!    real(dp),    dimension(:)              :: mad2
     integer(i4), dimension(:), allocatable :: streamNet0
 
     ! level-0 information
@@ -3097,13 +3096,13 @@ contains
 
     ! allocate
     allocate ( slope0        ( nCells0 ) )
-    allocate ( streammask0   ( nCells0 ) )
+    allocate ( slopemask0   ( nCells0 ) )
     allocate ( streamNet0    ( nCells0 ) )
 
     ! initialize
     slope0(:)          = nodata_dp
     streamNet0(:)      = nodata_i4
-    streammask0(:)      = .FALSE.
+    slopemask0(:)      = .FALSE.
 
     ! for a single node model run
  !   if(nNodes .GT. 1) then ! ????????????????????????????
@@ -3112,14 +3111,18 @@ contains
       streamNet0(:)   =   L0_streamNet(iStart0:iEnd0)
  !   end if
     print *, "Smoothing river slope ..."
-    streammask0(:) = (streamNet0 .ne. nodata_i4)
-    where ( slope0 .lt. 0.0001_dp ) slope0 = 0.0001_dp
-    L0_slope_mRM(iStart0:iEnd0) = mad2(arr = slope0, z = 7.0_dp, mask = streammask0)
+!    slopemask0(:) = ((streamNet0 .ne. nodata_i4).and. (slope0 .gt. 0.0001_dp))
+    slopemask0(:) = (streamNet0 .ne. nodata_i4)
+    where ( slope0 .lt. 0.01_dp ) slope0 = 0.01_dp
+    if( count(slopemask0) .GT. 1) then
+      L0_slope_mRM(iStart0:iEnd0) = mad2(arr = slope0, z = 2.25_dp, mask = slopemask0)
+    end if
+!    L0_slope_mRM(iStart0:iEnd0) = sf_dp(arr = slope0, mask = slopemask0, iter = 3)
 !    L0_slope_mRM(iStart0:iEnd0) = slope0(:)
     
     ! free space
     deallocate (&
-         slope0, streamNet0, streammask0) 
+         slope0, streamNet0, slopemask0) 
 
    end subroutine L0_smooth_riverslope
 

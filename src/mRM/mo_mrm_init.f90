@@ -633,6 +633,9 @@ CONTAINS
 
        ! determine routing timestep
        index = locate(given_TS, K)
+       if( index .LT. 1 ) then
+         index = 1
+       end if
        L11_TSrout(iBasin) = given_TS(index)
 
     end if
@@ -714,16 +717,17 @@ CONTAINS
       ! determine routing timestep
       ! minval(K) 
       ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
+
       ! set min-wave traveltime to min given_TS
       if (ind .lt. 1) then
         ind = 1
       end if
       L11_TSrout(iBasin) = given_TS(ind)
-    
+
       ! Muskingum parameters 
-      L11_C1(s11:e11) = L11_TSrout(iBasin) / ( K * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
+      L11_C1(s11:e11) = L11_TSrout(iBasin) / ( K(:) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
       L11_C2(s11:(nNodes-L11_nOutlets(iBasin))) = 1.0_dp - L11_C1(s11:(nNodes-L11_nOutlets(iBasin))) &
-        * K / L11_TSrout(iBasin)
+        * K(:) / L11_TSrout(iBasin)
     end if
 
     deallocate(K)
