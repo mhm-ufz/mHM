@@ -726,8 +726,7 @@ CONTAINS
 
       ! Muskingum parameters 
       L11_C1(s11:e11) = L11_TSrout(iBasin) / ( K(:) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
-      L11_C2(s11:(nNodes-L11_nOutlets(iBasin))) = 1.0_dp - L11_C1(s11:(nNodes-L11_nOutlets(iBasin))) &
-        * K(:) / L11_TSrout(iBasin)
+      L11_C2(s11:e11) = 1.0_dp - L11_C1(s11:e11) * K(:) / L11_TSrout(iBasin)
     end if
 
     deallocate(K)

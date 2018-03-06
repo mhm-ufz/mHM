@@ -243,23 +243,6 @@ contains
     call var%setData(unpack(L0_fAcc(s0:e0), mask0, nodata_i4))
     call var%setAttribute("long_name", "fAcc at Level 0 (n cells)")
 
-! ADDED FOR TEST-PURPOSE
-    var = nc%setVariable("L0_LCover_1", "i32", (/rows0, cols0/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_LCover_mRM(s0:e0, 1), mask0, nodata_i4))
-    call var%setAttribute("long_name", "Land cover type 1 at Level 0 (n cells)")
-
-    var = nc%setVariable("L0_LCover_2", "i32", (/rows0, cols0/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_LCover_mRM(s0:e0, 2), mask0, nodata_i4))
-    call var%setAttribute("long_name", "Land cover type 2 at Level 0 (n cells)")
-
-    var = nc%setVariable("L0_LCover_3", "i32", (/rows0, cols0/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_LCover_mRM(s0:e0, 3), mask0, nodata_i4))
-    call var%setAttribute("long_name", "Land cover type 3 at Level 0 (n cells)")
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     var = nc%setVariable("L1_basin_Mask", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
     call var%setData(merge( 1_i4, 0_i4,  &
