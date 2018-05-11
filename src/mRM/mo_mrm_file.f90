@@ -41,7 +41,7 @@ MODULE mo_mrm_file
   !> Unit for  flow direction input data file
   INTEGER,          PARAMETER :: ufdir                   = 57                            ! 
   !> flow direction input data file
-  CHARACTER(len=*), PARAMETER :: file_slope              = 'slope.asc'                    ! flow direction
+  CHARACTER(len=*), PARAMETER :: file_slope              = 'slope.asc'                    ! slope
   !> Unit for  flow direction input data file
   INTEGER,          PARAMETER :: uslope                  = 59                            ! 
   !> Unit for  LCover input data file

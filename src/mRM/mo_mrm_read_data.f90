@@ -458,7 +458,7 @@ contains
          L0_Id, &
          L0_nCells, &
          iFlag_cordinate_sys, &
-         l0_celerity
+         L0_celerity
     
     implicit none
 
@@ -552,7 +552,7 @@ contains
     L0_nCells = size(L0_Id, 1)
 
     ! free space
-    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask)
+    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, celerity)
 
   end subroutine mrm_L0_variable_init
 

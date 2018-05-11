@@ -91,7 +91,6 @@ CONTAINS
          L11_set_drain_outlet_gauges, &
          L11_stream_features, &
          L11_flow_accumulation, &
-         L11_calc_meandering, &
          L0_smooth_riverslope
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
@@ -197,7 +196,6 @@ CONTAINS
           ! stream characteristics
           call L11_stream_features(iBasin)
           call L11_flow_accumulation(iBasin)
-          call L11_calc_meandering(iBasin)
           if(processMatrix(8, 1) .eq. 3) call L0_smooth_riverslope(iBasin)
        end do
        ! check whether there are gauges within the modelling domain

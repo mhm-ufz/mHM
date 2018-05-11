@@ -68,7 +68,7 @@ contains
   !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
   !                                              because multiple outlets could exist
   !                   Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
-  !                   Aug 2017, Matthias Kelbling - added L11_fAcc, L0_slope
+  !                   Aug 2017, Matthias Kelbling - added L11_fAcc, L0_slope, L0_celerity, L11_celerity, L11_meandering
   
   subroutine mrm_write_restart(iBasin, OutPath)
     use mo_message, only: message
@@ -132,7 +132,7 @@ contains
          L11_length,        &
          L11_aFloodPlain,   &
          L11_celerity,      &    !!! celerity
-         L11_meandering,    &    !!! meandering
+!         L11_meandering,    &    !!! meandering
          L11_LinkIn_fAcc,   &
          L11_slope,         &
          L0_slope_mRM,      &
@@ -448,10 +448,10 @@ contains
     call var%setData(L11_length(s11:e11))
     call var%setAttribute("long_name", "Total length of river link [m]")
 
-    var = nc%setVariable("L11_meandering", "f64", (/links/))
-    call var%setFillValue(nodata_dp)
-    call var%setData(L11_meandering(s11:e11))
-    call var%setAttribute("long_name", "Meandering: Proxy derived from L and Lopt")
+    ! var = nc%setVariable("L11_meandering", "f64", (/links/))
+    ! call var%setFillValue(nodata_dp)
+    ! call var%setData(L11_meandering(s11:e11))
+    ! call var%setAttribute("long_name", "Meandering: Proxy derived from L and Lopt")
 
     var = nc%setVariable("L11_LinkIn_fAcc", "f64", (/links/))
     call var%setFillValue(nodata_dp)
