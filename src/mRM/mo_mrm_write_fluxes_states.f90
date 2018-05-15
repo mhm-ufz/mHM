@@ -676,14 +676,14 @@ contains
     call var%setData(lon)
     call var%setAttribute("units","degerees_east")
     call var%setAttribute("long_name","longitude")
-    call var%setAttribute("missing_value","-9999.")
+    call var%setAttribute("missing_value",nodata_dp)
 
     ! lat
     var = nc%setVariable("lat","f64",dimids1(1:2))
     call var%setData(lat)
     call var%setAttribute("units","degerees_north")
     call var%setAttribute("long_name","latitude")
-    call var%setAttribute("missing_value","-9999.")
+    call var%setAttribute("missing_value",nodata_dp)
 
     ! global attributes
     call date_and_time(date=date, time=time)
@@ -753,7 +753,7 @@ contains
     call var%nc%setAttribute("long_name",long_name)
     call var%nc%setAttribute("unit",unit)
     call var%nc%setAttribute("scale_factor",1.0_dp)
-    call var%nc%setAttribute("missing_value", "-9999.")
+    call var%nc%setAttribute("missing_value",nodata_dp)
     call var%nc%setAttribute("coordinates","lat lon")
 
   end subroutine writeVariableAttributes
