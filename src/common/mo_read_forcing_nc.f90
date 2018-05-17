@@ -447,7 +447,7 @@ contains
 
    subroutine get_time_vector_and_select(var, fname, inctimestep, periode, time_start, time_cnt)
     !
-    use mo_kind,         only: i4, dp
+    use mo_kind,         only: i4, i8, dp
     use mo_julian,       only: julday, caldat, dec2date
     use mo_message,      only: message
     use mo_netcdf,       only: NcVariable
@@ -469,8 +469,8 @@ contains
     integer(i4)                               :: yRef, dRef, mRef, hRef, jRef ! reference time of NetCDF
     character(256)                            :: AttValues                    ! netcdf attribute values
     character(256), dimension(:), allocatable :: strArr, date, time           ! dummies for netcdf attribute handling
-    integer(i4)                               :: time_step_seconds            ! native time step converter in ncfile
-    integer(i4), allocatable, dimension(:)    :: time_data                    ! time vector
+    integer(i8)                               :: time_step_seconds            ! native time step converter in ncfile
+    integer(i8), allocatable, dimension(:)    :: time_data                    ! time vector
     type(period)                              :: nc_period                    ! period of ncfile
 
     ! time helpers
@@ -508,7 +508,7 @@ contains
     else if (strArr(1) .eq. 'minutes') then
       time_step_seconds = int(DaySecs / DayHours / 60._dp)
     else if (strArr(1) .eq. 'seconds') then
-      time_step_seconds = 1_i4
+      time_step_seconds = 1_i8
     else
        call message('***ERROR: Please provide the input data in (days, hours, minutes, seconds) ', &
                     'since YYYY-MM-DD[ HH:MM:SS] in the netcdf file. Found: ', trim(AttValues))

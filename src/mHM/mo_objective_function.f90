@@ -1025,6 +1025,7 @@ CONTAINS
 
   !     HISTORY
   !>        \author  Martin Schroen
+  !         Modified Maren Kaluza, Mar 2018 changed format string to '(I10)'
   !>        \date    Jun 2015
 
   FUNCTION objective_neutrons_kge_catchment_avg(parameterset)
@@ -1084,7 +1085,7 @@ CONTAINS
 
           ! check for enough data points in time for correlation
           if ( all(.NOT. L1_neutronsdata_mask(s1:e1,iTime))) then
-              call message('WARNING: neutrons data at time ', num2str(iTime, 'i10'), ' is empty.')
+              call message('WARNING: neutrons data at time ', num2str(iTime, '(I10)'), ' is empty.')
              !call message('WARNING: objective_neutrons_kge_catchment_avg: ignored currrent time step since less than')
              !call message('         10 valid cells available in soil moisture observation')
              mask_times(iTime) = .FALSE.

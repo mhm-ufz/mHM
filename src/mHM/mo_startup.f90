@@ -427,7 +427,11 @@ CONTAINS
   !                                                    so that doubles get the same value
   !         Matthias Zink & Matthias Cuntz, Feb 2016 - code speed up due to reformulation of CDF calculation
   !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
+  !         Maren Kaluza,                   Feb 2018 - removed slope_val, temp, only sort the index to speed
+  !                                                    up finding the empirical distribution slope_emp
 
+
+  !                                                      !                                                    
   subroutine L0_variable_init(iBasin, soilId_isPresent)
 
     use mo_global_variables, only: level0,                 &
@@ -441,7 +445,7 @@ CONTAINS
                                    L0_areaCell,            &
                                    iFlag_cordinate_sys
     use mo_append,        only: append
-    use mo_orderpack,     only: sort, sort_index
+    use mo_orderpack,     only: sort_index
     use mo_utils,         only: eq
     use mo_constants,     only: TWOPI_dp, RadiusEarth_dp
 
@@ -461,10 +465,10 @@ CONTAINS
     integer(i4)                               :: iStart, iEnd
     logical, dimension(:,:), allocatable      :: mask
 
-    real(dp), dimension(:), allocatable       :: slope_val, slope_emp, temp
+    real(dp), dimension(:), allocatable       :: slope_emp
     integer(i4), dimension(:), allocatable    :: slope_sorted_index
     
-    integer(i4)                               :: i, j, k, nH
+    integer(i4)                               :: i, j, k, nH, i_sort, i_sortpost
     real(dp)                                  :: rdum, degree_to_radian, degree_to_metre
 
     !--------------------------------------------------------
@@ -527,12 +531,10 @@ CONTAINS
     !---------------------------------------------------
     ! Estimate empirical distribution of slope
     !---------------------------------------------------
-    allocate( slope_val(nCells), slope_emp(nCells), slope_sorted_index(nCells), temp(nCells))
-    slope_val(:) = L0_slope(iStart:iEnd)
+    allocate( slope_emp(nCells), slope_sorted_index(nCells))
     
     ! get sorted data and sorted indexes to remap later
-    slope_sorted_index = sort_index(slope_val)
-    call sort(slope_val)
+    slope_sorted_index = sort_index(L0_slope(iStart:iEnd))
 
     ! empirical distribution of slopes = cumulated number points with slopes that are <= the slope at this point
     ! 
@@ -547,16 +549,18 @@ CONTAINS
     !   |__________________         |__________________
     !
     ! highest slope value = highest rank or No. of data points / (data points + 1) 
-    temp(nCells) = real(nCells, dp) / real(nCells+1,dp)
+    slope_emp(slope_sorted_index(nCells)) = real(nCells, dp) / real(nCells+1,dp)
 
     ! backward loop to check if the preceding data point has the same slope value
     do i=nCells-1,1,-1
-       if (eq(slope_val(i), slope_val(i+1))) then
+       i_sort=slope_sorted_index(i)
+       i_sortpost=slope_sorted_index(i+1)
+       if (eq(L0_slope(iStart-1+i_sort), L0_slope(iStart-1+i_sortpost))) then
           ! if yes: assign the same probabitity
-          temp(i) = temp(i+1)
+          slope_emp(i_sort) = slope_emp(i_sortpost)
        else 
           ! if not: assign rank / (data points + 1)
-          temp(i) = real(i, dp) / real(nCells+1,dp)
+          slope_emp(i_sort) = real(i, dp) / real(nCells+1,dp)
        end if
     end do
 
@@ -568,9 +572,6 @@ CONTAINS
     ! out     = [  1,  3,  6,  6,  2,  6,  7 ] / (len(out) + 1 )
     
     ! remap probabilities to its position in original data
-    do i = 1, nCells
-       slope_emp(slope_sorted_index(i))  = temp(i)
-    end do
     
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
@@ -600,7 +601,7 @@ CONTAINS
     end do
     
     ! free space
-    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_val, slope_emp, slope_sorted_index, temp)
+    deallocate(cellCoor, Id, areaCell, areaCell_2D, mask, slope_emp, slope_sorted_index)
 
   end subroutine L0_variable_init
 

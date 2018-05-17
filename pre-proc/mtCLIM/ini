@@ -1,0 +1,34 @@
+ &io_ini
+ !Loc/Name of input precipitation netCDF file
+ in_latlon = '../../test_basin/input/latlon/latlon_1.nc'
+ !Loc/Name of input precipitation netCDF file
+ in_pre = '../../test_basin/input/meteo/pre.nc'
+ !Loc/Name of input max. airT netCDF file
+ in_tmax = '../../test_basin/input/meteo/tmax.nc'
+ !Loc/Name of input min. airT netCDF file
+ in_tmin = '../../test_basin/input/meteo/tmin.nc'
+ !LocName of input dem map (.asc format)
+ in_dem = '../../test_basin/input/morph/dem.asc'
+ !Loc/Name of input aspect map (.asc format)
+ in_asp = '../../test_basin/input/morph/aspect.asc'
+ !Loc/Name of input slope map (.asc format)
+ in_slp = '../../test_basin/input/morph/slope.asc'
+ ! Loc/Name of input black-sky albedo netCDF file - 12 month climatology
+ in_alb_bs = '../../test_basin/input/albedo/albedo_bs.nc'
+ ! Loc/Name of input white-sky albedo netCDF file - 12 month climatology
+ in_alb_ws = '../../test_basin/input/albedo/albedo_ws.nc'
+ !Loc/Name of output netCDF file
+ out    = '../../test_basin/input/meteo/mtclim.nc'
+ /
+ &control_ini
+ outhum = 1             !(int) Humidity output flag (0=VPD, 1=VP)
+ netrad = 1             !(int) Net radiation estimation ? (0=NO output, 1=calc with albedo 12month climatology)
+ netlwrad = 2           !(int) Net longwave radiation estimation ? (0=NO output, 1=BRAS et al. 1999, 2=ALLEN et al. 1998)
+ lwrad = 0              !(int) Longwave radiation estimation ? (0=NO output, 1=BRAS et al. 1999, 2=BOHN et al. 2013)
+ /
+ &parameters_ini
+ site_ehoriz = 0.0      !(double) Site east horizon, degrees
+ site_whoriz = 0.0      !(double) Site west horizon, degrees
+ tmax_lr = -6.0         !(double) Maximum temperature lapse rate (deg C/ km)
+ tmin_lr = -3.0         !(double) Minimum temperature lapse rate (deg C/ km)
+ /
