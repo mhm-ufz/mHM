@@ -17,7 +17,6 @@ import xarray as xr
 import numpy as np
 import netcdf4 as nc
 from netcdf4 import NcDataset
-import matplotlib.pyplot as pt
 
 
 def find_nearest_idx(array, value):
