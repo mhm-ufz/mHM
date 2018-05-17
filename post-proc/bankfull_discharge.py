@@ -1,8 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
-Calculate the river discharge at bankfull conditions
+Author:
+    Lennart Schueler
+
+Purpose:
+    Calculate the river discharge at bankfull conditions.
 """
+
 from __future__ import division, absolute_import, print_function
 
 import argparse
