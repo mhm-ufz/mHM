@@ -42,6 +42,7 @@ MODULE mo_errormeasures
   PUBLIC :: SSE                          ! Sum of squared errors
   PUBLIC :: SAE                          ! Sum of absolute errors
   PUBLIC :: RMSE                         ! Root mean squared error
+  PUBLIC :: WNSE                         ! weighted NSE
 
   ! ------------------------------------------------------------------
 
@@ -702,6 +703,72 @@ MODULE mo_errormeasures
      MODULE PROCEDURE RMSE_sp_1d, RMSE_dp_1d, RMSE_sp_2d, RMSE_dp_2d, RMSE_sp_3d, RMSE_dp_3d
   END INTERFACE RMSE
   
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         wNSE
+
+  !     PURPOSE
+  !         Calculates the weighted Nash Sutcliffe Efficiency
+  !             wNSE = sum(x * (y - x)**2) / sum( x * (x - mean(x))**2)
+  !         where x is the observation and y is the modelled data.
+  !         This objective function is introduced in Hundecha and Bardossy, 2004.
+  !
+  !         If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !         x and y can be single or double precision. The result will have the same numerical precision.
+
+  !     CALLING SEQUENCE
+  !         out = wNSE(dat, mask=mask)
+
+  !     INTENT(IN)
+  !         real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
+  !             OR
+  !         real(sp/dp), dimension(:,:)   :: x, y    2D-array with input numbers
+  !             OR
+  !         real(sp/dp), dimension(:,:,:) :: x, y    3D-array with input numbers
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         real(sp/dp) :: wNSE         weighted Nash Sutcliffe Efficiency
+
+  !     INTENT(IN), OPTIONAL
+  !         logical     :: mask(:)     1D-array of logical values with size(x/y).
+  !             OR
+  !         logical     :: mask(:,:)   2D-array of logical values with size(x/y).
+  !             OR
+  !         logical     :: mask(:,:,:) 3D-array of logical values with size(x/y).
+  !
+  !         If present, only those locations in vec corresponding to the true values in mask are used.
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RESTRICTIONS
+  !         Input values must be floating points.
+
+  !     EXAMPLE
+  !         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !         m   = wNSE(vec1, vec2, mask=(vec >= 0.))
+  !         -> see also example in test directory
+
+  !     LITERATURE
+  !         NASH, J., & SUTCLIFFE, J. (1970). River flow forecasting through conceptual models part I: A discussion of
+  !                  principles. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6
+  !         Hundecha and Bardossy (2004). Modeling of the effect of land use changes on the runoff generation of a river
+  !                  basin through parameter regionalization of a watershed model, Journal of Hydrology, 292, 281-295
+
+  !     HISTORY
+  !         Written,  Stephan Thober, Bjoern Guse, May 2018
+  INTERFACE wNSE
+     MODULE PROCEDURE wNSE_sp_1d, wNSE_dp_1d, wNSE_dp_2d, wNSE_sp_2d, wNSE_sp_3d, wNSE_dp_3d
+  END INTERFACE wNSE
+
   ! ------------------------------------------------------------------
 
   PRIVATE
@@ -3271,4 +3338,254 @@ CONTAINS
 
   END FUNCTION RMSE_dp_3d
   
+  ! ------------------------------------------------------------------
+
+  FUNCTION wNSE_sp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(sp)                                          :: wNSE_sp_1d
+
+    INTEGER(i4)                            :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    REAL(sp)                               :: xmean
+    REAL(sp), DIMENSION(size(x))           :: v1, v2, ww
+    LOGICAL,  DIMENSION(size(x))           :: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'wNSE_sp_1d: number of arguments must be at least 2'
+    ! mean of x
+    xmean = average(x, mask=maske)
+    !
+    v1 = merge(y - x    , 0.0_sp, maske)
+    v2 = merge(x - xmean, 0.0_sp, maske)
+    ww = merge(x        , 0.0_sp, maske)
+    !
+    wNSE_sp_1d = 1.0_sp - dot_product(ww * v1,v1) / dot_product(ww * v2,v2)
+
+  END FUNCTION wNSE_sp_1d
+
+  FUNCTION wNSE_dp_1d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:),           INTENT(IN)      :: x, y
+    LOGICAL,  DIMENSION(:), OPTIONAL, INTENT(IN)      :: mask
+    REAL(dp)                                          :: wNSE_dp_1d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    REAL(dp)                                          :: xmean
+    REAL(dp), DIMENSION(size(x))                      :: v1, v2, ww
+    LOGICAL,  DIMENSION(size(x))                      :: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n = count(maske)
+    else
+       maske = .true.
+       n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'wNSE_dp_1d: number of arguments must be at least 2'
+    ! mean of x
+    xmean = average(x, mask=maske)
+    !
+    v1 = merge(y - x    , 0.0_dp, maske)
+    v2 = merge(x - xmean, 0.0_dp, maske)
+    ww = merge(x        , 0.0_dp, maske)
+    !
+    wNSE_dp_1d = 1.0_dp - dot_product(ww * v1,v1) / dot_product(ww * v2,v2)
+
+  END FUNCTION wNSE_dp_1d
+
+  FUNCTION wNSE_sp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:),           INTENT(IN)    :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)    :: mask
+    REAL(sp)                                          :: wNSE_sp_2d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    REAL(sp)                                          :: xmean
+    LOGICAL, DIMENSION(size(x, dim=1), size(x, dim=2)):: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n     = count(maske)
+    else
+       maske = .true.
+       n     = size(x, dim=1) * size(x, dim=2)
+    end if
+    !
+    if (n .LE. 1_i4) stop 'wNSE_sp_2d: number of arguments must be at least 2'
+    ! mean of x
+    xmean = average(reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:), (/size(x, dim=1)*size(x, dim=2)/)))
+    !
+    wNSE_sp_2d = 1.0_sp - sum(x * (y-x)*(y-x), mask=maske) / sum(x * (x-xmean)*(x-xmean), mask=maske)
+    !
+  END FUNCTION wNSE_sp_2d
+
+  FUNCTION wNSE_dp_2d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:),           INTENT(IN)    :: x, y
+    LOGICAL,  DIMENSION(:,:), OPTIONAL, INTENT(IN)    :: mask
+    REAL(dp)                                          :: wNSE_dp_2d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    REAL(dp)                                          :: xmean
+    LOGICAL, DIMENSION(size(x, dim=1), size(x, dim=2)):: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n     = count(maske)
+    else
+       maske = .true.
+       n     = size(x, dim=1) * size(x, dim=2)
+    end if
+    !
+    if (n .LE. 1_i4) stop 'wNSE_dp_2d: number of arguments must be at least 2'
+    ! mean of x
+    xmean = average(reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
+         mask=reshape(maske(:,:), (/size(x, dim=1)*size(x, dim=2)/)))
+    !
+    wNSE_dp_2d = 1.0_dp - sum(x * (y-x)*(y-x), mask=maske) / sum(x * (x-xmean)*(x-xmean), mask=maske)
+    !
+  END FUNCTION wNSE_dp_2d
+
+  FUNCTION wNSE_sp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:,:,:),           INTENT(IN)  :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(sp)                                          :: wNSE_sp_3d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    REAL(sp)                                          :: xmean
+    LOGICAL,  DIMENSION(size(x, dim=1), &
+         size(x, dim=2), size(x, dim=3))    :: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n     = count(maske)
+    else
+       maske = .true.
+       n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
+    end if
+    !
+    if (n .LE. 1_i4) stop 'wNSE_sp_3d: number of arguments must be at least 2'
+    ! mean of x
+    xmean = average(reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    !
+    wNSE_sp_3d = 1.0_sp - sum(x * (y-x)*(y-x), mask=maske) / sum(x * (x-xmean)*(x-xmean), mask=maske)
+    !
+  END FUNCTION wNSE_sp_3d
+
+  FUNCTION wNSE_dp_3d(x, y, mask)
+
+    USE mo_moment, ONLY: average
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:,:,:),           INTENT(IN)  :: x, y
+    LOGICAL,  DIMENSION(:,:,:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(dp)                                          :: wNSE_dp_3d
+
+    INTEGER(i4)                                       :: n
+    INTEGER(i4), DIMENSION(size(shape(x)) )           :: shapemask
+    REAL(dp)                                          :: xmean
+    LOGICAL,  DIMENSION(size(x, dim=1), &
+         size(x, dim=2), size(x, dim=3))    :: maske
+
+    if (present(mask)) then
+       shapemask = shape(mask)
+    else
+       shapemask =  shape(x)
+    end if
+    if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
+         stop 'wNSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+       maske = mask
+       n     = count(maske)
+    else
+       maske = .true.
+       n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
+    end if
+    !
+    if (n .LE. 1_i4) stop 'wNSE_dp_3d: number of arguments must be at least 2'
+    ! Average of x
+    xmean = average(reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
+         mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
+    !
+    wNSE_dp_3d = 1.0_dp - sum(x * (y-x)*(y-x), mask=maske) / sum(x * (x-xmean)*(x-xmean), mask=maske)
+    !
+  END FUNCTION wNSE_dp_3d
+
 END MODULE mo_errormeasures

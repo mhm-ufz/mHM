@@ -394,7 +394,7 @@ PROGRAM mhm_driver
 
      select case(opti_function)
 #ifdef MRM2MHM
-     case(1:9,14)
+     case(1:9,14,31)
         ! call optimization against only runoff (no other variables)
         call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
 #endif
