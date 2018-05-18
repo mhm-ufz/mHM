@@ -69,7 +69,7 @@ MKL95INC :=
 MKL95LIB := 
 
 # NETCDF
-NCDIR   := /usr/local/netcdf-fortran-4.4.1-gfortran
+NCDIR   := /usr/local/netcdf-fortran-4.4.4-gfortran
 SZLIB   := /usr/local/lib
 HDF5LIB := /usr/local/lib
 
