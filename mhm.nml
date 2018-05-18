@@ -27,7 +27,8 @@
 ! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
 ! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
 ! O. Rakovec, R. Kumar     Nov 2017  - added project description for the netcdf outputs
-
+! S. Thober, B. Guse       May 2018  - added weighted NSE
+  
 !******************************************************************************************
 ! PROJECT DESCRIPTION
 !******************************************************************************************
@@ -170,8 +171,9 @@ opti_method = 1
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted                                                       \n
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 !> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted                                                       \n
-!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)$
-!> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
+!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and basin average ET (standard score)$   \n
+!> further functions can be implemented in mo_objective_function and mo_mrm_objective_function                                      \n
+!> (31) SO: Q: 1  - weighted NSE (NSE is weighted with observed discharge)                                                          \n
 opti_function = 10
 !-----------------------------------------------------------------------------
 !> flags for reading and writing restart output, and calculating mpr
