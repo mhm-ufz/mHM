@@ -28,6 +28,7 @@
 !>                        Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q \n
 !>               (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume         \n
 !>                        Q:        2nd objective: 1.0 - NSE of discharge of months DJF                    \n
+!>               (31) SO: Q:        1.0 - wNSE - weighted NSE                                              \n
 
 !> \authors Juliane Mai
 !> \date Dec 2012
@@ -37,6 +38,7 @@
 !            Feb 2016, Juliane Mai    - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (20) using FDC and discharge of months DJF
+!            May 2018, Stephan Thober, Bjoern Guse - single objective function (21) using weighted NSE following (Hundecha and Bardossy, 2004)
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -109,6 +111,8 @@ CONTAINS
   !>        \date Dec 2012
   !         Modified,
   !               Oct 2015, Stephan Thober - only runoff objective functions
+  !               May 2018, Stephan Thober, Bjoern Guse - added weighted objective function
+  ! 
 
   FUNCTION single_objective_runoff(parameterset)
 
@@ -153,6 +157,9 @@ CONTAINS
        ! combination of KGE of every gauging station based on a power-6 norm \n
        ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) 
        single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset)
+    case (31)
+       ! weighted NSE with observed streamflow
+       single_objective_runoff = objective_weighted_nse(parameterset)
     case default
        stop "Error objective: This opti_function is either not implemented yet or is not a single-objective one."
     end select
@@ -1981,6 +1988,99 @@ CONTAINS
 
   END FUNCTION objective_multiple_gauges_kge_power6
 
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          objective_weighted_nse
+
+  !>        \brief Objective function of weighted NSE.
+
+  !>        \details The objective function only depends on a parameter vector. 
+  !>        The model will be called with that parameter vector and 
+  !>        the model output is subsequently compared to observed data.
+  !>        Therefore, the weighted Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>        \f[ wNSE = 1 - \frac{\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - Q_{model}(i))^2}
+  !>                           {\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>        is calculated and the objective function is
+  !>        \f[ obj\_value = 1- wNSE \f]
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+
+  !     INTENT(IN)
+  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return     real(dp) :: objective_weighted_nse &mdash; objective function value 
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+  !>             Actually, \f$ 1-NSE \f$ will be returned such that it can be minimized.
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         obj_value = objective_weighted_nse(para)
+
+  !     LITERATURE
+
+  !     HISTORY
+  !>        \author Stephan Thober, Bjoern Guse
+  !>        \date May 2018
+  !         Modified
+
+  FUNCTION objective_weighted_nse(parameterset)
+
+    use mo_errormeasures,    only: wnse
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: parameterset
+    real(dp)                           :: objective_weighted_nse
+
+    ! local
+    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    integer(i4)                           :: gg                       ! gauges counter
+    integer(i4)                           :: nGaugesTotal
+    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
+    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+
+    call eval(parameterset, runoff=runoff)
+    nGaugesTotal = size(runoff, dim=2)
+
+    objective_weighted_nse = 0.0_dp
+    do gg=1, nGaugesTotal
+       !
+       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+       !
+       objective_weighted_nse = objective_weighted_nse + &
+            wnse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+    end do
+    ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
+    objective_weighted_nse = 1.0_dp - objective_weighted_nse / real(nGaugesTotal,dp)
+
+    write(*,*) 'objective_weighted_nse (i.e., 1 - wNSE) = ',objective_weighted_nse
+    ! pause
+
+    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+
+  END FUNCTION objective_weighted_nse
 
   ! ------------------------------------------------------------------
 
