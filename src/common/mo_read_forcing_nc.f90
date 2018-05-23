@@ -443,6 +443,7 @@ contains
   !         Modified  Matthias Cuntz & Juliane Mai Nov 2014 - time int or double
   !                   Stephan Thober               Sep 2015 - added read for hourly data
   !                   Robert Schweppe              Nov 2017 - restructured routine, reads vector now
+  !                   Maren Kaluza                 May 2018 - fixed bug in time reading
 
 
    subroutine get_time_vector_and_select(var, fname, inctimestep, periode, time_start, time_cnt)
@@ -495,7 +496,7 @@ contains
 
     ! if existing also read in the time (only hour so far)
     hRef = 0
-    if( len(strArr) .gt. 3 ) then
+    if( size(strArr) .gt. 3 ) then
       call DIVIDE_STRING(trim(strArr(4)), ':', time)
       read(time(1),*) hRef
     end if
