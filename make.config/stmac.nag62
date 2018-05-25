@@ -28,8 +28,8 @@
 # Define subdirectories if another structure
 
 # Paths
-NAGDIR := /usr
-NAGLIB := $(NAGDIR)/local/lib
+NAGDIR := /usr/local
+NAGLIB := $(NAGDIR)/lib
 NAGBIN := $(NAGDIR)/bin
 
 GNUDIR := /usr
@@ -80,7 +80,7 @@ IMSLDIR :=
 # MKL95LIB := $(MKL95DIR)/lib/intel64
 
 # NETCDF
-NCDIR   := /usr/local/netcdf-fortran-4.4.1-nagfor
+NCDIR   := /usr/local/netcdf-fortran-4.4.4-nagfor
 SZLIB   := /usr/local
 HDF5LIB := /usr/local
 
