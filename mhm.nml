@@ -27,6 +27,7 @@
 ! Demirel M.C., Stisen S., May 2017  - added FC dependency on root fraction coef. at SM process(3)=3
 ! Demirel M.C., Stisen S., Jun 2017  - added PET correction based on LAI at PET process(5)=-1
 ! O. Rakovec, R. Kumar     Nov 2017  - added project description for the netcdf outputs
+! Lennart Schueler         May 2018  - added new paths for bankfull discharge for gw coupling
 
 !******************************************************************************************
 ! PROJECT DESCRIPTION
@@ -214,6 +215,9 @@ dir_Gauges(2)        = "test_basin_2/input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
 dir_Total_Runoff(1) = 'test_basin/output_b1/'
 dir_Total_Runoff(2) = 'test_basin_2/output/'
+!> directory where runoff at bankfull conditions can be found (only for coupling to groundwater model)
+dir_Bankfull_Runoff(1) = 'test_basin/input/optional_data/'
+dir_Bankfull_Runoff(2) = 'test_basin_2/input/optional_data/'
 /
 
 ! general directories used by mRM and mHM
@@ -608,7 +612,7 @@ processCase(7) = 1
 !> 0 - deactivated
 !> 1 - Muskingum approach
 !> 2 - adaptive timestep
-processCase(8) = 2
+processCase(8) = 1
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
