@@ -73,6 +73,7 @@ CONTAINS
   !>        \date Aug 2015
   !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
   !                   May 2016 - Stephan Thober, added warning message in case no gauge is found in modelling domain
+  !                   May 2018 - Lennart Schueler, added initialization for groundwater coupling
 
   subroutine mrm_init(L0_mask, L0_elev, L0_LCover)
 
@@ -80,7 +81,7 @@ CONTAINS
     use mo_message, only: message
     use mo_mrm_constants, only: nodata_i4
     use mo_mrm_global_variables, only: read_restart, nBasins, perform_mpr, L0_Basin, dirRestartIn, &
-         mrm_coupling_mode, basin_mrm
+         mrm_coupling_mode, basin_mrm, mrm_gw_coupling
     use mo_mrm_net_startup, only: &
          L11_variable_init, &
          L11_flow_direction, &
@@ -91,12 +92,14 @@ CONTAINS
          L11_stream_features
     use mo_mrm_read_config, only: read_mrm_config_coupling, read_mrm_config
     use mo_mrm_read_data, only: mrm_read_discharge, mrm_read_L0_data, &
-         mrm_L1_variable_init, &
-         mrm_L0_variable_init, &
-         mrm_read_total_runoff
+         mrm_L1_variable_init,  &
+         mrm_L0_variable_init,  &
+         mrm_read_total_runoff, &
+         mrm_read_bankfull_runoff
     use mo_mrm_read_latlon, only: read_latlon
     use mo_mrm_restart, only: mrm_read_restart_config
     use mo_common_variables, only: processMatrix, global_parameters
+    use mo_mrm_river_head, only: calc_channel_elevation
 
     implicit none
     ! input variables
@@ -121,7 +124,7 @@ CONTAINS
        call print_startup_message()
     else
        call message('')
-       call message('  Inititalize mRM')
+       call message('  Initialize mRM')
     end if
     
     ! ----------------------------------------------------------
@@ -220,6 +223,13 @@ CONTAINS
     end if
     ! discharge data
     call mrm_read_discharge()
+
+    if (mrm_gw_coupling) then
+        do iBasin = 1, nBasins
+            call mrm_read_bankfull_runoff(iBasin)
+        end do
+        call calc_channel_elevation()
+    end if
 
     ! ----------------------------------------------------------
     ! READ LAT & LON IF OUTPUT SHALL BE WRITTEN
