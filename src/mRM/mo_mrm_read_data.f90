@@ -1022,8 +1022,8 @@ contains
     use mo_read_forcing_nc, only: read_const_forcing_nc
     use mo_mrm_global_variables, only: &
          timestep, &
-         dirBankfullRunoff, & ! directory of bankfull_runoff file for each basin
-         L11_bankfull_runoff_in,   ! bankfull runoff at L1
+         dirBankfullRunoff, &   ! directory of bankfull_runoff file for each basin
+         L11_bankfull_runoff_in ! bankfull runoff at L1
     use mo_common_variables, only: ALMA_convention
 
     implicit none
