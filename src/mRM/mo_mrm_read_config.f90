@@ -195,6 +195,7 @@ contains
          dirLCover,                               & ! Directory where land cover files are located
          dirGauges,                               & ! Directory where discharge files are located
          dirTotalRunoff,                          & ! Directory where simulated runoff files are located
+         dirBankfullRunoff,                       & ! Directory where bankfull runoff files are located
          dirOut,                                  & ! Directory where output is written to
          dirRestartOut,                           & ! Directory where output of restart is written
          dirRestartIn,                            & ! Directory where input of restart is read from
@@ -260,6 +261,7 @@ contains
     character(256), dimension(maxNoBasins)             :: dir_LCover
     character(256), dimension(maxNoBasins)             :: dir_Gauges
     character(256), dimension(maxNoBasins)             :: dir_Total_Runoff
+    character(256), dimension(maxNoBasins)             :: dir_Bankfull_Runoff
     character(256), dimension(maxNoBasins)             :: dir_Out
     character(256), dimension(maxNoBasins)             :: dir_RestartOut
     character(256), dimension(maxNoBasins)             :: dir_RestartIn
@@ -295,7 +297,7 @@ contains
     ! namelist process selection
     namelist /processSelection/ processCase
     ! namelist directories
-    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
+    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /directories_general/ dirConfigOut, dirCommonFiles,                                   &
          dir_Morpho, dir_LCover,                                                                   &
          dir_Out, dir_RestartOut,                                                                  &
@@ -359,6 +361,7 @@ contains
     allocate(dirLCover(nBasins))
     allocate(dirGauges(nBasins))
     allocate(dirTotalRunoff(nBasins))
+    allocate(dirBankfullRunoff(nBasins))
     allocate(dirOut(nBasins))
     allocate(dirRestartOut(nBasins))
     allocate(dirRestartIn(nBasins))
@@ -468,6 +471,7 @@ contains
     dirLCover = dir_LCover(1:nBasins)
     dirGauges = dir_Gauges(1:nBasins)
     dirTotalRunoff = dir_Total_Runoff(1:nBasins)
+    dirBankfullRunoff = dir_Bankfull_Runoff(1:nBasins)
     dirOut = dir_Out(1:nBasins)
     dirRestartOut = dir_RestartOut(1:nBasins)
     dirRestartIn = dir_RestartIn(1:nBasins)
@@ -818,7 +822,10 @@ contains
 
        call message( '    FLUXES:' )
        if (outputFlxState_mrm(1)) then
-          call message( '      routed streamflow      (L11_qMod)                [mm]')
+          call message( '      routed streamflow                 (L11_qMod)                [mm]')
+       end if
+       if (outputFlxState_mrm(2)) then
+          call message( '      streamflow at bankfull conditions (L11_qBkfl)               [mm]')
        end if
     end if
 
