@@ -24,6 +24,7 @@ module mo_mrm_global_variables
   !                                ! 1 = general coupling to a model
   !                                ! 2 = specific coupling to mhm
   logical :: is_start              ! flag for first timestep for mpr
+  logical :: mrm_gw_coupling = .TRUE.
 
   ! -------------------------------------------------------------------
   ! PROJECT DESCRIPTION for the NETCDF output file
@@ -59,12 +60,14 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
+  character(256), dimension(:), allocatable, public :: dirBankfullRunoff ! Directory where simulated bankfull runoff files are located
   character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
   character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
 
   character(256),                            public :: filenameTotalRunoff ! Filename of simulated total runoff file
+  character(256),                            public :: filenameBankfullRunoff ! Filename of simulated bankfull runoff file
   character(256),                            public :: varnameTotalRunoff ! variable name of total runoff
 
   ! ------------------------------------------------------------------
@@ -308,5 +311,16 @@ module mo_mrm_global_variables
   integer(i4)                      :: timeStep_model_outputs_mrm ! timestep for writing model outputs
   logical, dimension(nOutFlxState) :: outputFlxState_mrm         ! Define model outputs see "mhm_outputs.nml"
   !                                                              ! dim1 = number of output variables to be written 
+
+  ! -------------------------------------------------------------------
+  ! GROUNDWATER COUPLING VARIABLES
+  ! -------------------------------------------------------------------
+  !
+  ! dim1 = number grid cells L1
+  real(dp), public, dimension(:), allocatable :: L11_bankfull_runoff_in
+  ! dim1 = number of basins
+  ! dim2 = number grid cells L0
+  real(dp), public, dimension(:,:), allocatable :: L0_channel_depth
+  real(dp), public, dimension(:,:), allocatable :: L0_channel_elevation
 
 end module mo_mrm_global_variables
