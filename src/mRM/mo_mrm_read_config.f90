@@ -285,8 +285,6 @@ contains
     ! namelist spatial & temporal resolution, optmization information
     namelist /project_description/ project_details, setup_description, simulation_type, &
          Conventions, contact, mHM_details, history
-    namelist /project_description/ project_details, setup_description, simulation_type, &
-         Conventions, contact, mHM_details, history    
     namelist /mainconfig/ timestep, iFlag_cordinate_sys, resolution_Routing, resolution_Hydrology, &
          ALMA_convention, L0Basin, optimize, optimize_restart, opti_method, opti_function, nBasins, &
          read_restart, write_restart, perform_mpr, filenameTotalRunoff, varnameTotalRunoff

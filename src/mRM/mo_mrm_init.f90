@@ -590,18 +590,18 @@ CONTAINS
     if (processMatrix(8, 1) .eq. 1) then
        L11_tsRout = timestep * HourSecs
 
-    call message('')
-    call message('    Basin: '//num2str(iBasin, '(i3)'))
-    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
-    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
-
-    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-        (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
-       call message('***WARNING: routing timestep is not a multiple of 24 h.')
-       call message('            Inflowgauge timeseries is averaged over values')
-       call message('            of different days, small mismatches at')
-       call message('            inflowgauge location might occur.')
-    end if
+       call message('')
+       call message('    Basin: '//num2str(iBasin, '(i3)'))
+       call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
+       call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
+       
+       if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
+            (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
+          call message('***WARNING: routing timestep is not a multiple of 24 h.')
+          call message('            Inflowgauge timeseries is averaged over values')
+          call message('            of different days, small mismatches at')
+          call message('            inflowgauge location might occur.')
+       end if
 
     else if (processMatrix(8, 1) .eq. 2) then
 

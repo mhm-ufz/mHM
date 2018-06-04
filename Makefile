@@ -94,14 +94,14 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/mHM # where are the source files
+SRCPATH    := ./src/lib ./src/common ./src/mRM # ./src/mHM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
 CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
 DOXCONFIG  := ./doc/doxygen-1.8.8.config # the doxygen config file
 #
-PROGNAME := mrm_minslope01 # Name of executable
+PROGNAME := mrm # mhm # Name of executable
 LIBNAME  := #libminpack.a # Name of library
 #
 # Options
@@ -184,8 +184,8 @@ static   := dynamic
 # Special compilation flags
 EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_INCLUDES :=
+EXTRA_DEFINES  := # -DMRM2MHM
 EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   += #-Wl,--stack,12485760
