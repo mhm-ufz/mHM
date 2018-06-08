@@ -1026,6 +1026,7 @@ contains
 
     if (processMatrix(8, 1) .eq. 1_i4) write(uopti_nml,*) '&routing1'
     if (ProcessMatrix(8, 1) .eq. 2_i4) write(uopti_nml,*) '&routing2'
+    if (ProcessMatrix(8, 1) .eq. 3_i4) write(uopti_nml,*) '&routing3'
     
     do iPar=1, size(parameters,1)
        if (maskpara(iPar)) then
