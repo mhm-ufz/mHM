@@ -50,10 +50,10 @@ Commission for providing the European soil database. \n
 for providing the CORINE land cover dataset. \n
 (http://www.eea.europa.eu/publications/COR0-landcover -- 15.04.2014)
 
-\image html moselle_eu_location.png "Location of the Moselle River basin upstream of Perl within the European domain"
+\image html moselle_eu_location.pdf "Location of the Moselle River basin upstream of Perl within the European domain"
 \anchor fig_moselle_eu_location \image latex moselle_eu_location.pdf "Location of the Moselle River basin upstream of Perl within the European domain" width=10cm
 
-\image html moselle_dem.png "Digital elevation model for the Moselle River basin upstream of Perl"
+\image html moselle_dem.pdf "Digital elevation model for the Moselle River basin upstream of Perl"
 \anchor fig_moselle_dem \image latex moselle_dem.pdf "Digital elevation model for the Moselle River basin upstream of Perl" width=10cm 
 
 */
