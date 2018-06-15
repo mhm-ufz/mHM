@@ -38,7 +38,8 @@
 !            Feb 2016, Juliane Mai    - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
 !                                     - multi-objective function (20) using FDC and discharge of months DJF
-!            May 2018, Stephan Thober, Bjoern Guse - single objective function (21) using weighted NSE following (Hundecha and Bardossy, 2004)
+!            May 2018, Stephan Thober, Bjoern Guse - single objective function (21) using weighted NSE
+!                                                    following (Hundecha and Bardossy, 2004)
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -48,14 +49,13 @@ MODULE mo_mrm_objective_function_runoff
   ! Modified Stephan Thober, Oct 2015 - removed all none runoff objectives,
   !                                     these can be found mo_objective_functions_sm
 
-  USE mo_kind, ONLY: i4, dp
+  USE mo_kind, ONLY : i4, dp
+  use mo_optimization_utils, only : eval_interface
 
   IMPLICIT NONE
 
   PRIVATE
 
-  PUBLIC :: loglikelihood           ! loglikelihood with errormodel including linear trend and lag(1)-correlation
-  PUBLIC :: loglikelihood_stddev    ! loglikelihood where error is computed from difference of obs vs model
   PUBLIC :: single_objective_runoff ! single-objective function wrapper
   PUBLIC :: multi_objective_runoff  ! multi-objective function wrapper
   PUBLIC :: extract_runoff          ! extract runoff period specified in mhm.nml from available runoff time series 
@@ -112,56 +112,70 @@ CONTAINS
   !         Modified,
   !               Oct 2015, Stephan Thober - only runoff objective functions
   !               May 2018, Stephan Thober, Bjoern Guse - added weighted objective function
-  ! 
+  !
 
-  FUNCTION single_objective_runoff(parameterset)
+  FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)
 
-    USE mo_common_variables, ONLY: opti_function
+    USE mo_common_mHM_mRM_variables, ONLY : opti_function, opti_method
+    use mo_message, only : message
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:), INTENT(IN)  :: parameterset
-    REAL(dp)                            :: single_objective_runoff
+    REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    real(dp), optional, intent(in) :: arg1
+    real(dp), optional, intent(out) :: arg2
+    real(dp), optional, intent(out) :: arg3
+    REAL(dp) :: single_objective_runoff
 
     !write(*,*) 'parameterset: ',parameterset(:)
     select case (opti_function)
     case (1)
-       ! 1.0-nse
-       single_objective_runoff = objective_nse(parameterset)
+      ! 1.0-nse
+      single_objective_runoff = objective_nse(parameterset, eval)
     case (2)
-       ! 1.0-lnnse
-       single_objective_runoff = objective_lnnse(parameterset)
+      ! 1.0-lnnse
+      single_objective_runoff = objective_lnnse(parameterset, eval)
     case (3)
-       ! 1.0-0.5*(nse+lnnse)
-       single_objective_runoff = objective_equal_nse_lnnse(parameterset)
+      ! 1.0-0.5*(nse+lnnse)
+      single_objective_runoff = objective_equal_nse_lnnse(parameterset, eval)
     case (4)
-       ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
-       single_objective_runoff = - loglikelihood_stddev(parameterset, 1.0_dp)
+      if (opti_method .eq. 0_i4) then
+        ! MCMC
+        single_objective_runoff = loglikelihood_stddev(parameterset, eval, arg1, arg2, arg3)
+      else
+        ! -loglikelihood with trend removed from absolute errors and then lag(1)-autocorrelation removed
+        single_objective_runoff = - loglikelihood_stddev(parameterset, eval, 1.0_dp)
+      end if
     case (5)
-       ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
-       single_objective_runoff = objective_power6_nse_lnnse(parameterset)
+      ! ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+      single_objective_runoff = objective_power6_nse_lnnse(parameterset, eval)
     case (6)
-       ! SSE
-       single_objective_runoff = objective_sse(parameterset)
+      ! SSE
+      single_objective_runoff = objective_sse(parameterset, eval)
     case (7)
-       ! -loglikelihood with trend removed from absolute errors
-       single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, 1.0_dp)
+      ! -loglikelihood with trend removed from absolute errors
+      single_objective_runoff = -loglikelihood_trend_no_autocorr(parameterset, eval, 1.0_dp)
     case (8)
-       ! -loglikelihood of approach 2 of Evin et al. (2013),
-       !  i.e. linear error model with lag(1)-autocorrelation on relative errors
-       single_objective_runoff = -loglikelihood_evin2013_2(parameterset)
+      if (opti_method .eq. 0_i4) then
+        ! MCMC
+        single_objective_runoff = loglikelihood_evin2013_2(parameterset, eval, regularize = .true.)
+      else
+        ! -loglikelihood of approach 2 of Evin et al. (2013),
+        !  i.e. linear error model with lag(1)-autocorrelation on relative errors
+        single_objective_runoff = -loglikelihood_evin2013_2(parameterset, eval)
+      end if
+
     case (9)
-       ! KGE
-       single_objective_runoff = objective_kge(parameterset)
+      ! KGE
+      single_objective_runoff = objective_kge(parameterset, eval)
     case (14)
-       ! combination of KGE of every gauging station based on a power-6 norm \n
-       ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) 
-       single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset)
-    case (31)
-       ! weighted NSE with observed streamflow
-       single_objective_runoff = objective_weighted_nse(parameterset)
+      ! combination of KGE of every gauging station based on a power-6 norm \n
+      ! sum[((1.0-KGE_i)/ nGauges)**6]**(1/6)
+      single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset, eval)
     case default
-       stop "Error objective: This opti_function is either not implemented yet or is not a single-objective one."
+      call message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
+      stop 1
     end select
 
   END FUNCTION single_objective_runoff
@@ -212,109 +226,38 @@ CONTAINS
   !>        \date Oct 2015 
   !         Modified,  
 
-  SUBROUTINE multi_objective_runoff(parameterset, multi_objectives) 
+  SUBROUTINE multi_objective_runoff(parameterset, eval, multi_objectives)
 
-    USE mo_common_variables, ONLY: opti_function 
-
-    IMPLICIT NONE 
-
-    REAL(dp), DIMENSION(:),              INTENT(IN)  :: parameterset 
-    REAL(dp), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: multi_objectives 
-
-    select case (opti_function) 
-    case (16) 
-       ! 1st objective: 1.0-nse 
-       ! 2nd objective: 1.0-lnnse 
-       multi_objectives = multi_objective_nse_lnnse(parameterset)
-    case (18) 
-       ! 1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
-       ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
-       multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow(parameterset)
-    case (19) 
-       ! 1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
-       ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
-       multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset) 
-    case (20) 
-       ! 1st objective: 1.0 - difference in FDC's low-segment volume
-       ! 2nd objective: 1.0 - NSE of discharge of months DJF
-       multi_objectives = multi_objective_ae_fdc_lsv_nse_djf(parameterset) 
-    case default 
-       stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one." 
-    end select
-
-  END SUBROUTINE multi_objective_runoff
-
-  ! ------------------------------------------------------------------
-
-  !      NAME
-  !          loglikelihood
-
-  !>        \brief Wrapper for loglikelihood functions.
-
-  !>        \details This wrapper picks the loglikelihood function selected from the namelist parameter
-  !>                 \e opti\_function. \n
-  !>                 It returns the return value of the selected loglikelihood function.
-  !>
-  !>                 This routine assumes that the wrapped function is a real likelihood
-  !>                 where the errors are known or modelled.
-
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: loglikelihood &mdash; loglikelihood function value
-
-  !     RESTRICTIONS
-  !>       \note The wrapped functions must return real loglikelihoods, i.e. 
-  !>        errors are either known from observations or modelled.
-
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = loglikelihood(para)
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified, 
-  FUNCTION loglikelihood(parameterset)
-
-    USE mo_common_variables, ONLY: opti_function, opti_method
+    USE mo_common_mHM_mRM_variables, ONLY : opti_function
 
     IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
-    REAL(dp)                           :: loglikelihood
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    REAL(dp), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: multi_objectives
 
     select case (opti_function)
-    case (8)
-       if (opti_method == 0) then
-          ! Approach 2 of Evin et al. (2013), i.e. linear error model with lag(1)-autocorrelation on relative errors
-          loglikelihood = loglikelihood_evin2013_2(parameterset, regularize=.true.)
-       else
-          loglikelihood = loglikelihood_evin2013_2(parameterset)
-       end if
+    case (16)
+      ! 1st objective: 1.0-nse
+      ! 2nd objective: 1.0-lnnse
+      multi_objectives = multi_objective_nse_lnnse(parameterset, eval)
+    case (18)
+      ! 1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
+      ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+      multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow(parameterset, eval)
+    case (19)
+      ! 1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
+      ! 2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+      multi_objectives = multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset, eval)
+    case (20)
+      ! 1st objective: 1.0 - difference in FDC's low-segment volume
+      ! 2nd objective: 1.0 - NSE of discharge of months DJF
+      multi_objectives = multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
     case default
-       stop "Error loglikelihood: chosen opti_function is no loglikelihood."
+      stop "Error objective: Either this opti_function is not implemented yet or it is not a multi-objective one."
     end select
 
-  END FUNCTION loglikelihood
+  END SUBROUTINE multi_objective_runoff
 
   ! ------------------------------------------------------------------
 
@@ -344,14 +287,14 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation 
+  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation
   !>                                                         between model run using parameter set and observation
   !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
 
   !     RETURN
-  !>       \return     real(dp) :: loglikelihood_stddev &mdash; logarithmic likelihood using given stddev 
-  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors 
-  !>                                                     (absolute between running model with parameterset and observation) 
+  !>       \return     real(dp) :: loglikelihood_stddev &mdash; logarithmic likelihood using given stddev
+  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors
+  !>                                                     (absolute between running model with parameterset and observation)
 
   !     RESTRICTIONS
   !>       \note Input values must be floating points.
@@ -370,78 +313,79 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood_stddev(parameterset, stddev, stddev_new, likeli_new)
-    use mo_moment,           only: mean, correlation
-    use mo_linfit,           only: linfit
-    use mo_append,           only: append
+  FUNCTION loglikelihood_stddev(parameterset, eval, stddev, stddev_new, likeli_new)
+    use mo_moment, only : mean, correlation
+    use mo_linfit, only : linfit
+    use mo_append, only : append
 
     implicit none
 
-    real(dp), dimension(:), intent(in)            :: parameterset
-    real(dp),               intent(in)            :: stddev           ! standard deviation of data
-    real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
-    real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
-    real(dp)                                      :: loglikelihood_stddev
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), intent(in) :: stddev           ! standard deviation of data
+    real(dp), intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
+    real(dp), intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+    real(dp) :: loglikelihood_stddev
 
     ! local
-    real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
-    integer(i4)                           :: nmeas
-    real(dp), dimension(:),   allocatable :: errors
-    real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c
-    real(dp)                              :: stddev_tmp
+    integer(i4) :: gg                       ! gauges counter
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+    integer(i4) :: nmeas
+    real(dp), dimension(:), allocatable :: errors
+    real(dp), dimension(:), allocatable :: obs, calc, out
+    real(dp) :: a, b, c
+    real(dp) :: stddev_tmp
 
-    call eval(parameterset, runoff=runoff)
+    call eval(parameterset, runoff = runoff)
 
     ! extract runoff and append it to obs and calc
-    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! append it to variables
-       call append( obs,  runoff_obs )
-       call append( calc, runoff_agg )
+    do gg = 1, size(runoff, dim = 2) ! second dimension equals nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! append it to variables
+      call append(obs, runoff_obs)
+      call append(calc, runoff_agg)
 
     end do
     ! ----------------------------------------
 
-    nmeas     = size(obs, dim = 1)
+    nmeas = size(obs, dim = 1)
 
     allocate(out(nmeas), errors(nmeas))
-    errors(:) = abs( calc(:) - obs(:) )
+    errors(:) = abs(calc(:) - obs(:))
 
     ! remove linear trend of errors - must be model NOT obs
     ! out = linfit(obs, errors, a=a, b=b, model2=.False.)
     ! errors(:) = errors(:) - (a + obs(:)*b)
-    out = linfit(calc, errors, a=a, b=b, model2=.False.)
-    errors(:) = errors(:) - (a + calc(:)*b)
+    out = linfit(calc, errors, a = a, b = b, model2 = .False.)
+    errors(:) = errors(:) - (a + calc(:) * b)
 
     ! remove lag(1)-autocorrelation of errors
-    c = correlation(errors(2:nmeas),errors(1:nmeas-1))
-    errors(1:nmeas-1) = errors(2:nmeas) - c*errors(1:nmeas-1)
-    errors(nmeas)     = 0.0_dp
+    c = correlation(errors(2 : nmeas), errors(1 : nmeas - 1))
+    errors(1 : nmeas - 1) = errors(2 : nmeas) - c * errors(1 : nmeas - 1)
+    errors(nmeas) = 0.0_dp
 
     ! you have to take stddev=const because otherwise loglikelihood is always N
     ! in MCMC stddev gets updated only when a better likelihood is found.
-    loglikelihood_stddev = sum( errors(:) * errors(:) / stddev**2 )
+    loglikelihood_stddev = sum(errors(:) * errors(:) / stddev**2)
     loglikelihood_stddev = -0.5_dp * loglikelihood_stddev
 
-    write(*,*) '-loglikelihood_stddev = ', -loglikelihood_stddev
+    write(*, *) '-loglikelihood_stddev = ', -loglikelihood_stddev
 
-    stddev_tmp = sqrt(sum( (errors(:) - mean(errors)) * (errors(:) - mean(errors))) / real(nmeas-1,dp))
+    stddev_tmp = sqrt(sum((errors(:) - mean(errors)) * (errors(:) - mean(errors))) / real(nmeas - 1, dp))
     if (present(stddev_new)) then
-       stddev_new = stddev_tmp
+      stddev_new = stddev_tmp
     end if
     if (present(likeli_new)) then
-       likeli_new = sum( errors(:) * errors(:) / stddev_tmp**2 )
-       likeli_new = -0.5_dp * likeli_new
+      likeli_new = sum(errors(:) * errors(:) / stddev_tmp**2)
+      likeli_new = -0.5_dp * likeli_new
     end if
 
-    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
+    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs)
     deallocate(obs, calc, out, errors)
 
   END FUNCTION loglikelihood_stddev
@@ -479,14 +423,14 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation 
+  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation
   !>                                                         between model run using parameter set and observation
   !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
 
   !     RETURN
-  !>       \return     real(dp) :: loglikelihood_evin2013_2 &mdash; logarithmic likelihood using given stddev 
-  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors 
-  !>                                                     (absolute between running model with parameterset and observation) 
+  !>       \return     real(dp) :: loglikelihood_evin2013_2 &mdash; logarithmic likelihood using given stddev
+  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors
+  !>                                                     (absolute between running model with parameterset and observation)
 
   !     RESTRICTIONS
   !>       \note Does not work with MCMC yet.
@@ -505,95 +449,96 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood_evin2013_2(parameterset, regularize)
+  FUNCTION loglikelihood_evin2013_2(parameterset, eval, regularize)
 
-    use mo_constants,        only: pi_dp
-    use mo_moment,           only: correlation
-    use mo_common_variables, only: global_parameters ! for parameter ranges --> col1=min, col2=max
-    use mo_utils,            only: eq
-    use mo_append,           only: append
+    use mo_constants, only : pi_dp
+    use mo_moment, only : correlation
+    use mo_common_variables, only : global_parameters ! for parameter ranges --> col1=min, col2=max
+    use mo_utils, only : eq
+    use mo_append, only : append
 
     implicit none
 
-    real(dp), dimension(:), intent(in)            :: parameterset
-    logical,  optional,     intent(in)            :: regularize
-    real(dp)                                      :: loglikelihood_evin2013_2
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    logical, optional, intent(in) :: regularize
+    real(dp) :: loglikelihood_evin2013_2
 
     ! local
-    real(dp), dimension(:,:), allocatable :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    real(dp)                              :: penalty                  ! penalty term due to a parmeter set out of bound
-    integer(i4)                           :: gg                       ! gauges counter
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
-    integer(i4)                           :: nmeas
-    real(dp), dimension(:),   allocatable :: errors, sigma, eta, y
-    real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b, c, vary, vary1, ln2pi, tmp
-    integer(i4)                           :: npara
-    logical                               :: iregularize
+    real(dp) :: penalty                  ! penalty term due to a parmeter set out of bound
+    integer(i4) :: gg                       ! gauges counter
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+    integer(i4) :: nmeas
+    real(dp), dimension(:), allocatable :: errors, sigma, eta, y
+    real(dp), dimension(:), allocatable :: obs, calc, out
+    real(dp) :: a, b, c, vary, vary1, ln2pi, tmp
+    integer(i4) :: npara
+    logical :: iregularize
 
     iregularize = .false.
     if (present(regularize)) iregularize = regularize
 
     npara = size(parameterset)
-    call eval(parameterset(1:npara-2), runoff=runoff)
+    call eval(parameterset(1 : npara - 2), runoff = runoff)
 
     ! extract runoff and append it to obs and calc
-    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! append it to variables
-       call append( obs,  runoff_obs )
-       call append( calc, runoff_agg )
+    do gg = 1, size(runoff, dim = 2) ! second dimension equals nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! append it to variables
+      call append(obs, runoff_obs)
+      call append(calc, runoff_agg)
 
     end do
 
     ! ----------------------------------------
 
-    nmeas     = size(obs, dim = 1 )
+    nmeas = size(obs, dim = 1)
 
-    allocate( out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
+    allocate(out(nmeas), errors(nmeas), sigma(nmeas), eta(nmeas), y(nmeas))
     ! residual errors
     errors(:) = calc(:) - obs(:)
 
     ! linear error model
-    a = parameterset(npara-1)
+    a = parameterset(npara - 1)
     b = parameterset(npara)
     sigma(:) = a + b * calc(:)
     ! standardized residual errors (SRE)
-    eta(:)   = errors(:) / sigma(:)
+    eta(:) = errors(:) / sigma(:)
 
     ! remove lag(1)-autocorrelation of SRE
-    c = correlation(eta(2:nmeas),eta(1:nmeas-1))
+    c = correlation(eta(2 : nmeas), eta(1 : nmeas - 1))
     y(1) = 0.0_dp ! only for completeness
-    y(2:nmeas) = eta(2:nmeas) - c*eta(1:nmeas-1)
+    y(2 : nmeas) = eta(2 : nmeas) - c * eta(1 : nmeas - 1)
 
     ! likelihood of residual errors
-    ln2pi = log(sqrt(2.0_dp*pi_dp))
-    vary  = 1.0_dp - c*c
+    ln2pi = log(sqrt(2.0_dp * pi_dp))
+    vary = 1.0_dp - c * c
     vary1 = 1.0_dp / vary
-    loglikelihood_evin2013_2 = -ln2pi - 0.5_dp*eta(1)*eta(1) - log(sigma(1)) & ! li(eta(1))/sigma(1)
-         - real(nmeas-1,dp)*log(sqrt(2.0_dp*pi_dp*vary)) &
-         - sum(0.5_dp*y(2:nmeas)*y(2:nmeas)*vary1) - sum(log(sigma(2:nmeas)))
+    loglikelihood_evin2013_2 = -ln2pi - 0.5_dp * eta(1) * eta(1) - log(sigma(1)) & ! li(eta(1))/sigma(1)
+            - real(nmeas - 1, dp) * log(sqrt(2.0_dp * pi_dp * vary)) &
+            - sum(0.5_dp * y(2 : nmeas) * y(2 : nmeas) * vary1) - sum(log(sigma(2 : nmeas)))
 
     if (iregularize) then
-       ! Regularistion term as deviation from initial parameter value
-       penalty = parameter_regularization(        &
-            parameterset(1:npara-2),          &        ! current parameter set 
-            global_parameters(1:npara-2,3),   &        ! prior/initial parameter set
-            global_parameters(1:npara-2,1:2), &        ! bounds
-            eq(global_parameters(1:npara-2,4),1.0_dp)) ! used/unused
+      ! Regularistion term as deviation from initial parameter value
+      penalty = parameter_regularization(&
+              parameterset(1 : npara - 2), &        ! current parameter set
+              global_parameters(1 : npara - 2, 3), &        ! prior/initial parameter set
+              global_parameters(1 : npara - 2, 1 : 2), &        ! bounds
+              eq(global_parameters(1 : npara - 2, 4), 1.0_dp)) ! used/unused
 
-       tmp = loglikelihood_evin2013_2 + penalty
-       write(*,*) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, -tmp/real(nmeas,dp)
-       loglikelihood_evin2013_2 = tmp
+      tmp = loglikelihood_evin2013_2 + penalty
+      write(*, *) '-loglikelihood_evin2013_2, + penalty, chi^2: ', -loglikelihood_evin2013_2, -tmp, -tmp / real(nmeas, dp)
+      loglikelihood_evin2013_2 = tmp
     else
-       write(*,*) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, -loglikelihood_evin2013_2/real(nmeas,dp)
+      write(*, *) '-loglikelihood_evin2013_2, chi^2: ', -loglikelihood_evin2013_2, -loglikelihood_evin2013_2 / real(nmeas, dp)
     end if
 
-    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs )
+    deallocate(runoff, runoff_agg, runoff_obs_mask, runoff_obs)
     deallocate(obs, calc, out, errors, sigma, eta, y)
 
   END FUNCTION loglikelihood_evin2013_2
@@ -601,38 +546,38 @@ CONTAINS
   ! Regularisation function sum(((para-ini)/sigma)**2)
   FUNCTION parameter_regularization(paraset, prior, bounds, mask)
 
-    use mo_constants, only: pi_dp
+    use mo_constants, only : pi_dp
 
     implicit none
 
-    real(dp), dimension(:),               intent(in) :: paraset
-    real(dp), dimension(size(paraset)),   intent(in) :: prior
-    real(dp), dimension(size(paraset),2), intent(in) :: bounds                      ! (min, max)
-    logical,  dimension(size(paraset)),   intent(in) :: mask
-    real(dp)                                         :: parameter_regularization
+    real(dp), dimension(:), intent(in) :: paraset
+    real(dp), dimension(size(paraset)), intent(in) :: prior
+    real(dp), dimension(size(paraset), 2), intent(in) :: bounds                      ! (min, max)
+    logical, dimension(size(paraset)), intent(in) :: mask
+    real(dp) :: parameter_regularization
 
     ! local variables
     integer(i4) :: ipara
     integer(i4) :: npara
-    real(dp), parameter :: onetwelveth = 1._dp/12._dp
+    real(dp), parameter :: onetwelveth = 1._dp / 12._dp
     real(dp), dimension(size(paraset)) :: sigma
 
-    npara = size(paraset,1)
+    npara = size(paraset, 1)
 
-    sigma = sqrt(onetwelveth*(bounds(:,2)-bounds(:,1))**2) ! standard deviation of uniform distribution 
-    parameter_regularization = -sum(log(sqrt(2.0_dp*pi_dp)*sigma), mask=mask)
+    sigma = sqrt(onetwelveth * (bounds(:, 2) - bounds(:, 1))**2) ! standard deviation of uniform distribution
+    parameter_regularization = -sum(log(sqrt(2.0_dp * pi_dp) * sigma), mask = mask)
 
-    do ipara=1,npara
-       if (mask(ipara)) then
-          ! if ((paraset(ipara) .lt. bounds(ipara,1)) .or. (paraset(ipara) .gt. bounds(ipara,2))) then
-          !    ! outside bounds
-          parameter_regularization = parameter_regularization - &
-               0.5_dp*((paraset(ipara)-prior(ipara))/sigma(ipara))**2
-          ! else
-          !    ! in bound
-          !    parameter_regularization = 0.0_dp
-          ! end if
-       end if
+    do ipara = 1, npara
+      if (mask(ipara)) then
+        ! if ((paraset(ipara) .lt. bounds(ipara,1)) .or. (paraset(ipara) .gt. bounds(ipara,2))) then
+        !    ! outside bounds
+        parameter_regularization = parameter_regularization - &
+                0.5_dp * ((paraset(ipara) - prior(ipara)) / sigma(ipara))**2
+        ! else
+        !    ! in bound
+        !    parameter_regularization = 0.0_dp
+        ! end if
+      end if
     end do
 
   END FUNCTION parameter_regularization
@@ -690,72 +635,73 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION loglikelihood_trend_no_autocorr(parameterset, stddev_old, stddev_new, likeli_new)
-    use mo_moment,           only: stddev
-    use mo_linfit,           only: linfit
-    use mo_append,           only: append
+  FUNCTION loglikelihood_trend_no_autocorr(parameterset, eval, stddev_old, stddev_new, likeli_new)
+    use mo_moment, only : stddev
+    use mo_linfit, only : linfit
+    use mo_append, only : append
 
     implicit none
 
-    real(dp), dimension(:), intent(in)            :: parameterset
-    real(dp),               intent(in)            :: stddev_old       ! standard deviation of data
-    real(dp),               intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
-    real(dp),               intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
-    real(dp)                                      :: loglikelihood_trend_no_autocorr
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), intent(in) :: stddev_old       ! standard deviation of data
+    real(dp), intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
+    real(dp), intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+    real(dp) :: loglikelihood_trend_no_autocorr
 
     ! local
-    real(dp), dimension(:,:), allocatable :: runoff          ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff          ! modelled runoff for a given parameter set
     !                                                        ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg              ! gauges counter
-    real(dp), dimension(:),   allocatable :: runoff_agg      ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs      ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask ! mask for aggregated measured runoff
-    integer(i4)                           :: nmeas
-    real(dp), dimension(:),   allocatable :: errors
-    real(dp), dimension(:),   allocatable :: obs, calc, out
-    real(dp)                              :: a, b
-    real(dp)                              :: stddev_tmp
+    integer(i4) :: gg              ! gauges counter
+    real(dp), dimension(:), allocatable :: runoff_agg      ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs      ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask ! mask for aggregated measured runoff
+    integer(i4) :: nmeas
+    real(dp), dimension(:), allocatable :: errors
+    real(dp), dimension(:), allocatable :: obs, calc, out
+    real(dp) :: a, b
+    real(dp) :: stddev_tmp
 
-    call eval(parameterset, runoff=runoff)
+    call eval(parameterset, runoff = runoff)
 
     ! extract runoff and append it to obs and calc
-    do gg = 1, size(runoff, dim=2) ! second dimension equals nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! append it to variables
-       call append( obs,  runoff_obs )
-       call append( calc, runoff_agg )
+    do gg = 1, size(runoff, dim = 2) ! second dimension equals nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! append it to variables
+      call append(obs, runoff_obs)
+      call append(calc, runoff_agg)
 
     end do
 
     ! ----------------------------------------
-    nmeas     = size(obs, dim = 1)
+    nmeas = size(obs, dim = 1)
 
     ! allocate output variables
     allocate(out(nmeas), errors(nmeas))
-    errors(:) = abs( calc(:) - obs(:) )
+    errors(:) = abs(calc(:) - obs(:))
 
     ! remove linear trend of errors - must be model NOT obs
-    out = linfit(calc, errors, a=a, b=b, model2=.False.)
-    errors(:) = errors(:) - (a + calc(:)*b)
+    out = linfit(calc, errors, a = a, b = b, model2 = .False.)
+    errors(:) = errors(:) - (a + calc(:) * b)
 
     ! you have to take stddev_old=const because otherwise loglikelihood_trend_no_autocorr is always N
     ! in MCMC stddev_old gets updated only when a better likelihood is found.
-    loglikelihood_trend_no_autocorr = sum( errors(:) * errors(:) / stddev_old**2 )
+    loglikelihood_trend_no_autocorr = sum(errors(:) * errors(:) / stddev_old**2)
     loglikelihood_trend_no_autocorr = -0.5_dp * loglikelihood_trend_no_autocorr
 
-    write(*,*) '-loglikelihood_trend_no_autocorr = ', -loglikelihood_trend_no_autocorr
+    write(*, *) '-loglikelihood_trend_no_autocorr = ', -loglikelihood_trend_no_autocorr
 
     stddev_tmp = 1.0_dp  ! initialization
     if (present(stddev_new) .or. present(likeli_new)) then
-       stddev_tmp = stddev(errors(:))
+      stddev_tmp = stddev(errors(:))
     end if
     if (present(stddev_new)) then
-       stddev_new = stddev_tmp
+      stddev_new = stddev_tmp
     end if
     if (present(likeli_new)) then
-       likeli_new = sum( errors(:) * errors(:) / stddev_tmp**2 )
-       likeli_new = -0.5_dp * likeli_new
+      likeli_new = sum(errors(:) * errors(:) / stddev_tmp**2)
+      likeli_new = -0.5_dp * likeli_new
     end if
 
     deallocate(runoff, runoff_agg, runoff_obs, runoff_obs_mask)
@@ -819,42 +765,43 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_lnnse(parameterset)
+  FUNCTION objective_lnnse(parameterset, eval)
 
-    use mo_errormeasures,    only: lnnse
+    use mo_errormeasures, only : lnnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_lnnse
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_lnnse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_lnnse = 0.0_dp
-    do gg=1, nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! lnNSE
-       objective_lnnse = objective_lnnse + &
-            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! lnNSE
+      objective_lnnse = objective_lnnse + &
+              lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective function value which will be minimized
-    objective_lnnse = 1.0_dp - objective_lnnse / real(nGaugesTotal,dp)
+    objective_lnnse = 1.0_dp - objective_lnnse / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_lnnse = ',objective_lnnse
+    write(*, *) 'objective_lnnse = ', objective_lnnse
     ! pause
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_lnnse
 
@@ -912,42 +859,43 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_sse(parameterset)
+  FUNCTION objective_sse(parameterset, eval)
 
-    use mo_errormeasures,    only: sse
+    use mo_errormeasures, only : sse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_sse
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_sse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_sse = 0.0_dp
-    do gg=1, nGaugesTotal
-       !
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       !
-       objective_sse = objective_sse + &
-            sse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+    do gg = 1, nGaugesTotal
+      !
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      !
+      objective_sse = objective_sse + &
+              sse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective_sse = objective_sse + sse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
-    objective_sse = objective_sse / real(nGaugesTotal,dp)
+    objective_sse = objective_sse / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_sse = ', objective_sse
+    write(*, *) 'objective_sse = ', objective_sse
     ! pause
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_sse
 
@@ -1007,42 +955,43 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_nse(parameterset)
+  FUNCTION objective_nse(parameterset, eval)
 
-    use mo_errormeasures,    only: nse
+    use mo_errormeasures, only : nse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_nse
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_nse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_nse = 0.0_dp
-    do gg=1, nGaugesTotal
-       !
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       !
-       objective_nse = objective_nse + &
-            nse( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+    do gg = 1, nGaugesTotal
+      !
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      !
+      objective_nse = objective_nse + &
+              nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective_nse = objective_nse + nse(gauge%Q, runoff_model_agg) !, runoff_model_agg_mask)
-    objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal,dp)
+    objective_nse = 1.0_dp - objective_nse / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_nse (i.e., 1 - NSE) = ',objective_nse
+    write(*, *) 'objective_nse (i.e., 1 - NSE) = ', objective_nse
     ! pause
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_nse
 
@@ -1105,47 +1054,48 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_equal_nse_lnnse(parameterset)
+  FUNCTION objective_equal_nse_lnnse(parameterset, eval)
 
-    use mo_errormeasures,    only: nse, lnnse
+    use mo_errormeasures, only : nse, lnnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_equal_nse_lnnse
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_equal_nse_lnnse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff             ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff             ! modelled runoff for a given parameter set
     !                                                           ! dim2=nGauges
-    integer(i4)                           :: gg                 ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    integer(i4) :: gg                 ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_equal_nse_lnnse = 0.0_dp
-    do gg=1, nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       !
-       ! NSE
-       objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask )
-       ! lnNSE
-       objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
-            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask )
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      !
+      ! NSE
+      objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
+              nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+      ! lnNSE
+      objective_equal_nse_lnnse = objective_equal_nse_lnnse + &
+              lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective function value which will be minimized
-    objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal,dp)
+    objective_equal_nse_lnnse = 1.0_dp - 0.5_dp * objective_equal_nse_lnnse / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_equal_nse_lnnse = ',objective_equal_nse_lnnse
+    write(*, *) 'objective_equal_nse_lnnse = ', objective_equal_nse_lnnse
 
     ! clean up
-    deallocate( runoff_agg, runoff_obs )
-    deallocate( runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs)
+    deallocate(runoff_obs_mask)
 
   END FUNCTION objective_equal_nse_lnnse
 
@@ -1207,49 +1157,50 @@ CONTAINS
   !>        \date Oct 2015 
   !         Modified,  
 
-  FUNCTION multi_objective_nse_lnnse(parameterset) 
+  FUNCTION multi_objective_nse_lnnse(parameterset, eval)
 
     ! use mo_mhm_eval,         only: mhm_eval 
-    use mo_errormeasures,    only: nse, lnnse 
+    use mo_errormeasures, only : nse, lnnse
 
-    implicit none 
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: parameterset 
-    real(dp), dimension(2)             :: multi_objective_nse_lnnse 
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), dimension(2) :: multi_objective_nse_lnnse
 
     ! local 
-    real(dp), allocatable, dimension(:,:) :: runoff             ! modelled runoff for a given parameter set 
+    real(dp), allocatable, dimension(:, :) :: runoff             ! modelled runoff for a given parameter set
     !                                                           ! dim2=nGauges 
-    integer(i4)                           :: gg                 ! gauges counter 
-    integer(i4)                           :: nGaugesTotal 
-    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
-    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
-    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff 
+    integer(i4) :: gg                 ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
 
     ! call mhm_eval(parameterset, runoff=runoff) 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2) 
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
-    multi_objective_nse_lnnse = 0.0_dp 
-    do gg=1, nGaugesTotal 
-       ! extract runoff 
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask ) 
-       ! 
-       ! NSE 
-       multi_objective_nse_lnnse(1) = multi_objective_nse_lnnse(1) + & 
-            nse(   runoff_obs, runoff_agg, mask=runoff_obs_mask ) 
-       ! lnNSE 
-       multi_objective_nse_lnnse(2) = multi_objective_nse_lnnse(2) + & 
-            lnnse( runoff_obs, runoff_agg, mask=runoff_obs_mask ) 
+    multi_objective_nse_lnnse = 0.0_dp
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      !
+      ! NSE
+      multi_objective_nse_lnnse(1) = multi_objective_nse_lnnse(1) + &
+              nse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
+      ! lnNSE
+      multi_objective_nse_lnnse(2) = multi_objective_nse_lnnse(2) + &
+              lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective function value which will be minimized 
-    multi_objective_nse_lnnse(:) = 1.0_dp - multi_objective_nse_lnnse(:) / real(nGaugesTotal,dp) 
+    multi_objective_nse_lnnse(:) = 1.0_dp - multi_objective_nse_lnnse(:) / real(nGaugesTotal, dp)
 
     ! write(*,*) 'multi_objective_nse_lnnse = ',multi_objective_nse_lnnse 
 
     ! clean up 
-    deallocate( runoff_agg, runoff_obs ) 
-    deallocate( runoff_obs_mask ) 
+    deallocate(runoff_agg, runoff_obs)
+    deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_nse_lnnse
 
@@ -1319,77 +1270,78 @@ CONTAINS
   !>        \date Oct 2015 
   !         Modified,  
 
-  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow(parameterset) 
+  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow(parameterset, eval)
 
     ! use mo_mhm_eval,         only: mhm_eval 
-    use mo_errormeasures,    only: lnnse
-    use mo_percentile,       only: percentile
+    use mo_errormeasures, only : lnnse
+    use mo_percentile, only : percentile
 
-    implicit none 
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: parameterset 
-    real(dp), dimension(2)             :: multi_objective_lnnse_highflow_lnnse_lowflow 
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow
 
     ! local 
-    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
-    integer(i4)                           :: gg                 ! gauges counter 
-    integer(i4)                           :: nGaugesTotal 
-    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
-    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
-    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
-    real(dp)                              :: q_high             ! lower discharge value to determine highflow timepoints
-    integer(i4)                           :: nrunoff            ! total number of discharge values
-    integer(i4)                           :: tt                 ! timepoint counter
-    logical,  dimension(:),   allocatable :: lowflow_mask       ! mask to get lowflow values
-    logical,  dimension(:),   allocatable :: highflow_mask      ! mask to get highflow values
+    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
+    integer(i4) :: gg                 ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    real(dp) :: q_low              ! upper discharge value to determine lowflow timepoints
+    real(dp) :: q_high             ! lower discharge value to determine highflow timepoints
+    integer(i4) :: nrunoff            ! total number of discharge values
+    integer(i4) :: tt                 ! timepoint counter
+    logical, dimension(:), allocatable :: lowflow_mask       ! mask to get lowflow values
+    logical, dimension(:), allocatable :: highflow_mask      ! mask to get highflow values
 
     ! call mhm_eval(parameterset, runoff=runoff) 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2) 
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
-    multi_objective_lnnse_highflow_lnnse_lowflow = 0.0_dp 
-    do gg=1, nGaugesTotal
-       !
-       ! extract runoff 
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       nrunoff = size(runoff_obs,dim=1)
-       !print*, 'nrunoff = ',nrunoff
-       !
-       ! mask for highflow timepoints
-       if ( allocated(highflow_mask) ) deallocate(highflow_mask)
-       allocate( highflow_mask( nrunoff ) )
-       highflow_mask = .false.
-       q_high = percentile(runoff_obs,95._dp,mask=runoff_obs_mask)
-       forall(tt=1:nrunoff) highflow_mask(tt) = ( runoff_obs(tt) > q_high .and. runoff_obs_mask(tt))
-       !print*, 'nhigh = ',count(highflow_mask)
-       !
-       ! mask for lowflow timepoints
-       if ( allocated(lowflow_mask) ) deallocate(lowflow_mask)
-       allocate( lowflow_mask( nrunoff ) )
-       lowflow_mask = .false.
-       q_low  = minval(runoff_obs,mask=runoff_obs_mask) &
-            + 0.05_dp * (maxval(runoff_obs,mask=runoff_obs_mask) - minval(runoff_obs,mask=runoff_obs_mask))
-       forall(tt=1:nrunoff) lowflow_mask(tt) = ( runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
-       !print*, 'nlow  = ',count(lowflow_mask)
-       ! 
-       ! lnNSE highflows 
-       multi_objective_lnnse_highflow_lnnse_lowflow(1) = multi_objective_lnnse_highflow_lnnse_lowflow(1) + & 
-            lnnse(   runoff_obs, runoff_agg, mask=highflow_mask )
-       !
-       ! lnNSE lowflows
-       multi_objective_lnnse_highflow_lnnse_lowflow(2) = multi_objective_lnnse_highflow_lnnse_lowflow(2) + & 
-            lnnse( runoff_obs, runoff_agg, mask=lowflow_mask ) 
+    multi_objective_lnnse_highflow_lnnse_lowflow = 0.0_dp
+    do gg = 1, nGaugesTotal
+      !
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      nrunoff = size(runoff_obs, dim = 1)
+      !print*, 'nrunoff = ',nrunoff
+      !
+      ! mask for highflow timepoints
+      if (allocated(highflow_mask)) deallocate(highflow_mask)
+      allocate(highflow_mask(nrunoff))
+      highflow_mask = .false.
+      q_high = percentile(runoff_obs, 95._dp, mask = runoff_obs_mask)
+      forall(tt = 1 : nrunoff) highflow_mask(tt) = (runoff_obs(tt) > q_high .and. runoff_obs_mask(tt))
+      !print*, 'nhigh = ',count(highflow_mask)
+      !
+      ! mask for lowflow timepoints
+      if (allocated(lowflow_mask)) deallocate(lowflow_mask)
+      allocate(lowflow_mask(nrunoff))
+      lowflow_mask = .false.
+      q_low = minval(runoff_obs, mask = runoff_obs_mask) &
+              + 0.05_dp * (maxval(runoff_obs, mask = runoff_obs_mask) - minval(runoff_obs, mask = runoff_obs_mask))
+      forall(tt = 1 : nrunoff) lowflow_mask(tt) = (runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
+      !print*, 'nlow  = ',count(lowflow_mask)
+      !
+      ! lnNSE highflows
+      multi_objective_lnnse_highflow_lnnse_lowflow(1) = multi_objective_lnnse_highflow_lnnse_lowflow(1) + &
+              lnnse(runoff_obs, runoff_agg, mask = highflow_mask)
+      !
+      ! lnNSE lowflows
+      multi_objective_lnnse_highflow_lnnse_lowflow(2) = multi_objective_lnnse_highflow_lnnse_lowflow(2) + &
+              lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
     ! objective function value which will be minimized 
     multi_objective_lnnse_highflow_lnnse_lowflow(:) = 1.0_dp &
-         - multi_objective_lnnse_highflow_lnnse_lowflow(:) / real(nGaugesTotal,dp) 
+            - multi_objective_lnnse_highflow_lnnse_lowflow(:) / real(nGaugesTotal, dp)
 
     ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow = ',multi_objective_lnnse_highflow_lnnse_lowflow 
 
     ! clean up 
-    deallocate( runoff_agg, runoff_obs ) 
-    deallocate( runoff_obs_mask ) 
+    deallocate(runoff_agg, runoff_obs)
+    deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow
 
@@ -1458,73 +1410,74 @@ CONTAINS
   !>        \date Oct 2015 
   !         Modified,  
 
-  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset) 
+  FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset, eval)
 
     ! use mo_mhm_eval,         only: mhm_eval 
-    use mo_errormeasures,    only: lnnse
+    use mo_errormeasures, only : lnnse
 
-    implicit none 
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: parameterset 
-    real(dp), dimension(2)             :: multi_objective_lnnse_highflow_lnnse_lowflow_2 
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow_2
 
     ! local 
-    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
-    integer(i4)                           :: gg                 ! gauges counter 
-    integer(i4)                           :: nGaugesTotal 
-    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
-    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
-    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    real(dp)                              :: q_low              ! upper discharge value to determine lowflow timepoints
-    integer(i4)                           :: nrunoff            ! total number of discharge values
-    integer(i4)                           :: tt                 ! timepoint counter
-    logical,  dimension(:),   allocatable :: lowflow_mask       ! mask to get lowflow values
-    logical,  dimension(:),   allocatable :: highflow_mask      ! mask to get highflow values
+    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
+    integer(i4) :: gg                 ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    real(dp) :: q_low              ! upper discharge value to determine lowflow timepoints
+    integer(i4) :: nrunoff            ! total number of discharge values
+    integer(i4) :: tt                 ! timepoint counter
+    logical, dimension(:), allocatable :: lowflow_mask       ! mask to get lowflow values
+    logical, dimension(:), allocatable :: highflow_mask      ! mask to get highflow values
 
     ! call mhm_eval(parameterset, runoff=runoff) 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2) 
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
-    multi_objective_lnnse_highflow_lnnse_lowflow_2 = 0.0_dp 
-    do gg=1, nGaugesTotal
-       !
-       ! extract runoff 
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       nrunoff = size(runoff_obs,dim=1)
-       !print*, 'nrunoff = ',nrunoff
-       !
-       ! mask for lowflow timepoints
-       if ( allocated(lowflow_mask) ) deallocate(lowflow_mask)
-       allocate( lowflow_mask( nrunoff ) )
-       lowflow_mask = .false.
-       q_low  = minval(runoff_obs,mask=runoff_obs_mask) &
-            + 0.05_dp * (maxval(runoff_obs,mask=runoff_obs_mask) - minval(runoff_obs,mask=runoff_obs_mask))
-       forall(tt=1:nrunoff) lowflow_mask(tt) = ( runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
-       !print*, 'nlow  = ',count(lowflow_mask)
-       !
-       ! mask for highflow timepoints
-       if ( allocated(highflow_mask) ) deallocate(highflow_mask)
-       allocate( highflow_mask( nrunoff ) )
-       highflow_mask = (.not. lowflow_mask) .and. runoff_obs_mask
-       !print*, 'nhigh = ',count(highflow_mask)
-       ! 
-       ! lnNSE highflows 
-       multi_objective_lnnse_highflow_lnnse_lowflow_2(1) = multi_objective_lnnse_highflow_lnnse_lowflow_2(1) + & 
-            lnnse(   runoff_obs, runoff_agg, mask=highflow_mask )
-       !
-       ! lnNSE lowflows
-       multi_objective_lnnse_highflow_lnnse_lowflow_2(2) = multi_objective_lnnse_highflow_lnnse_lowflow_2(2) + & 
-            lnnse( runoff_obs, runoff_agg, mask=lowflow_mask ) 
+    multi_objective_lnnse_highflow_lnnse_lowflow_2 = 0.0_dp
+    do gg = 1, nGaugesTotal
+      !
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      nrunoff = size(runoff_obs, dim = 1)
+      !print*, 'nrunoff = ',nrunoff
+      !
+      ! mask for lowflow timepoints
+      if (allocated(lowflow_mask)) deallocate(lowflow_mask)
+      allocate(lowflow_mask(nrunoff))
+      lowflow_mask = .false.
+      q_low = minval(runoff_obs, mask = runoff_obs_mask) &
+              + 0.05_dp * (maxval(runoff_obs, mask = runoff_obs_mask) - minval(runoff_obs, mask = runoff_obs_mask))
+      forall(tt = 1 : nrunoff) lowflow_mask(tt) = (runoff_obs(tt) < q_low .and. runoff_obs_mask(tt))
+      !print*, 'nlow  = ',count(lowflow_mask)
+      !
+      ! mask for highflow timepoints
+      if (allocated(highflow_mask)) deallocate(highflow_mask)
+      allocate(highflow_mask(nrunoff))
+      highflow_mask = (.not. lowflow_mask) .and. runoff_obs_mask
+      !print*, 'nhigh = ',count(highflow_mask)
+      !
+      ! lnNSE highflows
+      multi_objective_lnnse_highflow_lnnse_lowflow_2(1) = multi_objective_lnnse_highflow_lnnse_lowflow_2(1) + &
+              lnnse(runoff_obs, runoff_agg, mask = highflow_mask)
+      !
+      ! lnNSE lowflows
+      multi_objective_lnnse_highflow_lnnse_lowflow_2(2) = multi_objective_lnnse_highflow_lnnse_lowflow_2(2) + &
+              lnnse(runoff_obs, runoff_agg, mask = lowflow_mask)
     end do
     ! objective function value which will be minimized 
     multi_objective_lnnse_highflow_lnnse_lowflow_2(:) = 1.0_dp &
-         - multi_objective_lnnse_highflow_lnnse_lowflow_2(:) / real(nGaugesTotal,dp) 
+            - multi_objective_lnnse_highflow_lnnse_lowflow_2(:) / real(nGaugesTotal, dp)
 
     ! write(*,*) 'multi_objective_lnnse_highflow_lnnse_lowflow_2 = ',multi_objective_lnnse_highflow_lnnse_lowflow_2 
 
     ! clean up 
-    deallocate( runoff_agg, runoff_obs ) 
-    deallocate( runoff_obs_mask ) 
+    deallocate(runoff_agg, runoff_obs)
+    deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2
 
@@ -1588,86 +1541,88 @@ CONTAINS
   !>        \date Feb 2016
   !         Modified,  
 
-  FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset) 
+  FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
 
-    use mo_errormeasures,        only: nse
-    use mo_julian,               only: dec2date
-    use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer
-    use mo_mrm_signatures,       only: FlowDurationCurve
+    use mo_errormeasures, only : nse
+    use mo_julian, only : dec2date
+    use mo_mrm_global_variables, only : gauge, nMeasPerDay
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_mrm_signatures, only : FlowDurationCurve
 
-    implicit none 
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: parameterset 
-    real(dp), dimension(2)             :: multi_objective_ae_fdc_lsv_nse_djf 
+    real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), dimension(2) :: multi_objective_ae_fdc_lsv_nse_djf
 
     ! local 
-    real(dp), dimension(:,:), allocatable :: runoff             ! modelled runoff for a given parameter set 
-    integer(i4)                           :: gg                 ! gauges counter 
-    integer(i4)                           :: nGaugesTotal       ! total number of gauges
-    integer(i4)                           :: iBasin             ! basin ID of gauge
-    real(dp), dimension(:),   allocatable :: runoff_obs         ! measured runoff 
-    real(dp), dimension(:),   allocatable :: runoff_agg         ! aggregated simulated runoff 
-    logical,  dimension(:),   allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    integer(i4)                           :: nrunoff            ! total number of discharge values
-    integer(i4)                           :: tt                 ! timepoint counter
-    integer(i4)                           :: month              ! month of current time step
-    real(dp)                              :: current_time       ! Fractional Julian day of current time step
-    logical,  dimension(:),   allocatable :: djf_mask           ! mask to get lowflow values
-    real(dp), dimension(10)               :: quantiles          ! quantiles for FDC
-    integer(i4)                           :: nquantiles         ! number of quantiles
-    real(dp), dimension(size(quantiles))  :: fdc                ! FDC of simulated or observed discharge
-    real(dp)                              :: lsv_mod            ! low-segment volume of FDC of simulated discharge
-    real(dp)                              :: lsv_obs            ! low-segment volume of FDC of observed  discharge
+    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
+    integer(i4) :: gg                 ! gauges counter
+    integer(i4) :: nGaugesTotal       ! total number of gauges
+    integer(i4) :: iBasin             ! basin ID of gauge
+    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+    integer(i4) :: nrunoff            ! total number of discharge values
+    integer(i4) :: tt                 ! timepoint counter
+    integer(i4) :: month              ! month of current time step
+    real(dp) :: current_time       ! Fractional Julian day of current time step
+    logical, dimension(:), allocatable :: djf_mask           ! mask to get lowflow values
+    real(dp), dimension(10) :: quantiles          ! quantiles for FDC
+    integer(i4) :: nquantiles         ! number of quantiles
+    real(dp), dimension(size(quantiles)) :: fdc                ! FDC of simulated or observed discharge
+    real(dp) :: lsv_mod            ! low-segment volume of FDC of simulated discharge
+    real(dp) :: lsv_obs            ! low-segment volume of FDC of observed  discharge
 
     ! call mhm_eval(parameterset, runoff=runoff) 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2) 
-    nquantiles   = size(quantiles)
-    forall(tt=1:nquantiles) quantiles(tt) = real(tt,dp) / real(nquantiles,dp)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
+    nquantiles = size(quantiles)
+    forall(tt = 1 : nquantiles) quantiles(tt) = real(tt, dp) / real(nquantiles, dp)
 
-    multi_objective_ae_fdc_lsv_nse_djf = 0.0_dp 
-    do gg=1, nGaugesTotal
-       !
-       ! extract runoff 
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       nrunoff = size(runoff_obs,dim=1)
-       !
-       ! mask DJF timepoints
-       if ( allocated(djf_mask) ) deallocate(djf_mask)
-       allocate( djf_mask( nrunoff ) )
-       djf_mask = .false.
+    multi_objective_ae_fdc_lsv_nse_djf = 0.0_dp
+    do gg = 1, nGaugesTotal
+      !
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      nrunoff = size(runoff_obs, dim = 1)
+      !
+      ! mask DJF timepoints
+      if (allocated(djf_mask)) deallocate(djf_mask)
+      allocate(djf_mask(nrunoff))
+      djf_mask = .false.
 
-       iBasin = gauge%basinId( gg )
-       do tt=1, nrunoff
-          current_time = evalPer( iBasin )%julStart + (tt-1) * 1.0_dp/real(nMeasPerDay,dp)
-          call dec2date(current_time, mm=month)
-          if ( (month == 1 .or. month == 2 .or. month == 12) .and. runoff_obs_mask(tt) ) djf_mask(tt) = .True.
-       end do
-       !
-       ! Absolute error of low-segment volume of FDC
-       fdc = FlowDurationCurve(runoff_obs, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_obs)
-       fdc = FlowDurationCurve(runoff_agg, quantiles, mask=runoff_obs_mask, low_segment_volume=lsv_mod) 
-       fdc = fdc * 1.0_dp ! only to avoid warning of unused variable
-       !
-       ! Absolute distance between low-segment volumes
-       multi_objective_ae_fdc_lsv_nse_djf(1) = multi_objective_ae_fdc_lsv_nse_djf(1) + & 
-            abs( lsv_obs - lsv_mod )
-       !
-       ! NSE of DJF discharge
-       multi_objective_ae_fdc_lsv_nse_djf(2) = multi_objective_ae_fdc_lsv_nse_djf(2) + & 
-            nse( runoff_obs, runoff_agg, mask=djf_mask ) 
+      iBasin = gauge%basinId(gg)
+      do tt = 1, nrunoff
+        current_time = evalPer(iBasin)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
+        call dec2date(current_time, mm = month)
+        if ((month == 1 .or. month == 2 .or. month == 12) .and. runoff_obs_mask(tt)) djf_mask(tt) = .True.
+      end do
+      !
+      ! Absolute error of low-segment volume of FDC
+      fdc = FlowDurationCurve(runoff_obs, quantiles, mask = runoff_obs_mask, low_segment_volume = lsv_obs)
+      fdc = FlowDurationCurve(runoff_agg, quantiles, mask = runoff_obs_mask, low_segment_volume = lsv_mod)
+      fdc = fdc * 1.0_dp ! only to avoid warning of unused variable
+      !
+      ! Absolute distance between low-segment volumes
+      multi_objective_ae_fdc_lsv_nse_djf(1) = multi_objective_ae_fdc_lsv_nse_djf(1) + &
+              abs(lsv_obs - lsv_mod)
+      !
+      ! NSE of DJF discharge
+      multi_objective_ae_fdc_lsv_nse_djf(2) = multi_objective_ae_fdc_lsv_nse_djf(2) + &
+              nse(runoff_obs, runoff_agg, mask = djf_mask)
     end do
     ! objective function value which will be minimized 
     multi_objective_ae_fdc_lsv_nse_djf(1) = &
-         multi_objective_ae_fdc_lsv_nse_djf(1) / real(nGaugesTotal,dp) 
+            multi_objective_ae_fdc_lsv_nse_djf(1) / real(nGaugesTotal, dp)
     multi_objective_ae_fdc_lsv_nse_djf(2) = 1.0_dp &
-         - multi_objective_ae_fdc_lsv_nse_djf(2) / real(nGaugesTotal,dp) 
+            - multi_objective_ae_fdc_lsv_nse_djf(2) / real(nGaugesTotal, dp)
 
-    write(*,*) 'multi_objective_ae_fdc_lsv_nse_djf = ',multi_objective_ae_fdc_lsv_nse_djf 
+    write(*, *) 'multi_objective_ae_fdc_lsv_nse_djf = ', multi_objective_ae_fdc_lsv_nse_djf
 
     ! clean up 
-    deallocate( runoff_agg, runoff_obs ) 
-    deallocate( runoff_obs_mask ) 
+    deallocate(runoff_agg, runoff_obs)
+    deallocate(runoff_obs_mask)
 
   END FUNCTION multi_objective_ae_fdc_lsv_nse_djf
 
@@ -1733,44 +1688,45 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_power6_nse_lnnse(parameterset)
+  FUNCTION objective_power6_nse_lnnse(parameterset, eval)
 
-    use mo_errormeasures,    only: nse, lnnse
+    use mo_errormeasures, only : nse, lnnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_power6_nse_lnnse
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_power6_nse_lnnse
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
-    real(dp), parameter :: onesixth = 1.0_dp/6.0_dp
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_power6_nse_lnnse = 0.0_dp
-    do gg=1, nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! NSE + lnNSE
-       objective_power6_nse_lnnse = objective_power6_nse_lnnse + &
-            ( (1.0_dp-nse(  runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 + &
-            (1.0_dp-lnnse(runoff_obs, runoff_agg, mask=runoff_obs_mask) )**6 )**onesixth
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! NSE + lnNSE
+      objective_power6_nse_lnnse = objective_power6_nse_lnnse + &
+              ((1.0_dp - nse(runoff_obs, runoff_agg, mask = runoff_obs_mask))**6 + &
+                      (1.0_dp - lnnse(runoff_obs, runoff_agg, mask = runoff_obs_mask))**6)**onesixth
     end do
     ! objective function value which will be minimized
-    objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal,dp)
+    objective_power6_nse_lnnse = objective_power6_nse_lnnse / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
+    write(*, *) 'objective_power6_nse_lnnse = ', objective_power6_nse_lnnse
     ! pause
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_power6_nse_lnnse
 
@@ -1841,43 +1797,44 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_kge(parameterset)
+  FUNCTION objective_kge(parameterset, eval)
 
-    use mo_errormeasures,    only: kge
+    use mo_errormeasures, only : kge
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_kge
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_kge
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
     !
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_kge = 0.0_dp
-    do gg=1, nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! KGE
-       objective_kge = objective_kge + &
-            kge( runoff_obs, runoff_agg, mask=runoff_obs_mask)
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! KGE
+      objective_kge = objective_kge + &
+              kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
     end do
     ! objective_kge = objective_kge + kge(gauge%Q, runoff_model_agg, runoff_model_agg_mask)
-    objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal,dp)
+    objective_kge = 1.0_dp - objective_kge / real(nGaugesTotal, dp)
 
-    write(*,*) 'objective_kge (i.e., 1 - KGE) = ', objective_kge
+    write(*, *) 'objective_kge (i.e., 1 - KGE) = ', objective_kge
     ! pause
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_kge
 
@@ -1950,44 +1907,44 @@ CONTAINS
   !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
   !                                              to not interfere with mRM
 
-  FUNCTION objective_multiple_gauges_kge_power6(parameterset)
+  FUNCTION objective_multiple_gauges_kge_power6(parameterset, eval)
 
-    use mo_errormeasures,    only: kge
+    use mo_errormeasures, only : kge
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp)                           :: objective_multiple_gauges_kge_power6
-    real(dp), parameter                :: onesixth = 1.0_dp/6.0_dp
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp) :: objective_multiple_gauges_kge_power6
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
     ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
+    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
     !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for measured runoff
+    integer(i4) :: gg                       ! gauges counter
+    integer(i4) :: nGaugesTotal
+    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
     !
 
-    call eval(parameterset, runoff=runoff)
-    nGaugesTotal = size(runoff, dim=2)
+    call eval(parameterset, runoff = runoff)
+    nGaugesTotal = size(runoff, dim = 2)
 
     objective_multiple_gauges_kge_power6 = 0.0_dp
-    do gg=1, nGaugesTotal
-       ! extract runoff
-       call extract_runoff( gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
-       ! KGE
-       objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
-            ( (1.0_dp - kge(runoff_obs, runoff_agg, mask=runoff_obs_mask) )/ real(nGaugesTotal,dp) )**6 
+    do gg = 1, nGaugesTotal
+      ! extract runoff
+      call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
+      ! KGE
+      objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6 + &
+              ((1.0_dp - kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)) / real(nGaugesTotal, dp))**6
     end do
-    objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth 
-    write(*,*) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
+    objective_multiple_gauges_kge_power6 = objective_multiple_gauges_kge_power6**onesixth
+    write(*, *) 'objective_multiple_gauges_kge_power6 = ', objective_multiple_gauges_kge_power6
 
-    deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
+    deallocate(runoff_agg, runoff_obs, runoff_obs_mask)
 
   END FUNCTION objective_multiple_gauges_kge_power6
-
 
   ! ------------------------------------------------------------------
 
@@ -1996,15 +1953,15 @@ CONTAINS
 
   !>        \brief Objective function of weighted NSE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
+  !>        \details The objective function only depends on a parameter vector.
+  !>        The model will be called with that parameter vector and
   !>        the model output is subsequently compared to observed data.
   !>        Therefore, the weighted Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
   !>        \f[ wNSE = 1 - \frac{\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - Q_{model}(i))^2}
   !>                           {\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
   !>        is calculated and the objective function is
   !>        \f[ obj\_value = 1- wNSE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>        The observed data \f$ Q_{obs} \f$ are global in this module.
 
   !     INTENT(IN)
   !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
@@ -2025,7 +1982,7 @@ CONTAINS
   !         None
 
   !     RETURN
-  !>       \return     real(dp) :: objective_weighted_nse &mdash; objective function value 
+  !>       \return     real(dp) :: objective_weighted_nse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
   !     RESTRICTIONS
@@ -2043,13 +2000,14 @@ CONTAINS
   !>        \date May 2018
   !         Modified
 
-  FUNCTION objective_weighted_nse(parameterset)
+  FUNCTION objective_weighted_nse(parameterset, eval)
 
     use mo_errormeasures,    only: wnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
     real(dp)                           :: objective_weighted_nse
 
     ! local
@@ -2081,6 +2039,7 @@ CONTAINS
     deallocate( runoff_agg, runoff_obs, runoff_obs_mask )
 
   END FUNCTION objective_weighted_nse
+
 
   ! ------------------------------------------------------------------
 
@@ -2134,17 +2093,18 @@ CONTAINS
   !>        \date Jan 2015
 
   ! ------------------------------------------------------------------
-  subroutine extract_runoff( gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask )
+  subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
-    use mo_mrm_global_variables, only: gauge, nMeasPerDay, evalPer, warmingDays_mrm, nTstepDay
-    use mo_message,              only: message
-    use mo_utils,                only: ge
+    use mo_mrm_global_variables, only : gauge, nMeasPerDay
+    use mo_common_mhm_mrm_variables, only : evalPer, warmingDays, nTstepDay
+    use mo_message, only : message
+    use mo_utils, only : ge
 
     implicit none
 
     ! input variables
-    integer(i4),               intent(in) :: gaugeId      ! current gauge Id
-    real(dp),  dimension(:,:), intent(in) :: runoff       ! simulated runoff
+    integer(i4), intent(in) :: gaugeId      ! current gauge Id
+    real(dp), dimension(:, :), intent(in) :: runoff       ! simulated runoff
 
     ! output variables
     real(dp), dimension(:), allocatable, intent(out) :: runoff_agg      ! aggregated simulated
@@ -2153,16 +2113,16 @@ CONTAINS
     real(dp), dimension(:), allocatable, intent(out) :: runoff_obs      ! extracted measured 
     ! runoff to exactly the
     ! evaluation period
-    logical,  dimension(:), allocatable, intent(out) :: runoff_obs_mask ! mask of no data values
+    logical, dimension(:), allocatable, intent(out) :: runoff_obs_mask ! mask of no data values
     ! in runoff_obs
 
     ! local variables
-    integer(i4)                         :: iBasin  ! basin id
-    integer(i4)                         :: tt      ! timestep counter
-    integer(i4)                         :: length  ! length of extracted time series
-    integer(i4)                         :: factor  ! between simulated and measured time scale
-    integer(i4)                         :: TPD_sim ! simulated Timesteps per Day
-    integer(i4)                         :: TPD_obs ! observed Timesteps per Day
+    integer(i4) :: iBasin  ! basin id
+    integer(i4) :: tt      ! timestep counter
+    integer(i4) :: length  ! length of extracted time series
+    integer(i4) :: factor  ! between simulated and measured time scale
+    integer(i4) :: TPD_sim ! simulated Timesteps per Day
+    integer(i4) :: TPD_obs ! observed Timesteps per Day
     real(dp), dimension(:), allocatable :: dummy
 
     ! copy time resolution to local variables
@@ -2170,119 +2130,45 @@ CONTAINS
     TPD_obs = nMeasPerDay
 
     ! check if modelled timestep is an integer multiple of measured timesteps
-    if ( modulo( TPD_sim, TPD_obs) .eq. 0 ) then
-       factor = TPD_sim / TPD_obs
+    if (modulo(TPD_sim, TPD_obs) .eq. 0) then
+      factor = TPD_sim / TPD_obs
     else
-       call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
-       stop
+      call message(' Error: Number of modelled datapoints is no multiple of measured datapoints per day')
+      stop
     end if
 
     ! extract basin Id from gauge Id
-    iBasin = gauge%basinId( gaugeId )
+    iBasin = gauge%basinId(gaugeId)
 
     ! get length of evaluation period times TPD_obs
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
+    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
 
     ! extract measurements
-    if ( allocated( runoff_obs ) ) deallocate( runoff_obs )
-    allocate( runoff_obs( length ) )
-    runoff_obs = gauge%Q( 1 : length, gaugeId )
+    if (allocated(runoff_obs)) deallocate(runoff_obs)
+    allocate(runoff_obs(length))
+    runoff_obs = gauge%Q(1 : length, gaugeId)
 
     ! create mask of observed runoff
-    if ( allocated( runoff_obs_mask ) ) deallocate( runoff_obs_mask )
-    allocate( runoff_obs_mask( length ) )
+    if (allocated(runoff_obs_mask)) deallocate(runoff_obs_mask)
+    allocate(runoff_obs_mask(length))
     runoff_obs_mask = .false.
-    forall(tt=1:length) runoff_obs_mask(tt) = ge( runoff_obs(tt), 0.0_dp)    
+    forall(tt = 1 : length) runoff_obs_mask(tt) = ge(runoff_obs(tt), 0.0_dp)
 
     ! extract and aggregate simulated runoff
-    if ( allocated( runoff_agg ) ) deallocate( runoff_agg )
-    allocate( runoff_agg( length ) )
+    if (allocated(runoff_agg)) deallocate(runoff_agg)
+    allocate(runoff_agg(length))
     ! remove warming days
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_sim
-    allocate( dummy( length ) )
-    dummy = runoff( warmingDays_mrm(iBasin)*TPD_sim + 1:warmingDays_mrm(iBasin)*TPD_sim + length, gaugeId )
+    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_sim
+    allocate(dummy(length))
+    dummy = runoff(warmingDays(iBasin) * TPD_sim + 1 : warmingDays(iBasin) * TPD_sim + length, gaugeId)
     ! aggregate runoff
-    length = ( evalPer( iBasin )%julEnd - evalPer( iBasin )%julStart + 1 ) * TPD_obs
-    forall(tt=1:length) runoff_agg(tt) = sum( dummy( (tt-1)*factor+1: tt*factor ) ) / &
-         real(factor,dp)
+    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    forall(tt = 1 : length) runoff_agg(tt) = sum(dummy((tt - 1) * factor + 1 : tt * factor)) / &
+            real(factor, dp)
     ! clean up
-    deallocate( dummy )
+    deallocate(dummy)
 
   end subroutine extract_runoff
 
-  ! ==================================================================
-  ! PRIVATE ROUTINES =================================================
-  ! ==================================================================
-
-  ! ------------------------------------------------------------------
-
-  ! NAME
-  !         eval
-
-  !>        \brief returns mHM_eval or mRM_eval given preprocessor flag
-
-  !>        \details call mHM_eval if MRM2MHM preprocessor flag is used while
-  !>                 compilation or mRM_eval otherwise
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: parameterset" - mHM or mRM parameter set
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: runoff(:)" - simulated runoff
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         see use in this module above
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Oct 2015
-
-  ! ------------------------------------------------------------------
-  subroutine eval(parameterset, runoff, basin_avg_tws)
-
-#ifdef MRM2MHM
-    use mo_mhm_eval, only: mHM_eval
-#else
-    use mo_mrm_eval, only: mRM_eval
-    use mo_message, only: message
-#endif
-
-    implicit none
-
-    ! input variables
-    real(dp), intent(in) :: parameterset(:)
-
-    ! output variables
-    real(dp), allocatable, optional, intent(out) :: runoff(:,:)
-    real(dp), allocatable, optional, intent(out) :: basin_avg_tws(:,:)
-
-#ifdef MRM2MHM
-    call mHM_eval(parameterset, runoff=runoff, basin_avg_tws=basin_avg_tws)
-#else
-    call mRM_eval(parameterset, runoff=runoff)
-#endif
-
-  end subroutine eval
 
 END MODULE mo_mrm_objective_function_runoff

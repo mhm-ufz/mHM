@@ -9,12 +9,12 @@
 !> \author Luis Samaniego, Stephan Thober
 !> \date Aug 2015
 module mo_mrm_mpr
-  use mo_kind, only: dp
+  use mo_kind, only : dp
   implicit none
   public :: reg_rout
   private
 contains
-  
+
   ! ----------------------------------------------------------------------------
 
   !      NAME
@@ -40,7 +40,7 @@ contains
 
   !      INTENT(INOUT)
   !          None
-  
+
   !      INTENT(OUT)
   !>        \param[out] "real(dp) :: C1(:)"    - routing parameter C1 (Chow, 25-41)
   !>        \param[out] "real(dp) :: C2(:)"    - routing parameter C2 (")
@@ -71,49 +71,49 @@ contains
   !>        \date Dec 2012
   !         Written Stephan Thober, Dec 2012
 
-  subroutine reg_rout( param, length, slope, fFPimp, TS, &
-       C1, C2 )
+  subroutine reg_rout(param, length, slope, fFPimp, TS, &
+          C1, C2)
 
     implicit none
 
     ! Input
-    real(dp), dimension(5), intent(in)  :: param  ! input parameter
-    real(dp), dimension(:), intent(in)  :: length ! [m] total length
-    real(dp), dimension(:), intent(in)  :: slope  ! average slope
-    real(dp), dimension(:), intent(in)  :: fFPimp ! fraction of the flood plain with
+    real(dp), dimension(5), intent(in) :: param  ! input parameter
+    real(dp), dimension(:), intent(in) :: length ! [m] total length
+    real(dp), dimension(:), intent(in) :: slope  ! average slope
+    real(dp), dimension(:), intent(in) :: fFPimp ! fraction of the flood plain with
     !                                             ! impervious layer
-    real(dp),               intent(in)  :: TS     ! [h] time step in
+    real(dp), intent(in) :: TS     ! [h] time step in
 
     ! Output
     real(dp), dimension(:), intent(out) :: C1     ! routing parameter C1 (Chow, 25-41)
     real(dp), dimension(:), intent(out) :: C2     ! routing parameter C2 (")
 
     ! loval variables
-    real(dp)                            :: ssMax  ! stream slope max
-    real(dp), dimension(size(fFPimp,1)) :: K      ! [d] Muskingum travel time parameter
-    real(dp), dimension(size(fFPimp,1)) :: xi     ! [1] Muskingum diffusion parameter (attenuation)
+    real(dp) :: ssMax  ! stream slope max
+    real(dp), dimension(size(fFPimp, 1)) :: K      ! [d] Muskingum travel time parameter
+    real(dp), dimension(size(fFPimp, 1)) :: xi     ! [1] Muskingum diffusion parameter (attenuation)
 
     ! normalize stream bed slope
-    ssMax = maxval( slope(:) )
+    ssMax = maxval(slope(:))
 
     ! New regional relationship; K = f(length, slope, & fFPimp)
     K = param(1) + param(2) * (length * 0.001_dp) &
-         + param(3) * slope &
-         + param(4) * fFPimp
+            + param(3) * slope &
+            + param(4) * fFPimp
 
     ! Xi = f(slope)
-    xi = param(5)*(1.0_dp + slope / ssMax)
+    xi = param(5) * (1.0_dp + slope / ssMax)
 
     ! constraints on Xi
-    xi = merge( 0.5_dp, xi, xi > 0.5_dp )
-    xi = merge( 0.005_dp, xi, xi < 0.005_dp )
+    xi = merge(0.5_dp, xi, xi > 0.5_dp)
+    xi = merge(0.005_dp, xi, xi < 0.005_dp)
 
     ! constrains on Ki
-    K = merge( 0.5_dp * TS / xi,            K, K > 0.5_dp * TS / xi )
-    K = merge( 0.5_dp * TS / (1.0_dp - xi), K, K < 0.5_dp * TS / (1.0_dp - xi))
+    K = merge(0.5_dp * TS / xi, K, K > 0.5_dp * TS / xi)
+    K = merge(0.5_dp * TS / (1.0_dp - xi), K, K < 0.5_dp * TS / (1.0_dp - xi))
 
     ! Muskingum parameters
-    C1 = TS / ( K * (1.0_dp - xi) + 0.5_dp * TS )
+    C1 = TS / (K * (1.0_dp - xi) + 0.5_dp * TS)
     C2 = 1.0_dp - C1 * K / TS
 
   end subroutine reg_rout

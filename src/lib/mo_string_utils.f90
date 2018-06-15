@@ -31,7 +31,7 @@ MODULE mo_string_utils
 
   ! Copyright 2011-2015 Matthias Cuntz
 
-  USE mo_kind, ONLY: i4, i8, sp, dp
+  USE mo_kind, ONLY : i4, i8, sp, dp
 
   IMPLICIT NONE
 
@@ -48,7 +48,7 @@ MODULE mo_string_utils
   PUBLIC :: str2num       ! Converts string into an array of its numerical representation
   PUBLIC :: tolower       ! Conversion   : 'ABCXYZ' -> 'abcxyz'
   PUBLIC :: toupper       ! Conversion   : 'abcxyz' -> 'ABCXYZ'
-  
+
   ! public :: numarray2str
 
   ! ------------------------------------------------------------------
@@ -117,7 +117,7 @@ MODULE mo_string_utils
   !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   !>        \date Dec 2011
   INTERFACE num2str
-     MODULE PROCEDURE i42str, i82str, sp2str, dp2str, log2str
+    MODULE PROCEDURE i42str, i82str, sp2str, dp2str, log2str
   END INTERFACE num2str
 
 
@@ -145,7 +145,7 @@ MODULE mo_string_utils
 
   !     INTENT(IN), OPTIONAL
   !         None
-  
+
   !     INTENT(INOUT), OPTIONAL
   !         None
 
@@ -170,7 +170,7 @@ MODULE mo_string_utils
   !>        \date Dec 2011
 
   INTERFACE numarray2str
-     MODULE PROCEDURE i4array2str
+    MODULE PROCEDURE i4array2str
   END INTERFACE numarray2str
 
   ! ------------------------------------------------------------------
@@ -179,7 +179,7 @@ MODULE mo_string_utils
 
   ! ------------------------------------------------------------------
 
-  CHARACTER(len=*), PARAMETER :: separator = repeat('-',70)
+  CHARACTER(len = *), PARAMETER :: separator = repeat('-', 70)
 
   ! ------------------------------------------------------------------
 
@@ -234,48 +234,48 @@ CONTAINS
   !         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
   !         \date Jan 2013
 
-  function compress( whiteSpaces, n )
+  function compress(whiteSpaces, n)
 
-        use mo_kind,    only : i4
+    use mo_kind, only : i4
 
-        implicit none
+    implicit none
 
-        character(len=*),               intent(in)  :: whiteSpaces
-        integer(i4),        optional,   intent(out) :: n
+    character(len = *), intent(in) :: whiteSpaces
+    integer(i4), optional, intent(out) :: n
 
-        character(len(whiteSpaces))                 ::  compress
+    character(len(whiteSpaces)) :: compress
 
-        ! Local parameters
-        integer(i4),    parameter                   :: iachar_space = 32_i4
-        integer(i4),    parameter                   :: iachar_tab   = 9_i4
+    ! Local parameters
+    integer(i4), parameter :: iachar_space = 32_i4
+    integer(i4), parameter :: iachar_tab = 9_i4
 
-        ! Local variables
-        integer(i4)                                 :: i, j
-        integer(i4)                                 :: iachar_character
+    ! Local variables
+    integer(i4) :: i, j
+    integer(i4) :: iachar_character
 
-        ! Setup
+    ! Setup
 
-        ! Initialise compress
-        compress = ' '
-        ! Initialise counter
-        j = 0_i4
+    ! Initialise compress
+    compress = ' '
+    ! Initialise counter
+    j = 0_i4
 
-        ! Loop over string
-        do i = 1, len(whiteSpaces)
-            ! Convert the current character to its position
-            iachar_character = iachar(whiteSpaces(i:i))
+    ! Loop over string
+    do i = 1, len(whiteSpaces)
+      ! Convert the current character to its position
+      iachar_character = iachar(whiteSpaces(i : i))
 
-            ! If the character is NOT a space ' ' or a tab '->|' copy it to the output string.
-            if ( iachar_character .ne. iachar_space .and. iachar_character .ne. iachar_tab )    then
-                j = j + 1
-                compress(j:j) = whiteSpaces(i:i)
-            end if
-        end do
+      ! If the character is NOT a space ' ' or a tab '->|' copy it to the output string.
+      if (iachar_character .ne. iachar_space .and. iachar_character .ne. iachar_tab)    then
+        j = j + 1
+        compress(j : j) = whiteSpaces(i : i)
+      end if
+    end do
 
-        ! Save the non-whitespace count
-        if ( present(n) ) n = j
+    ! Save the non-whitespace count
+    if (present(n)) n = j
 
-    end function compress
+  end function compress
 
 #ifndef ABSOFT
   ! ------------------------------------------------------------------
@@ -332,41 +332,41 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(len=*)             , INTENT(IN)        :: string
-    CHARACTER(len=*)             , INTENT(IN)        :: delim
-    CHARACTER(len=*), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: strArr
+    CHARACTER(len = *), INTENT(IN) :: string
+    CHARACTER(len = *), INTENT(IN) :: delim
+    CHARACTER(len = *), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: strArr
 
-    CHARACTER(256)                                   :: stringDummy   ! string in fisrt place but cutted in pieces
-    CHARACTER(256), DIMENSION(:) , ALLOCATABLE       :: strDummyArr   ! Dummy arr until number of substrings is known
-    INTEGER(i4)                                      :: pos           ! position of dilimiter
-    INTEGER(i4)                                      :: nosubstr      ! number of substrings in string
+    CHARACTER(256) :: stringDummy   ! string in fisrt place but cutted in pieces
+    CHARACTER(256), DIMENSION(:), ALLOCATABLE :: strDummyArr   ! Dummy arr until number of substrings is known
+    INTEGER(i4) :: pos           ! position of dilimiter
+    INTEGER(i4) :: nosubstr      ! number of substrings in string
 
     stringDummy = string
 
     allocate(strDummyArr(len_trim(stringDummy)))
-    pos=999_i4
-    nosubstr=0_i4
+    pos = 999_i4
+    nosubstr = 0_i4
     ! search for substrings and theirs count
     do
-       pos = index(trim(adjustl(stringDummy)), delim)
-       ! exit if no more delimiter is find and save the last part of the string
-       if (pos .EQ. 0_i4) then
-          nosubstr = nosubstr + 1_i4
-          StrDummyArr(nosubstr) = trim(stringDummy)
-          exit
-       end if
+      pos = index(trim(adjustl(stringDummy)), delim)
+      ! exit if no more delimiter is find and save the last part of the string
+      if (pos .EQ. 0_i4) then
+        nosubstr = nosubstr + 1_i4
+        StrDummyArr(nosubstr) = trim(stringDummy)
+        exit
+      end if
 
-       nosubstr = nosubstr + 1_i4
-       strDummyArr(nosubstr) = stringDummy(1:pos-1)
-       stringDummy = stringDummy(pos+1:len_trim(stringDummy))
+      nosubstr = nosubstr + 1_i4
+      strDummyArr(nosubstr) = stringDummy(1 : pos - 1)
+      stringDummy = stringDummy(pos + 1 : len_trim(stringDummy))
     end do
     ! hand over results to strArr
     if (nosubstr .EQ. 0_i4) then
-       print*, '***WARNING: string does not contain delimiter. There are no substrings. (subroutine DIVIDE_STRING)'
-       return
+      print*, '***WARNING: string does not contain delimiter. There are no substrings. (subroutine DIVIDE_STRING)'
+      return
     else
-       allocate(strArr(nosubstr))
-       strArr = StrDummyArr(1:nosubstr)
+      allocate(strArr(nosubstr))
+      strArr = StrDummyArr(1 : nosubstr)
     end if
 
     deallocate(strDummyArr)
@@ -374,7 +374,7 @@ CONTAINS
   END SUBROUTINE divide_string
 #endif
 
-    ! ------------------------------------------------------------------
+  ! ------------------------------------------------------------------
 
   !     NAME
   !         equalStrings
@@ -422,26 +422,26 @@ CONTAINS
   !         \author David Schaefer
   !         \date Mar 2015
 
-  function equalStrings(string1,string2)
+  function equalStrings(string1, string2)
     implicit none
 
-    character(len=*), intent(in)     :: string1, string2
-    integer(i4),      allocatable    :: array1(:), array2(:)
-    integer(i4)                      :: i
-    logical                          :: equalStrings
+    character(len = *), intent(in) :: string1, string2
+    integer(i4), allocatable :: array1(:), array2(:)
+    integer(i4) :: i
+    logical :: equalStrings
 
     array1 = str2num(trim(string1))
     array2 = str2num(trim(string2))
     equalStrings = .false.
 
     if (size(array1) .eq. size(array2)) then
-       equalStrings = .true.
-       do i=1, size(array1)
-          if (array1(i) .ne. array2(i)) then
-             equalStrings = .false.
-             exit 
-          end if
-       end do
+      equalStrings = .true.
+      do i = 1, size(array1)
+        if (array1(i) .ne. array2(i)) then
+          equalStrings = .false.
+          exit
+        end if
+      end do
     end if
 
   end function equalStrings
@@ -498,13 +498,13 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*), INTENT(in) :: str
-    LOGICAL                      :: nonull
+    CHARACTER(LEN = *), INTENT(in) :: str
+    LOGICAL :: nonull
 
     if (scan(str, achar(0)) == 0) then
-       nonull = .true.
+      nonull = .true.
     else
-       nonull = .false.
+      nonull = .false.
     end if
 
   END FUNCTION nonull
@@ -557,27 +557,27 @@ CONTAINS
   !         \author David Schaefer
   !         \date Mar 2015
 
-  function splitString(string,delim) result(out)
-    
-    use mo_append, only : append    
+  function splitString(string, delim) result(out)
+
+    use mo_append, only : append
     implicit none
-    
-    character(len=*),   intent(in)        :: string
-    character(len=*),   intent(in)        :: delim
-    character(len=256), allocatable       :: out(:)
-    integer(i4),        allocatable       :: string_array(:), delim_array(:)
-    integer(i4)                           :: i, start
+
+    character(len = *), intent(in) :: string
+    character(len = *), intent(in) :: delim
+    character(len = 256), allocatable :: out(:)
+    integer(i4), allocatable :: string_array(:), delim_array(:)
+    integer(i4) :: i, start
     !
     if (allocated(out)) deallocate(out)
-    string_array = str2num(string//delim)
+    string_array = str2num(string // delim)
     delim_array = str2num(delim)
     start = 1
 
-    do i=1, size(string_array) - size(delim_array) + 1
-       if (all(string_array(i:i+size(delim_array)-1) .eq. delim_array)) then
-          call append(out, numarray2str(string_array(start:i-1)))
-          start = i + size(delim_array)
-       end if
+    do i = 1, size(string_array) - size(delim_array) + 1
+      if (all(string_array(i : i + size(delim_array) - 1) .eq. delim_array)) then
+        call append(out, numarray2str(string_array(start : i - 1)))
+        start = i + size(delim_array)
+      end if
     end do
     !
   end function splitString
@@ -631,19 +631,19 @@ CONTAINS
   !         \date Mar 2015
 
   function startsWith(string, start)
-    
+
     implicit none
 
-    character(len=*), intent(in)     :: string, start
-    integer(i4), allocatable         :: string_array(:), start_array(:)
-    logical                          :: startsWith
+    character(len = *), intent(in) :: string, start
+    integer(i4), allocatable :: string_array(:), start_array(:)
+    logical :: startsWith
 
     string_array = str2num(string)
     start_array = str2num(start)
 
     startsWith = .false.
-    if (all(string_array(1:1+size(start_array)-1) .eq. start_array)) then 
-       startsWith = .true.
+    if (all(string_array(1 : 1 + size(start_array) - 1) .eq. start_array)) then
+      startsWith = .true.
     end if
   end function startsWith
 
@@ -700,19 +700,19 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*)              ,INTENT(in) :: upper
-    CHARACTER(LEN=LEN_TRIM(upper))            :: tolower
+    CHARACTER(LEN = *), INTENT(in) :: upper
+    CHARACTER(LEN = LEN_TRIM(upper)) :: tolower
 
-    INTEGER            :: i
-    INTEGER ,PARAMETER :: idel = ICHAR('a')-ICHAR('A')
+    INTEGER :: i
+    INTEGER, PARAMETER :: idel = ICHAR('a') - ICHAR('A')
 
-    DO i=1,LEN_TRIM(upper)
-       IF (ICHAR(upper(i:i)) >= ICHAR('A') .AND. &
-            ICHAR(upper(i:i)) <= ICHAR('Z')) THEN
-          tolower(i:i) = CHAR( ICHAR(upper(i:i)) + idel )
-       ELSE
-          tolower(i:i) = upper(i:i)
-       END IF
+    DO i = 1, LEN_TRIM(upper)
+      IF (ICHAR(upper(i : i)) >= ICHAR('A') .AND. &
+              ICHAR(upper(i : i)) <= ICHAR('Z')) THEN
+        tolower(i : i) = CHAR(ICHAR(upper(i : i)) + idel)
+      ELSE
+        tolower(i : i) = upper(i : i)
+      END IF
     END DO
 
   END FUNCTION tolower
@@ -770,19 +770,19 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*)              ,INTENT(in) :: lower
-    CHARACTER(LEN=LEN_TRIM(lower))            :: toupper
+    CHARACTER(LEN = *), INTENT(in) :: lower
+    CHARACTER(LEN = LEN_TRIM(lower)) :: toupper
 
-    INTEGER            :: i
-    INTEGER, PARAMETER :: idel = ICHAR('A')-ICHAR('a')
+    INTEGER :: i
+    INTEGER, PARAMETER :: idel = ICHAR('A') - ICHAR('a')
 
-    DO i=1,LEN_TRIM(lower)
-       IF (ICHAR(lower(i:i)) >= ICHAR('a') .AND. &
-            ICHAR(lower(i:i)) <= ICHAR('z')) THEN
-          toupper(i:i) = CHAR( ICHAR(lower(i:i)) + idel )
-       ELSE
-          toupper(i:i) = lower(i:i)
-       END IF
+    DO i = 1, LEN_TRIM(lower)
+      IF (ICHAR(lower(i : i)) >= ICHAR('a') .AND. &
+              ICHAR(lower(i : i)) <= ICHAR('z')) THEN
+        toupper(i : i) = CHAR(ICHAR(lower(i : i)) + idel)
+      ELSE
+        toupper(i : i) = lower(i : i)
+      END IF
     END DO
 
   END FUNCTION toupper
@@ -793,85 +793,85 @@ CONTAINS
   ! (no "template" documentation required)
   ! -----------------------------------------------------------
 
-  PURE FUNCTION i42str(nn,form)
+  PURE FUNCTION i42str(nn, form)
     ! returns integer nn as a string (often needed in printing messages)
     IMPLICIT NONE
-    INTEGER(i4),      INTENT(IN)           :: nn
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=10) :: i42str
+    INTEGER(i4), INTENT(IN) :: nn
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len = 10) :: i42str
 
     if (present(form)) then
-       write(i42str,form) nn
+      write(i42str, form) nn
     else
-       write(i42str,'(I10)') nn
+      write(i42str, '(I10)') nn
     end if
     !i42str = adjustl(i42str)
 
   END FUNCTION i42str
 
 
-  PURE FUNCTION i82str(nn,form)
+  PURE FUNCTION i82str(nn, form)
     ! returns integer nn as a string (often needed in printing messages)
     IMPLICIT NONE
-    INTEGER(i8),      INTENT(IN)           :: nn
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=20) :: i82str
+    INTEGER(i8), INTENT(IN) :: nn
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len = 20) :: i82str
 
     if (present(form)) then
-       write(i82str,form) nn
+      write(i82str, form) nn
     else
-       write(i82str,'(I20)') nn
+      write(i82str, '(I20)') nn
     end if
     !i82str = adjustl(i82str)
 
   END FUNCTION i82str
 
 
-  PURE FUNCTION sp2str(rr,form)
+  PURE FUNCTION sp2str(rr, form)
     ! returns real rr as a string (often needed in printing messages)
     IMPLICIT NONE
-    REAL(sp),         INTENT(IN)           :: rr
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=32) :: sp2str
+    REAL(sp), INTENT(IN) :: rr
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len = 32) :: sp2str
 
     if (present(form)) then
-       write(sp2str,form) rr
+      write(sp2str, form) rr
     else
-       write(sp2str,'(G32.5)') rr
+      write(sp2str, '(G32.5)') rr
     end if
     !sp2str = adjustl(sp2str)
 
   END FUNCTION sp2str
 
 
-  PURE FUNCTION dp2str(rr,form)
+  PURE FUNCTION dp2str(rr, form)
     ! returns real rr as a string (often needed in printing messages)
     IMPLICIT NONE
-    REAL(dp),         INTENT(IN)           :: rr
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=32) :: dp2str
+    REAL(dp), INTENT(IN) :: rr
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len = 32) :: dp2str
 
     if (present(form)) then
-       write(dp2str,form) rr
+      write(dp2str, form) rr
     else
-       write(dp2str,'(G32.5)') rr
+      write(dp2str, '(G32.5)') rr
     end if
     !dp2str = adjustl(dp2str)
 
   END FUNCTION dp2str
 
 
-  PURE FUNCTION log2str(ll,form)
+  PURE FUNCTION log2str(ll, form)
     ! returns logical ll as a string (often needed in printing messages)
     IMPLICIT NONE
-    LOGICAL,          INTENT(in)           :: ll
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: form
-    CHARACTER(len=10) :: log2str
+    LOGICAL, INTENT(in) :: ll
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: form
+    CHARACTER(len = 10) :: log2str
 
     if (present(form)) then
-       write(log2str,form) ll
+      write(log2str, form) ll
     else
-       write(log2str,'(L10)') ll
+      write(log2str, '(L10)') ll
     end if
     !log2str = adjustl(log2str)
 
@@ -879,18 +879,18 @@ CONTAINS
 
   function i4array2str(arr) result(out)
 
-    integer(i4), intent(in)     :: arr(:)
-    integer(i4)                 :: ii
-    character(len=size(arr))    :: out
+    integer(i4), intent(in) :: arr(:)
+    integer(i4) :: ii
+    character(len = size(arr)) :: out
 
     out = " "
-    do ii=1,size(arr)
-       out(ii:ii) = char(arr(ii))
+    do ii = 1, size(arr)
+      out(ii : ii) = char(arr(ii))
     end do
 
   end function i4array2str
 
-    ! ------------------------------------------------------------------
+  ! ------------------------------------------------------------------
 
   !     NAME
   !         str2num
@@ -938,18 +938,18 @@ CONTAINS
   !         \date Mar 2015
 
   function str2num(string) result(out)
-  
+
     implicit none
 
-    character(len=*), intent(in)       :: string
-    integer(i4), allocatable           :: out(:)
-    integer(i4)                        :: i  
+    character(len = *), intent(in) :: string
+    integer(i4), allocatable :: out(:)
+    integer(i4) :: i
 
     if (allocated(out)) deallocate(out)
     allocate(out(len(string)))
 
-    do i=1,len(string)
-       out(i) = ichar(string(i:i))
+    do i = 1, len(string)
+      out(i) = ichar(string(i : i))
     end do
 
   end function str2num

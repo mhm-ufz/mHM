@@ -150,77 +150,80 @@
 
 PROGRAM mhm_driver
 
-  USE mo_file,                ONLY :                         &
-       version, version_date, file_main,                     &      ! main info
-       file_namelist,                                        &      ! filename of namelist: main setup
-       file_namelist_param,                                  &      ! filename of namelist: mhm model parameter
-       file_defOutput                                               ! filename of namelist: output setup
-  USE mo_finish,              ONLY : finish                         ! Finish with style
-  USE mo_global_variables,    ONLY :                         &
-       nbasins, timestep_model_inputs,                       &      ! number of basins, frequency of input read
-       write_restart,                                        &      ! restart writing flags
-       dirRestartOut,                                        &      ! directories
-       dirMorpho, dirLCover,  dirPrecipitation,              &      ! directories
-       dirTemperature, dirOut,                               &      ! directories
-       dirReferenceET,                                       &      ! PET input path  if process 5 is 'PET is input' (case 0)
-       dirMinTemperature, dirMaxTemperature,                 &      ! PET input paths if process 5 is Hargreaves-Samani  (case 1)
-       dirNetRadiation,                                      &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
-       dirabsVapPressure, dirwindspeed,                      &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
-       dirgridded_LAI,                                       &      ! directories
-       simPer,                                               &      ! simulation period
-       NTSTEPDAY,                                            &      ! number of timesteps per day (former: NAGG)
-       timeStep_LAI_input,                                   &      ! LAI option for reading gridded LAI field
-       dirConfigOut,                                         &
-       basin,                                                & ! L0_mask for mrm_init call
-       L0_elev,                                              & ! L0_elev for mrm_init call
-       L0_LCover                                               ! L0_LCover for mrm_init call
-  USE mo_common_variables,    ONLY : &
-       processMatrix,                                        &      ! basin information,  processMatrix
-       optimize, opti_function,                              &      ! optimization on/off and optimization method
-       global_parameters, global_parameters_name                    ! mhm parameters (gamma) and their clear names
-  USE mo_kind,                ONLY : i4, dp                         ! number precision
-  USE mo_message,             ONLY : message, message_text          ! For print out
-  USE mo_meteo_forcings,      ONLY : prepare_meteo_forcings_data
-  USE mo_mhm_eval,            ONLY : mhm_eval
-  USE mo_prepare_gridded_LAI, ONLY : prepare_gridded_daily_LAI_data, & ! prepare daily LAI gridded fields
-                             prepare_gridded_mean_monthly_LAI_data  ! prepare mean monthly LAI gridded fields
-
-  USE mo_read_optional_data,  ONLY : read_soil_moisture,     &      ! optional soil moisture reader, basin_avg_TWS reader
-                                     read_basin_avg_TWS,     &
-                                     read_neutrons,          &
-                                     read_evapotranspiration
-  USE mo_read_config,         ONLY : read_config                    ! Read main configuration files
-  USE mo_read_wrapper,        ONLY : read_data                      ! Read all input data
-  USE mo_read_latlon,         ONLY : read_latlon
-  USE mo_restart,             ONLY : write_restart_files
-  USE mo_startup,             ONLY : initialise
-  USE mo_string_utils,        ONLY : num2str, separator             ! String magic
-  USE mo_timer,               ONLY :                         &
-       timers_init, timer_start, timer_stop, timer_get              ! Timing of processes
-  USE mo_write_ascii,         ONLY :                         &
-       write_configfile,                                     &      ! Writing Configuration file
-       write_optifile,                                       &      ! Writing optimized parameter set and objective
-       write_optinamelist                                           ! Writing optimized parameter set to a namelist
-  USE mo_objective_function,  ONLY : objective                 ! objective functions and likelihoods
-  USE mo_optimization,        ONLY : optimization
+  USE mo_file, ONLY : &
+          version, version_date, file_main, &      ! main info
+          file_namelist_mhm, unamelist_mhm, &      ! filename of namelist: main setup
+          file_namelist_mhm_param, unamelist_mhm_param, &      ! filename of namelist: mhm model parameter
+          file_defOutput                                               ! filename of namelist: output setup
+  USE mo_finish, ONLY : finish                         ! Finish with style
+  USE mo_global_variables, ONLY : &
+          dirPrecipitation, &      ! directories
+          dirTemperature, &      ! directories
+          dirReferenceET, &      ! PET input path  if process 5 is 'PET is input' (case 0)
+          dirMinTemperature, dirMaxTemperature, &      ! PET input paths if process 5 is Hargreaves-Samani  (case 1)
+          dirNetRadiation, &      ! PET input paths if process 5 is Priestley-Taylor (case 2)
+          dirabsVapPressure, dirwindspeed, &      ! PET input paths if process 5 is Penman-Monteith  (case 3)
+          timestep_model_inputs !frequency of input read
+  USE mo_common_mHM_mRM_variables, ONLY : &
+          nTstepDay, &      ! number of timesteps per day (former: NAGG)
+          simPer, &      ! simulation period
+          optimize, opti_function, &                                   ! optimization on/off and optimization method
+          mrm_coupling_mode
+  USE mo_common_variables, ONLY : &
+          write_restart, &      ! restart writing flags
+          dirRestartOut, &
+          dirConfigOut, &
+          dirMorpho, dirLCover, &                                         ! directories
+          dirOut, &      ! directories
+          nbasins, &      ! number of basins
+          processMatrix, &      ! basin information,  processMatrix
+          global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
+  USE mo_kind, ONLY : i4, dp                         ! number precision
+  USE mo_message, ONLY : message, message_text          ! For print out
+  USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
+  USE mo_mhm_eval, ONLY : mhm_eval
+  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, basin_avg_TWS reader
+          read_basin_avg_TWS, &
+          read_neutrons, &
+          read_evapotranspiration
+  USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
+  USE mo_common_mHM_mRM_read_config, ONLY : &
+          common_mHM_mRM_read_config, check_optimization_settings ! Read main configuration files
+  USE mo_mpr_read_config, ONLY : mpr_read_config                    ! Read main configuration files
+  USE mo_mhm_read_config, ONLY : mhm_read_config                    ! Read main configuration files
+  USE mo_read_wrapper, ONLY : read_data                      ! Read all input data
+  USE mo_restart, ONLY : write_restart_files
+  USE mo_startup, ONLY : mhm_initialize
+  USE mo_string_utils, ONLY : num2str, separator             ! String magic
+  USE mo_timer, ONLY : &
+          timers_init, timer_start, timer_stop, timer_get              ! Timing of processes
+  USE mo_write_ascii, ONLY : &
+          write_configfile, &      ! Writing Configuration file
+          write_optifile, &      ! Writing optimized parameter set and objective
+          write_optinamelist                                           ! Writing optimized parameter set to a namelist
+  USE mo_objective_function, ONLY : objective                 ! objective functions and likelihoods
+  USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
-  USE mo_mrm_objective_function_runoff, only: single_objective_runoff
-  USE mo_mrm_init,            ONLY : mrm_init
-  USE mo_mrm_write,           only : mrm_write
+  USE mo_mrm_objective_function_runoff, only : single_objective_runoff
+  USE mo_mrm_init, ONLY : mrm_init
+  USE mo_mrm_write, only : mrm_write
+
 #endif
   !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
 
   ! local
-  integer(i4), dimension(8)             :: datetime         ! Date and time
+  integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
-  integer(i4)                           :: ii               ! Counters
-  integer(i4)                           :: iTimer           ! Current timer number
-  integer(i4)                           :: nTimeSteps
-  real(dp)                              :: funcbest         ! best objective function achivied during optimization
-  logical,  dimension(:),   allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
+  integer(i4) :: iBasin               ! Counters
+  integer(i4) :: iTimer           ! Current timer number
+  integer(i4) :: nTimeSteps
+  real(dp) :: funcbest         ! best objective function achivied during optimization
+  logical, dimension(:), allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
   !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
+  procedure(mhm_eval), pointer :: eval
+  procedure(objective), pointer :: obj_func
 
   ! --------------------------------------------------------------------------
   ! START
@@ -237,15 +240,15 @@ PROGRAM mhm_driver
   call message(separator)
 
   call message()
-  call date_and_time(values=datetime)
-  message_text = trim(num2str(datetime(3),'(I2.2)'))//"."//trim(num2str(datetime(2),'(I2.2)')) &
-       //"."//trim(num2str(datetime(1),'(I4.4)'))//" "//trim(num2str(datetime(5),'(I2.2)')) &
-       //":"//trim(num2str(datetime(6),'(I2.2)'))//":"//trim(num2str(datetime(7),'(I2.2)'))
+  call date_and_time(values = datetime)
+  message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
+          // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
+          // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
   call message('Start at ', trim(message_text), '.')
   call message('Using main file ', trim(file_main), ' and namelists: ')
-  call message('     ',trim(file_namelist))
-  call message('     ',trim(file_namelist_param))
-  call message('     ',trim(file_defOutput))
+  call message('     ', trim(file_namelist_mhm))
+  call message('     ', trim(file_namelist_mhm_param))
+  call message('     ', trim(file_defOutput))
   call message()
 
   !$OMP PARALLEL
@@ -254,132 +257,116 @@ PROGRAM mhm_driver
   !$ call message('Run with OpenMP with ', trim(num2str(n_threads)), ' threads.')
 
   call message()
-  call message('Read namelist file: ', trim(file_namelist))
-  call message('Read namelist file: ', trim(file_namelist_param))
+  call message('Read namelist file: ', trim(file_namelist_mhm))
+  call message('Read namelist file: ', trim(file_namelist_mhm_param))
   call message('Read namelist file: ', trim(file_defOutput))
-  call read_config()
+  call common_read_config(file_namelist_mhm, unamelist_mhm)
+  call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
+  call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
+  call mhm_read_config(file_namelist_mhm, unamelist_mhm)
+  call check_optimization_settings()
 
   call message()
-  call message('  # of basins:         ', trim(num2str(nbasins)))
+  call message('# of basins:         ', trim(num2str(nbasins)))
   call message()
   call message('  Input data directories:')
-  do ii = 1, nbasins
-     call message( '  --------------' )
-     call message( '      BASIN                   ', num2str(ii,'(I3)') )
-     call message( '  --------------' )
-     call message('    Morphological directory:    ',   trim(dirMorpho(ii) ))
-     call message('    Land cover directory:       ',   trim(dirLCover(ii) ))
-     call message('    Precipitation directory:    ',   trim(dirPrecipitation(ii)  ))
-     call message('    Temperature directory:      ',   trim(dirTemperature(ii)  ))
-     select case (processMatrix(5,1))
-     case(-1:0) ! PET is input
-        call message('    PET directory:              ', trim(dirReferenceET(ii)  ))
-     case(1) ! Hargreaves-Samani
-        call message('    Min. temperature directory: ', trim(dirMinTemperature(ii)  ))
-        call message('    Max. temperature directory: ', trim(dirMaxTemperature(ii)  ))
-     case(2) ! Priestely-Taylor
-        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-     case(3) ! Penman-Monteith
-        call message('    Net radiation directory:    ', trim(dirNetRadiation(ii) ))
-        call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(ii)  ))
-        call message('    Windspeed directory:        ', trim(dirwindspeed(ii)  ))
-     end select
-     call message('    Output directory:           ',   trim(dirOut(ii) ))
-     if (timeStep_LAI_input .NE. 0) then
-        call message('    LAI directory:              ', trim(dirgridded_LAI(ii)) )
-     end if
+  do iBasin = 1, nbasins
+    call message('  --------------')
+    call message('      BASIN                   ', num2str(iBasin, '(I3)'))
+    call message('  --------------')
+    call message('    Morphological directory:    ', trim(dirMorpho(iBasin)))
+    call message('    Land cover directory:       ', trim(dirLCover(iBasin)))
+    call message('    Precipitation directory:    ', trim(dirPrecipitation(iBasin)))
+    call message('    Temperature directory:      ', trim(dirTemperature(iBasin)))
+    select case (processMatrix(5, 1))
+    case(-1 : 0) ! PET is input
+      call message('    PET directory:              ', trim(dirReferenceET(iBasin)))
+    case(1) ! Hargreaves-Samani
+      call message('    Min. temperature directory: ', trim(dirMinTemperature(iBasin)))
+      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iBasin)))
+    case(2) ! Priestely-Taylor
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
+    case(3) ! Penman-Monteith
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
+      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iBasin)))
+      call message('    Windspeed directory:        ', trim(dirwindspeed(iBasin)))
+    end select
+    call message('    Output directory:           ', trim(dirOut(iBasin)))
 
-     call message('')
+    call message('')
   end do
 
   ! Start timings
   call timers_init
 
   ! --------------------------------------------------------------------------
-  ! READ AND (RE-)INITIALISE
+  ! READ AND INITIALIZE
   ! --------------------------------------------------------------------------
   itimer = 1
   call message()
 
-  call message('  Read data ' )
+  call message('  Read data ...')
   call timer_start(itimer)
   ! for DEM, slope, ... define nGvar local
   ! read_data has a basin loop inside
-  call read_data()
+  call read_data(simPer)
   call timer_stop(itimer)
-  call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
   ! read data for every basin
-  do ii=1, nbasins
-     itimer = itimer + 1
-     call message('  Initialise basin: ', trim(adjustl(num2str(ii))),' ...')
-     call timer_start(itimer)
-     call initialise(ii)
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  itimer = itimer + 1
+  call message('  Initialize basins ...')
+  call timer_start(itimer)
+  call mhm_initialize()
+  call timer_stop(itimer)
+  call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-     ! read meteorology now, if optimization is switched on
-     ! meteorological forcings (reading, upscaling or downscaling)
-     if ( timestep_model_inputs(ii) .eq. 0_i4 ) then
-        call prepare_meteo_forcings_data(ii, 1)
-     end if
+  itimer = itimer + 1
+  call message('  Read forcing and optional data ...')
+  call timer_start(itimer)
 
-     ! read lat lon coordinates of each basin
-     call message('  Reading lat-lon for basin: ', trim(adjustl(num2str(ii))),' ...')
-     call timer_start(itimer)
-     call read_latlon(ii)
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  do iBasin = 1, nbasins
+    ! read meteorology now, if optimization is switched on
+    ! meteorological forcings (reading, upscaling or downscaling)
+    if (timestep_model_inputs(iBasin) .eq. 0_i4) then
+      call prepare_meteo_forcings_data(iBasin, 1)
+    end if
 
-     ! gridded LAI values
-     if( timeStep_LAI_input .NE. 0 ) then
-        ! daily gridded fieelds
-        if (timeStep_LAI_input .LT. 0) then
-           call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
-           call timer_start(itimer)
-           call prepare_gridded_daily_LAI_data(ii)
-           call timer_stop(itimer)
-           call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+    ! read optional optional data if necessary
+    if (optimize) then
+      select case (opti_function)
+      case(10 : 13, 28)
+        ! read optional spatio-temporal soil mositure data
+        call read_soil_moisture(iBasin)
+      case(17)
+        ! read optional spatio-temporal neutrons data
+        call read_neutrons(iBasin)
+      case(27, 29, 30)
+        ! read optional spatio-temporal evapotranspiration data
+        call read_evapotranspiration(iBasin)
+      case(15)
+        ! read optional basin average TWS data at once, therefore only read it
+        ! the last iteration of the basin loop to ensure same time for all basins
+        ! note: this is similar to how the runoff is read using mrm below
+        if (iBasin == nbasins) then
+          call read_basin_avg_TWS()
         end if
-        ! long term mean monthly gridded fields
-        if ( timeStep_LAI_input .EQ. 1 ) then
-           call message('  Reading LAI for basin: ', trim(adjustl(num2str(ii))),' ...')
-           call timer_start(itimer)
-           call prepare_gridded_mean_monthly_LAI_data(ii)
-           call timer_stop(itimer)
-           call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
-        end if
-     end if
-
-     ! read optional optional data if necessary
-     if (optimize) then
-        select case (opti_function)
-        case(10:13,28)
-           ! read optional spatio-temporal soil mositure data
-           call read_soil_moisture(ii)
-        case(17)
-           ! read optional spatio-temporal neutrons data
-           call read_neutrons(ii)
-        case(27,29,30)
-           ! read optional spatio-temporal evapotranspiration data
-           call read_evapotranspiration(ii)
-        case(15)
-           ! read optional basin average TWS data at once, therefore only read it
-           ! the last iteration of the basin loop to ensure same time for all basins
-           ! note: this is similar to how the runoff is read using mrm below
-           if ( ii == nbasins) then
-              call read_basin_avg_TWS()
-           end if
-        end select
-     end if
+      end select
+    end if
 
   end do
+  call timer_stop(itimer)
+  call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
 #ifdef MRM2MHM
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(basin%L0_mask, L0_elev, L0_LCover)
+  mrm_coupling_mode = 2_i4
+  if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param)
+#else
+  mrm_coupling_mode = -1_i4
 #endif
 
   !this call may be moved to another position as it writes the master config out file for all basins
@@ -390,54 +377,57 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   iTimer = iTimer + 1
   call message()
-  if ( optimize ) then
+  if (optimize) then
+    eval => mhm_eval
 
-     select case(opti_function)
+    select case(opti_function)
 #ifdef MRM2MHM
-     case(1:9,14,31)
-        ! call optimization against only runoff (no other variables)
-        call optimization(single_objective_runoff, dirConfigOut, funcBest, maskpara)
+     case(1 : 9, 14, 31)
+      ! call optimization against only runoff (no other variables)
+      obj_func => single_objective_runoff
+      call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
 #endif
-     case(10:13,15,17,27,28,29,30)
-        ! call optimization for other variables
-        call optimization(objective, dirConfigOut, funcBest, maskpara)
-     case default
-        call message('***ERROR: mhm_driver: The given objective function number ', &
-             trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
-        stop
-     end select
+     case(10 : 13, 15, 17, 27, 28, 29, 30)
+      ! call optimization for other variables
+      obj_func => objective
+      call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+    case default
+      call message('***ERROR: mhm_driver: The given objective function number ', &
+              trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
+      stop 1
+    end select
 
-     ! write a file with final objective function and the best parameter set
-     call write_optifile(funcbest, global_parameters(:,3), global_parameters_name(:))
-     ! write a file with final best parameter set in a namlist format
-     call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
-     deallocate(maskpara)
+    ! write a file with final objective function and the best parameter set
+    call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
+    ! write a file with final best parameter set in a namlist format
+    call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
+    deallocate(maskpara)
   else
 
-     ! --------------------------------------------------------------------------
-     ! call mHM
-     ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
-     ! get other model outputs  (i.e. gridded fields of model output)
-     ! --------------------------------------------------------------------------
-     call message('  Run mHM')
-     call timer_start(iTimer)
-     call mhm_eval(global_parameters(:,3))
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F12.3)')), ' seconds.')
+    ! --------------------------------------------------------------------------
+    ! call mHM
+    ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+    ! get other model outputs  (i.e. gridded fields of model output)
+    ! --------------------------------------------------------------------------
+    call message('  Run mHM')
+    call timer_start(iTimer)
+    call mhm_eval(global_parameters(:, 3))
+    call timer_stop(itimer)
+    call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
 
   end if
 
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
-  if ( write_restart  .AND. (.NOT. optimize)) then
-     itimer = itimer + 1
-     call message()
-     call message( '  Write restart file')
-     call timer_start(itimer)
-     call write_restart_files( dirRestartOut )
-     call timer_stop(itimer)
-     call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
+  if (write_restart  .AND. (.NOT. optimize)) then
+    itimer = itimer + 1
+    call message()
+    call message('  Write restart file')
+    call timer_start(itimer)
+    call write_restart_files(dirRestartOut)
+    call timer_stop(itimer)
+    call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
   end if
 
 #ifdef MRM2MHM
@@ -460,16 +450,16 @@ PROGRAM mhm_driver
   ! call timer_stop(itimer)
   ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
-  nTimeSteps = maxval( simPer(1:nBasins)%julEnd - simPer(1:nBasins)%julStart + 1 ) * NTSTEPDAY
-  call date_and_time(values=datetime)
+  nTimeSteps = maxval(simPer(1 : nBasins)%julEnd - simPer(1 : nBasins)%julStart + 1) * nTstepDay
+  call date_and_time(values = datetime)
   call message()
-  message_text = 'Done '//trim(num2str(nTimeSteps,'(I10)'))//" time steps."
+  message_text = 'Done ' // trim(num2str(nTimeSteps, '(I10)')) // " time steps."
   call message(trim(message_text))
-  message_text = trim(num2str(datetime(3),'(I2.2)'))//"."//trim(num2str(datetime(2),'(I2.2)')) &
-       //"."//trim(num2str(datetime(1),'(I4.4)'))//" "//trim(num2str(datetime(5),'(I2.2)')) &
-       //":"//trim(num2str(datetime(6),'(I2.2)'))//":"//trim(num2str(datetime(7),'(I2.2)'))
+  message_text = trim(num2str(datetime(3), '(I2.2)')) // "." // trim(num2str(datetime(2), '(I2.2)')) &
+          // "." // trim(num2str(datetime(1), '(I4.4)')) // " " // trim(num2str(datetime(5), '(I2.2)')) &
+          // ":" // trim(num2str(datetime(6), '(I2.2)')) // ":" // trim(num2str(datetime(7), '(I2.2)'))
   call message('Finished at ', trim(message_text), '.')
   call message()
-  call finish('mHM','Finished!')
+  call finish('mHM', 'Finished!')
 
 END PROGRAM mhm_driver

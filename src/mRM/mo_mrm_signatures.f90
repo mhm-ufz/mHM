@@ -21,7 +21,7 @@
 
 MODULE mo_mrm_signatures
 
-  USE mo_kind, ONLY: i4, sp, dp
+  USE mo_kind, ONLY : i4, sp, dp
 
   IMPLICIT NONE
 
@@ -93,19 +93,19 @@ CONTAINS
 
   FUNCTION Autocorrelation(data, lags, mask)
 
-    use mo_corr, only: autocorr
+    use mo_corr, only : autocorr
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
-    integer(i4), dimension(:),                      intent(in)  :: lags            ! Lags for autocorrelation
-    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
-    real(dp),    dimension(size(lags,1))                        :: autocorrelation ! Autocorrelation of data at given lags
+    real(dp), dimension(:), intent(in) :: data            ! Data series
+    integer(i4), dimension(:), intent(in) :: lags            ! Lags for autocorrelation
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
+    real(dp), dimension(size(lags, 1)) :: autocorrelation ! Autocorrelation of data at given lags
 
     if (present(mask)) then
-       autocorrelation = autocorr(data, lags, mask=mask)
+      autocorrelation = autocorr(data, lags, mask = mask)
     else
-       autocorrelation = autocorr(data, lags)
+      autocorrelation = autocorr(data, lags)
     end if
 
   END FUNCTION Autocorrelation
@@ -134,7 +134,7 @@ CONTAINS
   !>                 where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exceedance probabilities within the 
   !>                 midsegment of FDC. The settings \f$m_1=0.2\f$ and \f$0.7\f$ are used by Shafii et. al (2014) and are 
   !>                 implemented like that.\n
-    !>
+  !>
   !>                 Optionally, the FDC medium high-segment volume \f$FDC_{MHSV}\f$ as used by Shafii et. al (2014) can be 
   !>                 returned. The \f$FDC_{MHSV}\f$ is defined as
   !>                         \f[ FDC_{MHSV} = \sum_{h=1}^{H} q_h \f]
@@ -170,7 +170,7 @@ CONTAINS
 
   !     INTENT(OUT)  
   !         None
-  
+
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "logical, dimension(size(data,1)) :: mask"    mask of data array
 
@@ -211,7 +211,7 @@ CONTAINS
   !            Shafii, M., & Tolson, B. A. (2015).
   !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
   !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
-  
+
   !     HISTORY
   !>        \author Remko Nijzink, Juliane Mai
   !>        \date March 2014
@@ -223,81 +223,81 @@ CONTAINS
   !                                             low_segment_volume
 
   FUNCTION FlowDurationCurve(data, quantiles, mask, concavity_index, &
-       mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume)
+          mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume)
 
-    use mo_percentile, only: percentile
-    use mo_utils,      only: ge, le
+    use mo_percentile, only : percentile
+    use mo_utils, only : ge, le
 
     IMPLICIT NONE
 
-    real(dp), dimension(:),                           intent(in) :: data                 ! data series
-    real(dp), dimension(:),                           intent(in) :: quantiles            ! Percentages of exceedance (x-axis of FDC)
-    logical,  dimension(:),                optional, intent(in)  :: mask                 ! mask for data
-    real(dp),                              optional, intent(out) :: concavity_index      ! Concavity index as defined by
+    real(dp), dimension(:), intent(in) :: data                 ! data series
+    real(dp), dimension(:), intent(in) :: quantiles            ! Percentages of exceedance (x-axis of FDC)
+    logical, dimension(:), optional, intent(in) :: mask                 ! mask for data
+    real(dp), optional, intent(out) :: concavity_index      ! Concavity index as defined by
     !                                                                                    ! Sauquet et al. (2011)
-    real(dp),                              optional, intent(out) :: mid_segment_slope    ! mid-segment slope as defined by
+    real(dp), optional, intent(out) :: mid_segment_slope    ! mid-segment slope as defined by
     !                                                                                    ! Shafii et al. (2014)
-    real(dp),                              optional, intent(out) :: mhigh_segment_volume ! medium-high-segment volume
+    real(dp), optional, intent(out) :: mhigh_segment_volume ! medium-high-segment volume
     !                                                                                    ! 0.0 <= exceed. prob. <= 0.2
-    real(dp),                              optional, intent(out) :: high_segment_volume  ! high-segment volume as defined by
+    real(dp), optional, intent(out) :: high_segment_volume  ! high-segment volume as defined by
     !                                                                                    ! Shafii et al. (2014)
     !                                                                                    ! 0.0 <= exceed. prob. <= 0.02
-    real(dp),                              optional, intent(out) :: low_segment_volume   ! low-segment volume as defined by
+    real(dp), optional, intent(out) :: low_segment_volume   ! low-segment volume as defined by
     !                                                                                    ! Shafii et al. (2014)
     !                                                                                    ! 0.7 <= exceed. prob. <= 1.0
-    real(dp), dimension(size(quantiles,1))                       :: FlowDurationCurve    ! data point where x% of the data points
+    real(dp), dimension(size(quantiles, 1)) :: FlowDurationCurve    ! data point where x% of the data points
     !                                                                                    ! are above that value
 
     ! local variables
-    logical, dimension(size(data,1)) :: maske            ! mask for data points
-    real(dp)                         :: min_flow_value   ! minimal flow value
-    real(dp)                         :: flow_value_thres ! flow value at a threshold quantile
-    
+    logical, dimension(size(data, 1)) :: maske            ! mask for data points
+    real(dp) :: min_flow_value   ! minimal flow value
+    real(dp) :: flow_value_thres ! flow value at a threshold quantile
+
     ! checking optionals
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
-    
-    FlowDurationCurve = percentile(data, (1._dp-quantiles)*100._dp, mask=maske, mode_in=5)
+
+    FlowDurationCurve = percentile(data, (1._dp - quantiles) * 100._dp, mask = maske, mode_in = 5)
 
     if (present(concavity_index)) then
-       concavity_index = &
-            ( percentile(data, (1._dp-0.10_dp)*100._dp, mask=maske, mode_in=5) - &
-            percentile(data, (1._dp-0.99_dp)*100._dp, mask=maske, mode_in=5) ) / &
-            ( percentile(data, (1._dp-0.01_dp)*100._dp, mask=maske, mode_in=5) - &
-            percentile(data, (1._dp-0.99_dp)*100._dp, mask=maske, mode_in=5) )
+      concavity_index = &
+              (percentile(data, (1._dp - 0.10_dp) * 100._dp, mask = maske, mode_in = 5) - &
+                      percentile(data, (1._dp - 0.99_dp) * 100._dp, mask = maske, mode_in = 5)) / &
+                      (percentile(data, (1._dp - 0.01_dp) * 100._dp, mask = maske, mode_in = 5) - &
+                              percentile(data, (1._dp - 0.99_dp) * 100._dp, mask = maske, mode_in = 5))
     end if
 
     if (present(mid_segment_slope)) then
-       ! mid-flows are defined to be between 0.2 and 0.7 by Shafii et. al (2014)
-       mid_segment_slope = &
-            log( percentile(data, (1._dp-0.2_dp)*100._dp, mask=maske, mode_in=5) ) - &
-            log( percentile(data, (1._dp-0.7_dp)*100._dp, mask=maske, mode_in=5) ) 
+      ! mid-flows are defined to be between 0.2 and 0.7 by Shafii et. al (2014)
+      mid_segment_slope = &
+              log(percentile(data, (1._dp - 0.2_dp) * 100._dp, mask = maske, mode_in = 5)) - &
+                      log(percentile(data, (1._dp - 0.7_dp) * 100._dp, mask = maske, mode_in = 5))
     end if
 
     if (present(mhigh_segment_volume)) then
-       ! medium high-flows are defined to be between 0.0 and 0.2 as to be constistent
-       ! with the mid-segment (0.2-0.7) and low-segment (0.7-1.0) definitions
-       flow_value_thres = percentile(data, (1._dp-0.2_dp)*100._dp, mask=maske, mode_in=5)
-       mhigh_segment_volume = sum(data,mask=(maske .and. ge(data,flow_value_thres)))
-       ! print*, 'flow_value_thres     = ',flow_value_thres
-       ! print*, 'mhigh_segment_volume = ',mhigh_segment_volume
+      ! medium high-flows are defined to be between 0.0 and 0.2 as to be constistent
+      ! with the mid-segment (0.2-0.7) and low-segment (0.7-1.0) definitions
+      flow_value_thres = percentile(data, (1._dp - 0.2_dp) * 100._dp, mask = maske, mode_in = 5)
+      mhigh_segment_volume = sum(data, mask = (maske .and. ge(data, flow_value_thres)))
+      ! print*, 'flow_value_thres     = ',flow_value_thres
+      ! print*, 'mhigh_segment_volume = ',mhigh_segment_volume
     end if
 
     if (present(high_segment_volume)) then
-       ! high-flows are defined to be between 0.0 and 0.02 by Shafii et. al (2014)
-       flow_value_thres = percentile(data, (1._dp-0.02_dp)*100._dp, mask=maske, mode_in=5)
-       high_segment_volume = sum(data,mask=(maske .and. ge(data,flow_value_thres)))
+      ! high-flows are defined to be between 0.0 and 0.02 by Shafii et. al (2014)
+      flow_value_thres = percentile(data, (1._dp - 0.02_dp) * 100._dp, mask = maske, mode_in = 5)
+      high_segment_volume = sum(data, mask = (maske .and. ge(data, flow_value_thres)))
     end if
 
     if (present(low_segment_volume)) then
-       ! low-flows are defined to be between 0.7 and 1.0 by Shafii et. al (2014)
-       min_flow_value   = minval(data, mask=maske)
-       flow_value_thres = percentile(data, (1._dp-0.7)*100._dp, mask=maske, mode_in=5)
-       low_segment_volume = -1.0_dp * &
-            sum( log(data) - log(min_flow_value), mask=(maske .and. le(data,flow_value_thres)))
+      ! low-flows are defined to be between 0.7 and 1.0 by Shafii et. al (2014)
+      min_flow_value = minval(data, mask = maske)
+      flow_value_thres = percentile(data, (1._dp - 0.7) * 100._dp, mask = maske, mode_in = 5)
+      low_segment_volume = -1.0_dp * &
+              sum(log(data) - log(min_flow_value), mask = (maske .and. le(data, flow_value_thres)))
     end if
 
   END FUNCTION FlowDurationCurve
@@ -320,7 +320,7 @@ CONTAINS
   !>                 whereas the duration the data decrease (ndecline) divided by the number of peaks (npeaks)
   !>                 gives the declining limb density DLD
   !>                     \f[ DLD=t_{fall}/n_{peak}. \f]
-  
+
   !>                 An optional mask of data points can be specified.
 
   !     CALLING SEQUENCE
@@ -368,65 +368,65 @@ CONTAINS
 
   SUBROUTINE Limb_densities(data, mask, RLD, DLD)
 
-    use mo_message,          only : message
+    use mo_message, only : message
 
     IMPLICIT NONE
 
-    real(dp), dimension(:),                      intent(in)  :: data    ! data series (with rising and declining limbs)
-    logical,  dimension(size(data,1)), optional, intent(in)  :: mask    ! mask for data series    
-    real(dp),                          optional, intent(out) :: RLD     ! rising limb density
-    real(dp),                          optional, intent(out) :: DLD     ! declining limb density
+    real(dp), dimension(:), intent(in) :: data    ! data series (with rising and declining limbs)
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask    ! mask for data series
+    real(dp), optional, intent(out) :: RLD     ! rising limb density
+    real(dp), optional, intent(out) :: DLD     ! declining limb density
 
     ! local variables
-    logical, dimension(size(data,1))    :: maske      ! mask for data points
-    integer(i4)                         :: jj         ! Counter
-    integer(i4)                         :: n_peak     ! Number of peaks
-    integer(i4)                         :: n_decline  ! Number of declining data points
-    integer(i4)                         :: n_rise     ! Number of rising data points
-    logical, dimension(size(data,1))    :: goes_up    ! True if rising, False if declining or contains masked values
-    real(dp)                            :: thres_rise ! Threshold that is has to rise at least to be detected as rising value
+    logical, dimension(size(data, 1)) :: maske      ! mask for data points
+    integer(i4) :: jj         ! Counter
+    integer(i4) :: n_peak     ! Number of peaks
+    integer(i4) :: n_decline  ! Number of declining data points
+    integer(i4) :: n_rise     ! Number of rising data points
+    logical, dimension(size(data, 1)) :: goes_up    ! True if rising, False if declining or contains masked values
+    real(dp) :: thres_rise ! Threshold that is has to rise at least to be detected as rising value
 
     ! checking optionals
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
 
-    if ( (.not. present(RLD)) .and. (.not. present(DLD)) ) then
-       call message('mo_signatures: limb_densities: Neither RLD or DLD is specified in calling sequence.')
-       stop
+    if ((.not. present(RLD)) .and. (.not. present(DLD))) then
+      call message('mo_signatures: limb_densities: Neither RLD or DLD is specified in calling sequence.')
+      stop
     end if
-    
+
     ! initialize
-    n_rise    = 0_i4
+    n_rise = 0_i4
     n_decline = 0_i4
-    n_peak    = 0_i4
+    n_peak = 0_i4
 
-    goes_up    = .False.
+    goes_up = .False.
     thres_rise = 1.0_dp
-    do jj=1, size(data,1)-1
-       if (maske(jj) .and. maske(jj+1)) then
-          if (data(jj) < data(jj+1) - thres_rise) then
-             goes_up(jj) = .true.
-             ! print*, jj, '  ', data(jj), '  ', data(jj+1)
-          end if
-       end if
+    do jj = 1, size(data, 1) - 1
+      if (maske(jj) .and. maske(jj + 1)) then
+        if (data(jj) < data(jj + 1) - thres_rise) then
+          goes_up(jj) = .true.
+          ! print*, jj, '  ', data(jj), '  ', data(jj+1)
+        end if
+      end if
     end do
-    n_rise    = count(goes_up)
+    n_rise = count(goes_up)
     n_decline = count(maske) - count(goes_up)
 
     ! write(*,*) 'goes_up = ', goes_up(1:178)
 
     ! peak is where goes_up switches from true to false
     n_peak = 0_i4
-    do jj=1, size(data,1)-1
-       if (maske(jj) .and. maske(jj+1)) then
-          if (goes_up(jj) .and. .not.(goes_up(jj+1)) ) then
-             n_peak = n_peak+1_i4
-             ! print*, jj
-          end if
-       end if
+    do jj = 1, size(data, 1) - 1
+      if (maske(jj) .and. maske(jj + 1)) then
+        if (goes_up(jj) .and. .not.(goes_up(jj + 1))) then
+          n_peak = n_peak + 1_i4
+          ! print*, jj
+        end if
+      end if
     end do
 
     ! do jj=2, size(data,1)-1
@@ -454,30 +454,30 @@ CONTAINS
     !    !       n_decline = n_decline+1_i4
     !    !    end if
     !    ! end if
-       
+
     ! end do
 
     ! write(*,*) 'n_peak = ', n_peak
 
     if (present(RLD)) then
-       if (n_peak>0_i4) then
-          RLD = real(n_rise,dp)/   real(n_peak,dp)
-       else
-          RLD = 0.0_dp
-       end if
+      if (n_peak>0_i4) then
+        RLD = real(n_rise, dp) / real(n_peak, dp)
+      else
+        RLD = 0.0_dp
+      end if
     end if
-    
+
     if (present(DLD)) then
-       if (n_peak>0_i4) then
-          DLD = real(n_decline,dp)/real(n_peak,dp)
-       else
-          DLD = 0.0_dp
-       end if
+      if (n_peak>0_i4) then
+        DLD = real(n_decline, dp) / real(n_peak, dp)
+      else
+        DLD = 0.0_dp
+      end if
     end if
-    
+
   END SUBROUTINE Limb_densities
 
-    !-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
   !     NAME
   !         MaximumMonthlyFlow
 
@@ -534,78 +534,78 @@ CONTAINS
 
   FUNCTION MaximumMonthlyFlow(data, mask, yr_start, mo_start, dy_start)
 
-    use mo_julian,  only: date2dec, dec2date
-    use mo_message, only: message
+    use mo_julian, only : date2dec, dec2date
+    use mo_message, only : message
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),                      intent(in)  :: data               ! Data series
-    logical,     dimension(size(data,1)), optional, intent(in)  :: mask               ! mask for data points
-    integer(i4),                          optional, intent(in)  :: yr_start           ! year  of date of first data point given
-    integer(i4),                          optional, intent(in)  :: mo_start           ! month of date of first data point given
+    real(dp), dimension(:), intent(in) :: data               ! Data series
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask               ! mask for data points
+    integer(i4), optional, intent(in) :: yr_start           ! year  of date of first data point given
+    integer(i4), optional, intent(in) :: mo_start           ! month of date of first data point given
     !                                                                                 ! DEFAULT: 1
-    integer(i4),                          optional, intent(in)  :: dy_start           ! day   of date of first data point given
+    integer(i4), optional, intent(in) :: dy_start           ! day   of date of first data point given
     !                                                                                 ! DEFAULT: 1
-    real(dp)                                                    :: MaximumMonthlyFlow ! return: maximum of average monthly flow
-    
+    real(dp) :: MaximumMonthlyFlow ! return: maximum of average monthly flow
+
     ! local variables
-    logical,     dimension(size(data,1)) :: maske
-    integer(i4)                          :: ii               ! counter
-    integer(i4)                          :: yr, mo, dy, imo  ! date variables
-    integer(i4), dimension(12)           :: counter          ! number of data points per month
-    real(dp),    dimension(12)           :: flow_month       ! summed data points per months
-    real(dp)                             :: ref_jul_day      ! julian day of one day before start day
+    logical, dimension(size(data, 1)) :: maske
+    integer(i4) :: ii               ! counter
+    integer(i4) :: yr, mo, dy, imo  ! date variables
+    integer(i4), dimension(12) :: counter          ! number of data points per month
+    real(dp), dimension(12) :: flow_month       ! summed data points per months
+    real(dp) :: ref_jul_day      ! julian day of one day before start day
 
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
 
     if (.not. present(yr_start)) then
-       call message('mo_signatures: MaximumMonthlyFlow: Year of of data point has to be given!')
-       stop
+      call message('mo_signatures: MaximumMonthlyFlow: Year of of data point has to be given!')
+      stop
     else
-       yr = yr_start
+      yr = yr_start
     end if
 
     if (present(mo_start)) then
-       mo = mo_start
+      mo = mo_start
     else
-       mo = 1
+      mo = 1
     end if
 
     if (present(dy_start)) then
-       dy = dy_start
+      dy = dy_start
     else
-       dy = 1
+      dy = 1
     end if
 
     flow_month = 0.0_dp
-    counter    = 0_i4
-    ref_jul_day = date2dec(yy=yr, mm=mo, dd=dy) - 1.0_dp 
-    
-    do ii=1, size(data,1)
-       if (maske(ii)) then
-          ! determine current month
-          call dec2date(ref_jul_day+real(ii,dp), mm=imo)
-          ! add value
-          counter(imo)    = counter(imo) + 1
-          flow_month(imo) = flow_month(imo) + data(ii)
-       end if
+    counter = 0_i4
+    ref_jul_day = date2dec(yy = yr, mm = mo, dd = dy) - 1.0_dp
+
+    do ii = 1, size(data, 1)
+      if (maske(ii)) then
+        ! determine current month
+        call dec2date(ref_jul_day + real(ii, dp), mm = imo)
+        ! add value
+        counter(imo) = counter(imo) + 1
+        flow_month(imo) = flow_month(imo) + data(ii)
+      end if
     end do
 
     if (any(counter == 0_i4)) then
-       call message('mo_signatures: MaximumMonthlyFlow: There are months with no data points!')
-       call message('                                   Aborted!')
-       stop
+      call message('mo_signatures: MaximumMonthlyFlow: There are months with no data points!')
+      call message('                                   Aborted!')
+      stop
     end if
 
     ! average
-    MaximumMonthlyFlow = maxval(flow_month / real(counter,dp))
+    MaximumMonthlyFlow = maxval(flow_month / real(counter, dp))
 
   END FUNCTION MaximumMonthlyFlow
-  
+
   !-------------------------------------------------------------------------------
   !     NAME
   !         Moments
@@ -679,58 +679,58 @@ CONTAINS
 
   SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, max_log)
 
-    use mo_message,    only: message
-    use mo_moment,     only: mean, stddev
-    use mo_percentile, only: median
+    use mo_message, only : message
+    use mo_moment, only : mean, stddev
+    use mo_percentile, only : median
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
-    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
-    real(dp),                             optional, intent(out) :: mean_data       ! mean               of data                
-    real(dp),                             optional, intent(out) :: stddev_data     ! standard deviation of data
-    real(dp),                             optional, intent(out) :: median_data     ! median             of data                
-    real(dp),                             optional, intent(out) :: max_data        ! max/ peak          of data                
-    real(dp),                             optional, intent(out) :: mean_log        ! mean               of log-transformed data
-    real(dp),                             optional, intent(out) :: stddev_log      ! standard deviation of log-transformed data
-    real(dp),                             optional, intent(out) :: median_log      ! median             of log-transformed data
-    real(dp),                             optional, intent(out) :: max_log         ! max/ peak          of log-transformed data
+    real(dp), dimension(:), intent(in) :: data            ! Data series
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
+    real(dp), optional, intent(out) :: mean_data       ! mean               of data
+    real(dp), optional, intent(out) :: stddev_data     ! standard deviation of data
+    real(dp), optional, intent(out) :: median_data     ! median             of data
+    real(dp), optional, intent(out) :: max_data        ! max/ peak          of data
+    real(dp), optional, intent(out) :: mean_log        ! mean               of log-transformed data
+    real(dp), optional, intent(out) :: stddev_log      ! standard deviation of log-transformed data
+    real(dp), optional, intent(out) :: median_log      ! median             of log-transformed data
+    real(dp), optional, intent(out) :: max_log         ! max/ peak          of log-transformed data
 
     ! local variables
-    logical,     dimension(size(data,1)) :: maske
-    real(dp),    dimension(size(data,1)) :: logdata
+    logical, dimension(size(data, 1)) :: maske
+    real(dp), dimension(size(data, 1)) :: logdata
 
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
 
-    if ( .not.(present(mean_data)) .and. .not.(present(stddev_data)) .and. &
-         .not.(present(median_data)) .and. .not.(present(max_data)) .and. &
-         .not.(present(mean_log))  .and. .not.(present(stddev_log)) .and. &
-         .not.(present(median_log))  .and. .not.(present(max_log)) ) then
-       call message('mo_signatures: Moments: None of the optional output arguments is specified')
-       stop
+    if (.not.(present(mean_data)) .and. .not.(present(stddev_data)) .and. &
+            .not.(present(median_data)) .and. .not.(present(max_data)) .and. &
+                    .not.(present(mean_log))  .and. .not.(present(stddev_log)) .and. &
+                            .not.(present(median_log))  .and. .not.(present(max_log))) then
+      call message('mo_signatures: Moments: None of the optional output arguments is specified')
+      stop
     end if
 
-    if (present(mean_data))   mean_data   = mean(data, mask=maske)
-    if (present(stddev_data)) stddev_data = stddev(data, mask=maske)
-    if (present(median_data)) median_data = median(data, mask=maske)
-    if (present(max_data))    max_data    = maxval(data, mask=maske)
+    if (present(mean_data))   mean_data = mean(data, mask = maske)
+    if (present(stddev_data)) stddev_data = stddev(data, mask = maske)
+    if (present(median_data)) median_data = median(data, mask = maske)
+    if (present(max_data))    max_data = maxval(data, mask = maske)
 
-    if (present(mean_log) .or. present(stddev_log)) then 
-       where (data > 0.0_dp)
-          logdata = log(data)
-       elsewhere
-          logdata = -9999.0_dp  ! will not be used, since mask is set to .false.
-          maske    = .false.
-       end where
-    
-       if (present(mean_log))   mean_log   = mean(logdata, mask=maske)
-       if (present(stddev_log)) stddev_log = stddev(logdata, mask=maske)
-       if (present(median_log)) median_log = median(logdata, mask=maske)
-       if (present(max_log))    max_log    = maxval(logdata, mask=maske)
+    if (present(mean_log) .or. present(stddev_log)) then
+      where (data > 0.0_dp)
+        logdata = log(data)
+      elsewhere
+        logdata = -9999.0_dp  ! will not be used, since mask is set to .false.
+        maske = .false.
+      end where
+
+      if (present(mean_log))   mean_log = mean(logdata, mask = maske)
+      if (present(stddev_log)) stddev_log = stddev(logdata, mask = maske)
+      if (present(median_log)) median_log = median(logdata, mask = maske)
+      if (present(max_log))    max_log = maxval(logdata, mask = maske)
     end if
 
   END SUBROUTINE Moments
@@ -801,69 +801,69 @@ CONTAINS
 
   FUNCTION PeakDistribution(data, quantiles, mask, slope_peak_distribution)
 
-    USE mo_percentile, only: percentile
+    USE mo_percentile, only : percentile
 
     IMPLICIT NONE
 
-    real(dp), dimension(:),                          intent(in)  :: data                      ! data points      
-    real(dp), dimension(:),                          intent(in)  :: quantiles                 ! percentages of occurence
-    logical,  dimension(size(data,1)),     optional, intent(in)  :: mask                      ! mask of data points
-    real(dp),                              optional, intent(out) :: slope_peak_distribution   ! slope of peak flow duration curve
-    real(dp), dimension(size(quantiles,1))                       :: PeakDistribution          ! distribution of peaks in data
+    real(dp), dimension(:), intent(in) :: data                      ! data points
+    real(dp), dimension(:), intent(in) :: quantiles                 ! percentages of occurence
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask                      ! mask of data points
+    real(dp), optional, intent(out) :: slope_peak_distribution   ! slope of peak flow duration curve
+    real(dp), dimension(size(quantiles, 1)) :: PeakDistribution          ! distribution of peaks in data
     !                                                                                         ! returns values of distribution at
     !                                                                                         ! given quantiles
 
     ! local variables
-    integer(i4)                              :: ii, jj      ! counters
-    logical, dimension(size(data,1))         :: maske       ! mask of data 
-    integer(i4)                              :: n_peak      ! Number of peaks
-    real(dp),                 dimension(2)   :: pp          ! array containing some quantiles
-    real(dp),                 dimension(2)   :: data_pp     ! data points of quantiles pp 
-    real(dp) ,   allocatable, dimension(:)   :: data_peak   ! series containing only peak values of original series data
+    integer(i4) :: ii, jj      ! counters
+    logical, dimension(size(data, 1)) :: maske       ! mask of data
+    integer(i4) :: n_peak      ! Number of peaks
+    real(dp), dimension(2) :: pp          ! array containing some quantiles
+    real(dp), dimension(2) :: data_pp     ! data points of quantiles pp
+    real(dp), allocatable, dimension(:) :: data_peak   ! series containing only peak values of original series data
 
     ! checking optionals
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
-    
+
     ! count peaks
-    n_peak=0_i4
-    do jj=2, size(data,1)-1
-       if (maske(jj-1) .and. maske(jj) .and. maske(jj+1)) then
-          if ( (data(jj-1) .le. data(jj)) .and. (data(jj+1) .le. data(jj)) ) then
-             n_peak = n_peak+1_i4
-          end if
-       end if
+    n_peak = 0_i4
+    do jj = 2, size(data, 1) - 1
+      if (maske(jj - 1) .and. maske(jj) .and. maske(jj + 1)) then
+        if ((data(jj - 1) .le. data(jj)) .and. (data(jj + 1) .le. data(jj))) then
+          n_peak = n_peak + 1_i4
+        end if
+      end if
     end do
 
     allocate(data_peak(n_peak))
 
     ! find peaks
-    jj=0
-    do ii=2, size(data,1)-1
-       if (maske(ii-1) .and. maske(ii) .and. maske(ii+1)) then
-          if( (data(ii-1) .le. data(ii)) .and. (data(ii+1) .le. data(ii)) ) then
-             jj=jj+1_i4       
-             data_peak(jj)=data(ii)
-          end if
-       end if
+    jj = 0
+    do ii = 2, size(data, 1) - 1
+      if (maske(ii - 1) .and. maske(ii) .and. maske(ii + 1)) then
+        if((data(ii - 1) .le. data(ii)) .and. (data(ii + 1) .le. data(ii))) then
+          jj = jj + 1_i4
+          data_peak(jj) = data(ii)
+        end if
+      end if
     end do
 
     if (present(slope_peak_distribution)) then
-       ! calculate slope between 10% and 50% quantiles, per definition
-       pp      = (/ 0.1_dp, 0.5_dp /)
-       data_pp = percentile(data_peak,(1.0_dp-pp)*100._dp, mode_in=5)   ! (1-p) because exceedence probability is required
-       slope_peak_distribution = (data_pp(1)-data_pp(2))/(0.9_dp-0.5_dp)
+      ! calculate slope between 10% and 50% quantiles, per definition
+      pp = (/ 0.1_dp, 0.5_dp /)
+      data_pp = percentile(data_peak, (1.0_dp - pp) * 100._dp, mode_in = 5)   ! (1-p) because exceedence probability is required
+      slope_peak_distribution = (data_pp(1) - data_pp(2)) / (0.9_dp - 0.5_dp)
     end if
 
-    PeakDistribution = percentile(data_peak,(1.0_dp-Quantiles)*100._dp, mode_in=5) 
-    deallocate( data_peak)
+    PeakDistribution = percentile(data_peak, (1.0_dp - Quantiles) * 100._dp, mode_in = 5)
+    deallocate(data_peak)
 
   END FUNCTION PeakDistribution
 
-    !-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
   !     NAME
   !         RunoffRatio
 
@@ -937,53 +937,53 @@ CONTAINS
 
   FUNCTION RunoffRatio(data, basin_area, mask, precip_series, precip_sum, log_data)
 
-    use mo_message, only: message
+    use mo_message, only : message
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),                      intent(in)  :: data            ! Discharge series [m**3/s]
-    real(dp),                                       intent(in)  :: basin_area      ! Basin area       [km**2]
-    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
-    real(dp),    dimension(size(data,1)), optional, intent(in)  :: precip_series   ! series of daily precip. [mm/km**2 / d]
+    real(dp), dimension(:), intent(in) :: data            ! Discharge series [m**3/s]
+    real(dp), intent(in) :: basin_area      ! Basin area       [km**2]
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
+    real(dp), dimension(size(data, 1)), optional, intent(in) :: precip_series   ! series of daily precip. [mm/km**2 / d]
     !                                                                              ! optional mask will be applied
-    real(dp),                             optional, intent(in)  :: precip_sum      ! sum    of daily precip. [mm/km**2 / d]
+    real(dp), optional, intent(in) :: precip_sum      ! sum    of daily precip. [mm/km**2 / d]
     !                                                                              ! optional mask will not be applied
-    logical,                              optional, intent(in)  :: log_data        ! if log(data) is used in ratio
+    logical, optional, intent(in) :: log_data        ! if log(data) is used in ratio
     !                                                                              ! DEFAULT: .false.
-    real(dp)                                                    :: RunoffRatio     ! sum(data) / sum(precip)
+    real(dp) :: RunoffRatio     ! sum(data) / sum(precip)
 
     ! local variables
-    logical, dimension(size(data,1)) :: maske    ! mask of data 
-    logical                          :: log_dat  ! if logarithmic data are used --> sum(log(data)) / sum(precip)
-    real(dp)                         :: sum_discharge
-    real(dp)                         :: sum_precip
+    logical, dimension(size(data, 1)) :: maske    ! mask of data
+    logical :: log_dat  ! if logarithmic data are used --> sum(log(data)) / sum(precip)
+    real(dp) :: sum_discharge
+    real(dp) :: sum_precip
 
     ! checking optionals
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
 
     if (present(log_data)) then
-       log_dat = log_data
+      log_dat = log_data
     else
-       log_dat = .false.
+      log_dat = .false.
     end if
 
-    if ( (present(precip_series) .and. present(precip_sum)) .or. &
-         (.not. present(precip_series) .and. .not. present(precip_sum)) ) then
-       call message('mo_signatures: RunoffRatio: Exactly one precipitation information')
-       call message('                            (precipitation series or sum of precipitation) ')
-       call message('                            has to be specified!')
-       stop
+    if ((present(precip_series) .and. present(precip_sum)) .or. &
+            (.not. present(precip_series) .and. .not. present(precip_sum))) then
+      call message('mo_signatures: RunoffRatio: Exactly one precipitation information')
+      call message('                            (precipitation series or sum of precipitation) ')
+      call message('                            has to be specified!')
+      stop
     end if
 
     if (present(mask) .and. present(precip_sum)) then
-       call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and' )
-       call message('                            mask can not be used together.')
-       call message('                            Precip_series should be used instead!')
-       stop
+      call message('mo_signatures: RunoffRatio: Already aggregated precipitation (precip_sum) and')
+      call message('                            mask can not be used together.')
+      call message('                            Precip_series should be used instead!')
+      stop
     end if
 
     ! mhm output [m**3/s]  --> required [mm/d]
@@ -993,15 +993,15 @@ CONTAINS
     ! => [m**3/(s km**2) * 86.4 ] = [mm/d]
     ! => discharge value [m**3/s] / catchment area [km**2] * 86.4 [km**2 s/m**3 * mm/d]
     if (log_dat) then
-       sum_discharge = sum(log(data)*86.4_dp/basin_area,mask=maske)
+      sum_discharge = sum(log(data) * 86.4_dp / basin_area, mask = maske)
     else
-       sum_discharge = sum(data*86.4_dp/basin_area,mask=maske)
+      sum_discharge = sum(data * 86.4_dp / basin_area, mask = maske)
     end if
 
     if (present(precip_sum)) then
-       sum_precip = precip_sum
+      sum_precip = precip_sum
     else
-       sum_precip = sum(precip_series,mask=maske)
+      sum_precip = sum(precip_series, mask = maske)
     end if
 
     RunoffRatio = sum_discharge / sum_precip
@@ -1060,35 +1060,35 @@ CONTAINS
 
   FUNCTION ZeroFlowRatio(data, mask)
 
-    use mo_message, only: message
-    use mo_utils,   only: eq
+    use mo_message, only : message
+    use mo_utils, only : eq
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:),                      intent(in)  :: data            ! Data series
-    logical,     dimension(size(data,1)), optional, intent(in)  :: mask            ! mask for data points
-    real(dp)                                                    :: ZeroFlowRatio   ! Autocorrelation of data at given lags
+    real(dp), dimension(:), intent(in) :: data            ! Data series
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
+    real(dp) :: ZeroFlowRatio   ! Autocorrelation of data at given lags
 
     ! local variables
-    logical, dimension(size(data,1)) :: maske   ! mask of data 
-    integer(i4)                      :: nall    ! total number of data points
-    integer(i4)                      :: nzero   ! number of zero data points
+    logical, dimension(size(data, 1)) :: maske   ! mask of data
+    integer(i4) :: nall    ! total number of data points
+    integer(i4) :: nzero   ! number of zero data points
 
     ! checking optionals
     if (present(mask)) then
-       maske = mask
+      maske = mask
     else
-       maske = .true.
+      maske = .true.
     end if
 
-    nall  = count(maske)
+    nall = count(maske)
     nzero = count(maske .and. (eq(data, 0.0_dp)))
 
     if (nall > 0) then
-       ZeroFlowRatio = real(nzero, dp) / real(nall, dp)
+      ZeroFlowRatio = real(nzero, dp) / real(nall, dp)
     else
-       call message('mo_signatures: ZeroFlowRatio: all data points are masked')
-       stop
+      call message('mo_signatures: ZeroFlowRatio: all data points are masked')
+      stop
     end if
 
   END FUNCTION ZeroFlowRatio

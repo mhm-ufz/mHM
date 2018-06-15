@@ -33,8 +33,8 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind,         only: sp, dp, i4
-  USE mo_string_utils, only: toupper
+  USE mo_kind, only : sp, dp, i4
+  USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
 
@@ -105,35 +105,35 @@ MODULE mo_utils
   !>        \date Feb 2014
   !         Modified, Matthias Cuntz, Juliane Mai, Feb 2014 - sp, dp
   INTERFACE equal
-     MODULE PROCEDURE equal_sp, equal_dp
+    MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
   INTERFACE notequal
-     MODULE PROCEDURE notequal_sp, notequal_dp
+    MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
   INTERFACE greaterequal
-     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
+    MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE greaterequal
 
   INTERFACE lesserequal
-     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
+    MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE lesserequal
 
   INTERFACE eq
-     MODULE PROCEDURE equal_sp, equal_dp
+    MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE eq
 
   INTERFACE ne
-     MODULE PROCEDURE notequal_sp, notequal_dp
+    MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE ne
 
   INTERFACE ge
-     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
+    MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE ge
 
   INTERFACE le
-     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
+    MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
 
 
@@ -191,16 +191,16 @@ MODULE mo_utils
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE is_finite
-     MODULE PROCEDURE is_finite_sp, is_finite_dp
-  END INTERFACE is_finite  
+    MODULE PROCEDURE is_finite_sp, is_finite_dp
+  END INTERFACE is_finite
 
   INTERFACE is_nan
-     MODULE PROCEDURE is_nan_sp, is_nan_dp
+    MODULE PROCEDURE is_nan_sp, is_nan_dp
   END INTERFACE is_nan
-  
+
   INTERFACE is_normal
-     MODULE PROCEDURE is_normal_sp, is_normal_dp
-  END INTERFACE is_normal  
+    MODULE PROCEDURE is_normal_sp, is_normal_dp
+  END INTERFACE is_normal
 
 
   ! ------------------------------------------------------------------
@@ -262,10 +262,10 @@ MODULE mo_utils
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE locate
-     MODULE PROCEDURE locate_0d_dp, locate_0d_sp, locate_1d_dp, locate_1d_sp
+    MODULE PROCEDURE locate_0d_dp, locate_0d_sp, locate_1d_dp, locate_1d_sp
   END INTERFACE locate
 
-  
+
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -322,12 +322,12 @@ MODULE mo_utils
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE swap
-     MODULE PROCEDURE &
-          swap_xy_dp, swap_xy_sp, swap_xy_i4, &
-          swap_vec_dp, swap_vec_sp, swap_vec_i4
+    MODULE PROCEDURE &
+            swap_xy_dp, swap_xy_sp, swap_xy_i4, &
+            swap_vec_dp, swap_vec_sp, swap_vec_i4
   END INTERFACE swap
 
-  
+
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -403,7 +403,7 @@ MODULE mo_utils
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE special_value
-     MODULE PROCEDURE special_value_sp, special_value_dp
+    MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
 
   ! ------------------------------------------------------------------
@@ -422,12 +422,12 @@ CONTAINS
 
     REAL(dp), INTENT(IN) :: a
     REAL(dp), INTENT(IN) :: b
-    LOGICAL              :: equal_dp
+    LOGICAL :: equal_dp
 
-    if ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) then
-       equal_dp = .false.
+    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
+      equal_dp = .false.
     else
-       equal_dp = .true.
+      equal_dp = .true.
     end if
 
   END FUNCTION equal_dp
@@ -439,12 +439,12 @@ CONTAINS
 
     REAL(sp), INTENT(IN) :: a
     REAL(sp), INTENT(IN) :: b
-    LOGICAL              :: equal_sp
+    LOGICAL :: equal_sp
 
-    if ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) then
-       equal_sp = .false.
+    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
+      equal_sp = .false.
     else
-       equal_sp = .true.
+      equal_sp = .true.
     end if
 
   END FUNCTION equal_sp
@@ -457,11 +457,11 @@ CONTAINS
 
     REAL(dp), INTENT(IN) :: a
     REAL(dp), INTENT(IN) :: b
-    LOGICAL              :: greaterequal_dp
+    LOGICAL :: greaterequal_dp
 
     greaterequal_dp = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if ( ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) .and. (a < b) ) greaterequal_dp = .false.
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) greaterequal_dp = .false.
 
   END FUNCTION greaterequal_dp
 
@@ -472,11 +472,11 @@ CONTAINS
 
     REAL(sp), INTENT(IN) :: a
     REAL(sp), INTENT(IN) :: b
-    LOGICAL              :: greaterequal_sp
+    LOGICAL :: greaterequal_sp
 
     greaterequal_sp = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if ( ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) .and. (a < b) ) greaterequal_sp = .false.
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) greaterequal_sp = .false.
 
   END FUNCTION greaterequal_sp
 
@@ -488,11 +488,11 @@ CONTAINS
 
     REAL(dp), INTENT(IN) :: a
     REAL(dp), INTENT(IN) :: b
-    LOGICAL              :: lesserequal_dp
+    LOGICAL :: lesserequal_dp
 
     lesserequal_dp = .true.
     ! 1st part is /=, 2nd part is the a>b
-    if ( ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) .and. (a > b) ) lesserequal_dp = .false.
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) lesserequal_dp = .false.
 
   END FUNCTION lesserequal_dp
 
@@ -503,11 +503,11 @@ CONTAINS
 
     REAL(sp), INTENT(IN) :: a
     REAL(sp), INTENT(IN) :: b
-    LOGICAL              :: lesserequal_sp
+    LOGICAL :: lesserequal_sp
 
     lesserequal_sp = .true.
     ! 1st part is /=, 2nd part is the a>b
-    if ( ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) .and. (a > b) ) lesserequal_sp = .false.
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) lesserequal_sp = .false.
 
   END FUNCTION lesserequal_sp
 
@@ -519,12 +519,12 @@ CONTAINS
 
     REAL(dp), INTENT(IN) :: a
     REAL(dp), INTENT(IN) :: b
-    LOGICAL              :: notequal_dp
+    LOGICAL :: notequal_dp
 
-    if ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) then
-       notequal_dp = .true.
+    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
+      notequal_dp = .true.
     else
-       notequal_dp = .false.
+      notequal_dp = .false.
     end if
 
   END FUNCTION notequal_dp
@@ -536,28 +536,28 @@ CONTAINS
 
     REAL(sp), INTENT(IN) :: a
     REAL(sp), INTENT(IN) :: b
-    LOGICAL              :: notequal_sp
+    LOGICAL :: notequal_sp
 
-    if ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) then
-       notequal_sp = .true.
+    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
+      notequal_sp = .true.
     else
-       notequal_sp = .false.
+      notequal_sp = .false.
     end if
 
   END FUNCTION notequal_sp
-  
+
   ! ------------------------------------------------------------------
 
   ELEMENTAL PURE FUNCTION is_finite_dp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+  use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: a
-    LOGICAL              :: is_finite_dp
+  REAL(dp), INTENT(IN) :: a
+  LOGICAL :: is_finite_dp
 
 #ifndef GFORTRAN
     is_finite_dp = ieee_is_finite(a)
@@ -570,13 +570,13 @@ CONTAINS
   ELEMENTAL PURE FUNCTION is_finite_sp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+  use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(sp), INTENT(IN) :: a
-    LOGICAL              :: is_finite_sp
+  REAL(sp), INTENT(IN) :: a
+  LOGICAL :: is_finite_sp
 
 #ifndef GFORTRAN
     is_finite_sp = ieee_is_finite(a)
@@ -590,15 +590,15 @@ CONTAINS
   ELEMENTAL PURE FUNCTION is_nan_dp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: isnan => ieee_is_nan
+  use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: a
-    LOGICAL              :: is_nan_dp
+  REAL(dp), INTENT(IN) :: a
+  LOGICAL :: is_nan_dp
 
-    ! isnan introduced in gfortran rev 4.2
+  ! isnan introduced in gfortran rev 4.2
 #ifdef GFORTRAN41
     is_nan_dp = a /= a
 #else
@@ -610,15 +610,15 @@ CONTAINS
   ELEMENTAL PURE FUNCTION is_nan_sp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: isnan => ieee_is_nan
+  use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(sp), INTENT(IN) :: a
-    LOGICAL              :: is_nan_sp
+  REAL(sp), INTENT(IN) :: a
+  LOGICAL :: is_nan_sp
 
-    ! isnan introduced in gfortran rev 4.2
+  ! isnan introduced in gfortran rev 4.2
 #ifdef GFORTRAN41
     is_nan_sp = a /= a
 #else
@@ -631,13 +631,13 @@ CONTAINS
   ELEMENTAL PURE FUNCTION is_normal_dp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: ieee_is_normal
+  use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: a
-    LOGICAL              :: is_normal_dp
+  REAL(dp), INTENT(IN) :: a
+  LOGICAL :: is_normal_dp
 
 #ifndef GFORTRAN
     is_normal_dp = ieee_is_normal(a)
@@ -650,13 +650,13 @@ CONTAINS
   ELEMENTAL PURE FUNCTION is_normal_sp(a)
 
 #ifndef GFORTRAN
-  use, intrinsic :: ieee_arithmetic, only: ieee_is_normal
+  use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
 #endif
 
-    IMPLICIT NONE
+  IMPLICIT NONE
 
-    REAL(sp), INTENT(IN) :: a
-    LOGICAL              :: is_normal_sp
+  REAL(sp), INTENT(IN) :: a
+  LOGICAL :: is_normal_sp
 
 #ifndef GFORTRAN
     is_normal_sp = ieee_is_normal(a)
@@ -672,45 +672,45 @@ CONTAINS
   !  x(j) and x(j+1). x must be monotonically increasing.
   !  j=0 or j=N is returned to indicate that x is out of range.
 
-  FUNCTION locate_0d_dp(x,y)
+  FUNCTION locate_0d_dp(x, y)
 
     IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
-    REAL(dp),               INTENT(IN) :: y
-    INTEGER(i4)                        :: locate_0d_dp
+    REAL(dp), INTENT(IN) :: y
+    INTEGER(i4) :: locate_0d_dp
 
     INTEGER(i4), dimension(1) :: c
 
-    c = minloc(abs(x-y))
-    if (le(x(c(1)),y)) then
-       locate_0d_dp = c(1)
+    c = minloc(abs(x - y))
+    if (le(x(c(1)), y)) then
+      locate_0d_dp = c(1)
     else
-       locate_0d_dp = c(1)-1
+      locate_0d_dp = c(1) - 1
     end if
 
   END FUNCTION locate_0d_dp
 
-  FUNCTION locate_0d_sp(x,y)
+  FUNCTION locate_0d_sp(x, y)
 
     IMPLICIT NONE
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
-    REAL(sp),               INTENT(IN) :: y
-    INTEGER(i4)                        :: locate_0d_sp
+    REAL(sp), INTENT(IN) :: y
+    INTEGER(i4) :: locate_0d_sp
 
     INTEGER(i4), dimension(1) :: c
 
-    c = minloc(abs(x-y))
-    if (le(x(c(1)),y)) then
-       locate_0d_sp = c(1)
+    c = minloc(abs(x - y))
+    if (le(x(c(1)), y)) then
+      locate_0d_sp = c(1)
     else
-       locate_0d_sp = c(1)-1
+      locate_0d_sp = c(1) - 1
     end if
 
   END FUNCTION locate_0d_sp
 
-  FUNCTION locate_1d_dp(x,y)
+  FUNCTION locate_1d_dp(x, y)
 
     IMPLICIT NONE
 
@@ -721,22 +721,21 @@ CONTAINS
     INTEGER(i4) :: ny, i
     INTEGER(i4), dimension(1) :: c
 
-
     ny = size(y)
     if (.not. allocated(locate_1d_dp)) allocate(locate_1d_dp(ny))
 
-    do i=1, ny
-       c = minloc(abs(x-y(i)))
-       if (le(x(c(1)),y(i))) then
-          locate_1d_dp(i) = c(1)
-       else
-          locate_1d_dp(i) = c(1)-1
-       end if
+    do i = 1, ny
+      c = minloc(abs(x - y(i)))
+      if (le(x(c(1)), y(i))) then
+        locate_1d_dp(i) = c(1)
+      else
+        locate_1d_dp(i) = c(1) - 1
+      end if
     end do
 
   END FUNCTION locate_1d_dp
 
-  FUNCTION locate_1d_sp(x,y)
+  FUNCTION locate_1d_sp(x, y)
 
     IMPLICIT NONE
 
@@ -747,24 +746,23 @@ CONTAINS
     INTEGER(i4) :: ny, i
     INTEGER(i4), dimension(1) :: c
 
-
     ny = size(y)
     if (.not. allocated(locate_1d_sp)) allocate(locate_1d_sp(ny))
 
-    do i=1, ny
-       c = minloc(abs(x-y(i)))
-       if (le(x(c(1)),y(i))) then
-          locate_1d_sp(i) = c(1)
-       else
-          locate_1d_sp(i) = c(1)-1
-       end if
+    do i = 1, ny
+      c = minloc(abs(x - y(i)))
+      if (le(x(c(1)), y(i))) then
+        locate_1d_sp(i) = c(1)
+      else
+        locate_1d_sp(i) = c(1) - 1
+      end if
     end do
 
   END FUNCTION locate_1d_sp
 
   ! ------------------------------------------------------------------
 
-  elemental pure subroutine swap_xy_dp(x,y)
+  elemental pure subroutine swap_xy_dp(x, y)
 
     implicit none
 
@@ -779,7 +777,7 @@ CONTAINS
 
   end subroutine swap_xy_dp
 
-  elemental pure subroutine swap_xy_sp(x,y)
+  elemental pure subroutine swap_xy_sp(x, y)
 
     implicit none
 
@@ -794,7 +792,7 @@ CONTAINS
 
   end subroutine swap_xy_sp
 
-  elemental pure subroutine swap_xy_i4(x,y)
+  elemental pure subroutine swap_xy_i4(x, y)
 
     implicit none
 
@@ -810,49 +808,49 @@ CONTAINS
   end subroutine swap_xy_i4
 
 
-  subroutine swap_vec_dp(x,i1,i2)
+  subroutine swap_vec_dp(x, i1, i2)
 
     implicit none
 
-    real(dp),    dimension(:), intent(inout) :: x
-    integer(i4),               intent(in)    :: i1
-    integer(i4),               intent(in)    :: i2
+    real(dp), dimension(:), intent(inout) :: x
+    integer(i4), intent(in) :: i1
+    integer(i4), intent(in) :: i2
 
     real(dp) :: z
 
-    z     = x(i1)
+    z = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
   end subroutine swap_vec_dp
 
-  subroutine swap_vec_sp(x,i1,i2)
+  subroutine swap_vec_sp(x, i1, i2)
 
     implicit none
 
-    real(sp),    dimension(:), intent(inout) :: x
-    integer(i4),               intent(in)    :: i1
-    integer(i4),               intent(in)    :: i2
+    real(sp), dimension(:), intent(inout) :: x
+    integer(i4), intent(in) :: i1
+    integer(i4), intent(in) :: i2
 
     real(sp) :: z
 
-    z     = x(i1)
+    z = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
   end subroutine swap_vec_sp
 
-  subroutine swap_vec_i4(x,i1,i2)
+  subroutine swap_vec_i4(x, i1, i2)
 
     implicit none
 
-    integer(i4),    dimension(:), intent(inout) :: x
-    integer(i4),               intent(in)    :: i1
-    integer(i4),               intent(in)    :: i2
+    integer(i4), dimension(:), intent(inout) :: x
+    integer(i4), intent(in) :: i1
+    integer(i4), intent(in) :: i2
 
     integer(i4) :: z
 
-    z     = x(i1)
+    z = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
@@ -863,86 +861,86 @@ CONTAINS
   function special_value_dp(x, ieee)
 
 #ifndef GFORTRAN
-    use, intrinsic :: ieee_arithmetic, only: ieee_value, &
-         IEEE_SIGNALING_NAN, &
-         IEEE_QUIET_NAN, &
-         IEEE_NEGATIVE_INF, &
-         IEEE_POSITIVE_INF, &
-         IEEE_NEGATIVE_DENORMAL, &
-         IEEE_POSITIVE_DENORMAL, &
-         IEEE_NEGATIVE_NORMAL, &
-         IEEE_POSITIVE_NORMAL, &
-         IEEE_NEGATIVE_ZERO, &
-         IEEE_POSITIVE_ZERO
+    use, intrinsic :: ieee_arithmetic, only : ieee_value, &
+          IEEE_SIGNALING_NAN, &
+          IEEE_QUIET_NAN, &
+          IEEE_NEGATIVE_INF, &
+          IEEE_POSITIVE_INF, &
+          IEEE_NEGATIVE_DENORMAL, &
+          IEEE_POSITIVE_DENORMAL, &
+          IEEE_NEGATIVE_NORMAL, &
+          IEEE_POSITIVE_NORMAL, &
+          IEEE_NEGATIVE_ZERO, &
+          IEEE_POSITIVE_ZERO
 #endif
 
-    implicit none
-    
-    real(dp),         intent(in) :: x
-    character(len=*), intent(in) :: ieee
-    real(dp)                     :: special_value_dp
+  implicit none
 
-    ! local
-    character(len=21) :: ieee_up
+  real(dp), intent(in) :: x
+  character(len = *), intent(in) :: ieee
+  real(dp) :: special_value_dp
+
+  ! local
+  character(len = 21) :: ieee_up
 #ifdef GFORTRAN
     real(dp) :: tmp
 #endif
 
-    ieee_up = toupper(ieee)
+  ieee_up = toupper(ieee)
 #ifndef GFORTRAN
     select case(trim(ieee_up))
-    case('IEEE_SIGNALING_NAN')
-       special_value_dp = ieee_value(x, IEEE_SIGNALING_NAN)
-    case('IEEE_QUIET_NAN')
-       special_value_dp = ieee_value(x, IEEE_QUIET_NAN)
-    case('IEEE_NEGATIVE_INF')
-       special_value_dp = ieee_value(x, IEEE_NEGATIVE_INF)
-    case('IEEE_POSITIVE_INF')
-       special_value_dp = ieee_value(x, IEEE_POSITIVE_INF)
-    case('IEEE_NEGATIVE_DENORMAL')
-       special_value_dp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
-    case('IEEE_POSITIVE_DENORMAL')
-       special_value_dp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
-    case('IEEE_NEGATIVE_NORMAL')
-       special_value_dp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
-    case('IEEE_POSITIVE_NORMAL')
-       special_value_dp = ieee_value(x, IEEE_POSITIVE_NORMAL)
-    case('IEEE_NEGATIVE_ZERO')
-       special_value_dp = ieee_value(x, IEEE_NEGATIVE_ZERO)
-    case('IEEE_POSITIVE_ZERO')
-       special_value_dp = ieee_value(x, IEEE_POSITIVE_ZERO)
-    case default
-       special_value_dp = 0.0_dp
-    end select
+  case('IEEE_SIGNALING_NAN')
+    special_value_dp = ieee_value(x, IEEE_SIGNALING_NAN)
+  case('IEEE_QUIET_NAN')
+    special_value_dp = ieee_value(x, IEEE_QUIET_NAN)
+  case('IEEE_NEGATIVE_INF')
+    special_value_dp = ieee_value(x, IEEE_NEGATIVE_INF)
+  case('IEEE_POSITIVE_INF')
+    special_value_dp = ieee_value(x, IEEE_POSITIVE_INF)
+  case('IEEE_NEGATIVE_DENORMAL')
+    special_value_dp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
+  case('IEEE_POSITIVE_DENORMAL')
+    special_value_dp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
+  case('IEEE_NEGATIVE_NORMAL')
+    special_value_dp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
+  case('IEEE_POSITIVE_NORMAL')
+    special_value_dp = ieee_value(x, IEEE_POSITIVE_NORMAL)
+  case('IEEE_NEGATIVE_ZERO')
+    special_value_dp = ieee_value(x, IEEE_NEGATIVE_ZERO)
+  case('IEEE_POSITIVE_ZERO')
+    special_value_dp = ieee_value(x, IEEE_POSITIVE_ZERO)
+  case default
+    special_value_dp = 0.0_dp
+  end select
 #else
     select case(ieee_up)
-    case('IEEE_SIGNALING_NAN')
-       tmp = 0.0_dp
-       special_value_dp = tmp/tmp
-    case('IEEE_QUIET_NAN')
-       tmp = 0.0_dp
-       special_value_dp = tmp/tmp
-    case('IEEE_NEGATIVE_INF')
-       tmp = huge(x)
-       special_value_dp = -tmp*tmp
-    case('IEEE_POSITIVE_INF')
-       tmp = huge(x)
-       special_value_dp = tmp*tmp
-    case('IEEE_NEGATIVE_DENORMAL')
-       special_value_dp = -0.0_dp
-    case('IEEE_POSITIVE_DENORMAL')
-       special_value_dp = 0.0_dp
-    case('IEEE_NEGATIVE_NORMAL')
-       special_value_dp = -1.0_dp
-    case('IEEE_POSITIVE_NORMAL')
-       special_value_dp = 1.0_dp
-    case('IEEE_NEGATIVE_ZERO')
-       special_value_dp = -0.0_dp
-    case('IEEE_POSITIVE_ZERO')
-       special_value_dp = 0.0_dp
-    case default
-       special_value_dp = 0.0_dp
-    end select
+  case('IEEE_SIGNALING_NAN')
+    tmp = 0.0_dp
+    special_value_dp = tmp / tmp
+  case('IEEE_QUIET_NAN')
+    tmp = 0.0_dp
+    special_value_dp = tmp / tmp
+  case('IEEE_NEGATIVE_INF')
+    tmp = huge(x)
+    special_value_dp = -tmp * tmp
+  case('IEEE_POSITIVE_INF')
+    tmp = huge(x)
+    special_value_dp = tmp * tmp
+  case('IEEE_NEGATIVE_DENORMAL')
+    special_value_dp = -0.0_dp
+  case('IEEE_POSITIVE_DENORMAL')
+    special_value_dp = 0.0_dp
+  case('IEEE_NEGATIVE_NORMAL')
+    special_value_dp = -1.0_dp
+  case('IEEE_POSITIVE_NORMAL')
+    special_value_dp = 1.0_dp
+  case('IEEE_NEGATIVE_ZERO')
+    special_value_dp = -0.0_dp
+  case('IEEE_POSITIVE_ZERO')
+    special_value_dp = 0.0_dp
+  case default
+    special_value_dp = 0.0_dp
+  end select
 #endif
 
   end function special_value_dp
@@ -950,86 +948,86 @@ CONTAINS
   function special_value_sp(x, ieee)
 
 #ifndef GFORTRAN
-    use, intrinsic :: ieee_arithmetic, only: ieee_value, &
-         IEEE_SIGNALING_NAN, &
-         IEEE_QUIET_NAN, &
-         IEEE_NEGATIVE_INF, &
-         IEEE_POSITIVE_INF, &
-         IEEE_NEGATIVE_DENORMAL, &
-         IEEE_POSITIVE_DENORMAL, &
-         IEEE_NEGATIVE_NORMAL, &
-         IEEE_POSITIVE_NORMAL, &
-         IEEE_NEGATIVE_ZERO, &
-         IEEE_POSITIVE_ZERO
+    use, intrinsic :: ieee_arithmetic, only : ieee_value, &
+          IEEE_SIGNALING_NAN, &
+          IEEE_QUIET_NAN, &
+          IEEE_NEGATIVE_INF, &
+          IEEE_POSITIVE_INF, &
+          IEEE_NEGATIVE_DENORMAL, &
+          IEEE_POSITIVE_DENORMAL, &
+          IEEE_NEGATIVE_NORMAL, &
+          IEEE_POSITIVE_NORMAL, &
+          IEEE_NEGATIVE_ZERO, &
+          IEEE_POSITIVE_ZERO
 #endif
 
-    implicit none
-    
-    real(sp),         intent(in) :: x
-    character(len=*), intent(in) :: ieee
-    real(sp)                     :: special_value_sp
+  implicit none
 
-    ! local
-    character(len=21) :: ieee_up
+  real(sp), intent(in) :: x
+  character(len = *), intent(in) :: ieee
+  real(sp) :: special_value_sp
+
+  ! local
+  character(len = 21) :: ieee_up
 #ifdef GFORTRAN
     real(sp) :: tmp
 #endif
 
-    ieee_up = toupper(ieee)
+  ieee_up = toupper(ieee)
 #ifndef GFORTRAN
     select case(trim(ieee_up))
-    case('IEEE_SIGNALING_NAN')
-       special_value_sp = ieee_value(x, IEEE_SIGNALING_NAN)
-    case('IEEE_QUIET_NAN')
-       special_value_sp = ieee_value(x, IEEE_QUIET_NAN)
-    case('IEEE_NEGATIVE_INF')
-       special_value_sp = ieee_value(x, IEEE_NEGATIVE_INF)
-    case('IEEE_POSITIVE_INF')
-       special_value_sp = ieee_value(x, IEEE_POSITIVE_INF)
-    case('IEEE_NEGATIVE_DENORMAL')
-       special_value_sp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
-    case('IEEE_POSITIVE_DENORMAL')
-       special_value_sp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
-    case('IEEE_NEGATIVE_NORMAL')
-       special_value_sp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
-    case('IEEE_POSITIVE_NORMAL')
-       special_value_sp = ieee_value(x, IEEE_POSITIVE_NORMAL)
-    case('IEEE_NEGATIVE_ZERO')
-       special_value_sp = ieee_value(x, IEEE_NEGATIVE_ZERO)
-    case('IEEE_POSITIVE_ZERO')
-       special_value_sp = ieee_value(x, IEEE_POSITIVE_ZERO)
-    case default
-       special_value_sp = 0.0_sp
-    end select
+  case('IEEE_SIGNALING_NAN')
+    special_value_sp = ieee_value(x, IEEE_SIGNALING_NAN)
+  case('IEEE_QUIET_NAN')
+    special_value_sp = ieee_value(x, IEEE_QUIET_NAN)
+  case('IEEE_NEGATIVE_INF')
+    special_value_sp = ieee_value(x, IEEE_NEGATIVE_INF)
+  case('IEEE_POSITIVE_INF')
+    special_value_sp = ieee_value(x, IEEE_POSITIVE_INF)
+  case('IEEE_NEGATIVE_DENORMAL')
+    special_value_sp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
+  case('IEEE_POSITIVE_DENORMAL')
+    special_value_sp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
+  case('IEEE_NEGATIVE_NORMAL')
+    special_value_sp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
+  case('IEEE_POSITIVE_NORMAL')
+    special_value_sp = ieee_value(x, IEEE_POSITIVE_NORMAL)
+  case('IEEE_NEGATIVE_ZERO')
+    special_value_sp = ieee_value(x, IEEE_NEGATIVE_ZERO)
+  case('IEEE_POSITIVE_ZERO')
+    special_value_sp = ieee_value(x, IEEE_POSITIVE_ZERO)
+  case default
+    special_value_sp = 0.0_sp
+  end select
 #else
     select case(ieee_up)
-    case('IEEE_SIGNALING_NAN')
-       tmp = 0.0_sp
-       special_value_sp = tmp/tmp
-    case('IEEE_QUIET_NAN')
-       tmp = 0.0_sp
-       special_value_sp = tmp/tmp
-    case('IEEE_NEGATIVE_INF')
-       tmp = huge(x)
-       special_value_sp = -tmp*tmp
-    case('IEEE_POSITIVE_INF')
-       tmp = huge(x)
-       special_value_sp = tmp*tmp
-    case('IEEE_NEGATIVE_DENORMAL')
-       special_value_sp = -0.0_sp
-    case('IEEE_POSITIVE_DENORMAL')
-       special_value_sp = 0.0_sp
-    case('IEEE_NEGATIVE_NORMAL')
-       special_value_sp = -1.0_sp
-    case('IEEE_POSITIVE_NORMAL')
-       special_value_sp = 1.0_sp
-    case('IEEE_NEGATIVE_ZERO')
-       special_value_sp = -0.0_sp
-    case('IEEE_POSITIVE_ZERO')
-       special_value_sp = 0.0_sp
-    case default
-       special_value_sp = 0.0_sp
-    end select
+  case('IEEE_SIGNALING_NAN')
+    tmp = 0.0_sp
+    special_value_sp = tmp / tmp
+  case('IEEE_QUIET_NAN')
+    tmp = 0.0_sp
+    special_value_sp = tmp / tmp
+  case('IEEE_NEGATIVE_INF')
+    tmp = huge(x)
+    special_value_sp = -tmp * tmp
+  case('IEEE_POSITIVE_INF')
+    tmp = huge(x)
+    special_value_sp = tmp * tmp
+  case('IEEE_NEGATIVE_DENORMAL')
+    special_value_sp = -0.0_sp
+  case('IEEE_POSITIVE_DENORMAL')
+    special_value_sp = 0.0_sp
+  case('IEEE_NEGATIVE_NORMAL')
+    special_value_sp = -1.0_sp
+  case('IEEE_POSITIVE_NORMAL')
+    special_value_sp = 1.0_sp
+  case('IEEE_NEGATIVE_ZERO')
+    special_value_sp = -0.0_sp
+  case('IEEE_POSITIVE_ZERO')
+    special_value_sp = 0.0_sp
+  case default
+    special_value_sp = 0.0_sp
+  end select
 #endif
 
   end function special_value_sp

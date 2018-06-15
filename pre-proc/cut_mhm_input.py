@@ -36,7 +36,7 @@ def check_dir(dir):
 # default variables
 indir = '../test_basin/input/'
 outdir = './test_cut_mhm_input/'
-lc_file = ['lc_1990.asc','lc_2000.asc','lc_2006.asc']
+lc_file = ['lc_1991.asc','lc_2000.asc','lc_2006.asc']
 gauge_id = -9999.
 
 parser.add_argument('-g', '--gauge_id', action='store', dest='gauge_id', default=gauge_id, 

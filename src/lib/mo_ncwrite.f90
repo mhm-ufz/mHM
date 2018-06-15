@@ -22,19 +22,19 @@ module mo_ncwrite
 
   ! Copyright 2011-2012 Luis Samaniego, Stephan Thober, Matthias Cuntz
 
-  use mo_kind,         only: i1, i4, sp, dp
-  use mo_string_utils, only: nonull
-  use mo_utils,        only: ne
+  use mo_kind, only : i1, i4, sp, dp
+  use mo_string_utils, only : nonull
+  use mo_utils, only : ne
 
   ! functions and constants of netcdf4 library
-  use netcdf,  only: nf90_create, nf90_def_dim, NF90_UNLIMITED, nf90_def_var, &
-       NF90_CHAR, nf90_put_att, NF90_INT, NF90_INT, NF90_GLOBAL, &
-       nf90_enddef, nf90_put_var, NF90_FLOAT, NF90_DOUBLE, NF90_BYTE, &
-       NF90_close, nf90_noerr, nf90_strerror, NF90_CLOBBER, &
-       NF90_MAX_NAME, NF90_WRITE, nf90_inq_varid, nf90_inquire_variable, &
-       nf90_inquire_dimension, nf90_open, NF90_64BIT_OFFSET, NF90_NETCDF4, &
-       nf90_inq_varid, nf90_inq_dimid, nf90_inquire, nf90_get_var, nf90_fill_float, &
-       nf90_fill_double, nf90_fill_int
+  use netcdf, only : nf90_create, nf90_def_dim, NF90_UNLIMITED, nf90_def_var, &
+          NF90_CHAR, nf90_put_att, NF90_INT, NF90_INT, NF90_GLOBAL, &
+          nf90_enddef, nf90_put_var, NF90_FLOAT, NF90_DOUBLE, NF90_BYTE, &
+          NF90_close, nf90_noerr, nf90_strerror, NF90_CLOBBER, &
+          NF90_MAX_NAME, NF90_WRITE, nf90_inq_varid, nf90_inquire_variable, &
+          nf90_inquire_dimension, nf90_open, NF90_64BIT_OFFSET, NF90_NETCDF4, &
+          nf90_inq_varid, nf90_inq_dimid, nf90_inquire, nf90_get_var, nf90_fill_float, &
+          nf90_fill_double, nf90_fill_int
 
   ! public routines -------------------------------------------------------------------
   public :: close_netcdf         ! save and close the netcdf file
@@ -51,67 +51,67 @@ module mo_ncwrite
   ! public parameters
   integer(i4), public, parameter :: nMaxDim = 5         ! nr. max dimensions
   integer(i4), public, parameter :: nMaxAtt = 20        ! nr. max attributes
-  integer(i4), public, parameter :: maxLen  = 256       ! nr. string length
-  integer(i4), public, parameter :: nGAtt   = 20        ! nr. global attributes
+  integer(i4), public, parameter :: maxLen = 256       ! nr. string length
+  integer(i4), public, parameter :: nGAtt = 20        ! nr. global attributes
   integer(i4), public, parameter :: nAttDim = 2         ! dim array of attribute values
 
   ! public types -----------------------------------------------------------------
   type dims
-     character (len=maxLen)                 :: name                ! dim. name
-     integer(i4)                            :: len                 ! dim. lenght, undefined time => NF90_UNLIMITED
-     integer(i4)                            :: dimId               ! dim. Id
+    character (len = maxLen) :: name                ! dim. name
+    integer(i4) :: len                 ! dim. lenght, undefined time => NF90_UNLIMITED
+    integer(i4) :: dimId               ! dim. Id
   end type dims
 
   type attribute
-     character (len=maxLen)                  :: name                ! attribute name
-     integer(i4)                             :: xType               ! attribute of the values
-     integer(i4)                             :: nValues             ! number of attributes
-     character (len=maxLen)                  :: values              ! numbers or "characters" separed by spaces
+    character (len = maxLen) :: name                ! attribute name
+    integer(i4) :: xType               ! attribute of the values
+    integer(i4) :: nValues             ! number of attributes
+    character (len = maxLen) :: values              ! numbers or "characters" separed by spaces
   end type attribute
 
   type variable
-     character (len=maxLen)                 :: name                ! short name
-     integer(i4)                            :: xType               ! NF90 var. type
-     integer(i4)                            :: nLvls               ! number of levels
-     integer(i4)                            :: nSubs               ! number of subparts
-     logical                                :: unlimited           ! time limited
-     integer(i4)                            :: variD               ! Id
-     integer(i4)                            :: nDims               ! field dimension
-     integer(i4), dimension(nMaxDim)        :: dimIds              ! passing var. dimensions
-     integer(i4), dimension(nMaxDim)        :: dimTypes            ! type of dimensions
-     integer(i4)                            :: nAtt                ! nr. attributes
-     type(attribute), dimension(nMaxAtt)    :: att                 ! var. attributes
-     integer(i4), dimension(nMaxDim)        :: start               ! starting indices for netcdf
-     integer(i4), dimension(nMaxDim)        :: count               ! counter          for netcdf
-     logical                                :: wFlag               ! write flag
-     integer(i1),                     pointer :: G0_b              ! array pointing model variables
-     integer(i1), dimension(:      ), pointer :: G1_b              ! array pointing model variables
-     integer(i1), dimension(:,:    ), pointer :: G2_b              ! array pointing model variables
-     integer(i1), dimension(:,:,:  ), pointer :: G3_b              ! array pointing model variables
-     integer(i1), dimension(:,:,:,:), pointer :: G4_b              ! array pointing model variables
-     integer(i4),                     pointer :: G0_i              ! array pointing model variables
-     integer(i4), dimension(:      ), pointer :: G1_i              ! array pointing model variables
-     integer(i4), dimension(:,:    ), pointer :: G2_i              ! array pointing model variables
-     integer(i4), dimension(:,:,:  ), pointer :: G3_i              ! array pointing model variables
-     integer(i4), dimension(:,:,:,:), pointer :: G4_i              ! array pointing model variables
-     real(sp),                        pointer :: G0_f              ! array pointing model variables
-     real(sp),    dimension(:    ),   pointer :: G1_f              ! array pointing model variables
-     real(sp),    dimension(:,:    ), pointer :: G2_f              ! array pointing model variables
-     real(sp),    dimension(:,:,:  ), pointer :: G3_f              ! array pointing model variables
-     real(sp),    dimension(:,:,:,:), pointer :: G4_f              ! array pointing model variables
-     real(dp),                        pointer :: G0_d              ! array pointing model variables
-     real(dp),    dimension(:      ), pointer :: G1_d              ! array pointing model variables
-     real(dp),    dimension(:,:    ), pointer :: G2_d              ! array pointing model variables
-     real(dp),    dimension(:,:,:  ), pointer :: G3_d              ! array pointing model variables
-     real(dp),    dimension(:,:,:,:), pointer :: G4_d              ! array pointing model variables
+    character (len = maxLen) :: name                ! short name
+    integer(i4) :: xType               ! NF90 var. type
+    integer(i4) :: nLvls               ! number of levels
+    integer(i4) :: nSubs               ! number of subparts
+    logical :: unlimited           ! time limited
+    integer(i4) :: variD               ! Id
+    integer(i4) :: nDims               ! field dimension
+    integer(i4), dimension(nMaxDim) :: dimIds              ! passing var. dimensions
+    integer(i4), dimension(nMaxDim) :: dimTypes            ! type of dimensions
+    integer(i4) :: nAtt                ! nr. attributes
+    type(attribute), dimension(nMaxAtt) :: att                 ! var. attributes
+    integer(i4), dimension(nMaxDim) :: start               ! starting indices for netcdf
+    integer(i4), dimension(nMaxDim) :: count               ! counter          for netcdf
+    logical :: wFlag               ! write flag
+    integer(i1), pointer :: G0_b              ! array pointing model variables
+    integer(i1), dimension(:), pointer :: G1_b              ! array pointing model variables
+    integer(i1), dimension(:, :), pointer :: G2_b              ! array pointing model variables
+    integer(i1), dimension(:, :, :), pointer :: G3_b              ! array pointing model variables
+    integer(i1), dimension(:, :, :, :), pointer :: G4_b              ! array pointing model variables
+    integer(i4), pointer :: G0_i              ! array pointing model variables
+    integer(i4), dimension(:), pointer :: G1_i              ! array pointing model variables
+    integer(i4), dimension(:, :), pointer :: G2_i              ! array pointing model variables
+    integer(i4), dimension(:, :, :), pointer :: G3_i              ! array pointing model variables
+    integer(i4), dimension(:, :, :, :), pointer :: G4_i              ! array pointing model variables
+    real(sp), pointer :: G0_f              ! array pointing model variables
+    real(sp), dimension(:), pointer :: G1_f              ! array pointing model variables
+    real(sp), dimension(:, :), pointer :: G2_f              ! array pointing model variables
+    real(sp), dimension(:, :, :), pointer :: G3_f              ! array pointing model variables
+    real(sp), dimension(:, :, :, :), pointer :: G4_f              ! array pointing model variables
+    real(dp), pointer :: G0_d              ! array pointing model variables
+    real(dp), dimension(:), pointer :: G1_d              ! array pointing model variables
+    real(dp), dimension(:, :), pointer :: G2_d              ! array pointing model variables
+    real(dp), dimension(:, :, :), pointer :: G3_d              ! array pointing model variables
+    real(dp), dimension(:, :, :, :), pointer :: G4_d              ! array pointing model variables
   end type variable
 
   ! public variables -----------------------------------------------------------------
-  integer(i4),     public                            :: nVars   ! nr. variables
-  integer(i4),     public                            :: nDims   ! nr. dimensions
-  type (dims),     public, dimension(:), allocatable :: Dnc     ! dimensions list
-  type(variable),  public, dimension(:), allocatable :: V       ! variable list, THIS STRUCTURE WILL BE WRITTEN IN THE FILE
-  type(attribute), public, dimension(nGAtt)          :: gatt    ! global attributes for netcdf
+  integer(i4), public :: nVars   ! nr. variables
+  integer(i4), public :: nDims   ! nr. dimensions
+  type (dims), public, dimension(:), allocatable :: Dnc     ! dimensions list
+  type(variable), public, dimension(:), allocatable :: V       ! variable list, THIS STRUCTURE WILL BE WRITTEN IN THE FILE
+  type(attribute), public, dimension(nGAtt) :: gatt    ! global attributes for netcdf
 
 
   ! ------------------------------------------------------------------
@@ -160,12 +160,12 @@ module mo_ncwrite
   !                                            - make i4 behave exactly as sp and dp
   !                                   Mar 2013 - lfs, netcdf4, deflate_level
   interface dump_netcdf
-     module procedure dump_netcdf_1d_sp, dump_netcdf_2d_sp, dump_netcdf_3d_sp, &
-          dump_netcdf_4d_sp, dump_netcdf_5d_sp, &
-          dump_netcdf_1d_dp, dump_netcdf_2d_dp, dump_netcdf_3d_dp, &
-          dump_netcdf_4d_dp, dump_netcdf_5d_dp, &
-          dump_netcdf_1d_i4, dump_netcdf_2d_i4, dump_netcdf_3d_i4, &
-          dump_netcdf_4d_i4, dump_netcdf_5d_i4
+    module procedure dump_netcdf_1d_sp, dump_netcdf_2d_sp, dump_netcdf_3d_sp, &
+            dump_netcdf_4d_sp, dump_netcdf_5d_sp, &
+            dump_netcdf_1d_dp, dump_netcdf_2d_dp, dump_netcdf_3d_dp, &
+            dump_netcdf_4d_dp, dump_netcdf_5d_dp, &
+            dump_netcdf_1d_i4, dump_netcdf_2d_i4, dump_netcdf_3d_i4, &
+            dump_netcdf_4d_i4, dump_netcdf_5d_i4
   end interface dump_netcdf
 
 
@@ -221,9 +221,9 @@ module mo_ncwrite
   !>                -2.1474836E+09 | integer(i4)\n
   !>                 9.9692100E+36 | real(sp)\n
   !>        9.9692099683868690E+36 | real(dp)\n
-  !>        These numbers are netcdf fortran 90 constants! They are used to determine the 
+  !>        These numbers are netcdf fortran 90 constants! They are used to determine the
   !>        chunksize of the already written variable. Hence, this routine cannot append
-  !>        correctly to variables when these numbers are used. Only five dimensional 
+  !>        correctly to variables when these numbers are used. Only five dimensional
   !>        variables can be written, only one unlimited dimension can be defined.
   !
   !     EXAMPLE
@@ -299,11 +299,11 @@ module mo_ncwrite
   !                                           nrec for writing a specific record
 
   interface var2nc
-     module procedure var2nc_1d_i4, var2nc_1d_sp, var2nc_1d_dp, &
-          var2nc_2d_i4, var2nc_2d_sp, var2nc_2d_dp, &
-          var2nc_3d_i4, var2nc_3d_sp, var2nc_3d_dp, &
-          var2nc_4d_i4, var2nc_4d_sp, var2nc_4d_dp, &
-          var2nc_5d_i4, var2nc_5d_sp, var2nc_5d_dp
+    module procedure var2nc_1d_i4, var2nc_1d_sp, var2nc_1d_dp, &
+            var2nc_2d_i4, var2nc_2d_sp, var2nc_2d_dp, &
+            var2nc_3d_i4, var2nc_3d_sp, var2nc_3d_dp, &
+            var2nc_4d_i4, var2nc_4d_sp, var2nc_4d_dp, &
+            var2nc_5d_i4, var2nc_5d_sp, var2nc_5d_dp
   end interface var2nc
 
   ! ----------------------------------------------------------------------------
@@ -347,7 +347,7 @@ contains
 
     implicit none
 
-    integer(i4), intent(in)           :: ncId
+    integer(i4), intent(in) :: ncId
 
     ! close: save new netcdf dataset
     call check(nf90_close(ncId))
@@ -403,22 +403,22 @@ contains
     implicit none
 
     ! netcdf related variables
-    character(len=*), intent(in)           :: Filename
-    integer(i4),      intent(out)          :: ncid
-    logical,          intent(in), optional :: lfs           ! netcdf3 Large File Support
-    logical,          intent(in), optional :: netcdf4       ! netcdf4
-    integer(i4),      intent(in), optional :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: Filename
+    integer(i4), intent(out) :: ncid
+    logical, intent(in), optional :: lfs           ! netcdf3 Large File Support
+    logical, intent(in), optional :: netcdf4       ! netcdf4
+    integer(i4), intent(in), optional :: deflate_level ! compression level in netcdf4
 
-    integer(i4)                               :: i, j, k
-    integer(i4), dimension(nAttDim)           :: att_INT
-    real(sp),    dimension(nAttDim)           :: att_FLOAT
-    real(dp),    dimension(nAttDim)           :: att_DOUBLE
-    character(len=maxLen), dimension(nAttDim) :: att_CHAR
-    logical                                   :: LargeFile
-    logical                                   :: inetcdf4
-    integer(i4)                               :: deflate
-    integer(i4)                               :: buffersize
-    integer(i4), dimension(:), allocatable    :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4) :: i, j, k
+    integer(i4), dimension(nAttDim) :: att_INT
+    real(sp), dimension(nAttDim) :: att_FLOAT
+    real(dp), dimension(nAttDim) :: att_DOUBLE
+    character(len = maxLen), dimension(nAttDim) :: att_CHAR
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
+    integer(i4), dimension(:), allocatable :: chunksizes ! Size of chunks in netcdf4 writing
 
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -428,77 +428,77 @@ contains
     if (present(deflate_level)) deflate = deflate_level
     ! 1  Create netcdf dataset: enter define mode     ->  get ncId
     if (inetcdf4) then
-       call check(nf90_create(trim(Filename), NF90_NETCDF4, ncId))
+      call check(nf90_create(trim(Filename), NF90_NETCDF4, ncId))
     else
-       if (LargeFile) then
-          call check(nf90_create(trim(Filename), NF90_64BIT_OFFSET, ncId, chunksize=buffersize))
-       else
-          ! let the netcdf library chose a buffersize, that results in lesser write system calls
-          call check(nf90_create(trim(Filename), NF90_CLOBBER, ncId, chunksize=buffersize))
-       end if
+      if (LargeFile) then
+        call check(nf90_create(trim(Filename), NF90_64BIT_OFFSET, ncId, chunksize = buffersize))
+      else
+        ! let the netcdf library chose a buffersize, that results in lesser write system calls
+        call check(nf90_create(trim(Filename), NF90_CLOBBER, ncId, chunksize = buffersize))
+      end if
     end if
 
     ! 2  Define dimensions                                 -> get dimId
-    do i=1, nDims
-       call check(nf90_def_dim(ncId, Dnc(i)%name , Dnc(i)%len, Dnc(i)%dimId))
+    do i = 1, nDims
+      call check(nf90_def_dim(ncId, Dnc(i)%name, Dnc(i)%len, Dnc(i)%dimId))
     end do
 
     ! 3 Define dimids array, which is used to pass the dimids of the dimensions of
     ! the netcdf variables
     do i = 1, nVars
-       V(i)%unlimited = .false.
-       V(i)%dimids    = 0
-       V(i)%start     = 1
-       V(i)%count     = 1
-       do k = 1, V(i)%nDims
-          if (Dnc(V(i)%dimTypes(k))%len  == NF90_UNLIMITED) V(i)%unlimited = .true.
-          V(i)%dimids(k) = Dnc(V(i)%dimTypes(k))%dimId
-       end do
-       if (V(i)%unlimited) then
-          ! set counts for unlimited files (time is always the last dimension)
-          if (V(i)%nDims == 1) cycle
-          do k = 1, V(i)%nDims - 1
-             V(i)%count(k)  = Dnc(V(i)%dimTypes(k))%len
-          end do
-       end if
+      V(i)%unlimited = .false.
+      V(i)%dimids = 0
+      V(i)%start = 1
+      V(i)%count = 1
+      do k = 1, V(i)%nDims
+        if (Dnc(V(i)%dimTypes(k))%len  == NF90_UNLIMITED) V(i)%unlimited = .true.
+        V(i)%dimids(k) = Dnc(V(i)%dimTypes(k))%dimId
+      end do
+      if (V(i)%unlimited) then
+        ! set counts for unlimited files (time is always the last dimension)
+        if (V(i)%nDims == 1) cycle
+        do k = 1, V(i)%nDims - 1
+          V(i)%count(k) = Dnc(V(i)%dimTypes(k))%len
+        end do
+      end if
     end do
 
     ! 4 Define the netcdf variables and attributes                            -> get varId
-    allocate(chunksizes(maxval(V(1:nVars)%nDims)))
-    do i=1, nVars
-       if (.not. V(i)%wFlag) cycle
-       if (inetcdf4) then
-          chunksizes(1:V(i)%nDims) = Dnc(V(i)%dimTypes(1:V(i)%nDims))%len
-          chunksizes(V(i)%nDims)   = 1
-          call check(nf90_def_var(ncId, V(i)%name, V(i)%xtype, V(i)%dimids(1:V(i)%nDims), V(i)%varId, &
-               chunksizes=chunksizes(1:V(i)%nDims), shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncId, V(i)%name, V(i)%xtype, V(i)%dimids(1:V(i)%nDims), V(i)%varId))
-       end if
-       do k = 1, V(i)%nAtt
-          select case (V(i)%att(k)%xType)
-          case (NF90_CHAR)
-             ! read(V(i)%att(k)%values, *) (att_CHAR(j), j =1, V(i)%att(k)%nValues)
-             read(V(i)%att(k)%values, '(a)')  att_CHAR(1)
-             call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_CHAR(1)))
-          case (NF90_INT)
-             read(V(i)%att(k)%values, *) (att_INT(j), j =1, V(i)%att(k)%nValues)
-             call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_INT(1:V(i)%att(k)%nValues)))
-          case (NF90_FLOAT)
-             read(V(i)%att(k)%values, *) (att_FLOAT(j), j =1, V(i)%att(k)%nValues)
-             call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_FLOAT(1:V(i)%att(k)%nValues)))
-          case (NF90_DOUBLE)
-             read(V(i)%att(k)%values, *) (att_DOUBLE(j), j =1, V(i)%att(k)%nValues)
-             call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_DOUBLE(1:V(i)%att(k)%nValues)))
-          end select
-       end do
+    allocate(chunksizes(maxval(V(1 : nVars)%nDims)))
+    do i = 1, nVars
+      if (.not. V(i)%wFlag) cycle
+      if (inetcdf4) then
+        chunksizes(1 : V(i)%nDims) = Dnc(V(i)%dimTypes(1 : V(i)%nDims))%len
+        chunksizes(V(i)%nDims) = 1
+        call check(nf90_def_var(ncId, V(i)%name, V(i)%xtype, V(i)%dimids(1 : V(i)%nDims), V(i)%varId, &
+                chunksizes = chunksizes(1 : V(i)%nDims), shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncId, V(i)%name, V(i)%xtype, V(i)%dimids(1 : V(i)%nDims), V(i)%varId))
+      end if
+      do k = 1, V(i)%nAtt
+        select case (V(i)%att(k)%xType)
+        case (NF90_CHAR)
+          ! read(V(i)%att(k)%values, *) (att_CHAR(j), j =1, V(i)%att(k)%nValues)
+          read(V(i)%att(k)%values, '(a)')  att_CHAR(1)
+          call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_CHAR(1)))
+        case (NF90_INT)
+          read(V(i)%att(k)%values, *) (att_INT(j), j = 1, V(i)%att(k)%nValues)
+          call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_INT(1 : V(i)%att(k)%nValues)))
+        case (NF90_FLOAT)
+          read(V(i)%att(k)%values, *) (att_FLOAT(j), j = 1, V(i)%att(k)%nValues)
+          call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_FLOAT(1 : V(i)%att(k)%nValues)))
+        case (NF90_DOUBLE)
+          read(V(i)%att(k)%values, *) (att_DOUBLE(j), j = 1, V(i)%att(k)%nValues)
+          call check(nf90_put_att (ncId, V(i)%varId, V(i)%att(k)%name, att_DOUBLE(1 : V(i)%att(k)%nValues)))
+        end select
+      end do
     end do
 
     ! 5 Global attributes
     do k = 1, nGAtt
-       if (nonull(Gatt(k)%name)) then
-          call check(nf90_put_att(ncId, NF90_GLOBAL, Gatt(k)%name, Gatt(k)%values))
-       end if
+      if (nonull(Gatt(k)%name)) then
+        call check(nf90_put_att(ncId, NF90_GLOBAL, Gatt(k)%name, Gatt(k)%values))
+      end if
     end do
 
     ! 6 end definitions: leave define mode
@@ -515,40 +515,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(sp),         dimension(:),     intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(sp), dimension(:), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 1 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 1 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -558,101 +558,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_1d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_1d_sp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_sp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_sp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_1d_sp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_sp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_1d_sp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_1d_sp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -665,40 +665,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(sp),         dimension(:,:),   intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(sp), dimension(:, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 2 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 2 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -708,101 +708,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_2d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_2d_sp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_sp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_sp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_2d_sp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_sp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_2d_sp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_2d_sp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -815,40 +815,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(sp),         dimension(:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(sp), dimension(:, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 3 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 3 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -858,100 +858,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_3d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_3d_sp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_sp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_sp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_3d_sp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_sp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_3d_sp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_3d_sp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -964,40 +964,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(sp),         dimension(:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(sp), dimension(:, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 4 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 4 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1007,100 +1007,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_4d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_4d_sp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_sp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_sp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_4d_sp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_sp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_4d_sp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_4d_sp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1113,40 +1113,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(sp),         dimension(:,:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(sp), dimension(:, :, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 5 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 5 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1156,100 +1156,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_5d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_5d_sp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_sp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_sp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_5d_sp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_sp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_5d_sp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_5d_sp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_FLOAT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1262,40 +1262,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(dp),         dimension(:),     intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(dp), dimension(:), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 1 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 1 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1305,101 +1305,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_1d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_1d_dp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_dp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_dp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_1d_dp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_dp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_1d_dp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_1d_dp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1412,40 +1412,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(dp),         dimension(:,:),   intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(dp), dimension(:, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 2 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 2 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1455,101 +1455,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_2d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_2d_dp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_dp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_dp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_2d_dp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_dp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_2d_dp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_2d_dp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1562,40 +1562,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(dp),         dimension(:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(dp), dimension(:, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 3 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 3 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1605,101 +1605,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_3d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_3d_dp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_dp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_dp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_3d_dp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_dp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_3d_dp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_3d_dp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-          ! call check(nf90_set_fill(ncid, NF90_NOFILL, old_fill_mode))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(Filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+        ! call check(nf90_set_fill(ncid, NF90_NOFILL, old_fill_mode))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(Filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1712,40 +1712,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(dp),         dimension(:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(dp), dimension(:, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 4 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 4 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1755,100 +1755,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_4d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_4d_dp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_dp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_dp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_4d_dp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_dp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_4d_dp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_4d_dp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -1861,40 +1861,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    real(dp),         dimension(:,:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    real(dp), dimension(:, :, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 5 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 5 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -1904,100 +1904,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_5d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_5d_dp: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_dp: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_dp: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_5d_dp: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_dp: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_5d_dp: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_5d_dp: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_DOUBLE, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2010,40 +2010,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    integer(i4),         dimension(:),     intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    integer(i4), dimension(:), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 1 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 1 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -2053,101 +2053,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_1d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_1d_i4: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_i4: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_1d_i4: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_1d_i4: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_1d_i4: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_1d_i4: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_1d_i4: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2160,40 +2160,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    integer(i4),         dimension(:,:),   intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    integer(i4), dimension(:, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 2 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim+1) :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim+1) :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+2) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim+1) :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim+1) :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim+1) :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 2 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim + 1) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim + 1) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 2) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim + 1) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim + 1) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim + 1) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -2203,101 +2203,101 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim+1)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+2)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+2), ndims=idim, dimids=dimid))
-       if (idim /= ndim+1) stop "dump_netcdf_2d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim + 1)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 2)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 2), ndims = idim, dimids = dimid))
+      if (idim /= ndim + 1) stop "dump_netcdf_2d_i4: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim+1
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim+1) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_i4: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_2d_i4: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_2d_i4: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim + 1
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim + 1) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_2d_i4: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_2d_i4: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_2d_i4: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = dims(ndim+1) + i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/dims(ndim+1)+i/), (/dims(ndim+1)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = dims(ndim + 1) + i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/dims(ndim + 1) + i/), (/dims(ndim + 1) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims(1:ndim) = shape(arr)
-       do i=1, ndim
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       dims(ndim+1) = 1
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim+1)))
+      ! define dims
+      dims(1 : ndim) = shape(arr)
+      do i = 1, ndim
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      dims(ndim + 1) = 1
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim + 1)))
 
-       ! define dim variables
-       do i=1, ndim
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim+1), varid(ndim+1)))
-       end if
+      ! define dim variables
+      do i = 1, ndim
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim + 1), varid(ndim + 1)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim) = dims(1:ndim)
-          chunksizes(ndim+1) = 1
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+2)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim) = dims(1 : ndim)
+        chunksizes(ndim + 1) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 2), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 2)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:)        = 1
-       counter(:)      = dims
-       counter(ndim+1) = 1
-       do i=1, 1
-          start(ndim+1) = i
-          call check(nf90_put_var(ncid, varid(ndim+1), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+2), arr, start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim + 1) = 1
+      do i = 1, 1
+        start(ndim + 1) = i
+        call check(nf90_put_var(ncid, varid(ndim + 1), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 2), arr, start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2310,40 +2310,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    integer(i4),      dimension(:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    integer(i4), dimension(:, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 3 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 3 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -2353,100 +2353,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_3d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_3d_i4: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_i4: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_3d_i4: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_3d_i4: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_3d_i4: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_3d_i4: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_3d_i4: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2459,40 +2459,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    integer(i4),         dimension(:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    integer(i4), dimension(:, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 4 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 4 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -2502,100 +2502,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_4d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_4d_i4: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_i4: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_4d_i4: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_4d_i4: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_4d_i4: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_4d_i4: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_4d_i4: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2608,40 +2608,40 @@ contains
 
     implicit none
 
-    character(len=*),                   intent(in) :: filename ! netcdf file name
-    integer(i4),      dimension(:,:,:,:,:), intent(in) :: arr      ! input array
-    logical,          optional,         intent(in) :: append   ! append to existing file
-    logical,          optional,         intent(in) :: lfs           ! netcdf3 Large File Support
-    logical,          optional,         intent(in) :: netcdf4       ! netcdf4
-    integer(i4),      optional,         intent(in) :: deflate_level ! compression level in netcdf4
+    character(len = *), intent(in) :: filename ! netcdf file name
+    integer(i4), dimension(:, :, :, :, :), intent(in) :: arr      ! input array
+    logical, optional, intent(in) :: append   ! append to existing file
+    logical, optional, intent(in) :: lfs           ! netcdf3 Large File Support
+    logical, optional, intent(in) :: netcdf4       ! netcdf4
+    integer(i4), optional, intent(in) :: deflate_level ! compression level in netcdf4
 
-    integer(i4),      parameter         :: ndim = 5 ! Routine for ndim dimensional array
-    character(len=1), dimension(4)      :: dnames   ! Common dimension names
-    integer(i4),      dimension(ndim)   :: dims     ! Size of each dimension
-    integer(i4),      dimension(ndim)   :: dimid    ! netcdf IDs of each dimension
-    integer(i4),      dimension(ndim+1) :: varid    ! dimension variables and var id
-    integer(i4),      dimension(ndim)   :: start    ! start array for write of each time step
-    integer(i4),      dimension(ndim)   :: counter  ! length array for write of each time step
-    integer(i4),      dimension(ndim)   :: chunksizes ! Size of chunks in netcdf4 writing
+    integer(i4), parameter :: ndim = 5 ! Routine for ndim dimensional array
+    character(len = 1), dimension(4) :: dnames   ! Common dimension names
+    integer(i4), dimension(ndim) :: dims     ! Size of each dimension
+    integer(i4), dimension(ndim) :: dimid    ! netcdf IDs of each dimension
+    integer(i4), dimension(ndim + 1) :: varid    ! dimension variables and var id
+    integer(i4), dimension(ndim) :: start    ! start array for write of each time step
+    integer(i4), dimension(ndim) :: counter  ! length array for write of each time step
+    integer(i4), dimension(ndim) :: chunksizes ! Size of chunks in netcdf4 writing
     integer(i4) :: ncid                             ! netcdf file id
     integer(i4) :: i, j
-    logical                  :: iappend
-    integer(i4)              :: idim    ! read dimension on append
+    logical :: iappend
+    integer(i4) :: idim    ! read dimension on append
     character(NF90_MAX_NAME) :: name    ! name of dimensions from nf90_inquire_dimension
-    logical                  :: LargeFile
-    logical                  :: inetcdf4
-    integer(i4)              :: deflate
-    integer(i4)              :: buffersize
+    logical :: LargeFile
+    logical :: inetcdf4
+    integer(i4) :: deflate
+    integer(i4) :: buffersize
 
     ! append or not
     if (present(append)) then
-       if (append) then
-          iappend = .true.
-       else
-          iappend = .false.
-       end if
+      if (append) then
+        iappend = .true.
+      else
+        iappend = .false.
+      end if
     else
-       iappend = .false.
+      iappend = .false.
     end if
     LargeFile = .false.
     if (present(lfs)) LargeFile = lfs
@@ -2651,100 +2651,100 @@ contains
     if (present(deflate_level)) deflate = deflate_level
 
     ! dimension names
-    dnames(1:4) = (/ 'x', 'y', 'z', 'l' /)
+    dnames(1 : 4) = (/ 'x', 'y', 'z', 'l' /)
 
     if (iappend) then
-       ! open file
-       call check(nf90_open(trim(filename), NF90_WRITE, ncid))
+      ! open file
+      call check(nf90_open(trim(filename), NF90_WRITE, ncid))
 
-       ! inquire variables time and var
-       call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
-       call check(nf90_inq_varid(ncid, 'var',  varid(ndim+1)))
-       call check(nf90_inquire_variable(ncid, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim /= ndim) stop "dump_netcdf_5d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! inquire variables time and var
+      call check(nf90_inq_varid(ncid, 'time', varid(ndim)))
+      call check(nf90_inq_varid(ncid, 'var', varid(ndim + 1)))
+      call check(nf90_inquire_variable(ncid, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim /= ndim) stop "dump_netcdf_5d_i4: number of variable dimensions /= number of file variable dimensions."
 
-       ! inquire dimensions
-       do i=1, ndim
-          call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
-          if (i < ndim) then
-             if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_i4: dimension name problem."
-             if (dims(i) /= size(arr,i)) stop "dump_netcdf_5d_i4: variable dimension /= file variable dimension."
-          else
-             if (trim(name) /= 'time') stop "dump_netcdf_5d_i4: time name problem."
-          end if
-       enddo
+      ! inquire dimensions
+      do i = 1, ndim
+        call check(nf90_inquire_dimension(ncid, dimid(i), name, dims(i)))
+        if (i < ndim) then
+          if (trim(name) /= dnames(i)) stop "dump_netcdf_5d_i4: dimension name problem."
+          if (dims(i) /= size(arr, i)) stop "dump_netcdf_5d_i4: variable dimension /= file variable dimension."
+        else
+          if (trim(name) /= 'time') stop "dump_netcdf_5d_i4: time name problem."
+        end if
+      enddo
 
-       ! append
-       start(:)      = 1
-       counter(:)    = dims
-       counter(ndim) = 1
-       do i=1, size(arr,ndim)
-          start(ndim) = dims(ndim) + i
-          call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim)+i/), (/dims(ndim)+i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! append
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, size(arr, ndim)
+        start(ndim) = dims(ndim) + i
+        call check(nf90_put_var(ncid, varid(ndim), (/dims(ndim) + i/), (/dims(ndim) + i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     else
-       ! open file
-       if (inetcdf4) then
-          call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
-       else
-          if (LargeFile) then
-             call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize=buffersize))
-          else
-             call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize=buffersize))
-          end if
-       end if
+      ! open file
+      if (inetcdf4) then
+        call check(nf90_create(trim(filename), NF90_NETCDF4, ncid))
+      else
+        if (LargeFile) then
+          call check(nf90_create(trim(filename), NF90_64BIT_OFFSET, ncid, chunksize = buffersize))
+        else
+          call check(nf90_create(trim(filename), NF90_CLOBBER, ncid, chunksize = buffersize))
+        end if
+      end if
 
-       ! define dims
-       dims = shape(arr)
-       do i=1, ndim-1
-          call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
-       end do
-       ! define dim time
-       call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
+      ! define dims
+      dims = shape(arr)
+      do i = 1, ndim - 1
+        call check(nf90_def_dim(ncid, dnames(i), dims(i), dimid(i)))
+      end do
+      ! define dim time
+      call check(nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimid(ndim)))
 
-       ! define dim variables
-       do i=1, ndim-1
-          if (inetcdf4) then
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          else
-             call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
-          end if
-       end do
-       ! define time variable
-       if (inetcdf4) then
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       else
-          call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
-       end if
+      ! define dim variables
+      do i = 1, ndim - 1
+        if (inetcdf4) then
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        else
+          call check(nf90_def_var(ncid, dnames(i), NF90_INT, dimid(i), varid(i)))
+        end if
+      end do
+      ! define time variable
+      if (inetcdf4) then
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      else
+        call check(nf90_def_var(ncid, 'time', NF90_INT, dimid(ndim), varid(ndim)))
+      end if
 
-       ! define variable
-       if (inetcdf4) then
-          chunksizes(1:ndim-1) = dims(1:ndim-1)
-          chunksizes(ndim)     = 1
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1), &
-               chunksizes=chunksizes, shuffle=.true., deflate_level=deflate))
-       else
-          call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim+1)))
-       end if
+      ! define variable
+      if (inetcdf4) then
+        chunksizes(1 : ndim - 1) = dims(1 : ndim - 1)
+        chunksizes(ndim) = 1
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1), &
+                chunksizes = chunksizes, shuffle = .true., deflate_level = deflate))
+      else
+        call check(nf90_def_var(ncid, 'var', NF90_INT, dimid, varid(ndim + 1)))
+      end if
 
-       ! end define mode
-       call check(nf90_enddef(ncid))
+      ! end define mode
+      call check(nf90_enddef(ncid))
 
-       ! write dimensions
-       do i=1, ndim-1
-          call check(nf90_put_var(ncid, varid(i), (/ (j, j=1,dims(i)) /)))
-       end do
+      ! write dimensions
+      do i = 1, ndim - 1
+        call check(nf90_put_var(ncid, varid(i), (/ (j, j = 1, dims(i)) /)))
+      end do
 
-       ! write time and variable
-       start(:) = 1
-       counter(:) = dims
-       counter(ndim) = 1
-       do i=1, dims(ndim)
-          start(ndim) = i
-          call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
-          call check(nf90_put_var(ncid, varid(ndim+1), arr(:,:,:,:,i), start, counter))
-       end do
+      ! write time and variable
+      start(:) = 1
+      counter(:) = dims
+      counter(ndim) = 1
+      do i = 1, dims(ndim)
+        start(ndim) = i
+        call check(nf90_put_var(ncid, varid(ndim), (/i/), (/i/)))
+        call check(nf90_put_var(ncid, varid(ndim + 1), arr(:, :, :, :, i), start, counter))
+      end do
     end if
 
     ! close netcdf file
@@ -2756,2656 +2756,2656 @@ contains
   ! ------------------------------------------------------------------
 
 
-  subroutine var2nc_1d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_1d_i4(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 1
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    integer(i4),      dimension(:),             intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    integer(i4), dimension(:), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! attributes
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    integer(i4),                      optional, intent(in) :: missing_value
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    integer(i4), optional, intent(in) :: missing_value
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid
-    integer(i4)                            :: u_len     ! length of unlimited dimension
-    integer(i4)                            :: f_handle
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid
+    integer(i4) :: u_len     ! length of unlimited dimension
+    integer(i4) :: f_handle
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    integer(i4), dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    integer(i4), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( size( dnames, 1) .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((size(dnames, 1) .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( size( dnames, 1) .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (size(dnames, 1) .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1) /)
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1) /)
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1
-    counter(:)   = dims
-    dummy        = nf90_fill_int
-    dummy_count  = 1
+    start(:) = 1
+    counter(:) = dims
+    dummy = nf90_fill_int
+    dummy_count = 1
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim .ne. ndim) stop "var2nc_1d_i4: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_1d_i4: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_i4: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( dummy(1) /= nf90_fill_int ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim .ne. ndim) stop "var2nc_1d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_1d_i4: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_1d_i4: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (dummy(1) /= nf90_fill_int) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimension
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimension
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1),&
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       !
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(I6)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      !
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(I6)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_1d_i4: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_1d_i4: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_1d_i4: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_1d_i4: variable dimension /= file variable dimension."
     enddo
     ! write time and variable
-    call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_1d_i4
 
-  subroutine var2nc_1d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_1d_sp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 1
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(sp),         dimension(:),             intent(in) :: arr
-    character(len=*), dimension(:),             intent(in) :: dnames
-    character(len=*),                           intent(in) :: v_name
+    character(len = *), intent(in) :: f_name
+    real(sp), dimension(:), intent(in) :: arr
+    character(len = *), dimension(:), intent(in) :: dnames
+    character(len = *), intent(in) :: v_name
     ! attributes
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    real(sp),                         optional, intent(in) :: missing_value
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    real(sp), optional, intent(in) :: missing_value
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid
-    integer(i4)                            :: u_len     ! length of unlimited dimension
-    integer(i4)                            :: f_handle
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid
+    integer(i4) :: u_len     ! length of unlimited dimension
+    integer(i4) :: f_handle
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(sp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( size( dnames, 1) .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((size(dnames, 1) .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( size( dnames, 1) .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (size(dnames, 1) .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1) /)
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1) /)
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_float
+    start(:) = 1
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_float
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim .ne. ndim) stop "var2nc_1d_sp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_1d_sp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_float) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim .ne. ndim) stop "var2nc_1d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_1d_sp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_1d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_float)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimension
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimension
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1),&
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_1d_sp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_1d_sp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_1d_sp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_1d_sp: variable dimension /= file variable dimension."
     enddo
     ! write time and variable
-    call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_1d_sp
 
-  subroutine var2nc_1d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_1d_dp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 1
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(dp),         dimension(:),             intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(dp), dimension(:), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! attributes
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    real(dp),                         optional, intent(in) :: missing_value
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    real(dp), optional, intent(in) :: missing_value
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid
-    integer(i4)                            :: u_len     ! length of unlimited dimension
-    integer(i4)                            :: f_handle
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid
+    integer(i4) :: u_len     ! length of unlimited dimension
+    integer(i4) :: f_handle
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(dp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(dp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
     ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( size( dnames, 1) .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((size(dnames, 1) .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( size( dnames, 1) .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (size(dnames, 1) .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1) /)
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1) /)
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_double
+    start(:) = 1
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_double
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       if (idim .ne. ndim) stop "var2nc_1d_dp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_1d_dp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_1d_dp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_double) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      if (idim .ne. ndim) stop "var2nc_1d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_1d_dp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_1d_dp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_double)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimension
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimension
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1),&
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! inquire dimensions
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_1d_dp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_1d_dp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_1d_dp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_1d_dp: variable dimension /= file variable dimension."
     enddo
     ! write time and variable
-    call check(nf90_put_var(f_handle, varid(ndim+1), arr, start, counter ) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_1d_dp
 
-  subroutine var2nc_2d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_2d_i4(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 2
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    integer(i4),      dimension(:,:),           intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    integer(i4), dimension(:, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    integer(i4),                      optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    integer(i4), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    integer(i4), dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    integer(i4), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-         ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_int
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_int
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_2d_i4: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_2d_i4: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_i4: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( dummy(1) /= nf90_fill_int ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_2d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_2d_i4: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_2d_i4: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (dummy(1) /= nf90_fill_int) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1),&
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(I6)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(I6)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_2d_i4: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_2d_i4: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_2d_i4: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_2d_i4: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_2d_i4
 
-  subroutine var2nc_2d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_2d_sp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 2
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(sp),         dimension(:,:),           intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(sp), dimension(:, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(sp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(sp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(sp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_float
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_float
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_2d_sp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_2d_sp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_float) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_2d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_2d_sp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_2d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_float)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1),&
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_2d_sp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_2d_sp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_2d_sp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_2d_sp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_2d_sp
 
-  subroutine var2nc_2d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_2d_dp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 2
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(dp),         dimension(:,:),           intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(dp), dimension(:, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(dp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(dp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(dp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(dp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_double
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_double
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_2d_dp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_2d_dp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_2d_dp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_double) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_2d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_2d_dp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_2d_dp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_double)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), 'missing_value',missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att(f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_2d_dp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_2d_dp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_2d_dp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_2d_dp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_2d_dp
 
-  subroutine var2nc_3d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_3d_i4(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 3
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    integer(i4),      dimension(:,:,:),         intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    integer(i4), dimension(:, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    integer(i4),                      optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    integer(i4), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    integer(i4), dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    integer(i4), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), size( arr, 3), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_int
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_int
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_3d_i4: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_3d_i4: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_i4: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( dummy(1) /= nf90_fill_int ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_3d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_3d_i4: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_3d_i4: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (dummy(1) /= nf90_fill_int) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(I6)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(I6)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_3d_i4: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_3d_i4: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_3d_i4: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_3d_i4: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_3d_i4
 
-  subroutine var2nc_3d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_3d_sp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 3
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(sp),         dimension(:,:,:),         intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(sp), dimension(:, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(sp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(sp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(sp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
+    deflate = 1
     ! set chunk sizes and dimension names
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), size( arr, 3), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_float
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_float
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_3d_sp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_3d_sp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_float) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_3d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_3d_sp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_3d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_float)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_3d_sp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_3d_sp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_3d_sp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_3d_sp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_3d_sp
 
-  subroutine var2nc_3d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_3d_dp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 3
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(dp),         dimension(:,:,:),         intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(dp), dimension(:, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(dp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(dp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(dp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(dp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), size( arr, 3), 1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_double
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_double
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_3d_dp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_3d_dp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_3d_dp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_double) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_3d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_3d_dp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_3d_dp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_double)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), 'missing_value',missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att(f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_3d_dp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_3d_dp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_3d_dp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_3d_dp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_3d_dp
 
-  subroutine var2nc_4d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_4d_i4(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 4
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    integer(i4),      dimension(:,:,:,:),       intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    integer(i4), dimension(:, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    integer(i4),                      optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    integer(i4), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    integer(i4), dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    integer(i4), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4 ),  1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_int
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_int
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_4d_i4: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_4d_i4: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( dummy(1) /= nf90_fill_int ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_4d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_4d_i4: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (dummy(1) /= nf90_fill_int) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(I6)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(I6)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_4d_i4: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_4d_i4: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_4d_i4: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_4d_i4: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_4d_i4
 
-  subroutine var2nc_4d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_4d_sp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 4
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(sp),         dimension(:,:,:,:),       intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(sp), dimension(:, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(sp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(sp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(sp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4 ),  1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_float
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_float
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_4d_sp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_4d_sp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_float) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_4d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_4d_sp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_4d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_float)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_4d_sp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_4d_sp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_4d_sp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_4d_sp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_4d_sp
 
-  subroutine var2nc_4d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_4d_dp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 4
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(dp),         dimension(:,:,:,:),       intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(dp), dimension(:, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(dp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(dp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(dp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(dp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     ! consistency checks
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
-    if ( ( ndim .eq. ndim_const + 1 ) .and. ( d_unlimit .ne. ndim_const+1 ) ) then
-       print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
-       stop '***ERROR see StdOut'
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
+    if ((ndim .eq. ndim_const + 1) .and. (d_unlimit .ne. ndim_const + 1)) then
+      print *, '***ERROR one more dimension name specified than dimension of array, but the last one is not unlimited'
+      stop '***ERROR see StdOut'
     end if
-    if ( ndim .gt. ndim_const + 1 ) then
-       print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const + 1) then
+      print *, '***ERROR too many dimension name specified, should be atmost ndim_const + 1'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! Initialize
-    deflate      = 1
-    if ( ndim .gt. ndim_const ) then
-       chunksizes     = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4 ),  1 /)
-       dims(1:ndim-1) = shape( arr )
-       dims(ndim)     = 1
+    deflate = 1
+    if (ndim .gt. ndim_const) then
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4), 1 /)
+      dims(1 : ndim - 1) = shape(arr)
+      dims(ndim) = 1
     else
-       chunksizes   = (/ size( arr, 1), size( arr, 2), &
-            size( arr, 3), size( arr, 4) /)
-       if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-       dims(1:ndim_const) = shape( arr )
+      chunksizes = (/ size(arr, 1), size(arr, 2), &
+              size(arr, 3), size(arr, 4) /)
+      if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+      dims(1 : ndim_const) = shape(arr)
     end if
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_double
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_double
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_4d_dp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_4d_dp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_4d_dp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_double) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_4d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_4d_dp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_4d_dp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_double)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), 'missing_value',missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att(f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_4d_dp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_4d_dp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_4d_dp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_4d_dp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_4d_dp
 
-  subroutine var2nc_5d_i4( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_5d_i4(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 5
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    integer(i4),      dimension(:,:,:,:,:),     intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    integer(i4), dimension(:, :, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    integer(i4),                      optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    integer(i4), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    integer(i4), dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    integer(i4), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     d_unlimit = 0_i4
     if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! consistency checks
-    if ( ndim .gt. ndim_const ) then
-       print *, '***ERROR more than five dimension names given'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const) then
+      print *, '***ERROR more than five dimension names given'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3), size( arr, 4), size( arr, 5) /)
-    if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-    dims(1:ndim) = shape( arr )
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_int
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
+    deflate = 1
+    chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), size(arr, 4), size(arr, 5) /)
+    if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+    dims(1 : ndim) = shape(arr)
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_int
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_5d_i4: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_5d_i4: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( dummy(1) /= nf90_fill_int ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_5d_i4: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_5d_i4: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (dummy(1) /= nf90_fill_int) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(I6)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_INT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(I6)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_5d_i4: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_5d_i4: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_5d_i4: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_5d_i4: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_5d_i4
 
-  subroutine var2nc_5d_sp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_5d_sp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 5
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(sp),         dimension(:,:,:,:,:),     intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(sp), dimension(:, :, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(sp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(sp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(sp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(sp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     d_unlimit = 0_i4
     if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! consistency checks
-    if ( ndim .gt. ndim_const ) then
-       print *, '***ERROR more than five dimension names given'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const) then
+      print *, '***ERROR more than five dimension names given'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3), size( arr, 4), size( arr, 5) /)
-    if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-    dims(1:ndim) = shape( arr )
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1_i4
-    dummy        = nf90_fill_float
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
+    deflate = 1
+    chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), size(arr, 4), size(arr, 5) /)
+    if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+    dims(1 : ndim) = shape(arr)
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1_i4
+    dummy = nf90_fill_float
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_5d_sp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_5d_sp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_float) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_5d_sp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_5d_sp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_5d_sp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_float)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'missing_value', missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_FLOAT, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_5d_sp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_5d_sp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_5d_sp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_5d_sp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_5d_sp
 
-  subroutine var2nc_5d_dp( f_name, arr, dnames, v_name, dim_unlimited, &
-       long_name, units, missing_value, attributes, create, ncid, nrec )
+  subroutine var2nc_5d_dp(f_name, arr, dnames, v_name, dim_unlimited, &
+          long_name, units, missing_value, attributes, create, ncid, nrec)
     !
     implicit none
     !
     integer(i4), parameter :: ndim_const = 5
-    integer(i4)            :: ndim
+    integer(i4) :: ndim
     ! input variables
-    character(len=*),                           intent(in) :: f_name
-    real(dp),         dimension(:,:,:,:,:),     intent(in) :: arr
-    character(len=*),                           intent(in) :: v_name
-    character(len=*), dimension(:),             intent(in) :: dnames
+    character(len = *), intent(in) :: f_name
+    real(dp), dimension(:, :, :, :, :), intent(in) :: arr
+    character(len = *), intent(in) :: v_name
+    character(len = *), dimension(:), intent(in) :: dnames
     ! optional
-    integer(i4),                      optional, intent(in) :: dim_unlimited
-    character(len=*),                 optional, intent(in) :: long_name
-    character(len=*),                 optional, intent(in) :: units
-    real(dp),                         optional, intent(in) :: missing_value
-    character(256),   dimension(:,:), optional, intent(in) :: attributes
-    logical,                          optional, intent(in) :: create
-    integer(i4),                      optional, intent(inout) :: ncid
-    integer(i4),                      optional, intent(in) :: nrec
+    integer(i4), optional, intent(in) :: dim_unlimited
+    character(len = *), optional, intent(in) :: long_name
+    character(len = *), optional, intent(in) :: units
+    real(dp), optional, intent(in) :: missing_value
+    character(256), dimension(:, :), optional, intent(in) :: attributes
+    logical, optional, intent(in) :: create
+    integer(i4), optional, intent(inout) :: ncid
+    integer(i4), optional, intent(in) :: nrec
     ! local variables
-    logical                                :: create_loc
-    character(256)                         :: dummy_name
-    integer(i4)                            :: deflate
+    logical :: create_loc
+    character(256) :: dummy_name
+    integer(i4) :: deflate
     integer(i4), dimension(:), allocatable :: chunksizes
     integer(i4), dimension(:), allocatable :: start     ! start array for write
     integer(i4), dimension(:), allocatable :: counter   ! length array for write
-    integer(i4)                            :: idim      ! read dimension on append
-    integer(i4)                            :: f_handle
-    integer(i4)                            :: d_unlimit ! index of unlimited dimension
-    integer(i4)                            :: u_dimid   ! dimid of unlimited dimension
-    integer(i4)                            :: u_len     ! length of unlimited dimension
+    integer(i4) :: idim      ! read dimension on append
+    integer(i4) :: f_handle
+    integer(i4) :: d_unlimit ! index of unlimited dimension
+    integer(i4) :: u_dimid   ! dimid of unlimited dimension
+    integer(i4) :: u_len     ! length of unlimited dimension
     integer(i4), dimension(:), allocatable :: dims
     integer(i4), dimension(:), allocatable :: dimid     ! netcdf IDs of each dimension
     integer(i4), dimension(:), allocatable :: varid     ! dimension variables and var id
-    integer(i4)                            :: i         ! loop indices
+    integer(i4) :: i         ! loop indices
     integer(i4), dimension(:), allocatable :: dummy_count
-    real(dp),    dimension(1)              :: dummy     ! dummy read
-    logical                                :: openfile  ! tmp logical
+    real(dp), dimension(1) :: dummy     ! dummy read
+    logical :: openfile  ! tmp logical
     !
-    ndim = size( dnames, 1 )
+    ndim = size(dnames, 1)
     d_unlimit = 0_i4
     if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! consistency checks
-    if ( ndim .gt. ndim_const ) then
-       print *, '***ERROR more than five dimension names given'
-       stop '***ERROR see StdOut'
+    if (ndim .gt. ndim_const) then
+      print *, '***ERROR more than five dimension names given'
+      stop '***ERROR see StdOut'
     end if
-    if  ( ( ( ndim .eq. ndim_const ) .and. ( d_unlimit .gt. ndim_const ) ) .or. &
-          ( d_unlimit .lt. 0_i4 ) ) then
-       print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
-       print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
-       stop '***ERROR see StdOut'
+    if  (((ndim .eq. ndim_const) .and. (d_unlimit .gt. ndim_const)) .or. &
+            (d_unlimit .lt. 0_i4)) then
+      print*, '***ERROR unlimited dimension out of bounds, must be positive but not greater than number of given dimensions'
+      print*, '***Dims: ', ndim, ndim_const, d_unlimit, ndim_const, d_unlimit
+      stop '***ERROR see StdOut'
     end if
     !
-    allocate( chunksizes(  ndim ) )
-    allocate( start(       ndim ) )
-    allocate( counter(     ndim ) )
-    allocate( dims(        ndim ) )
-    allocate( dimid(       ndim ) )
-    allocate( varid(  1 +  ndim ) )
-    allocate( dummy_count( ndim ) )
+    allocate(chunksizes(ndim))
+    allocate(start(ndim))
+    allocate(counter(ndim))
+    allocate(dims(ndim))
+    allocate(dimid(ndim))
+    allocate(varid(1 + ndim))
+    allocate(dummy_count(ndim))
     ! initialize
-    deflate      = 1
-    chunksizes   = (/ size( arr, 1), size( arr, 2), size( arr, 3), size( arr, 4), size( arr, 5) /)
-    if ( d_unlimit .gt. 0 ) chunksizes( d_unlimit ) = 1 
-    dims(1:ndim) = shape( arr )
-    start(:)     = 1_i4
-    counter(:)   = dims
-    dummy_count  = 1
-    dummy        = nf90_fill_double
-    d_unlimit    = 0_i4
-    if ( present( dim_unlimited ) ) d_unlimit = dim_unlimited
+    deflate = 1
+    chunksizes = (/ size(arr, 1), size(arr, 2), size(arr, 3), size(arr, 4), size(arr, 5) /)
+    if (d_unlimit .gt. 0) chunksizes(d_unlimit) = 1
+    dims(1 : ndim) = shape(arr)
+    start(:) = 1_i4
+    counter(:) = dims
+    dummy_count = 1
+    dummy = nf90_fill_double
+    d_unlimit = 0_i4
+    if (present(dim_unlimited)) d_unlimit = dim_unlimited
     ! open the netcdf file
     if (present(ncid)) then
-       if (ncid < 0_i4) then
-          openfile = .true.
-       else
-          openfile = .false.
-          f_handle = ncid
-       end if
+      if (ncid < 0_i4) then
+        openfile = .true.
+      else
+        openfile = .false.
+        f_handle = ncid
+      end if
     else
-       openfile = .true.
+      openfile = .true.
     end if
     if (openfile) then
-       create_loc = .false.
-       if (present(create)) create_loc = create
-       f_handle = open_netcdf(f_name, create=create_loc)
+      create_loc = .false.
+      if (present(create)) create_loc = create
+      f_handle = open_netcdf(f_name, create = create_loc)
     end if
     ! check whether variable exists
-    if ( nf90_noerr .eq. nf90_inq_varid( f_handle, v_name, varid(ndim+1)) ) then
-       ! append
-       call check(nf90_inquire_variable(f_handle, varid(ndim+1), ndims=idim, dimids=dimid))
-       ! consistency checks
-       if (idim .ne. ndim) stop "var2nc_5d_dp: number of variable dimensions /= number of file variable dimensions."
-       ! check unlimited dimension
-       call check(nf90_inquire( f_handle, unlimitedDimId = u_dimid ))
-       if ( u_dimid .eq. -1 ) stop 'var2nc_5d_dp: cannot append, no unlimited dimension defined'
-       ! check for unlimited dimension
-       if ( dimid( d_unlimit ) .ne. u_dimid ) stop 'var2nc_5d_dp: unlimited dimension not specified correctly'
-       if (present(nrec)) then
-          start(d_unlimit) = nrec
-       else
-          ! get length of unlimited dimension
-          call check(nf90_inquire_dimension( f_handle, u_dimid, len = u_len ) )
-          ! adapt start, that is find last written chunk
-          do i = u_len, 1, -1
-             if ( ne(dummy(1),nf90_fill_double) ) exit
-             start(d_unlimit) = i
-             call check( nf90_get_var( f_handle, varid(ndim+1), dummy, start, dummy_count ) )
-          end do
-          start(d_unlimit) = start(d_unlimit) + 1
-       end if
+    if (nf90_noerr .eq. nf90_inq_varid(f_handle, v_name, varid(ndim + 1))) then
+      ! append
+      call check(nf90_inquire_variable(f_handle, varid(ndim + 1), ndims = idim, dimids = dimid))
+      ! consistency checks
+      if (idim .ne. ndim) stop "var2nc_5d_dp: number of variable dimensions /= number of file variable dimensions."
+      ! check unlimited dimension
+      call check(nf90_inquire(f_handle, unlimitedDimId = u_dimid))
+      if (u_dimid .eq. -1) stop 'var2nc_5d_dp: cannot append, no unlimited dimension defined'
+      ! check for unlimited dimension
+      if (dimid(d_unlimit) .ne. u_dimid) stop 'var2nc_5d_dp: unlimited dimension not specified correctly'
+      if (present(nrec)) then
+        start(d_unlimit) = nrec
+      else
+        ! get length of unlimited dimension
+        call check(nf90_inquire_dimension(f_handle, u_dimid, len = u_len))
+        ! adapt start, that is find last written chunk
+        do i = u_len, 1, -1
+          if (ne(dummy(1), nf90_fill_double)) exit
+          start(d_unlimit) = i
+          call check(nf90_get_var(f_handle, varid(ndim + 1), dummy, start, dummy_count))
+        end do
+        start(d_unlimit) = start(d_unlimit) + 1
+      end if
     else
-       ! define dimensions
-       do i = 1, ndim
-          ! check whether dimension exists
-          if ( nf90_noerr .ne. nf90_inq_dimid( f_handle, dnames(i), dimid(i)) ) then
-             ! create dimension
-             if ( i .eq. d_unlimit ) then
-                ! define unlimited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i) ))
-             else
-                ! define limited dimension
-                call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i) ))
-             end if
+      ! define dimensions
+      do i = 1, ndim
+        ! check whether dimension exists
+        if (nf90_noerr .ne. nf90_inq_dimid(f_handle, dnames(i), dimid(i))) then
+          ! create dimension
+          if (i .eq. d_unlimit) then
+            ! define unlimited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), NF90_UNLIMITED, dimid(i)))
+          else
+            ! define limited dimension
+            call check(nf90_def_dim(f_handle, trim(dnames(i)), dims(i), dimid(i)))
           end if
-       end do
-       ! define variable
-       call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim+1), &
-            chunksizes=chunksizes(:), shuffle=.true., deflate_level=deflate))
-       ! add attributes
-       if ( present( long_name   ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'long_name', long_name ) )
-       if ( present( units      ) ) call check(nf90_put_att (f_handle, varid(ndim+1), 'units', units ) )
-       if ( present( missing_value ) ) call check(nf90_put_att(f_handle, varid(ndim+1), 'missing_value',missing_value ) )
-       if ( present( attributes ) ) then
-          do i = 1, size( attributes, dim = 1 )
-             if ( trim( attributes(i,1)) .eq. 'missing_value' ) then
-                ! write number
-                read(attributes(i,2),'(F10.2)') dummy(1)
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), dummy(1) ) )
-             else
-                ! write string
-                call check( nf90_put_att( f_handle, varid(ndim+1), &
-                     trim(attributes(i,1)), trim(attributes(i,2)) ) )
-             end if
-          end do
-       end if
-       ! end definition
-       call check(nf90_enddef(f_handle))
+        end if
+      end do
+      ! define variable
+      call check(nf90_def_var(f_handle, v_name, NF90_DOUBLE, dimid, varid(ndim + 1), &
+              chunksizes = chunksizes(:), shuffle = .true., deflate_level = deflate))
+      ! add attributes
+      if (present(long_name)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'long_name', long_name))
+      if (present(units)) call check(nf90_put_att (f_handle, varid(ndim + 1), 'units', units))
+      if (present(missing_value)) call check(nf90_put_att(f_handle, varid(ndim + 1), 'missing_value', missing_value))
+      if (present(attributes)) then
+        do i = 1, size(attributes, dim = 1)
+          if (trim(attributes(i, 1)) .eq. 'missing_value') then
+            ! write number
+            read(attributes(i, 2), '(F10.2)') dummy(1)
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), dummy(1)))
+          else
+            ! write string
+            call check(nf90_put_att(f_handle, varid(ndim + 1), &
+                    trim(attributes(i, 1)), trim(attributes(i, 2))))
+          end if
+        end do
+      end if
+      ! end definition
+      call check(nf90_enddef(f_handle))
     end if
     ! check dimensions before writing
-    do i=1, ndim_const
-       call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
-       if (trim(dummy_name) .ne. dnames(i)) &
-            stop "var2nc_5d_dp: dimension name problem."
-       if ( (dims(i) .ne. size(arr,i)) .and. ( d_unlimit .ne. i ) ) &
-            stop "var2nc_5d_dp: variable dimension /= file variable dimension."
+    do i = 1, ndim_const
+      call check(nf90_inquire_dimension(f_handle, dimid(i), dummy_name, dims(i)))
+      if (trim(dummy_name) .ne. dnames(i)) &
+              stop "var2nc_5d_dp: dimension name problem."
+      if ((dims(i) .ne. size(arr, i)) .and. (d_unlimit .ne. i)) &
+              stop "var2nc_5d_dp: variable dimension /= file variable dimension."
     end do
     ! write variable
-    call check( nf90_put_var(f_handle, varid(ndim+1), arr, start, counter) )
+    call check(nf90_put_var(f_handle, varid(ndim + 1), arr, start, counter))
     ! close netcdf_dataset
     if (present(ncid)) then
-       if (ncid < 0_i4) ncid = f_handle
+      if (ncid < 0_i4) ncid = f_handle
     else
-       call close_netcdf( f_handle )
+      call close_netcdf(f_handle)
     end if
     !
   end subroutine var2nc_5d_dp
@@ -5454,10 +5454,10 @@ contains
     implicit none
 
     ! netcdf related variables
-    integer(i4), intent(in)           :: ncId
-    integer(i4), intent(in)           :: iRec
+    integer(i4), intent(in) :: ncId
+    integer(i4), intent(in) :: iRec
 
-    integer(i4)                       :: i
+    integer(i4) :: i
     ! NOTES: 1) netcdf file must be on *** data mode ***
     !        2) start and end of the data chuck is controled by
     !           V(:)%start and  V(:)%count
@@ -5465,63 +5465,63 @@ contains
     ! set values for variables (one scalar or grid at a time)
 
     do i = 1, nVars
-       if (.not. V(i)%unlimited) cycle
-       if (.not. V(i)%wFlag) cycle
-       V(i)%start (V(i)%nDims) = iRec
-       select case (V(i)%xtype)
-       case(NF90_BYTE)
-          select case (V(i)%nDims)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_b, V(i)%start))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_b, V(i)%start, V(i)%count))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_b, V(i)%start, V(i)%count))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_b, V(i)%start, V(i)%count))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_b, V(i)%start, V(i)%count))
-          end select
-       case (NF90_INT)
-          select case (V(i)%nDims-1)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_i, V(i)%start))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_i, V(i)%start, V(i)%count))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_i, V(i)%start, V(i)%count))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_i, V(i)%start, V(i)%count))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_i, V(i)%start, V(i)%count))
-          end select
-       case (NF90_FLOAT)
-          select case (V(i)%nDims-1)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_f, V(i)%start))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_f, V(i)%start, V(i)%count))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_f, V(i)%start, V(i)%count))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_f, V(i)%start, V(i)%count))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_f, V(i)%start, V(i)%count))
-          end select
-       case (NF90_DOUBLE)
-          select case (V(i)%nDims-1)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_d, V(i)%start))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_d, V(i)%start, V(i)%count))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_d, V(i)%start, V(i)%count))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_d, V(i)%start, V(i)%count))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_d, V(i)%start, V(i)%count))
-          end select
-       end select
+      if (.not. V(i)%unlimited) cycle
+      if (.not. V(i)%wFlag) cycle
+      V(i)%start (V(i)%nDims) = iRec
+      select case (V(i)%xtype)
+      case(NF90_BYTE)
+        select case (V(i)%nDims)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_b, V(i)%start))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_b, V(i)%start, V(i)%count))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_b, V(i)%start, V(i)%count))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_b, V(i)%start, V(i)%count))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_b, V(i)%start, V(i)%count))
+        end select
+      case (NF90_INT)
+        select case (V(i)%nDims - 1)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_i, V(i)%start))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_i, V(i)%start, V(i)%count))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_i, V(i)%start, V(i)%count))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_i, V(i)%start, V(i)%count))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_i, V(i)%start, V(i)%count))
+        end select
+      case (NF90_FLOAT)
+        select case (V(i)%nDims - 1)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_f, V(i)%start))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_f, V(i)%start, V(i)%count))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_f, V(i)%start, V(i)%count))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_f, V(i)%start, V(i)%count))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_f, V(i)%start, V(i)%count))
+        end select
+      case (NF90_DOUBLE)
+        select case (V(i)%nDims - 1)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_d, V(i)%start))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_d, V(i)%start, V(i)%count))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_d, V(i)%start, V(i)%count))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_d, V(i)%start, V(i)%count))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_d, V(i)%start, V(i)%count))
+        end select
+      end select
     end do
 
   end subroutine write_dynamic_netcdf
@@ -5563,68 +5563,68 @@ contains
     implicit none
 
     ! netcdf related variables
-    integer(i4), intent(in)           :: ncId
+    integer(i4), intent(in) :: ncId
 
-    integer(i4)                       :: i
+    integer(i4) :: i
 
     ! write all static variables
     do i = 1, nVars
-       if (V(i)%unlimited) cycle
-       if (.not. V(i)%wFlag) cycle
-       select case (V(i)%xtype)
-       case(NF90_BYTE)
-          select case (V(i)%nDims)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_b))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_b))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_b))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_b))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_b))
-          end select
-       case (NF90_INT)
-          select case (V(i)%nDims)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_i))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_i))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_i))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_i))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_i))
-          end select
-       case (NF90_FLOAT)
-          select case (V(i)%nDims)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_f))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_f))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_f))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_f))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_f))
-          end select
-       case (NF90_DOUBLE)
-          select case (V(i)%nDims)
-          case (0)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G0_d))
-          case (1)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G1_d))
-          case (2)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G2_d))
-          case (3)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G3_d))
-          case (4)
-             call check(nf90_put_var(ncId,  V(i)%varId, V(i)%G4_d))
-          end select
-       end select
+      if (V(i)%unlimited) cycle
+      if (.not. V(i)%wFlag) cycle
+      select case (V(i)%xtype)
+      case(NF90_BYTE)
+        select case (V(i)%nDims)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_b))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_b))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_b))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_b))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_b))
+        end select
+      case (NF90_INT)
+        select case (V(i)%nDims)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_i))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_i))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_i))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_i))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_i))
+        end select
+      case (NF90_FLOAT)
+        select case (V(i)%nDims)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_f))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_f))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_f))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_f))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_f))
+        end select
+      case (NF90_DOUBLE)
+        select case (V(i)%nDims)
+        case (0)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G0_d))
+        case (1)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G1_d))
+        case (2)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G2_d))
+        case (3)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G3_d))
+        case (4)
+          call check(nf90_put_var(ncId, V(i)%varId, V(i)%G4_d))
+        end select
+      end select
     end do
 
   end subroutine write_static_netcdf
@@ -5636,20 +5636,20 @@ contains
   ! -----------------------------------------------------------------------------
 
   ! private open netcdf function - returns file handle
-  function open_netcdf( f_name, create )
+  function open_netcdf(f_name, create)
     implicit none
     ! input variables
-    character(len=*),           intent(in) :: f_name
-    logical,                    intent(in) :: create ! flag indicates that file exists
+    character(len = *), intent(in) :: f_name
+    logical, intent(in) :: create ! flag indicates that file exists
     ! output variables
-    integer(i4)   :: open_netcdf
+    integer(i4) :: open_netcdf
     !
-    if ( create ) then
-       ! create file
-       call check( nf90_create( trim(f_name), NF90_NETCDF4, open_netcdf ) )
+    if (create) then
+      ! create file
+      call check(nf90_create(trim(f_name), NF90_NETCDF4, open_netcdf))
     else
-       ! open file
-       call check( nf90_open( trim(f_name), NF90_WRITE, open_netcdf ) )
+      ! open file
+      call check(nf90_open(trim(f_name), NF90_WRITE, open_netcdf))
     end if
   end function open_netcdf
 
@@ -5664,8 +5664,8 @@ contains
     integer(i4), intent(in) :: status
 
     if (status /= nf90_noerr) then
-       write(*,*) 'mo_ncwrite.check error: ', trim(nf90_strerror(status))
-       stop
+      write(*, *) 'mo_ncwrite.check error: ', trim(nf90_strerror(status))
+      stop
     end if
 
   end subroutine check

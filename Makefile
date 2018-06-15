@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mHM ./src/mRM # where are the source files
+SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/common_mHM_mRM ./src/MPR ./src/mHM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
@@ -109,9 +109,9 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := intel
+compiler := nag
 # Releases: debug, release
-release  := release
+release  := debug
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
 netcdf   := netcdf4
 # LAPACK (Linear Algebra Pack): true, [anything else]
@@ -123,7 +123,7 @@ proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
-openmp   := true
+openmp   := false
 # MPI parallelization - experimental: true, [anything else]
 mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
@@ -184,7 +184,7 @@ static   := dynamic
 # Special compilation flags
 EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := -DMRM2MHM
+EXTRA_DEFINES  := -DMRM2MHM #-DMPR_STANDALONE
 EXTRA_INCLUDES :=
 EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
@@ -389,7 +389,6 @@ RANLIB   := ranlib
 
 # Set path where all the .mod, .o, etc. files will be written, set before include $(MAKEINC)
 OBJPATH := $(addsuffix /.$(strip $(icompiler)).$(strip $(release)), $(SRCPATH))
-
 # Mac OS X is special, there is (almost) no static linking.
 # Mac OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
 iOS := $(shell uname -s)
@@ -800,6 +799,7 @@ ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)
     export LD_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
+    export DYLD_FALLBACK_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
 endif
 
 INCLUDES += $(addprefix -I,$(OBJPATH))

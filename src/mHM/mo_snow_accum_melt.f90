@@ -9,13 +9,13 @@
 
 MODULE mo_snow_accum_melt
 
-  USE mo_kind, ONLY: dp
+  USE mo_kind, ONLY : dp
 
   IMPLICIT NONE
 
   PRIVATE
 
-  PUBLIC ::   snow_accum_melt
+  PUBLIC :: snow_accum_melt
 
   ! ------------------------------------------------------------------
 
@@ -88,64 +88,64 @@ CONTAINS
   !         Modified JM, Aug 2013 - ordering of arguments changed
 
   SUBROUTINE snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, &
-       temperature, temperature_thresh, thrfall, &
-       snow_pack, deg_day, melt,  prec_effect, rain, snow)
+          temperature, temperature_thresh, thrfall, &
+          snow_pack, deg_day, melt, prec_effect, rain, snow)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN)     :: deg_day_incr
-    REAL(dp), INTENT(IN)     :: deg_day_max
-    REAL(dp), INTENT(IN)     :: deg_day_noprec
-    REAL(dp), INTENT(IN)     :: prec
-    REAL(dp), INTENT(IN)     :: temperature
-    REAL(dp), INTENT(IN)     :: temperature_thresh
-    REAL(dp), INTENT(IN)     :: thrfall
-    REAL(dp), INTENT(INOUT)  :: snow_pack
-    REAL(dp), INTENT(OUT)    :: deg_day
-    REAL(dp), INTENT(OUT)    :: melt
-    REAL(dp), INTENT(OUT)    :: prec_effect
-    REAL(dp), INTENT(OUT)    :: rain
-    REAL(dp), INTENT(OUT)    :: snow
+    REAL(dp), INTENT(IN) :: deg_day_incr
+    REAL(dp), INTENT(IN) :: deg_day_max
+    REAL(dp), INTENT(IN) :: deg_day_noprec
+    REAL(dp), INTENT(IN) :: prec
+    REAL(dp), INTENT(IN) :: temperature
+    REAL(dp), INTENT(IN) :: temperature_thresh
+    REAL(dp), INTENT(IN) :: thrfall
+    REAL(dp), INTENT(INOUT) :: snow_pack
+    REAL(dp), INTENT(OUT) :: deg_day
+    REAL(dp), INTENT(OUT) :: melt
+    REAL(dp), INTENT(OUT) :: prec_effect
+    REAL(dp), INTENT(OUT) :: rain
+    REAL(dp), INTENT(OUT) :: snow
 
     ! local variables
-    REAL(dp)                 :: aux_help          !Auxiliary helping variable [-]
+    REAL(dp) :: aux_help          !Auxiliary helping variable [-]
 
     !separate throughfall into rain and snow
     if(temperature >  temperature_thresh) then
-       snow = 0.0_dp
-       rain = thrfall
+      snow = 0.0_dp
+      rain = thrfall
     else
-       snow = thrfall
-       rain = 0.0_dp
+      snow = thrfall
+      rain = 0.0_dp
     end if
 
     ! calculate degree daily factor
-    if ( prec <= (deg_day_max - deg_day_noprec) / deg_day_incr ) then
-       deg_day = deg_day_noprec + deg_day_incr * prec
+    if (prec <= (deg_day_max - deg_day_noprec) / deg_day_incr) then
+      deg_day = deg_day_noprec + deg_day_incr * prec
     else
-       deg_day = deg_day_max
+      deg_day = deg_day_max
     end if
 
     ! melting/snow accumulation
     if (temperature > temperature_thresh) then
-       ! melting
-       if ( snow_pack > 0.0_dp ) then
-          aux_help = deg_day * ( temperature - temperature_thresh )
-          if ( aux_help > snow_pack ) then
-             melt      = snow_pack
-             snow_pack = 0.0_dp
-          else
-             melt      = aux_help
-             snow_pack = snow_pack - aux_help
-          end if
-       else
-          melt      = 0.0_dp
+      ! melting
+      if (snow_pack > 0.0_dp) then
+        aux_help = deg_day * (temperature - temperature_thresh)
+        if (aux_help > snow_pack) then
+          melt = snow_pack
           snow_pack = 0.0_dp
-       end if
+        else
+          melt = aux_help
+          snow_pack = snow_pack - aux_help
+        end if
+      else
+        melt = 0.0_dp
+        snow_pack = 0.0_dp
+      end if
     else
-       ! snow accumulation
-       melt      = 0.0_dp
-       snow_pack = snow_pack + snow
+      ! snow accumulation
+      melt = 0.0_dp
+      snow_pack = snow_pack + snow
     end if
 
     ! effective precipitation

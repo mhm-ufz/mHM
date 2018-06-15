@@ -10,15 +10,15 @@
 !> \date Dec 2012
 
 MODULE mo_runoff
-  
-  USE mo_kind, ONLY: dp
-  USE mo_constants, ONLY: eps_dp
+
+  USE mo_kind, ONLY : dp
+  USE mo_common_constants, ONLY : eps_dp
 
   IMPLICIT NONE
 
-  PUBLIC ::   runoff_unsat_zone
-  PUBLIC ::   runoff_sat_zone
-  PUBLIC ::   L1_total_runoff
+  PUBLIC :: runoff_unsat_zone
+  PUBLIC :: runoff_sat_zone
+  PUBLIC :: L1_total_runoff
   ! PUBLIC ::   L11_runoff_acc
 
   PRIVATE
@@ -99,25 +99,25 @@ CONTAINS
   !                  JM, Aug 2013  - ordering of arguments changed
   ! ------------------------------------------------------------------
 
-  SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha,            &   ! Intent IN
-       karst_loss, pefec_soil, unsat_thresh,                 &   ! Intent IN
-       sat_storage, unsat_storage,                           &   ! Intent INOUT
-       slow_interflow, fast_interflow, perc)                     ! Intent OUT
+  SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha, &   ! Intent IN
+          karst_loss, pefec_soil, unsat_thresh, &   ! Intent IN
+          sat_storage, unsat_storage, &   ! Intent INOUT
+          slow_interflow, fast_interflow, perc)                     ! Intent OUT
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN)    ::  k1
-    REAL(dp), INTENT(IN)    ::  kp
-    REAL(dp), INTENT(IN)    ::  k0
-    REAL(dp), INTENT(IN)    ::  alpha
-    REAL(dp), INTENT(IN)    ::  karst_loss
-    REAL(dp), INTENT(IN)    ::  pefec_soil
-    REAL(dp), INTENT(IN)    ::  unsat_thresh
-    REAL(dp), INTENT(INOUT) ::  sat_storage
-    REAL(dp), INTENT(INOUT) ::  unsat_storage
-    REAL(dp), INTENT(OUT)   ::  slow_interflow
-    REAL(dp), INTENT(OUT)   ::  fast_interflow
-    REAL(dp), INTENT(OUT)   ::  perc
+    REAL(dp), INTENT(IN) :: k1
+    REAL(dp), INTENT(IN) :: kp
+    REAL(dp), INTENT(IN) :: k0
+    REAL(dp), INTENT(IN) :: alpha
+    REAL(dp), INTENT(IN) :: karst_loss
+    REAL(dp), INTENT(IN) :: pefec_soil
+    REAL(dp), INTENT(IN) :: unsat_thresh
+    REAL(dp), INTENT(INOUT) :: sat_storage
+    REAL(dp), INTENT(INOUT) :: unsat_storage
+    REAL(dp), INTENT(OUT) :: slow_interflow
+    REAL(dp), INTENT(OUT) :: fast_interflow
+    REAL(dp), INTENT(OUT) :: perc
 
     !---------------------------------------------------------------
     ! SOIL LAYER BETWEEN UNSATURATED AND SATURATED ZONE
@@ -126,39 +126,39 @@ CONTAINS
     !pefec_soil = Cell1_soil(k, nHorizons_mHM)%infil
 
     unsat_storage = unsat_storage + pefec_soil
-   
+
     ! FAST INTERFLOW WITH THRESHOLD BEHAVIOUR
-    fast_interflow   = 0.0_dp
+    fast_interflow = 0.0_dp
     if(unsat_storage > unsat_thresh) then
-       fast_interflow   = MIN( (k0*(unsat_storage - unsat_thresh)), &
-            (unsat_storage - eps_dp))
+      fast_interflow = MIN((k0 * (unsat_storage - unsat_thresh)), &
+              (unsat_storage - eps_dp))
     end if
-    unsat_storage = unsat_storage -  fast_interflow
-   
+    unsat_storage = unsat_storage - fast_interflow
+
     ! SLOW PERMANENT INTERFLOW
-    slow_interflow= 0.0_dp
-   
-    if( unsat_storage > eps_dp ) then
-       slow_interflow= min( (k1*(unsat_storage**(1.0_dp + alpha) )), &
-            (unsat_storage - eps_dp))
+    slow_interflow = 0.0_dp
+
+    if(unsat_storage > eps_dp) then
+      slow_interflow = min((k1 * (unsat_storage**(1.0_dp + alpha))), &
+              (unsat_storage - eps_dp))
     end if
     unsat_storage = unsat_storage - slow_interflow
-   
+
     !--------------------------------------------------------
     ! PERCOLATION FROM SOIL LAYER TO THE SATURATED ZONE
     !--------------------------------------------------------
-    perc  = kp * unsat_storage
-   
+    perc = kp * unsat_storage
+
     ! Taking into account for the KARSTIC aquifers
     !*** karstic loss gain or loss if Karstic aquifer is present...
-    if(unsat_storage > perc ) then
-       unsat_storage = unsat_storage - perc
-       sat_storage = sat_storage + perc * karst_loss
+    if(unsat_storage > perc) then
+      unsat_storage = unsat_storage - perc
+      sat_storage = sat_storage + perc * karst_loss
     else
-       sat_storage = sat_storage + unsat_storage * karst_loss
-       unsat_storage = 0.0_dp
-    end if 
-   
+      sat_storage = sat_storage + unsat_storage * karst_loss
+      unsat_storage = 0.0_dp
+    end if
+
   END SUBROUTINE runoff_unsat_zone
 
   ! ------------------------------------------------------------------
@@ -222,16 +222,16 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN)    :: k2
+    REAL(dp), INTENT(IN) :: k2
     REAL(dp), INTENT(INOUT) :: sat_storage
-    REAL(dp), INTENT(OUT)   :: baseflow
+    REAL(dp), INTENT(OUT) :: baseflow
 
     if (sat_storage > 0.0_dp) then
-       baseflow   = k2 * sat_storage
-       sat_storage = sat_storage - baseflow
+      baseflow = k2 * sat_storage
+      sat_storage = sat_storage - baseflow
     else
-       baseflow   = 0.0_dp
-       sat_storage = 0.0_dp
+      baseflow = 0.0_dp
+      sat_storage = 0.0_dp
     end if
 
   END SUBROUTINE runoff_sat_zone
@@ -294,20 +294,20 @@ CONTAINS
   !                   ST, May 2015  - updated equation in the documentation
 
   SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, &
-                             baseflow, direct_runoff, total_runoff)
+          baseflow, direct_runoff, total_runoff)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN)    :: fSealed_area_fraction
-    REAL(dp), INTENT(IN)    :: fast_interflow
-    REAL(dp), INTENT(IN)    :: slow_interflow
-    REAL(dp), INTENT(IN)    :: baseflow
-    REAL(dp), INTENT(IN)    :: direct_runoff
-    REAL(dp), INTENT(OUT)   :: total_runoff
+    REAL(dp), INTENT(IN) :: fSealed_area_fraction
+    REAL(dp), INTENT(IN) :: fast_interflow
+    REAL(dp), INTENT(IN) :: slow_interflow
+    REAL(dp), INTENT(IN) :: baseflow
+    REAL(dp), INTENT(IN) :: direct_runoff
+    REAL(dp), INTENT(OUT) :: total_runoff
 
-    total_runoff = ( (baseflow + slow_interflow + fast_interflow)*(1.0_dp-fSealed_area_fraction) ) + &
-                   ( direct_runoff*fSealed_area_fraction )
+    total_runoff = ((baseflow + slow_interflow + fast_interflow) * (1.0_dp - fSealed_area_fraction)) + &
+            (direct_runoff * fSealed_area_fraction)
 
   END SUBROUTINE L1_total_runoff
-  
+
 END MODULE mo_runoff

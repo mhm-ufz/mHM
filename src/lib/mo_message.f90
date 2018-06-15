@@ -33,7 +33,7 @@ MODULE mo_message
 
   ! Copyright 2011 Matthias Cuntz
 
-  USE mo_constants, ONLY: nout
+  USE mo_constants, ONLY : nout
 
   IMPLICIT NONE
 
@@ -42,7 +42,7 @@ MODULE mo_message
   PUBLIC :: message_text    ! dummy string to use in subroutines
   PUBLIC :: message         ! versatile routine to write out strings in file or on screen
 
-  CHARACTER(len=1024) :: message_text = ''
+  CHARACTER(len = 1024) :: message_text = ''
 
   ! ------------------------------------------------------------------
 
@@ -110,36 +110,36 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t01
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t02
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t03
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t04
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t05
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t06
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t07
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t08
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t09
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: t10
-    INTEGER,          INTENT(IN), OPTIONAL :: uni
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: advance
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t03
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t04
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t05
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t06
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t07
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10
+    INTEGER, INTENT(IN), OPTIONAL :: uni
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance
 
-    INTEGER              :: iout
-    CHARACTER(len=32000) :: out
-    CHARACTER(len=3)     :: iadv
+    INTEGER :: iout
+    CHARACTER(len = 32000) :: out
+    CHARACTER(len = 3) :: iadv
 #ifdef GFORTRAN
-    CHARACTER(len=32000) :: nold
+    CHARACTER(len = 32000) :: nold
 #endif
 
     if (present(uni)) then
-       iout = uni
+      iout = uni
     else
-       iout = nout
+      iout = nout
     end if
     if (present(advance)) then
-       iadv = ''
-       iadv(1:min(len(advance),3)) = advance(1:min(len(advance),3))
+      iadv = ''
+      iadv(1 : min(len(advance), 3)) = advance(1 : min(len(advance), 3))
     else
-       iadv = 'yes'
+      iadv = 'yes'
     end if
 
     out = ''
@@ -150,47 +150,47 @@ CONTAINS
     !    write(out,'(A,A)') t10, trim(out)
     ! writes t10 twice into out.
     nold = out
-    if (present(t10)) write(out,'(A,A)') t10, trim(nold)
+    if (present(t10)) write(out, '(A,A)') t10, trim(nold)
     nold = out
-    if (present(t09)) write(out,'(A,A)') t09, trim(nold)
+    if (present(t09)) write(out, '(A,A)') t09, trim(nold)
     nold = out
-    if (present(t08)) write(out,'(A,A)') t08, trim(nold)
+    if (present(t08)) write(out, '(A,A)') t08, trim(nold)
     nold = out
-    if (present(t07)) write(out,'(A,A)') t07, trim(nold)
+    if (present(t07)) write(out, '(A,A)') t07, trim(nold)
     nold = out
-    if (present(t06)) write(out,'(A,A)') t06, trim(nold)
+    if (present(t06)) write(out, '(A,A)') t06, trim(nold)
     nold = out
-    if (present(t05)) write(out,'(A,A)') t05, trim(nold)
+    if (present(t05)) write(out, '(A,A)') t05, trim(nold)
     nold = out
-    if (present(t04)) write(out,'(A,A)') t04, trim(nold)
+    if (present(t04)) write(out, '(A,A)') t04, trim(nold)
     nold = out
-    if (present(t03)) write(out,'(A,A)') t03, trim(nold)
+    if (present(t03)) write(out, '(A,A)') t03, trim(nold)
     nold = out
-    if (present(t02)) write(out,'(A,A)') t02, trim(nold)
+    if (present(t02)) write(out, '(A,A)') t02, trim(nold)
     nold = out
-    if (present(t01)) write(out,'(A,A)') t01, trim(nold)
+    if (present(t01)) write(out, '(A,A)') t01, trim(nold)
     ! output at least one space otherwise some compilers get confused on Mac (empty assembler statement)
-    if ((lle(trim(out),'') .and. lge(trim(out),''))) then
-       nold = out
-       write(out,'(A,A)') trim(nold), ' '
+    if ((lle(trim(out), '') .and. lge(trim(out), ''))) then
+      nold = out
+      write(out, '(A,A)') trim(nold), ' '
     end if
-    write(iout,'(a)',advance=iadv) trim(out)
+    write(iout, '(a)', advance = iadv) trim(out)
 #else
-    if (present(t10)) out = t10//trim(out)
-    if (present(t09)) out = t09//trim(out)
-    if (present(t08)) out = t08//trim(out)
-    if (present(t07)) out = t07//trim(out)
-    if (present(t06)) out = t06//trim(out)
-    if (present(t05)) out = t05//trim(out)
-    if (present(t04)) out = t04//trim(out)
-    if (present(t03)) out = t03//trim(out)
-    if (present(t02)) out = t02//trim(out)
-    if (present(t01)) out = t01//trim(out)
+    if (present(t10)) out = t10 // trim(out)
+    if (present(t09)) out = t09 // trim(out)
+    if (present(t08)) out = t08 // trim(out)
+    if (present(t07)) out = t07 // trim(out)
+    if (present(t06)) out = t06 // trim(out)
+    if (present(t05)) out = t05 // trim(out)
+    if (present(t04)) out = t04 // trim(out)
+    if (present(t03)) out = t03 // trim(out)
+    if (present(t02)) out = t02 // trim(out)
+    if (present(t01)) out = t01 // trim(out)
     ! output at least one space otherwise some compilers get confused on Mac (empty assembler statement)
-    if ((lle(trim(out),'') .and. lge(trim(out),''))) then
-       write(iout,'(a)',advance=iadv) trim(out)//' '
+    if ((lle(trim(out), '') .and. lge(trim(out), ''))) then
+      write(iout, '(a)', advance = iadv) trim(out) // ' '
     else
-       write(iout,'(a)',advance=iadv) trim(out)
+      write(iout, '(a)', advance = iadv) trim(out)
     end if
 #endif
 

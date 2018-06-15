@@ -14,7 +14,7 @@ MODULE mo_pet
 
   ! This module is for the UFZ CHS mesoscale hydrologic model mHM.
 
-  USE mo_kind,      ONLY: i4, dp
+  USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
 
@@ -87,32 +87,32 @@ CONTAINS
 
   elemental pure FUNCTION pet_hargreaves(HarSamCoeff, HarSamConst, tavg, tmax, tmin, latitude, doy)
 
-    use mo_constants,     only: deg2rad_dp
-    use mo_utils,         only: LE
+    use mo_constants, only : deg2rad_dp
+    use mo_utils, only : LE
 
     implicit none
 
-    real(dp),    intent(in) :: HarSamCoeff           !  coefficient of Hargreaves-Samani equation
-    real(dp),    intent(in) :: HarSamConst           !  constatnt   of Hargreaves-Samani equation
-    real(dp),    intent(in) :: tavg                  !  daily men temperature
-    real(dp),    intent(in) :: tmax                  !  daily maximum of temp.
-    real(dp),    intent(in) :: tmin                  !  daily minimum of temp.
-    real(dp),    intent(in) :: latitude              ! latitude of the cell for Ra estimation
+    real(dp), intent(in) :: HarSamCoeff           !  coefficient of Hargreaves-Samani equation
+    real(dp), intent(in) :: HarSamConst           !  constatnt   of Hargreaves-Samani equation
+    real(dp), intent(in) :: tavg                  !  daily men temperature
+    real(dp), intent(in) :: tmax                  !  daily maximum of temp.
+    real(dp), intent(in) :: tmin                  !  daily minimum of temp.
+    real(dp), intent(in) :: latitude              ! latitude of the cell for Ra estimation
     integer(i4), intent(in) :: doy                   ! day of year for Ra estimation
 
-    real(dp)                :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
+    real(dp) :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
 
     ! local
-    real(dp)                :: delta_temp            ! tmax-Tmin
+    real(dp) :: delta_temp            ! tmax-Tmin
 
     ! correction for shity input data (tmax<tmin) and to avoid numerical errors ! MZMZMZMZ
     delta_temp = tmax - tmin
-    if( LE(delta_temp, 0.0_dp) .or. LE(tavg, -HarSamConst) ) then
-       pet_hargreaves = 0.0_dp
+    if(LE(delta_temp, 0.0_dp) .or. LE(tavg, -HarSamConst)) then
+      pet_hargreaves = 0.0_dp
     else
-       pet_hargreaves = HarSamCoeff * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (tavg + HarSamConst) * sqrt(delta_temp) 
+      pet_hargreaves = HarSamCoeff * extraterr_rad_approx(doy, deg2rad_dp * latitude) * (tavg + HarSamConst) * sqrt(delta_temp)
     end if
-    
+
   END FUNCTION pet_hargreaves
 
 
@@ -168,26 +168,25 @@ CONTAINS
   !>        \date    Apr 2014
 
   elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
-!  FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
+    !  FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
 
-    use mo_mhm_constants, only: DaySecs
-    use mo_constants,     only: Psychro_dp, SpecHeatET_dp 
+    use mo_common_constants, only : DaySecs
+    use mo_constants, only : Psychro_dp, SpecHeatET_dp
 
     implicit none
 
     real(dp), intent(in) :: PrieTayParam       ! Priestley-Taylor coefficient
     real(dp), intent(in) :: Rn
     real(dp), intent(in) :: Tavg
-    real(dp)             :: pet_priestly       ! reference evapotranspiration in [mm s-1]
+    real(dp) :: pet_priestly       ! reference evapotranspiration in [mm s-1]
 
-    real(dp)             :: delta              ! save slope of saturation vapor pressure curve
+    real(dp) :: delta              ! save slope of saturation vapor pressure curve
 
-    delta        = slope_satpressure(Tavg) ! slope of saturation vapor pressure curve
+    delta = slope_satpressure(Tavg) ! slope of saturation vapor pressure curve
     ! in [mm d-1] 
-    pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * ( Rn * DaySecs / SpecHeatET_dp ) 
-   
-  END FUNCTION pet_priestly
+    pet_priestly = PrieTayParam * delta / (Psychro_dp + delta) * (Rn * DaySecs / SpecHeatET_dp)
 
+  END FUNCTION pet_priestly
 
 
   ! ------------------------------------------------------------------
@@ -275,8 +274,8 @@ CONTAINS
 
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, a_sh)
 
-    use mo_mhm_constants, only: DaySecs
-    use mo_constants,     only: Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp 
+    use mo_common_constants, only : DaySecs
+    use mo_constants, only : Psychro_dp, SpecHeatET_dp, rho0_dp, cp0_dp
 
     implicit none
 
@@ -287,13 +286,13 @@ CONTAINS
     real(dp), intent(in) :: bulksurface_resistance ! bulk surface resistance
     real(dp), intent(in) :: a_s                    ! fraction of one-sided leaf area covered by stomata
     real(dp), intent(in) :: a_sh                   ! bulk surface resistance
-    real(dp)             :: pet_penman             ! reference evapotranspiration in [mm s-1]
+    real(dp) :: pet_penman             ! reference evapotranspiration in [mm s-1]
 
-    pet_penman =  DaySecs / SpecHeatET_dp  *           & ! conversion factor [W m-2] to [mm d-1]
-                  (slope_satpressure(tavg) * net_rad + &
-                  rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure ) * a_sh / aerodyn_resistance) / &
-                  (slope_satpressure(tavg) + Psychro_dp * a_sh / a_s * (1.0_dp + bulksurface_resistance/aerodyn_resistance))
-    
+    pet_penman = DaySecs / SpecHeatET_dp * & ! conversion factor [W m-2] to [mm d-1]
+            (slope_satpressure(tavg) * net_rad + &
+                    rho0_dp * cp0_dp * (sat_vap_pressure(tavg) - act_vap_pressure) * a_sh / aerodyn_resistance) / &
+            (slope_satpressure(tavg) + Psychro_dp * a_sh / a_s * (1.0_dp + bulksurface_resistance / aerodyn_resistance))
+
   END FUNCTION pet_penman
 
   ! ------------------------------------------------------------------
@@ -357,39 +356,40 @@ CONTAINS
   !>        \date     Apr 2014
   !         Modified  R. Kumar and M. Zink,    June 2016 - correction to include NaN in acos(arg) 
 
-  elemental pure FUNCTION extraterr_rad_approx(doy, latitude) 
+  elemental pure FUNCTION extraterr_rad_approx(doy, latitude)
 
-    use mo_constants,     only: SolarConst_dp, SpecHeatET_dp, PI_D, TWOPI_D
-    use mo_mhm_constants, only: DuffieDr, DuffieDelta1, DuffieDelta2, YearDays, DaySecs
+    use mo_constants, only : SolarConst_dp, SpecHeatET_dp, PI_D, TWOPI_D
+    use mo_common_constants, only : YearDays, DaySecs
+    use mo_mhm_constants, only : DuffieDr, DuffieDelta1, DuffieDelta2
 
-    implicit none    
+    implicit none
 
-    integer(i4), intent(in)             :: doy
-    real(dp),    intent(in)             :: latitude             ! latitude [rad]
-    real(dp)                            :: extraterr_rad_approx ! extraterrestrial radiation
+    integer(i4), intent(in) :: doy
+    real(dp), intent(in) :: latitude             ! latitude [rad]
+    real(dp) :: extraterr_rad_approx ! extraterrestrial radiation
 
     ! local
-    real(dp)                            :: dr, delta
-    real(dp)                            :: omega
-    real(dp)                            :: arg
-    
+    real(dp) :: dr, delta
+    real(dp) :: omega
+    real(dp) :: arg
+
     ! inverse relative distance Earth-Sun - correction for eccentricity of Earths orbit around the sun
-    dr     =  1.0_dp + DuffieDr * cos( TWOPI_D * doy / YearDays )            
+    dr = 1.0_dp + DuffieDr * cos(TWOPI_D * doy / YearDays)
     ! declination of the sun above the celestial equator in radians
-    delta  =       DuffieDelta1 * sin( TWOPI_D * doy / YearDays - DuffieDelta2 ) 
+    delta = DuffieDelta1 * sin(TWOPI_D * doy / YearDays - DuffieDelta2)
 
     ! arccos(x) is only defined between PI and 0 (for x between -1 and 1)
     ! check limits
     arg = - tan(latitude) * tan(delta)
-    if( arg .lt. -1.0_dp ) arg = -1.0_dp
-    if( arg .gt.  1.0_dp ) arg =  1.0_dp
+    if(arg .lt. -1.0_dp) arg = -1.0_dp
+    if(arg .gt.  1.0_dp) arg = 1.0_dp
 
     ! sunrise hour angle in radians
-    omega  = acos( arg )
-       
+    omega = acos(arg)
+
     ! Ra - converted from [J m-2 d-1] in [mm d-1]
-    extraterr_rad_approx   = DaySecs / PI_D / SpecHeatET_dp * SolarConst_dp *  &
-         dr * (omega * sin(latitude) * sin(delta) + cos(latitude) * cos(delta) * sin(omega))
+    extraterr_rad_approx = DaySecs / PI_D / SpecHeatET_dp * SolarConst_dp * &
+            dr * (omega * sin(latitude) * sin(delta) + cos(latitude) * cos(delta) * sin(omega))
 
   end FUNCTION extraterr_rad_approx
 
@@ -442,19 +442,18 @@ CONTAINS
   !>        \author  Matthias Zink
   !>        \date    Apr 2014
   !
-  
+
   elemental pure FUNCTION slope_satpressure(tavg)
 
-    use mo_mhm_constants, only: satpressureslope1, tetens_c3
+    use mo_mhm_constants, only : satpressureslope1, tetens_c3
 
     implicit none
 
     real(dp), intent(in) :: tavg                    ! average daily temperature
-    real(dp)             :: slope_satpressure       ! slope of saturation vapour pressure curve
+    real(dp) :: slope_satpressure       ! slope of saturation vapour pressure curve
 
+    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2.0_dp * log(Tavg + tetens_c3))
 
-    slope_satpressure = satpressureslope1 * sat_vap_pressure(tavg) / exp(2.0_dp*log(Tavg + tetens_c3))
-    
   END FUNCTION slope_satpressure
 
   ! ------------------------------------------------------------------
@@ -505,12 +504,12 @@ CONTAINS
 
   elemental pure FUNCTION sat_vap_pressure(tavg)
 
-    use mo_mhm_constants, only: tetens_c1, tetens_c2, tetens_c3 
+    use mo_mhm_constants, only : tetens_c1, tetens_c2, tetens_c3
 
     implicit none
 
     real(dp), intent(in) :: tavg                      ! temperature [degC]
-    real(dp)             :: sat_vap_pressure          ! saturation vapour pressure [kPa]
+    real(dp) :: sat_vap_pressure          ! saturation vapour pressure [kPa]
 
     sat_vap_pressure = tetens_c1 * exp(tetens_c2 * tavg / (tavg + tetens_c3))
 

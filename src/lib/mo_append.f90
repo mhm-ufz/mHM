@@ -39,7 +39,7 @@ MODULE mo_append
 
   ! Copyright 2012-2013 Juliane Mai, Matthias Cuntz
 
-  USE mo_kind, only: i4, i8, sp, dp
+  USE mo_kind, only : i4, i8, sp, dp
 
   IMPLICIT NONE
 
@@ -54,7 +54,7 @@ MODULE mo_append
 
   !     PURPOSE
   !>        \brief Append (rows) scalars, vectors, and matrixes onto existing array.
-  
+
   !>        \details Appends one input to the rows of another, i.e. append
   !>        on the first dimension.\n
   !>        The input might be a scalar, a vector or a matrix.\n
@@ -113,19 +113,18 @@ MODULE mo_append
   !        Modified Matthias Zink,  Feb 2015 - added optional 'fill_value' for logical append
   !        Modified Stephan Thober, Jan 2017 - added 3d version for append
 
-  
   INTERFACE append
-     MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
-          append_i8_v_s, append_i8_v_v, append_i8_m_m, &
-          append_i8_3d, &
-          append_sp_v_s, append_sp_v_v, append_sp_m_m, &
-          append_sp_3d, &
-          append_dp_v_s, append_dp_v_v, append_dp_m_m, &
-          append_dp_3d, &
-          append_char_v_s, append_char_v_v, append_char_m_m, &
-          append_char_3d, &
-          append_lgt_v_s, append_lgt_v_v, append_lgt_m_m, &
-          append_lgt_3d
+    MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
+            append_i8_v_s, append_i8_v_v, append_i8_m_m, &
+            append_i8_3d, &
+            append_sp_v_s, append_sp_v_v, append_sp_m_m, &
+            append_sp_3d, &
+            append_dp_v_s, append_dp_v_v, append_dp_m_m, &
+            append_dp_3d, &
+            append_char_v_s, append_char_v_v, append_char_m_m, &
+            append_char_3d, &
+            append_lgt_v_s, append_lgt_v_v, append_lgt_m_m, &
+            append_lgt_3d
   END INTERFACE append
 
   ! ------------------------------------------------------------------
@@ -135,7 +134,7 @@ MODULE mo_append
 
   !     PURPOSE
   !>        \brief Paste (columns) scalars, vectors, and matrixes onto existing array.
-  
+
   !>        \details Pastes one input to the columns of another, i.e. append
   !>        on the second dimension.\n
   !>        The input might be a scalar, a vector or a matrix.\n
@@ -192,12 +191,12 @@ MODULE mo_append
   !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
 
   INTERFACE paste
-     MODULE PROCEDURE paste_i4_m_s, paste_i4_m_v, paste_i4_m_m, &
-          paste_i8_m_s, paste_i8_m_v, paste_i8_m_m, &
-          paste_sp_m_s, paste_sp_m_v, paste_sp_m_m, &
-          paste_dp_m_s, paste_dp_m_v, paste_dp_m_m, &
-          paste_char_m_s, paste_char_m_v, paste_char_m_m, &
-          paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m
+    MODULE PROCEDURE paste_i4_m_s, paste_i4_m_v, paste_i4_m_m, &
+            paste_i8_m_s, paste_i8_m_v, paste_i8_m_m, &
+            paste_sp_m_s, paste_sp_m_v, paste_sp_m_m, &
+            paste_dp_m_s, paste_dp_m_v, paste_dp_m_m, &
+            paste_char_m_s, paste_char_m_v, paste_char_m_m, &
+            paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m
 
   END INTERFACE paste
 
@@ -215,30 +214,30 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:), allocatable, intent(inout)   :: vec1
-    integer(i4),                            intent(in)      :: sca2
+    integer(i4), dimension(:), allocatable, intent(inout) :: vec1
+    integer(i4), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                             :: n1, n2
-    integer(i4), dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2
+    integer(i4), dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_i4_v_s
@@ -247,30 +246,30 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:), allocatable, intent(inout)   :: vec1
-    integer(i4), dimension(:), intent(in)                   :: vec2
+    integer(i4), dimension(:), allocatable, intent(inout) :: vec1
+    integer(i4), dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: n1, n2    ! length of vectors
-    integer(i4), dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2    ! length of vectors
+    integer(i4), dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_i4_v_v
@@ -279,57 +278,57 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i4), dimension(:,:), intent(in)                   :: mat2
-    integer(i4), optional,       intent(in)                   :: fill_value
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:, :), intent(in) :: mat2
+    integer(i4), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ((n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
 
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
-          
-   else
-       n1 = 0_i4
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+    else
+      n1 = 0_i4
+
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_i4_m_m
@@ -338,47 +337,47 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
-    integer(i4), dimension(:,:,:), intent(in)                 :: mat2
-    integer(i4), optional,         intent(in)                 :: fill_value
+    integer(i4), dimension(:, :, :), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:, :, :), intent(in) :: mat2
+    integer(i4), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
-    integer(i4), dimension(:,:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    integer(i4), dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_i4_3d
@@ -387,30 +386,30 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:), allocatable, intent(inout)   :: vec1
-    integer(i8),                            intent(in)      :: sca2
+    integer(i8), dimension(:), allocatable, intent(inout) :: vec1
+    integer(i8), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                             :: n1, n2
-    integer(i8), dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2
+    integer(i8), dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_i8_v_s
@@ -419,30 +418,30 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:), allocatable, intent(inout)   :: vec1
-    integer(i8), dimension(:), intent(in)                   :: vec2
+    integer(i8), dimension(:), allocatable, intent(inout) :: vec1
+    integer(i8), dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: n1, n2    ! length of vectors
-    integer(i8), dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2    ! length of vectors
+    integer(i8), dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_i8_v_v
@@ -451,57 +450,57 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i8), dimension(:,:), intent(in)                   :: mat2
-    integer(i8), optional,       intent(in)                   :: fill_value
-    
-    ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    integer(i8), dimension(:,:), allocatable  :: tmp
+    integer(i8), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i8), dimension(:, :), intent(in) :: mat2
+    integer(i8), optional, intent(in) :: fill_value
 
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
+    ! local variables
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i8), dimension(:, :), allocatable :: tmp
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ((n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
 
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_i8_m_m
@@ -510,47 +509,47 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:,:,:), allocatable, intent(inout) :: mat1
-    integer(i8), dimension(:,:,:), intent(in)                 :: mat2
-    integer(i8), optional,         intent(in)                 :: fill_value
+    integer(i8), dimension(:, :, :), allocatable, intent(inout) :: mat1
+    integer(i8), dimension(:, :, :), intent(in) :: mat2
+    integer(i8), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
-    integer(i8), dimension(:,:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    integer(i8), dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_i8_3d
@@ -559,30 +558,30 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:), allocatable, intent(inout)   :: vec1
-    real(sp),                            intent(in)      :: sca2
+    real(sp), dimension(:), allocatable, intent(inout) :: vec1
+    real(sp), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                             :: n1, n2
-    real(sp), dimension(:), allocatable     :: tmp
+    integer(i4) :: n1, n2
+    real(sp), dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_sp_v_s
@@ -591,30 +590,30 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:), allocatable, intent(inout)   :: vec1
-    real(sp), dimension(:),              intent(in)      :: vec2
+    real(sp), dimension(:), allocatable, intent(inout) :: vec1
+    real(sp), dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: n1, n2    ! length of vectors
-    real(sp), dimension(:), allocatable     :: tmp
+    integer(i4) :: n1, n2    ! length of vectors
+    real(sp), dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_sp_v_v
@@ -623,57 +622,57 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(sp), dimension(:,:), intent(in)                   :: mat2
-    real(sp), optional,       intent(in)                   :: fill_value
+    real(sp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(sp), dimension(:, :), intent(in) :: mat2
+    real(sp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    real(sp), dimension(:,:), allocatable     :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    real(sp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ((n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-      if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
 
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_sp_m_m
@@ -682,47 +681,47 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:,:,:), allocatable, intent(inout)   :: mat1
-    real(sp), dimension(:,:,:), intent(in)                   :: mat2
-    real(sp), optional,         intent(in)                   :: fill_value
+    real(sp), dimension(:, :, :), allocatable, intent(inout) :: mat1
+    real(sp), dimension(:, :, :), intent(in) :: mat2
+    real(sp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                               :: j1, j2    ! dim3 of matrixes: something else
-    real(sp), dimension(:,:,:), allocatable   :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    real(sp), dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_sp_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_sp_3d
@@ -731,30 +730,30 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:), allocatable, intent(inout)   :: vec1
-    real(dp),                            intent(in)      :: sca2
+    real(dp), dimension(:), allocatable, intent(inout) :: vec1
+    real(dp), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                             :: n1, n2
-    real(dp), dimension(:), allocatable     :: tmp
+    integer(i4) :: n1, n2
+    real(dp), dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_dp_v_s
@@ -763,30 +762,30 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:), allocatable, intent(inout)   :: vec1
-    real(dp), dimension(:), intent(in)                   :: vec2
+    real(dp), dimension(:), allocatable, intent(inout) :: vec1
+    real(dp), dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: n1, n2    ! length of vectors
-    real(dp), dimension(:), allocatable     :: tmp
+    integer(i4) :: n1, n2    ! length of vectors
+    real(dp), dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_dp_v_v
@@ -795,57 +794,57 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(dp), dimension(:,:), intent(in)                   :: mat2
-    real(dp), optional,       intent(in)                   :: fill_value
+    real(dp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:, :), intent(in) :: mat2
+    real(dp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    real(dp), dimension(:,:), allocatable     :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    real(dp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ((n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
 
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_dp_m_m
@@ -854,47 +853,47 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:,:,:), allocatable, intent(inout)   :: mat1
-    real(dp), dimension(:,:,:), intent(in)                   :: mat2
-    real(dp), optional,         intent(in)                   :: fill_value
+    real(dp), dimension(:, :, :), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:, :, :), intent(in) :: mat2
+    real(dp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                               :: j1, j2    ! dim3 of matrixes: something else
-    real(dp), dimension(:,:,:), allocatable   :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    real(dp), dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_dp_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_dp_3d
@@ -903,60 +902,60 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:), allocatable, intent(inout)   :: vec1
-    character(len=*),                            intent(in)      :: sca2
+    character(len = *), dimension(:), allocatable, intent(inout) :: vec1
+    character(len = *), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: n1, n2
+    integer(i4) :: n1, n2
     character(len(vec1)), dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_char_v_s
 
   SUBROUTINE append_char_v_v(vec1, vec2)
 
-    character(len=*), dimension(:), allocatable, intent(inout)   :: vec1
-    character(len=*), dimension(:),              intent(in)      :: vec2
+    character(len = *), dimension(:), allocatable, intent(inout) :: vec1
+    character(len = *), dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                               :: n1, n2
+    integer(i4) :: n1, n2
     character(len(vec1)), dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_char_v_v
@@ -965,57 +964,57 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
-    character(len=*), dimension(:,:),              intent(in)      :: mat2
-    character(len=*), optional,                    intent(in)      :: fill_value
+    character(len = *), dimension(:, :), allocatable, intent(inout) :: mat1
+    character(len = *), dimension(:, :), intent(in) :: mat2
+    character(len = *), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                 :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                 :: n1, n2    ! dim2 of matrixes: columns
-    character(len(mat1)), dimension(:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    character(len(mat1)), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)    ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ((n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
 
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-   else
-       n1 = 0_i4
+    else
+      n1 = 0_i4
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_char_m_m
@@ -1024,47 +1023,47 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:,:,:), allocatable, intent(inout) :: mat1
-    character(len=*), dimension(:,:,:), intent(in)                 :: mat2
-    character(len=*), optional,         intent(in)                 :: fill_value
+    character(len = *), dimension(:, :, :), allocatable, intent(inout) :: mat1
+    character(len = *), dimension(:, :, :), intent(in) :: mat2
+    character(len = *), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
-    character(len(mat1)), dimension(:,:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    character(len(mat1)), dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_char_3d
@@ -1073,30 +1072,30 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:), allocatable, intent(inout)   :: vec1
-    logical,                            intent(in)      :: sca2
+    logical, dimension(:), allocatable, intent(inout) :: vec1
+    logical, intent(in) :: sca2
 
     ! local variables
-    integer(i4)                             :: n1, n2
-    logical, dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2
+    logical, dimension(:), allocatable :: tmp
 
     n2 = 1_i4
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4)       = sca2
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4) = sca2
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(1_i4) = sca2
+      allocate(vec1(n2))
+      vec1(1_i4) = sca2
     end if
 
   END SUBROUTINE append_lgt_v_s
@@ -1105,30 +1104,30 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:), allocatable, intent(inout)   :: vec1
-    logical, dimension(:), intent(in)                   :: vec2
+    logical, dimension(:), allocatable, intent(inout) :: vec1
+    logical, dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: n1, n2    ! length of vectors
-    logical, dimension(:), allocatable  :: tmp
+    integer(i4) :: n1, n2    ! length of vectors
+    logical, dimension(:), allocatable :: tmp
 
     n2 = size(vec2)
 
     if (allocated(vec1)) then
-       n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+      n1 = size(vec1)
+      ! save vec1
+      allocate(tmp(n1))
+      tmp = vec1
+      deallocate(vec1)
 
-       allocate(vec1(n1+n2))
-       vec1(1:n1)          = tmp(1:n1)
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n1 + n2))
+      vec1(1 : n1) = tmp(1 : n1)
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(vec1(n2))
-       vec1(n1+1_i4:n1+n2) = vec2(1:n2)
+      allocate(vec1(n2))
+      vec1(n1 + 1_i4 : n1 + n2) = vec2(1 : n2)
     end if
 
   END SUBROUTINE append_lgt_v_v
@@ -1137,57 +1136,57 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:,:), allocatable, intent(inout)   :: mat1
-    logical, dimension(:,:), intent(in)                   :: mat2
-    logical, optional,       intent(in)                   :: fill_value
-    
-    ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
-    logical, dimension(:,:), allocatable  :: tmp
+    logical, dimension(:, :), allocatable, intent(inout) :: mat1
+    logical, dimension(:, :), intent(in) :: mat2
+    logical, optional, intent(in) :: fill_value
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)    ! columns
+    ! local variables
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    logical, dimension(:, :), allocatable :: tmp
+
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)    ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
 
-       if ( (n1 .ne. n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .and. .not. present(fill_value)) then
+        print*, 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( n1 .eq. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)          = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-       end if
+      if (n1 .eq. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
 
-       if ( n1 .gt. n2 ) then
-          allocate(mat1(m1+m2,n1))
-          mat1(1:m1,:)                = tmp(1:m1,:)
-          mat1(m1+1_i4:m1+m2,   1:n2) = mat2(1:m2,:)
-          mat1(m1+1_i4:m1+m2,n2+1:n1) = fill_value
-       end if
-       
-       if ( n1 .lt. n2 ) then
-          allocate(mat1(m1+m2,n2))
-          mat1(      1:m1,      1:n1) = tmp(1:m1,:)
-          mat1(      1:m1,   n1+1:n2) = fill_value
-          mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
-       end if
-       
+      if (n1 .gt. n2) then
+        allocate(mat1(m1 + m2, n1))
+        mat1(1 : m1, :) = tmp(1 : m1, :)
+        mat1(m1 + 1_i4 : m1 + m2, 1 : n2) = mat2(1 : m2, :)
+        mat1(m1 + 1_i4 : m1 + m2, n2 + 1 : n1) = fill_value
+      end if
+
+      if (n1 .lt. n2) then
+        allocate(mat1(m1 + m2, n2))
+        mat1(1 : m1, 1 : n1) = tmp(1 : m1, :)
+        mat1(1 : m1, n1 + 1 : n2) = fill_value
+        mat1(m1 + 1_i4 : m1 + m2, :) = mat2(1 : m2, :)
+      end if
+
     else
-       n1 = 0_i4
+      n1 = 0_i4
 
-       allocate(mat1(m2,n2))
-       mat1 = mat2
+      allocate(mat1(m2, n2))
+      mat1 = mat2
     end if
 
   END SUBROUTINE append_lgt_m_m
@@ -1196,47 +1195,47 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:,:,:), allocatable, intent(inout) :: mat1
-    logical, dimension(:,:,:), intent(in)                 :: mat2
-    logical, optional,         intent(in)                 :: fill_value
+    logical, dimension(:, :, :), allocatable, intent(inout) :: mat1
+    logical, dimension(:, :, :), intent(in) :: mat2
+    logical, optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
-    integer(i4)                                :: n1, n2    ! dim2 of matrixes: columns
-    integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
-    logical, dimension(:,:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes: rows
+    integer(i4) :: n1, n2    ! dim2 of matrixes: columns
+    integer(i4) :: j1, j2    ! dim3 of matrixes: something else
+    logical, dimension(:, :, :), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
-    
-    m2 = size(mat2,1)    ! rows
-    n2 = size(mat2,2)    ! columns
-    j2 = size(mat2,3)    ! something else
+
+    m2 = size(mat2, 1)    ! rows
+    n2 = size(mat2, 2)    ! columns
+    j2 = size(mat2, 3)    ! something else
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)    ! rows
-       n1 = size(mat1,2)    ! columns
-       j1 = size(mat1,3)    ! something else
+      m1 = size(mat1, 1)    ! rows
+      n1 = size(mat1, 2)    ! columns
+      j1 = size(mat1, 3)    ! something else
 
-       if ((n1 .ne. n2) .or. (j1 .ne. j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
-       end if
+      if ((n1 .ne. n2) .or. (j1 .ne. j2)) then
+        print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
+                // '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+        STOP
+      end if
 
-       ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+      ! save mat1
+      allocate(tmp(m1, n1, j1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1+m2,n1,j1))
-       mat1(1:m1,:,:)          = tmp(1:m1,:,:)
-       mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
+      allocate(mat1(m1 + m2, n1, j1))
+      mat1(1 : m1, :, :) = tmp(1 : m1, :, :)
+      mat1(m1 + 1_i4 : m1 + m2, :, :) = mat2(1 : m2, :, :)
 
     else
 
-       allocate(mat1(m2,n2,j2))
-       mat1 = mat2
-       
+      allocate(mat1(m2, n2, j2))
+      mat1 = mat2
+
     end if
 
   END SUBROUTINE append_lgt_3d
@@ -1247,32 +1246,32 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i4),                              intent(in)      :: sca2
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i4), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: m1    ! dim1 of matrix
-    integer(i4)                               :: n1    ! dim2 of matrix
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    integer(i4), dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_i4_m_s
@@ -1281,56 +1280,56 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i4), dimension(:),                intent(in)      :: vec2
-    integer(i4), optional,                    intent(in)      :: fill_value
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:), intent(in) :: vec2
+    integer(i4), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    integer(i4), dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(1:m1,1:n1)       = tmp(:,1:n1)
-          mat1(1:m2,n1+n2)      = vec2(1:m2)
-       end if
-       
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-          mat1(m2+1:m1,n1+n2)   = fill_value
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(m1+1:m2,1:n1)    = fill_value
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+        mat1(m2 + 1 : m1, n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_i4_m_v
@@ -1339,56 +1338,56 @@ CONTAINS
 
     implicit none
 
-    integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i4), dimension(:,:),              intent(in)      :: mat2
-    integer(i4), optional,                    intent(in)      :: fill_value
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:, :), intent(in) :: mat2
+    integer(i4), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    integer(i4), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(:,1:n1)          = tmp(:,1:n1)
-          mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(    :  ,1:n1)          = tmp(:,1:n1)
-          mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
-       end if
-       
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
-          mat1(m1+1:m2,      1:n1   ) = fill_value
-          mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
-          
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+        mat1(m2 + 1 : m1, n1 + 1_i4 : n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
+
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_i4_m_m
@@ -1397,32 +1396,32 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i8),                              intent(in)      :: sca2
+    integer(i8), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i8), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: m1    ! dim1 of matrix
-    integer(i4)                               :: n1    ! dim2 of matrix
-    integer(i8), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    integer(i8), dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_i8_m_s
@@ -1431,56 +1430,56 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i8), dimension(:),                intent(in)      :: vec2
-    integer(i8), optional,                    intent(in)      :: fill_value
+    integer(i8), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i8), dimension(:), intent(in) :: vec2
+    integer(i8), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                               :: m1, m2    ! dim1 of matrixes
-    integer(i4)                               :: n1, n2    ! dim2 of matrixes
-    integer(i8), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    integer(i8), dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(1:m1,1:n1)       = tmp(:,1:n1)
-          mat1(1:m2,n1+n2)      = vec2(1:m2)
-       end if
-       
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-          mat1(m2+1:m1,n1+n2)   = fill_value
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(m1+1:m2,1:n1)    = fill_value
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+        mat1(m2 + 1 : m1, n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_i8_m_v
@@ -1489,56 +1488,56 @@ CONTAINS
 
     implicit none
 
-    integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
-    integer(i8), dimension(:,:),              intent(in)      :: mat2
-    integer(i8), optional,                    intent(in)      :: fill_value
+    integer(i8), dimension(:, :), allocatable, intent(inout) :: mat1
+    integer(i8), dimension(:, :), intent(in) :: mat2
+    integer(i8), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    integer(i8), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    integer(i8), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(:,1:n1)          = tmp(:,1:n1)
-          mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(    :  ,1:n1)          = tmp(:,1:n1)
-          mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
-       end if
-       
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
-          mat1(m1+1:m2,      1:n1   ) = fill_value
-          mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
-          
-   else
-       n1 = 0_i4
-       m1 = m2
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+        mat1(m2 + 1 : m1, n1 + 1_i4 : n1 + n2) = fill_value
+      end if
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
+
+    else
+      n1 = 0_i4
+      m1 = m2
+
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_i8_m_m
@@ -1547,32 +1546,32 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(sp),                              intent(in)      :: sca2
+    real(sp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(sp), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: m1    ! dim1 of matrix
-    integer(i4)                               :: n1    ! dim2 of matrix
-    real(sp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    real(sp), dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_sp_m_s
@@ -1581,56 +1580,56 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(sp), dimension(:),                intent(in)      :: vec2
-    real(sp), optional,                    intent(in)      :: fill_value
+    real(sp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(sp), dimension(:), intent(in) :: vec2
+    real(sp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    real(sp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    real(sp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(1:m1,1:n1)       = tmp(:,1:n1)
-          mat1(1:m2,n1+n2)      = vec2(1:m2)
-       end if
-       
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-          mat1(m2+1:m1,n1+n2)   = fill_value
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(m1+1:m2,1:n1)    = fill_value
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+        mat1(m2 + 1 : m1, n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_sp_m_v
@@ -1639,57 +1638,56 @@ CONTAINS
 
     implicit none
 
-    real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(sp), dimension(:,:),              intent(in)      :: mat2
-    real(sp), optional,                    intent(in)      :: fill_value
+    real(sp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(sp), dimension(:, :), intent(in) :: mat2
+    real(sp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    real(sp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    real(sp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(:,1:n1)          = tmp(:,1:n1)
-          mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(    :  ,1:n1)          = tmp(:,1:n1)
-          mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
-       end if
-       
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
-          mat1(m1+1:m2,      1:n1   ) = fill_value
-          mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+        mat1(m2 + 1 : m1, n1 + 1_i4 : n1 + n2) = fill_value
+      end if
 
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_sp_m_m
@@ -1698,32 +1696,32 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(dp),                              intent(in)      :: sca2
+    real(dp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(dp), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: m1    ! dim1 of matrix
-    integer(i4)                               :: n1    ! dim2 of matrix
-    real(dp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    real(dp), dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_dp_m_s
@@ -1732,56 +1730,56 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(dp), dimension(:),                intent(in)      :: vec2
-    real(dp), optional,                    intent(in)      :: fill_value
+    real(dp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:), intent(in) :: vec2
+    real(dp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    real(dp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    real(dp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(1:m1,1:n1)       = tmp(:,1:n1)
-          mat1(1:m2,n1+n2)      = vec2(1:m2)
-       end if
-       
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-          mat1(m2+1:m1,n1+n2)   = fill_value
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(m1+1:m2,1:n1)    = fill_value
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+        mat1(m2 + 1 : m1, n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_dp_m_v
@@ -1790,56 +1788,56 @@ CONTAINS
 
     implicit none
 
-    real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
-    real(dp), dimension(:,:),              intent(in)      :: mat2
-    real(dp), optional,                    intent(in)      :: fill_value
+    real(dp), dimension(:, :), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:, :), intent(in) :: mat2
+    real(dp), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    real(dp), dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    real(dp), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(:,1:n1)          = tmp(:,1:n1)
-          mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(    :  ,1:n1)          = tmp(:,1:n1)
-          mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
-       end if
-       
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
-          mat1(m1+1:m2,      1:n1   ) = fill_value
-          mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+        mat1(m2 + 1 : m1, n1 + 1_i4 : n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_dp_m_m
@@ -1848,32 +1846,32 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
-    character(len=*),                              intent(in)      :: sca2
+    character(len = *), dimension(:, :), allocatable, intent(inout) :: mat1
+    character(len = *), intent(in) :: sca2
 
     ! local variables
-    integer(i4)                                  :: m1    ! dim1 of matrix
-    integer(i4)                                  :: n1    ! dim2 of matrix
-    character(len(mat1)), dimension(:,:), allocatable :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    character(len(mat1)), dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_char_m_s
@@ -1882,56 +1880,56 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
-    character(len=*), dimension(:),                intent(in)      :: vec2
-    character(len=*), optional,                    intent(in)      :: fill_value
+    character(len = *), dimension(:, :), allocatable, intent(inout) :: mat1
+    character(len = *), dimension(:), intent(in) :: vec2
+    character(len = *), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                  :: m1, m2    ! dim1 of matrixes
-    integer(i4)                                  :: n1, n2    ! dim2 of matrixes
-    character(len(mat1)), dimension(:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    character(len(mat1)), dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(1:m1,1:n1)       = tmp(:,1:n1)
-          mat1(1:m2,n1+n2)      = vec2(1:m2)
-       end if
-       
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-          mat1(m2+1:m1,n1+n2)   = fill_value
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,1:n1)    = tmp(:,1:n1)
-          mat1(m1+1:m2,1:n1)    = fill_value
-          mat1(   1:m2,n1+n2)   = vec2(1:m2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+        mat1(m2 + 1 : m1, n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(1 : m2, n1 + n2) = vec2(1 : m2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_char_m_v
@@ -1940,56 +1938,56 @@ CONTAINS
 
     implicit none
 
-    character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
-    character(len=*), dimension(:,:),              intent(in)      :: mat2
-    character(len=*), optional,                    intent(in)      :: fill_value
+    character(len = *), dimension(:, :), allocatable, intent(inout) :: mat1
+    character(len = *), dimension(:, :), intent(in) :: mat2
+    character(len = *), optional, intent(in) :: fill_value
 
     ! local variables
-    integer(i4)                                  :: m1, m2    ! dim1 of matrixes
-    integer(i4)                                  :: n1, n2    ! dim2 of matrixes
-    character(len(mat1)), dimension(:,:), allocatable :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    character(len(mat1)), dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if ( (m1 .ne. m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if ((m1 .ne. m2) .and. .not. present(fill_value)) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       if ( m1 .eq. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(:,1:n1)          = tmp(:,1:n1)
-          mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .eq. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
-       if ( m1 .gt. m2 ) then
-          allocate(mat1(m1,n1+n2))
-          mat1(    :  ,1:n1)          = tmp(:,1:n1)
-          mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
-       end if
-       
-       if ( m1 .lt. m2 ) then
-          allocate(mat1(m2,n1+n2))
-          mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
-          mat1(m1+1:m2,      1:n1   ) = fill_value
-          mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
-       end if
+      if (m1 .gt. m2) then
+        allocate(mat1(m1, n1 + n2))
+        mat1(:, 1 : n1) = tmp(:, 1 : n1)
+        mat1(1 : m2, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+        mat1(m2 + 1 : m1, n1 + 1_i4 : n1 + n2) = fill_value
+      end if
+
+      if (m1 .lt. m2) then
+        allocate(mat1(m2, n1 + n2))
+        mat1(1 : m1, 1 : n1) = tmp(:, 1 : n1)
+        mat1(m1 + 1 : m2, 1 : n1) = fill_value
+        mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
+      end if
 
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_char_m_m
@@ -1998,32 +1996,32 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:,:), allocatable, intent(inout)   :: mat1
-    logical,                              intent(in)      :: sca2
+    logical, dimension(:, :), allocatable, intent(inout) :: mat1
+    logical, intent(in) :: sca2
 
     ! local variables
-    integer(i4)                               :: m1    ! dim1 of matrix
-    integer(i4)                               :: n1    ! dim2 of matrix
-    logical, dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1    ! dim1 of matrix
+    integer(i4) :: n1    ! dim2 of matrix
+    logical, dimension(:, :), allocatable :: tmp
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. 1_i4) then
+        print*, 'paste: scalar paste to matrix only works with one-line matrix'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(1_i4,n1+1_i4))
-       mat1(1,1:n1)          = tmp(1,1:n1)
-       mat1(1,n1+1_i4)       = sca2
+      allocate(mat1(1_i4, n1 + 1_i4))
+      mat1(1, 1 : n1) = tmp(1, 1 : n1)
+      mat1(1, n1 + 1_i4) = sca2
     else
-       allocate(mat1(1_i4,1_i4))
-       mat1(1,1) = sca2
+      allocate(mat1(1_i4, 1_i4))
+      mat1(1, 1) = sca2
     end if
 
   END SUBROUTINE paste_lgt_m_s
@@ -2032,38 +2030,38 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:,:), allocatable, intent(inout)   :: mat1
-    logical, dimension(:),                intent(in)      :: vec2
+    logical, dimension(:, :), allocatable, intent(inout) :: mat1
+    logical, dimension(:), intent(in) :: vec2
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    logical, dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    logical, dimension(:, :), allocatable :: tmp
 
-    m2 = size(vec2,1)   ! rows
+    m2 = size(vec2, 1)   ! rows
     n2 = 1_i4           ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. m2) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. m2) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1,n1+n2))
-       mat1(:,1:n1)          = tmp(:,1:n1)
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m1, n1 + n2))
+      mat1(:, 1 : n1) = tmp(:, 1 : n1)
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(1:m2,n1+n2)      = vec2(1:m2)
+      allocate(mat1(m2, n2))
+      mat1(1 : m2, n1 + n2) = vec2(1 : m2)
     end if
 
   END SUBROUTINE paste_lgt_m_v
@@ -2072,38 +2070,38 @@ CONTAINS
 
     implicit none
 
-    logical, dimension(:,:), allocatable, intent(inout)   :: mat1
-    logical, dimension(:,:),              intent(in)      :: mat2
+    logical, dimension(:, :), allocatable, intent(inout) :: mat1
+    logical, dimension(:, :), intent(in) :: mat2
 
     ! local variables
-    integer(i4)                             :: m1, m2    ! dim1 of matrixes
-    integer(i4)                             :: n1, n2    ! dim2 of matrixes
-    logical, dimension(:,:), allocatable  :: tmp
+    integer(i4) :: m1, m2    ! dim1 of matrixes
+    integer(i4) :: n1, n2    ! dim2 of matrixes
+    logical, dimension(:, :), allocatable :: tmp
 
-    m2 = size(mat2,1)   ! rows
-    n2 = size(mat2,2)   ! columns
+    m2 = size(mat2, 1)   ! rows
+    n2 = size(mat2, 2)   ! columns
 
     if (allocated(mat1)) then
-       m1 = size(mat1,1)   ! rows
-       n1 = size(mat1,2)   ! columns
-       if (m1 .ne. m2) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
-       end if
-       ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+      m1 = size(mat1, 1)   ! rows
+      n1 = size(mat1, 2)   ! columns
+      if (m1 .ne. m2) then
+        print*, 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+        STOP
+      end if
+      ! save mat1
+      allocate(tmp(m1, n1))
+      tmp = mat1
+      deallocate(mat1)
 
-       allocate(mat1(m1,n1+n2))
-       mat1(:,1:n1)          = tmp(:,1:n1)
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m1, n1 + n2))
+      mat1(:, 1 : n1) = tmp(:, 1 : n1)
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     else
-       n1 = 0_i4
-       m1 = m2
+      n1 = 0_i4
+      m1 = m2
 
-       allocate(mat1(m2,n2))
-       mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
+      allocate(mat1(m2, n2))
+      mat1(:, n1 + 1_i4 : n1 + n2) = mat2(:, 1 : n2)
     end if
 
   END SUBROUTINE paste_lgt_m_m

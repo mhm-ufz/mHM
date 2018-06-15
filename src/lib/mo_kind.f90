@@ -48,34 +48,34 @@ MODULE mo_kind
   ! Does not work with compilers intel v11 and sun v12.2
   ! use, intrinsic :: iso_fortran_env, only: &
   !      int8!, int16,   int32, int64,  real32,  real64
-  use, intrinsic :: iso_c_binding,   only: &
-             c_short, c_int, c_long_long, c_float, c_double, c_float_complex, c_double_complex, c_bool
+  use, intrinsic :: iso_c_binding, only : &
+          c_short, c_int, c_long_long, c_float, c_double, c_float_complex, c_double_complex, c_bool
 
   IMPLICIT NONE
 
   !> 1 Byte Integer Kind
-  INTEGER, PARAMETER :: i1  = SELECTED_INT_KIND(2)
+  INTEGER, PARAMETER :: i1 = SELECTED_INT_KIND(2)
   ! INTEGER, PARAMETER :: i1  = int8 ! c_word does not exist; should be c_bool, probably; but see above
   !> 2 Byte Integer Kind
   ! INTEGER, PARAMETER :: i2  = SELECTED_INT_KIND(4)
   ! INTEGER, PARAMETER :: i2  = int16
-  INTEGER, PARAMETER :: i2  = c_short
+  INTEGER, PARAMETER :: i2 = c_short
   !> 4 Byte Integer Kind
   ! INTEGER, PARAMETER :: i4  = SELECTED_INT_KIND(9)
   ! INTEGER, PARAMETER :: i4  = int32
-  INTEGER, PARAMETER :: i4  = c_int
+  INTEGER, PARAMETER :: i4 = c_int
   !> 8 Byte Integer Kind
   ! INTEGER, PARAMETER :: i8  = SELECTED_INT_KIND(18)
   ! INTEGER, PARAMETER :: i8  = int64
-  INTEGER, PARAMETER :: i8  = c_long_long
+  INTEGER, PARAMETER :: i8 = c_long_long
   !> Single Precision Real Kind
   ! INTEGER, PARAMETER :: sp  = SELECTED_REAL_KIND(6,37)
   ! INTEGER, PARAMETER :: sp  = real32
-  INTEGER, PARAMETER :: sp  = c_float
+  INTEGER, PARAMETER :: sp = c_float
   !> Double Precision Real Kind
   ! INTEGER, PARAMETER :: dp  = SELECTED_REAL_KIND(15,307)
   ! INTEGER, PARAMETER :: dp  = real64
-  INTEGER, PARAMETER :: dp  = c_double
+  INTEGER, PARAMETER :: dp = c_double
   !> Single Precision Complex Kind
   ! INTEGER, PARAMETER :: spc = KIND((1.0_sp,1.0_sp))
   ! INTEGER, PARAMETER :: spc = sp
@@ -91,17 +91,17 @@ MODULE mo_kind
 
   !> Single Precision Numerical Recipes types for sparse arrays
   TYPE sprs2_sp
-     INTEGER(I4) :: n, len
-     REAL(SP),    DIMENSION(:), POINTER :: val
-     INTEGER(I4), DIMENSION(:), POINTER :: irow
-     INTEGER(I4), DIMENSION(:), POINTER :: jcol
+    INTEGER(I4) :: n, len
+    REAL(SP), DIMENSION(:), POINTER :: val
+    INTEGER(I4), DIMENSION(:), POINTER :: irow
+    INTEGER(I4), DIMENSION(:), POINTER :: jcol
   END TYPE sprs2_sp
   !> Double Precision Numerical Recipes types for sparse arrays
   TYPE sprs2_dp
-     INTEGER(I4) :: n, len
-     REAL(DP),    DIMENSION(:), POINTER :: val
-     INTEGER(I4), DIMENSION(:), POINTER :: irow
-     INTEGER(I4), DIMENSION(:), POINTER :: jcol
+    INTEGER(I4) :: n, len
+    REAL(DP), DIMENSION(:), POINTER :: val
+    INTEGER(I4), DIMENSION(:), POINTER :: irow
+    INTEGER(I4), DIMENSION(:), POINTER :: jcol
   END TYPE sprs2_dp
 
 END MODULE mo_kind
