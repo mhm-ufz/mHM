@@ -1,11 +1,14 @@
-!> \file mo_file.f90
+!>       \file mo_common_mHM_mRM_file.f90
 
-!> \brief Provides file names and units for mHM
+!>       \brief Provides file names and units for mHM
 
-!> \details Provides all filenames as well as all units used for the hydrologic model mHM.
+!>       \details Provides all filenames as well as all units used for the hydrologic model mHM.
 
-!> \author Matthias Cuntz
-!> \date Jan 2012
+!>       \authors Matthias Cuntz
+
+!>       \date Jan 2012
+
+! Modifications:
 
 MODULE mo_common_mhm_mrm_file
 

@@ -1,11 +1,14 @@
-!> \file mo_common_constants.f90
+!>       \file mo_common_constants.f90
 
-!> \brief Provides constants commonly used by mHM, mRM and MPR
+!>       \brief Provides constants commonly used by mHM, mRM and MPR
 
-!> \details Provides commonly used by mHM, mRM and MPR such as no_data values and eps
+!>       \details Provides commonly used by mHM, mRM and MPR such as no_data values and eps
 
-!> \author Robert Schweppe
-!> \date Dec 2017
+!>       \authors Robert Schweppe
+
+!>       \date Dec 2017
+
+! Modifications:
 
 MODULE mo_common_constants
 

@@ -1,152 +1,74 @@
-!> \file mhm_driver.f90
-! --------------------------------------------------------------------------
-!> \authors   Luis Samaniego & Rohini Kumar (UFZ)
-!  CONTACT    luis.samaniego@ufz.de / rohini.kumar@ufz.de
-!> \version   5.9
-!> \date      Jun 2018
+!>       \file mhm_driver.f90
 
-!  PURPOSE
-!>            \brief Distributed precipitation-runoff model mHM
+!>       \brief Distributed precipitation-runoff model mHM
 
-!>            \details This is the main driver of mHM, which calls
-!>             one instance of mHM for a multiple basins and a given period.
+!>       \details This is the main driver of mHM, which calls
+!>       one instance of mHM for a multiple basins and a given period.
+!>       \image html  mhm5-logo.png "Typical mHM cell"
+!>       \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
-!>              \image html  mhm5-logo.png "Typical mHM cell"
-!>              \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
+!>       \authors   Luis Samaniego & Rohini Kumar (UFZ)
 
-!>  \copyright (c)2005-2018, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
-!>             All rights reserved.
-!>
-!>             This code is a property of:
-!>
-!>             ----------------------------------------------------------
-!>
-!>             Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ\n
-!>             Registered Office: Leipzig\n
-!>             Registration Office: Amtsgericht Leipzig\n
-!>             Trade Register: Nr. B 4703\n
-!>             Chairman of the Supervisory Board: MinDirig Wilfried Kraus\n
-!>             Scientific Director: Prof. Dr. Georg Teutsch\n
-!>             Administrative Director: Dr. Heike Grassmann\n
-!>
-!>             ----------------------------------------------------------
-!>
-!>             NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
-!>             EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
-!>             OF THIS SOFTWARE. If software is modified to produce
-!>             derivative works, such modified software should be
-!>             clearly marked, so as not to confuse it with the version
-!>             available from UFZ.  This code can be used for research
-!>             purposes ONLY provided that the following sources are
-!>             acknowledged:
-!>
-!>                Samaniego L., Kumar R., Attinger S. (2010): Multiscale
-!>                parameter regionalization of a grid-based hydrologic
-!>                model at the mesoscale.  Water Resour. Res., 46,
-!>                W05523, doi:10.1029/2008WR007327.
-!>
-!>                Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
-!>                of distributed hydrologic model parameterization on water
-!>                fluxes at multiple scales and locations, Water Resour. Res.,
-!>                49, doi:10.1029/2012WR012195.
-!>
-!>             For commercial applications you have to consult the
-!>             authorities of the UFZ.
+!>       \date Jun 2018
 
+!>       \version 5.9
 
-! REDISTRIBUTION
-!             Redistribution and use in source and binary forms,
-!             with or without modification, are permitted provided that
-!             the following conditions are met: * Redistributions of
-!             source code must retain the above copyright notice, this
-!             list of conditions and the following disclaimer.  *
-!             Redistributions in binary form must reproduce the above
-!             copyright notice, this list of conditions and the
-!             following disclaimer in the documentation and/or other
-!             materials provided with the distribution.  * Neither the
-!             name of Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ,
-!             nor the names of its contributors may be used to endorse
-!             or promote products derived from this software without
-!             specific prior written permission.
+!>       \copyright (c)2005-2018, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!>       All rights reserved.
+!>       
+!>       This code is a property of:
+!>       
+!>       ----------------------------------------------------------
+!>       
+!>       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
+!>       Registered Office: Leipzig
+!>       Registration Office: Amtsgericht Leipzig
+!>       Trade Register: Nr. B 4703
+!>       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
+!>       Scientific Director: Prof. Dr. Georg Teutsch
+!>       Administrative Director: Dr. Heike Grassmann
+!>       
+!>       ----------------------------------------------------------
+!>       
+!>       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
+!>       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
+!>       OF THIS SOFTWARE. If software is modified to produce
+!>       derivative works, such modified software should be
+!>       clearly marked, so as not to confuse it with the version
+!>       available from UFZ.  This code can be used for research
+!>       purposes ONLY provided that the following sources are
+!>       acknowledged:
+!>       
+!>       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
+!>       parameter regionalization of a grid-based hydrologic
+!>       model at the mesoscale.  Water Resour. Res., 46,
+!>       W05523, doi:10.1029/2008WR007327.
+!>       
+!>       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
+!>       of distributed hydrologic model parameterization on water
+!>       fluxes at multiple scales and locations, Water Resour. Res.,
+!>       49, doi:10.1029/2012WR012195.
+!>       
+!>       For commercial applications you have to consult the
+!>       authorities of the UFZ.
 
-! DISCLAIM
-!             THIS SOFTWARE IS PROVIDED BY HELMHOLTZ-ZENTRUM FUER
-!             UMWELTFORSCHUNG GMBH - UFZ AND CONTRIBUTORS "AS IS" AND
-!             ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-!             LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-!             FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-!             EVENT SHALL THE HELMHOLTZ-ZENTRUM FUER UMWELTFORSCHUNG
-!             GMBH - UFZ AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-!             INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-!             CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-!             PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-!             DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-!             CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-!             CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-!             OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-!             SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-!             DAMAGE.
-
-!             This program is distributed in the hope that it will be
-!             useful,but WITHOUT ANY WARRANTY; without even the implied
-!             warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-!             PURPOSE. UFZ and the DEVELOPERS of this code do not take
-!             any liabilities on the aplication of this code.
-
-! --------------------------------------------------------------------------
-!  HISTORY
-!         Written          Sa 24.11.2005    v1.0 main structure
-!         Modified         Sa 02.02.2007    v2.0 distributed hydrological
-!                                                processes
-!                          Sa 06.05.2007    v3.0 Muskingun routing scheme /
-!                                                file structure
-!                       Sa Ku 14.05.2007    v3.1 QMeasures, parameter limits
-!                          Sa 10.09.2007    v3.1 distributed PET/TEMP/PRE
-!                                                day/night fraction
-!                          Ku 19.03.2008    v3.2 fully distributed
-!                       Sa Ku 10.01.2009    v3.2 fully distributed
-!                                                with MPR scheme
-!                          Ku 01.10.2010    v4.0 matrix into vector version
-!                          Ku 15.10.2010    v4.0 paralleized with OPENMP
-!                          Ku 07.11.2010    v4.1 inclusion of the routing level
-!                          Ku 10.12.2010    v4.2 append trans. funct. param
-!                                                with geological parameter set
-!                                                (nFixPar + nGeoUnits)
-!                          Ku 25.01.2011    v4.3 n-soil Horizons /
-!                                                vertical root distribution
-!                          Ku 19.04.2011    v4.3 regionalisation of muskingum
-!                                                routing parameters
-!                          Ku 30.05.2011    v4.4 changes in regionalisation
-!                                                functions of unsaturated
-!                                                soil layers
-!                          Sa 03.07.2012    v4.4 removed IMSL dependencies
-!                 Sa Ku Ma Cu 12.12.2012    v5.0 modularization
-!                       Sa Cu 12.12.2012    v5.0 automatic documentation
-!                          Ku 02.05.2013    v5.0 error/compatability checks
-!                     Stephan Thober, Nov 2013 - added read in of latitude longitude fields
-!                     Matthias Zink,  Mar 2013 - edited screen output for gauges
-!                                                added inflow gauges
-!       Matthias Cuntz & Juliane Mai, Mar 2014 - Likelihood Kavetski uses 2 more parameters for the error model
-!                                                global_parameters -> local_parameters
-!                       Rohini Kumar, Apr 2014 - implementation of the mHM run on a single cell
-!                                                configuration also for the routing mode.
-!                                              - run mHM at the input data level i.e. L0 grid
-!                       Rohini Kumar, May 2014 - model run on a regular lat-lon grid or
-!                                                on a regular X-Y coordinate system
-!                      Stephan Thober May 2014 - moved read meteo forcings to mo_mhm_eval
-!       Matthias Cuntz & Juliane Mai, Nov 2014 - LAI input from daily, monthly or yearly files
-!                      Matthias Zink, Mar 2015 - added optional soil mositure read in for calibration
-!                     Luis Samaniego, Jul 2015 - added temporal directories for optimization
-!                     Stephan Thober, Aug 2015 - removed routing related variables
-!                     Stephan Thober, Oct 2015 - reorganized optimization (now compatible with mRM)
-!      Oldrich Rakovec, Rohini Kumar, Oct 2015 - added reading of basin averaged TWS and objective function 15
-!                                                for simultaneous calibration based on runoff and TWS
-!                       Rohini Kumar, Mar 2016 - options to handle different soil databases
-!                                                modified MPR to included soil horizon specific properties/parameters
-!                     Stephan Thober, Nov 2016 - implemented adaptive timestep for routing
-!                       Rohini Kumar, Dec 2016 - options to read (monthly mean) LAI fields
-!
-! --------------------------------------------------------------------------
+! Modifications:
+! Stephan Thober                Nov 2013 - added read in of latitude longitude fields
+! Matthias Zink                 Mar 2013 - edited screen output for gauges added inflow gauges
+! Matthias Cuntz & Juliane Mai  Mar 2014 - Likelihood Kavetski uses 2 more parameters for the error model global_parameters -> local_parameters
+! Rohini Kumar                  Apr 2014 - implementation of the mHM run on a single cell configuration also for the routing mode. 
+!                                        - run mHM at the input data level i.e. L0 grid
+! Rohini Kumar                  May 2014 - model run on a regular lat-lon grid or on a regular X-Y coordinate system
+! Stephan Thober                May 2014 - moved read meteo forcings to mo_mhm_eval
+! Matthias Cuntz & Juliane Mai  Nov 2014 - LAI input from daily, monthly or yearly files
+! Matthias Zink                 Mar 2015 - added optional soil mositure read in for calibration
+! Luis Samaniego                Jul 2015 - added temporal directories for optimization
+! Stephan Thober                Aug 2015 - removed routing related variables
+! Stephan Thober                Oct 2015 - reorganized optimization (now compatible with mRM)
+! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15 for simultaneous calibration based on runoff and TWS
+! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included soil horizon specific properties/parameters
+! Stephan Thober                Nov 2016 - implemented adaptive timestep for routing
+! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields 
 
 PROGRAM mhm_driver
 

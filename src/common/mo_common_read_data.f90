@@ -1,3 +1,15 @@
+!>       \file mo_common_read_data.f90
+
+!>       \brief TODO: add description
+
+!>       \details TODO: add description
+
+!>       \authors Robert Schweppe
+
+!>       \date Jun 2018
+
+! Modifications:
+
 module mo_common_read_data
   USE mo_kind, ONLY : i4, dp
 
@@ -11,34 +23,45 @@ module mo_common_read_data
 
 CONTAINS
 
+  !    NAME
+  !        read_dem
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine read_dem
 
-    USE mo_read_spatial_data, ONLY : read_header_ascii, &
-            read_spatial_data_ascii
-    USE mo_append, ONLY : append
-    USE mo_string_utils, ONLY : num2str
-    USE mo_message, ONLY : message
+    use mo_append, only : append
     use mo_common_constants, only : nodata_dp
+    use mo_common_file, only : file_dem, udem
+    use mo_common_variables, only : Grid, L0_Basin, L0_elev, dirMorpho, level0, nBasins, nuniquel0Basins, &
+                                    resolutionHydrology
     use mo_grid, only : set_basin_indices
-    !
-    USE mo_common_file, ONLY : file_dem, udem ! file name and unit of elevation map
-    use mo_common_variables, ONLY : &
-            L0_elev, & ! elevation on input resolution (L0)
-            level0, & ! grid information (ncols, nrows, ..)
-            dirMorpho, & ! directories
-            nBasins, & ! number of basins
-            nuniquel0Basins, &
-            resolutionHydrology, & ! hydrology resolution (L1 scale)
-            L0_Basin, &
-            Grid
+    use mo_message, only : message
+    use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    ! local variables
-    integer(i4) :: iBasin     ! loop variables
-    character(256) :: fName                      ! file name of file to read
+    ! loop variables
+    integer(i4) :: iBasin
+
+    ! file name of file to read
+    character(256) :: fName
+
     real(dp), dimension(:, :), allocatable :: data_dp_2d
+
     type(Grid), pointer :: level0_iBasin
+
 
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN

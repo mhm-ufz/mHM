@@ -1,13 +1,16 @@
-!> \file mo_read_config.f90
+!>       \file mo_mhm_read_config.f90
 
-!> \brief Reading of main model configurations.
+!>       \brief Reading of main model configurations.
 
-!> \details This routine reads the configurations of mHM including, input and
-!>          output directories, module usage specification, simulation time periods,
-!>          global parameters, ...
+!>       \details This routine reads the configurations of mHM including, input and
+!>       output directories, module usage specification, simulation time periods,
+!>       global parameters, ...
 
-!> \authors Matthias Zink
-!> \date Dec 2012
+!>       \authors s Matthias Zink
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_mhm_read_config
 
@@ -25,155 +28,117 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_config
+  !    NAME
+  !        mhm_read_config
 
-  !     PURPOSE
-  !>        \brief Read main configurations for mHM
+  !    PURPOSE
+  !>       \brief Read main configurations for mHM
 
-  !>        \details The main configurations in mHM are read from three files:
-  !>                 <ol>
-  !>                   <li> mhm.nml
-  !>                   <li> mhm_parameters.nml
-  !>                   <li> mhm_outputs.nml
-  !>                 </ol>
-  !>                 For details please refer to the above mentioned namelist files.
+  !>       \details The main configurations in mHM are read from three files:
+  !>       <ol>
+  !>       <li> mhm.nml
+  !>       <li> mhm_parameters.nml
+  !>       <li> mhm_outputs.nml
+  !>       </ol>
+  !>       For details please refer to the above mentioned namelist files.
 
-  !     CALLING SEQUENCE
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist" 
+  !>       \param[in] "integer :: unamelist"          
 
-  !     INDENT(IN)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INDENT(INOUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INDENT(OUT)
-  !         None
-
-  !     INDENT(IN), OPTIONAL
-  !         None
-
-  !     INDENT(INOUT), OPTIONAL
-  !         None
-
-  !     INDENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Dec 2012
-  !         Modified Luis Samaniego,              Jan 2013 - messages
-  !                  Rohini Kumar              
-  !                  Matthias Cuntz,              Jan  2013 - namelist consolidation and positioning
-  !                  Matthias Zink,               Jan  2013 - bug fix, added gaugeinfo reading
-  !                  Rohini Kumar,                Jun  2013 - added restart flags
-  !                  R. Kumar &            
-  !                  S. Thober,                   Aug. 2013 - code change to incorporate output timestep
-  !                                                           during writing of the netcdf file
-  !                  Rohini Kumar,                Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
-  !                  Rohini Kumar,                Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed in
-  !                                                           namelist made accordingly
-  !                  Rohini Kumar,                Aug  2013 - added new namelist for LAI related datasets, and changed in
-  !                                                           within the code made accordingly
-  !                  Matthias Zink,               Aug  2013 - changed read in for land cover period
-  !                  Juliane Mai,                 Oct  2013 - adding global_parameters_name
-  !                  Matthias Zink,               Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
-  !                  Stephan Thober,              Nov  2013 - added read of directories where latitude longitude fields are located
-  !                  Matthias Zink,               Feb  2014 - added multiple options for PET process
-  !                  Matthias Zink,               Mar  2014 - added inflow from upstream areas and gauge information as namelist
-  !                  Rohini Kumar,                May  2014 - added options for the model run coordinate system
-  !                  Stephan Thober,              May  2014 - added switch for chunk read in
-  !                  Stephan Thober,              Jun  2014 - added option for switching off mpr
-  !                  Matthias Cuntz & Juliane Mai Nov  2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,               Dec  2014 - adopted inflow gauges to ignore headwater cells
-  !                  Matthias Zink,               Mar  2015 - added optional soil moisture read in for calibration
-  !                  Matthias Cuntz,              Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for PGI compatibilty
-  !                  Stephan Thober,              Aug  2015 - added read_config_routing and read_routing_params from mRM
-  !                  Oldrich Rakovec,             Oct  2015 - added reading of the basin average TWS data
-  !                  Rohini Kumar,                Mar  2016 - options to handle different soil databases
-  !                  Stephan Thober,              Nov  2016 - moved nProcesses and processMatrix to common variables
-  !                  Rohini Kumar,                Dec  2016 - option to handle monthly mean gridded fields of LAI
-  !                  M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                  M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)  
-  !                  Robert Schweppe              Dec  2017 - switched from fractional julian day to integer
-
+  ! Modifications:
+  ! Luis Samaniego               Jan 2013 - messages Rohini Kumar
+  ! Matthias Cuntz               Jan  2013 - namelist consolidation and positioning
+  ! Matthias Zink                Jan  2013 - bug fix, added gaugeinfo reading
+  ! Rohini Kumar                 Jun  2013 - added restart flags R. Kumar & S. Thober,                   Aug. 2013 
+  !                                       - code change to incorporate output timestep during writing of the netcdf file
+  ! Rohini Kumar                 Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
+  ! Rohini Kumar                 Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed in namelist made accordingly
+  ! Rohini Kumar                 Aug  2013 - added new namelist for LAI related datasets, and changed in within the code made accordingly
+  ! Matthias Zink                Aug  2013 - changed read in for land cover period
+  ! Juliane Mai                  Oct  2013 - adding global_parameters_name
+  ! Matthias Zink                Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix
+  ! Stephan Thober               Nov  2013 - added read of directories where latitude longitude fields are located
+  ! Matthias Zink                Feb  2014 - added multiple options for PET process
+  ! Matthias Zink                Mar  2014 - added inflow from upstream areas and gauge information as namelist
+  ! Rohini Kumar                 May  2014 - added options for the model run coordinate system
+  ! Stephan Thober               May  2014 - added switch for chunk read in
+  ! Stephan Thober               Jun  2014 - added option for switching off mpr
+  ! Matthias Cuntz & Juliane Mai Nov  2014 - LAI input from daily, monthly or yearly files
+  ! Matthias Zink                Dec  2014 - adopted inflow gauges to ignore headwater cells
+  ! Matthias Zink                Mar  2015 - added optional soil moisture read in for calibration
+  ! Matthias Cuntz               Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for PGI compatibilty
+  ! Stephan Thober               Aug  2015 - added read_config_routing and read_routing_params from mRM
+  ! Oldrich Rakovec              Oct  2015 - added reading of the basin average TWS data
+  ! Rohini Kumar                 Mar  2016 - options to handle different soil databases
+  ! Stephan Thober               Nov  2016 - moved nProcesses and processMatrix to common variables
+  ! Rohini Kumar                 Dec  2016 - option to handle monthly mean gridded fields of LAI
+  ! M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)
+  ! M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)
+  ! Robert Schweppe              Dec  2017 - switched from fractional julian day to integer
 
   subroutine mhm_read_config(file_namelist, unamelist)
 
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_nml, only : open_nml, close_nml, position_nml
+    use mo_common_constants, only : maxNoBasins, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
-    use mo_common_constants, only : &
-            maxNoBasins, & ! maximum number of allowed basins
-            nodata_i4                                 ! nodata values
-    use mo_mpr_constants, only : &
-            maxNoSoilHorizons ! maximum number of allowed soil layers
-    use mo_file, only : &
-            file_defOutput, udefOutput ! file specifying which output to write
-    use mo_global_variables, only : &
-            outputFlxState, & ! definition which output to write
-            dirPrecipitation, dirTemperature, & ! directory of meteo input
-            dirReferenceET, & ! PET input path  if process 5 is 'PET is input' (case 0)
-            dirMinTemperature, dirMaxTemperature, & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
-            dirNetRadiation, & ! PET input paths if process 5 is Priestely-Taylor (case 2)
-            dirabsVapPressure, dirwindspeed, & ! PET input paths if process 5 is Penman-Monteith (case 3)
-            inputFormat_meteo_forcings, & ! input format: nc only
-            timestep_model_inputs, & ! read input frequency
-            dirSoil_moisture, timeStep_sm_input, & ! directory and time stepping of soil moisture data
-            nSoilHorizons_sm_input, & ! No. of mhm soil horizons equivalent to soil moisture input
-            basin_avg_TWS_obs, & ! basin avg TWS data
-            fileTWS, & ! directory with basin average tws data
-            dirNeutrons, timeStep_neutrons_input, & ! directory where neutron data is located
-            dirEvapotranspiration, timeStep_et_input, & ! directory and time stepping of evapotranspiration data
-            timeStep_model_outputs, & ! timestep for writing model outputs
-            evap_coeff, & ! pan evaporation
-            read_meteo_weights, & ! flag for read meteo weights
-            fday_prec, fnight_prec, fday_pet, & ! day-night fraction
-            fnight_pet, fday_temp, fnight_temp ! day-night fraction
-
-    use mo_mpr_global_variables, only : &
-            nSoilHorizons_mHM
-    use mo_common_mhm_mrm_variables, only : &
-            optimize, opti_function
-    use mo_common_variables, only : &
-            nBasins, & ! number of basins
-            processMatrix ! process configuration
+    use mo_common_mhm_mrm_variables, only : opti_function, optimize
+    use mo_common_variables, only : nBasins, processMatrix
+    use mo_file, only : file_defOutput, udefOutput
+    use mo_global_variables, only : basin_avg_TWS_obs, dirEvapotranspiration, &
+                                    dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
+                                    dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
+                                    evap_coeff, fday_pet, fday_prec, fday_temp, fileTWS, fnight_pet, fnight_prec, &
+                                    fnight_temp, inputFormat_meteo_forcings, nSoilHorizons_sm_input, outputFlxState, &
+                                    read_meteo_weights, timeStep_et_input, timeStep_model_outputs, &
+                                    timeStep_neutrons_input, timeStep_sm_input, timestep_model_inputs
+    use mo_message, only : message
+    use mo_mpr_constants, only : maxNoSoilHorizons
+    use mo_mpr_global_variables, only : nSoilHorizons_mHM
+    use mo_nml, only : close_nml, open_nml, position_nml
+    use mo_string_utils, only : num2str
 
     implicit none
 
     character(*), intent(in) :: file_namelist
+
     integer, intent(in) :: unamelist
 
-    ! LOCAL variables
     integer(i4) :: iBasin
 
     integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
+
     character(256), dimension(maxNoBasins) :: dir_Precipitation
+
     character(256), dimension(maxNoBasins) :: dir_Temperature
+
     character(256), dimension(maxNoBasins) :: dir_MinTemperature
+
     character(256), dimension(maxNoBasins) :: dir_MaxTemperature
+
     character(256), dimension(maxNoBasins) :: dir_NetRadiation
+
     character(256), dimension(maxNoBasins) :: dir_windspeed
+
     character(256), dimension(maxNoBasins) :: dir_absVapPressure
+
     character(256), dimension(maxNoBasins) :: dir_ReferenceET
-    character(256), dimension(maxNoBasins) :: dir_soil_moisture      ! soil moisture input
-    character(256), dimension(maxNoBasins) :: file_TWS               ! total water storage input file
-    character(256), dimension(maxNoBasins) :: dir_neutrons           ! ground albedo neutron input
-    character(256), dimension(maxNoBasins) :: dir_evapotranspiration ! ground albedo neutron input
+
+    ! soil moisture input
+    character(256), dimension(maxNoBasins) :: dir_soil_moisture
+
+    ! total water storage input file
+    character(256), dimension(maxNoBasins) :: file_TWS
+
+    ! ground albedo neutron input
+    character(256), dimension(maxNoBasins) :: dir_neutrons
+
+    ! ground albedo neutron input
+    character(256), dimension(maxNoBasins) :: dir_evapotranspiration
 
 
     ! define namelists

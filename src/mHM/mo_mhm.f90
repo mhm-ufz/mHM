@@ -1,39 +1,41 @@
-!> \file mo_mhm.f90
+!>       \file mo_mhm.f90
 
-!> \brief Call all main processes of mHM.
+!>       \brief Call all main processes of mHM.
 
-!> \details This module calls all processes of mHM for a given configuration.
-!>          The configuration of the model is stored in the a process matrix.
-!>          This configuration is specified in the namelist mhm.nml.
-!>
-!>          The processes are executed in ascending order. At the moment only
-!>          process 5 and 8 have options.\n
-!>
-!>          Currently the following processes are implemented: \n
-!>
-!>          Process    | Name                      | Flag  | Description
-!>          ---------- | ------------------------- | ----- | ------------------------------------------
-!>          1          | interception              |   1   | Maximum interception
-!>          2          | snow and melting          |   1   | Degree-day
-!>          3          | soil moisture             |   1   | Feddes equation for ET reduction, Brooks-Corey like
-!>          3          | soil moisture             |   2   | Jarvis equation for ET reduction, Brooks-Corey like
-!>          3          | soil moisture             |   3   | Jarvis eq. for ET red. + FC dependency on root frac. coef.
-!>          4          | direct runoff             |   1   | Linear reservoir exceedance
-!>          5          | PET                       |  -1   | PET is input, LAI based correction, dynamic scaling func.
-!>          5          | PET                       |   0   | PET is input, Aspect based correction
-!>          5          | PET                       |   1   | Hargreaves-Samani
-!>          5          | PET                       |   2   | Priestley-Taylor
-!>          5          | PET                       |   3   | Penman-Monteith
-!>          6          | interflow                 |   1   | Nonlinear reservoir with saturation excess
-!>          7          | percolation and base flow |   1   | GW linear reservoir
-!>          8          | routing                   |   0   | no routing
-!>          8          | routing                   |   1   | use mRM i.e. Muskingum
-!>          8          | routing                   |   2   | use mRM i.e. adaptive timestep
+!>       \details This module calls all processes of mHM for a given configuration.
+!>       The configuration of the model is stored in the a process matrix.
+!>       This configuration is specified in the namelist mhm.nml.
+!>       
+!>       The processes are executed in ascending order. At the moment only
+!>       process 5 and 8 have options.
+!>       
+!>       Currently the following processes are implemented: 
+!>       
+!>       Process    | Name                      | Flag  | Description
+!>       ---------- | ------------------------- | ----- | ------------------------------------------
+!>       1          | interception              |   1   | Maximum interception
+!>       2          | snow and melting          |   1   | Degree-day
+!>       3          | soil moisture             |   1   | Feddes equation for ET reduction, Brooks-Corey like
+!>       3          | soil moisture             |   2   | Jarvis equation for ET reduction, Brooks-Corey like
+!>       3          | soil moisture             |   3   | Jarvis eq. for ET red. + FC dependency on root frac. coef.
+!>       4          | direct runoff             |   1   | Linear reservoir exceedance
+!>       5          | PET                       |  -1   | PET is input, LAI based correction, dynamic scaling func.
+!>       5          | PET                       |   0   | PET is input, Aspect based correction
+!>       5          | PET                       |   1   | Hargreaves-Samani
+!>       5          | PET                       |   2   | Priestley-Taylor
+!>       5          | PET                       |   3   | Penman-Monteith
+!>       6          | interflow                 |   1   | Nonlinear reservoir with saturation excess
+!>       7          | percolation and base flow |   1   | GW linear reservoir
+!>       8          | routing                   |   0   | no routing
+!>       8          | routing                   |   1   | use mRM i.e. Muskingum
+!>       8          | routing                   |   2   | use mRM i.e. adaptive timestep
+!>       
 
-!>
+!>       \authors Luis Samaniego
 
-!> \author Luis Samaniego
-!> \date Dec 2012
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_mHM
 
@@ -50,295 +52,427 @@ MODULE mo_mHM
 CONTAINS
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         mHM
+  !    NAME
+  !        mHM
 
-  !     PURPOSE
-  !>        \brief Pure mHM calculations.
+  !    PURPOSE
+  !>       \brief Pure mHM calculations.
 
-  !>        \details Pure mHM calculations. All variables are allocated and initialized. \n
-  !>                 They will be local variables within this call. \n
-  !>
+  !>       \details Pure mHM calculations. All variables are allocated and initialized. 
+  !>       They will be local variables within this call. 
+  !>       
 
-  !     INTENT(IN)
-  !         Has to be updated...
+  !    INTENT(IN)
+  !>       \param[in] "logical :: read_states"                           indicated whether states have been read from file
+  !>       \param[in] "integer(i4) :: tt"                                simulation time step
+  !>       \param[in] "real(dp) :: time"                                 current decimal Julian day
+  !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix"    mHM process configuration matrix
+  !>       \param[in] "real(dp), dimension(:) :: horizon_depth"          Depth of each horizon in mHM
+  !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given basin at level L1
+  !>       \param[in] "integer(i4) :: nHorizons_mHM"                     Number of Horizons in mHM
+  !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed in dp
+  !>       \param[in] "real(dp), dimension(:) :: neutron_integral_AFast" tabular for neutron flux approximation
+  !>       \param[in] "real(dp), dimension(:) :: global_parameters"      global mHM parameters
+  !>       \param[in] "real(dp), dimension(:) :: latitude"               latitude on level 1
+  !>       \param[in] "real(dp), dimension(:) :: evap_coeff"             Evaporation coefficent for free-water surface of that current month
+  !>       \param[in] "real(dp), dimension(:) :: fday_prec"              [-] day ratio precipitation < 1
+  !>       \param[in] "real(dp), dimension(:) :: fnight_prec"            [-] night ratio precipitation < 1
+  !>       \param[in] "real(dp), dimension(:) :: fday_pet"               [-] day ratio PET  < 1
+  !>       \param[in] "real(dp), dimension(:) :: fnight_pet"             [-] night ratio PET  < 1
+  !>       \param[in] "real(dp), dimension(:) :: fday_temp"              [-] day factor mean temp
+  !>       \param[in] "real(dp), dimension(:) :: fnight_temp"            [-] night factor mean temp
+  !>       \param[in] "real(dp), dimension(:, :, :) :: temp_weights"     multiplicative weights for temperature (deg K)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: pet_weights"      multiplicative weights for potential evapotranspiration
+  !>       \param[in] "real(dp), dimension(:, :, :) :: pre_weights"      multiplicative weights for precipitation
+  !>       \param[in] "logical :: read_meteo_weights"                    flag whether weights for tavg and pet have read and should be used
+  !>       \param[in] "real(dp), dimension(:) :: pet_in"                 [mm d-1] Daily potential evapotranspiration (input)
+  !>       \param[in] "real(dp), dimension(:) :: tmin_in"                [degc]   Daily minimum temperature
+  !>       \param[in] "real(dp), dimension(:) :: tmax_in"                [degc]   Daily maxumum temperature
+  !>       \param[in] "real(dp), dimension(:) :: netrad_in"              [w m2]   Daily average net radiation
+  !>       \param[in] "real(dp), dimension(:) :: absvappres_in"          [Pa]     Daily average absolute vapour pressure
+  !>       \param[in] "real(dp), dimension(:) :: windspeed_in"           [m s-1]  Daily average wind speed
+  !>       \param[in] "real(dp), dimension(:) :: prec_in"                [mm d-1] Daily mean precipitation
+  !>       \param[in] "real(dp), dimension(:) :: temp_in"                [degc]   Daily average temperature
 
-  !     INTENT(INOUT)
-  !         Has to be updated...
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:) :: fSealed1"              fraction of sealed area at scale L1
+  !>       \param[inout] "real(dp), dimension(:) :: interc"                Interception
+  !>       \param[inout] "real(dp), dimension(:) :: snowpack"              Snowpack
+  !>       \param[inout] "real(dp), dimension(:) :: sealedStorage"         Retention storage of impervious areas
+  !>       \param[inout] "real(dp), dimension(:, :) :: soilMoisture"       Soil moisture of each horizon
+  !>       \param[inout] "real(dp), dimension(:) :: unsatStorage"          Upper soil storage
+  !>       \param[inout] "real(dp), dimension(:) :: satStorage"            Groundwater storage
+  !>       \param[inout] "real(dp), dimension(:) :: neutrons"              Ground albedo neutrons
+  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
+  !>       \param[inout] "real(dp), dimension(:, :) :: aet_soil"           actual ET
+  !>       \param[inout] "real(dp), dimension(:) :: aet_canopy"            Real evaporation intensity from canopy
+  !>       \param[inout] "real(dp), dimension(:) :: aet_sealed"            Actual ET from free-water surfaces
+  !>       \param[inout] "real(dp), dimension(:) :: baseflow"              Baseflow
+  !>       \param[inout] "real(dp), dimension(:, :) :: infiltration"       Recharge, infiltration intensity or effective precipitation of each horizon
+  !>       \param[inout] "real(dp), dimension(:) :: fast_interflow"        Fast runoff component
+  !>       \param[inout] "real(dp), dimension(:) :: melt"                  Melting snow depth
+  !>       \param[inout] "real(dp), dimension(:) :: perc"                  Percolation
+  !>       \param[inout] "real(dp), dimension(:) :: prec_effect"           Effective precipitation depth (snow melt + rain)
+  !>       \param[inout] "real(dp), dimension(:) :: rain"                  Rain precipitation depth
+  !>       \param[inout] "real(dp), dimension(:) :: runoff_sealed"         Direct runoff from impervious areas
+  !>       \param[inout] "real(dp), dimension(:) :: slow_interflow"        Slow runoff component
+  !>       \param[inout] "real(dp), dimension(:) :: snow"                  Snow precipitation depth
+  !>       \param[inout] "real(dp), dimension(:) :: throughfall"           Throughfall
+  !>       \param[inout] "real(dp), dimension(:) :: total_runoff"          Generated runoff
+  !>       \param[inout] "real(dp), dimension(:) :: alpha"                 Exponent for the upper reservoir
+  !>       \param[inout] "real(dp), dimension(:) :: deg_day_incr"          Increase of the Degree-day factor per mm of increase in precipitation
+  !>       \param[inout] "real(dp), dimension(:) :: deg_day_max"           Maximum Degree-day factor
+  !>       \param[inout] "real(dp), dimension(:) :: deg_day_noprec"        Degree-day factor with no precipitation
+  !>       \param[inout] "real(dp), dimension(:) :: deg_day"               Degree-day factor
+  !>       \param[inout] "real(dp), dimension(:) :: fAsp"                  [1]     PET correction for Aspect at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: petLAIcorFactorL1"     PET correction factor based on LAI at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: HarSamCoeff"           [1]     PET Hargreaves Samani coefficient at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: PrieTayAlpha"          [1]     PET Priestley Taylor coefficient at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: aeroResist"            [s m-1] PET aerodynamical resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: surfResist"            [s m-1] PET bulk surface resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:, :) :: frac_roots"         Fraction of Roots in soil horizon
+  !>       \param[inout] "real(dp), dimension(:) :: interc_max"            Maximum interception
+  !>       \param[inout] "real(dp), dimension(:) :: karst_loss"            Karstic percolation loss
+  !>       \param[inout] "real(dp), dimension(:) :: k0"                    Recession coefficient of the upper reservoir, upper outlet
+  !>       \param[inout] "real(dp), dimension(:) :: k1"                    Recession coefficient of the upper reservoir, lower outlet
+  !>       \param[inout] "real(dp), dimension(:) :: k2"                    Baseflow recession coefficient
+  !>       \param[inout] "real(dp), dimension(:) :: kp"                    Percolation coefficient
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_FC"      Soil moisture below which actual ET is reduced
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil water retention
+  !>       \param[inout] "real(dp), dimension(:) :: jarvis_thresh_c1"      jarvis critical value for normalized soil water content
+  !>       \param[inout] "real(dp), dimension(:) :: temp_thresh"           Threshold temperature for snow/rain
+  !>       \param[inout] "real(dp), dimension(:) :: unsat_thresh"          Threshold water depth in upper reservoir
+  !>       \param[inout] "real(dp), dimension(:) :: water_thresh_sealed"   Threshold water depth in impervious areas
+  !>       \param[inout] "real(dp), dimension(:, :) :: wilting_point"      Permanent wilting point for each horizon
 
-  !     INTENT(OUT)
-  !         Has to be updated...
+  !    HISTORY
+  !>       \authors Luis Samaniego & Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Luis Samaniego, Rohini Kumar    Dec 2012 - modularization
+  ! Luis Samaniego                  Feb 2013 - call routine
+  ! Rohini Kumar                    Feb 2013 - MPR call and other pre-requisite variables for this call
+  ! Rohini Kumar                    May 2013 - Error checks
+  ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff 
+  !                                          - initalization of soil moist. at first timestep
+  ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code made accordingly (e.g., canopy intecpt.) 
+  !                                          - max. canopy interception is estimated outside of MPR call
+  ! Matthias Zink                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
+  ! Matthias Zink                   Mar 2014 - added inflow from upstream areas
+  ! Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith and its parameterization (Process 5)
+  ! Rohini Kumar                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
+  ! Stephan Thober                  Jun 2014 - added flag for switching of MPR
+  ! Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
+  ! Matthias Zink                   Dec 2014 - adopted inflow gauges to ignore headwater cells
+  ! Stephan Thober                  Aug 2015 - moved routing to mRM
+  ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
+  ! Rohini Kumar                    Dec 2016 - changes for reading gridded mean monthly LAI fields
+  ! Stephan Thober                  Jan 2017 - added prescribed weights for tavg and pet
+  ! Zink M. Demirel C.              Mar 2017 - added Jarvis soil water stress function at SM process(3)
+  ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
+  ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
+  ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
+                neutron_integral_AFast, global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
+                fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
+                tmin_in, tmax_in, netrad_in, absvappres_in, windspeed_in, prec_in, temp_in, fSealed1, interc, snowpack, &
+                sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, aet_soil, aet_canopy, &
+                aet_sealed, baseflow, infiltration, fast_interflow, melt, perc, prec_effect, rain, runoff_sealed, &
+                slow_interflow, snow, throughfall, total_runoff, alpha, deg_day_incr, deg_day_max, deg_day_noprec, &
+                deg_day, fAsp, petLAIcorFactorL1, HarSamCoeff, PrieTayAlpha, aeroResist, surfResist, frac_roots, &
+                interc_max, karst_loss, k0, k1, k2, kp, soil_moist_FC, soil_moist_sat, soil_moist_exponen, &
+                jarvis_thresh_c1, temp_thresh, unsat_thresh, water_thresh_sealed, wilting_point)
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note Fields must be consistent to DEM.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego & Rohini Kumar
-  !>        \date    Dec 2012
-
-  !         Modified Luis Samaniego, Rohini Kumar     Dec 2012 - modularization
-  !                  Luis Samaniego,                  Feb 2013 - call routine
-  !                  Rohini Kumar,                    Feb 2013 - MPR call and other pre-requisite
-  !                                                              variables for this call
-  !                  Rohini Kumar,                    May 2013 - Error checks
-  !                  Rohini Kumar,                    Jun 2013 - sealed area correction in total runoff
-  !                                                            - initalization of soil moist. at first timestep
-  !                  Rohini Kumar,                    Aug 2013 - dynamic LAI option included, and changed within
-  !                                                              the code made accordingly (e.g., canopy intecpt.)
-  !                                                            - max. canopy interception is estimated outside of MPR
-  !                                                              call
-  !                  Matthias Zink,                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
-  !                  Matthias Zink,                   Mar 2014 - added inflow from upstream areas
-  !                  Matthias Zink,                   Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith
-  !                                                              and its parameterization (Process 5)
-  !                  Rohini Kumar,                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
-  !                  Stephan Thober,                  Jun 2014 - added flag for switching of MPR
-  !                  Matthias Cuntz & Juliane Mai     Nov 2014 - LAI input from daily, monthly or yearly files
-  !                  Matthias Zink,                   Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                  Stephan Thober,                  Aug 2015 - moved routing to mRM
-  !                  Rohini Kumar,                    Mar 2016 - changes for handling multiple soil database options
-  !                  Rohini Kumar,                    Dec 2016 - changes for reading gridded mean monthly LAI fields
-  !                  Stephan Thober,                  Jan 2017 - added prescribed weights for tavg and pet
-  !                  Zink M. Demirel C.,              Mar 2017 - added Jarvis soil water stress function at SM process(3)  
-  !                  M.Cuneyd Demirel & Simon Stisen  May 2017 - added FC dependency on root fraction coef. at SM process(3)
-  !                  M.Cuneyd Demirel & Simon Stisen  Jun 2017 - added PET correction based on LAI at PET process(5)
-  !                  Robert Schweppe, Stephan Thober  Nov 2017 - moved call to MPR to mhm_eval
-  !
-  ! ------------------------------------------------------------------
-
-  subroutine mHM(&
-          ! Input -----------------------------------------------------------------
-          ! Configuration
-          read_states, & ! flag indicating whether states have been read
-          tt, & ! simulation time step
-          time, & ! current decimal Julian day
-          processMatrix, & ! mHM process configuration matrix
-          horizon_depth, & ! Depth of each horizon in mHM
-          nCells1, & ! number of cells in a given basin at level L1
-          nHorizons_mHM, & ! Number of Horizons in mHM
-          ntimesteps_day, & ! number of time intervals per day, transformed in dp
-          neutron_integral_AFast, &! tabular for neutron flux approximation
-          global_parameters, & ! global mHM parameters
-          ! Physiographic L1
-          latitude, & ! latitude on level 1
-          ! Forcings
-          evap_coeff, & ! Evaporation coefficent for free-water surface of that current month
-          fday_prec, & ! [-] day ratio precipitation < 1
-          fnight_prec, & ! [-] night ratio precipitation < 1
-          fday_pet, & ! [-] day ratio PET  < 1
-          fnight_pet, & ! [-] night ratio PET  < 1
-          fday_temp, & ! [-] day factor mean temp
-          fnight_temp, & ! [-] night factor mean temp
-          temp_weights, & ! multiplicative weights for temperature (deg K)
-          pet_weights, & ! multiplicative weights for potential evapotranspiration
-          pre_weights, & ! multiplicative weights for precipitation
-          read_meteo_weights, & ! flag whether weights for tavg and pet have read and should be used
-          pet_in, & ! [mm d-1] Daily potential evapotranspiration (input)
-          tmin_in, & ! [degc]   Daily minimum temperature
-          tmax_in, & ! [degc]   Daily maxumum temperature
-          netrad_in, & ! [w m2]   Daily average net radiation
-          absvappres_in, & ! [Pa]     Daily average absolute vapour pressure
-          windspeed_in, & ! [m s-1]  Daily average wind speed
-          prec_in, & ! [mm d-1] Daily mean precipitation
-          temp_in, & ! [degc]   Daily average temperature
-          ! In-Out -----------------------------------------------------------------
-          fSealed1, & ! fraction of sealed area at scale L1
-          ! States
-          interc, & ! Interception
-          snowpack, & ! Snowpack
-          sealedStorage, & ! Retention storage of impervious areas
-          soilMoisture, & ! Soil moisture of each horizon
-          unsatStorage, & ! Upper soil storage
-          satStorage, & ! Groundwater storage
-          neutrons, & ! Ground albedo neutrons
-          ! Fluxes L1
-          pet_calc, & ! [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
-          aet_soil, & ! actual ET
-          aet_canopy, & ! Real evaporation intensity from canopy
-          aet_sealed, & ! Actual ET from free-water surfaces
-          baseflow, & ! Baseflow
-          infiltration, & ! Recharge, infiltration intensity or effective precipitation of each horizon
-          fast_interflow, & ! Fast runoff component
-          melt, & ! Melting snow depth
-          perc, & ! Percolation
-          prec_effect, & ! Effective precipitation depth (snow melt + rain)
-          rain, & ! Rain precipitation depth
-          runoff_sealed, & ! Direct runoff from impervious areas
-          slow_interflow, & ! Slow runoff component
-          snow, & ! Snow precipitation depth
-          throughfall, & ! Throughfall
-          total_runoff, & ! Generated runoff
-          ! Effective Parameters
-          alpha, & ! Exponent for the upper reservoir
-          deg_day_incr, & ! Increase of the Degree-day factor per mm of increase in precipitation
-          deg_day_max, & ! Maximum Degree-day factor
-          deg_day_noprec, & ! Degree-day factor with no precipitation
-          deg_day, & ! Degree-day factor
-          fAsp, & ! [1]     PET correction for Aspect at level 1
-          petLAIcorFactorL1, & ! PET correction factor based on LAI at level 1
-          HarSamCoeff, & ! [1]     PET Hargreaves Samani coefficient at level 1
-          PrieTayAlpha, & ! [1]     PET Priestley Taylor coefficient at level 1
-          aeroResist, & ! [s m-1] PET aerodynamical resitance at level 1
-          surfResist, & ! [s m-1] PET bulk surface resitance at level 1
-          frac_roots, & ! Fraction of Roots in soil horizon
-          interc_max, & ! Maximum interception
-          karst_loss, & ! Karstic percolation loss
-          k0, & ! Recession coefficient of the upper reservoir, upper outlet
-          k1, & ! Recession coefficient of the upper reservoir, lower outlet
-          k2, & ! Baseflow recession coefficient
-          kp, & ! Percolation coefficient
-          soil_moist_FC, & ! Soil moisture below which actual ET is reduced
-          soil_moist_sat, & ! Saturation soil moisture for each horizon [mm]
-          soil_moist_exponen, & ! Exponential parameter to how non-linear is the soil water retention
-          jarvis_thresh_c1, & ! jarvis critical value for normalized soil water content
-          temp_thresh, & ! Threshold temperature for snow/rain
-          unsat_thresh, & ! Threshold water depth in upper reservoir
-          water_thresh_sealed, & ! Threshold water depth in impervious areas
-          wilting_point         & ! Permanent wilting point for each horizon
-          )
-    ! subroutines required to estimate variables prior to the MPR call
-    use mo_pet, only : pet_hargreaves, pet_priestly, & ! calc. of pot. evapotranspiration
-            pet_penman
     use mo_Temporal_Disagg_Forcing, only : Temporal_Disagg_Forcing
     use mo_canopy_interc, only : canopy_interc
+    use mo_julian, only : date2dec, dec2date
+    use mo_mhm_constants, only : HarSamConst
+    use mo_neutrons, only : COSMIC, DesiletsN0
+    use mo_pet, only : pet_hargreaves, pet_penman, pet_priestly
+    use mo_runoff, only : L1_total_runoff, runoff_sat_zone, runoff_unsat_zone
     use mo_snow_accum_melt, only : snow_accum_melt
     use mo_soil_moisture, only : soil_moisture
-    use mo_neutrons, only : DesiletsN0, COSMIC
-    use mo_runoff, only : runoff_unsat_zone
-    use mo_runoff, only : runoff_sat_zone, L1_total_runoff
-    use mo_julian, only : dec2date, date2dec
     use mo_string_utils, only : num2str
-    use mo_mhm_constants, only : HarSamConst ! parameters for Hargreaves-Samani Equation
 
     implicit none
 
-    ! Intent
-    logical, intent(in) :: read_states          ! indicated whether states have been read from file
+    ! indicated whether states have been read from file
+    logical, intent(in) :: read_states
+
+    ! simulation time step
     integer(i4), intent(in) :: tt
+
+    ! current decimal Julian day
     real(dp), intent(in) :: time
+
+    ! mHM process configuration matrix
     integer(i4), dimension(:, :), intent(in) :: processMatrix
+
+    ! Depth of each horizon in mHM
     real(dp), dimension(:), intent(in) :: horizon_depth
+
+    ! number of cells in a given basin at level L1
     integer(i4), intent(in) :: nCells1
+
+    ! Number of Horizons in mHM
     integer(i4), intent(in) :: nHorizons_mHM
+
+    ! number of time intervals per day, transformed in dp
     real(dp), intent(in) :: ntimesteps_day
+
+    ! tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
+
+    ! global mHM parameters
     real(dp), dimension(:), intent(in) :: global_parameters
 
-    ! Physiographic L1
+    ! latitude on level 1
     real(dp), dimension(:), intent(in) :: latitude
 
-    ! Forcings
+    ! Evaporation coefficent for free-water surface of that current month
     real(dp), dimension(:), intent(in) :: evap_coeff
+
+    ! [-] day ratio precipitation < 1
     real(dp), dimension(:), intent(in) :: fday_prec
+
+    ! [-] night ratio precipitation < 1
     real(dp), dimension(:), intent(in) :: fnight_prec
+
+    ! [-] day ratio PET  < 1
     real(dp), dimension(:), intent(in) :: fday_pet
+
+    ! [-] night ratio PET  < 1
     real(dp), dimension(:), intent(in) :: fnight_pet
+
+    ! [-] day factor mean temp
     real(dp), dimension(:), intent(in) :: fday_temp
+
+    ! [-] night factor mean temp
     real(dp), dimension(:), intent(in) :: fnight_temp
+
+    ! multiplicative weights for temperature (deg K)
     real(dp), dimension(:, :, :), intent(in) :: temp_weights
+
+    ! multiplicative weights for potential evapotranspiration
     real(dp), dimension(:, :, :), intent(in) :: pet_weights
+
+    ! multiplicative weights for precipitation
     real(dp), dimension(:, :, :), intent(in) :: pre_weights
+
+    ! flag whether weights for tavg and pet have read and should be used
     logical, intent(in) :: read_meteo_weights
+
+    ! [mm d-1] Daily potential evapotranspiration (input)
     real(dp), dimension(:), intent(in) :: pet_in
+
+    ! [degc]   Daily minimum temperature
     real(dp), dimension(:), intent(in) :: tmin_in
+
+    ! [degc]   Daily maxumum temperature
     real(dp), dimension(:), intent(in) :: tmax_in
+
+    ! [w m2]   Daily average net radiation
     real(dp), dimension(:), intent(in) :: netrad_in
+
+    ! [Pa]     Daily average absolute vapour pressure
     real(dp), dimension(:), intent(in) :: absvappres_in
+
+    ! [m s-1]  Daily average wind speed
     real(dp), dimension(:), intent(in) :: windspeed_in
+
+    ! [mm d-1] Daily mean precipitation
     real(dp), dimension(:), intent(in) :: prec_in
+
+    ! [degc]   Daily average temperature
     real(dp), dimension(:), intent(in) :: temp_in
 
-    ! States
+    ! fraction of sealed area at scale L1
     real(dp), dimension(:), intent(inout) :: fSealed1
 
+    ! Interception
     real(dp), dimension(:), intent(inout) :: interc
+
+    ! Snowpack
     real(dp), dimension(:), intent(inout) :: snowpack
+
+    ! Retention storage of impervious areas
     real(dp), dimension(:), intent(inout) :: sealedStorage
+
+    ! Soil moisture of each horizon
     real(dp), dimension(:, :), intent(inout) :: soilMoisture
+
+    ! Upper soil storage
     real(dp), dimension(:), intent(inout) :: unsatStorage
+
+    ! Groundwater storage
     real(dp), dimension(:), intent(inout) :: satStorage
+
+    ! Ground albedo neutrons
     real(dp), dimension(:), intent(inout) :: neutrons
 
-    ! Fluxes L1
+    ! [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
     real(dp), dimension(:), intent(inout) :: pet_calc
+
+    ! actual ET
     real(dp), dimension(:, :), intent(inout) :: aet_soil
+
+    ! Real evaporation intensity from canopy
     real(dp), dimension(:), intent(inout) :: aet_canopy
+
+    ! Actual ET from free-water surfaces
     real(dp), dimension(:), intent(inout) :: aet_sealed
+
+    ! Baseflow
     real(dp), dimension(:), intent(inout) :: baseflow
+
+    ! Recharge, infiltration intensity or effective precipitation of each horizon
     real(dp), dimension(:, :), intent(inout) :: infiltration
+
+    ! Fast runoff component
     real(dp), dimension(:), intent(inout) :: fast_interflow
+
+    ! Melting snow depth
     real(dp), dimension(:), intent(inout) :: melt
+
+    ! Percolation
     real(dp), dimension(:), intent(inout) :: perc
+
+    ! Effective precipitation depth (snow melt + rain)
     real(dp), dimension(:), intent(inout) :: prec_effect
+
+    ! Rain precipitation depth
     real(dp), dimension(:), intent(inout) :: rain
+
+    ! Direct runoff from impervious areas
     real(dp), dimension(:), intent(inout) :: runoff_sealed
+
+    ! Slow runoff component
     real(dp), dimension(:), intent(inout) :: slow_interflow
+
+    ! Snow precipitation depth
     real(dp), dimension(:), intent(inout) :: snow
+
+    ! Throughfall
     real(dp), dimension(:), intent(inout) :: throughfall
+
+    ! Generated runoff
     real(dp), dimension(:), intent(inout) :: total_runoff
 
-    ! Effective Parameters
+    ! Exponent for the upper reservoir
     real(dp), dimension(:), intent(inout) :: alpha
+
+    ! Increase of the Degree-day factor per mm of increase in precipitation
     real(dp), dimension(:), intent(inout) :: deg_day_incr
+
+    ! Maximum Degree-day factor
     real(dp), dimension(:), intent(inout) :: deg_day_max
+
+    ! Degree-day factor with no precipitation
     real(dp), dimension(:), intent(inout) :: deg_day_noprec
+
+    ! Degree-day factor
     real(dp), dimension(:), intent(inout) :: deg_day
+
+    ! [1]     PET correction for Aspect at level 1
     real(dp), dimension(:), intent(inout) :: fAsp
+
+    ! PET correction factor based on LAI at level 1
     real(dp), dimension(:), intent(inout) :: petLAIcorFactorL1
+
+    ! [1]     PET Hargreaves Samani coefficient at level 1
     real(dp), dimension(:), intent(inout) :: HarSamCoeff
+
+    ! [1]     PET Priestley Taylor coefficient at level 1
     real(dp), dimension(:), intent(inout) :: PrieTayAlpha
+
+    ! [s m-1] PET aerodynamical resitance at level 1
     real(dp), dimension(:), intent(inout) :: aeroResist
+
+    ! [s m-1] PET bulk surface resitance at level 1
     real(dp), dimension(:), intent(inout) :: surfResist
+
+    ! Fraction of Roots in soil horizon
     real(dp), dimension(:, :), intent(inout) :: frac_roots
+
+    ! Maximum interception
     real(dp), dimension(:), intent(inout) :: interc_max
+
+    ! Karstic percolation loss
     real(dp), dimension(:), intent(inout) :: karst_loss
+
+    ! Recession coefficient of the upper reservoir, upper outlet
     real(dp), dimension(:), intent(inout) :: k0
+
+    ! Recession coefficient of the upper reservoir, lower outlet
     real(dp), dimension(:), intent(inout) :: k1
+
+    ! Baseflow recession coefficient
     real(dp), dimension(:), intent(inout) :: k2
+
+    ! Percolation coefficient
     real(dp), dimension(:), intent(inout) :: kp
+
+    ! Soil moisture below which actual ET is reduced
     real(dp), dimension(:, :), intent(inout) :: soil_moist_FC
+
+    ! Saturation soil moisture for each horizon [mm]
     real(dp), dimension(:, :), intent(inout) :: soil_moist_sat
+
+    ! Exponential parameter to how non-linear is the soil water retention
     real(dp), dimension(:, :), intent(inout) :: soil_moist_exponen
+
+    ! jarvis critical value for normalized soil water content
     real(dp), dimension(:), intent(inout) :: jarvis_thresh_c1
+
+    ! Threshold temperature for snow/rain
     real(dp), dimension(:), intent(inout) :: temp_thresh
+
+    ! Threshold water depth in upper reservoir
     real(dp), dimension(:), intent(inout) :: unsat_thresh
+
+    ! Threshold water depth in impervious areas
     real(dp), dimension(:), intent(inout) :: water_thresh_sealed
+
+    ! Permanent wilting point for each horizon
     real(dp), dimension(:, :), intent(inout) :: wilting_point
 
-    ! local
-    logical :: isday       ! is day or night
-    integer(i4) :: hour        ! current hour of a given day
-    integer(i4) :: day         ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
-    integer(i4) :: month       ! Month of current day [1-12]
-    integer(i4) :: year        ! year
-    integer(i4) :: doy         ! doy of the year [1-365 or 1-366]
-    integer(i4) :: k           ! cell index
-    real(dp) :: pet         !
-    real(dp) :: prec        !
-    real(dp) :: temp        !
+    ! is day or night
+    logical :: isday
 
-    ! temporary arrays so that inout of routines is contiguous array
+    ! current hour of a given day
+    integer(i4) :: hour
+
+    ! day of the month     [1-28 or 1-29 or 1-30 or 1-31]
+    integer(i4) :: day
+
+    ! Month of current day [1-12]
+    integer(i4) :: month
+
+    ! year
+    integer(i4) :: year
+
+    ! doy of the year [1-365 or 1-366]
+    integer(i4) :: doy
+
+    ! cell index
+    integer(i4) :: k
+
+    real(dp) :: pet
+
+    real(dp) :: prec
+
+    real(dp) :: temp
+
     real(dp), dimension(size(infiltration, 2)) :: tmp_infiltration
+
     real(dp), dimension(size(soilMoisture, 2)) :: tmp_soilMoisture
+
     real(dp), dimension(size(aet_soil, 2)) :: tmp_aet_soil
+
 
     !-------------------------------------------------------------------
     ! date and month of this timestep

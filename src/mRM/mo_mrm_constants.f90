@@ -1,8 +1,15 @@
-!> \file mo_mrm_constants.f90
-!> \brief Provides mRM specific constants
-!> \details Provides mRM specific constants such as flood plain elevation.
-!> \author Stephan Thober
-!> \date Aug 2015
+!>       \file mo_mrm_constants.f90
+
+!>       \brief Provides mRM specific constants
+
+!>       \details Provides mRM specific constants such as flood plain elevation.
+
+!>       \authors Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
+
 module mo_mrm_constants
   use mo_kind, only : i4, dp
   implicit none

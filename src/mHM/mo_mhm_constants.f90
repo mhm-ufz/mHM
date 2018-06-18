@@ -1,11 +1,14 @@
-!> \file mo_mhm_constants.f90
+!>       \file mo_mhm_constants.f90
 
-!> \brief Provides mHM specific constants
+!>       \brief Provides mHM specific constants
 
-!> \details Provides mHM specific constants such as flood plain elevation.
+!>       \details Provides mHM specific constants such as flood plain elevation.
 
-!> \author Matthias Cuntz
-!> \date Nov 2011
+!>       \authors Matthias Cuntz
+
+!>       \date Nov 2011
+
+! Modifications:
 
 MODULE mo_mhm_constants
 

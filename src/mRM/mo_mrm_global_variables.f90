@@ -1,12 +1,15 @@
-!> \file mo_mrm_global_variables.f90
+!>       \file mo_mrm_global_variables.f90
 
-!> \brief Global variables for mRM only
+!>       \brief Global variables for mRM only
 
-!> \details 
+!>       \details 
 
-!> \authors Luis Samaniego, Stephan Thober
-!> \date Aug 2015
-!  Modified Robert Schweppe, Dec 2017 - merged duplicated variables with mhm into common variables
+!>       \authors s Luis Samaniego, Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
+! Robert Schweppe Dec 2017 - merged duplicated variables with mhm into common variables
 
 module mo_mrm_global_variables
 

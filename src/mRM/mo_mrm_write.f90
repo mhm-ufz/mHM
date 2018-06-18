@@ -1,13 +1,17 @@
-!> \file mo_mrm_write.f90
+!>       \file mo_mrm_write.f90
 
-!> \brief write of discharge and restart files
+!>       \brief write of discharge and restart files
 
-!> \details This module contains the subroutines for
-!> writing the discharge files and optionally the restart
-!> files.
+!>       \details This module contains the subroutines for
+!>       writing the discharge files and optionally the restart
+!>       files.
 
-!> \author Stephan Thober
-!> \date Aug 2015
+!>       \authors Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
+
 module mo_mrm_write
 
   use mo_kind, only : i4, dp
@@ -33,74 +37,48 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mrm_write
+  !    NAME
+  !        mrm_write
 
-  !     PURPOSE
-  !>        \brief write discharge and restart files
-  !
-  !>        \details First, this subroutine calls the writing or restart files that only
-  !>        succeeds if it happens after the write of mHM restart files because
-  !>        mHM restart files must exist. Second, simulated discharge is aggregated to the daily
-  !>        scale and then written to file jointly with observed discharge
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
+  !    PURPOSE
+  !>       \brief write discharge and restart files
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !>       \details First, this subroutine calls the writing or restart files that only
+  !>       succeeds if it happens after the write of mHM restart files because
+  !>       mHM restart files must exist. Second, simulated discharge is aggregated to the daily
+  !>       scale and then written to file jointly with observed discharge
 
-  !     HISTORY
-  !>        \author Juliane Mai, Rohini Kumar & Stephan Thober
-  !>        \date Aug 2015
-  !         Modified, 
+  !    HISTORY
+  !>       \authors Juliane Mai, Rohini Kumar & Stephan Thober
 
-  subroutine mrm_write()
+  !>       \date Aug 2015
 
-    use mo_mrm_global_variables, only : &
-            mRM_runoff, &
-            gauge, nGaugesTotal, basin_mrm
+  ! Modifications:
+
+  subroutine mrm_write
+
+    use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
+    use mo_common_variables, only : dirRestartOut, nBasins, write_restart
+    use mo_mrm_global_variables, only : basin_mrm, &
+                                        gauge, mRM_runoff, nGaugesTotal
     use mo_mrm_restart, only : mrm_write_restart
-    use mo_common_mhm_mrm_variables, only : &
-            evalPer, warmingDays, simPer, mrm_coupling_mode, nTstepDay
-    use mo_common_variables, only : &
-            nBasins, &
-            dirRestartOut, write_restart
 
     implicit none
 
-    ! local variables
     integer(i4) :: iBasin
+
     integer(i4) :: iDay, iS, iE
+
     integer(i4) :: ii
+
     integer(i4) :: tt
+
     integer(i4) :: gg
+
     integer(i4) :: nTimeSteps
+
     real(dp), dimension(:, :), allocatable :: d_Qmod
+
 
     ! --------------------------------------------------------------------------
     ! WRITE CONFIG FILE

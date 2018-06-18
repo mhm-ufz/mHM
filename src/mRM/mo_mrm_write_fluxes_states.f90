@@ -1,17 +1,17 @@
-!> \file mo_write_fluxes_states.f90
+!>       \file mo_mrm_write_fluxes_states.f90
 
-!> \brief Creates NetCDF output for different fluxes and state variables of mHM.
+!>       \brief Creates NetCDF output for different fluxes and state variables of mHM.
 
-!> \details NetCDF is first initialized and later on variables are put to the NetCDF.
+!>       \details NetCDF is first initialized and later on variables are put to the NetCDF.
 
-!  HISTORY
-!>     \authors Matthias Zink
-!>     \date Apr 2013
-!      Modified:
-!          David Schaefer, Aug 2015 - major rewrite
-!          Stephan Thober, Oct 2015 - adapted to mRM
-!    O. Rakovec, R. Kumar, Nov 2017 - added project description for the netcdf outputs
-!
+!>       \authors s Matthias Zink
+
+!>       \date Apr 2013
+
+! Modifications:
+! David Schaefer       Aug 2015 - major rewrite
+! Stephan Thober       Oct 2015 - adapted to mRM
+! O. Rakovec, R. Kumar Nov 2017 - added project description for the netcdf outputs 
 
 module mo_mrm_write_fluxes_states
 
@@ -66,64 +66,55 @@ module mo_mrm_write_fluxes_states
 contains
 
   !------------------------------------------------------------------
-  !     NAME
-  !         newOutputVariable
-  !
-  !     PURPOSE
-  !>        \brief Initialize OutputVariable
-  !
-  !     CALLING SEQUENCE
-  !         var = OutputVariable(nc, ncells, mask, avg)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "type(NcDataset)   :: nc"        -> NcDataset which contains the variable
-  !>        \param[in] "integer(i4)       :: ncells"    -> number of cells in basin
-  !>        \param[in] "logical, target   :: mask(:,:)" -> mask to reconstruct data
-  !>        \param[in] "logical, optional :: avg"       -> average the data before writing
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputVariable)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
-  !
-  !     Modified
-  !         David Schaefer, Nov 2017, added NcVariable initialization
-  function newOutputVariable(nc, name, dtype, dims, ncells, mask, avg) result(out)
+  !    NAME
+  !        newOutputVariable
 
+  !    PURPOSE
+  !>       \brief Initialize OutputVariable
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "type(NcDataset) :: nc"               -> NcDataset which contains the variable
+  !>       \param[in] "character(*) :: name"                
+  !>       \param[in] "character(*) :: dtype"               
+  !>       \param[in] "character(16), dimension(3) :: dims" 
+  !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
+  !>       \param[in] "logical, dimension(:, :) :: mask"    
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, optional :: avg" -> average the data before writing
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+  ! David Schaefer Nov 2017 - , added NcVariable initialization
+
+  function newOutputVariable(nc, name, dtype, dims, ncells, mask, avg) result(out)
+    implicit none
+
+    ! -> NcDataset which contains the variable
     type(NcDataset), intent(in) :: nc
+
     character(*), intent(in) :: name
+
     character(*), intent(in) :: dtype
-    character(16), intent(in) :: dims(3)
+
+    character(16), intent(in), dimension(3) :: dims
+
+    ! -> number of cells in basin
     integer(i4), intent(in) :: ncells
-    logical, intent(in), target :: mask(:, :)
+
+    logical, intent(in), target, dimension(:, :) :: mask
+
+    ! -> average the data before writing
     logical, intent(in), optional :: avg
+
     type(OutputVariable) :: out
+
 
     allocate(out%data(ncells))
     out%nc = nc%setVariable(name, dtype, dims, deflate_level = 1, shuffle = .true.)

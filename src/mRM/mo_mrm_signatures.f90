@@ -1,23 +1,19 @@
-!> \file mo_mrm_signatures.f90
+!>       \file mo_mrm_signatures.f90
 
-!> \brief Module with calculations for several hydrological signatures.
+!>       \brief Module with calculations for several hydrological signatures.
 
-!> \details This module contains calculations for hydrological signatures.
-!> It contains:\n
-!> * Autocorrelation
-!> * Rising and declining limb densities
-!> * Flow duration curves
-!> * Peak distribution
+!>       \details This module contains calculations for hydrological signatures.
+!>       It contains:
+!>       * Autocorrelation
+!>       * Rising and declining limb densities
+!>       * Flow duration curves
+!>       * Peak distribution
 
-!> \authors Remko Nijzink,
-!> \date March 2014
-!  modified, Stephan Thober, Jan 2015 - uncommented unused subroutines that are incompatible
-!                                       with multiple time periods
-!            Juliane Mai,    Jun 2015 - revising all routines
-!                                     - removing routines which are specially low flow or high flow
-!                                     - adding optional mask argument to all routines
-!                                     - using CHS routines like percentile and autocorr
-!            Stephan Thober, Feb 2016 - moved to mRM and renamed to mo_mrm_signatures
+!>       \authors s Remko Nijzink,
+
+!>       \date March 2014
+
+! Modifications:
 
 MODULE mo_mrm_signatures
 
@@ -38,69 +34,50 @@ MODULE mo_mrm_signatures
 CONTAINS
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         Autocorrelation
+  !    NAME
+  !        Autocorrelation
 
-  !     PURPOSE
-  !>        \brief   Autocorrelation of a given data series.
+  !    PURPOSE
+  !>       \brief Autocorrelation of a given data series.
 
-  !>        \details Calculates the autocorrelation of a data series at given lags.
-  !>                 An optional  argument for masking data points can be given.
-  !>                 The function is basically a wrapper of the function autocorr
-  !>                 from the module mo_corr.\n
-  !>                 An optional mask of data points can be specified.
+  !>       \details Calculates the autocorrelation of a data series at given lags.
+  !>       An optional  argument for masking data points can be given.
+  !>       The function is basically a wrapper of the function autocorr
+  !>       from the module mo_corr.
+  !>       An optional mask of data points can be specified.
 
-  !     CALLING SEQUENCE
-  !         auto_correlation = Autocorrelation(data, lags, mask=mask)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data"    Array of data
+  !>       \param[in] "integer(i4), dimension(:) :: lags" Array of lags where autocorrelation is requested
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)     :: data"   Array of data
-  !>        \param[in] "integer(i4), dimension(:)  :: lags"   Array of lags where autocorrelation is requested 
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" Mask for data points givenWorks only with 1d double precision input data.
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jun 2015
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   Mask for data points given
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return     real(dp), dimension(size(lags,1)) :: Autocorrelation &mdash; autocorrelation of data at given lags
-
-  !     RESTRICTIONS
-  !>        Works only with 1d double precision input data.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         Used as hydrologic signature with lag 1 in
-  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
-  !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jun 2015
+  ! Modifications:
 
   FUNCTION Autocorrelation(data, lags, mask)
 
     use mo_corr, only : autocorr
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data            ! Data series
-    integer(i4), dimension(:), intent(in) :: lags            ! Lags for autocorrelation
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
-    real(dp), dimension(size(lags, 1)) :: autocorrelation ! Autocorrelation of data at given lags
+    ! Array of data
+    real(dp), dimension(:), intent(in) :: data
+
+    ! Array of lags where autocorrelation is requested
+    integer(i4), dimension(:), intent(in) :: lags
+
+    ! Mask for data points givenWorks only with 1d double precision input data.
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! Autocorrelation of data at given lags
+    real(dp), dimension(size(lags, 1)) :: autocorrelation
+
 
     if (present(mask)) then
       autocorrelation = autocorr(data, lags, mask = mask)

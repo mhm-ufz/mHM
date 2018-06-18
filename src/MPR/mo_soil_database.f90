@@ -1,13 +1,16 @@
-!> \file mo_soil_database.f90
+!>       \file mo_soil_database.f90
 
-!> \brief Generating soil database from input file.
+!>       \brief Generating soil database from input file.
 
-!> \details This module provides the routines for generating the soil database for mHM from an ASCII input file.\n
-!> One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial soil database.
-!> The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
+!>       \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
+!>       One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial soil database.
+!>       The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 
-!> \authors Juliane Mai
-!> \date Dec 2012
+!>       \authors s Juliane Mai
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_soil_database
 
@@ -32,74 +35,57 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_soil_LUT
+  !    NAME
+  !        read_soil_LUT
 
-  !>        \brief Reads the soil LUT file.
+  !    PURPOSE
+  !>       \brief Reads the soil LUT file.
 
-  !>        \details Reads the soil LookUpTable file and checks for consistency.
+  !>       \details Reads the soil LookUpTable file and checks for consistency.
 
-  !     INDENT(IN)
-  !>        \param[in] "character(len=*) :: filename"        filename of the soil LUT
-  !>        \param[in] "integer(i4)      :: iFlag_soilDB"    option for which kind of database to read
+  !    INTENT(IN)
+  !>       \param[in] "character(len = *) :: filename" filename of the soil LUT
 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INDENT(INOUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INDENT(OUT)
-  !>        \param[out] "type(soilType) :: soilDB"          initialized soil database
-
-  !     INDENT(IN), OPTIONAL
-  !         None
-
-  !     INDENT(INOUT), OPTIONAL
-  !         None
-
-  !     INDENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note Soil LUT is an ASCII file.
-
-  !     EXAMPLE
-  !         call read_soil_LUT('soil_BUEK_1000_LUT.txt', soilDB)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified: Luis Samaniego, Nov 2013, transform relation op. == -> .eq. etc
-  !           Rohini Kumar,           Mar 2016 - new variables for handling different soil databases
+  ! Modifications:
+  ! : Luis Samaniego Nov 2013 - , transform relation op. == -> .eq. etc
+  ! Rohini Kumar     Mar 2016 - new variables for handling different soil databases
 
   subroutine read_soil_LUT(filename)
-    use mo_mpr_global_variables, only : tillageDepth, nSoilHorizons_mHM, HorizonDepth_mHM              ! value is used
-    use mo_mpr_global_variables, only : nSoilTypes, iFlag_soilDB, soilDB                ! value is set
+
+    use mo_common_constants, only : eps_dp, nodata_dp, nodata_i4
+    use mo_mpr_constants, only : nLCover_class
     use mo_mpr_file, only : usoil_database
-    use mo_mpr_constants, only : nLCover_class             ! number of land cover classes
-    use mo_common_constants, only : &
-            nodata_i4, nodata_dp, &   ! global nodata values (i4, dp)
-            eps_dp                    ! epsilon(1.0) in double precision
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB, &
+                                        tillageDepth
 
     implicit none
 
-    character(len = *), intent(in) :: filename       ! filename of the soil LUT
+    ! filename of the soil LUT
+    character(len = *), intent(in) :: filename
 
-    ! local variables
     character(len = 10) :: dummy
+
     integer(i4) :: ios
+
     integer(i4) :: ii, jj, kk
+
     integer(i4) :: nR, nH
+
     real(dp) :: up, down
+
     real(dp) :: cly, snd, bd
+
     real(dp) :: dmin
+
     integer(i4) :: maxNumberHorizons
+
     integer(i4) :: minNumberTillHorizons, maxNumberTillHorizons
+
 
     SELECT CASE (iFlag_soilDB)
       ! classical mHM soil database

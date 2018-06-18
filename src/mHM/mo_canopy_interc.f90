@@ -1,12 +1,15 @@
-!> \file mo_canopy_interc.f90
+!>       \file mo_canopy_interc.f90
 
-!> \brief Canopy interception.
+!>       \brief Canopy interception.
 
-!> \details This module deals with processes related to canopy interception, evaporation and throughfall.
+!>       \details This module deals with processes related to canopy interception, evaporation and throughfall.
 
-!> \authors Vladyslav Prykhodko
-!> \date Dec 2012
-!   Modified RK, Sep 2013 - Documentation updated (formula and a short description added) 
+!>       \authors s Vladyslav Prykhodko
+
+!>       \date Dec 2012
+
+! Modifications:
+! RK Sep 2013 - Documentation updated (formula and a short description added)
 
 MODULE mo_canopy_interc
 
@@ -26,90 +29,74 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         canopy_interc
+  !    NAME
+  !        canopy_interc
 
-  !     PURPOSE
-  !>        \brief Canopy interception.
+  !    PURPOSE
+  !>       \brief Canopy interception.
 
-  !>        \details  Calculates throughfall.
-  !>                  Updates interception and evaporation intensity from canopy.\n
+  !>       \details Calculates throughfall.
+  !>       Updates interception and evaporation intensity from canopy.
+  !>       Throughfall (\f$F\f$) is estimated as a function of the incoming precipitation (\f$P\f$),
+  !>       the current status of the canopy water content (\f$C\f$), and the max. water
+  !>       \f[ F = Max( (P + C - C_{max}), 0) \f]
+  !>       Evaporation (\f$E\f$) from canopy is estimated as a fraction of the potential
+  !>       evapotranspiration(\f$E_{p}\f$) depending on the current status of the canopy
+  !>       water content (\f$C\f$) and the max. water content(\f$C_{max}\f$) that can be
+  !>       intecepted by the vegetation. 
+  !>       \f[ E = E_{p}(C/C_{max})^{2/3} \f]
 
-  !>         Throughfall (\f$F\f$) is estimated as a function of the incoming precipitation (\f$P\f$), 
-  !>         the current status of the canopy water content (\f$C\f$), and the max. water 
-  !          content(\f$C_{max}\f$) that can be intecepted by the vegetation.\n       
-  !>         \f[ F = Max( (P + C - C_{max}), 0) \f]
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp) :: pet"        Potential evapotranspiration [mm s-1]
+  !>       \param[in] "REAL(dp) :: interc_max" Maximum interception [mm]
+  !>       \param[in] "REAL(dp) :: precip"     Daily mean precipitation [mm]
 
-  !>         Evaporation (\f$E\f$) from canopy is estimated as a fraction of the potential 
-  !>         evapotranspiration(\f$E_{p}\f$) depending on the current status of the canopy  
-  !>         water content (\f$C\f$) and the max. water content(\f$C_{max}\f$) that can be 
-  !>         intecepted by the vegetation. \n
-  !>         \f[ E = E_{p}(C/C_{max})^{2/3} \f]
+  !    INTENT(INOUT)
+  !>       \param[inout] "REAL(dp) :: interc" Interception [mm]
 
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp) :: throughfall" Throughfall [mm s-1]
+  !>       \param[out] "REAL(dp) :: evap_canopy" Real evaporation intensity from canopy[mm s-1]
 
-  !     CALLING SEQUENCE
-  !         canopy_interc(pet, interc_month_max, interc_max, precip, throughfall, evap_canopy, interc)
+  !    HISTORY
+  !>       \authors Vladyslav Prykhodko
 
-  !     INDENT(IN)
-  !>        \param[in] "real(dp) ::  precip"               Daily mean precipitation [mm]
-  !>        \param[in] "real(dp) ::  pet"                  Potential evapotranspiration [mm s-1]
-  !>        \param[in] "real(dp) ::  interc_max"           Maximum interception [mm]
+  !>       \date Dec 2012
 
-  !     INDENT(INOUT)
-  !>        \param[in,out] "real(dp)  ::  interc"          Interception [mm]
-
-  !     INDENT(OUT)
-  !>        \param[out] "real(dp)  ::  evap_canopy"        Real evaporation intensity from canopy[mm s-1]
-  !>        \param[out] "real(dp)  ::  throughfall"        Throughfall [mm s-1]
-
-
-  !     INDENT(IN), OPTIONAL
-  !         None
-
-  !     INDENT(INOUT), OPTIONAL
-  !         None
-
-  !     INDENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Vladyslav Prykhodko
-  !>        \date Dec 2012
-  !         Modified JM, Aug 2013 - ordering of arguments changed
-  !                  RK, Sep 2013 - Documentation updated (formula and a short description added) 
+  ! Modifications:
+  ! JM Aug 2013 - ordering of arguments changed
+  ! RK Sep 2013 - Documentation updated (formula and a short description added)
 
   ELEMENTAL PURE SUBROUTINE canopy_interc(pet, interc_max, precip, interc, throughfall, evap_canopy)
+    implicit none
 
-    IMPLICIT NONE
-
+    ! Potential evapotranspiration [mm s-1]
     REAL(dp), INTENT(IN) :: pet
+
+    ! Maximum interception [mm]
     REAL(dp), INTENT(IN) :: interc_max
+
+    ! Daily mean precipitation [mm]
     REAL(dp), INTENT(IN) :: precip
+
+    ! Interception [mm]
     REAL(dp), INTENT(INOUT) :: interc
+
+    ! Throughfall [mm s-1]
     REAL(dp), INTENT(OUT) :: throughfall
+
+    ! Real evaporation intensity from canopy[mm s-1]
     REAL(dp), INTENT(OUT) :: evap_canopy
 
-    ! local variables
-    REAL(dp) :: aux_help ! Auxiliary helping variable [-]
+    ! Auxiliary helping variable [-]
+    REAL(dp) :: aux_help
+
 
     !===============================================
     ! Canopy Interception
     ! Canopy storage (actualize)
     ! 1st rains -> 2nd Interception -> 3rd ETP
     !===============================================
-
     aux_help = interc + precip
     if (aux_help >= interc_max) then
       throughfall = aux_help - interc_max

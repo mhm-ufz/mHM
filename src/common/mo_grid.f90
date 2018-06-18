@@ -1,3 +1,15 @@
+!>       \file mo_grid.f90
+
+!>       \brief TODO: add description
+
+!>       \details TODO: add description
+
+!>       \authors Robert Schweppe
+
+!>       \date Jun 2018
+
+! Modifications:
+
 module mo_grid
   use mo_kind, only : dp, i4
 
@@ -10,84 +22,71 @@ module mo_grid
 contains
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         L1_variable_init
+  !    NAME
+  !        init_lowres_level
 
-  !>        \brief Level-1 variable initialization
+  !    PURPOSE
+  !>       \brief Level-1 variable initialization
 
-  !>        \details following tasks are performed for L1 datasets
-  !>                 -  cell id & numbering
-  !>                 -  mask creation
-  !>                 -  storage of cell cordinates (row and coloum id)
-  !>                 -  sorage of four corner L0 cordinates
-  !>                 If a variable is added or removed here, then it also has to
-  !>                 be added or removed in the subroutine config_variables_set in
-  !>                 module mo_restart and in the subroutine set_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details following tasks are performed for L1 datasets
+  !>       -  cell id & numbering
+  !>       -  mask creation
+  !>       -  storage of cell cordinates (row and coloum id)
+  !>       -  sorage of four corner L0 cordinates
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine config_variables_set in
+  !>       module mo_restart and in the subroutine set_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)       ::  iBasin"               basin id
+  !    INTENT(IN)
+  !>       \param[in] "type(Grid) :: highres"         
+  !>       \param[in] "real(dp) :: target_resolution" 
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid) :: lowres" 
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(INOUT), OPTIONAL
+  !>       \param[inout] "type(GridRemapper), optional :: highres_lowres_remap" 
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Rohini Kumar
-  !         \date    Jan 2013
+  ! Modifications:
 
   subroutine init_lowres_level(highres, target_resolution, lowres, highres_lowres_remap)
 
-    use mo_common_variables, only : &
-            Grid, GridRemapper
     use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_common_variables, only : Grid, GridRemapper
 
     implicit none
 
     type(Grid), target, intent(in) :: highres
+
     real(dp), intent(in) :: target_resolution
+
     type(Grid), target, intent(inout) :: lowres
+
     type(GridRemapper), intent(inout), optional :: highres_lowres_remap
 
-    ! local variables
     real(dp), dimension(:, :), allocatable :: areaCell0_2D
 
     real(dp) :: cellFactor
 
     integer(i4) :: iup, idown
+
     integer(i4) :: jl, jr
 
     integer(i4) :: i, j, k, ic, jc
 
+    ! STEPS :: 
+
+
     !--------------------------------------------------------
-    ! STEPS::
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
-
     ! grid properties
     if (.not. allocated(lowres%mask)) then
       call calculate_grid_properties(highres%nrows, highres%ncols, &

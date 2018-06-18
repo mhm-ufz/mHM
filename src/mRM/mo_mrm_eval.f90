@@ -1,11 +1,15 @@
-!> \file mo_mrm_eval.f90
+!>       \file mo_mrm_eval.f90
 
-!> \brief Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
+!>       \brief Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
-!> \details  Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
+!>       \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
-!> \authors Stephan Thober
-!> \date Sep 2015
+!>       \authors s Stephan Thober
+
+!>       \date Sep 2015
+
+! Modifications:
+
 module mo_mrm_eval
 
   implicit none
@@ -16,140 +20,122 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          mrm_eval
+  !    NAME
+  !        mrm_eval
 
-  !>        \brief Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
+  !    PURPOSE
+  !>       \brief Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
-  !>        \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
+  !>       \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
-  !     INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:)    :: parameterset"
-  !>          a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       dim1=ncells, dim2=time
+  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" dim1=time dim2=nBasins
+  !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
+  !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       dim1=ncells, dim2=time
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Sep 2015
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), dimension(:,:), optional  :: runoff"
-  !>           returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Sep 2015
-  !         Modified, Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
+  ! Modifications:
+  ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
 
   subroutine mrm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 
-    use mo_kind, only : i4, dp
-    use mo_utils, only : ge
+    use mo_common_constants, only : HourSecs
+    use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
+                                            timestep, warmingDays
+    use mo_common_variables, only : level1, nBasins, processMatrix, resolutionHydrology
+    use mo_julian, only : caldat, julday
+    use mo_kind, only : dp, i4
     use mo_message, only : message
-    use mo_mrm_global_variables, only : &
-            level11, &
-            outputFlxState_mrm, & ! output Fluxes
-            timeStep_model_outputs_mrm, &
-            L1_total_runoff_in, & ! total runoff [mm h-1]
-            ! INPUT variables for mRM routing ====================================
-            L1_L11_ID, &
-            L11_length, & ! link length
-            L11_slope, &
-            L11_L1_ID, &
-            L11_netPerm, & ! routing order at L11
-            L11_fromN, & ! link source at L11
-            L11_toN, & ! link target at L11
-            L11_nOutlets, &
-            basin_mrm, & ! basin_mrm structure
-            InflowGauge, &
-            ! INPUT/OUTPUT variables for mRM routing =============================
-            L11_TSrout, & ! routing timestep in seconds
-            L11_C1, & ! first muskingum parameter
-            L11_C2, & ! second muskigum parameter
-            L11_qOUT, & ! routed runoff flowing out of L11 cell
-            L11_qTIN, & ! inflow water into the reach at L11
-            L11_qTR, & !
-            L11_nLinkFracFPimp, & ! fraction of impervious layer at L11 scale
-            L11_qMod, &
-            mRM_runoff ! global variable containing runoff for every gauge
-    use mo_common_variables, only : processMatrix, &
-            ! other variables
-            level1, &
-            resolutionHydrology, &
-            nBasins
-    use mo_common_mHM_mRM_variables, only : & !
-            nTStepDay, & ! number of timesteps per day
-            warmingDays, & ! warmingDays for each basin
-            simPer, & ! simulation period
-            LCYearId, & ! land cover year id
-            optimize, &
-            dirRestartIn, & ! directory containing restart directory
-            read_restart, & ! flag for reading restart
-            timestep, & ! simulation timestep in [h]
-            resolutionRouting
-
+    use mo_mrm_global_variables, only : InflowGauge, &
+                                        L11_C1, L11_C2, L11_L1_ID, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, &
+                                        L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
+                                        L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
+                                        outputFlxState_mrm, timeStep_model_outputs_mrm
+    use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
-    use mo_mrm_init, only : variables_default_init_routing, mrm_update_param
     use mo_mrm_write, only : mrm_write_output_fluxes
-    use mo_julian, only : caldat, julday
-    use mo_common_constants, only : HourSecs
+    use mo_utils, only : ge
 
     implicit none
 
-    ! input variables
+    ! a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
     real(dp), dimension(:), intent(in) :: parameterset
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff       ! dim1=time dim2=gauge
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
 
-    ! local variables
+    ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
+
+    ! dim1=ncells, dim2=time
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
+
+    ! dim1=time dim2=nBasins
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws
+
+    ! dim1=ncells, dim2=time
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
+
+    ! dim1=ncells, dim2=time
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
+
     integer(i4) :: iBasin
+
     integer(i4) :: jj
+
     integer(i4) :: tt
+
     integer(i4) :: day
+
     integer(i4) :: month
+
     integer(i4) :: year
+
     integer(i4) :: hour
+
     integer(i4) :: nTimeSteps
-    integer(i4) :: Lcover_yID ! Land cover year ID
-    integer(i4) :: s1, e1 ! start and end index at level 1 for current basin
-    integer(i4) :: s11, e11 ! start and end index at L11
-    integer(i4) :: iDischargeTS ! discharge timestep
-    real(dp) :: tsRoutFactor             ! factor between routing and hydrological modelling resolution
-    real(dp) :: tsRoutFactorIn           ! factor between routing and hydrological modelling resolution (temporary variable)
-    integer(i4) :: timestep_rout            ! timestep of runoff to rout [h]
-    !                                       ! - identical to timestep of input if
-    !                                       !   tsRoutFactor is less than 1
-    !                                       ! - tsRoutFactor * timestep if
-    !                                       !   tsRoutFactor is greater than 1
-    !
+
+    ! Land cover year ID
+    integer(i4) :: Lcover_yID
+
+    ! start and end index at level 1 for current basin
+    integer(i4) :: s1, e1
+
+    ! start and end index at L11
+    integer(i4) :: s11, e11
+
+    ! discharge timestep
+    integer(i4) :: iDischargeTS
+
+    ! factor between routing and hydrological modelling resolution
+    real(dp) :: tsRoutFactor
+
+    ! factor between routing and hydrological modelling resolution (temporary variable)
+    real(dp) :: tsRoutFactorIn
+
+    ! timestep of runoff to rout [h]- identical to timestep of input iftsRoutFactor is less than 1- tsRoutFactor * timestep iftsRoutFactor is greater than 1
+    integer(i4) :: timestep_rout
+
     real(dp) :: newTime
-    real(dp), allocatable :: RunToRout(:) ! Runoff that is input for routing
-    real(dp), allocatable :: InflowDischarge(:) ! inflowing discharge
-    logical, allocatable :: mask11(:, :)
-    logical :: do_rout ! flag for performing routing
+
+    ! Runoff that is input for routing
+    real(dp), allocatable, dimension(:) :: RunToRout
+
+    ! inflowing discharge
+    real(dp), allocatable, dimension(:) :: InflowDischarge
+
+    logical, allocatable, dimension(:, :) :: mask11
+
+    ! flag for performing routing
+    logical :: do_rout
+
 
     if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")

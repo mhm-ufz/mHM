@@ -1,19 +1,23 @@
-!> \file mo_read_forcing_nc.f90
+!>       \file mo_read_forcing_nc.f90
 
-!> \brief Reads forcing input data.
+!>       \brief Reads forcing input data.
 
-!> \details This module is to read forcing input data contained in netcdf files, e.g. temperature, precipitation,
-!> total_runoff, lai. Timesteps can be hourly, daily, monthly, and annual. The module provides a subroutine
-!> for NetCDF files only. First, the dimensions given are cross-checked with header.txt information. Second,
-!> the data of the specified period are read from the specified directory.\n
-!> If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-!> The program is stopped if any value lies out of range.
+!>       \details This module is to read forcing input data contained in netcdf files, e.g. temperature, precipitation,
+!>       total_runoff, lai. Timesteps can be hourly, daily, monthly, and annual. The module provides a subroutine
+!>       for NetCDF files only. First, the dimensions given are cross-checked with header.txt information. Second,
+!>       the data of the specified period are read from the specified directory.
+!>       If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
+!>       The program is stopped if any value lies out of range.
 
-!> \authors Juliane Mai
-!> \date Dec 2012
-!  Modified Stephan Thober  Sep 2015  - separated routines for netcdf files from routines for binary files
-!           Stephan Thober  Jan 2017  - added reading weights for disaggregation of daily meteorological values to hourly ones
-!           Robert Schweppe Nov 2017  - switched to mo_netcdf library and restuctured routines
+!>       \authors s Juliane Mai
+
+!>       \date Dec 2012
+
+! Modifications:
+! Stephan Thober  Sep 2015 - separated routines for netcdf files from routines for binary files
+! Stephan Thober  Jan 2017 - added reading weights for disaggregation of daily meteorological values to hourly ones
+! Robert Schweppe Nov 2017 - switched to mo_netcdf library and restuctured routines
+
 module mo_read_forcing_nc
   implicit none
   public :: read_forcing_nc
@@ -25,97 +29,53 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_forcing_nc
+  !    NAME
+  !        read_forcing_nc
 
-  !     PURPOSE
-  !>        \brief Reads forcing input in NetCDF file format.
+  !    PURPOSE
+  !>       \brief Reads forcing input in NetCDF file format.
 
-  !>        \details Reads netCDF forcing files.  \n
-  !>        First, the dimensions given are cross-checked with header.txt information. Second, the data of the
-  !>        specified period are read from the specified directory.
-  !>        If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
-  !>        The program is stopped if any value lies out of range.\n
-  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
-  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
+  !>       \details Reads netCDF forcing files.  
+  !>       First, the dimensions given are cross-checked with header.txt information. Second, the data of the
+  !>       specified period are read from the specified directory.
+  !>       If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
+  !>       The program is stopped if any value lies out of range.
+  !>       If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !>       Additionally in this case an mask of vild data points can be received from the routine in maskout.
 
-  !     CALLING SEQUENCE
-  !         target_period%dStart   = 2_i4                                                     ! day
-  !         target_period%mStart   = 2_i4                                                     ! month
-  !         target_period%yStart   = 1972_i4                                                  ! year
-  !         target_period%dEnd     = 7_i4                                                     ! day
-  !         target_period%mEnd     = 8_i4                                                     ! month
-  !         target_period%yEnd     = 1977_i4                                                  ! year
-  !         target_period%julStart = NDAYS(target_period%dStart, target_period%mStart, target_period%yStart)    ! julian day starting
-  !         target_period%julEnd   = NDAYS(target_period%dEnd,   target_period%mEnd,   target_period%yEnd  )    ! julian day ending
-  !         target_period%nObs     = target_period%julEnd - target_period%julStart + 1_i4                 ! total number of observation
+  !    INTENT(IN)
+  !>       \param[in] "character(len = *) :: folder"     Name of the folder where data are stored
+  !>       \param[in] "integer(i4) :: nRows"             Number of datapoints in longitudinal direction
+  !>       \param[in] "integer(i4) :: nCols"             Number of datapoints in latitudinal  direction
+  !>       \param[in] "character(len = *) :: varName"    Name of variable name to read
+  !>       \param[in] "logical, dimension(:, :) :: mask" mask of valid data fields
 
-  !         call read_forcing_nc('old_code/sub_00020/input/forcing/pre/' , 21_i4, 28_i4, precipitation, target_period,   &
-  !                             lower=  0.0_dp)
-  !         call read_forcing_nc('old_code/sub_00020/input/forcing/pet/' , 21_i4, 28_i4, pot_evapo_trans, target_period, &
-  !                             lower=  0.0_dp, upper=20.0_dp)
-  !         call read_forcing_nc('old_code/sub_00020/input/forcing/tavg/', 21_i4, 28_i4, temp_average, target_period,    &
-  !                             lower=-50.0_dp, upper=50.0_dp)
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :) :: data" Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = time
 
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: folder"        Name of the folder where data are stored
-  !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
-  !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
-  !>        \param[in] "character(len=*) :: varName"       Name of variable name to read
-  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "type(period), optional :: target_period" Period the data are needed for
+  !>       \param[in] "real(dp), optional :: lower"             Lower bound for check of validity of data values
+  !>       \param[in] "real(dp), optional :: upper"             Upper bound for check of validity of data values
+  !>       \param[in] "integer(i4), optional :: nctimestep"     timestep in netcdf file
+  !>       \param[in] "character(256), optional :: fileName"    name of variable, defaults to fileName
+  !>       \param[in] "logical, optional :: nocheck"            .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "logical, dimension(:, :, :), optional :: maskout" ! mask of validdata points
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:,:,:) :: data"     Data matrix
-  !>                                                             dim_1 = longitude, dim_2 = latitude, dim_3 = time
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "type(period),optional, intent(in) :: target_period" Period the data are needed for
-  !>        \param[in] "real(dp),    optional, intent(in) :: lower"         Lower bound for check of validity of data values
-  !>        \param[in] "real(dp),    optional, intent(in) :: upper"         Upper bound for check of validity of data values
-  !>        \param[in] "logical,     optional, intent(in) :: nocheck"       .TRUE. if check for nodata values deactivated
-  !>                                                                        default = .FALSE. - check is done
-  !>        \param[in] "integer(i4)  optional, intent(in) :: nctimestep"    timestep in netcdf file
+  !>       \date May 2013
 
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[in] "logical, dimension(:,:,:), allocatable,  optional, intent(out) :: maskout"  ! mask of valid
-  !>                                                                                                  data points 
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
-  !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 3 dimensions:
-  !>              1. x, 2. y, 3. t. It is expected that the variables (especially)within the NetCDF files contain an
-  !>              unit attribute. The timestep has to be equidistant.
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date May 2013
-  !               modified Stephan Thober     Nov 2013 - only read required
-  !                                                      chunk from nc file
-  !                        Matthias Cuntz & Juliane Mai Nov 2014 - read daily, monthly or yearly files
-  !                        Matthias Zink      Mar 2014 - added optional nocheck flag and optional maskout
-  !                        Stephan Thober     Sep 2015 - added read for hourly data
-  !                        Robert Schweppe    Nov 2017 - switched to mo_netcdf library and restuctured routines
+  ! Modifications:
 
   subroutine read_forcing_nc(folder, nRows, nCols, varName, mask, data, target_period, lower, upper, nctimestep, &
-          fileName, nocheck, maskout)
+                            fileName, nocheck, maskout)
 
-    use mo_kind, only : i4, dp
     use mo_common_variables, only : period
+    use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
@@ -123,37 +83,75 @@ contains
 
     implicit none
 
-    character(len = *), intent(in) :: folder     ! folder where data are stored
-    integer(i4), intent(in) :: nRows      ! number of rows of data fields:
-    integer(i4), intent(in) :: nCols      ! number of columns of data fields:
-    character(len = *), intent(in) :: varName    ! name of NetCDF variable
-    logical, dimension(:, :), intent(in) :: mask       ! mask of valid data fields
-    type(period), optional, intent(in) :: target_period    ! time period
-    real(dp), optional, intent(in) :: lower      ! lower bound for data points
-    real(dp), optional, intent(in) :: upper      ! upper bound for data points
-    integer(i4), optional, intent(in) :: nctimestep ! -1: daily (default);
-    !                                                                            ! -2: monthly;
-    !                                                                            ! -3: yearly;
-    !                                                                            ! -4: hourly; DEPRECATED!!!
-    character(256), optional, intent(in) :: fileName   ! name of variable, defaults to fileName
-    logical, optional, intent(in) :: nocheck    ! .TRUE. if check for nodata values deactivated
-    !                                                                            ! default = .FALSE. - check is done
-    real(dp), dimension(:, :, :), allocatable, intent(out) :: data       ! data read in
-    logical, dimension(:, :, :), allocatable, optional, intent(out) :: maskout    ! mask of data to read
+    ! Name of the folder where data are stored
+    character(len = *), intent(in) :: folder
 
-    !
-    ! local variables
-    type(NcDataset) :: nc           ! netcdf file
-    type(NcVariable) :: var, time_var! variables for data and time form netcdf
-    integer(i4), allocatable, dimension(:) :: var_shape    ! shape of NetCDF variable
-    integer(i4) :: time_start   ! index for selecting time vector
-    integer(i4) :: time_cnt     ! length of vector of selected time values
+    ! Number of datapoints in longitudinal direction
+    integer(i4), intent(in) :: nRows
 
-    character(256) :: fName        ! name of NetCDF file
-    integer(i4) :: i            ! loop variable
-    real(dp) :: nodata_value ! data nodata value
-    logical :: checking     ! check if model domain is covered by data
-    integer(i4) :: inctimestep  ! check if model domain is covered by data
+    ! Number of datapoints in latitudinal  direction
+    integer(i4), intent(in) :: nCols
+
+    ! Name of variable name to read
+    character(len = *), intent(in) :: varName
+
+    ! mask of valid data fields
+    logical, dimension(:, :), intent(in) :: mask
+
+    ! Period the data are needed for
+    type(period), optional, intent(in) :: target_period
+
+    ! Lower bound for check of validity of data values
+    real(dp), optional, intent(in) :: lower
+
+    ! Upper bound for check of validity of data values
+    real(dp), optional, intent(in) :: upper
+
+    ! timestep in netcdf file
+    integer(i4), optional, intent(in) :: nctimestep
+
+    ! name of variable, defaults to fileName
+    character(256), optional, intent(in) :: fileName
+
+    ! .TRUE. if check for nodata values deactivateddefault = .FALSE. - check is done
+    logical, optional, intent(in) :: nocheck
+
+    ! Data matrixdim_1 = longitude, dim_2 = latitude, dim_3 = time
+    real(dp), dimension(:, :, :), allocatable, intent(out) :: data
+
+    ! ! mask of validdata points
+    logical, dimension(:, :, :), allocatable, optional, intent(out) :: maskout
+
+    ! netcdf file
+    type(NcDataset) :: nc
+
+    ! variables for data and time form netcdf
+    type(NcVariable) :: var, time_var
+
+    ! shape of NetCDF variable
+    integer(i4), allocatable, dimension(:) :: var_shape
+
+    ! index for selecting time vector
+    integer(i4) :: time_start
+
+    ! length of vector of selected time values
+    integer(i4) :: time_cnt
+
+    ! name of NetCDF file
+    character(256) :: fName
+
+    ! loop variable
+    integer(i4) :: i
+
+    ! data nodata value
+    real(dp) :: nodata_value
+
+    ! check if model domain is covered by data
+    logical :: checking
+
+    ! check if model domain is covered by data
+    integer(i4) :: inctimestep
+
 
     ! check optional nctimestep
     inctimestep = -1

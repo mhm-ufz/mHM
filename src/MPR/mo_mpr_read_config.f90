@@ -1,14 +1,16 @@
-!> \file mo_mpr_read_config.f90
+!>       \file mo_mpr_read_config.f90
 
-!> \brief read mpr config
+!>       \brief read mpr config
 
-!> \details This module contains all mpr subroutines related to
-!> reading the mpr configuration from file.
+!>       \details This module contains all mpr subroutines related to
+!>       reading the mpr configuration from file.
 
-!> \authors Stephan Thober
-!> \date Aug 2015
-!         Modified, Robert Schweppe Dec 2017 - adapted for mpr
+!>       \authors s Stephan Thober
 
+!>       \date Aug 2015
+
+! Modifications:
+! Robert Schweppe Dec 2017 - adapted for mpr
 
 module mo_mpr_read_config
 
@@ -22,181 +24,204 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_mpr_config
+  !    NAME
+  !        mpr_read_config
 
-  !     PURPOSE
-  !>        \brief Read the general config of mpr
-  !
-  !>        \details Depending on the variable mrm_coupling_config, the
-  !>        mRM config is either read from mrm.nml and parameters from
-  !>        mrm_parameter.nml or copied from mHM.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "logical :: do_message" - flag for writing mHM standard messages
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "logical :: readLatLon" - flag for reading LatLon file
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !    PURPOSE
+  !>       \brief Read the general config of mpr
 
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         Modified,
-  !         Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
-  !         Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist,
-  !                                    and readLatLon flag
-  !         Robert Schweppe Dec 2017  - adapted for MPR
+  !>       \details Depending on the variable mrm_coupling_config, the
+  !>       mRM config is either read from mrm.nml and parameters from
+  !>       mrm_parameter.nml or copied from mHM.
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist"       
+  !>       \param[in] "integer :: unamelist"                
+  !>       \param[in] "character(*) :: file_namelist_param" 
+  !>       \param[in] "integer :: unamelist_param"          
+
+  !    HISTORY
+  !>       \authors Stephan Thober
+
+  !>       \date Aug 2015
+
+  ! Modifications:
+  ! Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
+  ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
+  ! Robert Schweppe Dec 2017 - adapted for MPR
+
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
-    use mo_mpr_global_variables, only : &
-            inputFormat_gridded_LAI, & ! format of gridded LAI data (nc only)
-            timeStep_LAI_input, & ! time step of gridded LAI input
-            iFlag_soilDB, &
-            tillageDepth, & ! soil horizons info for mHM
-            dirgridded_LAI, & ! directory where gridded LAI is located
-            nGeoUnits, &
-            HorizonDepth_mHM, nSoilHorizons_mHM, &
-            fracSealed_cityArea ! land cover information
-    use mo_mpr_constants, only : &
-            maxGeoUnit, & ! maximum number of allowed geological classes
-            maxNoSoilHorizons ! maximum number of allowed soil layers
-    use mo_common_constants, only : &
-            nColPars, & ! number of properties of the global variables
-            maxNoBasins, & ! maximum number of allowed basins
-            nodata_dp, &
-            eps_dp
-    use mo_common_variables, only : &
-            nBasins, &
-            global_parameters, &
-            global_parameters_name, &
-            processMatrix ! process configuration
     use mo_append, only : append
-    use mo_utils, only : EQ
+    use mo_common_constants, only : eps_dp, maxNoBasins, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_nml, only : open_nml, close_nml, position_nml
-    use mo_string_utils, only : num2str
+    use mo_common_variables, only : global_parameters, global_parameters_name, nBasins, processMatrix
     use mo_message, only : message
+    use mo_mpr_constants, only : maxGeoUnit, &
+                                 maxNoSoilHorizons
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, dirgridded_LAI, fracSealed_cityArea, iFlag_soilDB, &
+                                        inputFormat_gridded_LAI, nGeoUnits, nSoilHorizons_mHM, tillageDepth, &
+                                        timeStep_LAI_input
+    use mo_nml, only : close_nml, open_nml, position_nml
+    use mo_string_utils, only : num2str
+    use mo_utils, only : EQ
 
     implicit none
 
     character(*), intent(in) :: file_namelist
+
     integer, intent(in) :: unamelist
+
     character(*), intent(in) :: file_namelist_param
+
     integer, intent(in) :: unamelist_param
 
     integer(i4) :: ii
 
-    ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
-    real(dp), dimension(maxNoSoilHorizons) :: soil_Depth             ! depth of the single horizons
-    character(256), dimension(maxNoBasins) :: dir_gridded_LAI        ! directory of gridded LAI data
-    !                                                                         ! used when timeStep_LAI_input<0
+    ! depth of the single horizons
+    real(dp), dimension(maxNoSoilHorizons) :: soil_Depth
 
-    ! LOCAL variables
-    ! PARAMETERS
-    ! some dummy arrays for namelist read in (allocatables not allowed in namelists)
+    ! directory of gridded LAI dataused when timeStep_LAI_input<0
+    character(256), dimension(maxNoBasins) :: dir_gridded_LAI
+
     character(256) :: dummy
-    real(dp), dimension(5, nColPars) :: dummy_2d_dp ! space holder for routing parameters
-    real(dp), dimension(1, nColPars) :: dummy_2d_dp_2 ! space holder for routing parameters
-    ! interception
+
+    ! space holder for routing parameters
+    real(dp), dimension(5, nColPars) :: dummy_2d_dp
+
+    ! space holder for routing parameters
+    real(dp), dimension(1, nColPars) :: dummy_2d_dp_2
+
     real(dp), dimension(nColPars) :: canopyInterceptionFactor
-    ! snow
+
     real(dp), dimension(nColPars) :: snowTreshholdTemperature
+
     real(dp), dimension(nColPars) :: degreeDayFactor_forest
+
     real(dp), dimension(nColPars) :: degreeDayFactor_impervious
+
     real(dp), dimension(nColPars) :: degreeDayFactor_pervious
+
     real(dp), dimension(nColPars) :: increaseDegreeDayFactorByPrecip
+
     real(dp), dimension(nColPars) :: maxDegreeDayFactor_forest
+
     real(dp), dimension(nColPars) :: maxDegreeDayFactor_impervious
+
     real(dp), dimension(nColPars) :: maxDegreeDayFactor_pervious
-    ! soilmoisture
+
     real(dp), dimension(nColPars) :: orgMatterContent_forest
+
     real(dp), dimension(nColPars) :: orgMatterContent_impervious
+
     real(dp), dimension(nColPars) :: orgMatterContent_pervious
+
     real(dp), dimension(nColPars) :: PTF_lower66_5_constant
+
     real(dp), dimension(nColPars) :: PTF_lower66_5_clay
+
     real(dp), dimension(nColPars) :: PTF_lower66_5_Db
+
     real(dp), dimension(nColPars) :: PTF_higher66_5_constant
+
     real(dp), dimension(nColPars) :: PTF_higher66_5_clay
+
     real(dp), dimension(nColPars) :: PTF_higher66_5_Db
+
     real(dp), dimension(nColPars) :: infiltrationShapeFactor
+
     real(dp), dimension(nColPars) :: PTF_Ks_constant
+
     real(dp), dimension(nColPars) :: PTF_Ks_sand
+
     real(dp), dimension(nColPars) :: PTF_Ks_clay
+
     real(dp), dimension(nColPars) :: PTF_Ks_curveSlope
+
     real(dp), dimension(nColPars) :: rootFractionCoefficient_forest
+
     real(dp), dimension(nColPars) :: rootFractionCoefficient_impervious
+
     real(dp), dimension(nColPars) :: rootFractionCoefficient_pervious
+
     real(dp), dimension(nColPars) :: jarvis_sm_threshold_c1
+
     real(dp), dimension(nColPars) :: rootFractionCoefficient_sand
+
     real(dp), dimension(nColPars) :: rootFractionCoefficient_clay
 
-    ! directRunoff
     real(dp), dimension(nColPars) :: imperviousStorageCapacity
-    ! PET0
+
     real(dp), dimension(nColPars) :: PET_a_forest
+
     real(dp), dimension(nColPars) :: PET_a_impervious
+
     real(dp), dimension(nColPars) :: PET_a_pervious
+
     real(dp), dimension(nColPars) :: PET_b
+
     real(dp), dimension(nColPars) :: PET_c
+
     real(dp), dimension(nColPars) :: minCorrectionFactorPET
+
     real(dp), dimension(nColPars) :: maxCorrectionFactorPET
+
     real(dp), dimension(nColPars) :: aspectTresholdPET
+
     real(dp), dimension(nColPars) :: HargreavesSamaniCoeff
+
     real(dp), dimension(nColPars) :: PriestleyTaylorCoeff
+
     real(dp), dimension(nColPars) :: PriestleyTaylorLAIcorr
+
     real(dp), dimension(nColPars) :: canopyheigth_forest
+
     real(dp), dimension(nColPars) :: canopyheigth_impervious
+
     real(dp), dimension(nColPars) :: canopyheigth_pervious
+
     real(dp), dimension(nColPars) :: displacementheight_coeff
+
     real(dp), dimension(nColPars) :: roughnesslength_momentum_coeff
+
     real(dp), dimension(nColPars) :: roughnesslength_heat_coeff
+
     real(dp), dimension(nColPars) :: stomatal_resistance
-    ! interflow
+
     real(dp), dimension(nColPars) :: interflowStorageCapacityFactor
+
     real(dp), dimension(nColPars) :: interflowRecession_slope
+
     real(dp), dimension(nColPars) :: fastInterflowRecession_forest
+
     real(dp), dimension(nColPars) :: slowInterflowRecession_Ks
+
     real(dp), dimension(nColPars) :: exponentSlowInterflow
-    ! percolation
+
     real(dp), dimension(nColPars) :: rechargeCoefficient
+
     real(dp), dimension(nColPars) :: rechargeFactor_karstic
+
     real(dp), dimension(nColPars) :: gain_loss_GWreservoir_karstic
-    ! routing moved to mRM
-    ! geological parameters
+
     real(dp), dimension(maxGeoUnit, nColPars) :: GeoParam
-    ! neutrons
+
     real(dp), dimension(nColPars) :: Desilets_N0
+
     real(dp), dimension(nColPars) :: COSMIC_N0
+
     real(dp), dimension(nColPars) :: COSMIC_N1
+
     real(dp), dimension(nColPars) :: COSMIC_N2
+
     real(dp), dimension(nColPars) :: COSMIC_alpha0
+
     real(dp), dimension(nColPars) :: COSMIC_alpha1
+
     real(dp), dimension(nColPars) :: COSMIC_L30
+
     real(dp), dimension(nColPars) :: COSMIC_L31
+
 
     ! namelist directories
     namelist /directories_MPR/ dir_gridded_LAI

@@ -1,9 +1,14 @@
-!> \file mo_read_latlon.f90
+!>       \file mo_read_latlon.f90
 
-!> \brief reading latitude and longitude coordinates for each basin
+!>       \brief reading latitude and longitude coordinates for each basin
 
-!> \authors Stephan Thober
-!> \date Nov 2013
+!>       \details TODO: add description
+
+!>       \authors s Stephan Thober
+
+!>       \date Nov 2013
+
+! Modifications:
 
 MODULE mo_read_latlon
 
@@ -25,79 +30,62 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_latlon
+  !    NAME
+  !        read_latlon
 
-  !     PURPOSE
-  !>        \brief reads latitude and longitude coordinates
+  !    PURPOSE
+  !>       \brief reads latitude and longitude coordinates
 
-  !>        \details reads latitude and longitude coordinates from
-  !>        netcdf file for each basin and appends it to the global
-  !>        variables latitude and longitude.
+  !>       \details reads latitude and longitude coordinates from
+  !>       netcdf file for each basin and appends it to the global
+  !>       variables latitude and longitude.
 
-  !     CALLING SEQUENCE
-  !         call read_latlon(ii)
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ii"            basin indexFile name of the basins must be xxx_latlon.nc, wherexxx is the basin id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
+  !>       \param[in] "character(*) :: lon_var_name" 
+  !>       \param[in] "character(*) :: lat_var_name" 
+  !>       \param[in] "character(*) :: level_name"   
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: ii"        basin index
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid) :: level" 
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Nov 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        File name of the basins must be xxx_latlon.nc, where
-  !>        xxx is the basin id. Variable names in the netcdf file
-  !>        have to be 'lat' for latitude and 'lon' for longitude.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date   Nov 2013
-  !         modified, Stephan Thober, Sep 2015 - added latitude and longitude for level 0
-  !                   Stephan Thober, Oct 2015 - added L1_rect_latitude and L1_rect_longitude
-  !                   David Schaefer, May 2016 - removed ncread dependency
-  !                   Robert Schweppe, Mar 2018 - major rewrite
+  ! Modifications:
 
   subroutine read_latlon(ii, lon_var_name, lat_var_name, level_name, level)
 
-    use mo_common_variables, only : fileLatLon, Grid
-    USE mo_message, ONLY : message
+    use mo_common_variables, only : Grid, fileLatLon
+    use mo_message, only : message
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
 
     implicit none
 
-    integer(i4), intent(in) :: ii ! basin index
+    ! basin indexFile name of the basins must be xxx_latlon.nc, wherexxx is the basin id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
+    integer(i4), intent(in) :: ii
+
     character(*), intent(in) :: lon_var_name
+
     character(*), intent(in) :: lat_var_name
+
     character(*), intent(in) :: level_name
+
     type(Grid), intent(inout) :: level
 
-    ! local variables
-    character(256) :: fname ! file name
-    real(dp), dimension(:, :), allocatable :: dummy ! dummy variable
+    ! file name
+    character(256) :: fname
+
+    ! dummy variable
+    real(dp), dimension(:, :), allocatable :: dummy
+
     type(NcDataset) :: nc
+
     type(NcVariable) :: var
+
 
     ! construct filename
     fname = trim(fileLatLon(ii))

@@ -1,11 +1,14 @@
-!> \file mo_upscaling_operators.f90
+!>       \file mo_upscaling_operators.f90
 
-!> \brief Module containing upscaling operators.
+!>       \brief Module containing upscaling operators.
 
-!> \details This module provides the routines for upscaling_operators.
+!>       \details This module provides the routines for upscaling_operators.
 
-!> \authors Giovanni Dalmasso, Rohini Kumar
-!> \date Dec 2012
+!>       \authors s Giovanni Dalmasso, Rohini Kumar
+
+!>       \date Dec 2012
+
+! Modifications:
 
 module mo_upscaling_operators
 
@@ -29,85 +32,66 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !          majority_statistics
+  !    NAME
+  !        majority_statistics
 
-  !>         \brief majority statistics
+  !    PURPOSE
+  !>       \brief majority statistics
 
-  !>         \details upscale grid L0_fineScale_2D_data based on a majority statistics
+  !>       \details upscale grid L0_fineScale_2D_data based on a majority statistics
 
-  !      INTENT(IN)
-  !>         \param[in] "integer(i4) :: nClass"                       number of classes
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"       upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"       lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"      left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)"     right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_fineScale_2D_data(:,:)"    high resolution data
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: nClass"                                number of classes
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"     upper row boundary (level-0) of a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"     lower row boundary (level-0) of a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"    left colon boundary (level-0) of a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell"   right colon boundary (level-0) of a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:, :) :: L0_fineScale_2D_data" high resolution data
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return integer(i4) :: majority_statistics(:) &mdash; Upscaled variable based on majority.
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Giovanni Dalmasso, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     integer(i4) :: majority_statistics(:) &mdash; Upscaled variable based on majority.
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
-
-  !      EXAMPLE
-  !          calling sequence
-  !          variable = majority_statistics(   nClass,                 &
-  !                                           L1_upper_rowId_cell,    &
-  !                                           L1_lower_rowId_cell,    &
-  !                                           L1_left_colonId_cell,   &
-  !                                           L1_right_colonId_cell,  &
-  !                                           L0_fineScale_2D_data,   &
-  !                                         )
-  !
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Giovanni Dalmasso, Rohini Kumar
-  !>         \date Dec 2012
-  !          Written, Giovanni Dalmasso, Dec 2012
-
-  function majority_statistics(nClass, &   ! number of classes
-          L1_upper_rowId_cell, &   ! upper row boundary (level-0) of a level-1 cell
-          L1_lower_rowId_cell, &   ! lower row boundary (level-0) of a level-1 cell
-          L1_left_colonId_cell, &   ! left colon boundary (level-0) of a level-1 cell
-          L1_right_colonId_cell, &   ! right colon boundary (level-0) of a level-1 cell
-          L0_fineScale_2D_data               &   ! high resolution data
-          )
-
+  function majority_statistics(nClass, L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, &
+                              L1_right_colonId_cell, L0_fineScale_2D_data)
     implicit none
-    ! input
+
+    ! number of classes
     integer(i4), intent(in) :: nClass
+
+    ! upper row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_upper_rowId_cell
+
+    ! lower row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_lower_rowId_cell
+
+    ! left colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_left_colonId_cell
+
+    ! right colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_right_colonId_cell
+
+    ! high resolution data
     integer(i4), dimension(:, :), intent(in) :: L0_fineScale_2D_data
-    ! output
+
     integer(i4), dimension(size(L1_upper_rowId_cell, 1)) :: majority_statistics
 
-    ! local variables
     integer(i4) :: L1_nCells
+
     integer(i4) :: iu, id, jl, jr
+
     integer(i4) :: nC
+
     integer(i4) :: max_val
+
     integer(i4) :: kk, ll
+
 
     L1_nCells = size(majority_statistics, 1)
 

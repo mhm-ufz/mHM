@@ -1,11 +1,14 @@
-!> \file mo_common_read_config.f90
+!>       \file mo_common_read_config.f90
 
-!> \brief Reading of main model configurations.
+!>       \brief Reading of main model configurations.
 
-!> \details This routine reads the configurations of namelists commonly used by mHM, mRM and MPR
+!>       \details This routine reads the configurations of namelists commonly used by mHM, mRM and MPR
 
-!> \authors Matthias Zink
-!> \date Dec 2012
+!>       \authors s Matthias Zink
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_common_read_config
 
@@ -23,111 +26,75 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         common_read_config
+  !    NAME
+  !        common_read_config
 
-  !     PURPOSE
-  !>        \brief Read main configurations commonly used by mHM, mRM and MPR
+  !    PURPOSE
+  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
 
-  !>        \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
-  !>        project_description, directories_general, mainconfig, processSelection, LCover
+  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
+  !>       project_description, directories_general, mainconfig, processSelection, LCover
 
-  !     CALLING SEQUENCE
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist" name of file
+  !>       \param[in] "integer :: unamelist"          id of file
 
-  !     INTENT(IN)
-  !>        \param[in] "character(*) :: file_namelist" name of file
-  !>        \param[in] "integer(i4) :: unamelist"      id of file
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Dec 2012
-  !         Modified Robert Schweppe              Dec  2017 - refactoring and restructuring
-
+  ! Modifications:
+  ! Robert Schweppe Dec  2017 - refactoring and restructuring
 
   subroutine common_read_config(file_namelist, unamelist)
 
+    use mo_common_constants, only : maxNLcovers, maxNoBasins
+    use mo_common_variables, only : Conventions, L0_Basin, LC_year_end, LC_year_start, LCfilename, contact, &
+                                    dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
+                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, nBasins, nLcoverScene, &
+                                    nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
+                                    setup_description, simulation_type, write_restart
     use mo_message, only : message
+    use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
-    use mo_nml, only : open_nml, close_nml, position_nml
-    use mo_common_constants, only : maxNoBasins, & ! maximum number of allowed basins
-            maxNLcovers  ! maximum number of allowed LCover scenes
-    use mo_common_variables, only : &
-            dirMorpho, dirLCover, & ! input directory of morphological
-            fileLatLon, & ! directory of latitude and longitude files
-            dirConfigOut, & ! configuration run output directory
-            dirCommonFiles, & ! directory where common files are located
-            dirOut, & ! output directory basin wise
-            dirRestartOut, &
-            resolutionHydrology, & ! resolutions of hydrology
-            write_restart, &
-            L0_Basin, & ! L0_Basin ID
-            nBasins, & ! number of basins
-            nuniquel0Basins, &
-            nLcoverScene, & ! land cover information
-            LCfilename, &
-            LC_year_start, &
-            LC_year_end, &
-            iFlag_cordinate_sys, & ! model run cordinate system
-            nProcesses, processMatrix, & ! process configuration
-            project_details, & ! project including funding instituion., PI, etc.
-            setup_description, & ! any specific description of simulation
-            simulation_type, & ! e.g. seasonal forecast, climate projection, ...
-            Conventions, & ! convention used for dataset
-            contact, & ! contact details, incl. PI name, modellers
-            mHM_details, & ! developing institution, version, specific mHM revision
-            history ! details on version/creation date
 
     implicit none
 
+    ! name of file
     character(*), intent(in) :: file_namelist
+
+    ! id of file
     integer, intent(in) :: unamelist
-    ! LOCAL variables
-    ! PARAMETERS
-    integer(i4), dimension(nProcesses) :: processCase             ! Choosen process description number
+
+    ! Choosen process description number
+    integer(i4), dimension(nProcesses) :: processCase
 
     character(256), dimension(maxNoBasins) :: dir_Morpho
+
     character(256), dimension(maxNoBasins) :: dir_RestartOut
+
     character(256), dimension(maxNoBasins) :: dir_LCover
+
     character(256), dimension(maxNoBasins) :: dir_Out
+
     character(256), dimension(maxNoBasins) :: file_LatLon
 
     real(dp), dimension(maxNoBasins) :: resolution_Hydrology
+
     integer(i4), dimension(maxNoBasins) :: L0Basin
 
-    ! namelist for land cover scenes
-    integer(i4), dimension(maxNLCovers) :: LCoverYearStart ! starting year LCover
-    integer(i4), dimension(maxNLCovers) :: LCoverYearEnd   ! ending year LCover
-    character(256), dimension(maxNLCovers) :: LCoverfName     ! filename of Lcover file
+    ! starting year LCover
+    integer(i4), dimension(maxNLCovers) :: LCoverYearStart
+
+    ! ending year LCover
+    integer(i4), dimension(maxNLCovers) :: LCoverYearEnd
+
+    ! filename of Lcover file
+    character(256), dimension(maxNLCovers) :: LCoverfName
 
     integer(i4) :: iBasin
+
 
     ! define namelists
     ! namelist directories

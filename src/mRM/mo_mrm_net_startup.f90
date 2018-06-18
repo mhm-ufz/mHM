@@ -1,20 +1,21 @@
-!> \file mo_mrm_net_startup.f90
+!>       \file mo_mrm_net_startup.f90
 
-!> \brief Startup drainage network for mHM.
+!>       \brief Startup drainage network for mHM.
 
-!> \details This module initializes the drainage network at L11 in mHM.\n
-!>          - Delineation of drainage network at level 11.    \n
-!>          - Setting network topology (i.e. nodes and link). \n
-!>          - Determining routing order.                      \n
-!>          - Determining cell locations for network links.   \n
-!>          - Find drainage outlet.                           \n
-!>          - Determine stream (links) features.              \n
+!>       \details This module initializes the drainage network at L11 in mHM.
+!>       - Delineation of drainage network at level 11.    
+!>       - Setting network topology (i.e. nodes and link). 
+!>       - Determining routing order.                      
+!>       - Determining cell locations for network links.   
+!>       - Find drainage outlet.                           
+!>       - Determine stream (links) features.              
 
-!> \authors Luis Samaniego
-!> \date Dec 2012
-!         Modified
-!         Rohini Kumar, May 2014   - cell area calulation based on a regular lat-lon grid or 
-!                                     on a regular X-Y coordinate system
+!>       \authors s Luis Samaniego
+
+!>       \date Dec 2012
+
+! Modifications:
+! Rohini Kumar May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
 
 module mo_mrm_net_startup
   use mo_kind, only : i4, dp
@@ -30,31 +31,59 @@ module mo_mrm_net_startup
   PUBLIC :: get_distance_two_lat_lon_points
 contains
 
+  !    NAME
+  !        L11_L1_mapping
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" basin
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine L11_L1_mapping(iBasin)
-    use mo_common_constants, only : nodata_i4
+
     use mo_append, only : append
-    use mo_mrm_global_variables, only : &
-            level11, &
-            L1_L11_ID, & ! INOUT: mapping of L1 Id on L11 in case L11 > L1
-            L11_L1_ID ! INOUT: mapping of L11 Id on L1 in case L1 > L11
-    use mo_common_variables, only : &
-            level1
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : level1
+    use mo_mrm_global_variables, only : L11_L1_ID, L1_L11_ID, level11
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin      ! basin
+    ! basin
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4) :: nrows1, ncols1
+
     integer(i4) :: nrows11, ncols11
+
     integer(i4) :: kk
+
     integer(i4) :: icc, jcc
+
     integer(i4) :: iu, id, jl, jr
-    integer(i4), dimension(:, :), allocatable :: L11Id_on_L1 ! mapping of L11 Id on L1
-    integer(i4), dimension(:, :), allocatable :: L1Id_on_L11 ! mapping of L1 Id on L11
-    integer(i4), dimension(:, :), allocatable :: dummy_2d_id ! dummy ID
+
+    ! mapping of L11 Id on L1
+    integer(i4), dimension(:, :), allocatable :: L11Id_on_L1
+
+    ! mapping of L1 Id on L11
+    integer(i4), dimension(:, :), allocatable :: L1Id_on_L11
+
+    ! dummy ID
+    integer(i4), dimension(:, :), allocatable :: dummy_2d_id
+
     real(dp) :: cellFactorRbyH
+
     integer(i4) :: cellFactorRbyH_inv
+
 
     nrows1 = level1(iBasin)%nrows
     nrows11 = level11(iBasin)%nrows

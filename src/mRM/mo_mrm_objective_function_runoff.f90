@@ -1,45 +1,48 @@
-!> \file mo_objective_function.f90
+!>       \file mo_mrm_objective_function_runoff.f90
 
-!> \brief Objective Functions for Optimization of mHM/mRM against runoff.\n
+!>       \brief Objective Functions for Optimization of mHM/mRM against runoff.
 
-!> \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against runoff.\n
-!>          If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
-!>          If it is only regarding runoff implement it here.\n
-!>
-!>          All the objective functions are supposed to be minimized!                                      \n
-!>               (1)  SO: Q:        1.0 - NSE                                                              \n
-!>               (2)  SO: Q:        1.0 - lnNSE                                                            \n
-!>               (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)                                                  \n
-!>               (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
-!>                                        then lag(1)-autocorrelation removed                              \n
-!>               (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                       \n
-!>               (6)  SO: Q:        SSE                                                                    \n
-!>               (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors            \n
-!>               (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
-!>                                        then lag(1)-autocorrelation removed                              \n
-!>               (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)                             \n
-!>               (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of 
-!>                                        every gauging station based on a power-6 norm                    \n
-!>               (16) MO: Q:        1st objective: 1.0 - NSE                                               \n
-!>                        Q:        2nd objective: 1.0 - lnNSE                                             \n
-!>               (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)               \n
-!>                        Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)             \n
-!>               (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                 \n
-!>                        Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q \n
-!>               (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume         \n
-!>                        Q:        2nd objective: 1.0 - NSE of discharge of months DJF                    \n
-!>               (31) SO: Q:        1.0 - wNSE - weighted NSE                                              \n
+!>       \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against runoff.
+!>       If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
+!>       If it is only regarding runoff implement it here.
+!>       
+!>       All the objective functions are supposed to be minimized!                                      
+!>       (1)  SO: Q:        1.0 - NSE                                                              
+!>       (2)  SO: Q:        1.0 - lnNSE                                                            
+!>       (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)                                                  
+!>       (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
+!>       then lag(1)-autocorrelation removed                              
+!>       (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                       
+!>       (6)  SO: Q:        SSE                                                                    
+!>       (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors            
+!>       (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
+!>       then lag(1)-autocorrelation removed                              
+!>       (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)                             
+!>       (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of
+!>       every gauging station based on a power-6 norm                    
+!>       (16) MO: Q:        1st objective: 1.0 - NSE                                               
+!>       Q:        2nd objective: 1.0 - lnNSE                                             
+!>       (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)               
+!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)             
+!>       (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                 
+!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q 
+!>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume         
+!>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF                    
+!>       (31) SO: Q:        1.0 - wNSE - weighted NSE                                              
 
-!> \authors Juliane Mai
-!> \date Dec 2012
-!  Modified, Stephan Thober Oct 2015 - adapted for mRM
-!            Juliane Mai    Nov 2015 - introducing multi- and single-objective
-!                                    - first multi-objective function (16), but not used yet
-!            Juliane Mai    Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
-!                                    - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
-!                                    - multi-objective function (20) using FDC and discharge of months DJF
-!            Stephan Thober,Bjoern Guse  May 2018 - single objective function (21) using weighted NSE
-!                                                    following (Hundecha and Bardossy, 2004)
+!>       \authors s Juliane Mai
+
+!>       \date Dec 2012
+
+! Modifications:
+! Stephan Thober             Oct 2015 - adapted for mRM
+! Juliane Mai                Nov 2015 - introducing multi
+!                                     - and single-objective 
+!                                     - first multi-objective function (16), but not used yet
+! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows) 
+!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows) 
+!                                     - multi-objective function (20) using FDC and discharge of months DJF
+! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following (Hundecha and Bardossy, 2004)
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -66,67 +69,59 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_runoff
+  !    NAME
+  !        single_objective_runoff
 
-  !>        \brief Wrapper for objective functions optimizing agains runoff.
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions optimizing agains runoff.
 
-  !>        \details The functions selects the objective function case defined in a namelist, 
-  !>        i.e. the global variable \e opti\_function.\n
-  !>        It return the objective function value for a specific parameter set.
+  !>       \details The functions selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It return the objective function value for a specific parameter set.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset" 
+  !>       \param[in] "procedure(eval_interface) :: eval"      
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1" 
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2" 
+  !>       \param[out] "real(dp), optional :: arg3" 
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_runoff(para)
+  !>       \date Dec 2012
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified,
-  !               Stephan Thober              Oct 2015 - only runoff objective functions
-  !               Stephan Thober, Bjoern Guse May 2018 - added weighted objective function
-  !
+  ! Modifications:
+  ! Stephan Thober              Oct 2015 - only runoff objective functions
+  ! Stephan Thober, Bjoern Guse May 2018 - added weighted objective function 
 
   FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)
 
-    USE mo_common_mHM_mRM_variables, ONLY : opti_function, opti_method
+    use mo_common_mHM_mRM_variables, only : opti_function, opti_method
     use mo_message, only : message
 
-    IMPLICIT NONE
+    implicit none
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp), optional, intent(in) :: arg1
+
     real(dp), optional, intent(out) :: arg2
+
     real(dp), optional, intent(out) :: arg3
+
     REAL(dp) :: single_objective_runoff
+
 
     !write(*,*) 'parameterset: ',parameterset(:)
     select case (opti_function)

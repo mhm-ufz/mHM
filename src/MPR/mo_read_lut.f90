@@ -1,14 +1,17 @@
-!> \file mo_read_lut.f90
+!>       \file mo_read_lut.f90
 
-!> \brief Routines reading lookup tables (lut).
+!>       \brief Routines reading lookup tables (lut).
 
-!> \details This module contains routines reading various lookup tables (lut).\n
-!> (1) LUT containing gauge information.\n
-!> (2) LUT containing geological formation information.\n
-!> (3) LUT containing LAI class information.\n
+!>       \details This module contains routines reading various lookup tables (lut).
+!>       (1) LUT containing gauge information.
+!>       (2) LUT containing geological formation information.
+!>       (3) LUT containing LAI class information.
 
-!> \authors Juliane Mai, Matthias Zink
-!> \date Jan 2013
+!>       \authors s Juliane Mai, Matthias Zink
+
+!>       \date Jan 2013
+
+! Modifications:
 
 MODULE mo_read_lut
 
@@ -26,83 +29,65 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_geoformation_lut
+  !    NAME
+  !        read_geoformation_lut
 
-  !     PURPOSE
-  !>        \brief Reads LUT containing geological formation information.
+  !    PURPOSE
+  !>       \brief Reads LUT containing geological formation information.
 
-  !>        \details The LUT needs to have the following header:\n
-  !>        \verbatim
-  !>        nGeo_Formations  < Number of lines containing data > 
-  !>        GeoParam(i)   ClassUnit     Karstic      Description
-  !>        \endverbatim
-  !>        
-  !>        The subsequent lines contains the geological formation information:\n
-  !>        \verbatim
-  !>        <GeoParam(i)>  <ClassUnit_i4>  <Karstic_i4>  <Description_char>
-  !>        \endverbatim
-  !>        All following lines will be discarded while reading.\n
-  !>        GeoParam is a running index while ClassUnit is the unit of the map containing the geological formations 
-  !>        such that it does not neccessarily contains subsequent numbers. The parametrization of this unit is part 
-  !>        of the namelist mhm_parameter.nml under <geoparameter>.
+  !>       \details The LUT needs to have the following header:
+  !>       \verbatim
+  !>       nGeo_Formations  < Number of lines containing data >
+  !>       GeoParam(i)   ClassUnit     Karstic      Description
+  !>       \endverbatim
+  !>       
+  !>       The subsequent lines contains the geological formation information:
+  !>       \verbatim
+  !>       <GeoParam(i)>  <ClassUnit_i4>  <Karstic_i4>  <Description_char>
+  !>       \endverbatim
+  !>       All following lines will be discarded while reading.
+  !>       GeoParam is a running index while ClassUnit is the unit of the map containing the geological formations
+  !>       such that it does not neccessarily contains subsequent numbers. The parametrization of this unit is part
+  !>       of the namelist mhm_parameter.nml under <geoparameter>.
 
+  !    INTENT(IN)
+  !>       \param[in] "character(len = *) :: filename" File name of LUT
+  !>       \param[in] "integer(i4) :: fileunit"        Unit to open file
 
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: filename"        File name of LUT
-  !>        \param[in] "integer(i4)      :: fileunit"        Unit to open file
+  !    INTENT(OUT)
+  !>       \param[out] "integer(i4) :: nGeo"                      Number of geological formations
+  !>       \param[out] "integer(i4), dimension(:) :: geo_unit"    List of id numbers of each geological formations
+  !>       \param[out] "integer(i4), dimension(:) :: geo_karstic" ID of the Karstic formation (0 == does not exist)
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT)
-  !>        \param[out] "integer(i4)                              :: nGeo"           
-  !>                                            Number of geological formations
-  !>        \param[out] "integer(i4), dimension(:),   allocatable :: geo_unit"
-  !>                                            List of id numbers of each geological formations
-  !>        \param[out] "integer(i4), dimension(:),   allocatable :: geo_karstic"
-  !>                                            ID of the Karstic formation (0 == does not exist)
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jan 2013
-
-  ! ------------------------------------------------------------------
+  ! Modifications:
 
   subroutine read_geoformation_lut(filename, fileunit, nGeo, geo_unit, geo_karstic)
-
     implicit none
 
-    character(len = *), intent(in) :: filename      ! name of file
-    integer(i4), intent(in) :: fileunit      ! unit to open file
-    integer(i4), intent(out) :: nGeo          ! number of geological formations
-    integer(i4), dimension(:), allocatable, intent(out) :: geo_unit      ! list of id numbers of each geological formations
-    integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic   ! id of the Karstic formation (0 == does not exist)
+    ! File name of LUT
+    character(len = *), intent(in) :: filename
 
-    ! local variables
+    ! Unit to open file
+    integer(i4), intent(in) :: fileunit
+
+    ! Number of geological formations
+    integer(i4), intent(out) :: nGeo
+
+    ! List of id numbers of each geological formations
+    integer(i4), dimension(:), allocatable, intent(out) :: geo_unit
+
+    ! ID of the Karstic formation (0 == does not exist)
+    integer(i4), dimension(:), allocatable, intent(out) :: geo_karstic
+
     integer(i4) :: i
+
     character(256) :: dummy
+
 
     open(fileunit, file = filename, action = 'read', status = 'old')
 

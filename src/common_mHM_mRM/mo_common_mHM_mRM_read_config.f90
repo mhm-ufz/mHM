@@ -1,11 +1,14 @@
-!> \file mo_common_mHM_mRM_read_config.f90
+!>       \file mo_common_mHM_mRM_read_config.f90
 
-!> \brief Reading of main model configurations.
+!>       \brief Reading of main model configurations.
 
-!> \details This routine reads the configurations of common program parts
+!>       \details This routine reads the configurations of common program parts
 
-!> \authors Matthias Zink
-!> \date Dec 2012
+!>       \authors s Matthias Zink
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_common_mHM_mRM_read_config
 
@@ -23,97 +26,58 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         common_mHM_mRM_read_config
+  !    NAME
+  !        common_mHM_mRM_read_config
 
-  !     PURPOSE
-  !>        \brief Read main configurations for common parts
+  !    PURPOSE
+  !>       \brief Read main configurations for common parts
 
-  !     CALLING SEQUENCE
-  !         None
+  !>       \details TODO: add description
 
-  !     INTENT(IN)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist" 
+  !>       \param[in] "integer :: unamelist"          
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Dec 2012
-  !         Modified Robert Schweppe              Dec  2017 - based on mhm_read_config
-
+  ! Modifications:
+  ! Robert Schweppe Dec  2017 - based on mhm_read_config
 
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
-    use mo_julian, only : julday, caldat
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_nml, only : open_nml, close_nml, position_nml
-    use mo_common_constants, only : &
-            maxNoBasins
+    use mo_common_constants, only : maxNoBasins
+    use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, dirRestartIn, evalPer, mcmc_error_params, mcmc_opti, nIterations, &
+                                            nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
+                                            read_restart, resolutionRouting, sa_temp, sce_ngs, sce_npg, sce_nps, seed, &
+                                            simPer, timestep, warmPer, warmingDays
     use mo_common_read_config, only : set_land_cover_scenes_id
-    use mo_common_variables, only : &
-            period, nBasins, LCfilename
-    use mo_common_mHM_mRM_variables, only : &
-            nTStepDay, &
-            resolutionRouting, &
-            read_restart, &
-            warmingDays, warmPer, & ! warming days and warming period
-            evalPer, simPer, & ! model eval. & sim. periods
-            LCyearId, &
-            dirRestartIn, &
-            timestep, & ! model time step
-            opti_method, &         ! Optimization algorithm:
-            opti_function, &       ! Objective function:
-            optimize, &            ! Optimization   (.true. ) or
-            optimize_restart, &    ! Optimization will be restarted from
-            seed, &                ! seed used for optimization
-            nIterations, &         ! number of iterations for optimization
-            dds_r, &               ! DDS: perturbation rate
-            sa_temp, &             ! SA:  initial temperature
-            sce_ngs, &             ! SCE: # of complexes
-            sce_npg, &             ! SCE: # of points per complex
-            sce_nps, &             ! SCE: # of points per subcomplex
-            mcmc_opti, &           ! MCMC: Optimization (.true. ) or
-            mcmc_error_params   !       Parameters of error model if mcmc_opti=.false.
+    use mo_common_variables, only : LCfilename, nBasins, period
+    use mo_julian, only : caldat, julday
+    use mo_message, only : message
+    use mo_nml, only : close_nml, open_nml, position_nml
+    use mo_string_utils, only : num2str
 
     implicit none
 
     character(*), intent(in) :: file_namelist
+
     integer, intent(in) :: unamelist
 
     integer(i4) :: jday
+
     integer(i4) :: iBasin
+
     integer(i4), dimension(maxNoBasins) :: warming_Days
+
     type(period), dimension(maxNoBasins) :: eval_Per
+
     real(dp), dimension(maxNoBasins) :: resolution_Routing
 
     character(256), dimension(maxNoBasins) :: dir_RestartIn
+
 
     ! namelist spatial & temporal resolution, otmization information
     namelist /mainconfig_mhm_mrm/ timestep, resolution_Routing, optimize, &

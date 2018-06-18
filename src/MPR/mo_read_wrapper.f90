@@ -1,12 +1,15 @@
-!> \file mo_read_wrapper.f90
+!>       \file mo_read_wrapper.f90
 
-!> \brief Wrapper for all reading routines.
+!>       \brief Wrapper for all reading routines.
 
-!> \details This module is to wrap up all reading routines.\n
-!> The general written reading routines are used to store now the read data into global variables.
+!>       \details This module is to wrap up all reading routines.
+!>       The general written reading routines are used to store now the read data into global variables.
 
-!> \authors Juliane Mai, Matthias Zink
-!> \date Jan 2013
+!>       \authors s Juliane Mai, Matthias Zink
+
+!>       \date Jan 2013
+
+! Modifications:
 
 MODULE mo_read_wrapper
 
@@ -20,130 +23,96 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_data
+  !    NAME
+  !        read_data
 
-  !     PURPOSE
-  !>        \brief Reads data.
+  !    PURPOSE
+  !>       \brief Reads data.
 
-  !>        \details The namelists are already read by read_config call.
-  !>                 All LUTs are read from their respective directory and information within those
-  !>                 files are shared across all basins to be modeled.
-  !     INTENT(IN)
-  !         None
+  !>       \details The namelists are already read by read_config call.
+  !>       All LUTs are read from their respective directory and information within those
+  !>       files are shared across all basins to be modeled.
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "type(period), dimension(:), optional :: LAIPer" 
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai & Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Feb 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note read_config has to be called before
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai & Matthias Zink
-  !>        \date Feb 2013
-  !          Modified,
-  !                    Luis Samaniego, Feb 2013  - rotate fdir variable to the new coordinate system
-  !                    Rohini Kumar,   Aug 2013  - name changed from "L0_LAI" to "L0_LCover_LAI"
-  !                    Rohini Kumar,   Aug 2013  - added dirSoil_LUT and dirGeology_LUT, and changed to
-  !                                                read datapaths and variables made accordingly
-  !                    Rohini Kumar,   Aug 2013  - added iFlag_LAI_data_format to handle LAI options,
-  !                                                and changed within the code made accordingly
-  !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
-  !                                                to process_matrix flag
-  !                    Matthias Zink   Mar 2014  - added inflow gauge
-  !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
-  !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
-  !                    Matthias Cuntz & Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
-  !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
-  !                    Rohini Kumar,   Mar 2016  - options to handle different soil databases
-  !                    Matthias Zink   Mar 2014  - added subroutine for consistency check
-  !                    Stephan Thober, Nov 2016  - moved processMatrix to common variables
-  !                    Rohini Kumar,   Dec 2016 - option to handle monthly mean gridded fields of LAI
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Luis Samaniego               Feb 2013 - rotate fdir variable to the new coordinate system
+  ! Rohini Kumar                 Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
+  ! Rohini Kumar                 Aug 2013 - added dirSoil_LUT and dirGeology_LUT, and changed to read datapaths and variables made accordingly
+  ! Rohini Kumar                 Aug 2013 - added iFlag_LAI_data_format to handle LAI options, and changed within the code made accordingly
+  ! Rohini  Kumar                Sep 2013 - read input data for routing processes according to process_matrix flag
+  ! Matthias Zink                Mar 2014 - added inflow gauge
+  ! Kumar & Schroen              Apr 2014 - added check for consistency of L0 and L1 spatial resolution
+  ! Stephan Thober               Jun 2014 - added perform_mpr for omitting L0 read
+  ! Matthias Cuntz & Juliane Mai Nov 2014 - LAI input from daily, monthly or yearly files
+  ! Stephan Thober               Aug 2015 - moved routing related variables and routines to mRM
+  ! Rohini Kumar                 Mar 2016 - options to handle different soil databases
+  ! Matthias Zink                Mar 2014 - added subroutine for consistency check
+  ! Stephan Thober               Nov 2016 - moved processMatrix to common variables
+  ! Rohini Kumar                 Dec 2016 - option to handle monthly mean gridded fields of LAI
 
   subroutine read_data(LAIPer)
-    !
+
+    use mo_append, only : append, paste
+    use mo_common_constants, only : YearMonths_i4, nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    USE mo_read_lut, ONLY : read_lai_lut, &
-            read_geoformation_lut
-    USE mo_soil_database, ONLY : read_soil_LUT
-    USE mo_read_spatial_data, ONLY : read_spatial_data_ascii
-    USE mo_read_latlon, ONLY : read_latlon
-    USE mo_append, ONLY : append, paste
-    USE mo_string_utils, ONLY : num2str
-    USE mo_message, ONLY : message
-    use mo_timer, only : timer_get, timer_start, timer_stop
-    !
-    USE mo_mpr_file, ONLY : file_geolut, ugeolut, & ! file name and unit of hydrogeology LuT
-            file_lailut, ulailut, & ! file name and unit of LAI LuT
-            file_slope, uslope, & ! file name and unit of slope map
-            file_aspect, uaspect, & ! file name and unit of aspect map
-            file_soilclass, usoilclass, & ! file name and unit of soil class map
-            file_hydrogeoclass, uhydrogeoclass, & ! file name and unit of hydrogeo class map
-            file_laiclass, ulaiclass, & ! file name and unit of lai class map
-            file_soil_database, & ! file name of soil class map (iFlag_soilDB = 0)
-            file_soil_database_1 ! file name of soil class map (iFlag_soilDB = 1)
-    USE mo_mpr_global_variables, ONLY : nGeoUnits, GeoUnitList, GeoUnitKar, & ! geological class information
-            L0_slope, & ! slope on input resolution (L0)
-            L0_asp, & ! aspect on input resolution (L0)
-            L0_soilId, & ! soil ID on L0 resolution
-            L0_geoUnit, & ! hydrogeological class ID on input resolution (L0)
-            timeStep_LAI_input, & ! flag on how LAI data has to be read
-            iFlag_soilDB, & ! options to handle different types of soil databases
-            nLAIclass, LAIUnitList, LAILUT, soilDB, L0_gridded_LAI, &
-            nSoilHorizons_mHM, & ! soil horizons info for mHM
-            nLAI
-    use mo_common_variables, ONLY : processMatrix, & ! Info about which process runs in which option
-            level0, & ! grid information (ncols, nrows, ..)
-            dirMorpho, & ! directories
-            dirCommonFiles, & ! directory of common files
-            L0_Basin, & ! L0_Basin ID
-            nBasins, & ! number of basins
-            Grid, &
-            period, &
-            global_parameters                   ! global parameters
-    USE mo_common_constants, ONLY : nodata_i4, nodata_dp, YearMonths_i4                   ! mHM's global nodata vales
+    use mo_common_variables, only : Grid, L0_Basin, dirCommonFiles, dirMorpho, &
+                                    global_parameters, level0, nBasins, period, processMatrix
+    use mo_message, only : message
+    use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
+                            file_laiclass, file_lailut, file_slope, file_soil_database, file_soil_database_1, &
+                            file_soilclass, uaspect, ugeolut, uhydrogeoclass, ulaiclass, ulailut, uslope, usoilclass
+    use mo_mpr_global_variables, only : GeoUnitKar, &
+                                        GeoUnitList, L0_asp, L0_geoUnit, L0_gridded_LAI, L0_slope, L0_soilId, LAILUT, &
+                                        LAIUnitList, iFlag_soilDB, nGeoUnits, nLAI, nLAIclass, nSoilHorizons_mHM, soilDB, &
+                                        timeStep_LAI_input
     use mo_prepare_gridded_lai, only : prepare_gridded_daily_LAI_data, prepare_gridded_mean_monthly_LAI_data
+    use mo_read_latlon, only : read_latlon
+    use mo_read_lut, only : read_geoformation_lut, read_lai_lut
+    use mo_read_spatial_data, only : read_spatial_data_ascii
+    use mo_soil_database, only : read_soil_LUT
+    use mo_string_utils, only : num2str
+    use mo_timer, only : timer_get, timer_start, &
+                         timer_stop
 
     implicit none
 
     type(period), dimension(:), intent(in), optional :: LAIPer
-    ! local variables
-    integer(i4) :: iBasin, iVar, iHorizon, iMon, itimer, ll     ! loop variables
-    integer(i4) :: nH                         ! dummy variable
-    integer(i4) :: nunit                      ! file unit of file to read
-    character(256) :: fName                      ! file name of file to read
+
+    ! loop variables
+    integer(i4) :: iBasin, iVar, iHorizon, iMon, itimer, ll
+
+    ! dummy variable
+    integer(i4) :: nH
+
+    ! file unit of file to read
+    integer(i4) :: nunit
+
+    ! file name of file to read
+    character(256) :: fName
+
     real(dp), dimension(:, :), allocatable :: data_dp_2d
+
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
+
     logical, dimension(:, :), allocatable :: mask_2d
+
     integer(i4), dimension(:), allocatable :: dummy_i4
+
     type(Grid), pointer :: level0_iBasin
 
-    ! min. value of slope and aspect
     real(dp), parameter :: slope_minVal = 0.01_dp
+
     real(dp), parameter :: aspect_minVal = 1.00_dp
+
 
     call message('  Reading data ...')
     itimer = 1

@@ -1,11 +1,14 @@
-!> \file mo_meteo_forcings.f90
+!>       \file mo_meteo_forcings.f90
 
-!> \brief Prepare meteorological forcings data for mHM.
+!>       \brief Prepare meteorological forcings data for mHM.
 
-!> \details Prepare meteorological forcings data for mHM.
+!>       \details Prepare meteorological forcings data for mHM.
 
-!> \authors Rohini Kumar
-!> \date Jan 2012
+!>       \authors s Rohini Kumar
+
+!>       \date Jan 2012
+
+! Modifications:
 
 MODULE mo_meteo_forcings
 
@@ -28,88 +31,51 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         prepare_meteo_forcings_data
+  !    NAME
+  !        prepare_meteo_forcings_data
 
-  !     PURPOSE
-  !>        \brief Prepare meteorological forcings data for a given variable
+  !    PURPOSE
+  !>       \brief Prepare meteorological forcings data for a given variable
 
-  !>        \details Prepare meteorological forcings data for a given variable.
-  !>                 Internally this subroutine calls another routine meteo_wrapper   
-  !>                 for different meterological variables
+  !>       \details Prepare meteorological forcings data for a given variable.
+  !>       Internally this subroutine calls another routine meteo_wrapper
+  !>       for different meterological variables
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
+  !>       \param[in] "integer(i4) :: tt"     current timestep
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Jan 2013
-  !           Matthias Zink,   Jun  2013 - addded NetCDf reader
-  !           Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
-  !           Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
-  !           Stephan Thober,  Jun  2014 - add chunk_config for chunk read, 
-  !                                        copied L2 initialization to mo_startup
-  !           Stephan Thober,  Nov  2016 - moved processMatrix to common variables
-  !           Stephan Thober,  Jan  2017 - added subroutine for meteo_weights
-  !
   subroutine prepare_meteo_forcings_data(iBasin, tt)
+
+    use mo_common_mhm_mrm_variables, only : readPer
+    use mo_common_variables, only : nBasins, processMatrix
+    use mo_global_variables, only : L1_absvappress, L1_netrad, L1_pet, L1_pet_weights, L1_pre, L1_pre_weights, L1_temp, &
+                                    L1_temp_weights, L1_tmax, L1_tmin, L1_windspeed, dirMaxTemperature, &
+                                    dirMinTemperature, dirNetRadiation, dirPrecipitation, dirReferenceET, dirTemperature, &
+                                    dirabsVapPressure, dirwindspeed, inputFormat_meteo_forcings, read_meteo_weights, &
+                                    timeStep_model_inputs
     use mo_message, only : message
     use mo_string_utils, only : num2str
-    use mo_timer, only : &
-            timer_start, timer_stop, timer_get                   ! Timing of processes
-    use mo_global_variables, only : &
-            read_meteo_weights, & ! flag for reading meteo weights
-            dirPrecipitation, dirTemperature, & ! directory of meteo input
-            dirReferenceET, & ! PET input path  if process 5 is 'PET is input' (case 0)
-            dirMinTemperature, dirMaxTemperature, & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
-            dirNetRadiation, & ! PET input paths if process 5 is Priestley-Taylor (case 2)
-            dirabsVapPressure, dirwindspeed, & ! PET input paths if process 5 is Penman-Monteith (case 3)
-            inputFormat_meteo_forcings, & ! only 'nc' for NetCDF input possible at this moment
-            timeStep_model_inputs, &
-            L1_temp_weights, L1_pet_weights, L1_pre_weights, & ! meteorological weights at L1 resolution
-            L1_pre, L1_temp, L1_pet, L1_tmin, L1_tmax, & ! meteorological data
-            L1_netrad, L1_absvappress, L1_windspeed              ! meteorological data
-    use mo_common_mhm_mrm_variables, only : &
-            readPer                       ! chunk read in config
-    use mo_common_variables, only : &
-            processMatrix, & ! process configuration
-            nBasins                                              ! Number of basins for multi-basin optimization
+    use mo_timer, only : timer_get, timer_start, timer_stop
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin        ! Basin Id
-    integer(i4), intent(in) :: tt            ! current timestep
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
-    logical :: read_flag     ! indicate whether data should be read
+    ! current timestep
+    integer(i4), intent(in) :: tt
+
+    ! indicate whether data should be read
+    logical :: read_flag
+
 
     ! configuration of chunk_read
     call chunk_config(iBasin, tt, read_flag, readPer)

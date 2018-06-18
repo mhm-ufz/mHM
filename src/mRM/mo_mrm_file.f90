@@ -1,11 +1,14 @@
-!> \file mo_mrm_file.f90
+!>       \file mo_mrm_file.f90
 
-!> \brief Provides file names and units for mRM
+!>       \brief Provides file names and units for mRM
 
-!> \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
+!>       \details Provides all filenames as well as all units used for the multiscale Routing Model mRM.
 
-!> \author Matthias Cuntz, Stephan Thober
-!> \date Aug 2015
+!>       \authors Matthias Cuntz, Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
 
 MODULE mo_mrm_file
 

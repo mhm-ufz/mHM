@@ -1,11 +1,14 @@
-!> \file mo_prepare_gridded_LAI.f90
+!>       \file mo_prepare_gridded_lai.f90
 
-!> \brief Prepare daily LAI fields (e.g., MODIS data) for mHM
+!>       \brief Prepare daily LAI fields (e.g., MODIS data) for mHM
 
-!> \details Prepare daily LAI fields(e.g., MODIS data) for mHM
+!>       \details Prepare daily LAI fields(e.g., MODIS data) for mHM
 
-!> \authors John Craven & Rohini Kumar
-!> \date Aug 2013
+!>       \authors s John Craven & Rohini Kumar
+
+!>       \date Aug 2013
+
+! Modifications:
 
 MODULE mo_prepare_gridded_LAI
 
@@ -29,68 +32,55 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
+  !    NAME
   !        prepare_gridded_daily_LAI_data
 
-  !     PURPOSE
-  !>        \brief Prepare gridded daily LAI data 
+  !    PURPOSE
+  !>       \brief Prepare gridded daily LAI data
 
-  !>        \details Prepare gridded daily LAI data at Level-0 (e.g., using MODIS datasets)
+  !>       \details Prepare gridded daily LAI data at Level-0 (e.g., using MODIS datasets)
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "logical, dimension(:, :) :: mask"    
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "type(period), optional :: LAIPer_iBasin" 
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors John Craven & Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Aug 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Matthias Cuntz & Juliane Mai Nov 2014 - use meteo reading routines 
 
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author John Craven & Rohini Kumar
-  !>        \date Aug 2013
-  !               Modified Matthias Cuntz & Juliane Mai, Nov 2014 - use meteo reading routines
-  !
   subroutine prepare_gridded_daily_LAI_data(iBasin, nrows, ncols, mask, LAIPer_iBasin)
 
-    use mo_mpr_global_variables, only : dirgridded_LAI, inputFormat_gridded_LAI, &
-            L0_gridded_LAI, timeStep_LAI_input, nLAI
-    use mo_append, only : append                    ! append vector
-    use mo_read_forcing_nc, only : read_forcing_nc           ! Read netCDF files
-    use mo_common_variables, only: period
-    use mo_message, only: message
+    use mo_append, only : append
+    use mo_common_variables, only : period
+    use mo_message, only : message
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, inputFormat_gridded_LAI, nLAI, timeStep_LAI_input
+    use mo_read_forcing_nc, only : read_forcing_nc
 
     implicit none
-    ! input 
+
+    ! Basin Id
     integer(i4), intent(in) :: iBasin, nrows, ncols
+
     logical, dimension(:, :), intent(in) :: mask
+
     type(period), intent(in), optional :: LAIPer_iBasin
+
     integer(i4) :: ncells, iLAI
-    !
-    real(dp), dimension(:, :, :), allocatable :: LAI0_3D !data at level-0 [nRow X nCols X nTimeSteps]
-    real(dp), dimension(:, :), allocatable :: LAI0_2D !data at level-0 [nCells X nTimeSteps]
+
+    ! data at level-0 [nRow X nCols X nTimeSteps]
+    real(dp), dimension(:, :, :), allocatable :: LAI0_3D
+
+    ! data at level-0 [nCells X nTimeSteps]
+    real(dp), dimension(:, :), allocatable :: LAI0_2D
 
 
     ! select case depending on input data format

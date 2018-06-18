@@ -1,14 +1,17 @@
-!> \file mo_read_spatial_data.f90
+!>       \file mo_read_spatial_data.f90
 
-!> \brief Reads spatial input data.
+!>       \brief Reads spatial input data.
 
-!> \details This module is to read spatial input data, e.g. dem, aspect, flow direction.\n
-!> The module provides a subroutine for ASCII files. \n
-!> (Subroutine for NetCDF files will come with release 5.1).\n
-!> The data are read from the specified directory.
+!>       \details This module is to read spatial input data, e.g. dem, aspect, flow direction.
+!>       The module provides a subroutine for ASCII files. 
+!>       (Subroutine for NetCDF files will come with release 5.1).
+!>       The data are read from the specified directory.
 
-!> \authors Juliane Mai
-!> \date Dec 2012
+!>       \authors s Juliane Mai
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_read_spatial_data
 
@@ -27,84 +30,6 @@ MODULE mo_read_spatial_data
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_spatial_data_ascii
-
-  !     PURPOSE
-  !>        \brief Reads spatial data files of ASCII format.
-
-  !>        \details Reads spatial input data, e.g. dem, aspect, flow direction.
-
-  !     CALLING SEQUENCE
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_dem, udem, &
-  !                 header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_dem, mask_dem)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_slope, uslope, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_slope, mask_slope)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_aspect, uaspect, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_aspect, mask_aspect)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_facc, ufacc, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_facc, mask_facc)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_fdir, ufdir, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_fdir, mask_fdir)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_soilclass, usoilclass, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_soilclass, mask_soilclass)
-  !            call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_hydrogeoclass, uhydrogeoclass, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_hydrogeoclass, mask_hydrogeoclass)
-  !           call read_spatial_data_ascii(trim(adjustl(dirMorpho))//file_gaugeloc, ugaugeloc, &
-  !                header_nRows, header_nCols, header_xllcorner, header_yllcorner, header_cellsize, &
-  !                data_gaugeloc, mask_gaugeloc)
-
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: filename"          Name of file and its location
-  !>        \param[in] "integer(i4)      :: fileunit"          File unit for open file 
-  !>        \param[in] "integer(i4)      :: header_ncols"      Reference number of columns 
-  !>        \param[in] "integer(i4)      :: header_nrows"      Reference number of rows
-  !>        \param[in] "real(dp)         :: header_xllcorner"  Reference lower left corner (x)
-  !>        \param[in] "real(dp)         :: header_yllcorner"  Reference lower left corner (y)
-  !>        \param[in] "integer(i4)      :: header_cellsize"   Reference cell size [m]
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "real(i4/dp), dimension(:,:) :: data"     Data matrix
-  !>                                                              dim_1 = longitude, dim_2 = latitude
-  !>        \param[out] "logical,     dimension(:,:) :: mask"     Mask of data matrix
-  !>                                                              dim_1 = longitude, dim_2 = latitude
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jan 2013
-  !         Modified, Matthias Zink, Feb 2013, added interface and routine for datatype i4
-  !         Modified, David Schaefer, Mar 2015, removed double allocation of temporary data
-
   INTERFACE  read_spatial_data_ascii
     MODULE PROCEDURE read_spatial_data_ascii_i4, read_spatial_data_ascii_dp
   END INTERFACE read_spatial_data_ascii
@@ -119,38 +44,93 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  subroutine read_spatial_data_ascii_dp(filename, fileunit, &
-          header_ncols, header_nrows, &
-          header_xllcorner, header_yllcorner, &
-          header_cellsize, &
-          data, mask)
+  !    NAME
+  !        read_spatial_data_ascii_dp
 
+  !    PURPOSE
+  !>       \brief Reads spatial data files of ASCII format.
+
+  !>       \details Reads spatial input data, e.g. dem, aspect, flow direction.
+
+  !    INTENT(IN)
+  !>       \param[in] "character(len = *) :: filename" Name of file and its location
+  !>       \param[in] "integer(i4) :: fileunit"        File unit for open file
+  !>       \param[in] "integer(i4) :: header_nCols"    Reference number of columns
+  !>       \param[in] "integer(i4) :: header_nRows"    Reference number of rows
+  !>       \param[in] "real(dp) :: header_xllcorner"   Reference lower left corner (x)
+  !>       \param[in] "real(dp) :: header_yllcorner"   Reference lower left corner (y)
+  !>       \param[in] "real(dp) :: header_cellsize"    Reference cell size [m]
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: data" Data matrixdim_1 = longitude, dim_2 = latitude
+  !>       \param[out] "logical, dimension(:, :) :: mask"  Mask of data matrixdim_1 = longitude, dim_2 = latitude
+
+  !    HISTORY
+  !>       \authors Juliane Mai
+
+  !>       \date Jan 2013
+
+  ! Modifications:
+  ! Matthias Zink  Feb 2013 - , added interface and routine for datatype i4
+  ! David Schaefer Mar 2015 - , removed double allocation of temporary data
+
+  subroutine read_spatial_data_ascii_dp(filename, fileunit, header_ncols, header_nrows, header_xllcorner, &
+                                       header_yllcorner, header_cellsize, data, mask)
     implicit none
 
-    character(len = *), intent(in) :: filename         ! filename with location
-    integer(i4), intent(in) :: fileunit         ! unit for opening the file
-    integer(i4), intent(in) :: header_nRows     ! number of rows of data fields:
-    ! LONGITUDE dimension
-    integer(i4), intent(in) :: header_nCols     ! number of columns of data fields:
-    ! LATITUDE dimension
-    real(dp), intent(in) :: header_xllcorner ! header read in lower left corner
-    real(dp), intent(in) :: header_yllcorner ! header read in lower left corner
-    real(dp), intent(in) :: header_cellsize  ! header read in cellsize
-    real(dp), dimension(:, :), allocatable, intent(out) :: data             ! data
-    logical, dimension(:, :), allocatable, intent(out) :: mask             ! mask
+    ! Name of file and its location
+    character(len = *), intent(in) :: filename
 
-    ! local variables
-    integer(i4) :: file_nRows     ! number of rows of data fields:
-    ! LONGITUDE dimension
-    integer(i4) :: file_nCols     ! number of columns of data fields:
-    ! LATITUDE dimension
-    real(dp) :: file_xllcorner ! file read in lower left corner
-    real(dp) :: file_yllcorner ! file read in lower left corner
-    real(dp) :: file_cellsize  ! file read in cellsize
-    real(dp) :: file_nodata    ! file read in nodata value
+    ! File unit for open file
+    integer(i4), intent(in) :: fileunit
+
+    ! Reference number of rows
+    integer(i4), intent(in) :: header_nRows
+
+    ! Reference number of columns
+    integer(i4), intent(in) :: header_nCols
+
+    ! Reference lower left corner (x)
+    real(dp), intent(in) :: header_xllcorner
+
+    ! Reference lower left corner (y)
+    real(dp), intent(in) :: header_yllcorner
+
+    ! Reference cell size [m]
+    real(dp), intent(in) :: header_cellsize
+
+    ! Data matrixdim_1 = longitude, dim_2 = latitude
+    real(dp), dimension(:, :), allocatable, intent(out) :: data
+
+    ! Mask of data matrixdim_1 = longitude, dim_2 = latitude
+    logical, dimension(:, :), allocatable, intent(out) :: mask
+
+    ! number of rows of data fields:
+    integer(i4) :: file_nRows
+
+    ! number of columns of data fields:
+    integer(i4) :: file_nCols
+
+    ! file read in lower left corner
+    real(dp) :: file_xllcorner
+
+    ! file read in lower left corner
+    real(dp) :: file_yllcorner
+
+    ! file read in cellsize
+    real(dp) :: file_cellsize
+
+    ! file read in nodata value
+    real(dp) :: file_nodata
+
     integer(i4) :: i, j
-    real(dp), dimension(:, :), allocatable :: tmp_data       ! data
-    logical, dimension(:, :), allocatable :: tmp_mask       ! mask
+
+    ! data
+    real(dp), dimension(:, :), allocatable :: tmp_data
+
+    ! mask
+    logical, dimension(:, :), allocatable :: tmp_mask
+
 
     ! compare headers always with reference header (intent in)
     call read_header_ascii(filename, fileunit, &

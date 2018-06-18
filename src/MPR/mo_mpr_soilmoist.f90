@@ -1,12 +1,15 @@
-!> \file mo_mpr_soilmoist.f90
+!>       \file mo_mpr_soilmoist.f90
 
-!> \brief   Multiscale parameter regionalization (MPR) for soil moisture
+!>       \brief Multiscale parameter regionalization (MPR) for soil moisture
 
-!> \details This module contains all routines required for parametrizing
-!>          soil moisture processes.
+!>       \details This module contains all routines required for parametrizing
+!>       soil moisture processes.
 
-!> \author Stephan Thober, Rohini Kumar
-!> \date Dec 2012
+!>       \authors Stephan Thober, Rohini Kumar
+
+!>       \date Dec 2012
+
+! Modifications:
 
 module mo_mpr_soilmoist
 
@@ -21,188 +24,184 @@ module mo_mpr_soilmoist
 contains
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         mpr_sm
+  !    NAME
+  !        mpr_sm
 
-  !>        \brief multiscale parameter regionalization for soil moisture
+  !    PURPOSE
+  !>       \brief multiscale parameter regionalization for soil moisture
 
-  !>        \details This subroutine is a wrapper around all soil moisture
-  !>                 parameter routines. This subroutine requires 13 parameters. These
-  !>                 parameters have to correspond to the parameters in the original
-  !>                 parameter array at the following locations: 10-12, 13-18, 27-30.\n
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param( 1) = orgMatterContent_forest     \n
-  !>                    - param( 2) = orgMatterContent_impervious \n
-  !>                    - param( 3) = orgMatterContent_pervious   \n
-  !>                    - param( 4) = PTF_lower66_5_constant      \n
-  !>                    - param( 5) = PTF_lower66_5_clay          \n
-  !>                    - param( 6) = PTF_lower66_5_Db            \n
-  !>                    - param( 7) = PTF_higher66_5_constant     \n
-  !>                    - param( 8) = PTF_higher66_5_clay         \n
-  !>                    - param( 9) = PTF_higher66_5_Db           \n
-  !>                    - param(10) = PTF_Ks_constant             \n
-  !>                    - param(11) = PTF_Ks_sand                 \n
-  !>                    - param(12) = PTF_Ks_clay                 \n
-  !>                    - param(13) = PTF_Ks_curveSlope           \n
+  !>       \details This subroutine is a wrapper around all soil moisture
+  !>       parameter routines. This subroutine requires 13 parameters. These
+  !>       parameters have to correspond to the parameters in the original
+  !>       parameter array at the following locations: 10-12, 13-18, 27-30.
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param( 1) = orgMatterContent_forest     
+  !>       - param( 2) = orgMatterContent_impervious 
+  !>       - param( 3) = orgMatterContent_pervious   
+  !>       - param( 4) = PTF_lower66_5_constant      
+  !>       - param( 5) = PTF_lower66_5_clay          
+  !>       - param( 6) = PTF_lower66_5_Db            
+  !>       - param( 7) = PTF_higher66_5_constant     
+  !>       - param( 8) = PTF_higher66_5_clay         
+  !>       - param( 9) = PTF_higher66_5_Db           
+  !>       - param(10) = PTF_Ks_constant             
+  !>       - param(11) = PTF_Ks_sand                 
+  !>       - param(12) = PTF_Ks_clay                 
+  !>       - param(13) = PTF_Ks_curveSlope           
 
-  !      INTENT(IN)
-  !>        \param[in] "real(dp)    :: param(13)"        - global parameters
-  !>        \param[in] "real(dp)    :: nodata"           - no data value
-  !>        \param[in] "integer(i4) :: iFlag_soil"       - flags for handling multiple soil databases
-  !>        \param[in] "integer(i4) :: is_present(:)"    - indicates whether soiltype is present
-  !>        \param[in] "integer(i4) :: nHorizons(:)"     - Number of Horizons per soiltype2
-  !>        \param[in] "integer(i4) :: nTillHorizons(:)" - Number of Tillage Horizons
-  !>        \param[in] "real(dp)    :: sand(:,:)"        - sand content
-  !>        \param[in] "real(dp)    :: clay(:,:)"        - clay content
-  !>        \param[in] "real(dp)    :: DbM(:,:)"         - mineral Bulk density
-  !>        \param[in] "integer(i4) :: L0_ID(:,:)"       - cell ids at level 0
-  !>        \param[in] "integer(i4) :: L0_soilId(:,:)"    - soil ids at level 0
-  !>        \param[in] "integer(i4) :: L0_LUC(:,:)"      - land cover ids at level 0
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(13) :: param"           global parameters
+  !>       \param[in] "integer(i4), dimension(:) :: is_present"    indicates whether soiltype is present
+  !>       \param[in] "integer(i4), dimension(:) :: nHorizons"     Number of Horizons per soiltype
+  !>       \param[in] "integer(i4), dimension(:) :: nTillHorizons" Number of Tillage Horizons
+  !>       \param[in] "real(dp), dimension(:, :) :: sand"          sand content
+  !>       \param[in] "real(dp), dimension(:, :) :: clay"          clay content
+  !>       \param[in] "real(dp), dimension(:, :) :: DbM"           mineral Bulk density
+  !>       \param[in] "integer(i4), dimension(:) :: ID0"           cell ids at level 0
+  !>       \param[in] "integer(i4), dimension(:, :) :: soilId0"    soil ids at level 0
+  !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"       land cover ids at level 0
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaS_till"  saturated soil moisture tillage layer
+  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaFC_till" field capacity tillage layer
+  !>       \param[out] "real(dp), dimension(:, :, :) :: thetaPW_till" permanent wilting point tillage layer
+  !>       \param[out] "real(dp), dimension(:, :) :: thetaS"          saturated soil moisture
+  !>       \param[out] "real(dp), dimension(:, :) :: thetaFC"         field capacity
+  !>       \param[out] "real(dp), dimension(:, :) :: thetaPW"         permanent wilting point
+  !>       \param[out] "real(dp), dimension(:, :, :) :: Ks"           saturated hydraulic conductivity
+  !>       \param[out] "real(dp), dimension(:, :, :) :: Db"           Bulk density
+  !>       \param[out] "real(dp), dimension(:) :: KsVar_H0"           rel. var. of Ks for horizontal flow
+  !>       \param[out] "real(dp), dimension(:) :: KsVar_V0"           rel. var. of Ks for vertical flow
+  !>       \param[out] "real(dp), dimension(:) :: SMs_FC0"            soil mositure deficit fromfield cap. w.r.t to saturation
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp)   :: thetaS_till(:,:,:)" - saturated soil moisture tillage layer
-  !>        \param[out] "real(dp)   :: thetaFC_till(:,:,:)" - field capacity tillage layer
-  !>        \param[out] "real(dp)   :: thetaPW_till(:,:,:)" - permanent wilting point tillage layer
-  !>        \param[out] "real(dp)   :: thetaS(:,:)"     - saturated soil moisture
-  !>        \param[out] "real(dp)   :: thetaFC(:,:)"    - field capacity
-  !>        \param[out] "real(dp)   :: thetaPW(:,:)"    - permanent wilting point
-  !>        \param[out] "real(dp)   :: Ks(:,:,:)"       - saturated hydraulic conductivity
-  !>        \param[out] "real(dp)   :: Db(:,:,:)"       - Bulk density
-  !>        \param[out] "real(dp)   :: L0_KsVar_H(:,:)" - relative variability of saturated
-  !>                                                      hydraulic counductivity for Horizantal flow
-  !>        \param[out] "real(dp)   :: L0_KsVar_V(:,:)" - relative variability of saturated
-  !>                                                      hydraulic counductivity for Vertical flow
-  !>        \param[out] "real(dp)   :: L0_SMs_FC(:,:)"  - soil mositure deficit from field
-  !>                                                      capacity w.r.t to saturation
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = orgMatterContent_forest --> param(2) = orgMatterContent_impervious --> param(3) = orgMatterContent_pervious --> param(4:13) = ... orgMatterContent_forest = orgMatterContent_perv + delta_1 NEW parametrization --> param(1) = delta_1 --> param(2) = orgMatterContent_impervious --> param(3) = orgMatterContent_pervious --> param(4:13) = ...
+  ! Matthias Zink  Nov 2013 - documentation, inouts --> out moved constants to mhm_constants
+  ! Stephan Thober Mar 2014 - separated cell loop from soil loop for better scaling in parallelisation
+  ! David Schaefer Mar 2015 - Added dummy variable to avoid redundant computations -> Total number of instruction is reduced by ~25% (tested on packaged example/gnu48/{release,debug})
+  ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  subroutine mpr_sm(param, is_present, nHorizons, nTillHorizons, sand, clay, DbM, ID0, soilId0, LCover0, thetaS_till, &
+                   thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Ks, Db, KsVar_H0, KsVar_V0, SMs_FC0)
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written,  Stephan Thober, Dec 2012
-  !         Modified, Juliane Mai,    Oct 2013 - OLD parametrization
-  !                                                --> param(1) = orgMatterContent_forest
-  !                                                --> param(2) = orgMatterContent_impervious
-  !                                                --> param(3) = orgMatterContent_pervious
-  !                                                --> param(4:13) = ...
-  !                                             -------------------------------
-  !                                             orgMatterContent_forest = orgMatterContent_perv + delta_1
-  !                                             -------------------------------
-  !                                             NEW parametrization
-  !                                                --> param(1) = delta_1
-  !                                                --> param(2) = orgMatterContent_impervious
-  !                                                --> param(3) = orgMatterContent_pervious
-  !                                                --> param(4:13) = ...
-  !         Modified, Matthias Zink,  Nov 2013 - documentation, inouts --> out
-  !                                              moved constants to mhm_constants
-  !         Modified, Stephan Thober, Mar 2014 - separated cell loop from soil loop for better
-  !                                              scaling in parallelisation
-  !         Modified, David Schaefer, Mar 2015 - Added dummy variable to avoid redundant computations
-  !                                              -> Total number of instruction is reduced by ~25%
-  !                                                 (tested on packaged example/gnu48/{release,debug})
-  !                  Rohini Kumar,    Mar 2016 - changes for handling multiple soil database options
-  subroutine mpr_sm(param, & ! IN:  global parameter set
-          is_present, & ! IN:  flag indicating presence of soil
-          nHorizons, & ! IN:  Number of Horizons of Soiltype
-          nTillHorizons, & ! IN:  Number of tillage Horizons
-          sand, & ! IN:  sand content
-          clay, & ! IN:  clay content
-          DbM, & ! IN:  mineral Bulk density
-          ID0, & ! IN:  cell ids at level 0
-          soilId0, & ! IN:  soil ids at level 0
-          LCover0, & ! IN:  land cover ids at level 0
-          thetaS_till, & ! OUT: saturated soil moisture tillage layer
-          thetaFC_till, & ! OUT: field capacity tillage layer
-          thetaPW_till, & ! OUT: permanent wilting point tillage layer
-          thetaS, & ! OUT: saturated soil moisture
-          thetaFC, & ! OUT: field capacity
-          thetaPW, & ! OUT: permanent wilting point
-          Ks, & ! OUT: saturated hydraulic conductivity
-          Db, & ! OUT: Bulk density
-          KsVar_H0, & ! OUT: relative variability of saturated
-          !                       !      hydraulic counductivity for Horizantal flow
-          KsVar_V0, & ! OUT: relative variability of saturated
-          !                       !      hydraulic counductivity for Horizantal flow
-          SMs_FC0               & ! OUT: soil moisture deficit from field capacity
-          !                       !      w.r.t to saturation
-          )
-
-    use mo_mpr_constants, only : BulkDens_OrgMatter
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_mpr_global_variables, only : iFlag_soilDB
     use mo_message, only : message
-    !$  use omp_lib
+    use mo_mpr_constants, only : BulkDens_OrgMatter
+    use mo_mpr_global_variables, only : iFlag_soilDB
+    !$ use omp_lib
 
     implicit none
 
-    ! Input --------------------------------------------------------------------
-    real(dp), dimension(13), intent(in) :: param        ! global parameters
+    ! global parameters
+    real(dp), dimension(13), intent(in) :: param
 
-    integer(i4), dimension(:), intent(in) :: is_present   ! indicates whether soiltype is present
-    integer(i4), dimension(:), intent(in) :: nHorizons    ! Number of Horizons per soiltype
-    integer(i4), dimension(:), intent(in) :: nTillHorizons! Number of Tillage Horizons
-    real(dp), dimension(:, :), intent(in) :: sand         ! sand content
-    real(dp), dimension(:, :), intent(in) :: clay         ! clay content
-    real(dp), dimension(:, :), intent(in) :: DbM          ! mineral Bulk density
-    integer(i4), dimension(:), intent(in) :: ID0          ! cell ids at level 0
-    integer(i4), dimension(:, :), intent(in) :: soilId0      ! soil ids at level 0
-    integer(i4), dimension(:), intent(in) :: LCOVER0      ! land cover ids at level 0
+    ! indicates whether soiltype is present
+    integer(i4), dimension(:), intent(in) :: is_present
 
+    ! Number of Horizons per soiltype
+    integer(i4), dimension(:), intent(in) :: nHorizons
 
-    ! Output -------------------------------------------------------------------
-    real(dp), dimension(:, :, :), intent(out) :: thetaS_till   ! saturated soil moisture tillage layer
-    real(dp), dimension(:, :, :), intent(out) :: thetaFC_till  ! field capacity tillage layer
-    real(dp), dimension(:, :, :), intent(out) :: thetaPW_till  ! permanent wilting point tillage layer
-    real(dp), dimension(:, :), intent(out) :: thetaS        ! saturated soil moisture
-    real(dp), dimension(:, :), intent(out) :: thetaFC       ! field capacity
-    real(dp), dimension(:, :), intent(out) :: thetaPW       ! permanent wilting point
-    real(dp), dimension(:, :, :), intent(out) :: Ks            ! saturated hydraulic conductivity
-    real(dp), dimension(:, :, :), intent(out) :: Db            ! Bulk density
-    real(dp), dimension(:), intent(out) :: KsVar_H0      ! rel. var. of Ks for horizontal flow
-    real(dp), dimension(:), intent(out) :: KsVar_V0      ! rel. var. of Ks for vertical flow
-    real(dp), dimension(:), intent(out) :: SMs_FC0       ! soil mositure deficit from
-    !                                                           ! field cap. w.r.t to saturation
-    ! Local variables
-    integer(i4) :: i               ! loop index
-    integer(i4) :: j               ! loop index
-    integer(i4) :: l               ! loop index
-    integer(i4) :: s               ! dummy variable for storing soil class
+    ! Number of Tillage Horizons
+    integer(i4), dimension(:), intent(in) :: nTillHorizons
+
+    ! sand content
+    real(dp), dimension(:, :), intent(in) :: sand
+
+    ! clay content
+    real(dp), dimension(:, :), intent(in) :: clay
+
+    ! mineral Bulk density
+    real(dp), dimension(:, :), intent(in) :: DbM
+
+    ! cell ids at level 0
+    integer(i4), dimension(:), intent(in) :: ID0
+
+    ! soil ids at level 0
+    integer(i4), dimension(:, :), intent(in) :: soilId0
+
+    ! land cover ids at level 0
+    integer(i4), dimension(:), intent(in) :: LCOVER0
+
+    ! saturated soil moisture tillage layer
+    real(dp), dimension(:, :, :), intent(out) :: thetaS_till
+
+    ! field capacity tillage layer
+    real(dp), dimension(:, :, :), intent(out) :: thetaFC_till
+
+    ! permanent wilting point tillage layer
+    real(dp), dimension(:, :, :), intent(out) :: thetaPW_till
+
+    ! saturated soil moisture
+    real(dp), dimension(:, :), intent(out) :: thetaS
+
+    ! field capacity
+    real(dp), dimension(:, :), intent(out) :: thetaFC
+
+    ! permanent wilting point
+    real(dp), dimension(:, :), intent(out) :: thetaPW
+
+    ! saturated hydraulic conductivity
+    real(dp), dimension(:, :, :), intent(out) :: Ks
+
+    ! Bulk density
+    real(dp), dimension(:, :, :), intent(out) :: Db
+
+    ! rel. var. of Ks for horizontal flow
+    real(dp), dimension(:), intent(out) :: KsVar_H0
+
+    ! rel. var. of Ks for vertical flow
+    real(dp), dimension(:), intent(out) :: KsVar_V0
+
+    ! soil mositure deficit fromfield cap. w.r.t to saturation
+    real(dp), dimension(:), intent(out) :: SMs_FC0
+
+    ! loop index
+    integer(i4) :: i
+
+    ! loop index
+    integer(i4) :: j
+
+    ! loop index
+    integer(i4) :: l
+
+    ! dummy variable for storing soil class
+    integer(i4) :: s
+
     integer(i4) :: tmp_minSoilHorizon
+
     real(dp) :: pM
+
     real(dp) :: pOM
-    real(dp) :: Ks_tmp          ! temporal saturated hydr. cond
-    real(dp) :: Genu_Mual_n     ! van Genuchten shape param
-    real(dp) :: Genu_Mual_alpha ! van Genuchten shape param
+
+    ! temporal saturated hydr. cond
+    real(dp) :: Ks_tmp
+
+    ! van Genuchten shape param
+    real(dp) :: Genu_Mual_n
+
+    ! van Genuchten shape param
+    real(dp) :: Genu_Mual_alpha
+
     real(dp) :: tmp_orgMatterContent_forest
+
     real(dp) :: tmp_orgMatterContent_pervious
+
     real(dp) :: tmp_orgMatterContent_impervious
-    real(dp), dimension(:), allocatable :: SMs_tot0       ! total saturated soil mositure content
-    integer(i4) :: max_LCover ! maximum LCover class in L0
-    ! some additional variables for iFlag_soil = 1
-    real(dp), dimension(:, :), allocatable :: Ks_non_till    ! saturated hydraulic conductivity
+
+    ! total saturated soil mositure content
+    real(dp), dimension(:), allocatable :: SMs_tot0
+
+    ! maximum LCover class in L0
+    integer(i4) :: max_LCover
+
+    ! saturated hydraulic conductivity
+    real(dp), dimension(:, :), allocatable :: Ks_non_till
+
 
     tmp_orgMatterContent_forest = param(3) + param(1)
     tmp_orgMatterContent_impervious = param(2)

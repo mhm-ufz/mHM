@@ -1,11 +1,14 @@
-!> \file mo_snow_accum_melt.f90
+!>       \file mo_snow_accum_melt.f90
 
-!> \brief Snow melting and accumulation.
+!>       \brief Snow melting and accumulation.
 
-!> \details This module calculates snow melting and accumulation.
+!>       \details This module calculates snow melting and accumulation.
 
-!> \authors Vladyslav Prykhodko
-!> \date Dec 2012
+!>       \authors s Vladyslav Prykhodko
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_snow_accum_melt
 
@@ -23,92 +26,92 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         snow_accum_melt
+  !    NAME
+  !        snow_accum_melt
 
-  !     PURPOSE
-  !>        \brief Snow melting and accumulation.
+  !    PURPOSE
+  !>       \brief Snow melting and accumulation.
 
-  !>        \details Separates throughfall into rain and snow by comparing the temperature with the treshhold.
-  !>                  by comparing the temperature with the treshhold.
-  !>                  Calculates degree daily factor.
-  !>                  Calculates snow melting rates.
-  !>                  Calculates snow, rain and effective precipitation depth
-  !>                  and snow pack.
+  !>       \details Separates throughfall into rain and snow by comparing the temperature with the treshhold.
+  !>       by comparing the temperature with the treshhold.
+  !>       Calculates degree daily factor.
+  !>       Calculates snow melting rates.
+  !>       Calculates snow, rain and effective precipitation depth
+  !>       and snow pack.
 
-  !     CALLING SEQUENCE
-  !         snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, temperature, temperature_tresh, thrfall, &
-  !                         deg_day, snow_pack, melt,  prec_effect, rain, snow)
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp) :: deg_day_incr"       Increase of the Degree-day factor per mm of increasein precipitation [s-1 degreeC-1]
+  !>       \param[in] "REAL(dp) :: deg_day_max"        Maximum Degree-day factor [m-1 degreeC-1]
+  !>       \param[in] "REAL(dp) :: deg_day_noprec"     Degree-day factor with no precipitation [m-1 degreeC-1]
+  !>       \param[in] "REAL(dp) :: prec"               Daily mean precipitation [m]
+  !>       \param[in] "REAL(dp) :: temperature"        Daily mean temperature [degreeC]
+  !>       \param[in] "REAL(dp) :: temperature_thresh" Threshold temperature for snow/rain [degreeC]
+  !>       \param[in] "REAL(dp) :: thrfall"            Throughfall [m s-1]
 
-  !     INTENT(IN)
+  !    INTENT(INOUT)
+  !>       \param[inout] "REAL(dp) :: snow_pack" Snow pack [m]
 
-  !>        \param[in] "real(dp) ::  deg_day_incr"         Increase of the Degree-day factor per mm of increase
-  !>                                                       in precipitation [s-1 degreeC-1]
-  !>        \param[in] "real(dp) ::  deg_day_max"          Maximum Degree-day factor [m-1 degreeC-1]
-  !>        \param[in] "real(dp) ::  deg_day_noprec"       Degree-day factor with no precipitation [m-1 degreeC-1]
-  !>        \param[in] "real(dp) ::  prec"                 Daily mean precipitation [m]
-  !>        \param[in] "real(dp) ::  temperature"               Daily mean temperature [degreeC]
-  !>        \param[in] "real(dp) ::  temperature_thresh"        Threshold temperature for snow/rain [degreeC]
-  !>        \param[in] "real(dp) ::  thrfall"              Throughfall [m s-1]
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp) :: deg_day"     Degree-day factor  [m s-1 degreeC-1]
+  !>       \param[out] "REAL(dp) :: melt"        Melting snow depth [m s-1]
+  !>       \param[out] "REAL(dp) :: prec_effect" Effective precipitation depth (snow melt + rain) [m]
+  !>       \param[out] "REAL(dp) :: rain"        Rain precipitation depth [m]
+  !>       \param[out] "REAL(dp) :: snow"        Snow precipitation depth [m]
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "real(dp) ::  snow_pack"        Snow pack [m]
+  !    HISTORY
+  !>       \authors Vladyslav Prykhodko
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) ::  deg_day"             Degree-day factor  [m s-1 degreeC-1]
-  !>        \param[out] "real(dp) ::  melt"                Melting snow depth [m s-1]
-  !>        \param[out] "real(dp) ::  prec_effect"         Effective precipitation depth (snow melt + rain) [m]
-  !>        \param[out] "real(dp) ::  rain"                Rain precipitation depth [m]
-  !>        \param[out] "real(dp) ::  snow"                Snow precipitation depth [m]
+  !>       \date Dec 2012
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! JM Aug 2013 - ordering of arguments changed
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  SUBROUTINE snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, temperature, temperature_thresh, thrfall, &
+                            snow_pack, deg_day, melt, prec_effect, rain, snow)
+    implicit none
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Vladyslav Prykhodko
-  !>        \date Dec 2012
-  !         Modified JM, Aug 2013 - ordering of arguments changed
-
-  SUBROUTINE snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, &
-          temperature, temperature_thresh, thrfall, &
-          snow_pack, deg_day, melt, prec_effect, rain, snow)
-
-    IMPLICIT NONE
-
+    ! Increase of the Degree-day factor per mm of increasein precipitation [s-1 degreeC-1]
     REAL(dp), INTENT(IN) :: deg_day_incr
+
+    ! Maximum Degree-day factor [m-1 degreeC-1]
     REAL(dp), INTENT(IN) :: deg_day_max
+
+    ! Degree-day factor with no precipitation [m-1 degreeC-1]
     REAL(dp), INTENT(IN) :: deg_day_noprec
+
+    ! Daily mean precipitation [m]
     REAL(dp), INTENT(IN) :: prec
+
+    ! Daily mean temperature [degreeC]
     REAL(dp), INTENT(IN) :: temperature
+
+    ! Threshold temperature for snow/rain [degreeC]
     REAL(dp), INTENT(IN) :: temperature_thresh
+
+    ! Throughfall [m s-1]
     REAL(dp), INTENT(IN) :: thrfall
+
+    ! Snow pack [m]
     REAL(dp), INTENT(INOUT) :: snow_pack
+
+    ! Degree-day factor  [m s-1 degreeC-1]
     REAL(dp), INTENT(OUT) :: deg_day
+
+    ! Melting snow depth [m s-1]
     REAL(dp), INTENT(OUT) :: melt
+
+    ! Effective precipitation depth (snow melt + rain) [m]
     REAL(dp), INTENT(OUT) :: prec_effect
+
+    ! Rain precipitation depth [m]
     REAL(dp), INTENT(OUT) :: rain
+
+    ! Snow precipitation depth [m]
     REAL(dp), INTENT(OUT) :: snow
 
-    ! local variables
-    REAL(dp) :: aux_help          !Auxiliary helping variable [-]
+    ! Auxiliary helping variable [-]
+    REAL(dp) :: aux_help
+
 
     !separate throughfall into rain and snow
     if(temperature >  temperature_thresh) then

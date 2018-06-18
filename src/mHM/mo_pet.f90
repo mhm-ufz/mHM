@@ -1,14 +1,17 @@
-!> \file mo_pet.f90
+!>       \file mo_pet.f90
 
-!> \brief Module for calculating reference/potential evapotranspiration  [mm s-1]
+!>       \brief Module for calculating reference/potential evapotranspiration  [mm s-1]
 
-!> \details This module calculates PET [mm/s] based on one of the methods \n
-!>          - Hargreaves-Samani (1982) \n
-!>          - Priestly-Taylor (1972) \n
-!>          - Penman-Monteith FAO (1998) \n
+!>       \details This module calculates PET [mm/s] based on one of the methods 
+!>       - Hargreaves-Samani (1982) 
+!>       - Priestly-Taylor (1972) 
+!>       - Penman-Monteith FAO (1998) 
 
-!> \author Matthias Zink, Christoph Schneider, Matthias Cuntz
-!> \date   Apr 2014
+!>       \authors Matthias Zink, Christoph Schneider, Matthias Cuntz
+
+!>       \date Apr 2014
+
+! Modifications:
 
 MODULE mo_pet
 
@@ -33,57 +36,37 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         pet_hargreaves
+  !    NAME
+  !        pet_hargreaves
 
-  !>        \brief Reference Evapotranspiration after Hargreaves
+  !    PURPOSE
+  !>       \brief Reference Evapotranspiration after Hargreaves
 
-  !>        \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the Hargreaves-Samani (1982) 
-  !>                 model for a given cell by applying the equation
-  !>                 \f[ PET = HarSamCoeff * R_a * (T_{avg} +  HarSamConst) * \sqrt{ T_{max} - T_{min}} \f]
-  !>                 where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and 
-  !>                 \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
-  !>                 and minimum daily temperatures at the given day, respectively.
+  !>       \details Calculates the Reference Evapotranspiration \f$ [mm\;d^{-1}] \f$ based on the Hargreaves-Samani (1982)
+  !>       model for a given cell by applying the equation
+  !>       \f[ PET = HarSamCoeff * R_a * (T_{avg} +  HarSamConst) * \sqrt{ T_{max} - T_{min}} \f]
+  !>       where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and
+  !>       \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
+  !>       and minimum daily temperatures at the given day, respectively.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp),    intent(in) :: HarSamCoeff" coefficient of Hargreaves-Samani equation [-]
-  !>        \param[in] "real(dp),    intent(in) :: HarSamConst" constant    of Hargreaves-Samani equation [-]
-  !>        \param[in] "real(dp),    intent(in) :: tavg"        daily men temperature \f$[^{\circ}C]\f$
-  !>        \param[in] "real(dp),    intent(in) :: tmax"        daily maximum of temp \f$[^{\circ}C]\f$ 
-  !>        \param[in] "real(dp),    intent(in) :: tmin"        daily minimum of temp \f$[^{\circ}C]\f$
-  !>        \param[in] "real(dp),    intent(in) :: latitude"   latitude of the cell for Ra estimation \f$[radians]\f$
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: HarSamCoeff" coefficient of Hargreaves-Samani equation [-]
+  !>       \param[in] "real(dp) :: HarSamConst" constant    of Hargreaves-Samani equation [-]
+  !>       \param[in] "real(dp) :: tavg"        daily men temperature \f$[^{\circ}C]\f$
+  !>       \param[in] "real(dp) :: tmax"        daily maximum of temp \f$[^{\circ}C]\f$
+  !>       \param[in] "real(dp) :: tmin"        daily minimum of temp \f$[^{\circ}C]\f$
+  !>       \param[in] "real(dp) :: latitude"    latitude of the cell for Ra estimation \f$[radians]\f$
+  !>       \param[in] "integer(i4) :: doy"      day of year for Ra estimation
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: pet_hargreaves &mdash; Hargreaves-Samani pot. evapotranspiration [mm s-1]
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return real(dp) :: pet_hargreaves &mdash; Hargreaves-Samani pot. evapotranspiration [mm s-1]
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         \note Hargreaves, G.H., and Samani, Z.A. (1982). "Estimating potential evapotranspiration."
-  !             Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
-
-  !     HISTORY
-  !>        \author   Matthias Zink
-  !>        \date     Dec 2012
+  ! Modifications:
 
   elemental pure FUNCTION pet_hargreaves(HarSamCoeff, HarSamConst, tavg, tmax, tmin, latitude, doy)
 
@@ -92,20 +75,34 @@ CONTAINS
 
     implicit none
 
-    real(dp), intent(in) :: HarSamCoeff           !  coefficient of Hargreaves-Samani equation
-    real(dp), intent(in) :: HarSamConst           !  constatnt   of Hargreaves-Samani equation
-    real(dp), intent(in) :: tavg                  !  daily men temperature
-    real(dp), intent(in) :: tmax                  !  daily maximum of temp.
-    real(dp), intent(in) :: tmin                  !  daily minimum of temp.
-    real(dp), intent(in) :: latitude              ! latitude of the cell for Ra estimation
-    integer(i4), intent(in) :: doy                   ! day of year for Ra estimation
+    ! coefficient of Hargreaves-Samani equation [-]
+    real(dp), intent(in) :: HarSamCoeff
 
-    real(dp) :: pet_hargreaves        ! reference evapotranspiration in [mm s-1]
+    ! constant    of Hargreaves-Samani equation [-]
+    real(dp), intent(in) :: HarSamConst
 
-    ! local
-    real(dp) :: delta_temp            ! tmax-Tmin
+    ! daily men temperature \f$[^{\circ}C]\f$
+    real(dp), intent(in) :: tavg
 
-    ! correction for shity input data (tmax<tmin) and to avoid numerical errors ! MZMZMZMZ
+    ! daily maximum of temp \f$[^{\circ}C]\f$
+    real(dp), intent(in) :: tmax
+
+    ! daily minimum of temp \f$[^{\circ}C]\f$
+    real(dp), intent(in) :: tmin
+
+    ! latitude of the cell for Ra estimation \f$[radians]\f$
+    real(dp), intent(in) :: latitude
+
+    ! day of year for Ra estimation
+    integer(i4), intent(in) :: doy
+
+    ! reference evapotranspiration in [mm s-1]
+    real(dp) :: pet_hargreaves
+
+    ! tmax-Tmincorrection for shity input data (tmax<tmin) and to avoid numerical errors ! MZMZMZMZ
+    real(dp) :: delta_temp
+
+
     delta_temp = tmax - tmin
     if(LE(delta_temp, 0.0_dp) .or. LE(tavg, -HarSamConst)) then
       pet_hargreaves = 0.0_dp

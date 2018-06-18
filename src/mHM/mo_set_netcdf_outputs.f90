@@ -1,11 +1,14 @@
-!> \file mo_set_netcdf_outputs.f90
+!>       \file mo_set_netcdf_outputs.f90
 
-!> \brief Defines the structure of the netCDF to write the output in.
+!>       \brief Defines the structure of the netCDF to write the output in.
 
-!> \details All output variables are initialized for the NetCDF.
+!>       \details All output variables are initialized for the NetCDF.
 
-!> \authors Matthias Zink
-!> \date Apr 2013
+!>       \authors s Matthias Zink
+
+!>       \date Apr 2013
+
+! Modifications:
 
 MODULE mo_set_netcdf_outputs
 
@@ -27,58 +30,42 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          WriteFluxStateInit
+  !    NAME
+  !        set_netCDF
 
-  !>        \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
+  !    PURPOSE
+  !>       \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
-  !>        \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
+  !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
-  !     INTENT(IN)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: NoNetcdfVars" 
+  !>       \param[in] "integer(i4) :: nrows"        
+  !>       \param[in] "integer(i4) :: ncols"        
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Apr 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !
-
-  !     EXAMPLE
-  !        
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified, 
   subroutine set_netCDF(NoNetcdfVars, nrows, ncols)
-    !
-    use mo_NCWrite, only : V, Dnc, ndims, nVars
-    use netcdf, only : NF90_UNLIMITED, NF90_CHAR, NF90_INT, NF90_DOUBLE
+
+    use mo_NCWrite, only : Dnc, V, nVars, ndims
+    use netcdf, only : NF90_CHAR, NF90_DOUBLE, NF90_INT, NF90_UNLIMITED
 
     implicit none
-    !
+
     integer(i4), intent(in) :: NoNetcdfVars
+
     integer(i4), intent(in) :: nrows
+
     integer(i4), intent(in) :: ncols
-    !
+
     integer(i4) :: i
+
+
     !
     ! define output file
     !

@@ -1,12 +1,15 @@
-!> \file mo_read_config_routing.f90
+!>       \file mo_mrm_read_config.f90
 
-!> \brief read mRM config
+!>       \brief read mRM config
 
-!> \details This module contains all mRM subroutines related to
-!> reading the mRM configuration either from file or copy from mHM.
+!>       \details This module contains all mRM subroutines related to
+!>       reading the mRM configuration either from file or copy from mHM.
 
-!> \authors Stephan Thober
-!> \date Aug 2015
+!>       \authors s Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
 
 module mo_mrm_read_config
 
@@ -19,107 +22,90 @@ module mo_mrm_read_config
 contains
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_mrm_config
+  !    NAME
+  !        mrm_read_config
 
-  !     PURPOSE
-  !>        \brief Read the general config of mRM
-  !
-  !>        \details Depending on the variable mrm_coupling_config, the
-  !>        mRM config is either read from mrm.nml and parameters from
-  !>        mrm_parameter.nml or copied from mHM.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "logical :: do_message" - flag for writing mHM standard messages
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "logical :: readLatLon" - flag for reading LatLon file
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !    PURPOSE
+  !>       \brief Read the general config of mRM
 
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         Modified,
-  !         Stephan Thober Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
-  !         Stephan Thober Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist,
-  !                                    and readLatLon flag
+  !>       \details Depending on the variable mrm_coupling_config, the
+  !>       mRM config is either read from mrm.nml and parameters from
+  !>       mrm_parameter.nml or copied from mHM.
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
+  !>       \param[in] "integer :: unamelist, unamelist_param"              
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
+  !>       \param[in] "integer :: unamelist, unamelist_param"              
+  !>       \param[in] "logical :: do_message"                              - flag for writing mHM standard messages
+
+  !    INTENT(OUT)
+  !>       \param[out] "logical :: readLatLon" - flag for reading LatLon file
+
+  !    HISTORY
+  !>       \authors Stephan Thober
+
+  !>       \date Aug 2015
+
+  ! Modifications:
+  ! Stephan Thober Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
+  ! Stephan Thober Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
+
   subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
-    use mo_common_variables, only : &
-            nBasins, & ! number of basins
-            ALMA_convention, &
-            processMatrix
-    use mo_message, only : message
-    use mo_common_constants, only : &
-            nodata_i4, & ! nodata values
-            maxNoBasins                                ! maximum number of allowed basins
-    use mo_common_mHM_mRM_read_config, only : common_check_resolution
-    use mo_mrm_constants, only : maxNoGauges ! maximum number of allowed gauges
-    use mo_mrm_file, only : &
-            file_defOutput, udefOutput
-    use mo_mrm_global_variables, only : &
-            outputFlxState_mrm, & ! definition which output to write
-            timeStep_model_outputs_mrm, & ! timestep for writing model outputs
-            nGaugesTotal, gauge, & ! number of evaluation gauges and gauge informations
-            nInflowGaugesTotal, InflowGauge, & ! number of inflow gauges and gauge informations
-            dirGauges, & ! Directory where discharge files are located
-            dirTotalRunoff, & ! Directory where simulated runoff files are located
-            is_start, & ! flag for first timestep
-            basin_mrm, basinInfo_mRM, &
-            filenameTotalRunoff, & ! filename for total runoff file
-            varnameTotalRunoff                         ! varname for total runoff
 
-    use mo_nml, only : open_nml, position_nml, close_nml
+    use mo_common_constants, only : maxNoBasins, nodata_i4
+    use mo_common_mHM_mRM_read_config, only : common_check_resolution
+    use mo_common_variables, only : ALMA_convention, nBasins, processMatrix
+    use mo_message, only : message
+    use mo_mrm_constants, only : maxNoGauges
+    use mo_mrm_file, only : file_defOutput, udefOutput
+    use mo_mrm_global_variables, only : InflowGauge, basinInfo_mRM, basin_mrm, &
+                                        dirGauges, dirTotalRunoff, filenameTotalRunoff, gauge, is_start, nGaugesTotal, &
+                                        nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
+                                        varnameTotalRunoff
+    use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
+
     implicit none
 
     character(*), intent(in) :: file_namelist, file_namelist_param
+
     integer, intent(in) :: unamelist, unamelist_param
-    ! input variables
+
+    ! - flag for writing mHM standard messages
     logical, intent(in) :: do_message
-    ! output variables
+
+    ! - flag for reading LatLon file
     logical, intent(out) :: readLatLon
-    !
-    ! local variables
+
     integer(i4), dimension(maxNoBasins) :: NoGauges_basin
+
     integer(i4), dimension(maxNoBasins, maxNoGauges) :: Gauge_id
+
     character(256), dimension(maxNoBasins, maxNoGauges) :: Gauge_filename
+
     integer(i4), dimension(maxNoBasins) :: NoInflowGauges_basin
+
     integer(i4), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_id
+
     character(256), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_filename
+
     logical, dimension(maxNoBasins, maxNoGauges) :: InflowGauge_Headwater
+
     integer(i4) :: iBasin
+
     integer(i4) :: iGauge
+
     integer(i4) :: idx
 
-    ! namelist variables: directories
     character(256), dimension(maxNoBasins) :: dir_Gauges
+
     character(256), dimension(maxNoBasins) :: dir_Total_Runoff
-    ! for output file namelist
+
     logical :: file_exists
+
     type(basinInfo_mRM), pointer :: basin_mrm_iBasin
+
 
     ! namelist spatial & temporal resolution, optmization information
     namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff

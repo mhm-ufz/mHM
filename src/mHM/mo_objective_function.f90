@@ -1,25 +1,28 @@
-!> \file mo_objective_function.f90
+!>       \file mo_objective_function.f90
 
-!> \brief Objective Functions for Optimization of mHM.
+!>       \brief Objective Functions for Optimization of mHM.
 
-!> \details This module provides a wrapper for several objective functions used to optimize mHM against various variables.\n
-!>          If the objective is only regarding runoff move it to mRM/mo_mrm_objective_function_runoff.f90.
-!>          If it contains besides runoff another variable like TWS implement it here.\n
-!>
-!>          All the objective functions are supposed to be minimized! \n
-!>               (10) SO: SM:       1.0 - KGE of catchment average soilmoisture \n
-!>               (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture \n
-!>               (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
-!>                                        of soil moisture \n
-!>               (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture \n
-!>               (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
-!>                                        (standard score) TWS\n
-!>               (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average \n
-!>               (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration \n
+!>       \details This module provides a wrapper for several objective functions used to optimize mHM against various variables.
+!>       If the objective is only regarding runoff move it to mRM/mo_mrm_objective_function_runoff.f90.
+!>       If it contains besides runoff another variable like TWS implement it here.
+!>       
+!>       All the objective functions are supposed to be minimized! 
+!>       (10) SO: SM:       1.0 - KGE of catchment average soilmoisture 
+!>       (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture 
+!>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
+!>       of soil moisture 
+!>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture 
+!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
+!>       (standard score) TWS
+!>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average 
+!>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration 
 
-!> \authors Juliane Mai
-!> \date Dec 2012
-!  Modified, Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
+!>       \authors s Juliane Mai
+
+!>       \date Dec 2012
+
+! Modifications:
+! Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
 
 MODULE mo_objective_function
 
@@ -43,70 +46,59 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective
+  !    NAME
+  !        objective
 
-  !>        \brief Wrapper for objective functions.
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions.
 
-  !>        \details The functions selects the objective function case defined in a namelist,
-  !>        i.e. the global variable \e opti\_function.\n
-  !>        It return the objective function value for a specific parameter set.
+  !>       \details The functions selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It return the objective function value for a specific parameter set.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset" 
+  !>       \param[in] "procedure(eval_interface) :: eval"      
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1" 
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2" 
+  !>       \param[out] "real(dp), optional :: arg3" 
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. Numbering of objective functions
-  !>             has to be consistent with that of mo_mrm_objective_function_runoff\n
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective(para)
+  !>       \date Dec 2012
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified,
-  !               Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
+  ! Modifications:
+  ! Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
 
   FUNCTION objective(parameterset, eval, arg1, arg2, arg3)
 
-    USE mo_common_mHM_mRM_variables, ONLY : opti_function
-    use mo_message, only : message
     use mo_common_constants, only : nodata_dp
+    use mo_common_mHM_mRM_variables, only : opti_function
+    use mo_message, only : message
 
-    IMPLICIT NONE
+    implicit none
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
-    ! these are dummy arguments for providing a common interface also encompassing
-    ! loglikelihood_stddev with further args in single_objective_runoff in mo_mrm_objective_function_runoff
+
     real(dp), optional, intent(in) :: arg1
+
     real(dp), optional, intent(out) :: arg2
+
     real(dp), optional, intent(out) :: arg3
 
     REAL(dp) :: objective
+
 
     if (present(arg1) .or. present(arg2) .or. present(arg3)) then
       call message("Error mo_objective_function: Received unexpected argument, check optimization settings")

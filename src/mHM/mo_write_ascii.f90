@@ -1,17 +1,20 @@
-!> \file mo_write_ascii.f90
+!>       \file mo_write_ascii.f90
 
-!> \brief Module to write ascii file output.
+!>       \brief Module to write ascii file output.
 
-!> \details Module to write ascii file output.\n
-!>          Writing model output to ASCII should be the exception. Therefore, output is written usually as NetCDF
-!>          and only:\n
-!>          (1) The configuration file of mHM, \n
-!>          (2) the final parameter set after optimization, and \n
-!>          (3) the simulated vs. observed daily discharge \n
-!>          is written in ASCII file format to allow for a quick assurance of proper model runs.
+!>       \details Module to write ascii file output.
+!>       Writing model output to ASCII should be the exception. Therefore, output is written usually as NetCDF
+!>       and only:
+!>       (1) The configuration file of mHM, 
+!>       (2) the final parameter set after optimization, and 
+!>       (3) the simulated vs. observed daily discharge 
+!>       is written in ASCII file format to allow for a quick assurance of proper model runs.
 
-!> \authors Christoph Schneider, Juliane Mai, Luis Samaniego
-!> \date May 2013
+!>       \authors s Christoph Schneider, Juliane Mai, Luis Samaniego
+
+!>       \date May 2013
+
+! Modifications:
 
 MODULE mo_write_ascii
 
@@ -33,127 +36,63 @@ MODULE mo_write_ascii
   PUBLIC :: write_optinamelist                 ! Write final OF and best parameter set in a namelist format
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         write_configfile
-
-  !     PURPOSE
-  !>        \brief This modules writes the results of the configuration into an ASCII-file
-
-  !>        \details
-
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !
-
-  !     LITERATURE
-  !
-
-  !     HISTORY
-  !>        \author Christoph Schneider
-  !>        \date May 2013
-  !         Modified, Juliane Mai,    May 2013 - module version and documentation
-  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out
-  !                   Stephan Thober, Jun 2014 - updated read_restart
-  !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
-  !                   Stephan Thober, Nov 2016 - moved processMatrix to common variables
-
   PRIVATE
 
   ! ------------------------------------------------------------------
 
 CONTAINS
 
-  Subroutine write_configfile()
+  !    NAME
+  !        write_configfile
 
+  !    PURPOSE
+  !>       \brief This modules writes the results of the configuration into an ASCII-file
+
+  !>       \details 
+
+  !    HISTORY
+  !>       \authors Christoph Schneider
+
+  !>       \date May 2013
+
+  ! Modifications:
+  ! Juliane Mai    May 2013 - module version and documentation
+  ! Stephan Thober Jun 2014 - bug fix in L11 config print out
+  ! Stephan Thober Jun 2014 - updated read_restart
+  ! Rohini, Luis   Jul 2015 - updated version, L1 level prints
+  ! Stephan Thober Nov 2016 - moved processMatrix to common variables
+
+  Subroutine write_configfile
+
+    use mo_common_file, only : file_config, uconfig
+    use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
+    use mo_common_variables, only : L0_Basin, LC_year_end, &
+                                    LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
+                                    global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
+                                    nBasins, nLCoverScene, resolutionHydrology, write_restart
+    use mo_file, only : version
+    use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
+                                    dirTemperature
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_string_utils, only : num2str
-    USE mo_common_file, only : file_config, uconfig
-    USE mo_file, only : version
-    use mo_global_variables, only : &
-            dirPrecipitation, &
-            dirTemperature, &
-            dirReferenceET
-    use mo_common_mHM_mRM_variables, only : &
-            read_restart, &
-            LCyearId, &
-            warmPer, &
-            evalPer, &
-            SimPer, &
-            timeStep
-    use mo_common_variables, only : &
-            write_restart, &
-            dirRestartOut, &
-            level0, &
-            level1, &
-            iFlag_cordinate_sys, &
-            LCfilename, &
-            nLCoverScene, &
-            LC_year_start, &
-            LC_year_end, &
-            L0_Basin, &
-            nBasins, &
-            resolutionHydrology, &
-            global_parameters, &
-            global_parameters_name, &
-            dirMorpho, &
-            dirLCover, &
-            dirConfigOut, &
-            dirOut
 #ifdef MRM2MHM
-    use mo_mrm_global_variables, only : &
-            level11, &
-            gauge, &
-            InflowGauge, &
-            L11_netPerm, &
-            L11_fromN, &
-            L11_toN, &
-            L11_rOrder, &
-            L11_label, &
-            L11_length, &
-            L11_slope, &
-            L1_L11_ID, &
-            nGaugesTotal, &
-            nInflowGaugesTotal, &
-            dirGauges
-    use mo_common_mHM_mRM_variables, only : &
-            resolutionRouting
     use mo_common_constants, only : nodata_dp
+    use mo_common_mHM_mRM_variables, only : resolutionRouting
     use mo_common_variables, only : processMatrix
-
+    use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
+                                        L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
+                                        nInflowGaugesTotal
 #endif
 
-
     implicit none
-    !
-    ! local
-    !
+
     character(256) :: fName
+
     integer(i4) :: i, j, n
+
     integer(i4) :: err
+
 
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_config))
     call message()

@@ -1,11 +1,14 @@
-!> \file mo_mrm_init.f90
+!>       \file mo_mrm_init.f90
 
-!> \brief Wrapper for initializing Routing.
+!>       \brief Wrapper for initializing Routing.
 
-!> \details Calling all routines to initialize all mRM variables
+!>       \details Calling all routines to initialize all mRM variables
 
-!> \authors Luis Samaniego, Rohini Kumar and Stephan Thober
-!> \date Aug 2015
+!>       \authors s Luis Samaniego, Rohini Kumar and Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
 
 MODULE mo_mrm_init
 
@@ -25,94 +28,69 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mrm_init
+  !    NAME
+  !        mrm_init
 
-  !     PURPOSE
-  !>        \brief Initialize all mRM variables at all levels (i.e., L0, L1, and L11).
-  !
-  !>        \details Initialize all mRM variables at all levels (i.e., L0, L1, and L11)
-  !>        either with default values or with values from restart file. The L0 mask (L0_mask),
-  !>        L0 elevation (L0_elev), and L0 land cover (L0_LCover) can be provided as optional
-  !>        variables to save memory because these variable will then not be read in again.
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
+  !    PURPOSE
+  !>       \brief Initialize all mRM variables at all levels (i.e., L0, L1, and L11).
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(:), target, optional :: L0_mask - L0 mask"
-  !>        \param[in] "real(dp), dimension(:), target, optional :: L0_elev - L0 elevation"
-  !>        \param[in] "integer(i4), dimension(:,:), target, optional :: L0_LCover - L0 land cover"
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !>        None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !>       \details Initialize all mRM variables at all levels (i.e., L0, L1, and L11)
+  !>       either with default values or with values from restart file. The L0 mask (L0_mask),
+  !>       L0 elevation (L0_elev), and L0 land cover (L0_LCover) can be provided as optional
+  !>       variables to save memory because these variable will then not be read in again.
 
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         Modified, Stephan Thober, Sep 2015 - added L0_mask, L0_elev, and L0_LCover
-  !                   Stephan Thober, May 2016 - added warning message in case no gauge is found in modelling domain
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
+  !>       \param[in] "integer :: unamelist, unamelist_param"              
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
+  !>       \param[in] "integer :: unamelist, unamelist_param"              
+
+  !    HISTORY
+  !>       \authors Stephan Thober
+
+  !>       \date Aug 2015
+
+  ! Modifications:
+  ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
+  ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
 
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
+    use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
+    use mo_common_mHM_mRM_variables, only : dirRestartIn, mrm_coupling_mode, read_restart, &
+                                            resolutionRouting
+    use mo_common_read_config, only : common_read_config
+    use mo_common_restart, only : read_grid_info
+    use mo_common_variables, only : L0_Basin, global_parameters, l0_l1_remap, level0, level1, nBasins, &
+                                    processMatrix, resolutionHydrology
+    use mo_grid, only : L0_grid_setup, init_lowres_level, set_basin_indices
     use mo_kind, only : i4
     use mo_message, only : message
-    use mo_common_constants, only : nodata_i4, nodata_dp
-    use mo_mrm_global_variables, only : &
-            basin_mrm, l0_l11_remap, l1_l11_remap, level11
-    use mo_mrm_net_startup, only : &
-            l11_l1_mapping, &
-            L11_flow_direction, &
-            L11_set_network_topology, &
-            L11_routing_order, &
-            L11_link_location, &
-            L11_set_drain_outlet_gauges, &
-            L11_stream_features, &
-            L11_fraction_sealed_floodplain
+    use mo_mrm_global_variables, only : basin_mrm, &
+                                        l0_l11_remap, l1_l11_remap, level11
+    use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
+                                   L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
+                                   L11_set_network_topology, L11_stream_features, l11_l1_mapping
     use mo_mrm_read_config, only : mrm_read_config
-    use mo_common_read_config, only : common_read_config
-    use mo_common_mHM_mRM_read_config, ONLY : &
-            common_mHM_mRM_read_config, check_optimization_settings ! Read main configuration files
-    use mo_mrm_read_data, only : mrm_read_discharge, mrm_read_L0_data, &
-            mrm_read_total_runoff
+    use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
+                                 mrm_read_total_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
-    use mo_common_mHM_mRM_variables, only : read_restart, dirRestartIn, resolutionRouting, mrm_coupling_mode
-    use mo_common_variables, only : L0_Basin, processMatrix, &
-            global_parameters, nBasins, level0, level1, resolutionHydrology, l0_l1_remap
-    use mo_grid, only : L0_grid_setup, init_lowres_level, set_basin_indices
-    use mo_common_restart, only : read_grid_info
     use mo_read_latlon, only : read_latlon
 
     implicit none
-    ! input variables
+
     character(*), intent(in) :: file_namelist, file_namelist_param
+
     integer, intent(in) :: unamelist, unamelist_param
 
-    ! local variables
-    integer(i4) :: iStart, iEnd ! start and end index for routing parameters
+    ! start and end index for routing parameters
+    integer(i4) :: iStart, iEnd
+
     integer(i4) :: iBasin, gauge_counter
+
     logical :: ReadLatLon
+
 
     if (mrm_coupling_mode .eq. 0_i4) then
       call common_read_config(file_namelist, unamelist)

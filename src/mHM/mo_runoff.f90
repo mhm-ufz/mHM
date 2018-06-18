@@ -1,13 +1,16 @@
-!> \file mo_runoff.f90
+!>       \file mo_runoff.f90
 
-!> \brief Runoff generation for the  unsaturated zone, saturated zone (or groundwater zone),
-!>        and runoff accumulation.
+!>       \brief Runoff generation for the  unsaturated zone, saturated zone (or groundwater zone),
+!>       and runoff accumulation.
 
-!> \details This module generates the runoff for the unsaturated and saturated zones and provides
-!>          runoff accumulation.
+!>       \details This module generates the runoff for the unsaturated and saturated zones and provides
+!>       runoff accumulation.
 
-!> \authors Vladyslav Prykhodko
-!> \date Dec 2012
+!>       \authors s Vladyslav Prykhodko
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_runoff
 
@@ -29,102 +32,93 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         runoff_unsat_zone
+  !    NAME
+  !        runoff_unsat_zone
 
-  !  PURPOSE
-  !>        \brief Runoff generation for the saturated zone.
+  !    PURPOSE
+  !>       \brief Runoff generation for the saturated zone.
 
-  !>        \details Calculates the runoff generation for the unsaturated zone.\n
-  !>                 Calculates percolation, interflow and baseflow.\n
-  !>                 Updates upper soil and groundwater storages.\n
+  !>       \details Calculates the runoff generation for the unsaturated zone.
+  !>       Calculates percolation, interflow and baseflow.
+  !>       Updates upper soil and groundwater storages.
 
-  !     CALLING SEQUENCE
-  !         runoff_unsat_zone(k1, kp, coeff_up, alpha, karst_loss, pefec_soil, &
-  !                           unsat_thresh, slow_interflow, perc, fast_interflow, &
-  !                           sat_storage, unsat_storage )
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [d-1]
+  !>       \param[in] "REAL(dp) :: kp"           Percolation coefficient [d-1]
+  !>       \param[in] "REAL(dp) :: k0"           Recession coefficient of the upperreservoir, upper outlet [d-1]
+  !>       \param[in] "REAL(dp) :: alpha"        Exponent for the upper reservoir [-]
+  !>       \param[in] "REAL(dp) :: karst_loss"   Karstic percolation loss [-]
+  !>       \param[in] "REAL(dp) :: pefec_soil"   Input to the soil layer [mm]
+  !>       \param[in] "REAL(dp) :: unsat_thresh" Threshold water depth in upper reservoir(for Runoff contribution) [mm]
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: pefec_soil"         Input to the soil layer [mm]
-  !>        \param[in] "real(dp) :: k0"                 Recession coefficient of the upper
-  !>                                                    reservoir, upper outlet [d-1]
-  !>        \param[in] "real(dp) :: k1"                 Recession coefficient of the upper reservoir,
-  !>                                                    lower outlet [d-1]
-  !>        \param[in] "real(dp) :: kp"                 Percolation coefficient [d-1]
-  !>        \param[in] "real(dp) :: alpha"              Exponent for the upper reservoir [-]
-  !>        \param[in] "real(dp) :: unsat_thresh"       Threshold water depth in upper reservoir
-  !>                                                    (for Runoff contribution) [mm]
-  !>        \param[in] "real(dp) :: karst_loss"         Karstic percolation loss [-]
+  !    INTENT(INOUT)
+  !>       \param[inout] "REAL(dp) :: sat_storage"   Groundwater storage [mm]
+  !>       \param[inout] "REAL(dp) :: unsat_storage" Upper soil storage [mm]
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "real(dp) :: unsat_storage"   Upper soil storage [mm]
-  !>        \param[in,out] "real(dp) :: sat_storage"     Groundwater storage [mm]
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp) :: slow_interflow" Slow runoff component [mm d-1]
+  !>       \param[out] "REAL(dp) :: fast_interflow" Fast runoff component [mm d-1]
+  !>       \param[out] "REAL(dp) :: perc"           Percolation [mm d-1]
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) ::  perc"              Percolation [mm d-1]
-  !>        \param[out] "real(dp) ::  fast_interflow"    Fast runoff component [mm d-1]
-  !>        \param[out] "real(dp) ::  slow_interflow"    Slow runoff component [mm d-1]
+  !    HISTORY
+  !>       \authors Vladyslav Prykhodko
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! LS Feb 2006 - fast response
+  ! LS Feb 2007 - MaxInter
+  ! RK May 2007 - fracArea, errors in Qmod
+  ! LS Dec 2012 - variable names and process sat. zone
+  ! LS Jan 2013 - total runoff accumulation L11
+  ! JM Aug 2013 - ordering of arguments changed
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha, karst_loss, pefec_soil, unsat_thresh, sat_storage, unsat_storage, &
+                              slow_interflow, fast_interflow, perc)
+    implicit none
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Vladyslav Prykhodko
-  !>        \date    Dec 2012
-
-  !         Created  LS, Dec 2005
-  !         Modified LS, Feb 2006 - fast response
-  !                  LS, Feb 2007 - MaxInter
-  !                  RK, May 2007 - fracArea, errors in Qmod
-  !                  LS, Dec 2012 - variable names and process sat. zone
-  !                  LS, Jan 2013 - total runoff accumulation L11
-  !                  JM, Aug 2013  - ordering of arguments changed
-  ! ------------------------------------------------------------------
-
-  SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha, &   ! Intent IN
-          karst_loss, pefec_soil, unsat_thresh, &   ! Intent IN
-          sat_storage, unsat_storage, &   ! Intent INOUT
-          slow_interflow, fast_interflow, perc)                     ! Intent OUT
-
-    IMPLICIT NONE
-
+    ! Recession coefficient of the upper reservoir,lower outlet [d-1]
     REAL(dp), INTENT(IN) :: k1
+
+    ! Percolation coefficient [d-1]
     REAL(dp), INTENT(IN) :: kp
+
+    ! Recession coefficient of the upperreservoir, upper outlet [d-1]
     REAL(dp), INTENT(IN) :: k0
+
+    ! Exponent for the upper reservoir [-]
     REAL(dp), INTENT(IN) :: alpha
+
+    ! Karstic percolation loss [-]
     REAL(dp), INTENT(IN) :: karst_loss
+
+    ! Input to the soil layer [mm]
     REAL(dp), INTENT(IN) :: pefec_soil
+
+    ! Threshold water depth in upper reservoir(for Runoff contribution) [mm]
     REAL(dp), INTENT(IN) :: unsat_thresh
+
+    ! Groundwater storage [mm]
     REAL(dp), INTENT(INOUT) :: sat_storage
+
+    ! Upper soil storage [mm]
     REAL(dp), INTENT(INOUT) :: unsat_storage
+
+    ! Slow runoff component [mm d-1]
     REAL(dp), INTENT(OUT) :: slow_interflow
+
+    ! Fast runoff component [mm d-1]
     REAL(dp), INTENT(OUT) :: fast_interflow
+
+    ! Percolation [mm d-1]
     REAL(dp), INTENT(OUT) :: perc
+
 
     !---------------------------------------------------------------
     ! SOIL LAYER BETWEEN UNSATURATED AND SATURATED ZONE
     !---------------------------------------------------------------
     ! HERE input is from last soil Horizon...
     !pefec_soil = Cell1_soil(k, nHorizons_mHM)%infil
-
     unsat_storage = unsat_storage + pefec_soil
 
     ! FAST INTERFLOW WITH THRESHOLD BEHAVIOUR

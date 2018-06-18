@@ -1,18 +1,21 @@
-!> \file mo_soil_moisture.f90
+!>       \file mo_soil_moisture.f90
 
-!> \brief Soil moisture of the different layers
+!>       \brief Soil moisture of the different layers
 
-!> \details Soil moisture in the different layers is calculated with
-!> infiltration as \f$ (\theta / \theta_{sat})^\beta \f$ \n
-!> Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
-!> either using \n the Feddes equation - precessCase(1):
-!> \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$\n
-!> or using the Jarvis equation - precessCase(1):
-!> \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
-!> \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
+!>       \details Soil moisture in the different layers is calculated with
+!>       infiltration as \f$ (\theta / \theta_{sat})^\beta \f$ 
+!>       Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
+!>       either using  the Feddes equation - precessCase(1):
+!>       \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$
+!>       or using the Jarvis equation - precessCase(1):
+!>       \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
+!>       \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
 
-!> \authors Matthias Cuntz, Luis Samaniego
-!> \date Dec 2012
+!>       \authors s Matthias Cuntz, Luis Samaniego
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_soil_moisture
 
@@ -31,141 +34,132 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         soil_moisture
+  !    NAME
+  !        soil_moisture
 
-  !     PURPOSE
-  !>        \brief Soil moisture in different soil horizons
+  !    PURPOSE
+  !>       \brief Soil moisture in different soil horizons
 
-  !>        \details Infiltration \f$I\f$ from one layer \f$k-1\f$ to the next \f$k\f$ on
-  !>        pervious areas is calculated as (omit \f$t\f$)
-  !>        \f[ I[k] = I[k-1] (\theta[k] / \theta_{sat}[k])^{\beta[k]} \f]
-  !>        Then soil moisture can be calculated as (omit \f$k\f$)
-  !>        \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
-  !>        with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being 
-  !>        \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
+  !>       \details Infiltration \f$I\f$ from one layer \f$k-1\f$ to the next \f$k\f$ on
+  !>       pervious areas is calculated as (omit \f$t\f$)
+  !>       \f[ I[k] = I[k-1] (\theta[k] / \theta_{sat}[k])^{\beta[k]} \f]
+  !>       Then soil moisture can be calculated as (omit \f$k\f$)
+  !>       \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
+  !>       with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being
+  !>       \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
 
-  !     CALLING SEQUENCE
-  !         subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
-  !             evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
-  !             soil_moist_exponen, aet_canopy, prec_effec, runoff_sealed, storage_sealed, &
-  !             infiltration, soil_moist, aet, aet_sealed)
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
+  !>       \param[in] "real(dp) :: frac_sealed"                      Fraction of sealed area
+  !>       \param[in] "real(dp) :: water_thresh_sealed"              Threshhold water depth in impervious areas [mm/s]
+  !>       \param[in] "real(dp) :: pet"                              Reference evapotranspiration [mm/s]
+  !>       \param[in] "real(dp) :: evap_coeff"                       Evaporation coefficent for free-water surface of that current month
+  !>       \param[in] "real(dp), dimension(:) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
+  !>       \param[in] "real(dp), dimension(:) :: frac_roots"         Fraction of Roots in soil horizon
+  !>       \param[in] "real(dp), dimension(:) :: soil_moist_FC"      Soil moisture below which actual ET is reduced [mm]
+  !>       \param[in] "real(dp), dimension(:) :: wilting_point"      Permanent wilting point for each horizon [mm]
+  !>       \param[in] "real(dp), dimension(:) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil water retention
+  !>       \param[in] "real(dp) :: jarvis_thresh_c1"                 Jarvis critical value for normalized soil water content
+  !>       \param[in] "real(dp) :: aet_canopy"                       Actual ET from canopy [mm/s]
 
-  !     INTENT(IN)
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp) :: prec_effec"                                       Effective precipitation (rain + snow melt) [mm]
+  !>       \param[inout] "real(dp) :: runoff_sealed"                                    Direct runoff from impervious areas
+  !>       \param[inout] "real(dp) :: storage_sealed"                                   Retention storage of impervious areas
+  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: infiltration" Recharge, infiltration intensity oreffective precipitation of each horizon [mm/s]
+  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: soil_moist"   Soil moisture of each horizon [mm]
 
-  !>        \param[in] "integer(i4),           :: processCase"          
-  !>                                              1 - Feddes equation for PET reduction
-  !>                                              2 - Jarvis equation for PET reduction
-  !>                                              3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
-  !>        \param[in] "real(dp)               :: frac_sealed"
-  !>                                              Fraction of sealed area
-  !>        \param[in] "real(dp)               :: water_thresh_sealed"
-  !>                                              Threshhold water depth in impervious areas [mm/s]
-  !>        \param[in] "real(dp)               :: pet"
-  !>                                              Reference evapotranspiration [mm/s]
-  !>        \param[in] "real(dp)               :: evap_coeff"
-  !>                                              Evaporation coefficent for free-water surface of that current month
-  !>        \param[in] "real(dp), dimension(:) :: soil_moist_sat"
-  !>                                              Saturation soil moisture for each horizon [mm]
-  !>        \param[in] "real(dp), dimension(:) :: frac_roots"
-  !>                                              Fraction of Roots in soil horizon
-  !>        \param[in] "real(dp), dimension(:) :: soil_moist_FC"
-  !>                                              Soil moisture below which actual ET is reduced [mm]
-  !>        \param[in] "real(dp), dimension(:) :: wilting_point"
-  !>                                              Permanent wilting point for each horizon [mm]
-  !>        \param[in] "real(dp), dimension(:) :: soil_moist_exponen"
-  !>                                              Exponential parameter to how non-linear is the soil water retention
-  !>        \param[in] "real(dp)               :: jarvis_thresh_c1"
-  !>                                              Jarvis critical value for normalized soil water content
-  !>        \param[in] "real(dp)               :: aet_canopy"
-  !>                                              Actual ET from canopy [mm/s]
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(size(soil_moist_sat, 1)) :: aet" actual ET [mm/s]
+  !>       \param[out] "real(dp) :: aet_sealed"                              actual ET from free-water surfaces,i.e impervious cover [mm/s]
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "real(dp)               :: prec_effec"       Effective precipitation (rain + snow melt) [mm]
-  !>        \param[in,out] "real(dp)               :: runoff_sealed"    Direct runoff from impervious areas
-  !>        \param[in,out] "real(dp)               :: storage_sealed"   Retention storage of impervious areas
-  !>        \param[in,out] "real(dp), dimension(:) :: infiltration"     Recharge, infiltration intensity or
-  !>                                                                    effective precipitation of each horizon [mm/s]
-  !>        \param[in,out] "real(dp), dimension(:) :: soil_moist"       Soil moisture of each horizon [mm]
+  !    HISTORY
+  !>       \authors Matthias Cuntz
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(:) :: aet"                 actual ET [mm/s]
-  !>        \param[out] "real(dp)               :: aet_sealed"          actual ET from free-water surfaces,
-  !>                                                                    i.e impervious cover [mm/s]
+  !>       \date Dec 2012
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz
-  !>        \date Dec 2012
-  !         Modified Rohinhi Kumar, July 2013        - A Mosiac apporach is implemented for processes accounted
-  !                                                    within the permeamble & impervious area. Precipitation and 
-  !                                                    effective PET intensity are same for both areas.
-  !                                                  - changes made for variables "water_thresh_sealed" when it becomes
-  !                                                   zero
-  !                 Zink M. Demirel M.C., March 2017 - Added Jarvis soil water stress function for evapotranspiration  
-
-  subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, &
-          evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
-          soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, runoff_sealed, &
-          storage_sealed, infiltration, soil_moist, aet, aet_sealed)
+  subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
+                          soil_moist_FC, wilting_point, soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, &
+                          runoff_sealed, storage_sealed, infiltration, soil_moist, aet, aet_sealed)
 
     use mo_common_constants, only : eps_dp
 
     implicit none
 
-    ! Intent variables
-    integer(i4), intent(in) :: processCase         ! 1 - Feddes equation for PET reduction
-    !                                                                                 ! 2 - Jarvis equation for PET reduction
-    real(dp), intent(in) :: frac_sealed         ! fraction of sealed area
-    real(dp), intent(in) :: water_thresh_sealed ! Threshhold water depth in impervious
-    !                                                                                 ! areas [mm/s]
-    real(dp), intent(in) :: pet                 ! Reference evapotranspiration [mm/s]
-    real(dp), intent(in) :: evap_coeff          ! Evaporation coefficent for free-water
-    !                                                                                 ! surface of that current month
-    real(dp), dimension(:), intent(in) :: soil_moist_sat      ! Saturation soil moisture
-    !                                                                                 ! for each horizon [mm]
-    real(dp), dimension(:), intent(in) :: frac_roots          ! Fraction of Roots in soil horizon
-    real(dp), dimension(:), intent(in) :: soil_moist_FC       ! Soil moisture below which actual ET
-    !                                                                                 ! is reduced [mm]
-    real(dp), dimension(:), intent(in) :: wilting_point       ! Permanent wilting point
-    !                                                                                 ! for each horizon [mm]
-    real(dp), dimension(:), intent(in) :: soil_moist_exponen  ! Exponential parameter to how non-
-    !                                                                                 ! linear is the soil water retention
-    real(dp), intent(in) :: jarvis_thresh_c1    ! jarvis critical value for
-    !                                                                                 ! normalized soil water content
-    real(dp), intent(in) :: aet_canopy          ! actual ET from canopy [mm/s]
-    real(dp), intent(inout) :: prec_effec          ! Effective precipitation
-    !                                                                                 ! (rain + snow melt) [mm]
-    real(dp), intent(inout) :: runoff_sealed       ! Direct runoff from impervious areas
-    real(dp), intent(inout) :: storage_sealed      ! Retention storage of impervious areas
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: infiltration        ! Recharge, infiltration intensity or
-    !                                                                                 ! effective precipitation 
-    !                                                                                 ! for each horizon [mm/s]
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: soil_moist          ! Soil moisture of each horizon [mm]
-    real(dp), dimension(size(soil_moist_sat, 1)), intent(out) :: aet                 ! actual ET [mm/s]
-    real(dp), intent(out) :: aet_sealed          ! actual ET from free-water surfaces,
-    !                                                                                 ! i.e impervious cover [mm/s]
+    ! 1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
+    integer(i4), intent(in) :: processCase
 
-    ! Local variables
-    integer(i4) :: hh                 ! counter
-    real(dp) :: prec_effec_soil    ! Effective Prec or infiltration from above
-    real(dp) :: frac_runoff        ! Runoof fraction
-    real(dp) :: soil_stress_factor ! PET reduction factor according to actual soil moisture
-    real(dp) :: tmp                ! temporary variable for misc use
+    ! Fraction of sealed area
+    real(dp), intent(in) :: frac_sealed
+
+    ! Threshhold water depth in impervious areas [mm/s]
+    real(dp), intent(in) :: water_thresh_sealed
+
+    ! Reference evapotranspiration [mm/s]
+    real(dp), intent(in) :: pet
+
+    ! Evaporation coefficent for free-water surface of that current month
+    real(dp), intent(in) :: evap_coeff
+
+    ! Saturation soil moisture for each horizon [mm]
+    real(dp), dimension(:), intent(in) :: soil_moist_sat
+
+    ! Fraction of Roots in soil horizon
+    real(dp), dimension(:), intent(in) :: frac_roots
+
+    ! Soil moisture below which actual ET is reduced [mm]
+    real(dp), dimension(:), intent(in) :: soil_moist_FC
+
+    ! Permanent wilting point for each horizon [mm]
+    real(dp), dimension(:), intent(in) :: wilting_point
+
+    ! Exponential parameter to how non-linear is the soil water retention
+    real(dp), dimension(:), intent(in) :: soil_moist_exponen
+
+    ! Jarvis critical value for normalized soil water content
+    real(dp), intent(in) :: jarvis_thresh_c1
+
+    ! Actual ET from canopy [mm/s]
+    real(dp), intent(in) :: aet_canopy
+
+    ! Effective precipitation (rain + snow melt) [mm]
+    real(dp), intent(inout) :: prec_effec
+
+    ! Direct runoff from impervious areas
+    real(dp), intent(inout) :: runoff_sealed
+
+    ! Retention storage of impervious areas
+    real(dp), intent(inout) :: storage_sealed
+
+    ! Recharge, infiltration intensity oreffective precipitation of each horizon [mm/s]
+    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: infiltration
+
+    ! Soil moisture of each horizon [mm]
+    real(dp), dimension(size(soil_moist_sat, 1)), intent(inout) :: soil_moist
+
+    ! actual ET [mm/s]
+    real(dp), dimension(size(soil_moist_sat, 1)), intent(out) :: aet
+
+    ! actual ET from free-water surfaces,i.e impervious cover [mm/s]
+    real(dp), intent(out) :: aet_sealed
+
+    ! counter
+    integer(i4) :: hh
+
+    ! Effective Prec or infiltration from above
+    real(dp) :: prec_effec_soil
+
+    ! Runoof fraction
+    real(dp) :: frac_runoff
+
+    ! PET reduction factor according to actual soil moisture
+    real(dp) :: soil_stress_factor
+
+    ! temporary variable for misc use
+    real(dp) :: tmp
+
 
     ! ----------------------------------------------------------------
     ! IMPERVIOUS COVER PROCESS

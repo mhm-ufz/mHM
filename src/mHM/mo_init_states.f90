@@ -1,14 +1,17 @@
-!> \file mo_init_states.f90
+!>       \file mo_init_states.f90
 
-!> \brief Initialization of all state variables of mHM.
+!>       \brief Initialization of all state variables of mHM.
 
-!> \details This module initializes all state variables required to run mHM.
-!> Two options are provided:
-!>     - (1) default values
-!>     - (2) from nc file
+!>       \details This module initializes all state variables required to run mHM.
+!>       Two options are provided:
+!>       - (1) default values
+!>       - (2) from nc file
 
-!> \author Luis Samaniego & Rohini Kumar
-!> \date Dec 2012
+!>       \authors Luis Samaniego & Rohini Kumar
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_init_states
 
@@ -29,84 +32,55 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          variables_alloc
+  !    NAME
+  !        variables_alloc
 
-  !>        \brief Allocation of space for mHM related L1 and L11 variables.
+  !    PURPOSE
+  !>       \brief Allocation of space for mHM related L1 and L11 variables.
 
-  !>        \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>                 fluxes, and parameters) for a given basin. Variables allocated here is
-  !>                 defined in them mo_global_variables.f90 file. After allocating any variable
-  !>                 in this routine, initalize them in the following variables_default_init
-  !>                 subroutine:
-  !>
-  !
-  !     CALLING SEQUENCE
-  !         call variables_alloc(iBasin)
+  !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
+  !>       fluxes, and parameters) for a given basin. Variables allocated here is
+  !>       defined in them mo_global_variables.f90 file. After allocating any variable
+  !>       in this routine, initalize them in the following variables_default_init
+  !>       subroutine:
+  !>       
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: iBasin"        - basin id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ncells1" 
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-
-  !     RETURN
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Jan 2013
-  !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
-  !                   S. Thober, Aug 2015  - removed routing related variables
-  !                   Zink M. Demirel C.,Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
-  !                   Robert Schweppe,      Dec 2017 - restructured allocation in variables_alloc,
-  !                                                    expanded dimensions of effective parameters
-
+  ! Modifications:
+  ! R. Kumar           Sep 2013 - documentation added according to the template
+  ! S. Thober          Aug 2015 - removed routing related variables
+  ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
+  ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
 
   subroutine variables_alloc(ncells1)
 
-    use mo_mpr_global_variables, only : &
-            nSoilHorizons_mHM, HorizonDepth_mHM
-    use mo_global_variables, only : &
-            L1_inter, L1_snowPack, L1_sealSTW, &
-            L1_soilMoist, L1_unsatSTW, L1_satSTW, &
-            L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed, &
-            L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt, &
-            L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff, &
-            L1_snow, L1_Throughfall, L1_total_runoff, &
-            L1_neutrons
-    use mo_append, only : append                      ! append vector
-
+    use mo_append, only : append
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_mpr_constants, only : &
-            P2_InitStateFluxes, &
-            P3_InitStateFluxes, P4_InitStateFluxes, &
-            P5_InitStateFluxes, C1_InitStateSM
+    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, &
+                                    L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
+                                    L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW
+    use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
+                                 P4_InitStateFluxes, P5_InitStateFluxes
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, nSoilHorizons_mHM
 
     implicit none
 
     integer(i4), intent(in) :: ncells1
 
-    ! local variables
     integer(i4) :: i
+
     real(dp), dimension(:), allocatable :: dummy_1D
+
     real(dp), dimension(:, :), allocatable :: dummy_2D
+
 
     ! for appending and intialization
     allocate(dummy_1D(nCells1))

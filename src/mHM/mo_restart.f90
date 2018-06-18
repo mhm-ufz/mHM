@@ -1,15 +1,18 @@
-!> \file mo_restart.f90
+!>       \file mo_restart.f90
 
-!> \brief reading and writing states, fluxes and configuration for restart of mHM.
+!>       \brief reading and writing states, fluxes and configuration for restart of mHM.
 
-!> \details routines are seperated for reading and writing variables for:\n
-!>          - states and fluxes, and \n
-!>          - configuration.\n
-!>          Reading of L11 configuration is also seperated from the rest, 
-!>          since it is only required when routing is activated.
+!>       \details routines are seperated for reading and writing variables for:
+!>       - states and fluxes, and 
+!>       - configuration.
+!>       Reading of L11 configuration is also seperated from the rest,
+!>       since it is only required when routing is activated.
 
-!> \authors Stephan Thober
-!> \date Jul 2013
+!>       \authors s Stephan Thober
+
+!>       \date Jul 2013
+
+! Modifications:
 
 MODULE mo_restart
 
@@ -35,111 +38,80 @@ MODULE mo_restart
 CONTAINS
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         write_restart
+  !    NAME
+  !        write_restart_files
 
-  !     PURPOSE
-  !>        \brief write restart files for each basin
+  !    PURPOSE
+  !>       \brief write restart files for each basin
 
-  !>        \details write restart files for each basin. For each basin
-  !>        three restart files are written. These are xxx_states.nc, 
-  !>        xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>        basin index). If a variable is added here, it should also be added
-  !>        in the read restart routines below.
+  !>       \details write restart files for each basin. For each basin
+  !>       three restart files are written. These are xxx_states.nc,
+  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !>       basin index). If a variable is added here, it should also be added
+  !>       in the read restart routines below.
 
-  !     INTENT(IN)
-  !>        \param[in] "character(256), dimension(:) :: OutPath"     Output Path for each basin
+  !    INTENT(IN)
+  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jun 2014
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
+  ! David Schaefer     Nov  2015 - mo_netcdf
+  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
+  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
+  ! Robert Schweppe    Feb 2018 - Removed all L0 references
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author   Stephan Thober
-  !>        \date     Jun 2014
-  !         Modified  Matthias Zink   Nov. 2014  - added PET related parameter writing
-  !                   Stephan Thober  Aug  2015  - moved write of routing states to mRM
-  !                   David Schaefer  Nov  2015  - mo_netcdf
-  !                   Stephan Thober  Nov  2016  - moved processMatrix to common variables
-  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                   Robert Schweppe, Feb 2018  - Removed all L0 references
-
-  ! ------------------------------------------------------------------ 
   subroutine write_restart_files(OutPath)
 
-    use mo_kind, only : i4, dp
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : &
-            L1_Inter, &
-            L1_snowPack, &
-            L1_sealSTW, &
-            L1_soilMoist, &
-            L1_unsatSTW, &
-            L1_satSTW, &
-            L1_aETSoil, &
-            L1_aETCanopy, &
-            L1_aETSealed, &
-            L1_baseflow, &
-            L1_infilSoil, &
-            L1_fastRunoff, &
-            L1_melt, &
-            L1_percol, &
-            L1_preEffect, &
-            L1_rain, &
-            L1_runoffSeal, &
-            L1_slowRunoff, &
-            L1_snow, &
-            L1_Throughfall, &
-            L1_total_runoff
-    use mo_mpr_global_variables, only : &
-            nSoilHorizons_mHM, & ! number of soil horizons
-            nLAI
-    use mo_common_variables, only : &
-            level1, &
-            nLCoverScene ! number of land cover scenes
-    use mo_mpr_restart, only : write_eff_params
     use mo_common_restart, only : write_grid_info
+    use mo_common_variables, only : level1, nLCoverScene
+    use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
+                                    L1_fastRunoff, L1_infilSoil, L1_melt, L1_percol, L1_preEffect, L1_rain, &
+                                    L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW
+    use mo_kind, only : dp, i4
+    use mo_message, only : message
+    use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM
+    use mo_mpr_restart, only : write_eff_params
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+    use mo_string_utils, only : num2str
 
     implicit none
 
     character(256) :: Fname
-    character(256), dimension(:), intent(in) :: OutPath ! list of Output paths per Basin
+
+    ! Output Path for each basin
+    character(256), dimension(:), intent(in) :: OutPath
+
     integer(i4) :: iBasin
+
     integer(i4) :: ii
-    integer(i4) :: s1       ! start index at level 1
-    integer(i4) :: e1       ! end index at level 1
-    logical, dimension(:, :), allocatable :: mask1    ! mask at level 1
-    real(dp), dimension(:, :, :), allocatable :: dummy_3D ! dummy variable
+
+    ! start index at level 1
+    integer(i4) :: s1
+
+    ! end index at level 1
+    integer(i4) :: e1
+
+    ! mask at level 1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! dummy variable
+    real(dp), dimension(:, :, :), allocatable :: dummy_3D
+
     integer(i4) :: max_extent
 
     type(NcDataset) :: nc
+
     type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais
+
     type(NcVariable) :: var
+
 
     ! get maximum extent of one dimension 2 or 3
     max_extent = max(nSoilHorizons_mHM, nLCoverScene, nLAI)

@@ -1,22 +1,14 @@
-!> \file mo_multi_param_reg.f90
+!>       \file mo_multi_param_reg.f90
 
-!> \brief   Multiscale parameter regionalization (MPR).
+!>       \brief Multiscale parameter regionalization (MPR).
 
-!> \details This module provides the routines for multiscale parameter regionalization (MPR).
+!>       \details This module provides the routines for multiscale parameter regionalization (MPR).
 
-!> \authors Stephan Thober, Rohini Kumar
-!> \date Dec 2012
+!>       \authors s Stephan Thober, Rohini Kumar
 
-!          created  Sa          16.02.2006
-!           update  Sa          17.09.2007 - betas new number
-!           update  Sa          03.10.2007 - new name, land cover state  
-!           update  Ku          25.03.2008 - all parameters are regionalised  
-!           update  Ku          04.10.2010 - vector version
-!           update  Th          20.12.2012 - modular version
-!           update  MZ          27.11.2014 - added parameterization of PET
-!           update  Ku          Mar  2016  - changes for handling multiple soil database options
-!  M.C.Demirel & S.Stisen       Apr  2017  - added ET reduction and FC dependency on root fraction coefficient at SM process(3)  
+!>       \date Dec 2012
 
+! Modifications:
 
 MODULE mo_multi_param_reg
 
@@ -33,283 +25,295 @@ MODULE mo_multi_param_reg
 contains
   ! ---------------------------------------------------------------------------
 
-  !      NAME
-  !         mpr
+  !    NAME
+  !        mpr
 
-  !>        \brief Regionalizing and Upscaling process parameters
+  !    PURPOSE
+  !>       \brief Regionalizing and Upscaling process parameters
 
-  !>        \details calculating process parameters at L0 scale (Regionalization), like:\n
-  !>                 - Baseflow recession parameter\n
-  !>                 - Soil moisture parameters\n
-  !>                 - PET correction for aspect\n
-  !>
-  !>                 and upscale these parameters to retrieve effective parameters at scale
-  !>                 L1. \n 
-  !>                 Further parameter regionalizations are done for:\n
-  !>                 - snow accumulation and melting parameters\n
-  !>                 - threshold parameter for runoff generation on impervious layer\n
-  !>                 - karstic percolation loss\n
-  !>                 - setting up the Regionalized Routing Parameters\n
-  !>                 \n 
+  !>       \details calculating process parameters at L0 scale (Regionalization), like:
+  !>       - Baseflow recession parameter
+  !>       - Soil moisture parameters
+  !>       - PET correction for aspect
+  !>       
+  !>       and upscale these parameters to retrieve effective parameters at scale
+  !>       L1. 
+  !>       Further parameter regionalizations are done for:
+  !>       - snow accumulation and melting parameters
+  !>       - threshold parameter for runoff generation on impervious layer
+  !>       - karstic percolation loss
+  !>       - setting up the Regionalized Routing Parameters
+  !>       
 
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4) :: mask0(:,:)"               - mask at Level 0
-  !>       \param[in] "integer(i4) :: geoUnit0(:)"              - geological units at level 0
-  !>       \param[in] "integer(i4) :: soilId0(:,:)"             - soil Ids at level 0
-  !>       \param[in] "integer(i4) :: Asp0(:)"                  - [degree] Aspect at Level 0
-  !>       \param[in] "integer(i4) :: gridded_LAI0(:,:)"        - [1] land cover ID for LAI estimation
-  !>       \param[in] "integer(i4) :: LCover0(:,:)"             - land use cover at level 0
-  !>       \param[in] "integer(i4) :: slope_emp0(:)"            - Empirical quantiles of slope at Level 0
-  !>       \param[in] "integer(i4) :: y0(:)"                    - latitude at level 0
-  !>       \param[in] "integer(i4) :: Id0(:)"                   - cell Ids at level 0
-  !>       \param[in] "integer(i4) :: upper_bound1(:)"          - upper row of L0 block within L1 cell
-  !>       \param[in] "integer(i4) :: lower_bound1(:)"          - lower row of L0 block within L1 cell
-  !>       \param[in] "integer(i4) :: left_bound1(:)"           - left column of L0 block within L1 cell
-  !>       \param[in] "integer(i4) :: right_bound1(:)"          - right column of L0 block within L1 cell
-  !>       \param[in] "integer(i4) :: n_subcells1(:)"           - Number of L0 cells in L0 block within L1 cell
+  !    INTENT(IN)
+  !>       \param[in] "logical, dimension(:, :) :: mask0"         mask at level 0 field
+  !>       \param[in] "integer(i4), dimension(:) :: geoUnit0"     L0 geological units
+  !>       \param[in] "integer(i4), dimension(:, :) :: soilId0"   soil Ids at level 0
+  !>       \param[in] "real(dp), dimension(:) :: Asp0"            [degree] Aspect at Level 0
+  !>       \param[in] "real(dp), dimension(:, :) :: gridded_LAI0" LAI grid at level 0, with dim2 = time
+  !>       \param[in] "integer(i4), dimension(:, :) :: LCOVER0"   land cover at level 0
+  !>       \param[in] "real(dp), dimension(:) :: slope_emp0"      Empirical quantiles of slope
+  !>       \param[in] "real(dp), dimension(:) :: y0"              y0 at level 0
+  !>       \param[in] "integer(i4), dimension(:) :: Id0"          Cell ids at level 0
+  !>       \param[in] "integer(i4), dimension(:) :: upper_bound1" Upper row of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: lower_bound1" Lower row of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: left_bound1"  Left column of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: right_bound1" Right column of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: n_subcells1"  Number of L0 cells within a L1 cell
 
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: fSealed1"         [1] fraction of sealed area
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: alpha1"           [1] Exponent for the upper reservoir
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayInc1"       [d-1 degreeC-1]  Increase of theDegree-day factor per mm ofincrease in precipitation
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayMax1"       [mm-1 degreeC-1] Maximum Degree-day factor
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayNoPre1"     [mm-1 degreeC-1] Degree-day factor withno precipitation
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: fAsp1"            [1]     PET correction for Aspect at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: HarSamCoeff1"     [1]     PET Hargreaves Samani coeff. at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: PrieTayAlpha1"    [1]     PET Priestley Taylor coeff. at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: aeroResist1"      [s m-1] PET aerodynamical resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: surfResist1"      [s m-1] PET bulk surface resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: fRoots1"          fraction of roots in soil horizon
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kFastFlow1"       [10^-3 m] Recession coefficientof the upper reservoir, upper outlet
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kSlowFlow1"       [10^-3 m] Recession coefficientof the upper reservoir, lower outlet
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kBaseFlow1"       Level 1 baseflow recession
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kPerco1"          [d-1] percolation coefficient
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: karstLoss1"       
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistFC1"     [10^-3 m] field capacity
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistSat1"    [10^-3 m] depth of saturated SM
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistExp1"    Parameter that determines the rel.contribution to SM, upscal. Bulk den.
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: jarvis_thresh_c1" [1] jarvis critical value for norm SWC
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: tempThresh1"      [degreeC] threshold temperaturefor snow rain
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: unsatThresh1"     [10^-3 m] Threshhold water depthin upper reservoir (for Runoffcontribution)
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: sealedThresh1"    threshold parameter
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: wiltingPoint1"    [10^-3 m] permanent wilting point
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: maxInter1"        
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: petLAIcorFactor"  
 
-  !     INTENT(INOUT)
-  !>       \param[in,out] "real(dp) :: fSealed1(:,:,:)"         -           fraction of sealed area at scale L1
-  !>       \param[in,out] "real(dp) :: alpha1(:,:,:)"           - [1]       Exponent for the upper reservoir
-  !>       \param[in,out] "real(dp) :: degDayInc1(:,:,:)"       -           increase of the degree-day factor per mm
-  !>                                                                        of increase in precipitation
-  !>       \param[in,out] "real(dp) :: degDayMax1(:,:,:)"       -           Maximum Degree-day factor
-  !>       \param[in,out] "real(dp) :: degDayNoPre1(:,:,:)"     -           Degree-day factor with no precipitation
-  !>       \param[in,out] "real(dp) :: fAsp1(:,:,:)"            - [1]       PET correction for Aspect at level 1
-  !>       \param[in,out] "real(dp) :: HarSamCoeff1(:,:,:)"     - [1]       PET Hargreaves Samani coefficient at level 1
-  !>       \param[in,out] "real(dp) :: PrieTayAlpha1(:,:,:)"    - [1]       PET Priestley Taylor coefficient at level 1
-  !>       \param[in,out] "real(dp) :: aeroResist1(:,:,:)"      - [s m-1]   PET aerodynamical resitance at level 1
-  !>       \param[in,out] "real(dp) :: surfResist1(:,:,:)"      - [s m-1]   PET bulk surface resitance at level 1
-  !>       \param[in,out] "real(dp) :: fRoots1(:,:,:)"          -           fraction of roots in soil horizons
-  !>       \param[in,out] "real(dp) :: kFastFlow1(:,:,:)"       - [10^-3 m] Recession coefficient of the upper
-  !>                                                                        reservoir, upper outlet
-  !>       \param[in,out] "real(dp) :: kSlowFlow1(:,:,:)"       - [10^-3 m] Recession coefficient of the upper
-  !>                                                                        reservoir, lower outlet
-  !>       \param[in,out] "real(dp) :: kBaseFlow1(:,:,:)"       -           baseflow recession parameter at level 1
-  !>       \param[in,out] "real(dp) :: kPerco1(:,:,:)"          - [d-1]     percolation coefficient
-  !>       \param[in,out] "real(dp) :: karstLoss1(:,:,:)"       -           karstic percolation loss parameter
-  !>       \param[in,out] "real(dp) :: soilMoistFC1(:,:,:)"     - [10^-3 m] field capacity
-  !>       \param[in,out] "real(dp) :: soilMoistSat1(:,:,:)"    - [10^-3 m] depth of saturated SM cont
-  !>       \param[in,out] "real(dp) :: soilMoistExp1(:,:,:)"    -           Parameter that determines the relative
-  !>                                                                        contribution to SM
-  !>       \param[in,out] "real(dp) :: jarvis_thresh_c1(:,:,:)" - [1]       jarvis critical value for
-  !>                                                                        normalized soil water content
-  !>       \param[in,out] "real(dp) :: tempThresh1(:,:,:)"      -           threshold temperature for snow rain
-  !>       \param[in,out] "real(dp) :: unsatThresh1(:,:,:)"     - [10^-3 m] Threshhold water depth in upper reservoir
-  !>                                                                        (for Runoff  contribution)
-  !>       \param[in,out] "real(dp) :: sealedThresh1(:,:,:)"    -           threshold parameter for runoff generation
-  !>                                                                        on impervious Layer
-  !>       \param[in,out] "real(dp) :: wiltingPoint1(:,:,:)"    - [10^-3 m] permanent wilting point
-  !>       \param[in,out] "real(dp) :: maxInter1(:,:,:)"        - [10^-3 m] maximum canopy interception
-  !>       \param[in,out] "real(dp) :: petLAIcorFactor(:,:,:)"  - [10^-3 m] LAI-induced correction factor for PET
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), dimension(:), optional :: parameterset" 
 
-  !      INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober           Jan 2013 - updated calling sequence for upscaling operators
+  ! Luis Samaniego           Feb 2013 - calling sequence, initial CHECK, call mpr_runoff
+  ! Stephan Thober           Feb 2013 - added subroutine for karstic percolation loss removed L1_, L0_ in variable names
+  ! Stephan Thober           Aug 2015 - moved regionalization of routing to mRM
+  ! Rohini Kumar             Mar 2016 - changes for handling multiple soil database options
+  ! Zink M. & Demirel M.C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
+  ! Demirel M.C. & S. Stisen Apr 2017 - Added FC dependency on root fraction coefficient at SM process(3)
+  ! Robert Schweppe          Dec 2017 - added loop over LCscenes inside MPR, renamed variables rewrite
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0, y0, Id0, upper_bound1, lower_bound1, &
+                left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
+                HarSamCoeff1, PrieTayAlpha1, aeroResist1, surfResist1, fRoots1, kFastFlow1, kSlowFlow1, kBaseFlow1, &
+                kPerco1, karstLoss1, soilMoistFC1, soilMoistSat1, soilMoistExp1, jarvis_thresh_c1, tempThresh1, &
+                unsatThresh1, sealedThresh1, wiltingPoint1, maxInter1, petLAIcorFactor, parameterset)
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written Stephan Thober,                 Dec 2012 - created
-  !         Modified, Stephan Thober,               Jan 2013 - updated calling sequence for upscaling operators
-  !                   Luis Samaniego,               Feb 2013 - calling sequence, initial CHECK, call mpr_runoff
-  !                   Stephan Thober,               Feb 2013 - added subroutine for karstic percolation loss
-  !                                                            removed L1_, L0_ in variable names
-  !                   Stephan Thober,               Aug 2015 - moved regionalization of routing to mRM
-  !                   Rohini Kumar,                 Mar 2016 - changes for handling multiple soil database options
-  !                   Zink M. & Demirel M.C.,       Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                   Demirel M.C. & S. Stisen,     Apr 2017 - Added FC dependency on root fraction coefficient 
-  !                                                            at SM process(3)
-  !                   Robert Schweppe,              Dec 2017 - added loop over LCscenes inside MPR, renamed variables
-  !                                                            rewrite
-
-  subroutine mpr(&
-          mask0, &
-          geoUnit0, &
-          soilId0, &
-          Asp0, &
-          gridded_LAI0, &
-          LCover0, &
-          slope_emp0, &
-          y0, &
-          Id0, &
-          upper_bound1, &
-          lower_bound1, &
-          left_bound1, &
-          right_bound1, &
-          n_subcells1, &
-          fSealed1, &
-          alpha1, &
-          degDayInc1, &
-          degDayMax1, &
-          degDayNoPre1, &
-          fAsp1, &
-          HarSamCoeff1, &
-          PrieTayAlpha1, &
-          aeroResist1, &
-          surfResist1, &
-          fRoots1, &
-          kFastFlow1, &
-          kSlowFlow1, &
-          kBaseFlow1, &
-          kPerco1, &
-          karstLoss1, &
-          soilMoistFC1, &
-          soilMoistSat1, &
-          soilMoistExp1, &
-          jarvis_thresh_c1, &
-          tempThresh1, &
-          unsatThresh1, &
-          sealedThresh1, &
-          wiltingPoint1, &
-          maxInter1, &
-          petLAIcorFactor, &
-          parameterset &
-          )
-
+    use mo_common_variables, only : global_parameters, processMatrix
     use mo_message, only : message
-    use mo_upscaling_operators, only : upscale_arithmetic_mean, L0_fractionalCover_in_Lx
-    use mo_mpr_soilmoist, only : mpr_sm
     use mo_mpr_SMhorizons, only : mpr_SMhorizons
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, c2TSTu, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
+                                        soilDB
+    use mo_mpr_pet, only : bulksurface_resistance, pet_correctbyASP, pet_correctbyLAI, priestley_taylor_alpha
     use mo_mpr_runoff, only : mpr_runoff
-    use mo_mpr_pet, only : pet_correctbyASP, priestley_taylor_alpha, &
-            bulksurface_resistance, pet_correctbyLAI!, aerodynamical_resistance
-    use mo_common_variables, only : &
-            processMatrix, &
-            global_parameters
-    use mo_mpr_global_variables, only : &
-            soilDB, &
-            iFlag_soilDB, & ! to handle dif. types of soil databases
-            fracSealed_CityArea, &
-            nSoilHorizons_mHM, HorizonDepth_mHM, &
-            c2TSTu
+    use mo_mpr_soilmoist, only : mpr_sm
+    use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, &
+                                       upscale_arithmetic_mean
 
     implicit none
 
-    ! Input ----------------------------------------------------------
-    logical, dimension(:, :), intent(in) :: mask0             ! mask at level 0 field
+    ! mask at level 0 field
+    logical, dimension(:, :), intent(in) :: mask0
 
-    ! baseflow recession
-    integer(i4), dimension(:), intent(in) :: geoUnit0          ! L0 geological units
+    ! L0 geological units
+    integer(i4), dimension(:), intent(in) :: geoUnit0
 
-    ! level0 input fields
-    integer(i4), dimension(:, :), intent(in) :: soilId0           ! soil Ids at level 0
-    real(dp), dimension(:), intent(in) :: Asp0              ! [degree] Aspect at Level 0
-    real(dp), dimension(:, :), intent(in) :: gridded_LAI0         ! LAI grid at level 0, with dim2 = time
-    integer(i4), dimension(:, :), intent(in) :: LCOVER0           ! land cover at level 0
+    ! soil Ids at level 0
+    integer(i4), dimension(:, :), intent(in) :: soilId0
 
-    ! Ids of L0 cells beneath L1 cell
-    real(dp), dimension(:), intent(in) :: slope_emp0        ! Empirical quantiles of slope
-    integer(i4), dimension(:), intent(in) :: Id0          ! Cell ids at level 0
-    integer(i4), dimension(:), intent(in) :: upper_bound1        ! Upper row of hi res block
-    integer(i4), dimension(:), intent(in) :: lower_bound1        ! Lower row of hi res block
-    integer(i4), dimension(:), intent(in) :: left_bound1        ! Left column of hi res block
-    integer(i4), dimension(:), intent(in) :: right_bound1        ! Right column of hi res block
-    integer(i4), dimension(:), intent(in) :: n_subcells1         ! Number of L0 cells within a L1 cell
-    real(dp), dimension(:), intent(in) :: y0          ! y0 at level 0
+    ! [degree] Aspect at Level 0
+    real(dp), dimension(:), intent(in) :: Asp0
 
-    real(dp), dimension(:, :, :), intent(inout) :: fSealed1          ! [1] fraction of sealed area
+    ! LAI grid at level 0, with dim2 = time
+    real(dp), dimension(:, :), intent(in) :: gridded_LAI0
 
-    ! Output of soilmoisture parametrization
-    real(dp), dimension(:, :, :), intent(inout) :: soilMoistExp1             ! Parameter that determines the rel.
-    !                                                                           ! contribution to SM, upscal. Bulk den.
-    real(dp), dimension(:, :, :), intent(inout) :: jarvis_thresh_c1  ! [1] jarvis critical value for norm SWC
+    ! land cover at level 0
+    integer(i4), dimension(:, :), intent(in) :: LCOVER0
 
-    real(dp), dimension(:, :, :), intent(inout) :: soilMoistSat1              ! [10^-3 m] depth of saturated SM
-    real(dp), dimension(:, :, :), intent(inout) :: soilMoistFC1               ! [10^-3 m] field capacity
-    real(dp), dimension(:, :, :), intent(inout) :: wiltingPoint1               ! [10^-3 m] permanent wilting point
-    real(dp), dimension(:, :, :), intent(inout) :: fRoots1           ! fraction of roots in soil horizon
-    real(dp), dimension(:, :, :), intent(inout) :: tempThresh1               ! [degreeC] threshold temperature
-    !                                                                           ! for snow rain
-    real(dp), dimension(:, :, :), intent(inout) :: degDayNoPre1               ! [mm-1 degreeC-1] Degree-day factor with
-    !                                                                           ! no precipitation
-    real(dp), dimension(:, :, :), intent(inout) :: degDayMax1            ! [mm-1 degreeC-1] Maximum Degree-day factor
-    real(dp), dimension(:, :, :), intent(inout) :: degDayInc1             ! [d-1 degreeC-1]  Increase of the
-    !                                                                           ! Degree-day factor per mm of
-    !                                                                           ! increase in precipitation
+    ! Empirical quantiles of slope
+    real(dp), dimension(:), intent(in) :: slope_emp0
 
-    ! Output for PET parameterization
-    real(dp), dimension(:, :, :), intent(inout) :: fAsp1             ! [1]     PET correction for Aspect at level 1
-    real(dp), dimension(:, :, :), intent(inout) :: HarSamCoeff1      ! [1]     PET Hargreaves Samani coeff. at level 1
-    real(dp), dimension(:, :, :), intent(inout) :: PrieTayAlpha1     ! [1]     PET Priestley Taylor coeff. at level 1
-    real(dp), dimension(:, :, :), intent(inout) :: aeroResist1       ! [s m-1] PET aerodynamical resitance at level 1
-    real(dp), dimension(:, :, :), intent(inout) :: surfResist1       ! [s m-1] PET bulk surface resitance at level 1
+    ! Cell ids at level 0
+    integer(i4), dimension(:), intent(in) :: Id0
 
-    ! Output for impervious layer threshold generation
-    real(dp), dimension(:, :, :), intent(inout) :: sealedThresh1               ! threshold parameter
+    ! Upper row of hi res block
+    integer(i4), dimension(:), intent(in) :: upper_bound1
 
-    ! Output of mpr runoff
-    real(dp), dimension(:, :, :), intent(inout) :: unsatThresh1             ! [10^-3 m] Threshhold water depth
-    !                                                                           ! in upper reservoir (for Runoff
-    !                                                                           ! contribution)
-    real(dp), dimension(:, :, :), intent(inout) :: kFastFlow1              ! [10^-3 m] Recession coefficient
-    !                                                                           ! of the upper reservoir, upper outlet
-    real(dp), dimension(:, :, :), intent(inout) :: kSlowFlow1              ! [10^-3 m] Recession coefficient
-    !                                                                           ! of the upper reservoir, lower outlet
-    ! Output of baseflow recession coefficient
-    real(dp), dimension(:, :, :), intent(inout) :: kBaseFlow1              ! Level 1 baseflow recession
-    real(dp), dimension(:, :, :), intent(inout) :: alpha1            ! [1] Exponent for the upper reservoir
-    real(dp), dimension(:, :, :), intent(inout) :: kPerco1               ! [d-1] percolation coefficient
+    ! Lower row of hi res block
+    integer(i4), dimension(:), intent(in) :: lower_bound1
 
-    ! Output of karstic percolation loss
+    ! Left column of hi res block
+    integer(i4), dimension(:), intent(in) :: left_bound1
+
+    ! Right column of hi res block
+    integer(i4), dimension(:), intent(in) :: right_bound1
+
+    ! Number of L0 cells within a L1 cell
+    integer(i4), dimension(:), intent(in) :: n_subcells1
+
+    ! y0 at level 0
+    real(dp), dimension(:), intent(in) :: y0
+
+    ! [1] fraction of sealed area
+    real(dp), dimension(:, :, :), intent(inout) :: fSealed1
+
+    ! Parameter that determines the rel.contribution to SM, upscal. Bulk den.
+    real(dp), dimension(:, :, :), intent(inout) :: soilMoistExp1
+
+    ! [1] jarvis critical value for norm SWC
+    real(dp), dimension(:, :, :), intent(inout) :: jarvis_thresh_c1
+
+    ! [10^-3 m] depth of saturated SM
+    real(dp), dimension(:, :, :), intent(inout) :: soilMoistSat1
+
+    ! [10^-3 m] field capacity
+    real(dp), dimension(:, :, :), intent(inout) :: soilMoistFC1
+
+    ! [10^-3 m] permanent wilting point
+    real(dp), dimension(:, :, :), intent(inout) :: wiltingPoint1
+
+    ! fraction of roots in soil horizon
+    real(dp), dimension(:, :, :), intent(inout) :: fRoots1
+
+    ! [degreeC] threshold temperaturefor snow rain
+    real(dp), dimension(:, :, :), intent(inout) :: tempThresh1
+
+    ! [mm-1 degreeC-1] Degree-day factor withno precipitation
+    real(dp), dimension(:, :, :), intent(inout) :: degDayNoPre1
+
+    ! [mm-1 degreeC-1] Maximum Degree-day factor
+    real(dp), dimension(:, :, :), intent(inout) :: degDayMax1
+
+    ! [d-1 degreeC-1]  Increase of theDegree-day factor per mm ofincrease in precipitation
+    real(dp), dimension(:, :, :), intent(inout) :: degDayInc1
+
+    ! [1]     PET correction for Aspect at level 1
+    real(dp), dimension(:, :, :), intent(inout) :: fAsp1
+
+    ! [1]     PET Hargreaves Samani coeff. at level 1
+    real(dp), dimension(:, :, :), intent(inout) :: HarSamCoeff1
+
+    ! [1]     PET Priestley Taylor coeff. at level 1
+    real(dp), dimension(:, :, :), intent(inout) :: PrieTayAlpha1
+
+    ! [s m-1] PET aerodynamical resitance at level 1
+    real(dp), dimension(:, :, :), intent(inout) :: aeroResist1
+
+    ! [s m-1] PET bulk surface resitance at level 1
+    real(dp), dimension(:, :, :), intent(inout) :: surfResist1
+
+    ! threshold parameter
+    real(dp), dimension(:, :, :), intent(inout) :: sealedThresh1
+
+    ! [10^-3 m] Threshhold water depthin upper reservoir (for Runoffcontribution)
+    real(dp), dimension(:, :, :), intent(inout) :: unsatThresh1
+
+    ! [10^-3 m] Recession coefficientof the upper reservoir, upper outlet
+    real(dp), dimension(:, :, :), intent(inout) :: kFastFlow1
+
+    ! [10^-3 m] Recession coefficientof the upper reservoir, lower outlet
+    real(dp), dimension(:, :, :), intent(inout) :: kSlowFlow1
+
+    ! Level 1 baseflow recession
+    real(dp), dimension(:, :, :), intent(inout) :: kBaseFlow1
+
+    ! [1] Exponent for the upper reservoir
+    real(dp), dimension(:, :, :), intent(inout) :: alpha1
+
+    ! [d-1] percolation coefficient
+    real(dp), dimension(:, :, :), intent(inout) :: kPerco1
+
     real(dp), dimension(:, :, :), intent(inout) :: karstLoss1
 
-    ! Output for canopy interception and PET correction
     real(dp), dimension(:, :, :), intent(inout) :: maxInter1
+
     real(dp), dimension(:, :, :), intent(inout) :: petLAIcorFactor
+
     real(dp), dimension(:), intent(in), optional, target :: parameterset
 
-    ! Local Variables
-    real(dp), dimension(:), pointer :: param             ! array of global parameters
-    real(dp), dimension(:, :, :), allocatable :: thetaS_till
-    real(dp), dimension(:, :, :), allocatable :: thetaFC_till
-    real(dp), dimension(:, :, :), allocatable :: thetaPW_till
-    real(dp), dimension(:, :, :), allocatable :: Ks       ! saturated hydraulic conductivity
-    real(dp), dimension(:, :, :), allocatable :: Db       ! Bulk density
-    real(dp), dimension(:, :), allocatable :: thetaS
-    real(dp), dimension(:, :), allocatable :: thetaFC
-    real(dp), dimension(:, :), allocatable :: thetaPW
-    real(dp), dimension(:), allocatable :: KsVar_H0 ! relative variability of saturated
-    !                                                   ! hydraulic cound. for Horizantal flow
-    real(dp), dimension(:), allocatable :: KsVar_V0 ! relative variability of saturated
-    !                                                   ! hydraulic cound. for vertical flow
-    real(dp), dimension(:), allocatable :: SMs_FC0  ! soil mositure deficit from
-    !                                                   ! field cap. w.r.t to saturation
-    real(dp), dimension(size(Id0, 1)) :: k2_0     ! L0 baseflow parameter
-    real(dp), dimension(size(Id0, 1)) :: fAsp0    ! L0 Aspect
-    integer(i4) :: mSoil    ! number of soil classes
-    integer(i4) :: mTill    ! maximum of number of Tillage horizons
-    integer(i4) :: mHor     ! maximum number of horizons
-    integer(i4) :: mLC      ! number of Landcover classes
-    integer(i4) :: iStart   ! indexing of parameter vector - start
-    integer(i4) :: iEnd     ! indexing of parameter vector - end
-    integer(i4) :: iStart2  ! 2nd indexing of parameter vector - start
-    integer(i4) :: iEnd2    ! 2nd indexing of parameter vector - end
-    integer(i4) :: iiLC     ! counter for looping over LCscenes
+    ! array of global parameters
+    real(dp), dimension(:), pointer :: param
 
-    real(dp), dimension(size(fSealed1, dim = 1)) :: fForest1       ! [1]  Fraction of forest cover
-    real(dp), dimension(size(fSealed1, dim = 1)) :: fPerm1         ! [1]  Fraction of permeable cover
+    real(dp), dimension(:, :, :), allocatable :: thetaS_till
+
+    real(dp), dimension(:, :, :), allocatable :: thetaFC_till
+
+    real(dp), dimension(:, :, :), allocatable :: thetaPW_till
+
+    ! saturated hydraulic conductivity
+    real(dp), dimension(:, :, :), allocatable :: Ks
+
+    ! Bulk density
+    real(dp), dimension(:, :, :), allocatable :: Db
+
+    real(dp), dimension(:, :), allocatable :: thetaS
+
+    real(dp), dimension(:, :), allocatable :: thetaFC
+
+    real(dp), dimension(:, :), allocatable :: thetaPW
+
+    ! relative variability of saturatedhydraulic cound. for Horizantal flow
+    real(dp), dimension(:), allocatable :: KsVar_H0
+
+    ! relative variability of saturatedhydraulic cound. for vertical flow
+    real(dp), dimension(:), allocatable :: KsVar_V0
+
+    ! soil mositure deficit fromfield cap. w.r.t to saturation
+    real(dp), dimension(:), allocatable :: SMs_FC0
+
+    ! L0 baseflow parameter
+    real(dp), dimension(size(Id0, 1)) :: k2_0
+
+    ! L0 Aspect
+    real(dp), dimension(size(Id0, 1)) :: fAsp0
+
+    ! number of soil classes
+    integer(i4) :: mSoil
+
+    ! maximum of number of Tillage horizons
+    integer(i4) :: mTill
+
+    ! maximum number of horizons
+    integer(i4) :: mHor
+
+    ! number of Landcover classes
+    integer(i4) :: mLC
+
+    ! indexing of parameter vector - start
+    integer(i4) :: iStart
+
+    ! indexing of parameter vector - end
+    integer(i4) :: iEnd
+
+    ! 2nd indexing of parameter vector - start
+    integer(i4) :: iStart2
+
+    ! 2nd indexing of parameter vector - end
+    integer(i4) :: iEnd2
+
+    ! counter for looping over LCscenes
+    integer(i4) :: iiLC
+
+    ! [1]  Fraction of forest cover
+    real(dp), dimension(size(fSealed1, dim = 1)) :: fForest1
+
+    ! [1]  Fraction of permeable cover
+    real(dp), dimension(size(fSealed1, dim = 1)) :: fPerm1
+
 
     if (present(parameterset)) then
       param => parameterset

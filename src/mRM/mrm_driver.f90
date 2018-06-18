@@ -1,4 +1,15 @@
-!> \file mrm_driver.f90
+!>       \file mrm_driver.f90
+
+!>       \brief TODO: add description
+
+!>       \details TODO: add description
+
+!>       \authors Robert Schweppe
+
+!>       \date Jun 2018
+
+! Modifications:
+
 #ifndef MRM2MHM
 program mrm_driver
 

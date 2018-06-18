@@ -1,3 +1,15 @@
+!>       \file mo_common_restart.f90
+
+!>       \brief TODO: add description
+
+!>       \details TODO: add description
+
+!>       \authors Robert Schweppe
+
+!>       \date Jun 2018
+
+! Modifications:
+
 module mo_common_restart
 
   IMPLICIT NONE
@@ -13,74 +25,59 @@ module mo_common_restart
 CONTAINS
 
 
-  !      NAME
-  !         write_restart
+  !    NAME
+  !        write_grid_info
 
-  !     PURPOSE
-  !>        \brief write restart files for each basin
+  !    PURPOSE
+  !>       \brief write restart files for each basin
 
-  !>        \details write restart files for each basin. For each basin
-  !>        three restart files are written. These are xxx_states.nc, 
-  !>        xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>        basin index). If a variable is added here, it should also be added
-  !>        in the read restart routines below.
+  !>       \details write restart files for each basin. For each basin
+  !>       three restart files are written. These are xxx_states.nc,
+  !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
+  !>       basin index). If a variable is added here, it should also be added
+  !>       in the read restart routines below.
 
-  !     INTENT(IN)
-  !>        \param[in] "character(256), dimension(:) :: OutPath"     Output Path for each basin
+  !    INTENT(IN)
+  !>       \param[in] "type(Grid) :: grid_in"      level to be written
+  !>       \param[in] "character(*) :: level_name" level_id
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to write information to
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jun 2014
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober     Aug  2015 - moved write of routing states to mRM
+  ! David Schaefer     Nov  2015 - mo_netcdf
+  ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
+  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
+  ! Robert Schweppe    Feb 2018 - Removed all L0 references
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author   Stephan Thober
-  !>        \date     Jun 2014
-  !         Modified  Matthias Zink   Nov. 2014  - added PET related parameter writing
-  !                   Stephan Thober  Aug  2015  - moved write of routing states to mRM
-  !                   David Schaefer  Nov  2015  - mo_netcdf
-  !                   Stephan Thober  Nov  2016  - moved processMatrix to common variables
-  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)  
-  !                   Robert Schweppe, Feb 2018  - Removed all L0 references
-
-  ! ------------------------------------------------------------------ 
   subroutine write_grid_info(grid_in, level_name, nc)
 
-    use mo_kind, only : i4, dp
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : &
-            Grid
+    use mo_common_variables, only : Grid
+    use mo_kind, only : dp, i4
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
 
-    type(Grid), intent(in) :: grid_in ! level to be written
-    character(*), intent(in) :: level_name ! level_id
-    type(NcDataset), intent(inout) :: nc ! NcDataset to write information to
+    ! level to be written
+    type(Grid), intent(in) :: grid_in
+
+    ! level_id
+    character(*), intent(in) :: level_name
+
+    ! NcDataset to write information to
+    type(NcDataset), intent(inout) :: nc
 
     type(NcDimension) :: rows, cols
+
     type(NcVariable) :: var
+
 
     rows = nc%setDimension("nrows" // trim(level_name), grid_in%nrows)
     cols = nc%setDimension("ncols" // trim(level_name), grid_in%ncols)

@@ -1,13 +1,16 @@
-!> \file mo_template.f90
+!>       \file mo_template.f90
 
-!> \brief Template for future module developments.
+!>       \brief Template for future module developments.
 
-!> \details This module serves as a template for future model developments.
-!> It shows the module structure, the coding style, and documentation.\n
-!> Please read the \ref style "Coding and documentation style" guide.
+!>       \details This module serves as a template for future model developments.
+!>       It shows the module structure, the coding style, and documentation.
+!>       Please read the \ref style "Coding and documentation style" guide.
 
-!> \authors Matthias Cuntz, Christoph Schneider
-!> \date Dec 2012
+!>       \authors s Matthias Cuntz, Christoph Schneider
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_template
 
@@ -39,62 +42,6 @@ MODULE mo_template
   ! Interfaces have to be in a public section for doxygen
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         mean
-
-  !     PURPOSE
-  !>        \brief The average.
-
-  !>        \details Calculates the average value of a vector, i.e. the first moment of a series of numbers:
-  !>        \f[ \bar{x} = \frac{1}{N} \sum_{i=1}^N x_i \f]
-
-  !>        If an optinal mask is given, the mean is only over those locations that correspond
-  !>        to true values in the mask.\n
-  !>        x can be single or double precision. The result will have the same numerical precision.
-
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: dat(:)"        \f$ x_i \f$ 1D-array with input numbers
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: mask(:)" 1D-array with input mask\n
-  !>                                                 If present, only those locations in dat corresponding
-  !>                                                 to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(sp/dp) :: mean &mdash; \f$ \bar{x} \f$ average of all elements in vec
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = mean(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Sokal RR & Rohlf FJ - Biometry: the principle and practice of statistics in biological research,
-  !             Freeman & Co., ISBN 0-7167-2411-1
-  !         Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
-  !             The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
-  !>        \author Matthias Cuntz
-  !>        \date Nov 2011
-  !         Modified, Matthias Cuntz, Nov 2011 - include mask
-  !                   Matthias Cuntz, Nov 2011 - test size(mask) == size(dat)
   Interface mean
     MODULE PROCEDURE mean_sp, mean_dp
   END INTERFACE mean
@@ -102,9 +49,7 @@ MODULE mo_template
   PRIVATE
 
   ! Public parameters
-  !> Constant Pi in double precision
   REAL(dp), PARAMETER :: PI_dp = 3.141592653589793238462643383279502884197_dp
-  !> Constant Pi in single precision
   REAL(sp), PARAMETER :: PI_sp = 3.141592653589793238462643383279502884197_sp
 
   ! Private global parameters (not used, only for demonstration)
@@ -116,59 +61,41 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         circum
+  !    NAME
+  !        circum
 
-  !     PURPOSE
-  !>        \brief Circumference of a circle
+  !    PURPOSE
+  !>       \brief The average.
 
-  !>        \details Calculates the circumference of a circle
-  !>        \f[ c = 2 \pi r \f]
+  !>       \details Calculates the average value of a vector, i.e. the first moment of a series of numbers:
+  !>       \f[ \bar{x} = \frac{1}{N} \sum_{i=1}^N x_i \f]
+  !>       If an optinal mask is given, the mean is only over those locations that correspond
+  !>       to true values in the mask.
+  !>       x can be single or double precision. The result will have the same numerical precision.
 
-  !     CALLING SEQUENCE
-  !         out = circum(radius)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: radius" 
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: radius"        Radius
+  !    RETURN
+  !>       \return real(sp/dp) :: mean &mdash; \f$ \bar{x} \f$ average of all elements in vec
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Cuntz
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Nov 2011
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: circum &mdash; circumference of circle.
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         r = (/ 1., 2, 3., 5., 6. /)
-  !         c = circum(r)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz
-  !>        \date Dec 2012
+  ! Modifications:
+  ! Matthias Cuntz Nov 2011 - include mask
+  ! Matthias Cuntz Nov 2011 - test size(mask) == size(dat) > Constant Pi in double precision > Constant Pi in single precision NAME circum PURPOSE >        \brief Circumference of a circle >        \details Calculates the circumference of a circle >        \f[ c = 2 \pi r \f] CALLING SEQUENCE out = circum(radius) INTENT(IN) >        \param[in] "real(dp) :: radius"        Radius INTENT(INOUT) None INTENT(OUT) None INTENT(IN), OPTIONAL None INTENT(INOUT), OPTIONAL None INTENT(OUT), OPTIONAL None RETURN >       \return     real(dp) :: circum &mdash; circumference of circle. RESTRICTIONS None EXAMPLE r = (/ 1., 2, 3., 5., 6. /) c = circum(r) LITERATURE None HISTORY >        \author Matthias Cuntz
+  ! >        \date Dec 2012 - 
 
   elemental pure function circum(radius)
-
     implicit none
 
     real(dp), intent(in) :: radius
+
     real(dp) :: circum
+
 
     circum = 2.0_dp * pi_dp * radius
 

@@ -1,15 +1,17 @@
-!> \file mo_mrm_routing.f90
+!>       \file mo_mrm_routing.f90
 
-!> \brief Performs runoff routing for mHM at level L11.
+!>       \brief Performs runoff routing for mHM at level L11.
 
-!> \details This module performs flood routing at a given time step
-!>          through the stream network at level L11 to the sink cell. 
-!>          The Muskingum flood routing algorithm is used.
+!>       \details This module performs flood routing at a given time step
+!>       through the stream network at level L11 to the sink cell.
+!>       The Muskingum flood routing algorithm is used.
 
-!> \author Luis Samaniego
-!> \date Dec 2012
-!  Modified
-!       Stephan Thober, Aug 2015 - adapted to mRM
+!>       \authors Luis Samaniego
+
+!>       \date Dec 2012
+
+! Modifications:
+! Stephan Thober Aug 2015 - adapted to mRM
 
 MODULE mo_mrm_routing
 
@@ -31,181 +33,190 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mrm_routing
+  !    NAME
+  !        mRM_routing
 
-  !     PURPOSE
-  !>        \brief route water given runoff
-  !
-  !>        \details This routine first performs mpr for the routing variables
-  !>        if required, then accumulates the runoff to the routing resolution
-  !>        and eventually routes the water in a third step. The last step is
-  !>        repeated multiple times if the routing timestep is smaller than
-  !>        the timestep of the hydrological timestep
+  !    PURPOSE
+  !>       \brief route water given runoff
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: processCase" Process switch for routing
-  !>        \param[in] "real(dp), dimension(5)    :: global_routing_param" routing parameters
-  !>        \param[in] "real(dp), dimension(:)    :: L1_total_runoff" total runoff from L1 grid cells
-  !>        \param[in] "real(dp), dimension(:)    :: L1_areaCell" L1 cell area
-  !>        \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L1 cell ids on L11
-  !>        \param[in] "real(dp), dimension(:)    :: L11_areaCell" L11 cell area
-  !>        \param[in] "integer(i4), dimension(:) :: L11_L1_Id" L11 cell ids on L1
-  !>        \param[in] "integer(i4), dimension(:) :: L11_netPerm" L11 routing order
-  !>        \param[in] "integer(i4), dimension(:) :: L11_fromN" L11 source grid cell order
-  !>        \param[in] "integer(i4), dimension(:) :: L11_toN" L11 target grid cell order
-  !>        \param[in] "integer(i4)               :: timestep" simulation timestep in [h]
-  !>        \param[in] "real(dp)                  :: tsRoutFactor" factor between routing timestep and hydrological timestep
-  !>        \param[in] "integer(i4)               :: nNodes" number of nodes
-  !>        \param[in] "integer(i4)               :: nInflowGauges" number of inflow gauges
-  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList" index list of inflow gauges
-  !>        \param[in] "logical, dimension(:)     :: InflowGaugeHeadwater" flag for headwater cell of inflow gauge
-  !>        \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList" gauge node list at L11
-  !>        \param[in] "real(dp), dimension(:)    :: InflowDischarge" inflowing discharge at discharge gauge at current day
-  !>        \param[in] "integer(i4)               :: nGauges" number of recording gauges
-  !>        \param[in] "integer(i4), dimension(:) :: gaugeIndexList" index list for outflow gauges
-  !>        \param[in] "integer(i4), dimension(:) :: gaugeNodeList" gauge node list at L11
-  !>        \param[in] "logical                   :: map_flag" flag indicating whether routing resolution is
-  !>                                                 coarser than hydrologic resolution
-  !>        \param[in] "real(dp), dimension(:)    :: L11_length" L11 link length
-  !>        \param[in] "real(dp), dimension(:)    :: L11_slope" L11 slope
-  !
-  !     INTENT(INOUT)
-  !>        \param[inout] "real(dp), dimension(:) :: L11_C1" L11 muskingum parameter 1
-  !>        \param[inout] "real(dp), dimension(:) :: L11_C2" L11 muskingum parameter 2
-  !>        \param[inout] "real(dp), dimension(:) :: L11_qOut" total runoff from L11 grid cells
-  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTIN" L11 inflow to the reach
-  !>        \param[inout] "real(dp), dimension(:,:) :: L11_qTR" L11 routed outflow
-  !>        \param[inout] "real(dp), dimension(:) :: L11_qMod" modelled discharge at each grid cell
-  !>        \param[inout] "real(dp), dimension(:) :: GaugeDischarge" modelled discharge at each gauge
-  !>        \param[inout] "real(dp), dimension(:) :: L11_FracFPimp" L11 fraction of flood plain with impervios cover
+  !>       \details This routine first performs mpr for the routing variables
+  !>       if required, then accumulates the runoff to the routing resolution
+  !>       and eventually routes the water in a third step. The last step is
+  !>       repeated multiple times if the routing timestep is smaller than
+  !>       the timestep of the hydrological timestep
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "logical :: read_states"                            whether states are derived from restart file
+  !>       \param[in] "integer(i4) :: processCase"                        Process switch for routing
+  !>       \param[in] "real(dp), dimension(:) :: global_routing_param"    routing parameters
+  !>       \param[in] "real(dp), dimension(:) :: L1_total_runoff"         total runoff from L1 grid cells
+  !>       \param[in] "real(dp), dimension(:) :: L1_areaCell"             L1 cell area
+  !>       \param[in] "integer(i4), dimension(:) :: L1_L11_Id"            L1 cell ids on L11
+  !>       \param[in] "real(dp), dimension(:) :: L11_areaCell"            L11 cell area
+  !>       \param[in] "integer(i4), dimension(:) :: L11_L1_Id"            L11 cell ids on L1
+  !>       \param[in] "integer(i4), dimension(:) :: L11_netPerm"          L11 routing order
+  !>       \param[in] "integer(i4), dimension(:) :: L11_fromN"            L11 source grid cell order
+  !>       \param[in] "integer(i4), dimension(:) :: L11_toN"              L11 target grid cell order
+  !>       \param[in] "integer(i4) :: L11_nOutlets"                       L11 number of outlets/sinks
+  !>       \param[in] "integer(i4) :: timestep"                           simulation timestep in [h]
+  !>       \param[in] "real(dp) :: tsRoutFactor"                          factor between routing timestep and hydrological timestep
+  !>       \param[in] "integer(i4) :: nNodes"                             number of nodes
+  !>       \param[in] "integer(i4) :: nInflowGauges"                      number of inflow gauges
+  !>       \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList" index list of inflow gauges
+  !>       \param[in] "logical, dimension(:) :: InflowGaugeHeadwater"     flag for headwater cell of inflow gauge
+  !>       \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList"  gauge node list at L11
+  !>       \param[in] "real(dp), dimension(:) :: InflowDischarge"         inflowing discharge at discharge gauge at current day
+  !>       \param[in] "integer(i4) :: nGauges"                            number of recording gauges
+  !>       \param[in] "integer(i4), dimension(:) :: gaugeIndexList"       index list for outflow gauges
+  !>       \param[in] "integer(i4), dimension(:) :: gaugeNodeList"        gauge node list at L11
+  !>       \param[in] "logical :: map_flag"                               flag indicating whether routing resolution iscoarser than hydrologic resolution
+  !>       \param[in] "real(dp), dimension(:) :: L11_length"              L11 link length
+  !>       \param[in] "real(dp), dimension(:) :: L11_slope"               L11 slope
+  !>       \param[in] "real(dp), dimension(:) :: L11_FracFPimp"           L11 fraction of flood plain with impervios cover
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, optional :: do_mpr_routing" indicate whether routing is to be performed"
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:) :: L11_C1"         L11 muskingum parameter 1
+  !>       \param[inout] "real(dp), dimension(:) :: L11_C2"         L11 muskingum parameter 2
+  !>       \param[inout] "real(dp), dimension(:) :: L11_qOut"       total runoff from L11 grid cells
+  !>       \param[inout] "real(dp), dimension(:, :) :: L11_qTIN"    L11 inflow to the reach
+  !>       \param[inout] "real(dp), dimension(:, :) :: L11_qTR"     L11 routed outflow
+  !>       \param[inout] "real(dp), dimension(:) :: L11_qMod"       modelled discharge at each grid cell
+  !>       \param[inout] "real(dp), dimension(:) :: GaugeDischarge" modelled discharge at each gauge
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  !>       \date Aug 2015
 
-  !     RETURN
-  !         None
+  ! Modifications:
+  ! Stephan Thober Sep 2015 - using arguments instead of global variables
+  ! Stephan Thober Sep 2015 - added variables for routing resolution higher than hydrologic resolution
+  ! Stephan Thober May 2016 - added check whether gauge is actually inside modelling domain before copying simulated runoff
+  ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
 
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         Modified, Stephan Thober Sep 2015 - using arguments instead of global variables
-  !                   Stephan Thober Sep 2015 - added variables for routing resolution higher than hydrologic resolution
-  !                   Stephan Thober May 2016 - added check whether gauge is actually inside modelling domain
-  !                                             before copying simulated runoff
-  !                   Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
-
-  subroutine mRM_routing(&
-          !
-          ! general input variables =================================================
-          read_states, & ! whether states are derived from restart file
-          processCase, & ! processCase for Routing
-          global_routing_param, & ! routing parameters
-          L1_total_runoff, & ! total runoff from L1 grid cells
-          L1_areaCell, & ! L1 cell area
-          L1_L11_Id, & ! L11 cell ids on Level 1
-          L11_areaCell, & ! area cell [km2] at Level11
-          L11_L1_Id, & ! L1 cell ids on Level 11
-          L11_netPerm, & ! L11 routing order
-          L11_fromN, & ! L11 source grid cell order
-          L11_toN, & ! L11 target grid cell order
-          L11_nOutlets, & ! number of outlets
-          timestep, & ! simulation timestep in [h]
-          tsRoutFactor, & ! factor from routing temporal resolution to hydrology temporal resolution
-          nNodes, & ! number of nodes
-          nInflowGauges, & ! number of inflow gauges
-          InflowGaugeIndexList, & ! index list of inflow gauges
-          InflowGaugeHeadwater, & ! flag for headwater cell of inflow gauge
-          InflowGaugeNodeList, & ! gauge node list at L11
-          InflowDischarge, & ! inflowing discharge at discharge gauge at current day
-          nGauges, & ! number of recording gauges
-          gaugeIndexList, & ! index list for outflow gauges
-          gaugeNodeList, & ! gauge node list at L11s
-          map_flag, & ! flag indicating whether routing resolution is larger than hydrologic resolution
-          !
-          ! original routing specific input variables ===============================
-          L11_length, & ! L11 link length
-          L11_slope, & ! L11 slope
-          L11_FracFPimp, & ! L11 fraction of flood plain with impervious cover
-          !
-          ! general input/output variables ==========================================
-          L11_C1, & ! L11 muskingum parameter 1
-          L11_C2, & ! L11 muskingum parameter 2
-          L11_qOut, & ! total runoff from L11 grid cells
-          L11_qTIN, & ! L11 inflow to the reach
-          L11_qTR, & ! L11 routed outflow
-          L11_qMod, &
-          GaugeDischarge &
-          )
+  subroutine mRM_routing(read_states, processCase, global_routing_param, L1_total_runoff, L1_areaCell, L1_L11_Id, &
+                        L11_areaCell, L11_L1_Id, L11_netPerm, L11_fromN, L11_toN, L11_nOutlets, timestep, tsRoutFactor, &
+                        nNodes, nInflowGauges, InflowGaugeIndexList, InflowGaugeHeadwater, InflowGaugeNodeList, &
+                        InflowDischarge, nGauges, gaugeIndexList, gaugeNodeList, map_flag, L11_length, L11_slope, &
+                        L11_FracFPimp, L11_C1, L11_C2, L11_qOut, L11_qTIN, L11_qTR, L11_qMod, GaugeDischarge)
 
     use mo_mrm_global_variables, only : is_start
     use mo_mrm_mpr, only : reg_rout
 
     implicit none
-    ! general input variables ====================================================
-    logical, intent(in) :: read_states
-    integer(i4), intent(in) :: processCase
-    real(dp), dimension(:), intent(in) :: global_routing_param ! routing parameters
-    real(dp), dimension(:), intent(in) :: L1_total_runoff ! total runoff from L1 grid cells
-    real(dp), dimension(:), intent(in) :: L1_areaCell ! L1 cell area
-    integer(i4), dimension(:), intent(in) :: L1_L11_Id ! L11 cell ids at L1
-    real(dp), dimension(:), intent(in) :: L11_areaCell ! L11 area cell [km2]
-    integer(i4), dimension(:), intent(in) :: L11_L1_Id ! L1 cell ids at L11 
-    integer(i4), dimension(:), intent(in) :: L11_netPerm ! L11 routing order
-    integer(i4), dimension(:), intent(in) :: L11_fromN ! L11 source grid cell order
-    integer(i4), dimension(:), intent(in) :: L11_toN ! L11 target grid cell order
-    integer(i4), intent(in) :: L11_nOutlets ! L11 number of outlets/sinks
-    integer(i4), intent(in) :: timestep ! simulation timestep in [h]
-    real(dp), intent(in) :: tsRoutFactor ! factor from routing temporal resolution to hydrology temporal resolution
-    integer(i4), intent(in) :: nNodes ! number of nodes
-    integer(i4), intent(in) :: nInflowGauges ! number of inflow gauges
-    integer(i4), dimension(:), intent(in) :: InflowGaugeIndexList ! index list of inflow gauges
-    logical, dimension(:), intent(in) :: InflowGaugeHeadwater ! flag for headwater cell of inflow gauge
-    integer(i4), dimension(:), intent(in) :: InflowGaugeNodeList ! gauge node list at L11
-    real(dp), dimension(:), intent(in) :: InflowDischarge ! inflowing discharge at discharge gauge at current day
-    integer(i4), intent(in) :: nGauges ! number of recording gauges
-    integer(i4), dimension(:), intent(in) :: gaugeIndexList ! index list for outflow gauges
-    integer(i4), dimension(:), intent(in) :: gaugeNodeList ! gauge node list at L11
-    logical, intent(in) :: map_flag ! flag indicating whether routing resolution > hydrology resolution
-    !
-    ! original routing specific input variables ===============================
-    real(dp), dimension(:), intent(in) :: L11_length ! L11 link length
-    real(dp), dimension(:), intent(in) :: L11_slope ! L11 slope
-    real(dp), dimension(:), intent(in) :: L11_FracFPimp ! L11 fraction of flood plain with impervios cover
-    !
-    ! input/output variables ==================================================
-    real(dp), dimension(:), intent(inout) :: L11_C1 ! L11 muskingum parameter 1
-    real(dp), dimension(:), intent(inout) :: L11_C2 ! L11 muskingum parameter 2
-    real(dp), dimension(:), intent(inout) :: L11_qOut ! total runoff from L11 grid cells
-    real(dp), dimension(:, :), intent(inout) :: L11_qTIN ! L11 inflow to the reach
-    real(dp), dimension(:, :), intent(inout) :: L11_qTR ! L11 routed outflow
-    real(dp), dimension(:), intent(inout) :: L11_qMod ! modelled discharge at each grid cell
-    real(dp), dimension(:), intent(inout) :: GaugeDischarge ! modelled discharge at each gauge
-    !
 
-    ! local variables =========================================================
+    ! whether states are derived from restart file
+    logical, intent(in) :: read_states
+
+    ! Process switch for routing
+    integer(i4), intent(in) :: processCase
+
+    ! routing parameters
+    real(dp), dimension(:), intent(in) :: global_routing_param
+
+    ! total runoff from L1 grid cells
+    real(dp), dimension(:), intent(in) :: L1_total_runoff
+
+    ! L1 cell area
+    real(dp), dimension(:), intent(in) :: L1_areaCell
+
+    ! L1 cell ids on L11
+    integer(i4), dimension(:), intent(in) :: L1_L11_Id
+
+    ! L11 cell area
+    real(dp), dimension(:), intent(in) :: L11_areaCell
+
+    ! L11 cell ids on L1
+    integer(i4), dimension(:), intent(in) :: L11_L1_Id
+
+    ! L11 routing order
+    integer(i4), dimension(:), intent(in) :: L11_netPerm
+
+    ! L11 source grid cell order
+    integer(i4), dimension(:), intent(in) :: L11_fromN
+
+    ! L11 target grid cell order
+    integer(i4), dimension(:), intent(in) :: L11_toN
+
+    ! L11 number of outlets/sinks
+    integer(i4), intent(in) :: L11_nOutlets
+
+    ! simulation timestep in [h]
+    integer(i4), intent(in) :: timestep
+
+    ! factor between routing timestep and hydrological timestep
+    real(dp), intent(in) :: tsRoutFactor
+
+    ! number of nodes
+    integer(i4), intent(in) :: nNodes
+
+    ! number of inflow gauges
+    integer(i4), intent(in) :: nInflowGauges
+
+    ! index list of inflow gauges
+    integer(i4), dimension(:), intent(in) :: InflowGaugeIndexList
+
+    ! flag for headwater cell of inflow gauge
+    logical, dimension(:), intent(in) :: InflowGaugeHeadwater
+
+    ! gauge node list at L11
+    integer(i4), dimension(:), intent(in) :: InflowGaugeNodeList
+
+    ! inflowing discharge at discharge gauge at current day
+    real(dp), dimension(:), intent(in) :: InflowDischarge
+
+    ! number of recording gauges
+    integer(i4), intent(in) :: nGauges
+
+    ! index list for outflow gauges
+    integer(i4), dimension(:), intent(in) :: gaugeIndexList
+
+    ! gauge node list at L11
+    integer(i4), dimension(:), intent(in) :: gaugeNodeList
+
+    ! flag indicating whether routing resolution iscoarser than hydrologic resolution
+    logical, intent(in) :: map_flag
+
+    ! L11 link length
+    real(dp), dimension(:), intent(in) :: L11_length
+
+    ! L11 slope
+    real(dp), dimension(:), intent(in) :: L11_slope
+
+    ! L11 fraction of flood plain with impervios cover
+    real(dp), dimension(:), intent(in) :: L11_FracFPimp
+
+    ! L11 muskingum parameter 1
+    real(dp), dimension(:), intent(inout) :: L11_C1
+
+    ! L11 muskingum parameter 2
+    real(dp), dimension(:), intent(inout) :: L11_C2
+
+    ! total runoff from L11 grid cells
+    real(dp), dimension(:), intent(inout) :: L11_qOut
+
+    ! L11 inflow to the reach
+    real(dp), dimension(:, :), intent(inout) :: L11_qTIN
+
+    ! L11 routed outflow
+    real(dp), dimension(:, :), intent(inout) :: L11_qTR
+
+    ! modelled discharge at each grid cell
+    real(dp), dimension(:), intent(inout) :: L11_qMod
+
+    ! modelled discharge at each gauge
+    real(dp), dimension(:), intent(inout) :: GaugeDischarge
+
     integer(i4) :: gg
+
     integer(i4) :: tt
-    integer(i4) :: rout_loop ! number of routing loops
-    real(dp) :: L11_qAcc(size(L11_qMod, dim = 1))     ! variable for accumulation
+
+    ! number of routing loops
+    integer(i4) :: rout_loop
+
+    ! variable for accumulation
+    real(dp), dimension(size(L11_qMod, dim = 1)) :: L11_qAcc
+
 
     if (is_start) then
       is_start = .false.

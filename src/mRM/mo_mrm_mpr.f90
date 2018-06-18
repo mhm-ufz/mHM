@@ -1,13 +1,17 @@
-!> \file mo_mrm_mpr.f90
+!>       \file mo_mrm_mpr.f90
 
-!> \brief Perform Multiscale Parameter Regionalization on Routing Parameters
+!>       \brief Perform Multiscale Parameter Regionalization on Routing Parameters
 
-!> \details This module contains the subroutine for calculating the regionalized
-!> routing parameters (beta-parameters) given the five global routing parameters
-!> (gamma) at the level 0 scale.
+!>       \details This module contains the subroutine for calculating the regionalized
+!>       routing parameters (beta-parameters) given the five global routing parameters
+!>       (gamma) at the level 0 scale.
 
-!> \author Luis Samaniego, Stephan Thober
-!> \date Aug 2015
+!>       \authors Luis Samaniego, Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
+
 module mo_mrm_mpr
   use mo_kind, only : dp
   implicit none
@@ -17,81 +21,71 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         reg_rout
+  !    NAME
+  !        reg_rout
 
-  !>        \brief Regionalized routing
+  !    PURPOSE
+  !>       \brief Regionalized routing
 
-  !>        \details sets up the Regionalized Routing parameters\n
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param(1) = muskingumTravelTime_constant    \n
-  !>                    - param(2) = muskingumTravelTime_riverLength \n
-  !>                    - param(3) = muskingumTravelTime_riverSlope  \n
-  !>                    - param(4) = muskingumTravelTime_impervious  \n
-  !>                    - param(5) = muskingumAttenuation_riverSlope \n
+  !>       \details sets up the Regionalized Routing parameters
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = muskingumTravelTime_constant    
+  !>       - param(2) = muskingumTravelTime_riverLength 
+  !>       - param(3) = muskingumTravelTime_riverSlope  
+  !>       - param(4) = muskingumTravelTime_impervious  
+  !>       - param(5) = muskingumAttenuation_riverSlope 
 
-  !      INTENT(IN)
-  !>        \param[in] "real(dp) :: param(5)"  - five input parameters
-  !>        \param[in] "real(dp) :: length(:)" - [m] total length
-  !>        \param[in] "real(dp) :: slope(:)"  - average slope
-  !>        \param[in] "real(dp) :: fFPimp(:)" - fraction of the flood plain with
-  !>                                             impervious layer
-  !>        \param[in] "real(dp) :: TS"        - [h] time step in
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(5) :: param"  input parameter
+  !>       \param[in] "real(dp), dimension(:) :: length" [m] total length
+  !>       \param[in] "real(dp), dimension(:) :: slope"  average slope
+  !>       \param[in] "real(dp), dimension(:) :: fFPimp" fraction of the flood plain withimpervious layer
+  !>       \param[in] "real(dp) :: TS"                   - [h] time step in
 
-  !      INTENT(INOUT)
-  !          None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: C1" routing parameter C1 (Chow, 25-41)
+  !>       \param[out] "real(dp), dimension(:) :: C2" routing parameter C2 (")
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: C1(:)"    - routing parameter C1 (Chow, 25-41)
-  !>        \param[out] "real(dp) :: C2(:)"    - routing parameter C2 (")
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !      INTENT(IN), OPTIONAL
-  !          None
+  !>       \date Dec 2012
 
-  !      INTENT(INOUT), OPTIONAL
-  !          None
+  ! Modifications:
 
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written Stephan Thober, Dec 2012
-
-  subroutine reg_rout(param, length, slope, fFPimp, TS, &
-          C1, C2)
-
+  subroutine reg_rout(param, length, slope, fFPimp, TS, C1, C2)
     implicit none
 
-    ! Input
-    real(dp), dimension(5), intent(in) :: param  ! input parameter
-    real(dp), dimension(:), intent(in) :: length ! [m] total length
-    real(dp), dimension(:), intent(in) :: slope  ! average slope
-    real(dp), dimension(:), intent(in) :: fFPimp ! fraction of the flood plain with
-    !                                             ! impervious layer
-    real(dp), intent(in) :: TS     ! [h] time step in
+    ! input parameter
+    real(dp), dimension(5), intent(in) :: param
 
-    ! Output
-    real(dp), dimension(:), intent(out) :: C1     ! routing parameter C1 (Chow, 25-41)
-    real(dp), dimension(:), intent(out) :: C2     ! routing parameter C2 (")
+    ! [m] total length
+    real(dp), dimension(:), intent(in) :: length
 
-    ! loval variables
-    real(dp) :: ssMax  ! stream slope max
-    real(dp), dimension(size(fFPimp, 1)) :: K      ! [d] Muskingum travel time parameter
-    real(dp), dimension(size(fFPimp, 1)) :: xi     ! [1] Muskingum diffusion parameter (attenuation)
+    ! average slope
+    real(dp), dimension(:), intent(in) :: slope
+
+    ! fraction of the flood plain withimpervious layer
+    real(dp), dimension(:), intent(in) :: fFPimp
+
+    ! - [h] time step in
+    real(dp), intent(in) :: TS
+
+    ! routing parameter C1 (Chow, 25-41)
+    real(dp), dimension(:), intent(out) :: C1
+
+    ! routing parameter C2 (")
+    real(dp), dimension(:), intent(out) :: C2
+
+    ! stream slope max
+    real(dp) :: ssMax
+
+    ! [d] Muskingum travel time parameter
+    real(dp), dimension(size(fFPimp, 1)) :: K
+
+    ! [1] Muskingum diffusion parameter (attenuation)
+    real(dp), dimension(size(fFPimp, 1)) :: xi
+
 
     ! normalize stream bed slope
     ssMax = maxval(slope(:))

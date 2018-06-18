@@ -1,11 +1,14 @@
-!> \file mo_mpr_smhorizons.f90
+!>       \file mo_mpr_smhorizons.f90
 
-!> \brief setting up the soil moisture horizons
+!>       \brief setting up the soil moisture horizons
 
-!> \details This module sets up the soil moisture horizons
+!>       \details This module sets up the soil moisture horizons
 
-!> \author Stephan Thober, Rohini Kumar
-!> \date Dec 2012
+!>       \authors Stephan Thober, Rohini Kumar
+
+!>       \date Dec 2012
+
+! Modifications:
 
 module mo_mpr_SMhorizons
 
@@ -22,230 +25,231 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         mpr_SMhorizons
+  !    NAME
+  !        mpr_SMhorizons
 
-  !>        \brief upscale soil moisture horizons
+  !    PURPOSE
+  !>       \brief upscale soil moisture horizons
 
-  !>        \details calculate soil properties at the level 1.\n
-  !>        Global parameters needed (see mhm_parameter.nml):\n
-  !>           - param(1) = rootFractionCoefficient_forest     \n
-  !>           - param(2) = rootFractionCoefficient_impervious \n
-  !>           - param(3) = rootFractionCoefficient_pervious   \n
-  !>           - param(4) = infiltrationShapeFactor            \n
+  !>       \details calculate soil properties at the level 1.
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = rootFractionCoefficient_forest     
+  !>       - param(2) = rootFractionCoefficient_impervious 
+  !>       - param(3) = rootFractionCoefficient_pervious   
+  !>       - param(4) = infiltrationShapeFactor            
 
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: param"               parameters
+  !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix" - matrix specifying user defined processes
+  !>       \param[in] "integer(i4) :: iFlag_soil"                     - flags for handling multiple soil databases
+  !>       \param[in] "integer(i4) :: nHorizons_mHM"                  - number of horizons to model
+  !>       \param[in] "real(dp), dimension(:) :: HorizonDepth"        [10^-3 m] horizon depth fromsurface, postive downwards
+  !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"          Land cover at level 0
+  !>       \param[in] "integer(i4), dimension(:, :) :: soilID0"       soil ID at level 0
+  !>       \param[in] "integer(i4), dimension(:) :: nHorizons"        horizons per soil type
+  !>       \param[in] "integer(i4), dimension(:) :: nTillHorizons"    Number of Tillage horizons
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaS_till"   saturated water content of soilhorizons upto tillage depth,f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaFC_till"  Field capacity of tillagelayers; LUC dependent,f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaPW_till"  Permament wilting point oftillage layers; LUC dependent,f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :) :: thetaS"           saturated water content of soilhorizons after tillage depth
+  !>       \param[in] "real(dp), dimension(:, :) :: thetaFC"          Field capacity of deeper layers
+  !>       \param[in] "real(dp), dimension(:, :) :: thetaPW"          Permanent wilting point ofdeeper layers
+  !>       \param[in] "real(dp), dimension(:, :, :) :: Wd"            weights of mHM Horizonsaccording to horizons providedin soil database
+  !>       \param[in] "real(dp), dimension(:, :, :) :: Db"            Bulk density
+  !>       \param[in] "real(dp), dimension(:, :) :: DbM"              mineral Bulk density
+  !>       \param[in] "real(dp), dimension(:) :: RZdepth"             [mm]       Total soil depth
+  !>       \param[in] "logical, dimension(:, :) :: mask0"             mask at L0
+  !>       \param[in] "integer(i4), dimension(:) :: cell_id0"         Cell ids of hi res field
+  !>       \param[in] "integer(i4), dimension(:) :: upp_row_L1"       Upper row of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: low_row_L1"       Lower row of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: lef_col_L1"       Left column of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: rig_col_L1"       Right column of hi res block
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_in_L1"        Number of L0 cells within a L1 cel
 
-  !      INTENT(IN)
-  !>        \param[in] "real(dp)    :: param(:)"         - four or six global parameters depending on SM process
-  !>        \param[in] "integer(i4) :: processMatrix"    - matrix specifying user defined processes
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_beta"   Parameter that determines therelative contribution to SM, upscaledBulk density
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_SMs"    [10^-3 m] depth of saturated SM cont
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_FC"     [10^-3 m] field capacity
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_PW"     [10^-3 m] permanent wilting point
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_fRoots" fraction of roots in soil horizons
 
-  !>        \param[in] "real(dp)    :: nodata_dp"           - no data value
-  !>        \param[in] "integer(i4) :: iFlag_soil"       - flags for handling multiple soil databases
-  !>        \param[in] "integer(i4) :: nHorizons_mHM"    - number of horizons to model
-  !>        \param[in] "integer(i4) :: HorizonDepth(:)"  - [mm] horizon depth from surface,
-  !>                                                            postive downwards
-  !>        \param[in] "integer(i4) :: L0_LUC(:,:)"      - land use cover at level 0
-  !>        \param[in] "integer(i4) :: L0_soilID(:,:)"   - soil IDs at level 0
-  !>        \param[in] "integer(i4) :: nHorizons(:)"     - horizons per soil type
-  !>        \param[in] "integer(i4) :: nTillHorizons(:)" - Number of Tillage horizons
-  !>        \param[in] "real(dp)    :: thetaS_till(:,:,:)"  - saturated water content of soil
-  !>                                                          horizons upto tillage depth,
-  !>                                                          f(OM, management)
-  !>        \param[in] "real(dp)    :: thetaFC_till(:,:,:)" - Field capacity of tillage
-  !>                                                          layers; LUC dependent, f(OM, management)
-  !>        \param[in] "real(dp)    :: thetaPW_till(:,:,:)" - Permament wilting point of
-  !>                                                          tillage layers; LUC dependent, f(OM, management)
-  !>        \param[in] "real(dp)    :: thetaS(:,:)"         - saturated water content of soil
-  !>                                                           horizons after tillage depth
-  !>        \param[in] "real(dp)    :: thetaFC(:,:)"     - Field capacity of deeper layers
-  !>        \param[in] "real(dp)    :: thetaPW(:,:)"     - Permanent wilting point of deeper layers
-  !>        \param[in] "real(dp)    :: Wd(:,:,:)"        - weights of mHM Horizons according to horizons provided
-  !>                                                     in soil database
-  !>        \param[in] "real(dp)    :: Db(:,:,:)"        - Bulk density
-  !>        \param[in] "real(dp)    :: DbM(:,:)"         - mineral Bulk density
-  !>        \param[in] "real(dp)    :: RZdepth(:)"       - [mm] Total soil depth
-  !>        \param[in] "integer(i4) :: L0_cellCoor(:,:)" - cell coordinates at level 0
-  !>        \param[in] "integer(i4) :: L0_cell_id(:,:)"  - cell ids of high resolution field,
-  !>                                                     Number of rows times Number of columns
-  !>                                                     of high resolution field
-  !>        \param[in] "integer(i4) :: upp_row_L1(:)"    - Upper row id in high resolution field
-  !>                                                     (L0) of low resolution cell (L1 cell)
-  !>        \param[in] "integer(i4) :: low_row_L1(:)"    - Lower row id in high resolution field
-  !>                                                     (L0) of low resolution cell (L1 cell)
-  !>        \param[in] "integer(i4) :: lef_col_L1(:)"    - Left column id in high resolution
-  !>                                                     field (L0) of low resolution cell
-  !>        \param[in] "integer(i4) :: rig_col_L1(:)"    - Right column id in high resolution
-  !>                                                     field (L0) of low resolution cell
-  !>        \param[in] "integer(i4) :: nL0_in_L1(:)"     - Number of high resolution cells (L0)
-  !>                                                     in low resolution cell (L1 cell)
+  !    HISTORY
+  !>       \authors Luis Samaniego, Rohini Kumar, Stephan Thober
 
-  !      INTENT(OUT)
-  !>       \param[in,out] "real(dp) :: L1_beta(:,:)"     - Parameter that determines the
-  !>                                                     relative contribution to SM, upscaled
-  !>                                                     Bulk density. Number of cells at L1
-  !>                                                     times number of horizons in mHM
-  !>       \param[in,out] "real(dp) :: L1_SMs(:,:)"      - [10^-3 m] depth of saturated SM cont
-  !>                                                     Number of cells at L1 times number
-  !>                                                     of horizons in mHM
-  !>       \param[in,out] "real(dp) :: L1_FC(:,:)"       - [10^-3 m] field capacity. Number
-  !>                                                     of cells at L1 times number of horizons
-  !>                                                     in mHM
-  !>       \param[in,out] "real(dp) :: L1_PW(:,:)"       - [10^-3 m] permanent wilting point.
-  !>                                                     Number of cells at L1 times number
-  !>                                                     of horizons in mHM
-  !>       \param[in,out] "real(dp) :: L1_fRoots(:,:)"   - fraction of roots in soil horizons.
-  !>                                                     Number of cells at L1 times number
-  !>                                                     of horizons in mHM
-
-  !      HISTORY
-  !>       \author Luis Samaniego, Rohini Kumar, Stephan Thober
   !>       \date Dec 2012
-  !        Written Stephan Thober, Dec 2012
-  !        Modified, Stephan Thober, Jan 2013 - updated calling sequence for upscaling operators
-  !                  Juliane Mai,    Oct 2013 - OLD parametrization
-  !                                                --> param(1) = rootFractionCoefficient_forest
-  !                                                --> param(2) = rootFractionCoefficient_impervious
-  !                                                --> param(3) = rootFractionCoefficient_pervious
-  !                                                --> param(4) = infiltrationShapeFactor
-  !                                             -------------------------------
-  !                                             rootFractionCoeff_perv   = rootFractionCoeff_forest - delta_1
-  !                                             -------------------------------
-  !                                             NEW parametrization
-  !                                                --> param(1) = rootFractionCoefficient_forest
-  !                                                --> param(2) = rootFractionCoefficient_impervious
-  !                                                --> param(3) = delta_1
-  !                                                --> param(4) = infiltrationShapeFactor
-  !                                                ! if processMatrix(3,1) = 3 additionally
-  !                                                --> param(5) = rootFractionCoefficient_sand
-  !                                                --> param(6) = rootFractionCoefficient_clay
-  !                  Stephan Thober, Mar 2014 - added omp parallelization
-  !                  Rohini Kumar,   Mar 2016 - changes for handling multiple soil database options
-  ! M. Cuneyd Demirel, Simon Stisen, Apr 2017 - added FC dependency on root fraction coefficient
 
+  ! Modifications:
+  ! Stephan Thober                  Jan 2013 - updated calling sequence for upscaling operators
+  ! Juliane Mai                     Oct 2013 - OLD parametrization --> param(1) = rootFractionCoefficient_forest --> param(2) = rootFractionCoefficient_impervious --> param(3) = rootFractionCoefficient_pervious --> param(4) = infiltrationShapeFactor rootFractionCoeff_perv   = rootFractionCoeff_forest 
+  !                                          - delta_1 NEW parametrization --> param(1) = rootFractionCoefficient_forest --> param(2) = rootFractionCoefficient_impervious --> param(3) = delta_1 --> param(4) = infiltrationShapeFactor if processMatrix(3,1) = 3 additionally --> param(5) = rootFractionCoefficient_sand --> param(6) = rootFractionCoefficient_clay
+  ! Stephan Thober                  Mar 2014 - added omp parallelization
+  ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
+  ! M. Cuneyd Demirel, Simon Stisen Apr 2017 - added FC dependency on root fraction coefficient
 
-  subroutine mpr_SMhorizons(&
-          ! Input -----------------------------------------------------------------
-          param, & ! global parameters, three are required
-          processMatrix, & ! matrix specifying user defined processes
-          iFlag_soil, & ! flag to handle different soil database
-          nHorizons_mHM, & ! number of horizons to model
-          HorizonDepth, & ! depth of the different horizons
-          LCOVER0, & ! land use cover at L0
-          soilID0, & ! soil Ids at L0
-          nHorizons, & ! Number of horizons per soilType
-          nTillHorizons, & ! Number of Tillage horizons
-          thetaS_till, & ! saturated water content of soil horizons upto tillage depth
-          thetaFC_till, & ! Field capacity of tillage layer
-          thetaPW_till, & ! Permament wilting point of tillage layer
-          thetaS, & ! saturated water content
-          thetaFC, & ! Field capacity of deeper layers
-          thetaPW, & ! Permanent wilting point
-          Wd, & ! weights of mHM Horizons according to horizons provided in soil database
-          Db, & ! Bulk density
-          DbM, & ! mineral Bulk density
-          RZdepth, & ! [mm] Total soil depth
-          mask0, & ! mask at L0
-          cell_id0, & ! cell ids at L0
-          upp_row_L1, & ! upper row of L0 block within L1 cell
-          low_row_L1, & ! lower row of L0 block within L1 cell
-          lef_col_L1, & ! left column of L0 block within L1 cell
-          rig_col_L1, & ! right column of L0 block within L1 cell
-          nL0_in_L1, & ! Number of L0 cells in L0 block within L1 cell
-          ! Output ----------------------------------------------------------------
-          L1_beta, & ! Parameter that determines the relative contribution to SM
-          L1_SMs, & ! [10^-3 m] depth of saturated SM cont
-          L1_FC, & ! [10^-3 m] field capacity
-          L1_PW, & ! [10^-3 m] permanent wilting point
-          L1_fRoots)       ! fraction of roots in soil horizons
+  subroutine mpr_SMhorizons(param, processMatrix, iFlag_soil, nHorizons_mHM, HorizonDepth, LCOVER0, soilID0, nHorizons, &
+                           nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
+                           DbM, RZdepth, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, rig_col_L1, nL0_in_L1, &
+                           L1_beta, L1_SMs, L1_FC, L1_PW, L1_fRoots)
 
-    use mo_upscaling_operators, only : upscale_harmonic_mean
     use mo_message, only : message
     use mo_string_utils, only : num2str
-
-    !$  use omp_lib
+    use mo_upscaling_operators, only : upscale_harmonic_mean
+    !$ use omp_lib
 
     implicit none
 
-    ! Input
-    real(dp), dimension(:), intent(in) :: param         ! parameters
-    integer(i4), dimension(:, :), intent(in) :: processMatrix ! matrix specifying user defined processes
-    integer(i4), intent(in) :: iFlag_soil    ! flag to handle different soil database
-    integer(i4), intent(in) :: nHorizons_mHM ! Number of Horizons in mHM
-    real(dp), dimension(:), intent(in) :: HorizonDepth  ! [10^-3 m] horizon depth from
-    !                                                          ! surface, postive downwards
-    integer(i4), dimension(:), intent(in) :: LCOVER0       ! Land cover at level 0
-    integer(i4), dimension(:, :), intent(in) :: soilID0       ! soil ID at level 0
-    integer(i4), dimension(:), intent(in) :: nHorizons     ! horizons per soil type
-    integer(i4), dimension(:), intent(in) :: nTillHorizons ! Number of Tillage horizons
-    real(dp), dimension(:, :, :), intent(in) :: thetaS_till   ! saturated water content of soil
-    !                                                          ! horizons upto tillage depth,
-    !                                                          !f(OM, management)
-    real(dp), dimension(:, :, :), intent(in) :: thetaFC_till  ! Field capacity of tillage
-    !                                                          ! layers; LUC dependent,
-    !                                                          !f(OM, management)
-    real(dp), dimension(:, :, :), intent(in) :: thetaPW_till  ! Permament wilting point of
-    !                                                          ! tillage layers; LUC dependent,
-    !                                                          ! f(OM, management)
-    real(dp), dimension(:, :), intent(in) :: thetaS       ! saturated water content of soil
-    !                                                         ! horizons after tillage depth
-    real(dp), dimension(:, :), intent(in) :: thetaFC      ! Field capacity of deeper layers
-    real(dp), dimension(:, :), intent(in) :: thetaPW      ! Permanent wilting point of
-    !                                                         ! deeper layers
-    real(dp), dimension(:, :, :), intent(in) :: Wd           ! weights of mHM Horizons
-    !                                                         ! according to horizons provided
-    !                                                         ! in soil database
-    real(dp), dimension(:, :, :), intent(in) :: Db           ! Bulk density
-    real(dp), dimension(:, :), intent(in) :: DbM          ! mineral Bulk density
-    real(dp), dimension(:), intent(in) :: RZdepth      ! [mm]       Total soil depth
+    ! parameters
+    real(dp), dimension(:), intent(in) :: param
 
-    ! Ids of L0 cells beneath L1 cell
+    ! - matrix specifying user defined processes
+    integer(i4), dimension(:, :), intent(in) :: processMatrix
+
+    ! - flags for handling multiple soil databases
+    integer(i4), intent(in) :: iFlag_soil
+
+    ! - number of horizons to model
+    integer(i4), intent(in) :: nHorizons_mHM
+
+    ! [10^-3 m] horizon depth fromsurface, postive downwards
+    real(dp), dimension(:), intent(in) :: HorizonDepth
+
+    ! Land cover at level 0
+    integer(i4), dimension(:), intent(in) :: LCOVER0
+
+    ! soil ID at level 0
+    integer(i4), dimension(:, :), intent(in) :: soilID0
+
+    ! horizons per soil type
+    integer(i4), dimension(:), intent(in) :: nHorizons
+
+    ! Number of Tillage horizons
+    integer(i4), dimension(:), intent(in) :: nTillHorizons
+
+    ! saturated water content of soilhorizons upto tillage depth,f(OM, management)
+    real(dp), dimension(:, :, :), intent(in) :: thetaS_till
+
+    ! Field capacity of tillagelayers; LUC dependent,f(OM, management)
+    real(dp), dimension(:, :, :), intent(in) :: thetaFC_till
+
+    ! Permament wilting point oftillage layers; LUC dependent,f(OM, management)
+    real(dp), dimension(:, :, :), intent(in) :: thetaPW_till
+
+    ! saturated water content of soilhorizons after tillage depth
+    real(dp), dimension(:, :), intent(in) :: thetaS
+
+    ! Field capacity of deeper layers
+    real(dp), dimension(:, :), intent(in) :: thetaFC
+
+    ! Permanent wilting point ofdeeper layers
+    real(dp), dimension(:, :), intent(in) :: thetaPW
+
+    ! weights of mHM Horizonsaccording to horizons providedin soil database
+    real(dp), dimension(:, :, :), intent(in) :: Wd
+
+    ! Bulk density
+    real(dp), dimension(:, :, :), intent(in) :: Db
+
+    ! mineral Bulk density
+    real(dp), dimension(:, :), intent(in) :: DbM
+
+    ! [mm]       Total soil depth
+    real(dp), dimension(:), intent(in) :: RZdepth
+
+    ! mask at L0
     logical, dimension(:, :), intent(in) :: mask0
-    integer(i4), dimension(:), intent(in) :: cell_id0 ! Cell ids of hi res field
-    integer(i4), dimension(:), intent(in) :: upp_row_L1 ! Upper row of hi res block
-    integer(i4), dimension(:), intent(in) :: low_row_L1 ! Lower row of hi res block
-    integer(i4), dimension(:), intent(in) :: lef_col_L1 ! Left column of hi res block
-    integer(i4), dimension(:), intent(in) :: rig_col_L1 ! Right column of hi res block
-    integer(i4), dimension(:), intent(in) :: nL0_in_L1  ! Number of L0 cells within a L1 cel
 
-    ! Output
-    ! The following five variables have the dimension: Number of cells at L1 times nHorizons_mHM
-    real(dp), dimension(:, :), intent(inout) :: L1_beta   ! Parameter that determines the
-    !                                                      ! relative contribution to SM, upscaled
-    !                                                      ! Bulk density
-    real(dp), dimension(:, :), intent(inout) :: L1_SMs    ! [10^-3 m] depth of saturated SM cont
-    real(dp), dimension(:, :), intent(inout) :: L1_FC     ! [10^-3 m] field capacity
-    real(dp), dimension(:, :), intent(inout) :: L1_PW     ! [10^-3 m] permanent wilting point
-    real(dp), dimension(:, :), intent(inout) :: L1_fRoots ! fraction of roots in soil horizons
+    ! Cell ids of hi res field
+    integer(i4), dimension(:), intent(in) :: cell_id0
 
-    ! Local Variables
-    integer(i4) :: h         ! loop index
-    integer(i4) :: k         ! loop index
-    integer(i4) :: l         ! loop index
-    integer(i4) :: s         ! loop index
+    ! Upper row of hi res block
+    integer(i4), dimension(:), intent(in) :: upp_row_L1
+
+    ! Lower row of hi res block
+    integer(i4), dimension(:), intent(in) :: low_row_L1
+
+    ! Left column of hi res block
+    integer(i4), dimension(:), intent(in) :: lef_col_L1
+
+    ! Right column of hi res block
+    integer(i4), dimension(:), intent(in) :: rig_col_L1
+
+    ! Number of L0 cells within a L1 cel
+    integer(i4), dimension(:), intent(in) :: nL0_in_L1
+
+    ! Parameter that determines therelative contribution to SM, upscaledBulk density
+    real(dp), dimension(:, :), intent(inout) :: L1_beta
+
+    ! [10^-3 m] depth of saturated SM cont
+    real(dp), dimension(:, :), intent(inout) :: L1_SMs
+
+    ! [10^-3 m] field capacity
+    real(dp), dimension(:, :), intent(inout) :: L1_FC
+
+    ! [10^-3 m] permanent wilting point
+    real(dp), dimension(:, :), intent(inout) :: L1_PW
+
+    ! fraction of roots in soil horizons
+    real(dp), dimension(:, :), intent(inout) :: L1_fRoots
+
+    ! loop index
+    integer(i4) :: h
+
+    ! loop index
+    integer(i4) :: k
+
+    ! loop index
+    integer(i4) :: l
+
+    ! loop index
+    integer(i4) :: s
+
     real(dp) :: dpth_f
+
     real(dp) :: dpth_t
+
     real(dp) :: fTotRoots
-    real(dp), dimension(size(LCOVER0, 1)) :: beta0   ! beta 0
-    real(dp), dimension(size(LCOVER0, 1)) :: Bd0     ! [10^3 kg/m3] Bulk density
-    real(dp), dimension(size(LCOVER0, 1)) :: SMs0    ! [10^-3 m] depth of saturated SM cont
-    real(dp), dimension(size(LCOVER0, 1)) :: FC0     ! [10^-3 m] field capacity
-    real(dp), dimension(size(LCOVER0, 1)) :: PW0     ! [10^-3 m] permanent wilting point
-    real(dp), dimension(size(LCOVER0, 1)) :: fRoots0 ! fraction of roots in soil horizons
+
+    ! beta 0
+    real(dp), dimension(size(LCOVER0, 1)) :: beta0
+
+    ! [10^3 kg/m3] Bulk density
+    real(dp), dimension(size(LCOVER0, 1)) :: Bd0
+
+    ! [10^-3 m] depth of saturated SM cont
+    real(dp), dimension(size(LCOVER0, 1)) :: SMs0
+
+    ! [10^-3 m] field capacity
+    real(dp), dimension(size(LCOVER0, 1)) :: FC0
+
+    ! [10^-3 m] permanent wilting point
+    real(dp), dimension(size(LCOVER0, 1)) :: PW0
+
+    ! fraction of roots in soil horizons
+    real(dp), dimension(size(LCOVER0, 1)) :: fRoots0
 
     real(dp) :: tmp_rootFractionCoefficient_forest
+
     real(dp) :: tmp_rootFractionCoefficient_impervious
+
     real(dp) :: tmp_rootFractionCoefficient_pervious
-    real(dp) :: tmp_rootFractionCoefficient_perviousFC ! Field capacity dependent
-    !                                                                                 ! root frac coeffiecient
 
-    real(dp) :: tmp_rootFractionCoefficient_sand ! Model parameter describing the threshold for
-    !                                                             ! actual ET reduction for sand
-    real(dp) :: tmp_rootFractionCoefficient_clay ! Model parameter describing the threshold for actual
-    !                                                             ! ET reduction for clay
+    ! Field capacity dependentroot frac coeffiecient
+    real(dp) :: tmp_rootFractionCoefficient_perviousFC
 
-    real(dp) :: tmp_FC0min                       ! Calculate FCmin at level 0 once to speed up the code
-    real(dp) :: tmp_FC0max                       ! Calculate FCmax at level 0 once to speed up the code
-    integer(i4) :: min_nTH ! the minimum number of till horizons
+    ! Model parameter describing the threshold foractual ET reduction for sand
+    real(dp) :: tmp_rootFractionCoefficient_sand
+
+    ! Model parameter describing the threshold for actualET reduction for clay
+    real(dp) :: tmp_rootFractionCoefficient_clay
+
+    ! Calculate FCmin at level 0 once to speed up the code
+    real(dp) :: tmp_FC0min
+
+    ! Calculate FCmax at level 0 once to speed up the code
+    real(dp) :: tmp_FC0max
+
+    ! the minimum number of till horizons
+    integer(i4) :: min_nTH
 
 
     min_nTH = minval(nTillHorizons(:))
@@ -404,7 +408,8 @@ contains
                       + ((1 - (FC0(k) - tmp_FC0min) / (tmp_FC0max - tmp_FC0min)) * &
                               tmp_rootFractionCoefficient_sand)
 
-              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
+              if(tmp_rootFractionCoefficient_perviousFC .lt. 0.0_dp .OR. &
+                tmp_rootFractionCoefficient_perviousFC .gt. 1.0_dp) &
                       print*, "CHECK tmp_rootFractionCoefficient_perviousFC", tmp_rootFractionCoefficient_perviousFC
 
               fRoots0(k) = (1.0_dp - tmp_rootFractionCoefficient_perviousFC**(dpth_t * 0.1_dp)) &

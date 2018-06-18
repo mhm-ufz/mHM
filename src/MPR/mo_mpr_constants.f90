@@ -1,11 +1,14 @@
-!> \file mo_mpr_constants.f90
+!>       \file mo_mpr_constants.f90
 
-!> \brief Provides MPR specific constants
+!>       \brief Provides MPR specific constants
 
-!> \details Provides MPR specific constants such as flood plain elevation.
+!>       \details Provides MPR specific constants such as flood plain elevation.
 
-!> \author Matthias Cuntz
-!> \date Nov 2011
+!>       \authors Matthias Cuntz
+
+!>       \date Nov 2011
+
+! Modifications:
 
 MODULE mo_mpr_constants
 

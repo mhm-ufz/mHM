@@ -1,12 +1,16 @@
-!> \file mo_optimization.f90
+!>       \file mo_optimization.f90
 
-!> \brief Wrapper subroutine for optimization against runoff and sm.
+!>       \brief Wrapper subroutine for optimization against runoff and sm.
 
-!> \details This module provides a wrapper subroutine for optimization of mRM/mHM
-!>          against runoff or soil moisture.\n
+!>       \details This module provides a wrapper subroutine for optimization of mRM/mHM
+!>       against runoff or soil moisture.
 
-!> \authors Stephan Thober
-!> \date Oct 2015
+!>       \authors s Stephan Thober
+
+!>       \date Oct 2015
+
+! Modifications:
+
 module mo_optimization
   use mo_kind, only : i4, i8, dp
   use mo_optimization_utils, only : eval_interface, objective_interface
@@ -17,109 +21,95 @@ module mo_optimization
 contains
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          optimization
+  !    NAME
+  !        optimization
 
-  !>        \brief Wrapper for optimization.
+  !    PURPOSE
+  !>       \brief Wrapper for optimization.
 
-  !>        \details This subroutine selects the optimization defined in a namelist, 
-  !>        i.e. the global variable \e opti\_method.\n
-  !>        It return the objective function value for a specific parameter set.
+  !>       \details This subroutine selects the optimization defined in a namelist,
+  !>       i.e. the global variable \e opti\_method.
+  !>       It return the objective function value for a specific parameter set.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp)         :: objective"    - objective function used in the optimization
-  !>        \param[in] "character(len=*) :: dirConfigOut" - directory where to write ascii output
+  !    INTENT(IN)
+  !>       \param[in] "procedure(eval_interface) :: eval"           
+  !>       \param[in] "procedure(objective_interface) :: objective" - objective function used in the optimization
+  !>       \param[in] "character(len = *) :: dirConfigOut"          - directory where to write ascii output
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp) :: funcbest"              - best objective function value obtained during optimization
+  !>       \param[out] "logical, dimension(:) :: maskpara" true  = parameter will be optimized     = parameter(i,4) = 1false = parameter will not be optimized = parameter(i,4) = 0
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)             :: funcBest"     - best objective function value obtained during optimization
-  !>        \param[out] "logical, allocatable :: maskpara(:) " - mask of optimized parameters
+  !    HISTORY
+  !>       \authors Matthias Cuntz, Luis Samaniego, Juliane Mai, Matthias Zink and Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Oct 2015
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !        None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Matthias Cuntz, Luis Samaniego, Juliane Mai, Matthias Zink and Stephan Thober
-  !>        \date Oct 2015
+  ! Modifications:
 
   subroutine optimization(eval, objective, dirConfigOut, funcBest, maskpara)
-    use mo_anneal, only : anneal                             ! Optimize with Simulated Annealing SA
-    use mo_dds, only : dds                                ! Optimize with Dynam. Dimens. Search DDS
-    use mo_string_utils, only : num2str
-    use mo_common_mHM_mRM_variables, only : &
-            opti_method, &                                  ! Optimization algorithm used
-            opti_function, &                                  ! Objective function used
-            optimize_restart, &  ! Optimization will be restarted from mo_<opti_method>.restart file (.true.)
-            nIterations, &                                  ! number of iterations for optimization
-            seed, &                                  ! seed used for optimization
-            mcmc_opti, & ! MCMC: Optimization (.true. ) or only parameter uncertainty (.false.)
-            mcmc_error_params, &   !  Parameters of error model if mcmc_opti=.false., e.g. for opti_function=8: 0.01, 0.3
-            sa_temp, &                                  ! SA:  initial temperature
-            dds_r, &                                  ! DDS: perturbation rate
-            sce_ngs, &                                  ! SCE: # of complexes
-            sce_npg, &                                  ! SCE: # of points per complex
-            sce_nps                                                                   ! SCE: # of points per subcomplex
 
-    use mo_common_variables, only : &
-            global_parameters  ! Matrix of global parameters (former: gamma)
-    USE mo_mcmc, only : mcmc, mcmc_stddev                  ! Monte Carlo Markov Chain method
-    use mo_sce, only : sce                                ! Optimize with Shuffled Complex evolution
-    use mo_message, only : message
+    use mo_anneal, only : anneal
+    use mo_common_mHM_mRM_variables, only : dds_r, mcmc_error_params, mcmc_opti, nIterations, opti_function, opti_method, &
+                                            optimize_restart, sa_temp, sce_ngs, sce_npg, sce_nps, seed
+    use mo_common_variables, only : global_parameters
+    use mo_dds, only : dds
     use mo_finish, only : finish
-    use mo_timer, only : timer_start, timer_stop, timer_get ! Timing of processes
-    use mo_xor4096, only : get_timeseed                       ! generating a seed from clock
+    use mo_mcmc, only : mcmc, mcmc_stddev
+    use mo_message, only : message
+    use mo_sce, only : sce
+    use mo_string_utils, only : num2str
+    use mo_timer, only : timer_get, timer_start, &
+                         timer_stop
+    use mo_xor4096, only : get_timeseed
 
     implicit none
 
-    ! -------------------------------------------------------------------------
-    ! INPUT VARIABLES
-    ! -------------------------------------------------------------------------
     procedure(eval_interface), intent(in), pointer :: eval
+
+    ! - objective function used in the optimization
     procedure(objective_interface), intent(in), pointer :: objective
+
+    ! - directory where to write ascii output
     character(len = *), intent(in) :: dirConfigOut
 
-    ! -------------------------------------------------------------------------
-    ! OUTPUT VARIABLES
-    ! -------------------------------------------------------------------------
-    real(dp), intent(out) :: funcbest    ! best objective function achivied during optimization
-    logical, intent(out), allocatable :: maskpara(:) ! true  = parameter will be optimized     = parameter(i,4) = 1
-    !                                                 ! false = parameter will not be optimized = parameter(i,4) = 0
+    ! - best objective function value obtained during optimization
+    real(dp), intent(out) :: funcbest
 
-    ! -------------------------------------------------------------------------
-    ! LOCAL VARIABLES
-    ! -------------------------------------------------------------------------
+    ! true  = parameter will be optimized     = parameter(i,4) = 1false = parameter will not be optimized = parameter(i,4) = 0
+    logical, intent(out), allocatable, dimension(:) :: maskpara
+
     integer(i4) :: ii
-    integer(i4) :: iTimer                ! current timer number
-    ! mcmc
-    real(dp), allocatable :: burnin_paras(:, :)     ! parameter sets sampled during burnin
-    real(dp), allocatable :: mcmc_paras(:, :)       ! parameter sets sampled during proper mcmc
-    ! setting step sizes manually
-    ! real(dp), dimension(:),   allocatable :: step                  ! pre-determined stepsize 
+
+    ! current timer number
+    integer(i4) :: iTimer
+
+    ! parameter sets sampled during burnin
+    real(dp), allocatable, dimension(:, :) :: burnin_paras
+
+    ! parameter sets sampled during proper mcmc
+    real(dp), allocatable, dimension(:, :) :: mcmc_paras
+
+    ! pre-determined stepsize
+    ! real(dp), dimension(:), allocatable :: step
+
     integer(i4) :: npara
-    real(dp), allocatable :: local_parameters(:, :) ! global_parameters but includes a and b for likelihood
-    logical, allocatable :: local_maskpara(:)     ! maskpara but includes a and b for likelihood
-    integer(i8) :: iseed                 ! local seed used for optimization
-    character(256) :: tFile                 ! file for temporal optimization outputs
-    character(256) :: pFile                 ! file for temporal SCE optimization outputs
+
+    ! global_parameters but includes a and b for likelihood
+    real(dp), allocatable, dimension(:, :) :: local_parameters
+
+    ! maskpara but includes a and b for likelihood
+    logical, allocatable, dimension(:) :: local_maskpara
+
+    ! local seed used for optimization
+    integer(i8) :: iseed
+
+    ! file for temporal optimization outputs
+    character(256) :: tFile
+
+    ! file for temporal SCE optimization outputs
+    character(256) :: pFile
+
 
     ! -------------------------------------------------------------------------
     ! START

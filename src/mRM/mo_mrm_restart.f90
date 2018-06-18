@@ -1,12 +1,16 @@
-!> \file mo_mrm_restart.f90
+!>       \file mo_mrm_restart.f90
 
-!> \brief Restart routines
+!>       \brief Restart routines
 
-!> \details This module contains the subroutines for reading and writing
-!> routing related variables to file.
+!>       \details This module contains the subroutines for reading and writing
+!>       routing related variables to file.
 
-!> \authors Stephan Thober
-!> \date Aug 2015
+!>       \authors s Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
+
 module mo_mrm_restart
   use mo_kind, only : i4, dp
   implicit none
@@ -17,122 +21,89 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         mrm_write_restart
+  !    NAME
+  !        mrm_write_restart
 
-  !     PURPOSE
-  !>        \brief write routing states and configuration
+  !    PURPOSE
+  !>       \brief write routing states and configuration
 
-  !>        \details write configuration and state variables to a given restart
-  !>        directory.
+  !>       \details write configuration and state variables to a given restart
+  !>       directory.
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
-  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"                   number of basin
+  !>       \param[in] "character(256), dimension(:) :: OutPath" list of Output paths per Basin
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Aug 2015
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !>        \note can only be used after mHM write_restart has been called because
-  !>        state variables are added to the file containing the state variables of mHM.
-  !>        This file must exist.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         modified, Sep 2015, Stephan Thober - added all write restart commands in this subroutine
-  !                   Sep 2015, Stephan Thober - added L11_areaCell L1_ID and L1_L11_Id for routing
-  !                                              resolution higher than hydrology resolution
-  !                   Nov 2015, David Schaefer - mo_netcdf
-  !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
-  !                                              because multiple outlets could exist
-  !                   Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
+  ! Modifications:
 
   subroutine mrm_write_restart(iBasin, OutPath)
-    use mo_message, only : message
-    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-    use mo_string_utils, only : num2str
-    use mo_common_variables, only : &
-            processMatrix, level1, nLCoverScene
-    use mo_mrm_constants, only : nRoutingStates
+
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_mrm_global_variables, only : &
-            level11, &
-            basin_mrm, &
-            L1_L11_Id, &
-            L11_Qmod, &
-            L11_qOUT, &
-            L11_qTIN, &
-            L11_qTR, &
-            L11_K, &
-            L11_xi, &
-            L11_C1, &
-            L11_C2, &
-            L11_nLinkFracFPimp, &
-            L11_TSrout, &
-            L11_L1_Id, &
-            L11_rowOut, &
-            L11_colOut, &
-            L11_fDir, &
-            L11_fDir, &
-            L11_fromN, &
-            L11_toN, &
-            L11_rOrder, &
-            L11_label, &
-            L11_sink, &
-            L11_netPerm, &
-            L11_rowOut, &
-            L11_colOut, &
-            L11_fRow, &
-            L11_fCol, &
-            L11_tRow, &
-            L11_tCol, &
-            L11_length, &
-            L11_aFloodPlain, &
-            L11_slope
+    use mo_common_variables, only : level1, nLCoverScene, processMatrix
+    use mo_message, only : message
+    use mo_mrm_constants, only : nRoutingStates
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
+                                        L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
+                                        L11_fDir, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
+                                        L11_netPerm, L11_qOUT, L11_qTIN, L11_qTR, L11_rOrder, L11_rowOut, L11_rowOut, &
+                                        L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L1_L11_Id, basin_mrm, &
+                                        level11
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+    use mo_string_utils, only : num2str
+
     implicit none
-    ! input variables
+
+    ! number of basin
     integer(i4), intent(in) :: iBasin
-    character(256), dimension(:), intent(in) :: OutPath  ! list of Output paths per Basin
-    ! local variables
+
+    ! list of Output paths per Basin
+    character(256), dimension(:), intent(in) :: OutPath
+
     character(256) :: Fname
+
     integer(i4) :: ii
-    integer(i4) :: s1       ! start index at level 1
-    integer(i4) :: e1       ! end index at level 1
-    logical, dimension(:, :), allocatable :: mask1    ! mask at level 1
-    integer(i4) :: s11      ! start index at level 11
-    integer(i4) :: e11      ! end index at level 11
-    integer(i4) :: ncols11  ! number of colums at level 11
-    integer(i4) :: nrows11  ! number of rows at level 11
-    logical, dimension(:, :), allocatable :: mask11   ! mask at level 11
-    real(dp), dimension(:, :, :), allocatable :: dummy_d3 ! dummy variable
+
+    ! start index at level 1
+    integer(i4) :: s1
+
+    ! end index at level 1
+    integer(i4) :: e1
+
+    ! mask at level 1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! start index at level 11
+    integer(i4) :: s11
+
+    ! end index at level 11
+    integer(i4) :: e11
+
+    ! number of colums at level 11
+    integer(i4) :: ncols11
+
+    ! number of rows at level 11
+    integer(i4) :: nrows11
+
+    ! mask at level 11
+    logical, dimension(:, :), allocatable :: mask11
+
+    ! dummy variable
+    real(dp), dimension(:, :, :), allocatable :: dummy_d3
 
     type(NcDataset) :: nc
+
     type(NcDimension) :: rows1, cols1, rows11, cols11, it11, lcscenes
+
     type(NcDimension) :: links, nts, nproc
+
     type(NcVariable) :: var
+
 
     ! get Level1 and Level11 information about the basin
     s1 = level1(iBasin)%iStart

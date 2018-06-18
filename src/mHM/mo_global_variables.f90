@@ -1,11 +1,14 @@
-!> \file mo_global_variables.f90
+!>       \file mo_global_variables.f90
 
-!> \brief Global variables ONLY used in reading, writing and startup.
+!>       \brief Global variables ONLY used in reading, writing and startup.
 
-!> \details
+!>       \details 
 
-!> \authors Luis Samaniego
-!> \date Dec 2012
+!>       \authors s Luis Samaniego
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_global_variables
 

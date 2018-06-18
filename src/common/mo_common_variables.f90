@@ -1,14 +1,18 @@
-!> \file mo_common_variables.f90
+!>       \file mo_common_variables.f90
 
-!> \brief Provides structures needed by mHM, mRM and/or mpr.
+!>       \brief Provides structures needed by mHM, mRM and/or mpr.
 
-!> \details Provides the global structure period that is used
-!>     by both mHM and mRM.
+!>       \details Provides the global structure period that is used
+!>       by both mHM and mRM.
 
-!> \author Stephan Thober
-!> \date Sep 2015
-!  Modified Stephan Thober,  Nov 2016 - moved processdescription from mo_global_variables to here
-!           Robert Schweppe, Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+!>       \authors Stephan Thober
+
+!>       \date Sep 2015
+
+! Modifications:
+! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
+! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp

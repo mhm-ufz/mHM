@@ -1,13 +1,16 @@
-!> \file mo_startup.f90
+!>       \file mo_mpr_startup.f90
 
-!> \brief Startup procedures for mHM.
+!>       \brief Startup procedures for mHM.
 
-!> \details This module initializes all variables required to run mHM. This
-!> module needs to be run only one time at the beginning of a simulation if
-!> re-starting files do not exist.
+!>       \details This module initializes all variables required to run mHM. This
+!>       module needs to be run only one time at the beginning of a simulation if
+!>       re-starting files do not exist.
 
-!> \author Luis Samaniego, Rohini Kumar
-!> \date Dec 2012
+!>       \authors Luis Samaniego, Rohini Kumar
+
+!>       \date Dec 2012
+
+! Modifications:
 
 MODULE mo_mpr_startup
 
@@ -28,83 +31,54 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         initialise
+  !    NAME
+  !        mpr_initialize
 
-  !     PURPOSE
-  !>        \brief Initialize main mHM variables
+  !    PURPOSE
+  !>       \brief Initialize main mHM variables
 
-  !>        \details Initialize main mHM variables for a given basin. \n
-  !>              Calls the following procedures in this order:\n
-  !>                 - Constant initialization. \n
-  !>                 - Generate soil database. \n
-  !>                 - Checking inconsistencies input fields. \n
-  !>                 - Variable initialization at level-0. \n
-  !>                 - Variable initialization at level-1. \n
-  !>                 - Variable initialization at level-11. \n
-  !>                 - Space allocation of remaining variable/parameters. \n
-  !>        Global variables will be used at this stage. \n
+  !>       \details Initialize main mHM variables for a given basin. 
+  !>       Calls the following procedures in this order:
+  !>       - Constant initialization. 
+  !>       - Generate soil database. 
+  !>       - Checking inconsistencies input fields. 
+  !>       - Variable initialization at level-0. 
+  !>       - Variable initialization at level-1. 
+  !>       - Variable initialization at level-11. 
+  !>       - Space allocation of remaining variable/parameters. 
+  !>       Global variables will be used at this stage. 
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)       ::  iBasin"               basin id
+  !    HISTORY
+  !>       \authors Luis Samaniego, Rohini Kumar
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
+  ! Luis Samaniego Mar 2008 - fully distributed multilayer
+  ! Rohini Kumar   Oct 2010 - matrix to vector version 
+  !                         - openmp parallelization 
+  !                         - routing level 11
+  ! Luis Samaniego Jul 2012 - removal of IMSL dependencies
+  ! Luis Samaniego Dec 2012 - modular version
+  ! Rohini Kumar   May 2013 - code cleaned and error checks
+  ! Rohini Kumar   Nov 2013 - updated documentation
+  ! Stephan Thober Jun 2014 - copied L2 initialization from mo_meteo_forcings
+  ! Stephan Thober Jun 2014 - updated flag for read_restart
+  ! Stephan Thober Aug 2015 - removed initialisation of routing
+  ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  subroutine mpr_initialize
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego, Rohini Kumar
-  !>        \date    Dec 2012
-  !         Modified Luis Samaniego, Mar 2008 - fully distributed multilayer
-  !                  Rohini Kumar,   Oct 2010 - matrix to vector version
-  !                                           - openmp parallelization
-  !                                           - routing level 11
-  !                  Luis Samaniego, Jul 2012 - removal of IMSL dependencies
-  !                  Luis Samaniego, Dec 2012 - modular version
-  !                  Rohini Kumar,   May 2013 - code cleaned and error checks
-  !                  Rohini Kumar,   Nov 2013 - updated documentation
-  !                  Stephan Thober, Jun 2014 - copied L2 initialization from mo_meteo_forcings
-  !                  Stephan Thober, Jun 2014 - updated flag for read_restart
-  !                  Stephan Thober, Aug 2015 - removed initialisation of routing
-  !                    Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
-
-  subroutine mpr_initialize()
-
-    use mo_kind, only : i4
-    use mo_common_variables, only : &
-            L0_Basin, &
-            level0, level1, l0_l1_remap, nBasins, resolutionHydrology
-    !            dirRestartIn
-    use mo_soil_database, only : generate_soil_database
+    use mo_common_variables, only : L0_Basin, l0_l1_remap, level0, level1, nBasins, resolutionHydrology
     use mo_grid, only : init_lowres_level, set_basin_indices
+    use mo_kind, only : i4
     use mo_read_latlon, only : read_latlon
+    use mo_soil_database, only : generate_soil_database
 
     implicit none
 
     integer(i4) :: iBasin
+
 
     ! soilDB common for all basins
     call generate_soil_database()

@@ -1,11 +1,14 @@
-!> \file mo_mpr_global_variables.f90
+!>       \file mo_mpr_global_variables.f90
 
-!> \brief Global variables for mpr only
+!>       \brief Global variables for mpr only
 
-!> \details
+!>       \details 
 
-!> \authors Robert Schweppe
-!> \date Dec 2017
+!>       \authors s Robert Schweppe
+
+!>       \date Dec 2017
+
+! Modifications:
 
 module mo_mpr_global_variables
 

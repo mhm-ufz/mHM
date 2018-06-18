@@ -1,11 +1,14 @@
-!> \file mo_mrm_read_data.f90
+!>       \file mo_mrm_read_data.f90
 
-!> \brief This module contains all routines to read mRM data from file.
+!>       \brief This module contains all routines to read mRM data from file.
 
-!> \details 
+!>       \details 
 
-!> \authors Stephan Thober
-!> \date Aug 2015
+!>       \authors s Stephan Thober
+
+!>       \date Aug 2015
+
+! Modifications:
 
 module mo_mrm_read_data
   use mo_kind, only : i4, dp
@@ -18,103 +21,75 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mrm_read_L0_data
+  !    NAME
+  !        mrm_read_L0_data
 
-  !     PURPOSE
-  !>        \brief read L0 data from file
-  !
-  !>        \details With the exception of L0_mask, L0_elev, and L0_LCover, all
-  !>        L0 variables are read from file. The former three are only read if they
-  !>        are not provided as variables.
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
+  !    PURPOSE
+  !>       \brief read L0 data from file
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(:), target, optional :: L0_mask - L0 mask"
-  !>        \param[in] "real(dp), dimension(:), target, optional :: L0_elev - L0 elevation"
-  !>        \param[in] "integer(i4), dimension(:,:), target, optional :: L0_LCover - L0 land cover"
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !>        None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !>       \details With the exception of L0_mask, L0_elev, and L0_LCover, all
+  !>       L0 variables are read from file. The former three are only read if they
+  !>       are not provided as variables.
 
-  !     HISTORY
-  !>        \author Juliane Mai, Matthias Zink, and Stephan Thober
-  !>        \date Aug 2015
-  !         Modified,  Stephan Thober, Sep 2015 - added L0_mask, L0_elev, and L0_LCover
+  !    INTENT(IN)
+  !>       \param[in] "logical :: do_reinit"     
+  !>       \param[in] "logical :: do_readlatlon" 
+  !>       \param[in] "logical :: do_readlcover" 
+
+  !    HISTORY
+  !>       \authors Juliane Mai, Matthias Zink, and Stephan Thober
+
+  !>       \date Aug 2015
+
+  ! Modifications:
+  ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
+
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
-    use mo_common_constants, only : nodata_i4! mRM's global nodata vales
+
     use mo_append, only : append
-    use mo_string_utils, only : num2str
-    use mo_message, only : message
-    use mo_read_spatial_data, only : read_spatial_data_ascii
-    use mo_mrm_file, only : &
-            file_facc, ufacc, & ! file name and unit of flow acc map
-            file_fdir, ufdir, & ! file name and unit of flow dir map
-            file_gaugeloc, ugaugeloc ! file name and unit of gauge locations m
-    use mo_mrm_global_variables, only : &
-            L0_fAcc, & ! flow accumulation on input resolution (L0)
-            L0_fDir, & ! flow direction on input resolution (L0)
-            L0_gaugeLoc, & ! location of evaluation gauges on input resolution (L0)
-            L0_InflowGaugeLoc, & ! location of inflow gauges on input resolution (L0)
-            basin_mrm ! basin information for single basins
-    use mo_common_variables, only : &
-            L0_LCover, &
-            Grid, &
-            level0, & ! level0 information
-            dirMorpho, & ! directories
-            L0_Basin, &
-            nBasins, &
-            processMatrix ! process description
+    use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    USE mo_read_latlon, ONLY : read_latlon
+    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, dirMorpho, level0, nBasins, processMatrix
+    use mo_message, only : message
+    use mo_mrm_file, only : file_facc, file_fdir, &
+                            file_gaugeloc, ufacc, ufdir, ugaugeloc
+    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, basin_mrm
+    use mo_read_latlon, only : read_latlon
+    use mo_read_spatial_data, only : read_spatial_data_ascii
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    ! optional input variables
     logical, intent(in) :: do_reinit
+
     logical, intent(in) :: do_readlatlon
+
     logical, intent(in) :: do_readlcover
 
-    ! local variables
     integer(i4) :: iBasin
+
     integer(i4) :: iVar
+
     integer(i4) :: iGauge
+
     character(256) :: fname
+
     integer(i4) :: nunit
+
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
+
     logical, dimension(:, :), allocatable :: mask_2d
+
     logical, dimension(:, :), allocatable :: mask_global
+
     type(Grid), pointer :: level0_iBasin
 
 
     ! ************************************************
     ! READ SPATIAL DATA FOR EACH BASIN
     ! ************************************************
-
     if (do_reinit) then
       call read_dem()
     end if

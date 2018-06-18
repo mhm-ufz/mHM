@@ -1,17 +1,17 @@
-!> \file mo_neutrons.f90
-!> \brief Models to predict neutron intensities above soils
+!>       \file mo_neutrons.f90
 
-!> \details The number of neutrons above the ground is directly related to
-!> the number soil water content in the ground, air, vegetation and/or snow.
-!> This module forward-models neutron abundance as a state variable for each cell.
+!>       \brief Models to predict neutron intensities above soils
 
-!> \authors Martin Schroen
-!> \date Mar 2015
+!>       \details The number of neutrons above the ground is directly related to
+!>       the number soil water content in the ground, air, vegetation and/or snow.
+!>       This module forward-models neutron abundance as a state variable for each cell.
 
-!> THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+!>       \authors s Martin Schroen
 
-! TODO make it faster with pre-calculated horizons and variables
-! TODO use global parameters as linear model 
+!>       \date Mar 2015
+!>       THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
+
+! Modifications:
 
 MODULE mo_neutrons
 
@@ -35,73 +35,51 @@ MODULE mo_neutrons
 CONTAINS
 
   ! -----------------------------------------------------------------------------------
-  !     NAME
-  !         DesiletsN0
-  !
-  !     PURPOSE
-  !>        \brief Calculate neutrons from soil moisture in the first layer.
-  !>        \details Using the N0-relation derived by Desilets, neutron
-  !>        counts above the ground (one value per cell in mHM) can be 
-  !>        derived by a semi-empirical, semi-physical relation. 
-  !>        The result depends on N0, the neutron counts for 0% soil mositure.
-  !>        This variable is site-specific and is a global parameter in mHM.
-  !         ------------------------------------------------------------------
-  !         N0 formula based on Desilets et al. 2010                          
-  !         ------------------------------------------------------------------
-  !
-  !     CALLING SEQUENCE
-  !         call DesiletsN0( Moisture(cells,layers), Depths(layers), &
-  !                          N0-parameter, output(cells) )
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp)                 :: N0" dry neutron counts
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         Horizons(1) must not be zero.
-  !
-  !     EXAMPLE
-  !         N0=1500cph, SoilMoisture(1,1)=700mm, Horizons(1)=200mm
-  !         1500*(0.372+0.0808/ (70mm/200mm + 0.115))
-  !         DesiletsN0 = 819cph
-  !
-  !     LITERATURE
-  !         Desilets, D., M. Zreda, and T. P. A. Ferre (2010),
-  !         Nature's neutron probe: Land surface hydrology at an elusive scale
-  !         with cosmic rays, WRR, 46, W11505, doi:10.1029/2009WR008726.
-  !
-  !     HISTORY
-  !>        \author Martin Schroen
-  !>        \date Mar 2015
+  !    NAME
+  !        DesiletsN0
+
+  !    PURPOSE
+  !>       \brief Calculate neutrons from soil moisture in the first layer.
+
+  !>       \details Using the N0-relation derived by Desilets, neutron
+  !>       counts above the ground (one value per cell in mHM) can be
+  !>       derived by a semi-empirical, semi-physical relation.
+  !>       The result depends on N0, the neutron counts for 0% soil mositure.
+  !>       This variable is site-specific and is a global parameter in mHM.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: SoilMoisture" Soil Moisture
+  !>       \param[in] "real(dp), dimension(:) :: Horizons"     Horizon depths
+  !>       \param[in] "real(dp) :: N0"                         dry neutron counts
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp) :: neutrons" Neutron counts
+
+  !    HISTORY
+  !>       \authors Martin Schroen
+
+  !>       \date Mar 2015
+
+  ! Modifications:
 
   subroutine DesiletsN0(SoilMoisture, Horizons, N0, neutrons)
 
     use mo_mhm_constants, only : Desilets_a0, Desilets_a1, Desilets_a2
+
     implicit none
 
+    ! Soil Moisture
     real(dp), dimension(:), intent(in) :: SoilMoisture
+
+    ! Horizon depths
     real(dp), dimension(:), intent(in) :: Horizons
-    real(dp), intent(in) :: N0          ! from global parameters
+
+    ! dry neutron counts
+    real(dp), intent(in) :: N0
+
+    ! Neutron counts
     real(dp), intent(inout) :: neutrons
+
 
     ! only use first soil layer
     neutrons = N0 * (Desilets_a1 + Desilets_a0 / (SoilMoisture(1) / Horizons(1) + Desilets_a2))
