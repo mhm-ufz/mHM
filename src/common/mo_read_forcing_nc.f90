@@ -11,9 +11,9 @@
 
 !> \authors Juliane Mai
 !> \date Dec 2012
-!  Modified Sep 2015, Stephan Thober  - separated routines for netcdf files from routines for binary files
-!           Jan 2017, Stephan Thober  - added reading weights for disaggregation of daily meteorological values to hourly ones
-!           Nov 2017, Robert Schweppe - switched to mo_netcdf library and restuctured routines
+!  Modified Stephan Thober  Sep 2015  - separated routines for netcdf files from routines for binary files
+!           Stephan Thober  Jan 2017  - added reading weights for disaggregation of daily meteorological values to hourly ones
+!           Robert Schweppe Nov 2017  - switched to mo_netcdf library and restuctured routines
 module mo_read_forcing_nc
   implicit none
   public :: read_forcing_nc

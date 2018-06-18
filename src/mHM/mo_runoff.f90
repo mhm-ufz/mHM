@@ -57,13 +57,13 @@ CONTAINS
   !>        \param[in] "real(dp) :: karst_loss"         Karstic percolation loss [-]
 
   !     INTENT(INOUT)
-  !>        \param[in,out] "real(dp) :: unsat_storage   Upper soil storage [mm]
-  !>        \param[in,out] "real(dp) :: sat_storage     Groundwater storage [mm]
+  !>        \param[in,out] "real(dp) :: unsat_storage"   Upper soil storage [mm]
+  !>        \param[in,out] "real(dp) :: sat_storage"     Groundwater storage [mm]
 
   !     INTENT(OUT)
-  !>        \param[out] "real(dp) ::  perc              Percolation [mm d-1]
-  !>        \param[out] "real(dp) ::  fast_interflow    Fast runoff component [mm d-1]
-  !>        \param[out] "real(dp) ::  slow_interflow    Slow runoff component [mm d-1]
+  !>        \param[out] "real(dp) ::  perc"              Percolation [mm d-1]
+  !>        \param[out] "real(dp) ::  fast_interflow"    Fast runoff component [mm d-1]
+  !>        \param[out] "real(dp) ::  slow_interflow"    Slow runoff component [mm d-1]
 
   !     INTENT(IN), OPTIONAL
   !         None

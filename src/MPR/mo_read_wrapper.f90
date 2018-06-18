@@ -10,10 +10,6 @@
 
 MODULE mo_read_wrapper
 
-  ! Written  Juliane Mai & Matthias Zink, Jan 2013
-  ! Modified
-  !          Luis Samaniego, Feb 2013  ! rotate fdir variable to the new coordinate system
-
   USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
@@ -30,7 +26,7 @@ CONTAINS
   !     PURPOSE
   !>        \brief Reads data.
 
-  !>        \details The namelists are already read by read_config call./n
+  !>        \details The namelists are already read by read_config call.
   !>                 All LUTs are read from their respective directory and information within those
   !>                 files are shared across all basins to be modeled.
   !     INTENT(IN)
@@ -74,17 +70,16 @@ CONTAINS
   !                    Rohini Kumar,   Aug 2013  - added iFlag_LAI_data_format to handle LAI options,
   !                                                and changed within the code made accordingly
   !                    Rohini  Kumar,  Sep 2013  - read input data for routing processes according
-  !                    Stephan Thober             to process_matrix flag
-  !                    Matthias Zink   Mar 2014   added inflow gauge
+  !                                                to process_matrix flag
+  !                    Matthias Zink   Mar 2014  - added inflow gauge
   !                    Kumar & Schroen Apr 2014  - added check for consistency of L0 and L1 spatial resolution
   !                    Stephan Thober  Jun 2014  - added perform_mpr for omitting L0 read
-  !                    Matthias Cuntz &
-  !                    Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
+  !                    Matthias Cuntz & Juliane Mai     Nov 2014  - LAI input from daily, monthly or yearly files
   !                    Stephan Thober  Aug 2015  - moved routing related variables and routines to mRM
   !                    Rohini Kumar,   Mar 2016  - options to handle different soil databases
   !                    Matthias Zink   Mar 2014  - added subroutine for consistency check
   !                    Stephan Thober, Nov 2016  - moved processMatrix to common variables
-  !                    Rohini Kuamr,   Dec  2016 - option to handle monthly mean gridded fields of LAI
+  !                    Rohini Kumar,   Dec 2016 - option to handle monthly mean gridded fields of LAI
   ! ------------------------------------------------------------------
 
   subroutine read_data(LAIPer)

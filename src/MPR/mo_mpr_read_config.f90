@@ -66,10 +66,10 @@ contains
   !>        \author Stephan Thober
   !>        \date Aug 2015
   !         Modified,
-  !         Sep 2015, Stephan Thober - removed stop condition when routing resolution is smaller than hydrologic resolution
-  !         Oct 2015, Stephan Thober - added NLoutputResults namelist, fileLatLon to directories_general namelist,
+  !         Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
+  !         Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist,
   !                                    and readLatLon flag
-  !         Dec 2017, Robert Schweppe - adapted for MPR
+  !         Robert Schweppe Dec 2017  - adapted for MPR
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_mpr_global_variables, only : &

@@ -175,8 +175,6 @@ CONTAINS
             dirRestartIn, & ! restart directory location
             timeStep, read_restart
 
-    !USE mo_timer, ONLY : timers_init, timer_start, timer_stop, timer_get              ! Timing of processes
-
 
 #ifdef MRM2MHM
     use mo_utils, only : ge

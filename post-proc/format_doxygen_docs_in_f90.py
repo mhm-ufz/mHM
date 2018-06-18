@@ -14,13 +14,15 @@ import pathlib
 import re
 import pytest
 from datetime import datetime
+from warnings import warn
 
 # GLOBAL VARIABLES
 POSSIBLE_SUFFIXES = ['.f90', '.F']
-ROUTINE_FLAG = ['function', 'subroutine']
+ROUTINE_FLAG = ['[\w\s]*function', 'subroutine']
 MODIFIED_FLAG = ['Modified', 'Modifications']
 IMPLICIT_NONE_FLAG = 'implicit none'
-USE_FLAG = r'^[\s]*use'
+# include the !$ omp option
+USE_FLAG = r'(!\$)?\s*use'
 ARG_DESCRIPTION_SPLITTER = '::'
 MAX_LINE_WIDTH = 100
 
@@ -30,23 +32,27 @@ def get_all_subfiles(path, relation=None):
         yield path.relative_to(relation or path)
     else:
         for sub_path in path.iterdir():
-            yield from get_all_subfiles(sub_path, path)
+            yield from get_all_subfiles(sub_path, relation or path)
 
 def check_for_line_to_ignore(line):
     return not line.strip() or re.match('!\s+-+\s*$', line.strip())
 
 # CLASSES
 class Doc(object):
-    FILE_FLAGS = ['brief', 'details', 'authors', 'author', 'date', 'note', 'return']
+    FILE_FLAGS = ['brief', 'details', 'note', 'return', 'authors', 'author', 'date']
     BLOCK_DICT = {'brief': 'PURPOSE', 'authors': 'HISTORY', 'note':'RESTRICTIONS',
                   'return': 'RETURN'}
+    INTENT_DICT = {'in': 'INTENT(IN)', 'out': 'INTENT(OUT)', 'inout': 'INTENT(INOUT)',
+                   'inoptional': 'INTENT(IN), OPTIONAL', 'outoptional': 'INTENT(OUT), OPTIONAL',
+                   'inoutoptional': 'INTENT(INOUT), OPTIONAL'}
     DOC_COMMENT = '!>'
     COMMENT = '!'
     FLAG_PREFIX = '\\'
 
-    def __init__(self):
+    def __init__(self, default_author):
         self._name = None
         self.param_dict = {}
+        self.temp_param_docs = {}
         self._brief = None
         self._details = None
         self._return = None
@@ -60,6 +66,8 @@ class Doc(object):
         self._in_modified = False
         self._modified = []
         self.cur_field = None
+
+        self.default_author = default_author
 
     def parse_doc(self, line):
         if not check_for_line_to_ignore(line):
@@ -88,10 +96,11 @@ class Doc(object):
         def format_item(indent, comment, block_name, value):
             value = value.replace('\n', '\n{indent}{comment:9}'.format(indent=' ' * indent,
                                                                        comment=comment))
-            template = '{indent}{comment:5}{block_name}\n{indent}{comment:9}{value}\n\n'
+            template = '{indent}{base_comment:5}{block_name}\n{indent}{comment:9}{value}\n\n'
             if block_name is None:
                 template = '{indent}{comment:9}{value}\n\n'
             return template.format(indent=' ' * indent,
+                                   base_comment=self.COMMENT,
                                    comment=comment,
                                    block_name=block_name,
                                    value=value)
@@ -106,21 +115,50 @@ class Doc(object):
         if module:
             out_string += format_item(indent=indent, comment=self.COMMENT,
                                       block_name='NAME', value=self._name)
-        for item in self.FILE_FLAGS:
-            value = getattr(self, '_{}'.format(item))
-            if item == 'file' and fname is not None:
-                value = fname
-            if value is None:
-                if item == 'authors':
-                    value = self.default_author
-                elif item == 'date':
-                    value = '{:%b %Y}'.format(datetime.today())
-                elif item in ['brief', 'details']:
+            for item in ['brief', 'details']:
+                value = getattr(self, '_{}'.format(item))
+                if value is None:
                     value = 'TODO: add description'
-            if value is not None:
                 value = '{} {}'.format(self.FLAG_PREFIX + item, value)
                 out_string += format_item(indent=indent, comment=self.DOC_COMMENT,
                                           block_name=self.BLOCK_DICT.get(item), value=value)
+            if self.param_dict:
+                for param_key, items in self.param_dict.items():
+                    # longest left side part
+                    left_width = max([len(item[0]) for item in items])
+                    value = '\n'.join(['{:{width}} {}'.format(*item, width=left_width) for item in items])
+                    out_string += format_item(indent=indent, comment=self.DOC_COMMENT,
+                                              block_name=self.INTENT_DICT[param_key], value=value)
+
+            for item in self.FILE_FLAGS[3:]:
+                value = getattr(self, '_{}'.format(item))
+                if value is None:
+                    if item == 'authors':
+                        print('setting default author in routine', self._name)
+                        value = self.default_author
+                    elif item == 'date':
+                        value = '{:%b %Y}'.format(datetime.today())
+                if value is not None:
+                    value = '{} {}'.format(self.FLAG_PREFIX + item, value)
+                    out_string += format_item(indent=indent, comment=self.DOC_COMMENT,
+                                              block_name=self.BLOCK_DICT.get(item), value=value)
+        else:
+            for item in self.FILE_FLAGS:
+                value = getattr(self, '_{}'.format(item))
+                if item == 'file':
+                    value = fname
+                if value is None:
+                    if item == 'authors':
+                        print('setting default author in file', fname)
+                        value = self.default_author
+                    elif item == 'date':
+                        value = '{:%b %Y}'.format(datetime.today())
+                    elif item in ['brief', 'details']:
+                        value = 'TODO: add description'
+                if value is not None:
+                    value = '{} {}'.format(self.FLAG_PREFIX + item, value)
+                    out_string += format_item(indent=indent, comment=self.DOC_COMMENT,
+                                              block_name=self.BLOCK_DICT.get(item), value=value)
 
         out_string += '{}{} Modifications:\n'.format(' ' * indent, self.COMMENT)
         if self._modified:
@@ -129,8 +167,12 @@ class Doc(object):
                 mod.note = '- ' + mod.note.lstrip('- ').replace('- ', '\n{}{}{}- '.format(' ' * (indent),
                                                                                           self.COMMENT,
                                                                                           ' ' * (11 + max_editor_length)))
-                out_string += '{}{} {:{width}} {} {}\n'.format(' ' * indent, self.COMMENT,
-                                                       mod.editor, mod.date, mod.note, width=max_editor_length)
+                try:
+                    out_string += '{}{} {:{width}} {} {}\n'.format(' ' * indent, self.COMMENT,
+                                                           mod.editor, mod.date, mod.note, width=max_editor_length)
+                except ValueError:
+                    print(mod.editor, mod.date, mod.note)
+                    raise
 
         return out_string + '\n'
 
@@ -146,32 +188,39 @@ class Doc(object):
             date = split[1].strip()
             note = split[2].strip()
             self._modified.append(Modification(editor, date, note))
-        else:
+        elif self._modified:
             self._modified[-1].note += ' {}'.format(line.strip('! \n'))
 
     def set_file_doc_attr(self, value):
         if self.cur_field is None:
-            raise Exception
-        cur_name = '_{}'.format(self.cur_field)
-
-        cur_attr = getattr(self, cur_name)
+            raise KeyError
         value = value.strip().replace('\\n', '')
-        if cur_attr is None:
-            # get the info and append to string
-            setattr(self, cur_name, value)
+        if value.startswith('\\param'):
+            self.cur_field = 'param'
+            split = value.split('::')[1].split('"')
+            self._cur_param_key = split[0].strip()
+            self.temp_param_docs[self._cur_param_key] = split[1].strip()
+        elif self.cur_field == 'param':
+            self.temp_param_docs[self._cur_param_key] += value
         else:
-            setattr(self, cur_name, cur_attr + '\n' + value)
+            cur_name = '_{}'.format(self.cur_field)
+            cur_attr = getattr(self, cur_name)
+            if cur_attr is None:
+                # get the info and append to string
+                setattr(self, cur_name, value)
+            else:
+                setattr(self, cur_name, cur_attr + '\n' + value)
 
 
 class FortranFile(Doc):
-    FILE_FLAGS = ['file', 'brief', 'details', 'author', 'authors', 'date', 'version', 'copyright']
+    FILE_FLAGS = ['file', 'brief', 'details', 'authors', 'author', 'date', 'version', 'copyright']
     BLOCK_DICT = {}
 
     MODULE_FLAG = ['module', 'program']
 
     def __init__(self, default_author):
         # parameters
-        super().__init__()
+        super().__init__(default_author)
         self._file = None
         self._version = None
         self._copyright = None
@@ -189,8 +238,7 @@ class FortranFile(Doc):
         self._in_routine_args = False
         self._is_line_continued = False
         self._in_code = False
-
-        self.default_author = default_author
+        self._in_flag = ''
 
     def read(self, fname):
         print('reading', fname)
@@ -198,10 +246,13 @@ class FortranFile(Doc):
             for line in f_in:
                 self._check_status(line)
 
-                if not self._in_module:
+                if not self._in_module and not line.strip().startswith('#'):
                     self._parse_file_doc(line)
                 elif self._in_doc:
-                    self._parse_doc(line)
+                    try:
+                        self._parse_doc(line)
+                    except KeyError:
+                        self.lines.append(line)
                 elif self._in_routine:
                     self._parse_routine(line)
                 elif self._in_code:
@@ -221,12 +272,14 @@ class FortranFile(Doc):
             f_in.write(self.doc_to_str(fname.name))
             for line in self.lines:
                 if isinstance(line, Routine):
-                    f_in.write(line.to_str())
+                    f_in.write(line.to_str(self.default_author))
                 else:
                     f_in.write(line)
 
     def _check_status(self, line):
         if check_for_line_to_ignore(line):
+            pass
+        elif self._check_for_flag(line):
             pass
         elif not self._in_module:
             self._check_for_file_doc(line)
@@ -251,11 +304,15 @@ class FortranFile(Doc):
 
     def _check_for_routine(self, line):
         # check for ROUTINE_FLAG
-        if any([re.search(pattern, line.split(self.COMMENT)[0], re.IGNORECASE) for pattern in ROUTINE_FLAG]):
+        if any([re.match('{} '.format(pattern), line.split(self.COMMENT)[0].strip(), re.IGNORECASE) for pattern in ROUTINE_FLAG]):
             self._in_doc = False
             self._in_modified = False
             self._in_routine = True
-            self._in_routine_args = True
+        # in mo_*_file.f90 parameters are also docced
+        elif not line.strip().startswith(self.COMMENT):
+            self._in_doc = False
+            self._in_modified = False
+
 
     def _check_for_line_continuation(self, line):
         stripped = line.split(self.COMMENT)[0].strip()
@@ -274,7 +331,8 @@ class FortranFile(Doc):
         clean_line = line.split(self.COMMENT)[0].strip()
         if not (ARG_DESCRIPTION_SPLITTER in clean_line or
                 re.match(USE_FLAG, clean_line, re.IGNORECASE) or
-                re.match(IMPLICIT_NONE_FLAG, clean_line, re.IGNORECASE)) \
+                re.match(IMPLICIT_NONE_FLAG, clean_line, re.IGNORECASE) or
+                re.match('import ', clean_line, re.IGNORECASE)) \
                 and not self._is_line_continued and clean_line:
             self._in_routine = False
             self._in_code = True
@@ -286,7 +344,7 @@ class FortranFile(Doc):
 
     def _parse_doc(self, line):
         if self._cur_doc is None:
-            self._cur_doc = Doc()
+            self._cur_doc = Doc(self.default_author)
         # check for DOC_COMMENT
         self._cur_doc.parse_doc(line)
 
@@ -299,13 +357,23 @@ class FortranFile(Doc):
             self._cur_routine = Routine(doc=self._cur_doc)
             # update self._cur_doc
             self._cur_doc = None
-        self._cur_routine.parse_line(line,
-                                     is_line_continued=self._is_line_continued,
-                                     in_routine_args=self._in_routine_args,
-                                     )
-        self._check_for_line_continuation(line)
-        if not self._is_line_continued and self._in_routine_args:
-            self._in_routine_args = False
+        if not line.strip().startswith('#'):
+            self._in_routine_args = self._cur_routine.parse_line(line,
+                                         is_line_continued=self._is_line_continued,
+                                         in_routine_args=self._in_routine_args,
+                                         in_flag=self._in_flag,
+                                         )
+            self._check_for_line_continuation(line)
+            if not self._is_line_continued and self._in_routine_args:
+                self._in_routine_args = False
+
+    def _check_for_flag(self, line):
+        if line.strip().startswith('#ifdef'):
+            self._in_flag = line.split('#ifdef')[1].strip()
+            return True
+        elif line.strip().startswith(('#endif', '#else')):
+            self._in_flag = ''
+            return True
 
 
 class Routine(object):
@@ -323,30 +391,35 @@ class Routine(object):
         self.type_attrs = None
         self.type_addon = None
         self.comment_cache = []
+        self.imports = []
 
-    def parse_line(self, line, is_line_continued=False, in_routine_args=False):
+    def parse_line(self, line, is_line_continued=False, in_routine_args=False, in_flag=''):
         # check for DOC_COMMENT
+        do_parse = True
         if self.name is None:
             for pattern in ROUTINE_FLAG:
-                matched = re.match(pattern, line.strip(), re.IGNORECASE)
+                matched = re.search('{} '.format(pattern), line.split(self.COMMENT)[0].strip(), re.IGNORECASE)
                 if not matched:
                     continue
                 # get the type
-                self.type = pattern
+                self.type = matched.group().strip()
                 # get the stuff like (elemental pure...)
                 self.type_attrs = line.strip()[:matched.start()] or None
                 # trim line
                 line = line.strip()[matched.end():]
-                split = line.split('(')
+                split = line.split('(',1)
                 self.name = split[0].strip()
-                line = split[1]
-                in_routine_args = True
+                if len(split) > 1:
+                    line = split[1]
+                    in_routine_args = True
+                else:
+                    do_parse = False
             if self.name is None:
                 print(line)
                 raise Exception
         if in_routine_args:
             # remove comments
-            split = line.split('!')
+            split = line.split(self.COMMENT)
             if len(split) == 2:
                 comment = split[1]
             else:
@@ -354,36 +427,49 @@ class Routine(object):
             split = split[0].split(')')
             if len(split) > 1 and split[1].rstrip('& \n'):
                 self.type_addon = split[1].rstrip('& \n') + ')'
-            cur_args = [arg.strip(' &') for arg in split[0].split(',') if arg.strip(' &')]
+            cur_args = [arg.strip(' &\n') for arg in split[0].split(',') if arg.strip(' &\n')]
             if len(cur_args) == 1 and comment:
                 self.args_doc += [comment]
             else:
                 self.args_doc += [comment] * len(cur_args)
             self.args += cur_args
-        else:
-            self._parse_body(line, is_line_continued)
+        elif do_parse:
+            self._parse_body(line, is_line_continued, in_flag)
+        return in_routine_args
 
-    def _parse_body(self, line, is_line_continued):
-        if not line.strip().startswith(self.COMMENT):
+    def _parse_body(self, line, is_line_continued, in_flag):
+        if line.strip() and not line.strip().startswith(self.COMMENT):
             self.comment_cache = []
         matched = re.match(IMPLICIT_NONE_FLAG, line.strip(), re.IGNORECASE)
+        matched_import = re.match('import', line.strip(), re.IGNORECASE)
         if matched:
             self.implicit_none = True
-        elif re.match(USE_FLAG, line.strip(), re.IGNORECASE):
-            line = line.strip()[re.match(USE_FLAG, line.strip(), re.IGNORECASE).end():]
+        elif matched_import:
+            self.imports.append(line.strip())
+        elif re.match('(!\$)?\s*' + USE_FLAG, line.strip(), re.IGNORECASE):
+            # check for the omp library
+            is_special_comment = line.strip().startswith('!$')
+            # trim the line, get rid of the use
+            line = line.strip()[re.match('(!\$)?\s*' + USE_FLAG, line.strip(), re.IGNORECASE).end():]
             matched = re.search(self.ONLY_STR, line, re.IGNORECASE)
             if not matched:
-                raise Exception('use without "{}" discovered'.format(self.ONLY_STR))
+                warn('use without "{}" discovered'.format(self.ONLY_STR))
             split = re.split(self.ONLY_STR, line, flags=re.IGNORECASE)
-            split[0] = split[0].strip(' ,').lower()
-            for item in split[1].split(','):
-                value = item.split(self.COMMENT)[0].strip(':&\n ')
-                if value:
-                    self.used.append((split[0], value))
+            split[0] = split[0].strip(' ,')
+
+            in_flag = in_flag
+            if is_special_comment:
+                in_flag = '$'
+            if len(split) > 1:
+                for item in split[1].split(self.COMMENT)[0].split(','):
+                    value = item.strip(':&\n ')
+                    self.used.append((split[0], value, in_flag))
+            else:
+                self.used.append((split[0], None, in_flag))
         elif ARG_DESCRIPTION_SPLITTER in line:
             split = line.split(ARG_DESCRIPTION_SPLITTER)
             name = split[1].split('!')
-            self.args_attrs.append(ArgumentAttributes(split[0], *name))
+            self.args_attrs.append(ArgumentAttributes(split[0], *name, in_flag=in_flag))
         elif line.strip().startswith('!'):
             if line.count(self.COMMENT) >= 2:
                 self.args_attrs[-1].append_str(line.lstrip(self.COMMENT + ' '))
@@ -394,51 +480,82 @@ class Routine(object):
                 # raise Exception
         elif is_line_continued:
             module = self.used[-1][0]
-            for item in line.split(','):
-                self.used.append((module, item.strip(':&\n ')))
+            # there was only a dummy entry, all we need is the module
+            if not self.used[-1][1]:
+                self.used.pop()
+            for item in line.split(self.COMMENT)[0].split(','):
+                self.used.append((module, item.strip(':&\n '), in_flag))
 
 
-    def to_str(self):
+    def to_str(self, default_author):
         routine_str = ''
         indent=2
         # TODO: alter the doc depending on args
-        self.update_doc()
+        self.update_doc(default_author)
         routine_str += self.doc.doc_to_str(indent=indent, module=True)
         routine_str += self._args_to_str(indent=indent)
-        routine_str += self._imports_to_str(indent=indent+2)
+        routine_str += self._use_to_str(indent=indent + 2)
+        routine_str += self._imports_to_str(indent=indent + 2)
         routine_str += self._implicit_to_str(indent=indent+2)
         routine_str += self._variables_to_str(indent=indent+2)
         return routine_str
 
     def _args_to_str(self, indent=0):
-        args_str = '{}{}{}('.format(' ' * indent,
+        args_str = '{}{}{} {}'.format(' ' * indent,
                                  self.type_attrs or '',
                                    self.type,
+                                       self.name
                                    )
         arg_length = len(args_str)
         total_length = 0
-        for arg in self.args:
-            if arg_length + total_length + len(arg) + 2 > MAX_LINE_WIDTH:
-                args_str += '&\n{}'.format(' ' * arg_length)
-                total_length = 0
-            args_str += '{}, '.format(arg)
-            total_length += len(arg) + 2
+        if self.args:
+            args_str += '('
+            for arg in self.args:
+                if arg_length + total_length + len(arg) + 2 > MAX_LINE_WIDTH:
+                    args_str += '&\n{}'.format(' ' * arg_length)
+                    total_length = 0
+                args_str += '{}, '.format(arg)
+                total_length += len(arg) + 2
+            args_str = args_str[:-2] + ')'
 
-        return '{}){}\n\n'.format(args_str[:-2], self.type_addon or '')
+        return '{}{}\n'.format(args_str, self.type_addon or '')
 
-    def _imports_to_str(self, indent=0):
+    def _use_to_str(self, indent=0):
         def format_use(use_item):
-            new_string = '{}use {}, {} {} {}'.format(' ' * indent,
-                                             use_item[0],
-                                             self.ONLY_STR,
-                                             ':',
-                                             use_item[1])
-            return new_string, new_string.find(':') + 2
+            if use_item[2] == '$':
+                new_string = '{}!$ use {}'.format(' ' * indent, use_item[0])
+                return new_string, len(new_string)
+            else:
+                new_string = '{}use {}, {} {} {}'.format(' ' * indent,
+                                                 use_item[0],
+                                                 self.ONLY_STR,
+                                                 ':',
+                                                 use_item[1])
+                return new_string, new_string.find(':') + 2
         if self.used:
-            used = sorted(self.used)
-            out_string, arg_length = format_use(used[0])
+            out_string = ''
             total_length = 0
+
+            # sort by flag, module, routine
+            used = sorted(self.used, key=lambda x: (x[2], x[0], x[1]))
+            # check for a flag and write if existing
+            prev_flag = used[0][2]
+            if prev_flag != '$':
+                out_string += '\n{}'.format(self._flag_to_str(prev_flag, negative=False))
+
+            # add the "use {}, only : {}"
+            out_string_addon, arg_length = format_use(used[0])
+            out_string += out_string_addon
+
             for i_item, use_item in enumerate(used[1:], 1):
+                if use_item[2] != prev_flag and use_item[2] != '$':
+                    # if a flag follows a flag, we need the endif flag
+                    if prev_flag:
+                        out_string += '\n{}'.format(self._flag_to_str('', negative=True))
+                    # now write the new flag
+                    prev_flag = use_item[2]
+                    out_string += '\n{}'.format(self._flag_to_str(prev_flag, negative=True))
+                # here the actual use statement is written
                 if use_item[0] == used[i_item-1][0]:
                     if arg_length + total_length + len(use_item[1]) + 2 > MAX_LINE_WIDTH:
                         out_string += ', &\n{}{}'.format(' ' * arg_length, use_item[1])
@@ -449,63 +566,92 @@ class Routine(object):
                 else:
                     out_string_addon, arg_length = format_use(use_item)
                     out_string += '\n' + out_string_addon
+            if prev_flag:
+                out_string += '\n{}'.format(self._flag_to_str('', negative=True))
             return '{}\n\n'.format(out_string)
         else:
             return ''
 
     def _variables_to_str(self, indent):
         out_string = ''
+        prev_flag = ''
         for attr in self.args_attrs:
-            comment = ''
+            # check for a flag and write if existing
+            if attr.in_flag != prev_flag:
+                prev_flag = attr.in_flag
+                out_string += '{}\n'.format(self._flag_to_str(prev_flag, negative=True))
             if attr.doc:
-                comment = ' {} {}'.format(self.COMMENT, attr.doc)
-            out_string += '{}{} {} {}{}\n'.format(' ' * indent,
+                out_string += '{}{} {}\n'.format(' ' * indent, self.COMMENT, attr.doc)
+            out_string += '{}{} {} {}\n\n'.format(' ' * indent,
                                              ', '.join(attr.attrs),
                                              ARG_DESCRIPTION_SPLITTER,
-                                             attr.name,
-                                             comment)
+                                             attr.name)
         return out_string + '\n'
 
     def _implicit_to_str(self, indent):
         if not self.implicit_none:
-            raise Exception('implicit none is not set in routine' + self.name)
+            warn('implicit none is not set in routine ' + self.name)
         return '{}{}\n\n'.format(' ' * indent, IMPLICIT_NONE_FLAG)
 
-    def update_doc(self):
+    def update_doc(self, default_author):
+        if self.doc is None:
+            self.doc = Doc(default_author)
         self.doc._name = self.name
         for arg, arg_doc in zip(self.args, self.args_doc):
             arg_attrs = self._get_args_attr(arg)
-            # set the doc it it was only in set in argument list
-            if not arg_attrs.doc and arg_doc:
-                arg_attrs.doc = arg_doc
+            # get the doc from the major routine docstring
+            if arg in self.doc.temp_param_docs:
+                arg_attrs.doc = self.doc.temp_param_docs[arg]
+            # set the doc if it was only set in argument list
+            elif not arg_attrs.doc and arg_doc:
+                arg_attrs.doc = arg_doc.strip()
             if arg_attrs.intent_optional_key:
                 self.doc.param_dict.setdefault(arg_attrs.intent_optional_key, []).append(arg_attrs.doxygen_string)
 
-
     def _get_args_attr(self, name):
         for arg in self.args_attrs:
-            if arg.name == name:
+            if arg.name.lower() == name.lower():
+                return arg
+        # if multiple entries are in one line
+        for arg in self.args_attrs:
+            if name.lower() in [_.strip() for _ in arg.name.lower().split(',')]:
                 return arg
         raise KeyError('variable ' + name + ' was not found in the AttributeTable')
 
+    def _flag_to_str(self, flag, negative):
+        if flag:
+            return '#ifdef {}'.format(flag)
+        elif negative:
+            return '#endif'
+        else:
+            return ''
+
+    def _imports_to_str(self, indent):
+        if self.imports:
+            return ''.join(['{}{}\n'.format(' ' * indent, cur_import) for cur_import in self.imports]) + '\n'
+        return ''
+
 
 class ArgumentAttributes(object):
-    def __init__(self, attrs, name, docstring=''):
-        split = name.strip().split('(')
+    def __init__(self, attrs, name, docstring='', in_flag=''):
+        split = name.strip().split('(', 1)
         self.name = split[0].strip()
         self.attrs = []
         self.intent_attr = ''
         self.optional_attr = ''
         self.dimension_attr = ''
+        self.in_flag = in_flag
 
-        for i_attr, attr in enumerate(attrs.split(',')):
-            self.attrs.append(attr.strip().lower())
+        # this is a regex splitter, ignoring commas inside brackets
+        for i_attr, attr in enumerate(re.split(',(?![^(]*\))', attrs)):
+            attr = attr.strip()
+            self.attrs.append(attr)
             if i_attr == 0:
                 self.type_attr = attr.strip(' ')
             if attr.startswith('intent'):
-                self.intent_attr = attr.split('(')[1].strip(') ')
+                self.intent_attr = attr.split('(')[1].strip(') ').lower()
             if attr.startswith('optional'):
-                self.optional_attr = attr.strip(' ')
+                self.optional_attr = attr.strip(' ').lower()
             if attr.startswith('dimension'):
                 self.dimension_attr = attr.strip(' ')
 
@@ -596,18 +742,23 @@ class TestFortranFile(object):
 # SCRIPT
 if __name__ == '__main__':
     default_author = 'Robert Schweppe'
-    arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mpr_extract/src/mHM/'
-    arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mpr_extract/src/mHM/mo_mhm.f90'
-    arg_path_out = '/Users/ottor/temp/mpr_extract_test/'
+    arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mhm/trunk/src/'
+    #arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mhm/trunk/src/mRM/mrm_driver.f90'
+    arg_path_out = '/Users/ottor/temp/mpr_extract_test/src'
     path_in = pathlib.Path(arg_path_in)
 
     if path_in.is_file():
-        path_list = [path_in.name]
+        path_list = [pathlib.Path(path_in.name)]
         path_in = path_in.parent
     else:
         path_list = get_all_subfiles(path_in)
 
     for path in path_list:
+        if path.parts[0] == 'lib':
+            continue
         filereader = FortranFile(default_author)
         filereader.read(pathlib.Path(path_in, path))
-        filereader.write(pathlib.Path(arg_path_out, path))
+        out_path = pathlib.Path(arg_path_out, path)
+        if not out_path.parent.exists():
+            out_path.parent.mkdir(parents=True)
+        filereader.write(out_path)

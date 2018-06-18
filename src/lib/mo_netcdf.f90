@@ -1038,8 +1038,7 @@ module mo_netcdf
     !>                 A write error will result in abrupt program termination.
     !
     !     INTENT(IN)
-    !>        \param[in] "integer(i4)/real(sp)/real(dp) :: &
-    !>                                   values/(:)/(:,:)/(:,:,:)/(:,:,:,:)/(:,:,:,:,:)"
+    !>        \param[in] "integer(i4)/real(sp)/real(dp), dimension(/(:)/(:,:)/(:,:,:)/(:,:,:,:)/(:,:,:,:,:)) :: values"
     !
     !     INTENT(IN), OPTIONAL
     !>        \param[in]  "integer(i4) :: start(:), cnt(:), stride(:), map(:)"
@@ -1120,8 +1119,7 @@ module mo_netcdf
     !         None
     !
     !     INTENT(OUT)
-    !>      \param[out] "integer(i4)/real(sp)/real(dp), allocatable :: &
-    !>                                   values/(:)/(:,:)/(:,:,:)/(:,:,:,:)/(:,:,:,:,:)"
+    !>      \param[out] "integer(i4)/real(sp)/real(dp), allocatable, dimension(/(:)/(:,:)/(:,:,:)/(:,:,:,:)/(:,:,:,:,:)) :: values"
     !
     !
     !     RETURN

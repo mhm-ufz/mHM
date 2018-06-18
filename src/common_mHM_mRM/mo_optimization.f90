@@ -68,14 +68,11 @@ contains
     use mo_common_mHM_mRM_variables, only : &
             opti_method, &                                  ! Optimization algorithm used
             opti_function, &                                  ! Objective function used
-            optimize_restart, &                                  ! Optimization will be restarted from
-            !                                                                         ! mo_<opti_method>.restart file (.true.)
+            optimize_restart, &  ! Optimization will be restarted from mo_<opti_method>.restart file (.true.)
             nIterations, &                                  ! number of iterations for optimization
             seed, &                                  ! seed used for optimization
-            mcmc_opti, &                                  ! MCMC: Optimization (.true. ) or
-            !                                                                         !       Only parameter uncertainty (.false.)
-            mcmc_error_params, &                                  !       Parameters of error model if mcmc_opti=.false.
-            !                                                                         !       e.g. for opti_function=8: 0.01, 0.3
+            mcmc_opti, & ! MCMC: Optimization (.true. ) or only parameter uncertainty (.false.)
+            mcmc_error_params, &   !  Parameters of error model if mcmc_opti=.false., e.g. for opti_function=8: 0.01, 0.3
             sa_temp, &                                  ! SA:  initial temperature
             dds_r, &                                  ! DDS: perturbation rate
             sce_ngs, &                                  ! SCE: # of complexes
@@ -83,9 +80,7 @@ contains
             sce_nps                                                                   ! SCE: # of points per subcomplex
 
     use mo_common_variables, only : &
-            global_parameters                                                         ! Matrix of global parameters (former: gamma)
-    !                                                                         !     col1: min,  col2: max, col3: initial,
-    !                                                                         !     col4: flag, col5: scaling
+            global_parameters  ! Matrix of global parameters (former: gamma)
     USE mo_mcmc, only : mcmc, mcmc_stddev                  ! Monte Carlo Markov Chain method
     use mo_sce, only : sce                                ! Optimize with Shuffled Complex evolution
     use mo_message, only : message

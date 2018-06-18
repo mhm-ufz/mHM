@@ -58,7 +58,7 @@ contains
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Sep 2015
-  !         Modified, Nov 2016, Stephan Thober - implemented second routing process i.e. adaptive timestep
+  !         Modified, Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
 
   subroutine mrm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 

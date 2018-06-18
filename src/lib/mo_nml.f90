@@ -95,7 +95,7 @@ CONTAINS
   !         None
 
   !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: logical :: quiet"   Be verbose or not (default: .true.)\n
+  !>       \param[in] "logical, optional :: quiet"   Be verbose or not (default: .true.)\n
   !>                                                            .true.:  no messages\n
   !>                                                            .false.: write out messages
 

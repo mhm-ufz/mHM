@@ -32,13 +32,13 @@
 
 !> \authors Juliane Mai
 !> \date Dec 2012
-!  Modified, Oct 2015, Stephan Thober - adapted for mRM
-!            Nov 2015, Juliane Mai    - introducing multi- and single-objective
-!                                     - first multi-objective function (16), but not used yet
-!            Feb 2016, Juliane Mai    - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
-!                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
-!                                     - multi-objective function (20) using FDC and discharge of months DJF
-!            May 2018, Stephan Thober, Bjoern Guse - single objective function (21) using weighted NSE
+!  Modified, Stephan Thober Oct 2015 - adapted for mRM
+!            Juliane Mai    Nov 2015 - introducing multi- and single-objective
+!                                    - first multi-objective function (16), but not used yet
+!            Juliane Mai    Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows)
+!                                    - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows)
+!                                    - multi-objective function (20) using FDC and discharge of months DJF
+!            Stephan Thober,Bjoern Guse  May 2018 - single objective function (21) using weighted NSE
 !                                                    following (Hundecha and Bardossy, 2004)
 
 MODULE mo_mrm_objective_function_runoff
@@ -110,8 +110,8 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date Dec 2012
   !         Modified,
-  !               Oct 2015, Stephan Thober - only runoff objective functions
-  !               May 2018, Stephan Thober, Bjoern Guse - added weighted objective function
+  !               Stephan Thober              Oct 2015 - only runoff objective functions
+  !               Stephan Thober, Bjoern Guse May 2018 - added weighted objective function
   !
 
   FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)

@@ -71,8 +71,8 @@ CONTAINS
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
-  !                   May 2016 - Stephan Thober, added warning message in case no gauge is found in modelling domain
+  !         Modified, Stephan Thober, Sep 2015 - added L0_mask, L0_elev, and L0_LCover
+  !                   Stephan Thober, May 2016 - added warning message in case no gauge is found in modelling domain
 
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 

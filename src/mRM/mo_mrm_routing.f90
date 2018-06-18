@@ -107,11 +107,11 @@ CONTAINS
   !     HISTORY
   !>        \author Stephan Thober
   !>        \date Aug 2015
-  !         Modified, Sep 2015, Stephan Thober - using arguments instead of global variables
-  !                   Sep 2015, Stephan Thober - added variables for routing resolution higher than hydrologic resolution
-  !                   May 2016, Stephan Thober - added check whether gauge is actually inside modelling domain
-  !                                              before copying simulated runoff
-  !                   Nov 2016, Stephan Thober - implemented second routing process i.e. adaptive timestep
+  !         Modified, Stephan Thober Sep 2015 - using arguments instead of global variables
+  !                   Stephan Thober Sep 2015 - added variables for routing resolution higher than hydrologic resolution
+  !                   Stephan Thober May 2016 - added check whether gauge is actually inside modelling domain
+  !                                             before copying simulated runoff
+  !                   Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
 
   subroutine mRM_routing(&
           !

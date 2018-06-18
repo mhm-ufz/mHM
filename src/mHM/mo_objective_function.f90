@@ -19,7 +19,7 @@
 
 !> \authors Juliane Mai
 !> \date Dec 2012
-!  Modified, Oct 2015, Oldrich Rakovec - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
+!  Modified, Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
 
 MODULE mo_objective_function
 
@@ -88,7 +88,7 @@ CONTAINS
   !>        \author Juliane Mai
   !>        \date Dec 2012
   !         Modified,
-  !               Oct 2015, Stephan Thober - moved all runoff related objective functions to mRM
+  !               Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
 
   FUNCTION objective(parameterset, eval, arg1, arg2, arg3)
 

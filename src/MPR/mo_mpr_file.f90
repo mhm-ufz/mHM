@@ -29,7 +29,7 @@ MODULE mo_mpr_file
 
   !> Soil database file (iFlag_soilDB = 0) = classical mHM format
   CHARACTER(len = *), PARAMETER :: file_soil_database = 'soil_classdefinition.txt'    ! Soil data base
-  !>> Soil database file (iFlag_soilDB = 1)
+  !> Soil database file (iFlag_soilDB = 1)
   CHARACTER(len = *), PARAMETER :: file_soil_database_1 = 'soil_classdefinition_iFlag_soilDB_1.txt'
   !> Unit for soil data base
   INTEGER, PARAMETER :: usoil_database = 52                            !

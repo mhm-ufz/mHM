@@ -63,7 +63,7 @@ contains
   !     HISTORY
   !>        \author Juliane Mai, Matthias Zink, and Stephan Thober
   !>        \date Aug 2015
-  !         Modified, Sep 2015 - Stephan Thober, added L0_mask, L0_elev, and L0_LCover
+  !         Modified,  Stephan Thober, Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
     use mo_common_constants, only : nodata_i4! mRM's global nodata vales
     use mo_append, only : append

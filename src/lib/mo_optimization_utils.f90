@@ -20,7 +20,7 @@ module mo_optimization_utils
     function objective_interface (parameterset, eval, arg1, arg2, arg3)
       use mo_kind, only : dp
       import eval_interface
-      real(dp), intent (in) :: parameterset(:)
+      real(dp), intent(in), dimension(:) :: parameterset
       procedure(eval_interface), INTENT(IN), pointer :: eval
       real(dp), optional, intent(in) :: arg1
       real(dp), optional, intent(out) :: arg2

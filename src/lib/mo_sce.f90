@@ -278,8 +278,7 @@ CONTAINS
     !                                                               !     0, print information on the best point of the population
     !                                                               !     1, print information on every point of the population
     !                                                               !     2, no printing (DEFAULT)
-    logical, optional, intent(in), &
-            dimension(size(pini, 1)) :: mymask      ! parameter included in optimization (true) or discarded (false)
+    logical, optional, intent(in), dimension(size(pini, 1)) :: mymask      ! parameter included in optimization (true) or discarded (false)
     !                                                               !     DEFAULT: .true.
     real(dp), optional, intent(in) :: myalpha     ! parameter for reflection  of points in complex
     !                                                               !     DEFAULT: 0.8_dp
@@ -302,8 +301,7 @@ CONTAINS
     character(len = *), optional, intent(in) :: restart_file ! restart file name (default: mo_sce.restart)
     real(dp), optional, intent(out) :: bestf       ! function value of bestx(.)
     integer(i8), optional, intent(out) :: neval       ! number of function evaluations
-    real(dp), optional, &
-            dimension(:), allocatable, intent(out) :: history     ! history of best function values after each iteration
+    real(dp), optional, dimension(:), allocatable, intent(out) :: history     ! history of best function values after each iteration
     real(dp), dimension(size(pini, 1)) :: bestx       ! best point at current shuffling loop (is RETURN)
     !
     ! optionals transfer
@@ -363,7 +361,7 @@ CONTAINS
     real(dp), dimension(1000) :: dummy_xx    ! dummy xx (only for namelist)
     real(dp), dimension(:, :), allocatable :: cx          ! coordinates of points in a complex
     real(dp), dimension(:), allocatable :: cf          ! function values of cx
-    real(dp), dimension(:, :), allocatable :: s           ! coordinates of points in the current sub-complex !simplex
+    real(dp), dimension(:, :), allocatable :: s           ! coordinates of points in the current sub-complex simplex
     real(dp), dimension(:), allocatable :: sf          ! function values of s
     real(dp), dimension(:), allocatable :: worstx      ! worst point at current shuffling loop
     real(dp) :: worstf      ! function value of worstx(.)

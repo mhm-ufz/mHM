@@ -90,6 +90,9 @@ contains
   !         None
 
   !      HISTORY
+  !>        \author Stephan Thober, Rohini Kumar
+  !>        \date Dec 2012
+
   !         Modified, Stephan Thober, Jan 2013 - updated calling sequence for upscaling operators
   !                   Stephan Thober, Dec 2013 - made header conform with mo_template
 

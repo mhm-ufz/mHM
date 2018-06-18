@@ -132,6 +132,8 @@ CONTAINS
             level1
     use mo_timer, only : timer_get, timer_start, timer_stop, timer_clear
 
+    implicit none
+
     real(dp), dimension(:), intent(in), optional :: parameterset
     ! counters and indexes
     integer(i4) :: iBasin, itimer   ! Counters
