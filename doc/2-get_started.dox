@@ -5,9 +5,11 @@ This chapter will introduce the structure of mHM technically.
 
 \section receive Receive mHM
 
-The current release of mHM is available through a code repository provided by the version control system SVN
-(<a href="http://subversion.apache.org/">http://subversion.apache.org/</a>).
-Comprehensive instructions on accessing the repository can be found at <a href="https://svn.ufz.de/mhm/wiki/">https://svn.ufz.de/mhm</a>.
+As from June 2018, the current release of mHM is available through a code repository provided by the version control system GitLab
+(<a href="https://git.ufz.de/mhm/mhm">https://git.ufz.de/mhm/mhm</a>). Access GitLab for external users can be granted upon request
+through email to mhm-admin@ufz.de. Additionally, a mirror of the current release is available on GitHub without registration needed
+(<a href="https://github.com/mhm-ufz/mhm">https://github.com/mhm-ufz/mhm</a>). Note that our repository on GibHub.com will be always
+a mirror of the current release at GitLab.
 
 \section NETCDF Install NETCDF
 
@@ -140,7 +142,7 @@ Compile. Note that it is possible that some tests fail during the make check acc
 
 \section windows Run mHM under CYGWIN on Windows
 
-A NETCDF installation under Windows7 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed:
+A NETCDF installation under Windows7 and Windows10 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed:
 
 First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
 
