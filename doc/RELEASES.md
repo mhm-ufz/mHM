@@ -1,5 +1,43 @@
 # mHM RELEASE NOTES
 
+
+## mHM v5.9 (June 2018)
+
+### New Features:
+
+- Major restructuralization of the mHM code
+
+--MPR is now executed before mHM is run
+--MPR can be compiled as a standalone tool
+
+
+### Bugs resolved from release 5.8:
+
+- 
+- 
+
+### Known bugs:
+
+None.
+
+### Restrictions:
+
+- For `gfortran` compilers mHM supports only v4.8 and higher.
+- If you wish to use a special process description of evapotranspiration (`processCase(4)`) please contact [Matthias Zink](mailto:matthias.zink@ufz.de).
+- If you wish to use features connected to ground albedo neutrons (`processCase(9)`), please contact [Martin Schrön](mailto:martin.schroen@ufz.de).
+- If you wish to use the multi-scale Routing Model as stand-alone version, please contact [Stephan Thober](mailto:stephan.thober@ufz.de).
+
+
+
+
+
+
+
+
+
+
+
+
 ## mHM v5.8 (Dec 2017)
 
 ### New Features:
