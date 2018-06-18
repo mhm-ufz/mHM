@@ -253,7 +253,7 @@ file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 !******************************************************************************************
 &directories_mHM
 !
-!> input format specification for the meteorological forcings: 'nc' or 'bin'.
+!> input format specification for the meteorological forcings: 'nc' only possible
 !> this format is common to all basins to be modeled
 inputFormat_meteo_forcings = "nc"
 !
@@ -605,7 +605,6 @@ soil_Depth(1) = 200
 !-----------------------------------------------------------------------------------
 timeStep_LAI_input = 0
 !> input file format of gridded file (if timeStep_LAI_input < 0)
-!>     bin - assume yearly files with name YYYY.bin
 !>     nc  - assume one file with name lai.nc
 !> input file format of gridded file (if timeStep_LAI_input == 1)
 !>     nc  - assume one file with name lai.nc with 12 monthly grids of mean LAI estimates

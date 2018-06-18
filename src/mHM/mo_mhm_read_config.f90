@@ -131,7 +131,7 @@ CONTAINS
             dirMinTemperature, dirMaxTemperature, & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
             dirNetRadiation, & ! PET input paths if process 5 is Priestely-Taylor (case 2)
             dirabsVapPressure, dirwindspeed, & ! PET input paths if process 5 is Penman-Monteith (case 3)
-            inputFormat_meteo_forcings, & ! input format either bin or nc
+            inputFormat_meteo_forcings, & ! input format: nc only
             timestep_model_inputs, & ! read input frequency
             dirSoil_moisture, timeStep_sm_input, & ! directory and time stepping of soil moisture data
             nSoilHorizons_sm_input, & ! No. of mhm soil horizons equivalent to soil moisture input

@@ -92,7 +92,7 @@ CONTAINS
             dirMinTemperature, dirMaxTemperature, & ! PET input paths if process 5 is Hargreaves-Samani (case 1)
             dirNetRadiation, & ! PET input paths if process 5 is Priestley-Taylor (case 2)
             dirabsVapPressure, dirwindspeed, & ! PET input paths if process 5 is Penman-Monteith (case 3)
-            inputFormat_meteo_forcings, & ! 'bin' for binary data or 'nc' for NetCDF input
+            inputFormat_meteo_forcings, & ! only 'nc' for NetCDF input possible at this moment
             timeStep_model_inputs, &
             L1_temp_weights, L1_pet_weights, L1_pre_weights, & ! meteorological weights at L1 resolution
             L1_pre, L1_temp, L1_pet, L1_tmin, L1_tmax, & ! meteorological data
@@ -286,7 +286,6 @@ CONTAINS
     use mo_common_variables, only : level1
     use mo_global_variables, only : level2
     use mo_common_constants, only : nodata_dp
-    use mo_read_bin, only : read_bin
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
     use mo_append, only : append                    ! append vector
@@ -295,7 +294,7 @@ CONTAINS
 
     integer(i4), intent(in) :: iBasin        ! Basin Id
     character(len = *), intent(in) :: dataPath      ! Data path
-    character(len = *), intent(in) :: inputFormat   ! either 'bin' or 'nc'
+    character(len = *), intent(in) :: inputFormat   ! only 'nc' possible at the moment
     real(dp), dimension(:, :), allocatable, intent(inout) :: dataOut1      ! Packed meteorological variable
     real(dp), optional, intent(in) :: lower         ! lower bound for data points
     real(dp), optional, intent(in) :: upper         ! upper bound for data points
@@ -325,23 +324,6 @@ CONTAINS
     mask2 = level2(iBasin)%mask
 
     select case (trim(inputFormat))
-    case ('bin')
-      ! read data
-      if(present(lower) .AND. (.not. present(upper))) then
-        CALL read_bin(dataPath, nRows2, nCols2, readPer, L2_data, mask2, lower = lower)
-      end if
-      !
-      if(present(upper) .AND. (.not. present(lower))) then
-        CALL read_bin(dataPath, nRows2, nCols2, readPer, L2_data, mask2, upper = upper)
-      end if
-      !
-      if(present(lower) .AND. present(upper)) then
-        CALL read_bin(dataPath, nRows2, nCols2, readPer, L2_data, mask2, lower = lower, upper = upper)
-      end if
-
-      if((.not. present(lower)) .AND. (.not. present(upper))) then
-        CALL read_bin(dataPath, nRows2, nCols2, readPer, L2_data, mask2)
-      end if
     case('nc')
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
@@ -357,7 +339,7 @@ CONTAINS
         CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer, &
                 lower = lower, upper = upper)
       end if
-
+      !
       if((.not. present(lower)) .AND. (.not. present(upper))) then
         CALL read_forcing_nc(dataPath, nRows2, nCols2, ncvarName, mask2, L2_data, target_period = readPer)
       end if

@@ -78,7 +78,6 @@ CONTAINS
     use mo_mpr_global_variables, only : dirgridded_LAI, inputFormat_gridded_LAI, &
             L0_gridded_LAI, timeStep_LAI_input, nLAI
     use mo_append, only : append                    ! append vector
-    use mo_read_bin, only : read_bin            ! Read binary files
     use mo_read_forcing_nc, only : read_forcing_nc           ! Read netCDF files
     use mo_common_variables, only: period
     use mo_message, only: message
@@ -102,16 +101,6 @@ CONTAINS
       CALL read_forcing_nc(dirgridded_LAI(iBasin), nRows, nCols, &
               'lai', mask, LAI0_3D, target_period = LAIPer_iBasin, &
               lower = 1.00E-10_dp, upper = 30.0_dp, nctimestep = timeStep_LAI_input)
-      ! bin file input option
-    CASE('bin')
-      if (.not. present(LAIPer_iBasin)) then
-        call message()
-        call message('The period for gridded LAI selection data must be given, if reading from binary files.')
-        call message('If using #MPR_STANDALONE, please read from netcdf files instead.')
-        stop 1
-      end if
-      CALL read_bin(dirgridded_LAI(iBasin), nRows, nCols, LAIPer_iBasin, &
-              LAI0_3D, mask, lower = 1.00E-10_dp, upper = 30.0_dp)
     CASE DEFAULT
       call message()
       call message('***ERROR: No recognized input format')

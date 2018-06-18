@@ -54,7 +54,7 @@ MODULE mo_global_variables
   ! -------------------------------------------------------------------
   integer(i4), dimension(:), allocatable, public :: timeStep_model_inputs      ! frequency for reading meteo input
   logical, public :: read_meteo_weights         ! read weights for tavg and pet
-  character(256), public :: inputFormat_meteo_forcings ! format of meteo input data(bin or nc)
+  character(256), public :: inputFormat_meteo_forcings ! format of meteo input data (nc)
   ! Optional data
   integer(i4), public :: timeStep_sm_input          ! time step of optional data: soil moisture sm
   integer(i4), public :: timeStep_neutrons_input    ! time step of optional data: neutron counts

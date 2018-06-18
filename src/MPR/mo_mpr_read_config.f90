@@ -73,7 +73,7 @@ contains
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_mpr_global_variables, only : &
-            inputFormat_gridded_LAI, & ! format of gridded LAI data(bin or nc)
+            inputFormat_gridded_LAI, & ! format of gridded LAI data (nc only)
             timeStep_LAI_input, & ! time step of gridded LAI input
             iFlag_soilDB, &
             tillageDepth, & ! soil horizons info for mHM
@@ -320,11 +320,6 @@ contains
       allocate(dirgridded_LAI(nBasins))
       dirgridded_LAI = dir_gridded_LAI(1 : nBasins)
 
-      if ((timeStep_LAI_input .ne. -1) .and. (trim(inputFormat_gridded_LAI) .eq. 'bin')) then
-        call message()
-        call message('***ERROR: Gridded LAI input in bin format must be daily.')
-        stop
-      end if
       if (timeStep_LAI_input .GT. 1) then
         call message()
         call message('***ERROR: option for selected timeStep_LAI_input not coded yet')

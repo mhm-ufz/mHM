@@ -313,7 +313,6 @@ CONTAINS
 
     ! read header file
     ! NOTE: assuming the header file for all metero variables are same as that of precip.
-    !       A counter check for this assumption is perfromed in the read_meteo_bin file 
 
     fName = trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
     call read_header_ascii(trim(fName), umeteo_header, &

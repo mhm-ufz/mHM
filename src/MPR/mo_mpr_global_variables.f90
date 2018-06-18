@@ -75,7 +75,7 @@ module mo_mpr_global_variables
   ! -----------------------------------------------------------------
   ! Land cover, LAI LUT data
   ! -----------------------------------------------------------------
-  character(256), public :: inputFormat_gridded_LAI    ! format of gridded LAI data(bin or nc)
+  character(256), public :: inputFormat_gridded_LAI    ! format of gridded LAI data (nc only)
   integer(i4), public :: timeStep_LAI_input         ! time step of gridded LAI input
   ! LAI data
   ! variables used when timeStep_LAI_input == 0
