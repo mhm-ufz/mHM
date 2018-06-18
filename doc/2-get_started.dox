@@ -147,14 +147,14 @@ A NETCDF installation under Windows7 and Windows10 has only been tested using CY
 First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
 
 \image html cygwin_netcdf.pdf "netcdf packages for CYGWIN"
-\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.pdf "netcdf packages for CYGWIN" width=14cm
+\anchor fig_cygwin_netcdf \image latex cygwin_netcdf.pdf "netcdf packages for CYGWIN" width=14.5cm
 
 Second, the following hdf5 version has to be installed for netcdf-4 support. 
 
 \image html cygwin_hdf5.pdf "hdf5 packages for CYGWIN"
 \image latex cygwin_hdf5.pdf "hdf5 packages for CYGWIN" width=14cm
 
-Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_libgfortran) have to be installed
+Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_libgfortran) have to be installed:
 
 \image html cygwin_gfortran.pdf "gfortran packages for CYGWIN"
 \anchor fig_cygwin_gfortran \image latex cygwin_gfortran.pdf "gfortran packages for CYGWIN" width=14cm
@@ -165,7 +165,7 @@ Third, the gfortran compiler (\ref fig_cygwin_gfortran) and (\ref fig_cygwin_lib
 Fourth, GNU <code>make</code> has to be made available by selecting the following:
 
 \image html cygwin_make.pdf "make packages for CYGWIN"
-\image latex cygwin_make.pdf "make packages for CYGWIN" width=13cm
+\image latex cygwin_make.pdf "make packages for CYGWIN" width=15cm
 
 Note that Cygwin users are advised to define following flag in the Makefile, otherwise compilation won't be successful.
 \code
@@ -175,8 +175,8 @@ EXTRA_CFLAGS  += -Wl,--stack,12485760
 
 Additionally, make sure to have <code>\cygwin64\bin</code> folder in your environmental path (\ref fig_cygwin_path).
 
-\image html cygwin_path.png "setup environmental path CYGWIN"
-\anchor fig_cygwin_path \image latex cygwin_path.png "setup environmental path CYGWIN" width=17cm
+\image html cygwin_path.pdf "setup environmental path CYGWIN"
+\anchor fig_cygwin_path \image latex cygwin_path.pdf "setup environmental path CYGWIN" width=17cm
 
 Finally, once the installation of CYGWIN including the packages outlined above is completed, you have to change the system in the Makefile to 'cygwin'.
 Then, the mhm has proven to compile (simply type <code>make\bin</code> on the command line) under Windows. 
