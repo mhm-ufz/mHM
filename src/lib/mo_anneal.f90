@@ -29,9 +29,19 @@ MODULE mo_anneal
   ! -------
   ! This file is part of the UFZ Fortran library.
 
-  ! It is NOT released under the GNU Lesser General Public License, yet.
+  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU Lesser General Public License as published by
+  ! the Free Software Foundation, either version 3 of the License, or
+  ! (at your option) any later version.
 
-  ! If you use this routine, please contact Juliane Mai.
+  ! The UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  ! GNU Lesser General Public License for more details.
+
+  ! You should have received a copy of the GNU Lesser General Public License
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2012-13 Juliane Mai
 
