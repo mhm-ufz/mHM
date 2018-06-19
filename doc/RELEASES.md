@@ -69,16 +69,8 @@ None.
 ### Restrictions:
 
 - For `gfortran` compilers mHM supports only v4.8 and higher.
-- If you wish to use a special process description of evapotranspiration (`processCase(4)`) please contact [Matthias Zink](mailto:matthias.zink@ufz.de).
 - If you wish to use features connected to ground albedo neutrons (`processCase(9)`), please contact [Martin Schrön](mailto:martin.schroen@ufz.de).
 - If you wish to use the multi-scale Routing Model as stand-alone version, please contact [Stephan Thober](mailto:stephan.thober@ufz.de).
-
-
-
-
-
-
-
 
 
 
