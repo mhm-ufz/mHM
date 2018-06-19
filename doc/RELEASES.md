@@ -17,7 +17,7 @@ and the reading of input as well as the namelists.
  - `./common` (code shared by MPR, mHM and mRM) included for every compilation option
  - `./lib` (code shared by MPR, mHM and mRM) included for every compilation option
  - `./MPR` (code for MPR), not included for mRM standalone
- - `./common_mHM_mRM` (code shared by MPR, mHM and mRM), not included for MPR standalone
+ - `./common_mHM_mRM` (code shared by mHM and mRM), not included for MPR standalone
  - `./mHM` (code for mHM), not included for MPR and mRM standalone
  - `./mRM` (code for mRM), not included for MPR standalone and mHM without routing
 - Code is reformatted (indentation=2, spacing unified)
