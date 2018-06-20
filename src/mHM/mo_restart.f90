@@ -3,12 +3,12 @@
 !>       \brief reading and writing states, fluxes and configuration for restart of mHM.
 
 !>       \details routines are seperated for reading and writing variables for:
-!>       - states and fluxes, and 
+!>       - states and fluxes, and
 !>       - configuration.
 !>       Reading of L11 configuration is also seperated from the rest,
 !>       since it is only required when routing is activated.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Jul 2013
 
@@ -49,6 +49,8 @@ CONTAINS
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
   !>       basin index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
+  !>       ADDITIONAL INFORMATION
+  !>       write_restart
 
   !    INTENT(IN)
   !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
@@ -269,138 +271,88 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_restart_states
+  !    NAME
+  !        read_restart_states
 
-  !     PURPOSE
-  !>        \brief reads fluxes and state variables from file
+  !    PURPOSE
+  !>       \brief reads fluxes and state variables from file
 
-  !>        \details read fluxes and state variables from given 
-  !>        restart directory and initialises all state variables
-  !>        that are initialized in the subroutine initialise,
-  !>        contained in module mo_startup.
+  !>       \details read fluxes and state variables from given
+  !>       restart directory and initialises all state variables
+  !>       that are initialized in the subroutine initialise,
+  !>       contained in module mo_startup.
+  !>       ADDITIONAL INFORMATION
+  !>       read_restart_states
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
-  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"    number of basin
+  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Apr 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Aug  2015 - moved read of routing states to mRM
+  ! David Schaefer Nov  2015 - mo_netcdf
+  ! Stephan Thober Nov  2016 - moved processMatrix to common variables
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_files
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Apr 2013
-  !         Modified   R. Kumar, J. Mai    Sep. 2013  - Splitting allocation and initialization of arrays
-  !         Modified   Matthias Zink       Nov. 2014  - added PET related parameter read in
-  !         Modified   Stephan Thober      Aug  2015  - moved read of routing states to mRM
-  !         Modified   David Schaefer      Nov  2015  - mo_netcdf
-  !                    Stephan Thober      Nov  2016  - moved processMatrix to common variables
   subroutine read_restart_states(iBasin, InPath)
 
-    use mo_kind, only : i4, dp
-    ! use mo_message,          only: message
-    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
+    use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
+                                    L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_melt, &
+                                    L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
+                                    L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_total_runoff, L1_unsatSTW
+    use mo_kind, only : dp, i4
+    use mo_mpr_global_variables, only : L1_HarSamCoeff, &
+                                        L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, &
+                                        L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, &
+                                        L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, L1_maxInter, &
+                                        L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, &
+                                        L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, &
+                                        nLAI, nSoilHorizons_mHM
+    use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
-    use mo_global_variables, only : &
-            L1_Inter, &
-            L1_snowPack, &
-            L1_sealSTW, &
-            L1_soilMoist, &
-            L1_unsatSTW, &
-            L1_satSTW, &
-            L1_aETSoil, &
-            L1_aETCanopy, &
-            L1_aETSealed, &
-            L1_baseflow, &
-            L1_infilSoil, &
-            L1_fastRunoff, &
-            L1_melt, &
-            L1_percol, &
-            L1_preEffect, &
-            L1_rain, &
-            L1_runoffSeal, &
-            L1_slowRunoff, &
-            L1_snow, &
-            L1_Throughfall, &
-            L1_total_runoff
-    use mo_mpr_global_variables, only : &
-            L1_fSealed, &
-            L1_alpha, &
-            L1_degDayInc, &
-            L1_degDayMax, &
-            L1_degDayNoPre, &
-            L1_degDay, &
-            L1_karstLoss, &
-            L1_fAsp, &
-            L1_HarSamCoeff, &
-            L1_PrieTayAlpha, &
-            L1_aeroResist, &
-            L1_surfResist, &
-            L1_fRoots, &
-            L1_maxInter, &
-            L1_kfastFlow, &
-            L1_kSlowFlow, &
-            L1_kBaseFlow, &
-            L1_kPerco, &
-            L1_soilMoistFC, &
-            L1_soilMoistSat, &
-            L1_soilMoistExp, &
-            L1_jarvis_thresh_c1, &
-            L1_petLAIcorFactor, &
-            L1_tempThresh, &
-            L1_unsatThresh, &
-            L1_sealedThresh, &
-            L1_wiltingPoint, &
-            nSoilHorizons_mHM, &
-            nLAI
-    use mo_common_variables, only : &
-            LC_year_start, LC_year_end, &
-            nLCoverScene, &
-            processMatrix, & ! process configuration
-            level1
 
     implicit none
 
+    ! number of basin
     integer(i4), intent(in) :: iBasin
-    character(256), intent(in) :: InPath ! list of Output paths per Basin
+
+    ! Input Path including trailing slash
+    character(256), intent(in) :: InPath
 
     character(256) :: Fname
-    integer(i4) :: ii, jj   ! loop index
-    integer(i4) :: s1       ! start index at level 1
-    integer(i4) :: e1       ! end index at level 1
-    logical, dimension(:, :), allocatable :: mask1    ! mask at level 1
 
-    real(dp), dimension(:, :), allocatable :: dummyD2  ! dummy, 2 dimension
-    real(dp), dimension(:, :, :), allocatable :: dummyD3  ! dummy, 3 dimension
-    real(dp), dimension(:, :, :, :), allocatable :: dummyD4  ! dummy, 3 dimension
+    ! loop index
+    integer(i4) :: ii, jj
+
+    ! start index at level 1
+    integer(i4) :: s1
+
+    ! end index at level 1
+    integer(i4) :: e1
+
+    ! mask at level 1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! dummy, 2 dimension
+    real(dp), dimension(:, :), allocatable :: dummyD2
+
+    ! dummy, 3 dimension
+    real(dp), dimension(:, :, :), allocatable :: dummyD3
+
+    ! dummy, 3 dimension
+    real(dp), dimension(:, :, :, :), allocatable :: dummyD4
 
     type(NcDataset) :: nc
+
     type(NcVariable) :: var
+
     type(NcDimension) :: nc_dim
+
 
     Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
@@ -761,23 +713,64 @@ CONTAINS
 
   end subroutine read_restart_states
 
-  subroutine unpack_field_and_write_1d_i4 (nc, var_name, var_dims, fill_value, data, mask, var_long_name)
+  !    NAME
+  !        unpack_field_and_write_1d_i4
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: var_name"                    variable name
+  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
+  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
+  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine unpack_field_and_write_1d_i4(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : i4
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
-    ! intent inout
-    type(NcDataset), intent(inout) :: nc             ! NcDataset to add variable to
-    ! intent in
-    character(*), intent(in) :: var_name       ! variable name
-    type(NcDimension), dimension(:), intent(in) :: var_dims       ! vector of Variable dimensions
-    integer(i4), intent(in) :: fill_value     ! fill value used for missing values
-    integer(i4), dimension(:), intent(in) :: data           ! packed data to be set to variable
-    logical, dimension(:, :), intent(in) :: mask           ! mask used for unpacking
-    character(*), optional, intent(in) :: var_long_name  ! variable long name attribute
-    ! local variables
+
+    ! NcDataset to add variable to
+    type(NcDataset), intent(inout) :: nc
+
+    ! variable name
+    character(*), intent(in) :: var_name
+
+    ! vector of Variable dimensions
+    type(NcDimension), dimension(:), intent(in) :: var_dims
+
+    ! fill value used for missing values
+    integer(i4), intent(in) :: fill_value
+
+    ! packed data to be set to variable
+    integer(i4), dimension(:), intent(in) :: data
+
+    ! mask used for unpacking
+    logical, dimension(:, :), intent(in) :: mask
+
+    ! variable long name attribute
+    character(*), optional, intent(in) :: var_long_name
+
     type(NcVariable) :: var
+
 
     ! set variable
     var = nc%setVariable(var_name, "i32", var_dims)
@@ -793,23 +786,64 @@ CONTAINS
 
   end subroutine
 
-  subroutine unpack_field_and_write_1d_dp (nc, var_name, var_dims, fill_value, data, mask, var_long_name)
+  !    NAME
+  !        unpack_field_and_write_1d_dp
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: var_name"                    variable name
+  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
+  !>       \param[in] "real(dp), dimension(:) :: data"              packed data to be set to variable
+  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine unpack_field_and_write_1d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
-    ! intent inout
-    type(NcDataset), intent(inout) :: nc             ! NcDataset to add variable to
-    ! intent in
-    character(*), intent(in) :: var_name       ! variable name
-    type(NcDimension), dimension(:), intent(in) :: var_dims       ! vector of Variable dimensions
-    real(dp), intent(in) :: fill_value     ! fill value used for missing values
-    real(dp), dimension(:), intent(in) :: data           ! packed data to be set to variable
-    logical, dimension(:, :), intent(in) :: mask           ! mask used for unpacking
-    character(*), optional, intent(in) :: var_long_name  ! variable long name attribute
-    ! local variables
+
+    ! NcDataset to add variable to
+    type(NcDataset), intent(inout) :: nc
+
+    ! variable name
+    character(*), intent(in) :: var_name
+
+    ! vector of Variable dimensions
+    type(NcDimension), dimension(:), intent(in) :: var_dims
+
+    ! fill value used for missing values
+    real(dp), intent(in) :: fill_value
+
+    ! packed data to be set to variable
+    real(dp), dimension(:), intent(in) :: data
+
+    ! mask used for unpacking
+    logical, dimension(:, :), intent(in) :: mask
+
+    ! variable long name attribute
+    character(*), optional, intent(in) :: var_long_name
+
     type(NcVariable) :: var
+
 
     ! set variable
     var = nc%setVariable(var_name, "f64", var_dims)
@@ -825,26 +859,70 @@ CONTAINS
 
   end subroutine
 
-  subroutine unpack_field_and_write_2d_dp (nc, var_name, var_dims, fill_value, data, mask, var_long_name)
+  !    NAME
+  !        unpack_field_and_write_2d_dp
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: var_name"                    variable name
+  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
+  !>       \param[in] "real(dp), dimension(:, :) :: data"           packed data to be set to variable
+  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine unpack_field_and_write_2d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
-    ! intent inout
-    type(NcDataset), intent(inout) :: nc             ! NcDataset to add variable to
-    ! intent in
-    character(*), intent(in) :: var_name       ! variable name
-    type(NcDimension), dimension(:), intent(in) :: var_dims       ! vector of Variable dimensions
-    real(dp), intent(in) :: fill_value     ! fill value used for missing values
-    real(dp), dimension(:, :), intent(in) :: data           ! packed data to be set to variable
-    logical, dimension(:, :), intent(in) :: mask           ! mask used for unpacking
-    character(*), optional, intent(in) :: var_long_name  ! variable long name attribute
-    ! local variables
+
+    ! NcDataset to add variable to
+    type(NcDataset), intent(inout) :: nc
+
+    ! variable name
+    character(*), intent(in) :: var_name
+
+    ! vector of Variable dimensions
+    type(NcDimension), dimension(:), intent(in) :: var_dims
+
+    ! fill value used for missing values
+    real(dp), intent(in) :: fill_value
+
+    ! packed data to be set to variable
+    real(dp), dimension(:, :), intent(in) :: data
+
+    ! mask used for unpacking
+    logical, dimension(:, :), intent(in) :: mask
+
+    ! variable long name attribute
+    character(*), optional, intent(in) :: var_long_name
+
     type(NcVariable) :: var
+
     real(dp), dimension(:, :, :), allocatable :: dummy_arr
+
     integer(i4), dimension(3) :: dim_length
+
     integer(i4) :: ii
+
 
     ! set variable
     var = nc%setVariable(var_name, "f64", var_dims)
@@ -866,26 +944,70 @@ CONTAINS
 
   end subroutine
 
-  subroutine unpack_field_and_write_3d_dp (nc, var_name, var_dims, fill_value, data, mask, var_long_name)
+  !    NAME
+  !        unpack_field_and_write_3d_dp
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: var_name"                    variable name
+  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
+  !>       \param[in] "real(dp), dimension(:, :, :) :: data"        packed data to be set to variable
+  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine unpack_field_and_write_3d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp, i4
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
 
     implicit none
-    ! intent inout
-    type(NcDataset), intent(inout) :: nc             ! NcDataset to add variable to
-    ! intent in
-    character(*), intent(in) :: var_name       ! variable name
-    type(NcDimension), dimension(:), intent(in) :: var_dims       ! vector of Variable dimensions
-    real(dp), intent(in) :: fill_value     ! fill value used for missing values
-    real(dp), dimension(:, :, :), intent(in) :: data           ! packed data to be set to variable
-    logical, dimension(:, :), intent(in) :: mask           ! mask used for unpacking
-    character(*), optional, intent(in) :: var_long_name  ! variable long name attribute
-    ! local variables
+
+    ! NcDataset to add variable to
+    type(NcDataset), intent(inout) :: nc
+
+    ! variable name
+    character(*), intent(in) :: var_name
+
+    ! vector of Variable dimensions
+    type(NcDimension), dimension(:), intent(in) :: var_dims
+
+    ! fill value used for missing values
+    real(dp), intent(in) :: fill_value
+
+    ! packed data to be set to variable
+    real(dp), dimension(:, :, :), intent(in) :: data
+
+    ! mask used for unpacking
+    logical, dimension(:, :), intent(in) :: mask
+
+    ! variable long name attribute
+    character(*), optional, intent(in) :: var_long_name
+
     type(NcVariable) :: var
+
     real(dp), dimension(:, :, :, :), allocatable :: dummy_arr
+
     integer(i4), dimension(4) :: dim_length
+
     integer(i4) :: ii, jj
+
 
     ! set variable
     var = nc%setVariable(var_name, "f64", var_dims)

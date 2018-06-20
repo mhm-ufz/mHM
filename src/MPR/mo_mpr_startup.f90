@@ -37,16 +37,16 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin. 
+  !>       \details Initialize main mHM variables for a given basin.
   !>       Calls the following procedures in this order:
-  !>       - Constant initialization. 
-  !>       - Generate soil database. 
-  !>       - Checking inconsistencies input fields. 
-  !>       - Variable initialization at level-0. 
-  !>       - Variable initialization at level-1. 
-  !>       - Variable initialization at level-11. 
-  !>       - Space allocation of remaining variable/parameters. 
-  !>       Global variables will be used at this stage. 
+  !>       - Constant initialization.
+  !>       - Generate soil database.
+  !>       - Checking inconsistencies input fields.
+  !>       - Variable initialization at level-0.
+  !>       - Variable initialization at level-1.
+  !>       - Variable initialization at level-11.
+  !>       - Space allocation of remaining variable/parameters.
+  !>       Global variables will be used at this stage.
 
   !    HISTORY
   !>       \authors Luis Samaniego, Rohini Kumar
@@ -66,6 +66,7 @@ CONTAINS
   ! Stephan Thober Jun 2014 - updated flag for read_restart
   ! Stephan Thober Aug 2015 - removed initialisation of routing
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mpr_initialize
 
@@ -114,77 +115,46 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          L0_check_input
+  !    NAME
+  !        L0_check_input
 
-  !>        \brief Check for errors in L0 input data
+  !    PURPOSE
+  !>       \brief Check for errors in L0 input data
 
-  !>        \details Check for possible errors in input data (morphological and land cover) at level-0
+  !>       \details Check for possible errors in input data (morphological and land cover) at level-0
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)       ::  iBasin"               basin id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" basin id
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Rohini Kumar
-  !         \date    Jan 2013
-  !         Modified
-  !                  Rohini Kumar, Aug  2013 - added iFlag_LAI_data_format to handle LAI options,
-  !                                             and changed within the code made accordingly
-  !                  Rohini  Kumar, Sep 2013 - read input data for routing processes according
-  !                & Stephan Thober,           to process_matrix flag
-  !                  Stephan Thober, Aug 2015 - moved check of L0 routing variables to mRM
-  !                    Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
+  ! Modifications:
+  ! Rohini Kumar   Aug  2013 - added iFlag_LAI_data_format to handle LAI options, and changed within the code made accordingly
+  ! Rohini  Kumar  Sep 2013 - read input data for routing processes according & Stephan Thober,           to process_matrix flag
+  ! Stephan Thober Aug 2015 - moved check of L0 routing variables to mRM
+  ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L0_check_input(iBasin)
 
-    use mo_mpr_global_variables, only : &
-            L0_slope, L0_asp, &
-            nSoilHorizons_mHM, & ! soil horizons info for mHM
-            L0_geoUnit, &
-            L0_soilId, & ! soil class ID on input resolution (L0)
-            iFlag_soilDB, & ! options to handle different types of soil databases
-            L0_gridded_LAI, &
-            timeStep_LAI_input
-    use mo_common_variables, only : &
-            nLCoverScene, L0_elev, L0_LCover, level0
     use mo_common_constants, only : eps_dp
+    use mo_common_variables, only : L0_LCover, L0_elev, level0, nLCoverScene
     use mo_message, only : message, message_text
+    use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
+                                        L0_slope, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, timeStep_LAI_input
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
 
     implicit none
 
+    ! basin id
     integer(i4), intent(in) :: iBasin
 
-    ! local variables
     integer(i4) :: k, n, nH
+
 
     ! START CHECKING VARIABLES
     do k = level0(iBasin)%iStart, level0(iBasin)%iEnd
@@ -260,96 +230,66 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          L0_variable_init
+  !    NAME
+  !        L0_variable_init
 
-  !>        \brief   level 0 variable initialization
+  !    PURPOSE
+  !>       \brief level 0 variable initialization
 
-  !>        \details following tasks are performed for L0 data sets
-  !>                 -  cell id & numbering
-  !>                 -  storage of cell cordinates (row and coloum id)
-  !>                 -  empirical dist. of terrain slope
-  !>                 -  flag to determine the presence of a particular soil id
-  !>                    in this configuration of the model run
-  !>                 If a variable is added or removed here, then it also has to
-  !>                 be added or removed in the subroutine config_variables_set in
-  !>                 module mo_restart and in the subroutine set_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details following tasks are performed for L0 data sets
+  !>       -  cell id & numbering
+  !>       -  storage of cell cordinates (row and coloum id)
+  !>       -  empirical dist. of terrain slope
+  !>       -  flag to determine the presence of a particular soil id
+  !>       in this configuration of the model run
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine config_variables_set in
+  !>       module mo_restart and in the subroutine set_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" basin id
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "integer(i4), dimension(:) :: soilId_isPresent"
-  !>        flag to indicate wether a given soil-id is present or not, DIMENSION [nSoilTypes]
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Rohini Kumar
-  !         \date    Jan 2013
-  !         Modified
-  !         Rohini Kumar & Matthias Cuntz,  May 2014 - cell area calulation based on a regular lat-lon grid or
-  !                                                    on a regular X-Y coordinate system
-  !         Matthias Cuntz,                 May 2014 - changed empirical distribution function
-  !                                                    so that doubles get the same value
-  !         Matthias Zink & Matthias Cuntz, Feb 2016 - code speed up due to reformulation of CDF calculation
-  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
-  !         Maren Kaluza,                   Feb 2018 - removed slope_val, temp, only sort the index to speed
-  !                                                    up finding the empirical distribution slope_emp
+  ! Modifications:
+  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  ! Matthias Cuntz                 May 2014 - changed empirical distribution function so that doubles get the same value
+  ! Matthias Zink & Matthias Cuntz Feb 2016 - code speed up due to reformulation of CDF calculation
+  ! Rohini Kumar                   Mar 2016 - changes for handling multiple soil database options
+  ! Maren Kaluza                   Feb 2018 - removed slope_val, temp, only sort the index to speed up finding the empirical distribution slope_emp
+  ! Robert Schweppe                Jun 2018 - refactoring and reformatting
 
   subroutine L0_variable_init(iBasin)
 
-    use mo_mpr_global_variables, only : L0_slope, &
-            L0_slope_emp, &
-            L0_soilId, & ! soil class ID on input resolution (L0)
-            iFlag_soilDB, soilDB, & ! options to handle different types of soil databases
-            nSoilHorizons_mHM, & ! soil horizons info for mHM
-            nSoilTypes
-    use mo_common_variables, only : level0
     use mo_append, only : append
+    use mo_common_variables, only : level0
+    use mo_grid, only : L0_grid_setup
+    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
     use mo_utils, only : eq
-    use mo_grid, only : L0_grid_setup
 
     implicit none
 
+    ! basin id
     integer(i4), intent(in) :: iBasin
 
-    ! local variables
     real(dp), dimension(:), allocatable :: slope_emp
+
     integer(i4), dimension(:), allocatable :: slope_sorted_index
 
     integer(i4) :: i, j, k, nH, i_sort, i_sortpost
 
+    ! STEPS :: 
+
+
     !--------------------------------------------------------
-    ! STEPS::
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
-
     !------------------------------------------------------
     ! Assign whether a given soil type is present or not
     !------------------------------------------------------
@@ -426,80 +366,53 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          variables_alloc
+  !    NAME
+  !        init_eff_params
 
-  !>        \brief Allocation of space for mHM related L1 and L11 variables.
+  !    PURPOSE
+  !>       \brief Allocation of space for mHM related L1 and L11 variables.
 
-  !>        \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>                 fluxes, and parameters) for a given basin. Variables allocated here is
-  !>                 defined in them mo_global_variables.f90 file. After allocating any variable
-  !>                 in this routine, initalize them in the following variables_default_init
-  !>                 subroutine:
-  !>
-  !
-  !     CALLING SEQUENCE
-  !         call variables_alloc(iBasin)
+  !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
+  !>       fluxes, and parameters) for a given basin. Variables allocated here is
+  !>       defined in them mo_global_variables.f90 file. After allocating any variable
+  !>       in this routine, initalize them in the following variables_default_init
+  !>       subroutine:
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: iBasin"        - basin id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ncells1"
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-
-  !     RETURN
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Jan 2013
-  !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
-  !                   S. Thober, Aug 2015  - removed routing related variables
-  !                   Zink M. Demirel C.,Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
-  !                   Robert Schweppe,      Dec 2017 - restructured allocation in variables_alloc,
-  !                                                    expanded dimensions of effective parameters
-
+  ! Modifications:
+  ! R. Kumar           Sep 2013 - documentation added according to the template
+  ! S. Thober          Aug 2015 - removed routing related variables
+  ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
+  ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine init_eff_params(ncells1)
 
-    use mo_mpr_global_variables, only : &
-            L1_fSealed, L1_alpha, L1_degDayInc, &
-            L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp, L1_petLAIcorFactor, &
-            L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist, &
-            L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow, &
-            L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp, &
-            L1_jarvis_thresh_c1, L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint, &
-            nSoilHorizons_mHM, nLAI
-    use mo_common_variables, only : &
-            nLCoverScene
-    use mo_common_constants, only : P1_InitStateFluxes
-
-    use mo_common_constants, only : YearMonths_i4
-    use mo_append, only : append                      ! append vector
+    use mo_append, only : append
+    use mo_common_constants, only : P1_InitStateFluxes, YearMonths_i4
+    use mo_common_variables, only : nLCoverScene
+    use mo_mpr_global_variables, only : L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_alpha, L1_degDay, &
+                                        L1_degDayInc, L1_degDayMax, L1_degDayNoPre, L1_fAsp, L1_fRoots, L1_fSealed, &
+                                        L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, L1_kSlowFlow, L1_karstLoss, &
+                                        L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, L1_sealedThresh, L1_soilMoistExp, &
+                                        L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, L1_tempThresh, L1_unsatThresh, &
+                                        L1_wiltingPoint, nLAI, nSoilHorizons_mHM
 
     implicit none
 
     integer(i4), intent(in) :: ncells1
 
-    ! local variables
     real(dp), dimension(:, :, :), allocatable :: dummy_3D
+
     integer(i4) :: max_extent
+
 
     ! get maximum extent of one dimension 2 or 3
     max_extent = max(nSoilHorizons_mHM, YearMonths_i4, nLCoverScene, nLAI)

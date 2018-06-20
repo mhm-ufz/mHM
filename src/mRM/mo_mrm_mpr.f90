@@ -29,17 +29,18 @@ contains
 
   !>       \details sets up the Regionalized Routing parameters
   !>       Global parameters needed (see mhm_parameter.nml):
-  !>       - param(1) = muskingumTravelTime_constant    
-  !>       - param(2) = muskingumTravelTime_riverLength 
-  !>       - param(3) = muskingumTravelTime_riverSlope  
-  !>       - param(4) = muskingumTravelTime_impervious  
-  !>       - param(5) = muskingumAttenuation_riverSlope 
+  !>       - param(1) = muskingumTravelTime_constant
+  !>       - param(2) = muskingumTravelTime_riverLength
+  !>       - param(3) = muskingumTravelTime_riverSlope
+  !>       - param(4) = muskingumTravelTime_impervious
+  !>       - param(5) = muskingumAttenuation_riverSlope
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(5) :: param"  input parameter
   !>       \param[in] "real(dp), dimension(:) :: length" [m] total length
   !>       \param[in] "real(dp), dimension(:) :: slope"  average slope
-  !>       \param[in] "real(dp), dimension(:) :: fFPimp" fraction of the flood plain withimpervious layer
+  !>       \param[in] "real(dp), dimension(:) :: fFPimp" fraction of the flood plain with
+  !>       impervious layer
   !>       \param[in] "real(dp) :: TS"                   - [h] time step in
 
   !    INTENT(OUT)
@@ -52,6 +53,7 @@ contains
   !>       \date Dec 2012
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine reg_rout(param, length, slope, fFPimp, TS, C1, C2)
     implicit none
@@ -65,7 +67,8 @@ contains
     ! average slope
     real(dp), dimension(:), intent(in) :: slope
 
-    ! fraction of the flood plain withimpervious layer
+    ! fraction of the flood plain with
+    ! impervious layer
     real(dp), dimension(:), intent(in) :: fFPimp
 
     ! - [h] time step in

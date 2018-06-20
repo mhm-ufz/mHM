@@ -55,6 +55,8 @@ CONTAINS
   ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
+  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+
 
   subroutine write_grid_info(grid_in, level_name, nc)
 
@@ -116,82 +118,77 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_grid_info
+  !    NAME
+  !        read_grid_info
 
-  !     PURPOSE
-  !>        \brief reads configuration apart from Level 11 configuration
-  !>        from a restart directory
+  !    PURPOSE
+  !>       \brief reads configuration apart from Level 11 configuration
+  !>       from a restart directory
 
-  !>        \details read configuration variables from a given restart
-  !>        directory and initializes all configuration variables,
-  !>        that are initialized in the subroutine initialise,
-  !>        contained in module mo_startup.
+  !>       \details read configuration variables from a given restart
+  !>       directory and initializes all configuration variables,
+  !>       that are initialized in the subroutine initialise,
+  !>       contained in module mo_startup.
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
-  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"      number of basin
+  !>       \param[in] "character(256) :: InPath"   Input Path including trailing slash
+  !>       \param[in] "character(*) :: level_name" level_name (id)
+  !>       \param[in] "character(*) :: fname_part" filename part (either "mHM" or "mRM")
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid) :: new_grid" grid to save information to
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Apr 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS
-  !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_files
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Apr 2013
-  !         Modified  David Schaefer   Nov 2015 - mo_netcdf
-  !                   Zink M. Demirel C.,Mar 2017 - Added Jarvis soil water stress function at SM process(3)
-  !                   Robert Schweppe, Feb 2018 - Removed all L0 references
+  ! Modifications:
+  ! David Schaefer     Nov 2015 - mo_netcdf
+  ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
+  ! Robert Schweppe    Feb 2018 - Removed all L0 references
+  ! Robert Schweppe    Jun 2018 - refactoring and reformatting
 
   subroutine read_grid_info(iBasin, InPath, level_name, fname_part, new_grid)
 
-    use mo_kind, only : i4, dp
+    use mo_common_variables, only : Grid
+    use mo_kind, only : dp, i4
     use mo_message, only : message
-    use mo_string_utils, only : num2str
     use mo_netcdf, only : NcDataset, NcVariable
-    use mo_common_variables, only : &
-            Grid
+    use mo_string_utils, only : num2str
 
     implicit none
 
+    ! number of basin
     integer(i4), intent(in) :: iBasin
-    character(256), intent(in) :: InPath            ! list of Output paths per Basin
-    character(*), intent(in) :: level_name          ! level_name (id)
-    character(*), intent(in) :: fname_part          ! filename part (either "mHM" or "mRM")
-    type(Grid), intent(inout) :: new_grid           ! grid to save information to
 
-    ! Dummy Variables
-    integer(i4), dimension(:, :), allocatable :: dummyI2  ! dummy, 2 dimension I4
-    real(dp), dimension(:, :), allocatable :: dummyD2  ! dummy, 2 dimension DP
+    ! Input Path including trailing slash
+    character(256), intent(in) :: InPath
 
-    ! local variables
+    ! level_name (id)
+    character(*), intent(in) :: level_name
+
+    ! filename part (either "mHM" or "mRM")
+    character(*), intent(in) :: fname_part
+
+    ! grid to save information to
+    type(Grid), intent(inout) :: new_grid
+
+    ! dummy, 2 dimension I4
+    integer(i4), dimension(:, :), allocatable :: dummyI2
+
+    ! dummy, 2 dimension DP
+    real(dp), dimension(:, :), allocatable :: dummyD2
+
     character(256) :: Fname
+
     type(NcDataset) :: nc
+
     type(NcVariable) :: var
+
     integer(i4) :: k
+
 
     ! read config
     fname = trim(InPath) // trim(fname_part) // '_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc' ! '_restart.nc'

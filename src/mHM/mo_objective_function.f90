@@ -2,22 +2,23 @@
 
 !>       \brief Objective Functions for Optimization of mHM.
 
-!>       \details This module provides a wrapper for several objective functions used to optimize mHM against various variables.
+!>       \details This module provides a wrapper for several objective functions used to optimize mHM against various
+!>       variables.
 !>       If the objective is only regarding runoff move it to mRM/mo_mrm_objective_function_runoff.f90.
 !>       If it contains besides runoff another variable like TWS implement it here.
-!>       
-!>       All the objective functions are supposed to be minimized! 
-!>       (10) SO: SM:       1.0 - KGE of catchment average soilmoisture 
-!>       (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture 
+
+!>       All the objective functions are supposed to be minimized!
+!>       (10) SO: SM:       1.0 - KGE of catchment average soilmoisture
+!>       (11) SO: SM:       1.0 - Pattern dissimilarity (PD) of spatially distributed soil moisture
 !>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
-!>       of soil moisture 
-!>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture 
+!>       of soil moisture
+!>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
 !>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
 !>       (standard score) TWS
-!>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average 
-!>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration 
+!>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
+!>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
 
-!>       \authors s Juliane Mai
+!>       \authors Juliane Mai
 
 !>       \date Dec 2012
 
@@ -55,17 +56,21 @@ CONTAINS
   !>       \details The functions selects the objective function case defined in a namelist,
   !>       i.e. the global variable \e opti\_function.
   !>       It return the objective function value for a specific parameter set.
+  !>       ADDITIONAL INFORMATION
+  !>       objective
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective(para)
 
   !    INTENT(IN)
-  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset" 
-  !>       \param[in] "procedure(eval_interface) :: eval"      
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), optional :: arg1" 
+  !>       \param[in] "real(dp), optional :: arg1"
 
   !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "real(dp), optional :: arg2" 
-  !>       \param[out] "real(dp), optional :: arg3" 
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
 
   !    RETURN
   !>       \return real(dp) :: objective &mdash; objective function value
@@ -154,98 +159,105 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_sm_kge_catchment_avg
+  !    NAME
+  !        objective_sm_kge_catchment_avg
 
-  !>        \brief Objective function for soil moisture.
+  !    PURPOSE
+  !>       \brief Objective function for soil moisture.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
-  !>                       soil mloisture (SM) is calculated
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
-  !>                       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM \n
-  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
-  !>                 is calculated and the objective function for a given basin \f$ i \f$ is
-  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
-  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
-  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
-  !>
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f] \n
-  !>                 The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
+  !>       soil mloisture (SM) is calculated
+  !>       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
+  !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
+  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
+  !>       The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_sm_kge_catchment_avg
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_sm_corr(para)
+  !>       none
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_sm_kge_catchment_avg &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_sm_kge_catchment_avg &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_sm_corr(para)
+  !>       \date May 2015
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Matthias Zink
-  !>        \date    May 2015
+  ! Modifications:
 
   FUNCTION objective_sm_kge_catchment_avg(parameterset, eval)
 
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, nBasins
+    use mo_errormeasures, only : KGE
+    use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_moment, only : average
-    use mo_errormeasures, only : KGE
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
-    use mo_common_constants, only : nodata_dp              ! global nodata value
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_sm_kge_catchment_avg
 
-    ! local
-    integer(i4) :: iBasin                   ! basin loop counter
-    integer(i4) :: iTime                    ! time loop counter
-    integer(i4) :: n_time_steps             ! number of time steps in simulated SM
-    integer(i4) :: s1, e1                   ! start and end index for the current basin
-    integer(i4) :: ncells1                  ! ncells1 of level 1
-    real(dp) :: invalid_times            ! number of invalid timesteps
-    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp ! for sixth root
-    real(dp), dimension(:), allocatable :: sm_catch_avg_basin       ! spatial average of observed soil moisture
-    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_basin  ! spatial avergae of modeled  soil moisture
-    real(dp), dimension(:, :), allocatable :: sm_opti                  ! simulated soil moisture
-    !                                                                   ! (dim1=ncells, dim2=time)
-    logical, dimension(:), allocatable :: mask_times               ! mask for valid sm catchment avg time steps
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! number of time steps in simulated SM
+    integer(i4) :: n_time_steps
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! number of invalid timesteps
+    real(dp) :: invalid_times
+
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    ! spatial average of observed soil moisture
+    real(dp), dimension(:), allocatable :: sm_catch_avg_basin
+
+    ! spatial avergae of modeled  soil moisture
+    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_basin
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
 
     call eval(parameterset, sm_opti = sm_opti)
 
@@ -313,96 +325,95 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_sm_corr
+  !    NAME
+  !        objective_sm_corr
 
-  !>        \brief Objective function for soil moisture.
+  !    PURPOSE
+  !>       \brief Objective function for soil moisture.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore the Pearson correlation between observed and modeled soil
-  !>                 moisture on each grid cell \f$ j \f$ is compared
-  !>                       \f[ r_j = r^2(SM_{obs}^j, SM_{sim}^j) \f]
-  !>                 where \n
-  !>                       \f$ r^2\f$        = Pearson correlation coefficient,\n
-  !>                       \f$ SM_{obs} \f$  = observed soil moisture,\n
-  !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.\n
-  !>                 The observed data \f$ SM_{obs} \f$ are global in this module.\n
-  !>
-  !>                 The the correlation is spatially averaged as
-  !>                 \f[ \phi_{i} = \frac{1}{K} \cdot \sum_{j=1}^K r_j \f]
-  !
-  !>                 where \f$ K \f$ denotes the number of valid cells in the study domain.\n
-  !
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }. \f] \n
-  !>                 The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+
+  !>       Therefore the Pearson correlation between observed and modeled soil
+  !>       moisture on each grid cell \f$ j \f$ is compared
+  !>       \f[ r_j = r^2(SM_{obs}^j, SM_{sim}^j) \f]
+  !>       where
+  !>       \f$ r^2\f$        = Pearson correlation coefficient,
+  !>       \f$ SM_{obs} \f$  = observed soil moisture,
+  !>       \f$ SM_{sim}  \f$ = simulated soil moisture.
+  !>       The observed data \f$ SM_{obs} \f$ are global in this module.
+
+  !>       The the correlation is spatially averaged as
+  !>       \f[ \phi_{i} = \frac{1}{K} \cdot \sum_{j=1}^K r_j \f]
+  !>       where \f$ K \f$ denotes the number of valid cells in the study domain.
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }. \f]
+  !>       The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_sm_corr
 
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_sm_corr(para)
+  !>       none
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_sm_corr &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_sm_corr &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_sm_corr(para)
+  !>       \date March 2015
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Matthias Zink
-  !>        \date    March 2015
+  ! Modifications:
 
   FUNCTION objective_sm_corr(parameterset, eval)
 
+    use mo_common_variables, only : level1, nBasins
+    use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_moment, only : correlation
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_sm_corr
 
-    ! local
-    integer(i4) :: iBasin             ! basin loop counter
-    integer(i4) :: iCell              ! cell loop counter
-    integer(i4) :: s1, e1             ! start and end index for the current basin
-    integer(i4) :: ncells1            ! ncells1 of level 1
-    real(dp) :: invalid_cells      ! number of invalid cells in catchment
-    real(dp) :: objective_sm_corr_basin ! basins wise objectives
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! cell loop counter
+    integer(i4) :: iCell
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! number of invalid cells in catchment
+    real(dp) :: invalid_cells
+
+    ! basins wise objectives
+    real(dp) :: objective_sm_corr_basin
+
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
-    real(dp), dimension(:, :), allocatable :: sm_opti            ! simulated soil moisture
-    !                                                             ! (dim1=ncells, dim2=time)
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
+
 
     call eval(parameterset, sm_opti = sm_opti)
 
@@ -455,102 +466,109 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objecive_sm_pd
+  !    NAME
+  !        objective_sm_pd
 
-  !>        \brief Objective function for soil moisture.
+  !    PURPOSE
+  !>       \brief Objective function for soil moisture.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore the Pattern Dissimilarity (PD) of observed and modeled soil
-  !>                 moisture fields is calculated - aim: matching spatial patters
-  !>                  \f[ E(t) = PD\left( SM_{obs}(t), SM_{sim}(t) \right) \f]
-  !>                 where \n
-  !>                       \f$ PD \f$        = pattern dissimilarity function,\n
-  !>                       \f$ SM_{obs} \f$  = observed soil moisture,\n
-  !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.\n
-  !>                       \f$ E(t)  \f$     = pattern dissimilarity at timestep \f$ t \f$.\n
-  !
-  !>                 The the pattern dissimilaity (E) is spatially averaged as
-  !>                 \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f]
-  !
-  !>                 where \f$ T \f$ denotes the number of time steps.\n
-  !
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f] \n
-  !>                 The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !
-  !>                  The observed data L1_sm, L1_sm_mask are global in this module.\n
+  !>       Therefore the Pattern Dissimilarity (PD) of observed and modeled soil
+  !>       moisture fields is calculated - aim: matching spatial patters
+  !>       \f[ E(t) = PD\left( SM_{obs}(t), SM_{sim}(t) \right) \f]
+  !>       where
+  !>       \f$ PD \f$        = pattern dissimilarity function,
+  !>       \f$ SM_{obs} \f$  = observed soil moisture,
+  !>       \f$ SM_{sim}  \f$ = simulated soil moisture.
+  !>       \f$ E(t)  \f$     = pattern dissimilarity at timestep \f$ t \f$.
+  !>       The the pattern dissimilaity (E) is spatially averaged as
+  !>       \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f]
+  !>       where \f$ T \f$ denotes the number of time steps.
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f]
+  !>       The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objecive_sm_pd
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
 
-  !     INTENT(INOUT)
-  !         None
 
-  !     INTENT(OUT)
-  !         None
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_sm_corr(para)
+  !>       none
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objecive_sm_pd &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objecive_sm_pd &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_sm_corr(para)
+  !>       \date May 2015
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Matthias Zink
-  !>        \date    May 2015
+  ! Modifications:
 
   FUNCTION objective_sm_pd(parameterset, eval)
 
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, nBasins
+    use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_spatialsimilarity, only : PD
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
-    use mo_common_constants, only : nodata_dp              ! global nodata value
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    real(dp) :: objective_sm_pd          ! objective function value
 
-    ! local
-    integer(i4) :: iBasin                   ! basin loop counter
-    integer(i4) :: iTime                    ! time loop counter
-    integer(i4) :: nrows1, ncols1           ! level 1 number of culomns and rows
-    integer(i4) :: s1, e1                   ! start and end index for the current basin
-    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp ! for sixth root
-    real(dp), dimension(:, :), allocatable :: mat1, mat2               ! matrices of SM from vectorized arrays
-    real(dp), dimension(:), allocatable :: pd_time_series           ! pattern dissimilarity (pd) at every time step
-    real(dp), dimension(:, :), allocatable :: sm_opti                  ! simulated soil moisture
-    !                                                                   ! (dim1=ncells, dim2=time)
-    logical, dimension(:, :), allocatable :: mask1                    ! mask of valid cells at level1
-    logical, dimension(:, :), allocatable :: mask_sm                  ! mask of valid sm cells
-    logical, dimension(:), allocatable :: mask_times               ! mask for valid sm catchment avg time steps
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    ! objective function value
+    real(dp) :: objective_sm_pd
+
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! level 1 number of culomns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    ! matrices of SM from vectorized arrays
+    real(dp), dimension(:, :), allocatable :: mat1, mat2
+
+    ! pattern dissimilarity (pd) at every time step
+    real(dp), dimension(:), allocatable :: pd_time_series
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
+
+    ! mask of valid cells at level1
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! mask of valid sm cells
+    logical, dimension(:, :), allocatable :: mask_sm
+
+    ! mask for valid sm catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
 
     call eval(parameterset, sm_opti = sm_opti)
 
@@ -611,93 +629,93 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_sm_sse_standard_score
+  !    NAME
+  !        objective_sm_sse_standard_score
 
-  !>        \brief Objective function for soil moisture.
+  !    PURPOSE
+  !>       \brief Objective function for soil moisture.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore the sum of squared errors (SSE) of the standard score of observed and
-  !>                 modeled soil moisture is calculated. The standard score or normalization (anomaly)
-  !>                 make the objctive function bias insensitive and basically the dynamics of the soil moisture
-  !>                 is tried to capture by this obejective function.
-  !>                  \f[ phi_i = \sum_{j=1}^K \{ standard\_score( SM_{obs}(j) )- standard\_score(SM_{sim}(j)) \}^2 \f]
-  !>                 where \n
-  !>                       \f$  standard\_score \f$ = standard score function,\n
-  !>                       \f$ SM_{obs} \f$  = observed soil moisture,\n
-  !>                       \f$ SM_{sim}  \f$ = simulated soil moisture.\n
-  !>                       \f$ K  \f$ = valid elements in study domain.\n
-  !
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum(\phi_{i}/N)^6 }.  \f] \n
-  !>                 The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore the sum of squared errors (SSE) of the standard score of observed and
+  !>       modeled soil moisture is calculated. The standard score or normalization (anomaly)
+  !>       make the objctive function bias insensitive and basically the dynamics of the soil moisture
+  !>       is tried to capture by this obejective function.
+  !>       \f[ phi_i = \sum_{j=1}^K \{ standard\_score( SM_{obs}(j) )- standard\_score(SM_{sim}(j)) \}^2 \f]
+  !>       where
+  !>       \f$  standard\_score \f$ = standard score function,
+  !>       \f$ SM_{obs} \f$  = observed soil moisture,
+  !>       \f$ SM_{sim}  \f$ = simulated soil moisture.
+  !>       \f$ K  \f$ = valid elements in study domain.
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum(\phi_{i}/N)^6 }.  \f]
+  !>       The observed data L1_sm, L1_sm_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_sm_sse_standard_score
 
-  !     INTENT(INOUT)
-  !         None
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_sm_sse_standard_score(para)
+  !>       none
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_sm_sse_standard_score &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_sm_sse_standard_score &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_sm_sse_standard_score(para)
+  !>       \date March 2015
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Matthias Zink
-  !>        \date    March 2015
+  ! Modifications:
 
   FUNCTION objective_sm_sse_standard_score(parameterset, eval)
 
-    use mo_message, only : message
+    use mo_common_variables, only : level1, nBasins
     use mo_errormeasures, only : SSE
+    use mo_global_variables, only : L1_sm, L1_sm_mask
+    use mo_message, only : message
     use mo_standard_score, only : standard_score
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_sm_sse_standard_score
 
-    ! local
-    integer(i4) :: iBasin             ! basin loop counter
-    integer(i4) :: iCell              ! cell loop counter
-    integer(i4) :: s1, e1             ! start and end index for the current basin
-    integer(i4) :: ncells1            ! ncells1 of level 1
-    real(dp) :: invalid_cells      ! number of invalid cells in catchment
-    real(dp) :: objective_sm_sse_standard_score_basin ! basins wise objectives
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! cell loop counter
+    integer(i4) :: iCell
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! number of invalid cells in catchment
+    real(dp) :: invalid_cells
+
+    ! basins wise objectives
+    real(dp) :: objective_sm_sse_standard_score_basin
+
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
-    real(dp), dimension(:, :), allocatable :: sm_opti                 ! simulated soil moisture
-    !                                                                  ! (dim1=ncells, dim2=time)
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
+
 
     call eval(parameterset, sm_opti = sm_opti)
 
@@ -751,112 +769,122 @@ CONTAINS
 
   ! -----------------------------------------------------------------
 
-  !      NAME
-  !          objective_kge_q_rmse_tws
+  !    NAME
+  !        objective_kge_q_rmse_tws
 
-  !>        \brief Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+  !    PURPOSE
+  !>       \brief Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
 
-  !>        \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+  !>       \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+  !>       ADDITIONAL INFORMATION
+  !>       objective_kge_q_rmse_tws
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_kge(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_rmse_tws &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_kge_q_rmse_tws &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized. \n
-  !>             For TWS required at least 2 years of data!
+  !    HISTORY
+  !>       \authors Oldrich Rakovec, Rohini Kumar
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge(para)
+  !>       \date Oct. 2015
 
-  !     LITERATURE
-  !>        Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria:
-  !>        Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
-  !>        \author Oldrich Rakovec, Rohini Kumar
-  !>        \date Oct. 2015
-  !         Modified, Oct 2015, Stephan Thober - moved tws optimization from mo_mrm_objective_function_runoff here
+  ! Modifications:
+  ! Stephan Thober Oct 2015 - , 
+  !                         - moved tws optimization from mo_mrm_objective_function_runoff here
 
   FUNCTION objective_kge_q_rmse_tws(parameterset, eval)
 
-    use mo_common_constants, only : eps_dp
-    use mo_errormeasures, only : rmse
-    use mo_common_variables, only : nBasins
+    use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : nBasins
+    use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
-    use mo_common_constants, only : nodata_dp
     use mo_moment, only : mean
-    use mo_temporal_aggregation, only : day2mon_average
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
+    use mo_temporal_aggregation, only : day2mon_average
 #ifdef MRM2MHM
-    use mo_mrm_objective_function_runoff, only : extract_runoff
     use mo_errormeasures, only : kge
-
+    use mo_mrm_objective_function_runoff, only : extract_runoff
 #endif
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_kge_q_rmse_tws
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    real(dp), allocatable, dimension(:, :) :: tws                      ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
 
-    integer(i4) :: ii, pp, mmm              ! basin counter, month counters
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: tws
+
+    ! basin counter, month counters
+    integer(i4) :: ii, pp, mmm
+
     integer(i4) :: year, month, day
+
     real(dp), dimension(nBasins) :: initTime
 
-    real(dp), dimension(:), allocatable :: tws_sim               ! simulated tws
-    real(dp), dimension(:), allocatable :: tws_obs               ! measured tws
-    logical, dimension(:), allocatable :: tws_obs_mask          ! mask for measured tws
+    ! simulated tws
+    real(dp), dimension(:), allocatable :: tws_sim
 
-    integer(i4) :: nMonths               ! total number of months
-    integer(i4), dimension(:), allocatable :: month_classes         ! vector with months' classes
+    ! measured tws
+    real(dp), dimension(:), allocatable :: tws_obs
 
-    !
-    real(dp), DIMENSION(:), allocatable :: tws_sim_m, tws_obs_m           ! monthly values original time series
-    real(dp), DIMENSION(:), allocatable :: tws_sim_m_anom, tws_obs_m_anom ! monthly values anomaly time series
-    logical, DIMENSION(:), allocatable :: tws_obs_m_mask   !
-    real(dp), dimension(:), allocatable :: rmse_tws  ! rmse_tws(nBasins)
-    real(dp) :: rmse_tws_avg, kge_q_avg  ! obj. functions
+    ! mask for measured tws
+    logical, dimension(:), allocatable :: tws_obs_mask
+
+    ! total number of months
+    integer(i4) :: nMonths
+
+    ! vector with months' classes
+    integer(i4), dimension(:), allocatable :: month_classes
+
+    ! monthly values original time series
+    real(dp), DIMENSION(:), allocatable :: tws_sim_m, tws_obs_m
+
+    ! monthly values anomaly time series
+    real(dp), DIMENSION(:), allocatable :: tws_sim_m_anom, tws_obs_m_anom
+
+    logical, DIMENSION(:), allocatable :: tws_obs_m_mask
+
+    ! rmse_tws(nBasins)
+    real(dp), dimension(:), allocatable :: rmse_tws
+
+    ! obj. functions
+    real(dp) :: rmse_tws_avg, kge_q_avg
 
 #ifdef MRM2MHM
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg            ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs            ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask       ! mask for measured runoff
 
-    real(dp), dimension(:), allocatable :: kge_q  ! kge_q(nGaugesTotal)
-    integer(i4) :: gg  ! gauges counter
-#endif
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! kge_q(nGaugesTotal)
+    real(dp), dimension(:), allocatable :: kge_q
+
+    ! gauges counter
+    integer(i4) :: gg
+
 
     ! obtain hourly values of runoff and tws:
     call eval(parameterset, runoff = runoff, basin_avg_tws = tws)
@@ -985,98 +1013,97 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_neutrons_kge_catchment_avg
+  !    NAME
+  !        objective_neutrons_kge_catchment_avg
 
-  !>        \brief Objective function for neutrons.
+  !    PURPOSE
+  !>       \brief Objective function for neutrons.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
-  !>                       neutrons (N) is calculated
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment CORRELATION coefficient \n
-  !>                       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM \n
-  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
-  !>                 is calculated and the objective function for a given basin \f$ i \f$ is
-  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
-  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
-  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
-  !>
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f] \n
-  !>                 The observed data L1_neutronsdata, L1_neutronsdata_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
+  !>       neutrons (N) is calculated
+  !>       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment CORRELATION coefficient
+  !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
+  !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
+  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
+  !>       The observed data L1_neutronsdata, L1_neutronsdata_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_neutrons_kge_catchment_avg
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_neutrons_kge_catchment_avg(para)
+  !>       none
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_neutrons_kge_catchment_avg &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_neutrons_kge_catchment_avg &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Martin Schroen
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_neutrons_kge_catchment_avg(para)
+  !>       \date Jun 2015
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Martin Schroen
-  !>        \date    Jun 2015
-  !         Modified Maren Kaluza, Mar 2018 changed format string to '(I10)'
-
+  ! Modifications:
+  ! Maren Kaluza Mar 2018 - changed format string to '(I10)'
 
   FUNCTION objective_neutrons_kge_catchment_avg(parameterset, eval)
 
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, nBasins
+    use mo_errormeasures, only : KGE
+    use mo_global_variables, only : L1_neutronsdata, L1_neutronsdata_mask
     use mo_message, only : message
     use mo_moment, only : average
-    use mo_errormeasures, only : KGE
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1          ! number of basins
-    use mo_global_variables, only : &
-            L1_neutronsdata, L1_neutronsdata_mask      ! packed measured neutrons, neutrons-mask (dim1=ncells, dim2=time)
-    use mo_common_constants, only : nodata_dp              ! global nodata value
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_neutrons_kge_catchment_avg
 
-    ! local
-    integer(i4) :: iBasin                   ! basin loop counter
-    integer(i4) :: iTime                    ! time loop counter
-    integer(i4) :: s1, e1                   ! start and end index for the current basin
-    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp ! for sixth root
-    real(dp), dimension(:), allocatable :: neutrons_catch_avg_basin       ! spatial average of observed neutrons
-    real(dp), dimension(:), allocatable :: neutrons_opti_catch_avg_basin  ! spatial avergae of modeled  neutrons
-    real(dp), dimension(:, :), allocatable :: neutrons_opti                  ! simulated neutrons
-    !                                                                   ! (dim1=ncells, dim2=time)
-    logical, dimension(:), allocatable :: mask_times               ! mask for valid neutrons catchment avg time steps
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    ! spatial average of observed neutrons
+    real(dp), dimension(:), allocatable :: neutrons_catch_avg_basin
+
+    ! spatial avergae of modeled  neutrons
+    real(dp), dimension(:), allocatable :: neutrons_opti_catch_avg_basin
+
+    ! simulated neutrons
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: neutrons_opti
+
+    ! mask for valid neutrons catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
 
     call eval(parameterset, neutrons_opti = neutrons_opti)
 
@@ -1135,95 +1162,96 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_et_kge_catchment_avg
+  !    NAME
+  !        objective_et_kge_catchment_avg
 
-  !>        \brief Objective function for evpotranspirstion (et).
+  !    PURPOSE
+  !>       \brief Objective function for evpotranspirstion (et).
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>                 The model will be called with that parameter vector and
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
-  !>                       evapotranspiration (et) is calculated
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
-  !>                       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM \n
-  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
-  !>                 is calculated and the objective function for a given basin \f$ i \f$ is
-  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
-  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
-  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
-  !>
-  !>                 Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>                 norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f] \n
-  !>                 The observed data L1_et, L1_et_mask are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore, the Kling-Gupta model efficiency \f$ KGE \f$ of the catchment average
+  !>       evapotranspiration (et) is calculated
+  !>       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
+  !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
+  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
+  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
+  !>       The observed data L1_et, L1_et_mask are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_et_kge_catchment_avg
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_et_kge_catchment_avg(para)
+  !>       none
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_et_kge_catchment_avg &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_et_kge_catchment_avg &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Johannes Brenner
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_et_kge_catchment_avg(para)
+  !>       \date Feb 2017
 
-  !     LITERATURE
-  !         none
-
-  !     HISTORY
-  !>        \author  Johannes Brenner
-  !>        \date    Feb 2017
+  ! Modifications:
 
   FUNCTION objective_et_kge_catchment_avg(parameterset, eval)
 
+    use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1, nBasins
+    use mo_errormeasures, only : KGE
+    use mo_global_variables, only : L1_et, L1_et_mask
     use mo_message, only : message
     use mo_moment, only : average
-    use mo_errormeasures, only : KGE
     use mo_string_utils, only : num2str
-    !
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_et_mask, L1_et      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
-    use mo_common_constants, only : nodata_dp              ! global nodata value
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_et_kge_catchment_avg
 
-    ! local
-    integer(i4) :: iBasin                   ! basin loop counter
-    integer(i4) :: iTime                    ! time loop counter
-    integer(i4) :: s1, e1                   ! start and end index for the current basin
-    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp ! for sixth root
-    real(dp), dimension(:), allocatable :: et_catch_avg_basin       ! spatial average of observed et
-    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin  ! spatial avergae of modeled  et
-    real(dp), dimension(:, :), allocatable :: et_opti                  ! simulated et
-    !                                                                   ! (dim1=ncells, dim2=time)
-    logical, dimension(:), allocatable :: mask_times               ! mask for valid et catchment avg time steps
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! for sixth root
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    ! spatial average of observed et
+    real(dp), dimension(:), allocatable :: et_catch_avg_basin
+
+    ! spatial avergae of modeled  et
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin
+
+    ! simulated et
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: et_opti
+
+    ! mask for valid et catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
+
 
     call eval(parameterset, et_opti = et_opti)
 
@@ -1283,95 +1311,102 @@ CONTAINS
 
   ! -----------------------------------------------------------------
 
-  !      NAME
-  !          objective_kge_q_sse_sm(parameterset, eval)
+  !    NAME
+  !        objective_kge_q_sm_corr
 
-  !>        \brief Objective function of KGE for runoff and correlation for SM
+  !    PURPOSE
+  !>       \brief Objective function of KGE for runoff and correlation for SM
 
-  !>        \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
-  !>                 Further details can be found in the documentation of objective functions
-  !>                 '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
+  !>       \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
+  !>       Further details can be found in the documentation of objective functions
+  !>       '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_kge_q_sse_sm(parameterset, eval)
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_kge_q_sse_sm(parameterset, eval)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_sse_sm &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_kge_q_sse_sm &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge_q_sse_sm(parameterset, eval)
+  !>       \date Mar. 2017
 
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Mar. 2017
+  ! Modifications:
 
   FUNCTION objective_kge_q_sm_corr(parameterset, eval)
 
-    use mo_moment, only : correlation ! mean ! MZMZMZMZ
+    use mo_common_variables, only : level1, nBasins
+    use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
-    ! use mo_standard_score,       only: standard_score ! MZMZMZM
+    use mo_moment, only : correlation
     use mo_string_utils, only : num2str
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_sm, L1_sm_mask      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
 #ifdef MRM2MHM
-    use mo_errormeasures, only : kge !, sse, rmse ! MZMZMZMZ
+    use mo_errormeasures, only : kge
     use mo_mrm_objective_function_runoff, only : extract_runoff
 #endif
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_kge_q_sm_corr
 
-    ! local
     real(dp) :: objective_sm
+
     real(dp) :: objective_kge
-    real(dp) :: invalid_cells            ! number of invalid cells in catchment
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: iBasin             ! basin loop counter
-    integer(i4) :: iCell              ! cell loop counter
-    integer(i4) :: s1, e1             ! start and end index for the current basin
-    integer(i4) :: ncells1            ! ncells1 of level 1
-    real(dp) :: objective_sm_basin ! basins wise objectives
-    ! SM
-    real(dp), dimension(:, :), allocatable :: sm_opti                 ! simulated soil moisture
-    !                                                                  ! (dim1=ncells, dim2=time)
+
+    ! number of invalid cells in catchment
+    real(dp) :: invalid_cells
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! cell loop counter
+    integer(i4) :: iCell
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! basins wise objectives
+    real(dp) :: objective_sm_basin
+
+    ! simulated soil moisture
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: sm_opti
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
 #ifdef MRM2MHM
-    integer(i4) :: gg                       ! gauges counter
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    ! runoff
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
-#endif
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     ! run mHM
     call eval(parameterset, runoff = runoff, sm_opti = sm_opti)
@@ -1464,60 +1499,42 @@ CONTAINS
 
   ! -----------------------------------------------------------------
 
-  !      NAME
-  !          objective_kge_q_et(parameterset, eval)
+  !    NAME
+  !        objective_kge_q_et
 
-  !>        \brief Objective function of KGE for runoff and KGE for ET
+  !    PURPOSE
+  !>       \brief Objective function of KGE for runoff and KGE for ET
 
-  !>        \details Objective function of KGE for runoff and KGE for ET.
-  !>                 Further details can be found in the documentation of objective functions
-  !>                 '14 - objective_multiple_gauges_kge_power6'.
+  !>       \details Objective function of KGE for runoff and KGE for ET.
+  !>       Further details can be found in the documentation of objective functions
+  !>       '14 - objective_multiple_gauges_kge_power6'.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_kge_q_et(parameterset, eval)
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_kge_q_et(parameterset, eval)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_et &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_kge_q_et &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
+  !    HISTORY
+  !>       \authors Johannes Brenner
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge_q_et(parameterset, eval)
+  !>       \date July 2017
 
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Johannes Brenner
-  !>        \date July 2017
+  ! Modifications:
 
   FUNCTION objective_kge_q_et(parameterset, eval)
 
-    use mo_errormeasures, only : kge !, sse, rmse
-    ! use mo_moment,               only: correlation ! mean ! JBJBJBJB
+    use mo_common_variables, only : level1, nBasins
+    use mo_errormeasures, only : kge
+    use mo_global_variables, only : L1_et, L1_et_mask
     use mo_message, only : message
-    ! use mo_standard_score,       only: standard_score ! JBJBJBJB
     use mo_string_utils, only : num2str
-    use mo_common_variables, only : nBasins, level1                ! number of basins
-    use mo_global_variables, only : L1_et_mask, L1_et      ! packed measured sm, sm-mask (dim1=ncells, dim2=time)
 #ifdef MRM2MHM
     use mo_mrm_objective_function_runoff, only : extract_runoff
 #endif
@@ -1525,34 +1542,58 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_kge_q_et
 
-    ! local
     real(dp) :: objective_et
+
     real(dp) :: objective_q
-    real(dp) :: invalid_cells            ! number of invalid cells in catchment
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: iBasin             ! basin loop counter
-    integer(i4) :: iCell              ! cell loop counter
-    integer(i4) :: s1, e1             ! start and end index for the current basin
-    integer(i4) :: nCells1            ! ncells1 of level 1
-    real(dp) :: objective_et_basin ! basins wise objectives
-    ! SM
-    real(dp), dimension(:, :), allocatable :: et_opti                 ! simulated evapotranspiration
-    !                                                                  ! (dim1=ncells, dim2=time)
+
+    ! number of invalid cells in catchment
+    real(dp) :: invalid_cells
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! basin loop counter
+    integer(i4) :: iBasin
+
+    ! cell loop counter
+    integer(i4) :: iCell
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! ncells1 of level 1
+    integer(i4) :: nCells1
+
+    ! basins wise objectives
+    real(dp) :: objective_et_basin
+
+    ! simulated evapotranspiration
+    ! (dim1=ncells, dim2=time)
+    real(dp), dimension(:, :), allocatable :: et_opti
 
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
 #ifdef MRM2MHM
-    integer(i4) :: gg                       ! gauges counter
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    ! runoff
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
-#endif
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     ! run mHM
     call eval(parameterset, runoff = runoff, et_opti = et_opti)
@@ -1644,66 +1685,46 @@ CONTAINS
 
   ! -----------------------------------------------------------------
 
-  !      NAME
-  !          objective_kge_q_rmse_et
+  !    NAME
+  !        objective_kge_q_rmse_et
 
-  !>        \brief Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
+  !    PURPOSE
+  !>       \brief Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
 
-  !>        \details Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
+  !>       \details Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
+  !>       ADDITIONAL INFORMATION
+  !>       objective_kge_q_rmse_et
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_kge(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge_q_rmse_et &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_kge_q_rmse_et &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized. \n
+  !    HISTORY
+  !>       \authors Johannes Brenner
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge(para)
+  !>       \date July 2017
 
-  !     LITERATURE
-  !>        Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria:
-  !>        Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
-  !>        \author Johannes Brenner
-  !>        \date July 2017
+  ! Modifications:
 
   FUNCTION objective_kge_q_rmse_et(parameterset, eval)
 
-    use mo_errormeasures, only : rmse
-    use mo_common_variables, only : nBasins, level1
+    use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_global_variables, only : timeStep_et_input, &
-            L1_et, L1_et_mask      ! packed measured et, et-mask (dim1=ncells, dim2=time)
+    use mo_common_variables, only : level1, nBasins
+    use mo_errormeasures, only : rmse
+    use mo_global_variables, only : L1_et, L1_et_mask, timeStep_et_input
     use mo_julian, only : caldat
     use mo_message, only : message
-    use mo_common_constants, only : nodata_dp, eps_dp
-    use mo_moment, only : mean, average
-    use mo_temporal_aggregation, only : day2mon_average
+    use mo_moment, only : average, mean
     use mo_standard_score, only : classified_standard_score
     use mo_string_utils, only : num2str
+    use mo_temporal_aggregation, only : day2mon_average
 #ifdef MRM2MHM
     use mo_errormeasures, only : kge
     use mo_mrm_objective_function_runoff, only : extract_runoff
@@ -1712,45 +1733,83 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), POINTER :: eval
+
     real(dp) :: objective_kge_q_rmse_et
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    real(dp), allocatable, dimension(:, :) :: et_opti !JBJBJB                      ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: iTime                    ! time loop counter
-    integer(i4) :: s1, e1                   ! start and end index for the current basin
-    integer(i4) :: iBasin, pp, mmm      ! basin counter, month counters
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: et_opti
+
+    ! time loop counter
+    integer(i4) :: iTime
+
+    ! start and end index for the current basin
+    integer(i4) :: s1, e1
+
+    ! basin counter, month counters
+    integer(i4) :: iBasin, pp, mmm
+
     integer(i4) :: year, month, day
+
     real(dp), dimension(nBasins) :: initTime
 
-    integer(i4) :: nMonths               ! total number of months
-    integer(i4), dimension(:), allocatable :: month_classes         ! vector with months' classes
+    ! total number of months
+    integer(i4) :: nMonths
 
-    !
-    real(dp), dimension(:), allocatable :: et_sim_m, et_obs_m           ! monthly values original time series
-    real(dp), dimension(:), allocatable :: et_sim_m_anom, et_obs_m_anom ! monthly values anomaly time series
-    logical, dimension(:), allocatable :: et_obs_m_mask   !
-    real(dp), dimension(:), allocatable :: rmse_et  ! kge_q(nGaugesTotal)
-    real(dp) :: rmse_et_avg, kge_q_avg ! obj. functions
+    ! vector with months' classes
+    integer(i4), dimension(:), allocatable :: month_classes
 
-    real(dp), dimension(:), allocatable :: et_catch_avg_basin       ! spatial average of observed et
-    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin  ! spatial avergae of modeled  et
-    !real(dp), dimension(:,:), allocatable :: et_opti                  ! simulated et
-    !                                                                 ! (dim1=ncells, dim2=time)
-    logical, dimension(:), allocatable :: mask_times               ! mask for valid et catchment avg time steps
+    ! monthly values original time series
+    real(dp), dimension(:), allocatable :: et_sim_m, et_obs_m
+
+    ! monthly values anomaly time series
+    real(dp), dimension(:), allocatable :: et_sim_m_anom, et_obs_m_anom
+
+    logical, dimension(:), allocatable :: et_obs_m_mask
+
+    ! kge_q(nGaugesTotal)
+    real(dp), dimension(:), allocatable :: rmse_et
+
+    ! obj. functions
+    real(dp) :: rmse_et_avg, kge_q_avg
+
+    ! spatial average of observed et
+    real(dp), dimension(:), allocatable :: et_catch_avg_basin
+
+    ! spatial avergae of modeled  et
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin
+
+    ! simulated et
+    ! (dim1=ncells, dim2=time)
+    !real(dp), dimension(:,:), allocatable :: et_opti
+
+    ! mask for valid et catchment avg time steps
+    logical, dimension(:), allocatable :: mask_times
 
 #ifdef MRM2MHM
-    real(dp), dimension(:), allocatable :: kge_q  ! rmse_et(nBasins)
-    integer(i4) :: gg      ! gauges counter
-    integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg            ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs            ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask       ! mask for measured runoff
+    ! rmse_et(nBasins)
+    real(dp), dimension(:), allocatable :: kge_q
 
-#endif
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     ! obtain simulation values of runoff (hourly) and ET
     ! for ET only valid cells (basins concatenated)
@@ -1921,88 +1980,83 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  ! NAME
-  !         extract_basin_avg_tws
+  !    NAME
+  !        extract_basin_avg_tws
 
-  !>        \brief extracts basin average tws data from global variables
+  !    PURPOSE
+  !>       \brief extracts basin average tws data from global variables
 
-  !>        \details extracts simulated and measured basin average tws from global variables,
-  !>                 such that they overlay exactly. For measured tws, only the tws
-  !>                 during the evaluation period are cut, not succeeding nodata values.
-  !>                 For simulated tws, warming days as well as succeeding nodata values
-  !>                 are neglected.\n
+  !>       \details extracts simulated and measured basin average tws from global variables,
+  !>       such that they overlay exactly. For measured tws, only the tws
+  !>       during the evaluation period are cut, not succeeding nodata values.
+  !>       For simulated tws, warming days as well as succeeding nodata values
+  !>       are neglected.
+  !>       ADDITIONAL INFORMATION
+  !>       extract_basin_avg_tws
+  !>       see use in this module above
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: basinID"   - ID of the current basin to process
-  !>        \param[in] "real(dp)    :: tws(:)"    - simulated basin average tws
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: basinId"           current basin Id
+  !>       \param[in] "real(dp), dimension(:, :) :: tws" simulated basin average tws
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: tws_sim"     aggregated simulated
+  !>       \param[out] "real(dp), dimension(:) :: tws_obs"     extracted measured
+  !>       \param[out] "logical, dimension(:) :: tws_obs_mask" mask of no data values
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)   :: tws_sim(:)"      - simulated basin average tws at this basin\n
-  !>        \param[out] "real(dp)   :: tws_obs(:)"      - extracted observed basin average tws\n
-  !>        \param[out] "logical    :: tws_obs_mask(:)" - masking non-negative values in tws_obs\n
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! >        \date Oct 2015 - 
+  ! Stephan Thober Oct 2015 - moved subroutine to objective_function_sm
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         see use in this module above
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Modified from the module extract_runoff by S. Thober
-  !>        \author O. Rakovec
-  !>        \date Oct 2015
-  !         Modified, Oct 2015, Stephan Thober - moved subroutine to objective_function_sm
-
-  ! ------------------------------------------------------------------
   subroutine extract_basin_avg_tws(basinId, tws, tws_sim, tws_obs, tws_obs_mask)
 
+    use mo_common_constants, only : eps_dp, nodata_dp
+    use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
     use mo_global_variables, only : basin_avg_TWS_obs, nMeasPerDay_TWS
-    use mo_common_mhm_mrm_variables, only : evalPer, warmingDays, nTstepDay
     use mo_message, only : message
-    use mo_common_constants, only : nodata_dp, eps_dp
 
     implicit none
 
-    ! input variables
-    integer(i4), intent(in) :: basinId      ! current basin Id
-    real(dp), dimension(:, :), intent(in) :: tws          ! simulated basin average tws
+    ! current basin Id
+    integer(i4), intent(in) :: basinId
 
-    ! output variables
-    real(dp), dimension(:), allocatable, intent(out) :: tws_sim         ! aggregated simulated
-    ! tws to the resolution
-    ! of the measurement
-    real(dp), dimension(:), allocatable, intent(out) :: tws_obs         ! extracted measured
-    ! tws to exactly the
-    ! evaluation period
-    logical, dimension(:), allocatable, intent(out) :: tws_obs_mask    ! mask of no data values
-    ! in tws_obs
+    ! simulated basin average tws
+    real(dp), dimension(:, :), intent(in) :: tws
 
-    ! local variables
-    integer(i4) :: iBasin  ! basin id
-    integer(i4) :: tt      ! timestep counter
-    integer(i4) :: length  ! length of extracted time series
-    integer(i4) :: factor  ! between simulated and measured time scale
-    integer(i4) :: TPD_sim ! simulated Timesteps per Day
-    integer(i4) :: TPD_obs ! observed Timesteps per Day
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable, intent(out) :: tws_sim
+
+    ! extracted measured
+    real(dp), dimension(:), allocatable, intent(out) :: tws_obs
+
+    ! mask of no data values
+    logical, dimension(:), allocatable, intent(out) :: tws_obs_mask
+
+    ! basin id
+    integer(i4) :: iBasin
+
+    ! timestep counter
+    integer(i4) :: tt
+
+    ! length of extracted time series
+    integer(i4) :: length
+
+    ! between simulated and measured time scale
+    integer(i4) :: factor
+
+    ! simulated Timesteps per Day
+    integer(i4) :: TPD_sim
+
+    ! observed Timesteps per Day
+    integer(i4) :: TPD_obs
+
     real(dp), dimension(:), allocatable :: dummy
+
 
     ! copy time resolution to local variables
     TPD_sim = nTstepDay

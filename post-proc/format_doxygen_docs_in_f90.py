@@ -15,16 +15,18 @@ import re
 import pytest
 from datetime import datetime
 from warnings import warn
+from textwrap import wrap
 
 # GLOBAL VARIABLES
 POSSIBLE_SUFFIXES = ['.f90', '.F']
-ROUTINE_FLAG = ['[\w\s]*function', 'subroutine']
+ROUTINE_FLAG = ['(\w*\s+)*function', '(\w*\s+)*subroutine']
 MODIFIED_FLAG = ['Modified', 'Modifications']
 IMPLICIT_NONE_FLAG = 'implicit none'
 # include the !$ omp option
 USE_FLAG = r'(!\$)?\s*use'
 ARG_DESCRIPTION_SPLITTER = '::'
-MAX_LINE_WIDTH = 100
+MAX_LINE_WIDTH = 120
+DOXYGEN_TEMPLATE = '{}{:{width}}{}'
 
 # FUNCTIONS
 def get_all_subfiles(path, relation=None):
@@ -48,6 +50,8 @@ class Doc(object):
     DOC_COMMENT = '!>'
     COMMENT = '!'
     FLAG_PREFIX = '\\'
+    BEGIN_INDENT = 5
+    SUBSEQUENT_INDENT = 9
 
     def __init__(self, default_author):
         self._name = None
@@ -62,6 +66,7 @@ class Doc(object):
         self._example = None
         self._literature = None
         self._date = None
+        self._other_lines = []
 
         self._in_modified = False
         self._modified = []
@@ -83,27 +88,29 @@ class Doc(object):
                     matched = re.match(self.DOC_COMMENT +
                              '\s*' +
                              self.FLAG_PREFIX * 2 +
-                             pattern, line.strip(), re.IGNORECASE)
+                             pattern + '\s+', line.strip(), re.IGNORECASE)
                     if matched:
                         self.cur_field = pattern
                         parsed = line.strip()[matched.end():].strip()
                         self.set_file_doc_attr(parsed)
                 if parsed is None:
                     self.set_file_doc_attr(line.lstrip(' ' + self.DOC_COMMENT))
+            elif line.strip().startswith(self.COMMENT) and not (
+                    re.match(self.COMMENT + '\s*[A-Z\(\),\s]+$', line.strip()) or re.match(self.COMMENT + '\s*None\s*', line.strip())):
+                self._other_lines.append(line.strip().lstrip(' ' + self.COMMENT))
 
     def doc_to_str(self, fname=None, indent=0, module=False):
 
         def format_item(indent, comment, block_name, value):
-            value = value.replace('\n', '\n{indent}{comment:9}'.format(indent=' ' * indent,
-                                                                       comment=comment))
-            template = '{indent}{base_comment:5}{block_name}\n{indent}{comment:9}{value}\n\n'
-            if block_name is None:
-                template = '{indent}{comment:9}{value}\n\n'
-            return template.format(indent=' ' * indent,
-                                   base_comment=self.COMMENT,
-                                   comment=comment,
-                                   block_name=block_name,
-                                   value=value)
+            formatted = ''
+            if block_name is not None:
+                formatted += DOXYGEN_TEMPLATE.format(' '*indent, self.COMMENT, block_name,
+                                                          width=self.BEGIN_INDENT) + '\n'
+            sep = DOXYGEN_TEMPLATE.format(' '*indent, comment, '',
+                                               width=self.SUBSEQUENT_INDENT)
+            formatted += ('\n').join([('\n'+sep).join(wrap(s, MAX_LINE_WIDTH, initial_indent=sep)) for s in value.splitlines()])
+            formatted += '\n\n'
+            return formatted
 
         value = getattr(self, '_author')
         if value is not None:
@@ -113,13 +120,18 @@ class Doc(object):
         out_string = ''
 
         if module:
+            value = self._name
+            if value is None and self._other_lines:
+                value = self._other_lines.pop(0)
             out_string += format_item(indent=indent, comment=self.COMMENT,
-                                      block_name='NAME', value=self._name)
+                                      block_name='NAME', value=value)
             for item in ['brief', 'details']:
                 value = getattr(self, '_{}'.format(item))
                 if value is None:
                     value = 'TODO: add description'
                 value = '{} {}'.format(self.FLAG_PREFIX + item, value)
+                if item == 'details' and self._other_lines:
+                    value += '\nADDITIONAL INFORMATION\n' + '\n'.join(self._other_lines)
                 out_string += format_item(indent=indent, comment=self.DOC_COMMENT,
                                           block_name=self.BLOCK_DICT.get(item), value=value)
             if self.param_dict:
@@ -253,6 +265,7 @@ class FortranFile(Doc):
                         self._parse_doc(line)
                     except KeyError:
                         self.lines.append(line)
+                        self._cur_doc = None
                 elif self._in_routine:
                     self._parse_routine(line)
                 elif self._in_code:
@@ -262,8 +275,10 @@ class FortranFile(Doc):
                             self.lines.extend(self._cur_routine.comment_cache)
                         self._cur_routine = None
                     self.lines.append(line)
-                # elif line.strip():
                 else:
+                    if self._cur_doc is not None:
+                        self.lines.extend([_line + '\n' for _line in self._cur_doc.doc_to_str(indent=2, module=True).split('\n')])
+                        self._cur_doc = None
                     self.lines.append(line)
 
     def write(self, fname):
@@ -304,7 +319,9 @@ class FortranFile(Doc):
 
     def _check_for_routine(self, line):
         # check for ROUTINE_FLAG
-        if any([re.match('{} '.format(pattern), line.split(self.COMMENT)[0].strip(), re.IGNORECASE) for pattern in ROUTINE_FLAG]):
+        if any([re.match('{} '.format(pattern), line.split(self.COMMENT)[0].strip(), re.IGNORECASE) or
+                re.match('{}$'.format(pattern), line.split(self.COMMENT)[0].strip(), re.IGNORECASE)
+                for pattern in ROUTINE_FLAG]):
             self._in_doc = False
             self._in_modified = False
             self._in_routine = True
@@ -339,7 +356,7 @@ class FortranFile(Doc):
 
     def _check_for_code_end(self, line):
         # check for end ROUTINE_FLAG
-        if any([re.match('end\s*' + pattern, line.split(self.COMMENT)[0], re.IGNORECASE) for pattern in ROUTINE_FLAG]):
+        if any([re.match('end\s*' + pattern, line.split(self.COMMENT)[0].strip(), re.IGNORECASE) for pattern in ROUTINE_FLAG]):
             self._in_code = False
 
     def _parse_doc(self, line):
@@ -368,8 +385,10 @@ class FortranFile(Doc):
                 self._in_routine_args = False
 
     def _check_for_flag(self, line):
-        if line.strip().startswith('#ifdef'):
-            self._in_flag = line.split('#ifdef')[1].strip()
+        if line.strip().startswith(('#ifdef', '#ifndef')):
+            self._in_flag = line.strip().split()[1].strip()
+            if line.strip().startswith('#ifndef'):
+                self._in_flag += '_ndef'
             return True
         elif line.strip().startswith(('#endif', '#else')):
             self._in_flag = ''
@@ -581,7 +600,11 @@ class Routine(object):
                 prev_flag = attr.in_flag
                 out_string += '{}\n'.format(self._flag_to_str(prev_flag, negative=True))
             if attr.doc:
-                out_string += '{}{} {}\n'.format(' ' * indent, self.COMMENT, attr.doc)
+                sep = DOXYGEN_TEMPLATE.format(' ' * indent, self.COMMENT, '',
+                                                   width=2)
+                out_string += ('\n').join(
+                    [('\n' + sep).join(wrap(s, MAX_LINE_WIDTH, initial_indent=sep)) for s in attr.doc.splitlines()]) \
+                              + '\n'
             out_string += '{}{} {} {}\n\n'.format(' ' * indent,
                                              ', '.join(attr.attrs),
                                              ARG_DESCRIPTION_SPLITTER,
@@ -620,6 +643,8 @@ class Routine(object):
 
     def _flag_to_str(self, flag, negative):
         if flag:
+            if flag.endswith('_ndef'):
+                return '#ifndef {}'.format(flag[:-5])
             return '#ifdef {}'.format(flag)
         elif negative:
             return '#endif'
@@ -648,11 +673,11 @@ class ArgumentAttributes(object):
             self.attrs.append(attr)
             if i_attr == 0:
                 self.type_attr = attr.strip(' ')
-            if attr.startswith('intent'):
+            if re.match('intent', attr, re.IGNORECASE):
                 self.intent_attr = attr.split('(')[1].strip(') ').lower()
-            if attr.startswith('optional'):
+            if re.match('optional', attr, re.IGNORECASE):
                 self.optional_attr = attr.strip(' ').lower()
-            if attr.startswith('dimension'):
+            if re.match('dimension', attr, re.IGNORECASE):
                 self.dimension_attr = attr.strip(' ')
 
         if len(split) == 2:
@@ -662,7 +687,7 @@ class ArgumentAttributes(object):
         self.doc = docstring.strip() or ''
 
     def append_str(self, to_append):
-        self.doc += to_append.strip()
+        self.doc += '\n' + to_append.strip()
 
     @property
     def intent_optional_key(self):
@@ -673,7 +698,7 @@ class ArgumentAttributes(object):
 
     @property
     def doxygen_string(self):
-        param_args = [arg for arg in [self.type_attr, self.dimension_attr] if arg]
+        param_args = [arg for arg in [self.type_attr, self.dimension_attr, self.optional_attr] if arg]
         return ('\\param[{}] "{} {} {}"'.format(self.intent_attr,
                                                 ', '.join(param_args),
                                                 ARG_DESCRIPTION_SPLITTER,
@@ -707,7 +732,8 @@ class TestFortranFile(object):
         lines = ['function newDimAlias(aliases) result(newDimAlias)',
                  'SUBROUTINE mpr_eval(parameterset)',
                  'function majority_statistics(nClass, &   ! number of classes',
-                 '  elemental pure subroutine temporal_disagg_forcing(isday, &']
+                 '  elemental pure subroutine temporal_disagg_forcing(isday, &',
+                 'subroutine lcover']
         for line in lines:
             fortran_file._in_routine = False
             fortran_file._check_for_routine(line)
@@ -731,7 +757,7 @@ class TestFortranFile(object):
             assert fortran_file._in_code
 
     def test_check_for_code_end(self, fortran_file):
-        lines = ['END   FUNCTION',
+        lines = ['END   FUNCTION', 'END MODULE mo_objective_function',
                  '    end subroutine dummy']
         for line in lines:
             fortran_file._in_code = True
@@ -743,8 +769,9 @@ class TestFortranFile(object):
 if __name__ == '__main__':
     default_author = 'Robert Schweppe'
     arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mhm/trunk/src/'
-    #arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mhm/trunk/src/mRM/mrm_driver.f90'
-    arg_path_out = '/Users/ottor/temp/mpr_extract_test/src'
+    #arg_path_in = '/Users/ottor/ownCloud/Home/local_libs/fortran/mhm/trunk/src/mHM/mo_objective_function.f90'
+    #arg_path_out = '/Users/ottor/temp/mpr_extract_test/src'
+    arg_path_out = '/Users/ottor/eve/ottor/lib/svn_mhm/src/'
     path_in = pathlib.Path(arg_path_in)
 
     if path_in.is_file():

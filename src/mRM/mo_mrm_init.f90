@@ -4,7 +4,7 @@
 
 !>       \details Calling all routines to initialize all mRM variables
 
-!>       \authors s Luis Samaniego, Rohini Kumar and Stephan Thober
+!>       \authors Luis Samaniego, Rohini Kumar and Stephan Thober
 
 !>       \date Aug 2015
 
@@ -40,10 +40,10 @@ CONTAINS
   !>       variables to save memory because these variable will then not be read in again.
 
   !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
-  !>       \param[in] "integer :: unamelist, unamelist_param"              
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
-  !>       \param[in] "integer :: unamelist, unamelist_param"              
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+  !>       \param[in] "integer :: unamelist, unamelist_param"
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+  !>       \param[in] "integer :: unamelist, unamelist_param"
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -253,20 +253,39 @@ CONTAINS
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================
+  !    NAME
+  !        print_startup_message
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine print_startup_message(file_namelist, file_namelist_param)
 
     use mo_kind, only : i4
     use mo_message, only : message, message_text
+    use mo_mrm_file, only : file_defOutput, file_main, version, version_date
     use mo_string_utils, only : num2str, separator
-    use mo_mrm_file, only : &
-            version, &
-            version_date, &
-            file_main, &
-            file_defOutput
+
     implicit none
-    ! local variables
+
     character(*), intent(in) :: file_namelist, file_namelist_param
-    integer(i4), dimension(8) :: datetime ! Date and time
+
+    ! Date and time
+    integer(i4), dimension(8) :: datetime
+
 
     call message(separator)
     call message('              mRM-UFZ')
@@ -299,28 +318,38 @@ CONTAINS
   !---------------------------------------------------------------
   ! Config output
   !---------------------------------------------------------------
-  subroutine config_output()
+  !    NAME
+  !        config_output
 
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine config_output
+
+    use mo_common_variables, only : dirLCover, dirMorpho, dirOut, nBasins
     use mo_kind, only : i4
-    use mo_string_utils, only : num2str
     use mo_message, only : message
-    use mo_mrm_file, only : &
-            file_namelist_mrm, &
-            file_namelist_param_mrm, &
-            file_defOutput
-    use mo_mrm_global_variables, only : &
-            dirGauges, &
-            basin_mrm
-    use mo_common_variables, only : &
-            dirLCover, &
-            dirOut, &
-            dirMorpho, &
-            nBasins
+    use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
+    use mo_mrm_global_variables, only : basin_mrm, &
+                                        dirGauges
+    use mo_string_utils, only : num2str
 
     implicit none
-    ! local variables
+
     integer(i4) :: iBasin
+
     integer(i4) :: jj
+
+
     !
     call message()
     call message('Read namelist file: ', trim(file_namelist_mrm))
@@ -357,60 +386,43 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          variables_default_init_routing
+  !    NAME
+  !        variables_default_init_routing
 
-  !>        \brief Default initalization mRM related L11 variables
+  !    PURPOSE
+  !>       \brief Default initalization mRM related L11 variables
 
-  !>        \details Default initalization of mHM related L11 variables (e.g., states,
-  !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>                 Variables initalized here is defined in the mo_global_variables.f90 file. 
-  !>                 Only Variables that are defined in the variables_alloc subroutine are 
-  !>                 intialized here.
-  !
-  !>                 If a variable is added or removed here, then it also has to be added or removed
-  !>                 in the subroutine state_variables_set in the module mo_restart and in the 
-  !>                 subroutine set_state in the module mo_set_netcdf_restart.
-  !
-  !     CALLING SEQUENCE
-  !         call variables_default_init()
+  !>       \details Default initalization of mHM related L11 variables (e.g., states,
+  !>       fluxes, and parameters) as per given constant values given in mo_mhm_constants.
+  !>       Variables initalized here is defined in the mo_global_variables.f90 file.
+  !>       Only Variables that are defined in the variables_alloc subroutine are
+  !>       intialized here.
+  !>       If a variable is added or removed here, then it also has to be added or removed
+  !>       in the subroutine state_variables_set in the module mo_restart and in the
+  !>       subroutine set_state in the module mo_set_netcdf_restart.
+  !>       ADDITIONAL INFORMATION
+  !>       variables_default_init_routing
 
-  !     INTENT(IN)
 
-  !     INTENT(INOUT)
-  !         None
+  !>       call variables_default_init()
+  !>       \authors  Stephan Thober, Rohini Kumar, and Juliane Mai
+  !>       \date    Aug 2015
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(OUT), OPTIONAL
+  subroutine variables_default_init_routing
 
-  !     RETURN
+    use mo_common_constants, only : P1_InitStateFluxes
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi
 
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !         \authors  Stephan Thober, Rohini Kumar, and Juliane Mai
-  !         \date    Aug 2015
-  !         Modified
-
-  subroutine variables_default_init_routing()
-
-    use mo_mrm_global_variables, only : &
-            L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_K, L11_xi, L11_C1, L11_C2
-    use mo_common_constants, only : &
-            P1_InitStateFluxes
     implicit none
+
+
     !-------------------------------------------
     ! L11 ROUTING STATE VARIABLES, FLUXES AND
     !             PARAMETERS
@@ -437,19 +449,39 @@ CONTAINS
   ! --------------------------------------------------------------------------
   ! L0_check_input_routing
   ! --------------------------------------------------------------------------
+  !    NAME
+  !        L0_check_input_routing
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: L0Basin_iBasin"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine L0_check_input_routing(L0Basin_iBasin)
 
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : level0
     use mo_kind, only : i4
     use mo_message, only : message, message_text
+    use mo_mrm_global_variables, only : L0_fAcc, L0_fDir
     use mo_string_utils, only : num2str
-    use mo_mrm_global_variables, only : L0_fDir, L0_fAcc
-    use mo_common_variables, only : level0
-    USE mo_common_constants, ONLY : nodata_i4
+
     implicit none
-    ! input variables
+
     integer(i4), intent(in) :: L0Basin_iBasin
-    ! local variables
+
     integer(i4) :: k
+
 
     do k = level0(L0Basin_iBasin)%iStart, level0(L0Basin_iBasin)%iEnd
       ! flow direction [-]
@@ -475,20 +507,39 @@ CONTAINS
   ! L11 ROUTING STATE VARIABLES, FLUXES AND
   !             PARAMETERS
   ! --------------------------------------------------------------------------
+  !    NAME
+  !        variables_alloc_routing
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine variables_alloc_routing(iBasin)
 
-    use mo_kind, only : i4, dp
+    use mo_append, only : append
+    use mo_kind, only : dp, i4
     use mo_mrm_constants, only : nRoutingStates
-    use mo_append, only : append                      ! append vector
-    use mo_mrm_global_variables, only : L11_Qmod, L11_qOUT, L11_qTIN, &
-            L11_qTR, L11_K, L11_xi, L11_C1, L11_C2, level11
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi, level11
 
     implicit none
-    ! input variables
+
     integer(i4), intent(in) :: iBasin
-    ! local variables
+
     real(dp), dimension(:), allocatable :: dummy_Vector11
+
     real(dp), dimension(:, :), allocatable :: dummy_Matrix11_IT
+
 
     ! dummy vector and matrix
     allocate(dummy_Vector11   (level11(iBasin)%nCells))
@@ -537,36 +588,54 @@ CONTAINS
   ! --------------------------------------------------------------------------
   ! The parameters are set following Thober et al. 2017
   ! Modified: 
+  !    NAME
+  !        mrm_init_param
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"           Basin number
+  !>       \param[in] "real(dp), dimension(:) :: param" input parameter (param(1) is celerity in m/s)
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine mrm_init_param(iBasin, param)
 
-    use mo_kind, only : i4, dp
-    use mo_common_variables, only : &
-            ! input variables
-            iFlag_cordinate_sys, &
-            processMatrix, nBasins
-    use mo_common_mHM_mRM_variables, only : &
-            resolutionRouting, timeStep
-    use mo_mrm_global_variables, only : &
-            ! input variables
-            basin_mrm, &
-            ! output variables
-            L11_tsRout
     use mo_common_constants, only : HourSecs
-    use mo_mrm_constants, only : given_TS
+    use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep
+    use mo_common_variables, only : iFlag_cordinate_sys, nBasins, processMatrix
+    use mo_kind, only : dp, i4
     use mo_message, only : message
+    use mo_mrm_constants, only : given_TS
+    use mo_mrm_global_variables, only : L11_tsRout, basin_mrm
     use mo_string_utils, only : num2str
-    use mo_utils, only : notequal, locate
+    use mo_utils, only : locate, notequal
 
     implicit none
 
-    ! Input
-    integer(i4), intent(in) :: iBasin ! Basin number
-    real(dp), dimension(:), intent(in) :: param ! input parameter (param(1) is celerity in m/s)
+    ! Basin number
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
-    integer(i4) :: index   ! index selected from given_TS
-    real(dp) :: deltaX  ! spatial routing resolution
-    real(dp) :: K       ! [s] wave travel time parameter
+    ! input parameter (param(1) is celerity in m/s)
+    real(dp), dimension(:), intent(in) :: param
+
+    ! index selected from given_TS
+    integer(i4) :: index
+
+    ! spatial routing resolution
+    real(dp) :: deltaX
+
+    ! [s] wave travel time parameter
+    real(dp) :: K
+
 
     ! temporal resolution of routing
     if (iBasin .eq. 1 .and. .not. allocated(L11_tsRout)) then
@@ -607,32 +676,58 @@ CONTAINS
 
   end subroutine mrm_init_param
 
+  !    NAME
+  !        mrm_update_param
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"           Basin number
+  !>       \param[in] "real(dp), dimension(1) :: param" celerity parameter [m s-1]
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine mrm_update_param(iBasin, param)
 
-    use mo_kind, only : i4, dp
-    use mo_mrm_global_variables, only : &
-            ! input variable
-            L11_TSrout, &
-            ! output variables
-            L11_C1, L11_C2, level11
-    use mo_mrm_constants, only : rout_space_weight, given_TS
-    use mo_utils, only : locate
-    use mo_common_variables, only : iFlag_cordinate_sys
     use mo_common_mHM_mRM_variables, only : resolutionRouting
+    use mo_common_variables, only : iFlag_cordinate_sys
+    use mo_kind, only : dp, i4
+    use mo_mrm_constants, only : given_TS, rout_space_weight
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_TSrout, level11
+    use mo_utils, only : locate
 
     implicit none
 
-    ! Input
-    integer(i4), intent(in) :: iBasin   ! Basin number
-    real(dp), intent(in) :: param(1) ! celerity parameter [m s-1]
+    ! Basin number
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
+    ! celerity parameter [m s-1]
+    real(dp), intent(in), dimension(1) :: param
+
     integer(i4) :: s11
+
     integer(i4) :: e11
-    integer(i4) :: index   ! index selected from given_TS
-    real(dp) :: deltaX  ! spatial routing resolution
-    real(dp) :: K       ! [s] wave travel time parameter
-    real(dp) :: xi      ! [1] Muskingum diffusion parameter (attenuation)
+
+    ! index selected from given_TS
+    integer(i4) :: index
+
+    ! spatial routing resolution
+    real(dp) :: deltaX
+
+    ! [s] wave travel time parameter
+    real(dp) :: K
+
+    ! [1] Muskingum diffusion parameter (attenuation)
+    real(dp) :: xi
+
 
     ! get basin information
     s11 = level11(iBasin)%iStart

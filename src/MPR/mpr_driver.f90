@@ -7,7 +7,7 @@
 !>       \image html  mhm5-logo.png "Typical mHM cell"
 !>       \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
-!>       \authors s   Luis Samaniego & Rohini Kumar (UFZ)
+!>       \authors Luis Samaniego & Rohini Kumar (UFZ)
 
 !>       \date Dec 2015
 
@@ -15,11 +15,11 @@
 
 !>       \copyright (c)2005-2018, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
 !>       All rights reserved.
-!>       
+
 !>       This code is a property of:
-!>       
+
 !>       ----------------------------------------------------------
-!>       
+
 !>       Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ
 !>       Registered Office: Leipzig
 !>       Registration Office: Amtsgericht Leipzig
@@ -27,9 +27,9 @@
 !>       Chairman of the Supervisory Board: MinDirig Wilfried Kraus
 !>       Scientific Director: Prof. Dr. Georg Teutsch
 !>       Administrative Director: Dr. Heike Grassmann
-!>       
+
 !>       ----------------------------------------------------------
-!>       
+
 !>       NEITHER UFZ NOR THE DEVELOPERS MAKES ANY WARRANTY,
 !>       EXPRESS OR IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE
 !>       OF THIS SOFTWARE. If software is modified to produce
@@ -38,17 +38,17 @@
 !>       available from UFZ.  This code can be used for research
 !>       purposes ONLY provided that the following sources are
 !>       acknowledged:
-!>       
+
 !>       Samaniego L., Kumar R., Attinger S. (2010): Multiscale
 !>       parameter regionalization of a grid-based hydrologic
 !>       model at the mesoscale.  Water Resour. Res., 46,
 !>       W05523, doi:10.1029/2008WR007327.
-!>       
+
 !>       Kumar, R., L. Samaniego, and S. Attinger (2013), Implications
 !>       of distributed hydrologic model parameterization on water
 !>       fluxes at multiple scales and locations, Water Resour. Res.,
 !>       49, doi:10.1029/2012WR012195.
-!>       
+
 !>       For commercial applications you have to consult the
 !>       authorities of the UFZ.
 

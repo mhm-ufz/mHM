@@ -4,7 +4,7 @@
 
 !>       \details This module deals with processes related to canopy interception, evaporation and throughfall.
 
-!>       \authors s Vladyslav Prykhodko
+!>       \authors Vladyslav Prykhodko
 
 !>       \date Dec 2012
 
@@ -43,8 +43,12 @@ CONTAINS
   !>       Evaporation (\f$E\f$) from canopy is estimated as a fraction of the potential
   !>       evapotranspiration(\f$E_{p}\f$) depending on the current status of the canopy
   !>       water content (\f$C\f$) and the max. water content(\f$C_{max}\f$) that can be
-  !>       intecepted by the vegetation. 
+  !>       intecepted by the vegetation.
   !>       \f[ E = E_{p}(C/C_{max})^{2/3} \f]
+  !>       ADDITIONAL INFORMATION
+  !>       canopy_interc
+  !>       content(\f$C_{max}\f$) that can be intecepted by the vegetation.\n
+  !>       canopy_interc(pet, interc_month_max, interc_max, precip, throughfall, evap_canopy, interc)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: pet"        Potential evapotranspiration [mm s-1]

@@ -4,7 +4,7 @@
 
 !>       \details NetCDF is first initialized and later on variables are put to the NetCDF.
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Apr 2013
 
@@ -73,14 +73,31 @@ contains
   !>       \brief Initialize OutputVariable
 
   !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       newOutputVariable
+
+
+  !>       var = OutputVariable(nc, ncells, mask, avg)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
 
   !    INTENT(IN)
   !>       \param[in] "type(NcDataset) :: nc"               -> NcDataset which contains the variable
-  !>       \param[in] "character(*) :: name"                
-  !>       \param[in] "character(*) :: dtype"               
-  !>       \param[in] "character(16), dimension(3) :: dims" 
+  !>       \param[in] "character(*) :: name"
+  !>       \param[in] "character(*) :: dtype"
+  !>       \param[in] "character(16), dimension(3) :: dims"
   !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
-  !>       \param[in] "logical, dimension(:, :) :: mask"    
+  !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "logical, optional :: avg" -> average the data before writing
@@ -138,57 +155,52 @@ contains
   ! end function newOutputVariable
 
   !------------------------------------------------------------------
-  !     NAME
-  !         updateVariable
-  !
-  !     PURPOSE
-  !>        \brief Update OutputVariable
-  !>        \details Add the array given as actual argument 
-  !>                 to the derived type's component 'data'
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputVariable):
-  !         call var%updateVariable(data)              
-  !
-  !     INTENT(IN)
-  !>        \param[in] "type(NcDataset)   :: nc"        -> NcDataset which contains the variable
-  !>        \param[in] "integer(i4)       :: ncells"    -> number of cells in basin
-  !>        \param[in] "logical, target   :: mask(:,:)" -> mask to reconstruct data
-  !>        \param[in] "logical, optional :: avg"       -> average the data before writing
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputVariable)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        updateVariable
+
+  !    PURPOSE
+  !>       \brief Update OutputVariable
+
+  !>       \details Add the array given as actual argument
+  !>       to the derived type's component 'data'
+  !>       ADDITIONAL INFORMATION
+  !>       updateVariable
+
+
+  !>       -> with nc of type(OutputVariable):
+  !>       call var%updateVariable(data)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputVariable) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data"
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine updateVariable(self, data)
+    implicit none
+
     class(OutputVariable), intent(inout) :: self
-    real(dp), intent(in) :: data(:)
+
+    real(dp), intent(in), dimension(:) :: data
+
 
     self%data = self%data + data
     self%counter = self%counter + 1
@@ -196,57 +208,52 @@ contains
   end subroutine updateVariable
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeVariableTimestep
-  !
-  !     PURPOSE
-  !>        \brief Write timestep to file
-  !>        \details Write the content of the derived types's component
-  !>                 'data' to file, average if necessary
-  !
-  !     CALLING SEQUENCE
-  !         -> with var of type(OutputVariable):
-  !         call var%updateVariable(data)              
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: timestep" 
-  !>            -> index along the time dimension of the netcdf variable
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schafer
-  !>        \date June 2015
-  !         Modified:
-  !             David Schaefer, Sep. 2015 - bugfix
+  !    NAME
+  !        writeVariableTimestep
+
+  !    PURPOSE
+  !>       \brief Write timestep to file
+
+  !>       \details Write the content of the derived types's component
+  !>       'data' to file, average if necessary
+  !>       ADDITIONAL INFORMATION
+  !>       writeVariableTimestep
+
+
+  !>       -> with var of type(OutputVariable):
+  !>       call var%updateVariable(data)
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputVariable) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: timestep" -> index along the time dimension of the netcdf variable
+
+  !    HISTORY
+  !>       \authors David Schafer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeVariableTimestep(self, timestep)
+    implicit none
+
     class(OutputVariable), intent(inout) :: self
+
+    ! -> index along the time dimension of the netcdf variable
     integer(i4), intent(in) :: timestep
+
 
     if (self%avg) then
       self%data = self%data / real(self%counter, dp)
@@ -260,74 +267,69 @@ contains
   end subroutine writeVariableTimestep
 
   !------------------------------------------------------------------
-  !     NAME
-  !         newOutputDataset
-  !
-  !     PURPOSE
-  !>        \brief Initialize OutputDataset
-  !>        \details Create and initialize the output file. If new a new output
-  !>                 variable needs to be written, this is the first of two
-  !>                 procedures to change (second: updateDataset)
-  !
-  !     CALLING SEQUENCE
-  !         nc = OutputDataset(ibasin, mask1)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: ibasin" -> basin id 
-  !>        \param[in] "logical     :: mask1"  -> L1 mask to reconstruct the data
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputDataset)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
-  !                                               during writing of the netcdf file
-  !             Matthias Zink       , Feb. 2014 - added aditional output: pet
-  !             V. Prykhodk, J. Mai , Nov. 2014 - adding new variable infilSoil - case 16
-  !             David Schaefer      , Jun. 2015 - major rewrite
-  !             Stephan Thober      , Oct. 2015 - adapted to mRM
-  !             David Schaefer      , Nov. 2016 - moved NcVariable initialization to newOutputVariable
+  !    NAME
+  !        newOutputDataset
+
+  !    PURPOSE
+  !>       \brief Initialize OutputDataset
+
+  !>       \details Create and initialize the output file. If new a new output
+  !>       variable needs to be written, this is the first of two
+  !>       procedures to change (second: updateDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       newOutputDataset
+
+
+  !>       nc = OutputDataset(ibasin, mask1)
+
+
+
+
+
+
+
+  !>       \return type(OutputDataset)
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ibasin"            -> basin id
+  !>       \param[in] "logical, dimension(:, :) :: mask"
+  !>       \param[in] "integer(i4) :: nCells"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+
   function newOutputDataset(ibasin, mask, nCells) result(out)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
+    implicit none
+
+    ! -> basin id
     integer(i4), intent(in) :: ibasin
-    logical, intent(in), target :: mask(:, :)
+
+    logical, intent(in), target, dimension(:, :) :: mask
+
     integer(i4), intent(in) :: nCells
+
     type(OutputDataset) :: out
-    ! local
+
     integer(i4) :: ii
+
     character(3) :: dtype
-    character(16) :: dims1(3)
+
+    character(16), dimension(3) :: dims1
+
     type(NcDataset) :: nc
-    type(OutputVariable) :: tmpvars(size(outputFlxState_mrm))
+
+    type(OutputVariable), dimension(size(outputFlxState_mrm)) :: tmpvars
+
 
     dtype = "f64"
     dims1 = (/"easting ", "northing", "time    "/)
@@ -352,80 +354,75 @@ contains
   end function newOutputDataset
 
   !------------------------------------------------------------------
-  !     NAME
-  !         updateDataset
-  !
-  !     PURPOSE
-  !>        \brief Update all variables.
-  !>        \details Call the type bound procedure updateVariable for
-  !>                 all output variables. If a new output
-  !>                 variable needs to be written, this is the second
-  !>                 of two procedures to change (first: newOutputDataset)
-  !
-  !     CALLING SEQUENCE
-  !        with nc of type(OutputDataset):
-  !        call nc%updateDataset(&
-  !             self         , sidx         , eidx,           ,    &
-  !             L11_qMod )
-  !             
-  !
-  !     INTENT(IN)
-  !>             \param[in] "sidx"        -> start index of the basin related data in L1_* arguments
-  !>             \param[in] "eidx"        -> end index of the basin related data in L1_* arguments
-  !>             \param[in] "L11_qMod"
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
-  !                                               during writing of the netcdf file
-  !             L. Samaniego et al.,  Dec  2013 - nullify pointer
-  !             Matthias Zink,        Feb. 2014 - added aditional output: pet
-  !             V. Prykhodk, J. Mai,  Nov. 2014 - adding new variable infilSoil - case 16
-  !             David Schaefer      , Jun. 2015 - major rewrite
-  !             Stephan Thober      , Oct  2015 - adapted to mRM
-  subroutine updateDataset(self, sidx, eidx, &
-          L11_Qmod)
+  !    NAME
+  !        updateDataset
+
+  !    PURPOSE
+  !>       \brief Update all variables.
+
+  !>       \details Call the type bound procedure updateVariable for
+  !>       all output variables. If a new output
+  !>       variable needs to be written, this is the second
+  !>       of two procedures to change (first: newOutputDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       updateDataset
+
+
+  !>       with nc of type(OutputDataset):
+  !>       call nc%updateDataset(&
+  !>       self         , sidx         , eidx,           ,    &
+  !>       L11_qMod )
+
+
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputDataset) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - start index of the basin related data in L1_* arguments
+  !>       \param[in] "integer(i4) :: sidx, eidx"          - end index of the basin related data in L1_* arguments
+  !>       \param[in] "real(dp), dimension(:) :: L11_Qmod"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
+  !                              - adding new variable infilSoil 
+  !                              - case 16 David Schaefer      , Jun. 2015 
+  !                              - major rewrite
+  ! Stephan Thober      Oct  2015 - adapted to mRM
+
+  subroutine updateDataset(self, sidx, eidx, L11_Qmod)
 
     use mo_mrm_global_variables, only : outputFlxState_mrm
 
-    class(OutputDataset), intent(inout), target :: self
-    integer(i4), intent(in) :: sidx, eidx
-    ! fluxes,
-    real(dp), intent(in) :: L11_Qmod(:)
+    implicit none
 
-    ! local
-    type(OutputVariable), pointer :: vars(:)
+    class(OutputDataset), intent(inout), target :: self
+
+    ! - end index of the basin related data in L1_* arguments
+    integer(i4), intent(in) :: sidx, eidx
+
+    real(dp), intent(in), dimension(:) :: L11_Qmod
+
+    type(OutputVariable), pointer, dimension(:) :: vars
+
     integer(i4) :: ii
+
 
     ii = 0
     vars => self%vars
@@ -442,56 +439,57 @@ contains
   end subroutine updateDataset
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeTimestep
-  !
-  !     PURPOSE
-  !>        \brief Write all accumulated data.
-  !>        \details Write all accumulated and potentially averaged
-  !>                 data to disk.
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputDataset)
-  !         call nc%writeTimestep(timestep)     
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: timestep" The model timestep to write
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputVariable)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        writeTimestep
+
+  !    PURPOSE
+  !>       \brief Write all accumulated data.
+
+  !>       \details Write all accumulated and potentially averaged
+  !>       data to disk.
+  !>       ADDITIONAL INFORMATION
+  !>       writeTimestep
+
+
+  !>       -> with nc of type(OutputDataset)
+  !>       call nc%writeTimestep(timestep)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputDataset) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: timestep" The model timestep to write
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeTimestep(self, timestep)
+    implicit none
+
     class(OutputDataset), intent(inout), target :: self
+
+    ! The model timestep to write
     integer(i4), intent(in) :: timestep
+
     integer(i4) :: ii
+
     type(NcVariable) :: tvar
+
 
     self%counter = self%counter + 1
 
@@ -506,61 +504,50 @@ contains
   end subroutine writeTimestep
 
   !------------------------------------------------------------------
-  !     NAME
-  !         close
-  !
-  !     PURPOSE
-  !>        \brief Close the file
-  !>        \details Close the file associated with variable of
-  !>                 type(OutputDataset)
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputDataset):
-  !         call nc%close()     
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Rohini Kumar & Stephan Thober
-  !>        \date August 2013
-  !         Modified:
-  !             David Schaefer, June 2015 - adapted to new structure
-  !             Stephan Thober, Oct  2015 - adapted to mRM
+  !    NAME
+  !        close
+
+  !    PURPOSE
+  !>       \brief Close the file
+
+  !>       \details Close the file associated with variable of
+  !>       type(OutputDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       close
+
+
+  !>       -> with nc of type(OutputDataset):
+  !>       call nc%close()
+
+
+
+
+
+
+
+
+
+
+
+  !    HISTORY
+  !>       \authors Rohini Kumar & Stephan Thober
+
+  !>       \date August 2013
+
+  ! Modifications:
+  ! Stephan Thober Oct  2015 - adapted to mRM
+
   subroutine close(self)
 
     use mo_String_utils, only : num2str
-    use mo_message, only : message
     use mo_common_variables, only : dirOut
+    use mo_message, only : message
+
+    implicit none
 
     class(OutputDataset) :: self
+
+
     call self%nc%close()
     call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
     call message('    to ', trim(dirOut(self%ibasin)))
@@ -568,71 +555,73 @@ contains
   end subroutine close
 
   !------------------------------------------------------------------
-  !     NAME
-  !         createOutputFile
-  !
-  !     PURPOSE
-  !>        \brief Create and initialize output file
-  !>        \details Create output file, write all non-dynamic variables
-  !>                 and global attributes for the given basin.
-  !>
-  !
-  !     CALLING SEQUENCE
-  !         nc = createOutputFile(ibasin)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)     :: ibasin"      -> basin id
-  !>        \param[in] "logical, target :: mask1(:,:)"  -> level11 mask
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(NcDataset)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
-  !         modified,
-  !             Stephan Thober, Oct  2015 - adapted to mRM
+  !    NAME
+  !        createOutputFile
+
+  !    PURPOSE
+  !>       \brief Create and initialize output file
+
+  !>       \details Create output file, write all non-dynamic variables
+  !>       and global attributes for the given basin.
+
+  !>       ADDITIONAL INFORMATION
+  !>       createOutputFile
+
+
+  !>       nc = createOutputFile(ibasin)
+
+
+
+
+
+
+
+  !>       \return type(NcDataset)
+
+
+
+
+  !>       modified,
+  !>       Stephan Thober, Oct  2015 - adapted to mRM
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   function createOutputFile(ibasin) result(nc)
 
-    use mo_mrm_global_variables, only : level11
-    use mo_grid, only : mapCoordinates, geoCoordinates
-    use mo_common_variables, only : dirOut
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_mrm_file, only : version, file_mrm_output
+    use mo_common_variables, only : dirOut
+    use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_julian, only : dec2date
+    use mo_mrm_file, only : file_mrm_output, version
+    use mo_mrm_global_variables, only : level11
 
+    implicit none
+
+    ! -> basin id
     integer(i4), intent(in) :: ibasin
+
     type(NcDataset) :: nc
-    type(NcDimension) :: dimids1(3)
+
+    type(NcDimension), dimension(3) :: dimids1
+
     type(NcVariable) :: var
+
     integer(i4) :: day, month, year
+
     character(1028) :: fname
+
     character(128) :: unit, date, time, datetime
-    real(dp), allocatable :: northing(:), easting(:), lat(:, :), lon(:, :)
+
+    real(dp), allocatable, dimension(:), easting(:), lat(:, :), lon(:, :) :: northing
+
 
     fname = trim(dirOut(ibasin)) // trim(file_mrm_output)
     call mapCoordinates(level11(ibasin), northing, easting)
@@ -698,53 +687,49 @@ contains
   end function createOutputFile
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeVariableAttributes
-  !
-  !     PURPOSE
-  !>        \brief Write output variable attributes
-  !
-  !     CALLING SEQUENCE
-  !         call writeVariableAttributes(var, long_name, unit) 
-  !
-  !     INTENT(IN)
-  !>        \param[in] "type(OutputVariable) :: var" 
-  !>        \param[in] "character(*)         :: long_name"    -> variable name
-  !>        \param[in] "character(*)         :: unit"         -> physical unit
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !        None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        writeVariableAttributes
+
+  !    PURPOSE
+  !>       \brief Write output variable attributes
+
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       writeVariableAttributes
+
+
+  !>       call writeVariableAttributes(var, long_name, unit)
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "type(OutputVariable) :: var"
+  !>       \param[in] "character(*) :: long_name, unit" -> variable name
+  !>       \param[in] "character(*) :: long_name, unit" -> physical unit
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeVariableAttributes(var, long_name, unit)
+    implicit none
+
     type(OutputVariable), intent(in) :: var
+
+    ! -> physical unit
     character(*), intent(in) :: long_name, unit
+
 
     call var%nc%setAttribute("long_name", long_name)
     call var%nc%setAttribute("unit", unit)

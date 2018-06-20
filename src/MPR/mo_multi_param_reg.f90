@@ -4,7 +4,7 @@
 
 !>       \details This module provides the routines for multiscale parameter regionalization (MPR).
 
-!>       \authors s Stephan Thober, Rohini Kumar
+!>       \authors Stephan Thober, Rohini Kumar
 
 !>       \date Dec 2012
 
@@ -35,15 +35,14 @@ contains
   !>       - Baseflow recession parameter
   !>       - Soil moisture parameters
   !>       - PET correction for aspect
-  !>       
+
   !>       and upscale these parameters to retrieve effective parameters at scale
-  !>       L1. 
+  !>       L1.
   !>       Further parameter regionalizations are done for:
   !>       - snow accumulation and melting parameters
   !>       - threshold parameter for runoff generation on impervious layer
   !>       - karstic percolation loss
   !>       - setting up the Regionalized Routing Parameters
-  !>       
 
   !    INTENT(IN)
   !>       \param[in] "logical, dimension(:, :) :: mask0"         mask at level 0 field
@@ -64,33 +63,46 @@ contains
   !    INTENT(INOUT)
   !>       \param[inout] "real(dp), dimension(:, :, :) :: fSealed1"         [1] fraction of sealed area
   !>       \param[inout] "real(dp), dimension(:, :, :) :: alpha1"           [1] Exponent for the upper reservoir
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayInc1"       [d-1 degreeC-1]  Increase of theDegree-day factor per mm ofincrease in precipitation
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayInc1"       [d-1 degreeC-1]  Increase of the
+  !>       Degree-day factor per mm of
+  !>       increase in precipitation
   !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayMax1"       [mm-1 degreeC-1] Maximum Degree-day factor
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayNoPre1"     [mm-1 degreeC-1] Degree-day factor withno precipitation
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: degDayNoPre1"     [mm-1 degreeC-1] Degree-day factor with
+  !>       no precipitation
   !>       \param[inout] "real(dp), dimension(:, :, :) :: fAsp1"            [1]     PET correction for Aspect at level 1
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: HarSamCoeff1"     [1]     PET Hargreaves Samani coeff. at level 1
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: PrieTayAlpha1"    [1]     PET Priestley Taylor coeff. at level 1
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: aeroResist1"      [s m-1] PET aerodynamical resitance at level 1
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: surfResist1"      [s m-1] PET bulk surface resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: HarSamCoeff1"     [1]     PET Hargreaves Samani coeff. at
+  !>       level 1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: PrieTayAlpha1"    [1]     PET Priestley Taylor coeff. at level
+  !>       1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: aeroResist1"      [s m-1] PET aerodynamical resitance at level
+  !>       1
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: surfResist1"      [s m-1] PET bulk surface resitance at level
+  !>       1
   !>       \param[inout] "real(dp), dimension(:, :, :) :: fRoots1"          fraction of roots in soil horizon
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: kFastFlow1"       [10^-3 m] Recession coefficientof the upper reservoir, upper outlet
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: kSlowFlow1"       [10^-3 m] Recession coefficientof the upper reservoir, lower outlet
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kFastFlow1"       [10^-3 m] Recession coefficient
+  !>       of the upper reservoir, upper outlet
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: kSlowFlow1"       [10^-3 m] Recession coefficient
+  !>       of the upper reservoir, lower outlet
   !>       \param[inout] "real(dp), dimension(:, :, :) :: kBaseFlow1"       Level 1 baseflow recession
   !>       \param[inout] "real(dp), dimension(:, :, :) :: kPerco1"          [d-1] percolation coefficient
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: karstLoss1"       
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: karstLoss1"
   !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistFC1"     [10^-3 m] field capacity
   !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistSat1"    [10^-3 m] depth of saturated SM
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistExp1"    Parameter that determines the rel.contribution to SM, upscal. Bulk den.
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: soilMoistExp1"    Parameter that determines the rel.
+  !>       contribution to SM, upscal. Bulk den.
   !>       \param[inout] "real(dp), dimension(:, :, :) :: jarvis_thresh_c1" [1] jarvis critical value for norm SWC
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: tempThresh1"      [degreeC] threshold temperaturefor snow rain
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: unsatThresh1"     [10^-3 m] Threshhold water depthin upper reservoir (for Runoffcontribution)
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: tempThresh1"      [degreeC] threshold temperature
+  !>       for snow rain
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: unsatThresh1"     [10^-3 m] Threshhold water depth
+  !>       in upper reservoir (for Runoff
+  !>       contribution)
   !>       \param[inout] "real(dp), dimension(:, :, :) :: sealedThresh1"    threshold parameter
   !>       \param[inout] "real(dp), dimension(:, :, :) :: wiltingPoint1"    [10^-3 m] permanent wilting point
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: maxInter1"        
-  !>       \param[inout] "real(dp), dimension(:, :, :) :: petLAIcorFactor"  
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: maxInter1"
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: petLAIcorFactor"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), dimension(:), optional :: parameterset" 
+  !>       \param[in] "real(dp), dimension(:), optional :: parameterset"
 
   !    HISTORY
   !>       \authors Stephan Thober, Rohini Kumar
@@ -106,6 +118,7 @@ contains
   ! Zink M. & Demirel M.C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Demirel M.C. & S. Stisen Apr 2017 - Added FC dependency on root fraction coefficient at SM process(3)
   ! Robert Schweppe          Dec 2017 - added loop over LCscenes inside MPR, renamed variables rewrite
+  ! Robert Schweppe          Jun 2018 - refactoring and reformatting
 
   subroutine mpr(mask0, geoUnit0, soilId0, Asp0, gridded_LAI0, LCover0, slope_emp0, y0, Id0, upper_bound1, lower_bound1, &
                 left_bound1, right_bound1, n_subcells1, fSealed1, alpha1, degDayInc1, degDayMax1, degDayNoPre1, fAsp1, &
@@ -171,7 +184,8 @@ contains
     ! [1] fraction of sealed area
     real(dp), dimension(:, :, :), intent(inout) :: fSealed1
 
-    ! Parameter that determines the rel.contribution to SM, upscal. Bulk den.
+    ! Parameter that determines the rel.
+    ! contribution to SM, upscal. Bulk den.
     real(dp), dimension(:, :, :), intent(inout) :: soilMoistExp1
 
     ! [1] jarvis critical value for norm SWC
@@ -189,16 +203,20 @@ contains
     ! fraction of roots in soil horizon
     real(dp), dimension(:, :, :), intent(inout) :: fRoots1
 
-    ! [degreeC] threshold temperaturefor snow rain
+    ! [degreeC] threshold temperature
+    ! for snow rain
     real(dp), dimension(:, :, :), intent(inout) :: tempThresh1
 
-    ! [mm-1 degreeC-1] Degree-day factor withno precipitation
+    ! [mm-1 degreeC-1] Degree-day factor with
+    ! no precipitation
     real(dp), dimension(:, :, :), intent(inout) :: degDayNoPre1
 
     ! [mm-1 degreeC-1] Maximum Degree-day factor
     real(dp), dimension(:, :, :), intent(inout) :: degDayMax1
 
-    ! [d-1 degreeC-1]  Increase of theDegree-day factor per mm ofincrease in precipitation
+    ! [d-1 degreeC-1]  Increase of the
+    ! Degree-day factor per mm of
+    ! increase in precipitation
     real(dp), dimension(:, :, :), intent(inout) :: degDayInc1
 
     ! [1]     PET correction for Aspect at level 1
@@ -219,13 +237,17 @@ contains
     ! threshold parameter
     real(dp), dimension(:, :, :), intent(inout) :: sealedThresh1
 
-    ! [10^-3 m] Threshhold water depthin upper reservoir (for Runoffcontribution)
+    ! [10^-3 m] Threshhold water depth
+    ! in upper reservoir (for Runoff
+    ! contribution)
     real(dp), dimension(:, :, :), intent(inout) :: unsatThresh1
 
-    ! [10^-3 m] Recession coefficientof the upper reservoir, upper outlet
+    ! [10^-3 m] Recession coefficient
+    ! of the upper reservoir, upper outlet
     real(dp), dimension(:, :, :), intent(inout) :: kFastFlow1
 
-    ! [10^-3 m] Recession coefficientof the upper reservoir, lower outlet
+    ! [10^-3 m] Recession coefficient
+    ! of the upper reservoir, lower outlet
     real(dp), dimension(:, :, :), intent(inout) :: kSlowFlow1
 
     ! Level 1 baseflow recession
@@ -266,13 +288,16 @@ contains
 
     real(dp), dimension(:, :), allocatable :: thetaPW
 
-    ! relative variability of saturatedhydraulic cound. for Horizantal flow
+    ! relative variability of saturated
+    ! hydraulic cound. for Horizantal flow
     real(dp), dimension(:), allocatable :: KsVar_H0
 
-    ! relative variability of saturatedhydraulic cound. for vertical flow
+    ! relative variability of saturated
+    ! hydraulic cound. for vertical flow
     real(dp), dimension(:), allocatable :: KsVar_V0
 
-    ! soil mositure deficit fromfield cap. w.r.t to saturation
+    ! soil mositure deficit from
+    ! field cap. w.r.t to saturation
     real(dp), dimension(:), allocatable :: SMs_FC0
 
     ! L0 baseflow parameter
@@ -642,84 +667,59 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
+  !    NAME
   !        baseflow_param
 
+  !    PURPOSE
   !>       \brief baseflow recession parameter
 
   !>       \details This subroutine calculates the baseflow recession parameter
-  !>                based on the geological units at the Level 0 scale. For each level 0
-  !>                cell, it assigns the value specified in the parameter array param for the
-  !>                geological unit in this cell.\n
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param(1) = GeoParam(1,:) \n
-  !>                    - param(2) = GeoParam(2,:) \n
-  !>                    - ...\n
+  !>       based on the geological units at the Level 0 scale. For each level 0
+  !>       cell, it assigns the value specified in the parameter array param for the
+  !>       geological unit in this cell.
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = GeoParam(1,:)
+  !>       - param(2) = GeoParam(2,:)
+  !>       - ...
 
-  !      INTENT(IN)
-  !>       \param[in] "real(dp) :: param(:)" - array of global baseflow recession
-  !>                                           parameters
-  !>       \param[in] "integer(i4) :: geoUnit0(:,:)" - array of geological units
-  !>                                           at Level 0
-  !>       \param[in] "integer(i4) :: geoUnitList(:)" - array of indices for 
-  !>                                           geological units.
-  !>       \param[in] "real(dp) :: nodata"    - no data value
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: param"       list of required parameters
+  !>       \param[in] "integer(i4), dimension(:) :: geoUnit0" ids of geological units at L0
 
-  !      INTENT(INOUT)
-  !          None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: k2_0" - baseflow recession parameter at Level 0
 
-  !      INTENT(OUT)
-  !>       \param[out] "real(dp) :: k2_0" - baseflow recession parameter at Level 0
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !      INTENT(IN), OPTIONAL
-  !          None
-
-  !      INTENT(INOUT), OPTIONAL
-  !          None
-
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      HISTORY
-  !>       \author Stephan Thober, Rohini Kumar
   !>       \date Dec 2012
-  !        Written  Stephan Thober, Dec 2012
-  !        Modified Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
 
-  subroutine baseflow_param(&
-          param, & ! Intent(in)
-          geoUnit0, & ! Intent(in)
-          k2_0                  & ! Intent(out)
-          )
+  ! Modifications:
+  ! Stephan Thober  Dec 2013 - changed intent(inout) to intent(out)
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-    use mo_mpr_global_variables, only : &
-            GeoUnitList
+  subroutine baseflow_param(param, geoUnit0, k2_0)
 
-    !$  use omp_lib
+    use mo_mpr_global_variables, only : GeoUnitList
+    !$ use omp_lib
+
     implicit none
 
-    ! Input
-    real(dp), dimension(:), intent(in) :: param         ! list of required parameters
-    integer(i4), dimension(:), intent(in) :: geoUnit0      ! ids of geological units at L0
+    ! list of required parameters
+    real(dp), dimension(:), intent(in) :: param
 
-    ! output
-    real(dp), dimension(:), intent(out) :: k2_0          ! baseflow recession coefficient
+    ! ids of geological units at L0
+    integer(i4), dimension(:), intent(in) :: geoUnit0
 
-    ! local variables
-    integer(i4) :: ii            ! loop variable
-    integer(i4), dimension(1) :: gg            ! geo unit
+    ! - baseflow recession parameter at Level 0
+    real(dp), dimension(:), intent(out) :: k2_0
+
+    ! loop variable
+    integer(i4) :: ii
+
+    ! geo unit
+    integer(i4), dimension(1) :: gg
+
 
     if (size(param) .ne. size(geoUnitList)) &
             stop ' mo_multi_param_reg: baseflow_param: size mismatch, subroutine baseflow parameters '
@@ -740,98 +740,86 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         snow_acc_melt_param
+  !    NAME
+  !        snow_acc_melt_param
 
-  !>        \brief Calculates the snow parameters.
+  !    PURPOSE
+  !>       \brief Calculates the snow parameters.
 
-  !>        \details This subroutine calculates the snow parameters
-  !>        threshold temperature (TT), degree-day factor without precipitation (DD)
-  !>        and maximum degree-day factor (DDmax) as well as increase of degree-day 
-  !>        factor per mm of increase in precipitation (IDDP).\n
-  !>
-  !>        Global parameters needed (see mhm_parameter.nml):\n
-  !>           - param(1) = snowTreshholdTemperature        \n
-  !>           - param(2) = degreeDayFactor_forest          \n
-  !>           - param(3) = degreeDayFactor_impervious      \n
-  !>           - param(4) = degreeDayFactor_pervious        \n
-  !>           - param(5) = increaseDegreeDayFactorByPrecip \n
-  !>           - param(6) = maxDegreeDayFactor_forest       \n
-  !>           - param(7) = maxDegreeDayFactor_impervious   \n
-  !>           - param(8) = maxDegreeDayFactor_pervious     \n
+  !>       \details This subroutine calculates the snow parameters
+  !>       threshold temperature (TT), degree-day factor without precipitation (DD)
+  !>       and maximum degree-day factor (DDmax) as well as increase of degree-day
+  !>       factor per mm of increase in precipitation (IDDP).
 
-  !>     INTENT(IN)
-  !>        \param[in] "real(dp) :: param(8)" - There are eight snow parameters required
-  !>        \param[in] "real(dp) :: c2TSTu"   - unit transformation coefficient
-  !>        \param[in] "real(dp) :: fForest1(:)" - fraction of forest cover at scale L1
-  !>        \param[in] "real(dp) :: fIperm1(:)" - fraction of sealed area at scale L1
-  !>        \param[in] "real(dp) :: fPerm1(:)" - fraction of permeable area at scale L1
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = snowTreshholdTemperature
+  !>       - param(2) = degreeDayFactor_forest
+  !>       - param(3) = degreeDayFactor_impervious
+  !>       - param(4) = degreeDayFactor_pervious
+  !>       - param(5) = increaseDegreeDayFactorByPrecip
+  !>       - param(6) = maxDegreeDayFactor_forest
+  !>       - param(7) = maxDegreeDayFactor_impervious
+  !>       - param(8) = maxDegreeDayFactor_pervious
+  !>       INTENT(IN)
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: tempThresh1(:) "   - threshold temperature for snow rain
-  !>        \param[out] "real(dp) :: degDayNoPre1(:) "   - Degree-day factor
-  !>        \param[out] "real(dp) :: degDayMax1(:)" - Maximum Degree-day factor
-  !>        \param[out] "real(dp) :: degDayInc1(:)"  - increase of the degree-day factor per mm of
-  !>                                                increase in precipitation
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(8) :: param"    eight global parameters
+  !>       \param[in] "real(dp) :: c2TSTu"                 - unit transformation coefficient
+  !>       \param[in] "real(dp), dimension(:) :: fForest1" [1] fraction of forest cover
+  !>       \param[in] "real(dp), dimension(:) :: fIperm1"  [1] fraction of sealed area
+  !>       \param[in] "real(dp), dimension(:) :: fPerm1"   [1] fraction of permeable area
 
-  !      HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written   Stephan Thober, Dec 2012
-  !         Modified, Juliane Mai,    Oct 2013 - OLD parametrization
-  !                                                --> param(1) = snowTreshholdTemperature 
-  !                                                --> param(2) = degreeDayFactor_forest
-  !                                                --> param(3) = degreeDayFactor_impervious   
-  !                                                --> param(4) = degreeDayFactor_pervious     
-  !                                                --> param(5) = increaseDegreeDayFactorByPrecip 
-  !                                                --> param(6) = maxDegreeDayFactor_forest     
-  !                                                --> param(7) = maxDegreeDayFactor_impervious  
-  !                                                --> param(8) = maxDegreeDayFactor_pervious   
-  !                                             -------------------------------
-  !                                             degreeDayFactor_impervious    = degreeDayFactor_forest + delta_1 + delta_2 
-  !                                             degreeDayFactor_pervious      = degreeDayFactor_forest + delta_1
-  !                                             maxDegreeDayFactor_forest     = degreeDayFactor_forest + delta_3
-  !                                             maxDegreeDayFactor_impervious = degreeDayFactor_impervious + delta_5
-  !                                                                           = degreeDayFactor_forest + delta_1 + delta_2 + delta_5
-  !                                             maxDegreeDayFactor_pervious   = degreeDayFactor_pervious + delta_4
-  !                                                                           = degreeDayFactor_forest + delta_1 + delta_4
-  !                                             -------------------------------
-  !                                             NEW parametrization
-  !                                                --> param(1) = snowTreshholdTemperature 
-  !                                                --> param(2) = degreeDayFactor_forest
-  !                                                --> param(3) = delta_2   
-  !                                                --> param(4) = delta_1    
-  !                                                --> param(5) = increaseDegreeDayFactorByPrecip 
-  !                                                --> param(6) = delta_3     
-  !                                                --> param(7) = delta_5
-  !                                                --> param(8) = delta_4 
-  !                    Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: tempThresh1"  [degreeC] threshold temperature for snow rain
+  !>       \param[out] "real(dp), dimension(:) :: degDayNoPre1" [mm-1 degreeC-1] Degree-day factor with
+  !>       \param[out] "real(dp), dimension(:) :: degDayInc1"   [d-1 degreeC-1]  Increase of the Degree-day
+  !>       \param[out] "real(dp), dimension(:) :: degDayMax1"   [mm-1 degreeC-1] Maximum Degree-day factor
 
-  subroutine snow_acc_melt_param(&
-          param, c2TSTu, fForest1, fIperm1, fPerm1, &  ! Intent(in)
-          tempThresh1, degDayNoPre1, degDayInc1, degDayMax1                   &  ! Intent(out)
-          )
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
+  !>       \date Dec 2012
+
+  ! Modifications:
+  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = snowTreshholdTemperature --> param(2) = degreeDayFactor_forest --> param(3) = degreeDayFactor_impervious --> param(4) = degreeDayFactor_pervious --> param(5) = increaseDegreeDayFactorByPrecip --> param(6) = maxDegreeDayFactor_forest --> param(7) = maxDegreeDayFactor_impervious --> param(8) = maxDegreeDayFactor_pervious degreeDayFactor_impervious    = degreeDayFactor_forest + delta_1 + delta_2 degreeDayFactor_pervious      = degreeDayFactor_forest + delta_1 maxDegreeDayFactor_forest     = degreeDayFactor_forest + delta_3 maxDegreeDayFactor_impervious = degreeDayFactor_impervious + delta_5 = degreeDayFactor_forest + delta_1 + delta_2 + delta_5 maxDegreeDayFactor_pervious   = degreeDayFactor_pervious + delta_4 = degreeDayFactor_forest + delta_1 + delta_4 NEW parametrization --> param(1) = snowTreshholdTemperature --> param(2) = degreeDayFactor_forest --> param(3) = delta_2 --> param(4) = delta_1 --> param(5) = increaseDegreeDayFactorByPrecip --> param(6) = delta_3 --> param(7) = delta_5 --> param(8) = delta_4
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
+  subroutine snow_acc_melt_param(param, c2TSTu, fForest1, fIperm1, fPerm1, tempThresh1, degDayNoPre1, degDayInc1, &
+                                degDayMax1)
     implicit none
 
-    ! Input
-    real(dp), dimension(8), intent(in) :: param      ! eight global parameters
-    real(dp), intent(in) :: c2TSTu     ! unit transformations
-    real(dp), dimension(:), intent(in) :: fForest1 ! [1] fraction of forest cover
-    real(dp), dimension(:), intent(in) :: fIperm1  ! [1] fraction of sealed area
-    real(dp), dimension(:), intent(in) :: fPerm1   ! [1] fraction of permeable area
+    ! eight global parameters
+    real(dp), dimension(8), intent(in) :: param
 
-    ! Output
-    real(dp), dimension(:), intent(out) :: tempThresh1   ! [degreeC] threshold temperature for snow rain 
-    real(dp), dimension(:), intent(out) :: degDayNoPre1   ! [mm-1 degreeC-1] Degree-day factor with
-    ! no precipitation
-    real(dp), dimension(:), intent(out) :: degDayMax1! [mm-1 degreeC-1] Maximum Degree-day factor
-    real(dp), dimension(:), intent(out) :: degDayInc1 ! [d-1 degreeC-1]  Increase of the Degree-day 
-    ! factor per mm of increase in precipitation
+    ! - unit transformation coefficient
+    real(dp), intent(in) :: c2TSTu
 
-    ! local
+    ! [1] fraction of forest cover
+    real(dp), dimension(:), intent(in) :: fForest1
+
+    ! [1] fraction of sealed area
+    real(dp), dimension(:), intent(in) :: fIperm1
+
+    ! [1] fraction of permeable area
+    real(dp), dimension(:), intent(in) :: fPerm1
+
+    ! [degreeC] threshold temperature for snow rain
+    real(dp), dimension(:), intent(out) :: tempThresh1
+
+    ! [mm-1 degreeC-1] Degree-day factor with
+    real(dp), dimension(:), intent(out) :: degDayNoPre1
+
+    ! [mm-1 degreeC-1] Maximum Degree-day factor
+    real(dp), dimension(:), intent(out) :: degDayMax1
+
+    ! [d-1 degreeC-1]  Increase of the Degree-day
+    real(dp), dimension(:), intent(out) :: degDayInc1
+
     real(dp) :: tmp_degreeDayFactor_forest, tmp_degreeDayFactor_impervious, tmp_degreeDayFactor_pervious
+
     real(dp) :: tmp_maxDegreeDayFactor_forest, tmp_maxDegreeDayFactor_impervious, tmp_maxDegreeDayFactor_pervious
+
 
     tmp_degreeDayFactor_forest = param(2)                                    ! OLD: param(2)
     tmp_degreeDayFactor_impervious = param(2) + param(4) + param(3)              ! OLD: param(3)
@@ -856,62 +844,41 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         iper_thres_runoff
+  !    NAME
+  !        iper_thres_runoff
 
-  !>        \brief sets the impervious layer threshold parameter for runoff generation
+  !    PURPOSE
+  !>       \brief sets the impervious layer threshold parameter for runoff generation
 
-  !>        \details to be done by Kumar\n
-  !>        ....
-  !>        
-  !>        Global parameters needed (see mhm_parameter.nml):\n
-  !>           - param(1) = imperviousStorageCapacity \n
+  !>       \details to be done by Kumar
+  !>       ....
 
-  !      INTENT(IN)
-  !>        \param[in] "real(dp) :: param" - given threshold parameter
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = imperviousStorageCapacity
 
-  !      INTENT(INOUT)
-  !          None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(1) :: param" - given threshold parameter
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: sealedThresh1(:)" - distributed parameter field
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :) :: sealedThresh1"
 
-  !      INTENT(IN), OPTIONAL
-  !          None
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !      INTENT(INOUT), OPTIONAL
-  !          None
+  !>       \date Dec 2012
 
-  !      INTENT(OUT), OPTIONAL
-  !          None
-
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written Stephan Thober, Dec 2012
-  !         Modified Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
+  ! Modifications:
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine iper_thres_runoff(param, sealedThresh1)
-
     implicit none
 
-    ! Input
-    real(dp), dimension(1), intent(in) :: param ! threshold parameters
+    ! - given threshold parameter
+    real(dp), dimension(1), intent(in) :: param
 
-    ! Output
     real(dp), dimension(:, :, :), intent(out) :: sealedThresh1
+
 
     sealedThresh1 = param(1)
 
@@ -919,119 +886,109 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !     NAME
-  !         karstic_layer
+  !    NAME
+  !        karstic_layer
 
-  !>        \brief calculates the Karstic percolation loss
+  !    PURPOSE
+  !>       \brief calculates the Karstic percolation loss
 
-  !>        \details This subroutine calls first the karstic_fraction upscaling
-  !>                 routine for determine the karstic fraction area for every Level 1
-  !>                 cell. Then, the karstic percolation loss is estimated given two
-  !>                 shape parameters by
-  !>                 \f[ karstLoss1 = 1 + ( fKarArea * param(1)) *( (-1)**INT(param(2),i4) ) \f]
-  !>                 where \f$ karstLoss1 \f$ is the karstic percolation loss and \f$ fKarArea \f$
-  !>                 is the fraction of karstic area at level 1\n
-  !>                 Global parameters needed (see mhm_parameter.nml):\n
-  !>                    - param(1) = rechargeCoefficient           \n
-  !>                    - param(2) = rechargeFactor_karstic        \n
-  !>                    - param(3) = gain_loss_GWreservoir_karstic \n
+  !>       \details This subroutine calls first the karstic_fraction upscaling
+  !>       routine for determine the karstic fraction area for every Level 1
+  !>       cell. Then, the karstic percolation loss is estimated given two
+  !>       shape parameters by
+  !>       \f[ karstLoss1 = 1 + ( fKarArea * param(1)) *( (-1)**INT(param(2),i4) ) \f]
+  !>       where \f$ karstLoss1 \f$ is the karstic percolation loss and \f$ fKarArea \f$
+  !>       is the fraction of karstic area at level 1
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = rechargeCoefficient
+  !>       - param(2) = rechargeFactor_karstic
+  !>       - param(3) = gain_loss_GWreservoir_karstic
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: nGeoUnits"      - number of geological formations
-  !>        \param[in] "integer(i4) :: geoUnitKar(:)"  - number of Karstic formation
-  !>        \param[in] "integer(i4) :: geoUnit0(:)"    - id of the Karstic formation
-  !>        \param[in] "logical     :: mask0(:,:)"     - mask at level 0
-  !>        \param[in] "real(dp)    :: nodata"         - given nodata value
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(3) :: param"           parameters
+  !>       \param[in] "integer(i4), dimension(:) :: geoUnit0"     id of the Karstic formation
+  !>       \param[in] "logical, dimension(:, :) :: mask0"         mask at level 0
+  !>       \param[in] "real(dp), dimension(:) :: SMs_FC0"         [-] soil mositure deficit from field
+  !>       capacity w.r.t to saturation
+  !>       \param[in] "real(dp), dimension(:) :: KsVar_V0"        [-] relative variability of saturated
+  !>       \param[in] "integer(i4), dimension(:) :: Id0"          Cell ids of hi res field
+  !>       \param[in] "integer(i4), dimension(:) :: n_subcells1"  number of l0 cells within a l1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: upper_bound1" upper row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: lower_bound1" lower row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: left_bound1"  left col of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: right_bound1" right col of a l1 cell in l0 grid
 
-  !>        \param[in] "integer(i4) :: n_subcells1(:)"   - number of l0 cells within a l1 cell
-  !>        \param[in] "integer(i4) :: upper_bound1(:)"  - upper row of a l1 cell in l0 grid
-  !>        \param[in] "integer(i4) :: lower_bound1(:)"  - lower row of a l1 cell in l0 grid
-  !>        \param[in] "integer(i4) :: left_bound1(:)"  - left col of a l1 cell in l0 grid
-  !>        \param[in] "integer(i4) :: right_bound1(:)"  - right col of a l1 cell in l0 grid
-  !
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: karstLoss1" [-]    Karstic percolation loss
+  !>       \param[out] "real(dp), dimension(:) :: L1_Kp"      [d-1] percolation coefficient
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)    :: karstLoss1(:)"  [-]    Karstic percolation loss
-  !>        \param[out] "real(dp)    :: L1_Kp(:)"         [d-1] percolation coefficient
+  !    HISTORY
+  !>       \authors Rohini Kumar, Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Feb 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out) 
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  subroutine karstic_layer(param, geoUnit0, mask0, SMs_FC0, KsVar_V0, Id0, n_subcells1, upper_bound1, lower_bound1, &
+                          left_bound1, right_bound1, karstLoss1, L1_Kp)
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar, Stephan Thober
-  !>        \date Feb 2013
-  !         Modified Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
-  !         Modified Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
-  !
-  subroutine karstic_layer(&
-          param, & ! IN:         parameters
-          geoUnit0, & ! IN:         id of the Karstic formation
-          mask0, & ! IN:         mask at level 0
-          SMs_FC0, & ! IN:  [-]    soil mositure deficit from field
-          !               !             capacity w.r.t to saturation
-          KsVar_V0, & ! IN:  [-]    relative variability of saturated
-          Id0, & ! IN:         cell id at Level 0
-          n_subcells1, & ! IN:         number of l0 cells within a l1 cell
-          upper_bound1, & ! IN:         upper row of a l1 cell in l0 grid
-          lower_bound1, & ! IN:         lower row of a l1 cell in l0 grid
-          left_bound1, & ! IN:         left col of a l1 cell in l0 grid
-          right_bound1, & ! IN:         right col of a l1 cell in l0 grid
-          karstLoss1, & ! OUT: [-]    Karstic percolation loss
-          L1_Kp         & ! OUT: [d-1]  percolation coefficient
-          )
-
+    use mo_mpr_global_variables, only : GeoUnitList, c2TSTu, geoUnitKar
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, upscale_arithmetic_mean
-    use mo_mpr_global_variables, only : &
-            GeoUnitList, geoUnitKar, c2TSTu
-
-    !$  use omp_lib
+    !$ use omp_lib
 
     implicit none
 
-    ! Input
-    real(dp), dimension(3), intent(in) :: param        ! parameters
-    integer(i4), dimension(:), intent(in) :: geoUnit0     ! id of the Karstic formation
+    ! parameters
+    real(dp), dimension(3), intent(in) :: param
 
-    logical, dimension(:, :), intent(in) :: mask0        ! mask at level 0
-    real(dp), dimension(:), intent(in) :: SMs_FC0      ! [-] soil mositure deficit from field
-    !                                                       ! capacity w.r.t to saturation
-    real(dp), dimension(:), intent(in) :: KsVar_V0     ! [-] relative variability of saturated
+    ! id of the Karstic formation
+    integer(i4), dimension(:), intent(in) :: geoUnit0
 
-    integer(i4), dimension(:), intent(in) :: Id0     ! Cell ids of hi res field
-    integer(i4), dimension(:), intent(in) :: n_subcells1    ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:), intent(in) :: upper_bound1   ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: lower_bound1   ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: left_bound1   ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: right_bound1   ! right col of a l1 cell in l0 grid
+    ! mask at level 0
+    logical, dimension(:, :), intent(in) :: mask0
 
-    ! Output
-    real(dp), dimension(:), intent(out) :: karstLoss1 ! [-]    Karstic percolation loss
-    real(dp), dimension(:), intent(out) :: L1_Kp        ! [d-1] percolation coefficient
+    ! [-] soil mositure deficit from field
+    ! capacity w.r.t to saturation
+    real(dp), dimension(:), intent(in) :: SMs_FC0
 
-    ! Local variables
-    real(dp), dimension(:), allocatable :: fKarArea     ! fraction of karstic area
-    real(dp), dimension(size(SMs_FC0, 1)) :: tmp          ! temporal variable
+    ! [-] relative variability of saturated
+    real(dp), dimension(:), intent(in) :: KsVar_V0
+
+    ! Cell ids of hi res field
+    integer(i4), dimension(:), intent(in) :: Id0
+
+    ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:), intent(in) :: n_subcells1
+
+    ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: upper_bound1
+
+    ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: lower_bound1
+
+    ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: left_bound1
+
+    ! right col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: right_bound1
+
+    ! [-]    Karstic percolation loss
+    real(dp), dimension(:), intent(out) :: karstLoss1
+
+    ! [d-1] percolation coefficient
+    real(dp), dimension(:), intent(out) :: L1_Kp
+
+    ! fraction of karstic area
+    real(dp), dimension(:), allocatable :: fKarArea
+
+    ! temporal variable
+    real(dp), dimension(size(SMs_FC0, 1)) :: tmp
+
     integer(i4) :: nGeoUnits
+
     integer(i4) :: i
 
 
@@ -1074,101 +1031,93 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
+  !    NAME
   !        canopy_intercept_param
 
+  !    PURPOSE
   !>       \brief estimate effective maximum interception capacity at L1
 
-  !>       \details estimate effective maximum interception capacity at L1 for a given 
-  !>                Leaf Area Index field. \n
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                Process Case 1:\n
-  !>                   - param(1) = canopyInterceptionFactor \n
+  !>       \details estimate effective maximum interception capacity at L1 for a given
+  !>       Leaf Area Index field.
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       Process Case 1:
+  !>       - param(1) = canopyInterceptionFactor
 
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: processMatrix(:,:)"  - process matrix
-  !>       \param[in] "real(dp)     :: param(:)"       - array of global parameters
-  !>       \param[in] "real(dp)     :: LAI0(:)"        - LAI at level-0
-  !>       \param[in] "integer(i4)  :: n_subcells1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: upper_bound1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: lower_bound1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: left_bound1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: right_bound1(:)"  - Right column of high resolution block
-  !>       \param[in] "integer(i4)  :: Id0  (:)"  - Cell ids at level 0
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix" indicate processes
+  !>       \param[in] "real(dp), dimension(:) :: param"               array of global parameters
+  !>       \param[in] "real(dp), dimension(:, :) :: LAI0"             LAI at level-0(nCells0, time)
+  !>       \param[in] "integer(i4), dimension(:) :: n_subcells1"      Number of L0 cells within a L1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: upper_bound1"     Upper row of high resolution block
+  !>       \param[in] "integer(i4), dimension(:) :: lower_bound1"     Lower row of high resolution block
+  !>       \param[in] "integer(i4), dimension(:) :: left_bound1"      Left column of high resolution block
+  !>       \param[in] "integer(i4), dimension(:) :: right_bound1"     Right column of high resolution block
+  !>       \param[in] "integer(i4), dimension(:) :: Id0"              Cell ids at level 0
+  !>       \param[in] "logical, dimension(:, :) :: mask0"             mask at level 0 field
+  !>       \param[in] "real(dp) :: nodata"                            - nodata value
 
-  !      INTENT(INOUT)
-  !          None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: max_intercept1" max interception at level-1(nCells1, time)
 
-  !      INTENT(OUT)
-  !>       \param[out] "real(dp) :: max_intercept1(:)" - maximum canopy interception at Level-1
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !      INTENT(IN), OPTIONAL
-  !          None
+  !>       \date Aug. 2013
 
-  !      INTENT(INOUT), OPTIONAL
-  !          None
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !      INTENT(OUT), OPTIONAL
-  !          None
+  subroutine canopy_intercept_param(processMatrix, param, LAI0, n_subcells1, upper_bound1, lower_bound1, left_bound1, &
+                                   right_bound1, Id0, mask0, nodata, max_intercept1)
 
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      EXAMPLE
-  !         calling sequence
-  !         call canopy_intercept_param(processMatrix, param,             &    
-  !                     LAI0, n_subcells1, upper_bound1, &    
-  !                     lower_bound1, left_bound1,      &   
-  !                     right_bound1, Id0, mask0, &  
-  !                     nodata, max_intercept1 ) 
-
-  !      HISTORY
-  !>         \author Rohini Kumar
-  !>         \date Aug. 2013
-
-  ! ------------------------------------------------------------------
-  subroutine canopy_intercept_param(processMatrix, param, &
-          LAI0, n_subcells1, upper_bound1, &
-          lower_bound1, left_bound1, &
-          right_bound1, Id0, mask0, &
-          nodata, max_intercept1)
-
-    use mo_upscaling_operators, only : upscale_arithmetic_mean
-    use mo_string_utils, only : num2str
     use mo_message, only : message
+    use mo_string_utils, only : num2str
+    use mo_upscaling_operators, only : upscale_arithmetic_mean
 
     implicit none
 
-    ! input
-    integer(i4), dimension(:, :), intent(in) :: processMatrix       ! indicate processes
-    real(dp), dimension(:), intent(in) :: param          ! array of global parameters
-    real(dp), dimension(:, :), intent(in) :: LAI0           ! LAI at level-0(nCells0, time)
-    integer(i4), dimension(:), intent(in) :: n_subcells1      ! Number of L0 cells within a L1 cell
-    integer(i4), dimension(:), intent(in) :: upper_bound1     ! Upper row of high resolution block
-    integer(i4), dimension(:), intent(in) :: lower_bound1     ! Lower row of high resolution block
-    integer(i4), dimension(:), intent(in) :: left_bound1     ! Left column of high resolution block
-    integer(i4), dimension(:), intent(in) :: right_bound1     ! Right column of high resolution block
-    integer(i4), dimension(:), intent(in) :: Id0       ! Cell ids at level 0
-    logical, dimension(:, :), intent(in) :: mask0          ! mask at level 0 field
-    real(dp), intent(in) :: nodata         ! nodata value
-    ! output
-    real(dp), dimension(:, :), intent(out) :: max_intercept1 ! max interception at level-1(nCells1, time)
+    ! indicate processes
+    integer(i4), dimension(:, :), intent(in) :: processMatrix
 
-    ! local variables
+    ! array of global parameters
+    real(dp), dimension(:), intent(in) :: param
+
+    ! LAI at level-0(nCells0, time)
+    real(dp), dimension(:, :), intent(in) :: LAI0
+
+    ! Number of L0 cells within a L1 cell
+    integer(i4), dimension(:), intent(in) :: n_subcells1
+
+    ! Upper row of high resolution block
+    integer(i4), dimension(:), intent(in) :: upper_bound1
+
+    ! Lower row of high resolution block
+    integer(i4), dimension(:), intent(in) :: lower_bound1
+
+    ! Left column of high resolution block
+    integer(i4), dimension(:), intent(in) :: left_bound1
+
+    ! Right column of high resolution block
+    integer(i4), dimension(:), intent(in) :: right_bound1
+
+    ! Cell ids at level 0
+    integer(i4), dimension(:), intent(in) :: Id0
+
+    ! mask at level 0 field
+    logical, dimension(:, :), intent(in) :: mask0
+
+    ! - nodata value
+    real(dp), intent(in) :: nodata
+
+    ! max interception at level-1(nCells1, time)
+    real(dp), dimension(:, :), intent(out) :: max_intercept1
+
     integer(i4) :: iStart, iEnd, it
+
     real(dp), dimension(:), allocatable :: max_intercept0
+
     real(dp), dimension(:), allocatable :: gamma_intercept
+
 
     ! ------------------------------------------------------------------
     ! Maximum interception parameter 
@@ -1208,107 +1157,101 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
+  !    NAME
   !        aerodynamical_resistance
 
+  !    PURPOSE
   !>       \brief Regionalization of aerodynamic resistance
 
   !>       \details estimation of aerodynamical resistance
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                   - param(1) = canopyheigth_forest             \n
-  !>                   - param(2) = canopyheigth_impervious         \n
-  !>                   - param(3) = canopyheigth_pervious           \n
-  !>                   - param(4) = displacementheight_coeff        \n
-  !>                   - param(5) = roughnesslength_momentum_coeff  \n
-  !>                   - param(6) = roughnesslength_heat_coeff      \n
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = canopyheigth_forest
+  !>       - param(2) = canopyheigth_impervious
+  !>       - param(3) = canopyheigth_pervious
+  !>       - param(4) = displacementheight_coeff
+  !>       - param(5) = roughnesslength_momentum_coeff
+  !>       - param(6) = roughnesslength_heat_coeff
 
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover0(:)"     - land cover at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
-  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
-  !>       \param[in] "real(dp)     :: param(:)"       - vector with global parameters
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
-  !>       \param[in] "integer(i4)  :: Id0  (:)"  - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: n_subcells1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: upper_bound1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: lower_bound1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: left_bound1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: right_bound1(:)"  - Right column of high resolution block
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: LAI0"         LAI at level-0
+  !>       \param[in] "integer(i4), dimension(:) :: LCover0"      land cover field
+  !>       \param[in] "real(dp), dimension(6) :: param"           input parameter
+  !>       \param[in] "logical, dimension(:, :) :: mask0"         mask at level 0
+  !>       \param[in] "integer(i4), dimension(:) :: Id0"          Cell ids of hi res field
+  !>       \param[in] "integer(i4), dimension(:) :: n_subcells1"  number of l0 cells within a l1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: upper_bound1" upper row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: lower_bound1" lower row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: left_bound1"  left col of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: right_bound1" right col of a l1 cell in l0 grid
 
-  !     INTENT(INOUT)
-  !        None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: aerodyn_resistance1" aerodynmaical resistance
 
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)    :: aerodyn_resistance1(:)" - [s m-1] aerodynamical resistance
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !        None
+  !>       \date Apr 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !        None
+  ! Modifications:
+  ! Matthias Zink Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !        None
+  subroutine aerodynamical_resistance(LAI0, LCover0, param, mask0, Id0, n_subcells1, upper_bound1, lower_bound1, &
+                                     left_bound1, right_bound1, aerodyn_resistance1)
 
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !        None
-
-  !     HISTORY
-  !>       \author Matthias Zink
-  !>       \date   Apr 2013
-  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
-
-  subroutine aerodynamical_resistance(&
-          LAI0, & ! LAI at L0
-          LCover0, & ! land cover at level 0
-          param, & ! parameter values (size=6)
-          mask0, & ! mask at level 0
-          Id0, & ! cell id at Level 0
-          n_subcells1, & ! number of l0 cells within a l1 cell
-          upper_bound1, & ! upper row of a l1 cell in l0 grid
-          lower_bound1, & ! lower row of a l1 cell in l0 grid
-          left_bound1, & ! left col of a l1 cell in l0 grid
-          right_bound1, & ! right col of a l1 cell in l0 grid
-          aerodyn_resistance1             & ! aerodynmaical resistance
-          )
-
-    use mo_upscaling_operators, only : upscale_arithmetic_mean
     use mo_common_constants, only : eps_dp
     use mo_mpr_constants, only : WindMeasHeight, karman
+    use mo_upscaling_operators, only : upscale_arithmetic_mean
 
     implicit none
 
-    real(dp), dimension(:, :), intent(in) :: LAI0          ! LAI at level-0
-    integer(i4), dimension(:), intent(in) :: LCover0    ! land cover field
-    real(dp), dimension(6), intent(in) :: param      ! input parameter
-    logical, dimension(:, :), intent(in) :: mask0      ! mask at level 0
-    integer(i4), dimension(:), intent(in) :: Id0   ! Cell ids of hi res field
-    integer(i4), dimension(:), intent(in) :: n_subcells1  ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:), intent(in) :: upper_bound1 ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: lower_bound1 ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: left_bound1 ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: right_bound1 ! right col of a l1 cell in l0 grid
-    ! Output
+    ! LAI at level-0
+    real(dp), dimension(:, :), intent(in) :: LAI0
+
+    ! land cover field
+    integer(i4), dimension(:), intent(in) :: LCover0
+
+    ! input parameter
+    real(dp), dimension(6), intent(in) :: param
+
+    ! mask at level 0
+    logical, dimension(:, :), intent(in) :: mask0
+
+    ! Cell ids of hi res field
+    integer(i4), dimension(:), intent(in) :: Id0
+
+    ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:), intent(in) :: n_subcells1
+
+    ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: upper_bound1
+
+    ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: lower_bound1
+
+    ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: left_bound1
+
+    ! right col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: right_bound1
+
+    ! aerodynmaical resistance
     real(dp), dimension(:, :), intent(out) :: aerodyn_resistance1
 
-    ! local
     integer(i4) :: tt
+
     real(dp), dimension(:), allocatable :: maxLAI
+
     real(dp), dimension(:), allocatable :: zm
+
     real(dp), dimension(:), allocatable :: canopy_height0
+
     real(dp), dimension(:), allocatable :: zm_zero, zh_zero, displace
-    real(dp), dimension(:, :), allocatable :: aerodyn_resistance0        ! dim 1 = number of cells on level 0,
-    !                                                                    ! dim2=month of year
+
+    ! dim 1 = number of cells on level 0,
+    ! dim2=month of year
+    real(dp), dimension(:, :), allocatable :: aerodyn_resistance0
+
 
     ! initialize some things
     allocate(zm                  (size(LCover0, dim = 1))) ; zm = nodata_dp

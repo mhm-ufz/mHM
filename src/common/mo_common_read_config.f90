@@ -4,7 +4,7 @@
 
 !>       \details This routine reads the configurations of namelists commonly used by mHM, mRM and MPR
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Dec 2012
 
@@ -45,7 +45,7 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Robert Schweppe Dec  2017 - refactoring and restructuring
+  ! Robert Schweppe Dec  2018 - refactoring and restructuring
 
   subroutine common_read_config(file_namelist, unamelist)
 
@@ -207,74 +207,49 @@ CONTAINS
 
     ! ------------------------------------------------------------------
 
-  !     NAME
-  !         set_land_cover_scenes_id
+  !    NAME
+  !        set_land_cover_scenes_id
 
-  !     PURPOSE
-  !>        \brief Read main configurations commonly used by mHM, mRM and MPR
+  !    PURPOSE
+  !>       \brief Read main configurations commonly used by mHM, mRM and MPR
 
-  !>        \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
-  !>        project_description, directories_general, mainconfig, processSelection, LCover
+  !>       \details Read the main configurations commonly used by mHM, mRM and MPR, namely:
+  !>       project_description, directories_general, mainconfig, processSelection, LCover
 
-  !     CALLING SEQUENCE
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "type(period), dimension(:) :: sim_Per"
 
-  !     INTENT(IN)
-  !>        \param[in] "character(*) :: file_namelist" name of file
-  !>        \param[in] "integer(i4) :: unamelist" id of file
+  !    INTENT(INOUT)
+  !>       \param[inout] "integer(i4), dimension(:, :) :: LCyear_Id"
+  !>       \param[inout] "character(256), dimension(:) :: LCfilename"
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Dec 2012
-  !         Modified Robert Schweppe              Dec  2017 - refactoring and restructuring
+  ! Modifications:
+  ! Robert Schweppe Dec  2018 - refactoring and restructuring
 
   subroutine set_land_cover_scenes_id(sim_Per, LCyear_Id, LCfilename)
-    
-    use mo_common_variables, only : &
-        nBasins, & ! number of basins
-        nLcoverScene, & ! land cover information
-        LC_year_start, &
-        LC_year_end, &
-            period
+
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : LC_year_end, LC_year_start, nBasins, nLcoverScene, period
     use mo_message, only : message
     use mo_string_utils, only : num2str
-    use mo_common_constants, only : nodata_i4
 
     implicit none
-    
+
     type(period), dimension(:), intent(in) :: sim_Per
+
     integer(i4), dimension(:, :), allocatable, intent(inout) :: LCyear_Id
+
     character(256), dimension(:), allocatable, intent(inout) :: LCfilename
 
     integer(i4) :: ii, iBasin, max_lcs, min_lcs, jj
+
     character(256), dimension(:), allocatable :: dummy_LCfilenames
+
     integer(i4), dimension(:,:), allocatable :: dummy_LCyears
 
 

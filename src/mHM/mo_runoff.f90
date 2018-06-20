@@ -6,7 +6,7 @@
 !>       \details This module generates the runoff for the unsaturated and saturated zones and provides
 !>       runoff accumulation.
 
-!>       \authors s Vladyslav Prykhodko
+!>       \authors Vladyslav Prykhodko
 
 !>       \date Dec 2012
 
@@ -41,6 +41,12 @@ CONTAINS
   !>       \details Calculates the runoff generation for the unsaturated zone.
   !>       Calculates percolation, interflow and baseflow.
   !>       Updates upper soil and groundwater storages.
+  !>       ADDITIONAL INFORMATION
+  !>       runoff_unsat_zone
+  !>       runoff_unsat_zone(k1, kp, coeff_up, alpha, karst_loss, pefec_soil, &
+  !>       unsat_thresh, slow_interflow, perc, fast_interflow, &
+  !>       sat_storage, unsat_storage )
+  !>       Created  LS, Dec 2005
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [d-1]
@@ -157,68 +163,56 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         runoff_sat_zone
+  !    NAME
+  !        runoff_sat_zone
 
-  !     PURPOSE
-  !>        \brief Runoff generation for the saturated zone.
+  !    PURPOSE
+  !>       \brief Runoff generation for the saturated zone.
 
-  !>        \details Calculates the runoff generation for the saturated zone.
-  !>                 If the level of the ground water reservoir is zero, then
-  !>                 the baseflow is also zero.
-  !>                 If the level of the ground water reservoir is greater than zero, then
-  !>                 the baseflow is equal to baseflow recession coefficient times the level
-  !>                 of the ground water reservoir, which
-  !>                 will be then reduced by the value of baseflow.
+  !>       \details Calculates the runoff generation for the saturated zone.
+  !>       If the level of the ground water reservoir is zero, then
+  !>       the baseflow is also zero.
+  !>       If the level of the ground water reservoir is greater than zero, then
+  !>       the baseflow is equal to baseflow recession coefficient times the level
+  !>       of the ground water reservoir, which
+  !>       will be then reduced by the value of baseflow.
+  !>       ADDITIONAL INFORMATION
+  !>       runoff_sat_zone
+  !>       runoff_sat_zone(k2, baseflow, sat_storage)
+  !>       K=0.1
+  !>       B=5.0
+  !>       S=10.0
+  !>       runoff_sat_zone(K,B,S)
 
-  !     CALLING SEQUENCE
-  !         runoff_sat_zone(k2, baseflow, sat_storage)
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp) :: k2" Baseflow recession coefficient [d-1]
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) ::  k2"                   Baseflow recession coefficient [d-1]
+  !    INTENT(INOUT)
+  !>       \param[inout] "REAL(dp) :: sat_storage" Groundwater storage [mm]
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "real(dp) ::  sat_storage"      Groundwater storage [mm]
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp) :: baseflow" Baseflow [mm d-1]
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) ::  baseflow"            Baseflow [mm d-1]
+  !    HISTORY
+  !>       \authors Vladyslav Prykhodko
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         K=0.1
-  !         B=5.0
-  !         S=10.0
-  !         runoff_sat_zone(K,B,S)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Vladyslav Prykhodko
-  !>        \date Dec 2012
-  !         Modified JM, Aug 2013  - ordering of arguments changed
+  ! Modifications:
+  ! JM Aug 2013 - ordering of arguments changed
 
   SUBROUTINE runoff_sat_zone(k2, sat_storage, baseflow)
+    implicit none
 
-    IMPLICIT NONE
-
+    ! Baseflow recession coefficient [d-1]
     REAL(dp), INTENT(IN) :: k2
+
+    ! Groundwater storage [mm]
     REAL(dp), INTENT(INOUT) :: sat_storage
+
+    ! Baseflow [mm d-1]
     REAL(dp), INTENT(OUT) :: baseflow
+
 
     if (sat_storage > 0.0_dp) then
       baseflow = k2 * sat_storage
@@ -233,71 +227,60 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
+  !    NAME
   !        L1_total_runoff
 
-  !     PURPOSE
-  !>        \brief total runoff accumulation at level 1
+  !    PURPOSE
+  !>       \brief total runoff accumulation at level 1
 
-  !>        \details Accumulates runoff.
-  !>        \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
-  !>        where fSealed is the fraction of sealed area.
+  !>       \details Accumulates runoff.
+  !>       \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
+  !>       where fSealed is the fraction of sealed area.
+  !>       ADDITIONAL INFORMATION
+  !>       L1_total_runoff
+  !>       runoff_accum(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow,  direct_runoff, total_runoff)
 
-  !     CALLING SEQUENCE
-  !         runoff_accum(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow,  direct_runoff, total_runoff)
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
+  !>       \param[in] "REAL(dp) :: fast_interflow"        \f$ q_0 \f$ Fast runoff component [mm tst-1]
+  !>       \param[in] "REAL(dp) :: slow_interflow"        \f$ q_1 \f$ Slow runoff component [mm tst-1]
+  !>       \param[in] "REAL(dp) :: baseflow"              \f$ q_2 \f$ Baseflow [mm tsts-1]
+  !>       \param[in] "REAL(dp) :: direct_runoff"         \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp)  ::  fSealed_area_fraction      sealed area fraction [1]
-  !>        \param[in] "real(dp)  ::  fast_interflow            \f$ q_0 \f$ Fast runoff component [mm tst-1]
-  !>        \param[in] "real(dp)  ::  slow_interflow            \f$ q_1 \f$ Slow runoff component [mm tst-1] 
-  !>        \param[in] "real(dp)  ::  baseflow"                 \f$ q_2 \f$ Baseflow [mm tsts-1]   
-  !>        \param[in] "real(dp)  ::  direct_runoff"            \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp) :: total_runoff" \f$ q_T \f$ Generated runoff [mm tst-1]
 
-  !     INTENT(INOUT)
-  !        None
+  !    HISTORY
+  !>       \authors Vladyslav Prykhodko
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: total_runoff"              \f$ q_T \f$ Generated runoff [mm tst-1]
+  !>       \date Dec 2012
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! RK Jul 2013 - A Mosiac approach is implemented for processes accounted within the permeamble & impervious area.
+  ! ST May 2015 - updated equation in the documentation
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow, direct_runoff, &
+                            total_runoff)
+    implicit none
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Vladyslav Prykhodko
-  !>        \date Dec 2012
-  !         Modified  RK, Jul 2013  - A Mosiac approach is implemented for processes accounted
-  !                                   within the permeamble & impervious area.
-  !                   ST, May 2015  - updated equation in the documentation
-
-  SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, &
-          baseflow, direct_runoff, total_runoff)
-
-    IMPLICIT NONE
-
+    ! sealed area fraction [1]
     REAL(dp), INTENT(IN) :: fSealed_area_fraction
+
+    ! \f$ q_0 \f$ Fast runoff component [mm tst-1]
     REAL(dp), INTENT(IN) :: fast_interflow
+
+    ! \f$ q_1 \f$ Slow runoff component [mm tst-1]
     REAL(dp), INTENT(IN) :: slow_interflow
+
+    ! \f$ q_2 \f$ Baseflow [mm tsts-1]
     REAL(dp), INTENT(IN) :: baseflow
+
+    ! \f$ q_D \f$ Direct runoff from impervious areas  [mm tst-1]
     REAL(dp), INTENT(IN) :: direct_runoff
+
+    ! \f$ q_T \f$ Generated runoff [mm tst-1]
     REAL(dp), INTENT(OUT) :: total_runoff
+
 
     total_runoff = ((baseflow + slow_interflow + fast_interflow) * (1.0_dp - fSealed_area_fraction)) + &
             (direct_runoff * fSealed_area_fraction)

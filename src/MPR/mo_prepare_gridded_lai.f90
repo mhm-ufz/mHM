@@ -4,7 +4,7 @@
 
 !>       \details Prepare daily LAI fields(e.g., MODIS data) for mHM
 
-!>       \authors s John Craven & Rohini Kumar
+!>       \authors John Craven & Rohini Kumar
 
 !>       \date Aug 2013
 
@@ -44,10 +44,10 @@ CONTAINS
   !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
   !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
   !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
-  !>       \param[in] "logical, dimension(:, :) :: mask"    
+  !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), optional :: LAIPer_iBasin" 
+  !>       \param[in] "type(period), optional :: LAIPer_iBasin"
 
   !    HISTORY
   !>       \authors John Craven & Rohini Kumar
@@ -56,6 +56,7 @@ CONTAINS
 
   ! Modifications:
   ! Matthias Cuntz & Juliane Mai Nov 2014 - use meteo reading routines 
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine prepare_gridded_daily_LAI_data(iBasin, nrows, ncols, mask, LAIPer_iBasin)
 
@@ -117,77 +118,71 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
+  !    NAME
   !        prepare_gridded_mean_monthly_LAI_data
 
-  !     PURPOSE
-  !>        \brief prepare_gridded_mean_monthly_LAI_data
+  !    PURPOSE
+  !>       \brief prepare_gridded_mean_monthly_LAI_data
 
-  !>        \details Long term mean monthly gridded LAI data at Level-0 (e.g., using MODIS datasets)\n
-  !>                 The netcdf file should contain 12 (calender months) gridded fields of climatological \n
-  !>                 LAI data at the input L0 data resolution. 
+  !>       \details Long term mean monthly gridded LAI data at Level-0 (e.g., using MODIS datasets)
+  !>       The netcdf file should contain 12 (calender months) gridded fields of climatological
+  !>       LAI data at the input L0 data resolution.
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "integer(i4) :: iBasin, nrows, ncols" Basin Id
+  !>       \param[in] "logical, dimension(:, :) :: mask"
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2016
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Dec 2016
-  !
   subroutine prepare_gridded_mean_monthly_LAI_data(iBasin, nrows, ncols, mask)
 
-    use mo_mpr_global_variables, only : dirgridded_LAI, L0_gridded_LAI, nLAI
-    use mo_append, only : append                    ! append vector
-    use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
+    use mo_append, only : append
     use mo_message, only : message
+    use mo_mpr_global_variables, only : L0_gridded_LAI, dirgridded_LAI, nLAI
+    use mo_ncread, only : Get_NcDim, Get_NcVar, Get_NcVarAtt
     use mo_string_utils, only : num2str
     use mo_utils, only : eq
 
     implicit none
-    ! input 
+
+    ! Basin Id
     integer(i4), intent(in) :: iBasin, nrows, ncols
+
     logical, dimension(:, :), intent(in) :: mask
+
     integer(i4) :: ncells, iLAI
-    !
-    real(dp), dimension(:, :, :), allocatable :: LAI0_3D     !data at level-0 [nRow X nCols X nTimeSteps]
-    real(dp), dimension(:, :), allocatable :: LAI0_2D     !data at level-0 [nCells X nTimeSteps]
+
+    ! data at level-0 [nRow X nCols X nTimeSteps]
+    real(dp), dimension(:, :, :), allocatable :: LAI0_3D
+
+    ! data at level-0 [nCells X nTimeSteps]
+    real(dp), dimension(:, :), allocatable :: LAI0_2D
 
     integer(i4) :: t
 
-    !
-    character(256) :: fName        ! name of NetCDF file
-    character(256) :: AttValues    ! netcdf attribute values
-    integer(i4) :: datatype     ! datatype of attribute
-    integer(i4), dimension(5) :: dimen        ! dimension for NetCDF file
-    real(dp) :: nodata_value ! data nodata value
+    ! name of NetCDF file
+    character(256) :: fName
+
+    ! netcdf attribute values
+    character(256) :: AttValues
+
+    ! datatype of attribute
+    integer(i4) :: datatype
+
+    ! dimension for NetCDF file
+    integer(i4), dimension(5) :: dimen
+
+    ! data nodata value
+    real(dp) :: nodata_value
+
 
     fName = trim(dirgridded_LAI(iBasin)) // trim('lai.nc')
 

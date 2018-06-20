@@ -4,7 +4,7 @@
 
 !>       \details Data have to be provided in resolution of the hydrology.
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Mar 2015
 
@@ -37,6 +37,8 @@ CONTAINS
   !>       a variable "sm" inside. The data are read only for the evaluation period
   !>       they are intended to be used for calibration. Soil moisture data are only
   !>       read if one of the corresponding objective functions is chosen.
+  !>       ADDITIONAL INFORMATION
+  !>       read_soil_moisture
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -127,78 +129,53 @@ CONTAINS
 
   ! ---------------------------------------------------------------------------
 
-  !      NAME
-  !          read_basin_avg_TWS
+  !    NAME
+  !        read_basin_avg_TWS
 
-  !>        \brief Read basin average TWS timeseries from file, the same way runoff is read
+  !    PURPOSE
+  !>       \brief Read basin average TWS timeseries from file, the same way runoff is read
 
-  !>        \details Read basin average TWS timeseries
-  !>        Allocate global basin_avg_TWS variable that contains the simulated values after the simulation.
+  !>       \details Read basin average TWS timeseries
+  !>       Allocate global basin_avg_TWS variable that contains the simulated values after the simulation.
+  !>       ADDITIONAL INFORMATION
+  !>       read_basin_avg_TWS
+  !>       \author  Oldrich Rakovec, based on modification of mrm_read_discharge by S. Thober
+  !>       \date    Oct 2015
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  subroutine read_basin_avg_TWS
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Oldrich Rakovec, based on modification of mrm_read_discharge by S. Thober
-  !         \date    Oct 2015
-  !
-  subroutine read_basin_avg_TWS()
-    use mo_message, only : message
     use mo_append, only : paste
-    use mo_string_utils, only : num2str
-    use mo_read_timeseries, only : read_timeseries
-    use mo_file, only : utws
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : &
-            basin_avg_TWS_sim, basin_avg_TWS_obs, & ! variable storing tws simulated and data per each basin
-            nMeasPerDay_TWS ! nMeasPerDay for tws data
-    use mo_common_variables, only : &
-            nBasins
-    use mo_common_mHM_mRM_variables, only : &
-            evalPer, & ! model evaluation period (for tws read in)
-            simPer, & ! model simulation period (for inflow read in)
-            optimize, &   ! optimization flag for some error checks
-            opti_function, & ! opti_function that determines to what data to calibrate
-            nTstepDay
+    use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
+    use mo_common_variables, only : nBasins
+    use mo_file, only : utws
+    use mo_global_variables, only : basin_avg_TWS_obs, basin_avg_TWS_sim, nMeasPerDay_TWS
+    use mo_message, only : message
+    use mo_read_timeseries, only : read_timeseries
+    use mo_string_utils, only : num2str
 
-    !
     implicit none
-    ! input variables
-    !
-    ! local variables
+
     integer(i4) :: iBasin
+
     integer(i4) :: maxTimeSteps
-    character(256) :: fName ! file name of file to read
+
+    ! file name of file to read
+    character(256) :: fName
+
     integer(i4), dimension(3) :: start_tmp, end_tmp
+
     real(dp), dimension(:), allocatable :: data_dp_1d
+
     logical, dimension(:), allocatable :: mask_1d
+
 
     ! ************************************************
     ! INITIALIZE TWS
@@ -230,82 +207,72 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_neutrons
+  !    NAME
+  !        read_neutrons
 
-  !     PURPOSE
-  !>        \brief Read neutrons data from NetCDF file for calibration
+  !    PURPOSE
+  !>       \brief Read neutrons data from NetCDF file for calibration
 
-  !>        \details This routine reads oberved neutron fields which are used for model
-  !>                 calibration. The neutrons file is expected to be called "neutrons.nc" with
-  !>                 a variable "neutrons" inside. The data are read only for the evaluation period
-  !>                 they are intended to be used for calibration. Neutrons data are only
-  !>                 read if one of the corresponding objective functions is chosen.
+  !>       \details This routine reads oberved neutron fields which are used for model
+  !>       calibration. The neutrons file is expected to be called "neutrons.nc" with
+  !>       a variable "neutrons" inside. The data are read only for the evaluation period
+  !>       they are intended to be used for calibration. Neutrons data are only
+  !>       read if one of the corresponding objective functions is chosen.
+  !>       ADDITIONAL INFORMATION
+  !>       read_neutrons
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    HISTORY
+  !>       \authors Martin Schroen
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Jul 2015
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Martin Schroen
-  !>        \date Jul 2015
+  ! Modifications:
 
   subroutine read_neutrons(iBasin)
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_read_forcing_nc, only : read_forcing_nc
-    use mo_timer, only : &
-            timer_start, timer_stop, timer_get                  ! Timing of processes
-    use mo_append, only : append                    ! append data
+
+    use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : &
-            dirNeutrons, & ! directory of meteo input
-            L1_neutronsdata, L1_neutronsdata_mask, & ! soil mositure data and mask
-            timeStep_neutrons_input, nTimeSteps_L1_neutrons                 ! input time step (d,m,y), number of time steps
-    use mo_common_mhm_mrm_variables, only : &
-            evalPer                                            ! evaluation period
-    use mo_common_variables, only : &
-            level1
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : L1_neutronsdata, L1_neutronsdata_mask, dirNeutrons, nTimeSteps_L1_neutrons, timeStep_neutrons_input
+    use mo_message, only : message
+    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_string_utils, only : num2str
+    use mo_timer, only : timer_get, &
+                         timer_start, timer_stop
+
     implicit none
 
-    integer(i4), intent(in) :: iBasin                         ! Basin Id
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
-    integer(i4) :: t               ! loop  vars packing L1_data to L1_data_packed
-    integer(i4) :: nrows1, ncols1  ! level 1 number of culomns and rows
-    logical, dimension(:, :), allocatable :: mask1           ! mask of level 1 for packing
-    integer(i4) :: ncells1         ! ncells1 of level 1
-    real(dp), dimension(:, :, :), allocatable :: L1_data         ! data at level-1
-    real(dp), dimension(:, :), allocatable :: L1_data_packed  ! packed data at level-1 from 3D to 2D
-    logical, dimension(:, :, :), allocatable :: L1_mask         ! mask at level-1
-    logical, dimension(:, :), allocatable :: L1_mask_packed  ! packed mask at level-1 from 3D to 2D
+    ! loop  vars packing L1_data to L1_data_packed
+    integer(i4) :: t
+
+    ! level 1 number of culomns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! mask of level 1 for packing
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! data at level-1
+    real(dp), dimension(:, :, :), allocatable :: L1_data
+
+    ! packed data at level-1 from 3D to 2D
+    real(dp), dimension(:, :), allocatable :: L1_data_packed
+
+    ! mask at level-1
+    logical, dimension(:, :, :), allocatable :: L1_mask
+
+    ! packed mask at level-1 from 3D to 2D
+    logical, dimension(:, :), allocatable :: L1_mask_packed
+
 
     ! get basic basin information at level-1
     nrows1 = level1(iBasin)%nrows
@@ -344,82 +311,72 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         read_evapotranspiration
+  !    NAME
+  !        read_evapotranspiration
 
-  !     PURPOSE
-  !>        \brief Read evapotranspiration data from NetCDF file for calibration
+  !    PURPOSE
+  !>       \brief Read evapotranspiration data from NetCDF file for calibration
 
-  !>        \details This routine reads oberved evapotranspiration fields which are used for model
-  !>                 calibration. The evapotranspiration file is expected to be called "et.nc" with
-  !>                 a variable "et" inside. The data are read only for the evaluation period
-  !>                 they are intended to be used for calibration. Evapotranspiration data are only
-  !>                 read if one of the corresponding objective functions is chosen.
+  !>       \details This routine reads oberved evapotranspiration fields which are used for model
+  !>       calibration. The evapotranspiration file is expected to be called "et.nc" with
+  !>       a variable "et" inside. The data are read only for the evaluation period
+  !>       they are intended to be used for calibration. Evapotranspiration data are only
+  !>       read if one of the corresponding objective functions is chosen.
+  !>       ADDITIONAL INFORMATION
+  !>       read_evapotranspiration
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    HISTORY
+  !>       \authors Johannes Brenner
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Feb 2017
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Johannes Brenner
-  !>        \date Feb 2017
+  ! Modifications:
 
   subroutine read_evapotranspiration(iBasin)
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_read_forcing_nc, only : read_forcing_nc
-    use mo_timer, only : &
-            timer_start, timer_stop, timer_get                  ! Timing of processes
-    use mo_append, only : append                    ! append data
+
+    use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_global_variables, only : &
-            dirEvapotranspiration, & ! directory of meteo input
-            L1_et, L1_et_mask, & ! soil mositure data and mask
-            timeStep_et_input, nTimeSteps_L1_et                 ! input time step (d,m,y), number of time steps
-    use mo_common_mhm_mrm_variables, only : &
-            evalPer                                            ! evaluation period
-    use mo_common_variables, only : &
-            level1
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : L1_et, L1_et_mask, dirEvapotranspiration, nTimeSteps_L1_et, timeStep_et_input
+    use mo_message, only : message
+    use mo_read_forcing_nc, only : read_forcing_nc
+    use mo_string_utils, only : num2str
+    use mo_timer, only : timer_get, timer_start, &
+                         timer_stop
+
     implicit none
 
-    integer(i4), intent(in) :: iBasin                         ! Basin Id
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
-    integer(i4) :: t               ! loop  vars packing L1_data to L1_data_packed
-    integer(i4) :: nrows1, ncols1  ! level 1 number of culomns and rows
-    logical, dimension(:, :), allocatable :: mask1           ! mask of level 1 for packing
-    integer(i4) :: ncells1         ! ncells1 of level 1
-    real(dp), dimension(:, :, :), allocatable :: L1_data         ! data at level-1
-    real(dp), dimension(:, :), allocatable :: L1_data_packed  ! packed data at level-1 from 3D to 2D
-    logical, dimension(:, :, :), allocatable :: L1_mask         ! mask at level-1
-    logical, dimension(:, :), allocatable :: L1_mask_packed  ! packed mask at level-1 from 3D to 2D
+    ! loop  vars packing L1_data to L1_data_packed
+    integer(i4) :: t
+
+    ! level 1 number of culomns and rows
+    integer(i4) :: nrows1, ncols1
+
+    ! mask of level 1 for packing
+    logical, dimension(:, :), allocatable :: mask1
+
+    ! ncells1 of level 1
+    integer(i4) :: ncells1
+
+    ! data at level-1
+    real(dp), dimension(:, :, :), allocatable :: L1_data
+
+    ! packed data at level-1 from 3D to 2D
+    real(dp), dimension(:, :), allocatable :: L1_data_packed
+
+    ! mask at level-1
+    logical, dimension(:, :, :), allocatable :: L1_mask
+
+    ! packed mask at level-1 from 3D to 2D
+    logical, dimension(:, :), allocatable :: L1_mask_packed
+
 
     ! get basic basin information at level-1
     nrows1 = level1(iBasin)%nrows

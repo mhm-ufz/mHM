@@ -3,7 +3,7 @@
 !>       \brief Soil moisture of the different layers
 
 !>       \details Soil moisture in the different layers is calculated with
-!>       infiltration as \f$ (\theta / \theta_{sat})^\beta \f$ 
+!>       infiltration as \f$ (\theta / \theta_{sat})^\beta \f$
 !>       Then evapotranspiration is calculated from PET with a soil water stress  factor \f$ f_{SM} \f$
 !>       either using  the Feddes equation - precessCase(1):
 !>       \f$ f_{SM} = \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} \f$
@@ -11,7 +11,7 @@
 !>       \f$ f_{SM} = \frac{1}{\theta_\mathit{stress-index-C1}}
 !>       \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{sat} - \theta_\mathit{pwp}} \f$.
 
-!>       \authors s Matthias Cuntz, Luis Samaniego
+!>       \authors Matthias Cuntz, Luis Samaniego
 
 !>       \date Dec 2012
 
@@ -47,31 +47,47 @@ CONTAINS
   !>       \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
   !>       with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being
   !>       \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
+  !>       ADDITIONAL INFORMATION
+  !>       soil_moisture
+  !>       subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
+  !>       evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
+  !>       soil_moist_exponen, aet_canopy, prec_effec, runoff_sealed, storage_sealed, &
+  !>       infiltration, soil_moist, aet, aet_sealed)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
+  !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis
+  !>       equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
   !>       \param[in] "real(dp) :: frac_sealed"                      Fraction of sealed area
   !>       \param[in] "real(dp) :: water_thresh_sealed"              Threshhold water depth in impervious areas [mm/s]
   !>       \param[in] "real(dp) :: pet"                              Reference evapotranspiration [mm/s]
-  !>       \param[in] "real(dp) :: evap_coeff"                       Evaporation coefficent for free-water surface of that current month
+  !>       \param[in] "real(dp) :: evap_coeff"                       Evaporation coefficent for free-water surface of
+  !>       that current month
   !>       \param[in] "real(dp), dimension(:) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
   !>       \param[in] "real(dp), dimension(:) :: frac_roots"         Fraction of Roots in soil horizon
   !>       \param[in] "real(dp), dimension(:) :: soil_moist_FC"      Soil moisture below which actual ET is reduced [mm]
   !>       \param[in] "real(dp), dimension(:) :: wilting_point"      Permanent wilting point for each horizon [mm]
-  !>       \param[in] "real(dp), dimension(:) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil water retention
-  !>       \param[in] "real(dp) :: jarvis_thresh_c1"                 Jarvis critical value for normalized soil water content
+  !>       \param[in] "real(dp), dimension(:) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil
+  !>       water retention
+  !>       \param[in] "real(dp) :: jarvis_thresh_c1"                 Jarvis critical value for normalized soil water
+  !>       content
   !>       \param[in] "real(dp) :: aet_canopy"                       Actual ET from canopy [mm/s]
 
   !    INTENT(INOUT)
-  !>       \param[inout] "real(dp) :: prec_effec"                                       Effective precipitation (rain + snow melt) [mm]
-  !>       \param[inout] "real(dp) :: runoff_sealed"                                    Direct runoff from impervious areas
-  !>       \param[inout] "real(dp) :: storage_sealed"                                   Retention storage of impervious areas
-  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: infiltration" Recharge, infiltration intensity oreffective precipitation of each horizon [mm/s]
-  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: soil_moist"   Soil moisture of each horizon [mm]
+  !>       \param[inout] "real(dp) :: prec_effec"                                       Effective precipitation (rain +
+  !>       snow melt) [mm]
+  !>       \param[inout] "real(dp) :: runoff_sealed"                                    Direct runoff from impervious
+  !>       areas
+  !>       \param[inout] "real(dp) :: storage_sealed"                                   Retention storage of impervious
+  !>       areas
+  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: infiltration" Recharge, infiltration intensity
+  !>       oreffective precipitation of each horizon [mm/s]
+  !>       \param[inout] "real(dp), dimension(size(soil_moist_sat, 1)) :: soil_moist"   Soil moisture of each horizon
+  !>       [mm]
 
   !    INTENT(OUT)
   !>       \param[out] "real(dp), dimension(size(soil_moist_sat, 1)) :: aet" actual ET [mm/s]
-  !>       \param[out] "real(dp) :: aet_sealed"                              actual ET from free-water surfaces,i.e impervious cover [mm/s]
+  !>       \param[out] "real(dp) :: aet_sealed"                              actual ET from free-water surfaces,i.e
+  !>       impervious cover [mm/s]
 
   !    HISTORY
   !>       \authors Matthias Cuntz
@@ -88,7 +104,8 @@ CONTAINS
 
     implicit none
 
-    ! 1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction and FC dependency on root fraction coefficient
+    ! 1 - Feddes equation for PET reduction2 - Jarvis equation for PET reduction3 - Jarvis equation for PET reduction
+    ! and FC dependency on root fraction coefficient
     integer(i4), intent(in) :: processCase
 
     ! Fraction of sealed area
@@ -280,76 +297,62 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         feddes_et_reduction
+  !    NAME
+  !        feddes_et_reduction
 
-  !>        \brief stress factor for reducing evapotranspiration based on actual soil moisture
+  !    PURPOSE
+  !>       \brief stress factor for reducing evapotranspiration based on actual soil moisture
 
-  !>        \details Potential evapotranspiration is reduced to 0 if SM is lower PWP. PET is equal 
-  !>                 fraction of roots if soil moisture is exceeding field capacity. If soil moisture is
-  !>                 in between PWP and FC PET is reduced by fraction of roots times a stress factor.
-  !>                 
-  !>                 The ET reduction factor \f$ f \f$ is estimated as
-  !>                 \f[ f = \left\{
-  !>                 \begin{array}{lr}
-  !>                     f_{roots}  & if \theta \ge \theta_{fc}\\
-  !>                     f_{roots} \cdot \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} &
-  !>                     if \theta < \theta_{fc} \\
-  !>                     0 & if \theta < \theta_{pwp}
-  !>                 \end{array}
-  !>                 \right. \f]
+  !>       \details Potential evapotranspiration is reduced to 0 if SM is lower PWP. PET is equal
+  !>       fraction of roots if soil moisture is exceeding field capacity. If soil moisture is
+  !>       in between PWP and FC PET is reduced by fraction of roots times a stress factor.
 
-  !     INTENT(IN)
-  !>       \param[in] " real(dp), intent(in) :: soil_moist"    Soil moisture of each horizon [mm]
-  !>       \param[in] " real(dp), intent(in) :: soil_moist_FC" Soil moisture below which actual ET is reduced [mm] 
-  !>       \param[in] " real(dp), intent(in) :: wilting_point" Permanent wilting point 
-  !>       \param[in] " real(dp), intent(in) :: frac_roots"    Fraction of Roots in soil horizon is reduced [mm]
+  !>       The ET reduction factor \f$ f \f$ is estimated as
+  !>       \f[ f = \left\{
+  !>       \begin{array}{lr}
+  !>       f_{roots}  & if \theta \ge \theta_{fc}\\
+  !>       f_{roots} \cdot \frac{\theta - \theta_\mathit{pwp}}{\theta_\mathit{fc} - \theta_\mathit{pwp}} &
+  !>       if \theta < \theta_{fc} \\
+  !>       0 & if \theta < \theta_{pwp}
+  !>       \end{array}
+  !>       \right. \f]
+  !>       ADDITIONAL INFORMATION
+  !>       feddes_et_reduction
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: soil_moist"    Soil moisture of each horizon [mm]
+  !>       \param[in] "real(dp) :: soil_moist_FC" Soil moisture below which actual ET is reduced [mm]
+  !>       \param[in] "real(dp) :: wilting_point" Permanent wilting point
+  !>       \param[in] "real(dp) :: frac_roots"    Fraction of Roots in soil horizon is reduced [mm]
 
-  !     INTENT(OUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: feddes_et_reduction; et reduction factor
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Cuntz, Cueneyd Demirel, Matthias Zink
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \date March 2017
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return real(dp) :: feddes_et_reduction; et reduction factor    
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !>        \note Feddes, R.A., Kowalik, P., Kolinska-Malinka, K., Zaradny, H., 1976. Simulation of field water 
-  !>                      uptake by plants using a soil water dependent root extraction function. J. Hydrol. 31, 13–26. 
-  !>                      doi:10.1016/0022-1694(76)90017-2
-
-  !     HISTORY
-  !>        \author   Matthias Cuntz, Cueneyd Demirel, Matthias Zink
-  !>        \date     March 2017
+  ! Modifications:
 
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
-
     implicit none
 
-    real(dp), intent(in) :: soil_moist          ! Soil moisture of each horizon [mm]
-    real(dp), intent(in) :: soil_moist_FC       ! Soil moisture below which actual ET
-    !                                                                ! is reduced [mm]
-    real(dp), intent(in) :: wilting_point       ! Permanent wilting point
-    real(dp), intent(in) :: frac_roots          ! Fraction of Roots in soil horizon
-    !                                                                ! is reduced [mm]
+    ! Soil moisture of each horizon [mm]
+    real(dp), intent(in) :: soil_moist
 
-    real(dp) :: feddes_et_reduction ! reference evapotranspiration in [mm s-1]
+    ! Soil moisture below which actual ET is reduced [mm]
+    real(dp), intent(in) :: soil_moist_FC
+
+    ! Permanent wilting point
+    real(dp), intent(in) :: wilting_point
+
+    ! Fraction of Roots in soil horizon is reduced [mm]
+    real(dp), intent(in) :: frac_roots
+
+    ! reference evapotranspiration in [mm s-1]
+    real(dp) :: feddes_et_reduction
+
 
     !    SM >= FC
     if (soil_moist >= soil_moist_FC) then
@@ -368,79 +371,68 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         jarvis_et_reduction
+  !    NAME
+  !        jarvis_et_reduction
 
-  !>        \brief stress factor for reducing evapotranspiration based on actual soil moisture
+  !    PURPOSE
+  !>       \brief stress factor for reducing evapotranspiration based on actual soil moisture
 
-  !>        \details The soil moisture stress factor is estimated based on the normalized soil water
-  !>                 content. The normalized soil water content \f$ \theta_{norm} \f$ is estimated as:
-  !>                 \f[ \theta_{norm} =  \frac{\theta - \theta_\mathit{pwp}}
-  !>                                           {\theta_{sat} - \theta_{pwp}}  \f]  
-  !>                The ET reduction factor \f$ f \f$ is estimated as 
-  !>                 \f[ f = \left\{
-  !>                 \begin{array}{lr}
-  !>                     f_{roots}  & if \theta_{norm} \ge jarvis\_sm\_threshold\_c1 \\
-  !>                      f_{roots}\frac{\theta_{norm}}{jarvis\_sm\_threshold\_c1}  &
-  !>                     if  \theta_{norm} < jarvis\_sm\_threshold\_c1 \\
-  !>                 \end{array}
-  !>                 \right. \f]
+  !>       \details The soil moisture stress factor is estimated based on the normalized soil water
+  !>       content. The normalized soil water content \f$ \theta_{norm} \f$ is estimated as:
+  !>       \f[ \theta_{norm} =  \frac{\theta - \theta_\mathit{pwp}}
+  !>       {\theta_{sat} - \theta_{pwp}}  \f]
+  !>       The ET reduction factor \f$ f \f$ is estimated as
+  !>       \f[ f = \left\{
+  !>       \begin{array}{lr}
+  !>       f_{roots}  & if \theta_{norm} \ge jarvis\_sm\_threshold\_c1 \\
+  !>       f_{roots}\frac{\theta_{norm}}{jarvis\_sm\_threshold\_c1}  &
+  !>       if  \theta_{norm} < jarvis\_sm\_threshold\_c1 \\
+  !>       \end{array}
+  !>       \right. \f]
+  !>       ADDITIONAL INFORMATION
+  !>       jarvis_et_reduction
 
-  !     INTENT(IN)
-  !>       \param[in] " real(dp), intent(in) :: soil_moist"    Soil moisture of each horizon [mm]
-  !>       \param[in] " real(dp), intent(in) :: soil_moist_sat" saturated Soil moisture content [mm] 
-  !>       \param[in] " real(dp), intent(in) :: wilting_point" Permanent wilting point 
-  !>       \param[in] " real(dp), intent(in) :: frac_roots"    Fraction of Roots in soil horizon is reduced [mm]
-  !>       \param[in] " real(dp), intent(in) :: jarvis_thresh_c1" parameter C1 from Jarvis formulation
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: soil_moist"       Soil moisture of each horizon [mm]
+  !>       \param[in] "real(dp) :: soil_moist_sat"   saturated Soil moisture content [mm]
+  !>       \param[in] "real(dp) :: wilting_point"    Permanent wilting point
+  !>       \param[in] "real(dp) :: frac_roots"       Fraction of Roots in soil horizon is reduced [mm]
+  !>       \param[in] "real(dp) :: jarvis_thresh_c1" parameter C1 from Jarvis formulation
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: jarvis_et_reduction; et reduction factor
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Cueneyd Demirel, Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date March 2017
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return real(dp) :: jarvis_et_reduction; et reduction factor    
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !>        \note Jarvis, N.J., 1989. A simple empirical model of root water uptake. 
-  !>                   J. Hydrol. 107, 57–72. doi:10.1016/0022-1694(89)90050-4
-
-  !     HISTORY
-  !>        \author   Cueneyd Demirel, Matthias Zink
-  !>        \date     March 2017
-
-  elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, &
-          jarvis_thresh_c1)
-
+  elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, jarvis_thresh_c1)
     implicit none
 
-    real(dp), intent(in) :: soil_moist             ! Soil moisture of each horizon [mm]
-    real(dp), intent(in) :: soil_moist_sat         ! saturated Soil moisture content [mm]
-    real(dp), intent(in) :: wilting_point          ! Permanent wilting point
-    real(dp), intent(in) :: frac_roots             ! Fraction of Roots in soil horizon
-    !                                                                   ! is reduced [mm]
-    real(dp), intent(in) :: jarvis_thresh_c1 ! parameter C1 from Jarvis formulation
+    ! Soil moisture of each horizon [mm]
+    real(dp), intent(in) :: soil_moist
 
-    real(dp) :: jarvis_et_reduction    ! reference evapotranspiration in [mm s-1]
+    ! saturated Soil moisture content [mm]
+    real(dp), intent(in) :: soil_moist_sat
 
-    ! local
-    real(dp) :: theta_inorm             ! normalized soil water content
+    ! Permanent wilting point
+    real(dp), intent(in) :: wilting_point
+
+    ! Fraction of Roots in soil horizon is reduced [mm]
+    real(dp), intent(in) :: frac_roots
+
+    ! parameter C1 from Jarvis formulation
+    real(dp), intent(in) :: jarvis_thresh_c1
+
+    ! reference evapotranspiration in [mm s-1]
+    real(dp) :: jarvis_et_reduction
+
+    ! normalized soil water content
+    real(dp) :: theta_inorm
+
 
     ! Calculating normalized Soil Water Content 
     theta_inorm = (soil_moist - wilting_point) / (soil_moist_sat - wilting_point)

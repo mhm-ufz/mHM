@@ -36,17 +36,21 @@ contains
   !>       \brief estimate PET correction factor based on LAI at L1
 
   !>       \details estimate PET correction factor based on LAI at L1 for a given
-  !>       Leaf Area Index field. 
+  !>       Leaf Area Index field.
+
   !>       Global parameters needed (see mhm_parameter.nml):
   !>       Process Case 5:
-  !>       - param(1) = PET_a_forest 
-  !>       - param(2) = PET_a_impervious 
-  !>       - param(3) = PET_a_pervious 
-  !>       - param(4) = PET_b 
-  !>       - param(5) = PET_c 
+  !>       - param(1) = PET_a_forest
+  !>       - param(2) = PET_a_impervious
+  !>       - param(3) = PET_a_pervious
+  !>       - param(4) = PET_b
+  !>       - param(5) = PET_c
+
   !>       Example DSF=PET_a+PET_b*(1-exp(PET_c*LAI))
+
   !>       Similar to the crop coefficient concept Kc=a+b*(1-exp(c*LAI)) by Allen, R. G., L. S. Pereira,
-  !>       D. Raes, and M. Smith (1998), Crop evapotranspiration - Guidelines for computing crop water requirements., FAO
+  !>       D. Raes, and M. Smith (1998), Crop evapotranspiration - Guidelines for computing crop water requirements.,
+  !>       FAO
   !>       Irrigation and drainage paper 56. See Chapter 9, Equation 97  <http://www.fao.org/docrep/X0490E/x0490e0f.htm>
   !>       Date: 17/5/2017
 
@@ -72,6 +76,7 @@ contains
   !>       \date May. 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine pet_correctbyLAI(param, nodata, LCOVER0, LAI0, mask0, cell_id0, upp_row_L1, low_row_L1, lef_col_L1, &
                              rig_col_L1, nL0_in_L1, L1_petLAIcorFactor)
@@ -161,93 +166,74 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !         PET correction due to aspect
+  !    NAME
+  !        pet_correctbyASP
 
-  !>        \brief correction of PET
+  !    PURPOSE
+  !>       \brief correction of PET
 
-  !>        \details Correction of PET based on L0 aspect data. \n
-  !> 
-  !>        
-  !>        Global parameters needed (see mhm_parameter.nml):\n
-  !>           - param(1) = minCorrectionFactorPET \n
-  !>           - param(2) = maxCorrectionFactorPET \n
-  !>           - param(3) = aspectTresholdPET      \n
+  !>       \details Correction of PET based on L0 aspect data.
 
-  !      INTENT(IN)
-  !>        \param[in] "integer(i4) :: id0(:,:)" - cell id at Level 0
-  !>        \param[in] "real(dp) :: nodata"        - no data value
-  !>        \param[in] "real(dp) :: param(3)"      - the three process parameters
 
-  !      INTENT(INOUT)
-  !          None
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = minCorrectionFactorPET
+  !>       - param(2) = maxCorrectionFactorPET
+  !>       - param(3) = aspectTresholdPET
 
-  !      INTENT(OUT)
-  !>        \param[out] "real(dp) :: fAsp0(:,:)" - [1] PET correction factor for aspect
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: id0"      Level 0 cell id
+  !>       \param[in] "real(dp), dimension(:) :: latitude_l0" latitude on l0
+  !>       \param[in] "real(dp), dimension(:) :: Asp0"        [degree] Aspect at Level 0
+  !>       \param[in] "real(dp), dimension(3) :: param"       process parameters
+  !>       \param[in] "real(dp) :: nodata"                    - no data value
 
-  !      INTENT(IN), OPTIONAL
-  !          None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: fAsp0" PET correction for Aspect
 
-  !      INTENT(INOUT), OPTIONAL
-  !          None
+  !    HISTORY
+  !>       \authors Stephan Thober, Rohini Kumar
 
-  !      INTENT(OUT), OPTIONAL
-  !          None
+  !>       \date Dec 2012
 
-  !      RETURN
-  !          None
-
-  !      RESTRICTIONS
-  !          None
-
-  !      EXAMPLE
-  !          None
-
-  !      LITERATURE
-  !          None
-
-  !      HISTORY
-  !>        \author Stephan Thober, Rohini Kumar
-  !>        \date Dec 2012
-  !         Written  Stephan Thober, Dec 2012
-  !         Modified Juliane Mai,    Oct 2013 - OLD parametrization
-  !                                                --> param(1) = minCorrectionFactorPET
-  !                                                --> param(2) = maxCorrectionFactorPET 
-  !                                                --> param(3) = aspectTresholdPET
-  !                                             -------------------------------
-  !                                             maxCorrectionFactorPET = minCorrectionFactorPET + delta
-  !                                             -------------------------------
-  !                                             NEW parametrization
-  !                                                --> param(1) = minCorrectionFactorPET 
-  !                                                --> param(2) = delta 
-  !                                                --> param(3) = aspectTresholdPET
-  !                  Stephan Thober, Dec 2013 - changed intent(inout) to intent(out)
-  !                  Stephan Thober, Sep 2015 - Mapping L1 to Lo, latitude on L0
-  !                  Luis Samaniego, Sep 2015 - PET correction on the southern hemisphere
-  !                  Matthias Zink,  Jun 2017 - renamed and moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+  ! Modifications:
+  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = minCorrectionFactorPET --> param(2) = maxCorrectionFactorPET --> param(3) = aspectTresholdPET maxCorrectionFactorPET = minCorrectionFactorPET + delta NEW parametrization --> param(1) = minCorrectionFactorPET --> param(2) = delta --> param(3) = aspectTresholdPET
+  ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
+  ! Stephan Thober Sep 2015 - Mapping L1 to Lo, latitude on L0
+  ! Luis Samaniego Sep 2015 - PET correction on the southern hemisphere
+  ! Matthias Zink  Jun 2017 - renamed and moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine pet_correctbyASP(Id0, latitude_l0, Asp0, param, nodata, fAsp0)
-
     !$ use omp_lib
+#endif
 
     implicit none
 
-    ! Input
-    integer(i4), dimension(:), intent(in) :: id0      ! Level 0 cell id
-    real(dp), dimension(:), intent(in) :: latitude_l0 ! latitude on l0
-    real(dp), intent(in) :: nodata   ! no data value
-    real(dp), dimension(3), intent(in) :: param    ! process parameters
-    real(dp), dimension(:), intent(in) :: Asp0     ! [degree] Aspect at Level 0
+    ! Level 0 cell id
+    integer(i4), dimension(:), intent(in) :: id0
 
-    ! Output
-    real(dp), dimension(:), intent(out) :: fAsp0    ! PET correction for Aspect
+    ! latitude on l0
+    real(dp), dimension(:), intent(in) :: latitude_l0
 
-    ! local
-    real(dp), dimension(size(id0, 1)) :: fAsp0S       ! PET correction for Aspect, south
+    ! - no data value
+    real(dp), intent(in) :: nodata
+
+    ! process parameters
+    real(dp), dimension(3), intent(in) :: param
+
+    ! [degree] Aspect at Level 0
+    real(dp), dimension(:), intent(in) :: Asp0
+
+    ! PET correction for Aspect
+    real(dp), dimension(:), intent(out) :: fAsp0
+
+    ! PET correction for Aspect, south
+    real(dp), dimension(size(id0, 1)) :: fAsp0S
 
     logical, dimension(size(id0, 1)) :: mask_north_hemisphere_l0
 
     real(dp) :: tmp_maxCorrectionFactorPET
+
 
     mask_north_hemisphere_l0 = merge(.TRUE., .FALSE., latitude_l0 .gt. 0.0_dp)
 
@@ -280,96 +266,86 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
+  !    NAME
   !        priestley_taylor_alpha
 
+  !    PURPOSE
   !>       \brief Regionalization of priestley taylor alpha
 
   !>       \details estimation of priestley taylor alpha
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                   - param(1) = PriestleyTaylorCoeff    \n
-  !>                   - param(2) = PriestleyTaylorLAIcorr  \n
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = PriestleyTaylorCoeff
+  !>       - param(2) = PriestleyTaylorLAIcorr
 
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
-  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
-  !>       \param[in] "real(dp)     :: param(:)"       - global parameter
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
-  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: LAI0"       LAI at level-0
+  !>       \param[in] "real(dp), dimension(:) :: param"         input parameter
+  !>       \param[in] "logical, dimension(:, :) :: mask0"       mask at level 0
+  !>       \param[in] "real(dp) :: nodata"                      - nodata value
+  !>       \param[in] "integer(i4), dimension(:) :: cell_id0"   Cell ids of hi res field
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_in_L1"  number of l0 cells within a l1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: Upp_row_L1" upper row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Low_row_L1" lower row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Lef_col_L1" left col of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Rig_col_L1" right col of a l1 cell in l0 grid
 
-  !     INTENT(INOUT)
-  !        None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: priestley_taylor_alpha1" bulk surface resistance
 
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)    :: priestley_taylor_alpha1(:)" - [s m-1] bulk surface resistance
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !        None
+  !>       \date Apr 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !        None
+  ! Modifications:
+  ! Matthias Zink Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !        None
-
-  !     RETURN
-  !        None
-
-  !     LITERATURE
-  !        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     HISTORY
-  !>       \author Matthias Zink
-  !>       \date   Apr 2013
-  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
-
-  subroutine priestley_taylor_alpha(&
-          LAI0, &          ! LAI at level-0
-          param, & ! parameter values (size=2)
-          mask0, & ! mask at level 0
-          nodata, & ! given nodata value
-          cell_id0, & ! cell id at Level 0
-          nL0_in_L1, & ! number of l0 cells within a l1 cell
-          Upp_row_L1, & ! upper row of a l1 cell in l0 grid
-          Low_row_L1, & ! lower row of a l1 cell in l0 grid
-          Lef_col_L1, & ! left col of a l1 cell in l0 grid
-          Rig_col_L1, & ! right col of a l1 cell in l0 grid
-          priestley_taylor_alpha1 & ! bulk surface resistance
-          )
+  subroutine priestley_taylor_alpha(LAI0, param, mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, &
+                                   Rig_col_L1, priestley_taylor_alpha1)
 
     use mo_upscaling_operators, only : upscale_arithmetic_mean
 
     implicit none
 
-    real(dp), dimension(:, :), intent(in) :: LAI0          ! LAI at level-0
-    real(dp), dimension(:), intent(in) :: param       ! input parameter
-    logical, dimension(:, :), intent(in) :: mask0       ! mask at level 0
-    real(dp), intent(in) :: nodata      ! given nodata value
-    integer(i4), dimension(:), intent(in) :: cell_id0    ! Cell ids of hi res field
-    integer(i4), dimension(:), intent(in) :: nL0_in_L1   ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:), intent(in) :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Low_row_L1  ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Lef_col_L1  ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Rig_col_L1  ! right col of a l1 cell in l0 grid
-    ! Output
+    ! LAI at level-0
+    real(dp), dimension(:, :), intent(in) :: LAI0
+
+    ! input parameter
+    real(dp), dimension(:), intent(in) :: param
+
+    ! mask at level 0
+    logical, dimension(:, :), intent(in) :: mask0
+
+    ! - nodata value
+    real(dp), intent(in) :: nodata
+
+    ! Cell ids of hi res field
+    integer(i4), dimension(:), intent(in) :: cell_id0
+
+    ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:), intent(in) :: nL0_in_L1
+
+    ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Upp_row_L1
+
+    ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Low_row_L1
+
+    ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Lef_col_L1
+
+    ! right col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Rig_col_L1
+
+    ! bulk surface resistance
     real(dp), dimension(:, :), intent(out) :: priestley_taylor_alpha1
 
-    ! local
     integer(i4) :: tt
-    real(dp), dimension(:, :), allocatable :: priestley_taylor_alpha0    ! dim 1 = number of cells on level 0, time
+
+    ! dim 1 = number of cells on level 0, time
+    real(dp), dimension(:, :), allocatable :: priestley_taylor_alpha0
+
 
     ! initialize some things
     allocate(priestley_taylor_alpha0 (size(LAI0, 1), size(LAI0, 2))) ; priestley_taylor_alpha0 = nodata
@@ -387,98 +363,87 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
+  !    NAME
   !        bulksurface_resistance
 
+  !    PURPOSE
   !>       \brief Regionalization of bulk surface resistance
 
   !>       \details estimation of bulk surface resistance
-  !>                Global parameters needed (see mhm_parameter.nml):\n
-  !>                - param(1) = stomatal_resistance  \n
+  !>       Global parameters needed (see mhm_parameter.nml):
+  !>       - param(1) = stomatal_resistance
 
-  !      INTENT(IN)
-  !>       \param[in] "integer(i4)  :: LCover_LAI0(:)" - land cover id for LAI at level 0
-  !>       \param[in] "real(dp)     :: LAILUT(:)"      - LUT of LAi values
-  !>       \param[in] "integer(i4)  :: LAIUnitList(:)" - List of ids of each LAI class in LAILUT
-  !>       \param[in] "real(dp)     :: param"          - global parameter
-  !>       \param[in] "logical      :: mask0(:,:)"     - mask at level 0 field
-  !>       \param[in] "real(dp)     :: nodata"         - nodata value 
-  !>       \param[in] "integer(i4)  :: cell_id0 (:)"   - Cell ids at level 0
-  !>       \param[in] "integer(i4)  :: nL0_in_L1 (:)"  - Number of L0 cells within a L1 cell
-  !>       \param[in] "integer(i4)  :: Upp_row_L1(:)"  - Upper row of high resolution block
-  !>       \param[in] "integer(i4)  :: Low_row_L1(:)"  - Lower row of high resolution block
-  !>       \param[in] "integer(i4)  :: Lef_col_L1(:)"  - Left column of high resolution block
-  !>       \param[in] "integer(i4)  :: Rig_col_L1(:)"  - Right column of high resolution block
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: LAI0"       LAI at level-0
+  !>       \param[in] "real(dp) :: param"                       - global parameter
+  !>       \param[in] "logical, dimension(:, :) :: mask0"       mask at level 0
+  !>       \param[in] "real(dp) :: nodata"                      - nodata value
+  !>       \param[in] "integer(i4), dimension(:) :: cell_id0"   Cell ids of hi res field
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_in_L1"  number of l0 cells within a l1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: Upp_row_L1" upper row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Low_row_L1" lower row of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Lef_col_L1" left col of a l1 cell in l0 grid
+  !>       \param[in] "integer(i4), dimension(:) :: Rig_col_L1" right col of a l1 cell in l0 grid
 
-  !     INTENT(INOUT)
-  !        None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: bulksurface_resistance1" bulk surface resistance
 
-  !     INTENT(OUT)
-  !>       \param[out] "real(dp)    :: bulksurface_resistance1(:)" - [s m-1] bulk surface resistance
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(IN), OPTIONAL
-  !        None
+  !>       \date Apr 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !        None
+  ! Modifications:
+  ! Matthias Zink Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !        None
+  subroutine bulksurface_resistance(LAI0, param, mask0, nodata, cell_id0, nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, &
+                                   Rig_col_L1, bulksurface_resistance1)
 
-  !     RETURN
-  !        None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !>        McMahon et al, 2013: Estimating actual, potential, reference crop and pan evaporation using standard 
-  !>        meteorological data: a pragmatic synthesis , HESS
-
-  !     HISTORY
-  !>       \author Matthias Zink
-  !>       \date   Apr 2013
-  !        Modified    Matthias Zink,   Jun 2017 - moved from mo_multi_scale_param_reg.f90 to mo_mpr_pet.f90
-
-  subroutine bulksurface_resistance(&
-          LAI0, &          ! LAI at level-0
-          param, & ! parameter values (size=1)
-          mask0, & ! mask at level 0
-          nodata, & ! given nodata value
-          cell_id0, & ! cell id at Level 0
-          nL0_in_L1, & ! number of l0 cells within a l1 cell
-          Upp_row_L1, & ! upper row of a l1 cell in l0 grid
-          Low_row_L1, & ! lower row of a l1 cell in l0 grid
-          Lef_col_L1, & ! left col of a l1 cell in l0 grid
-          Rig_col_L1, & ! right col of a l1 cell in l0 grid
-          bulksurface_resistance1       & ! bulk surface resistance
-          )
-
-    use mo_upscaling_operators, only : upscale_arithmetic_mean
     use mo_mpr_constants, only : LAI_factor_surfResi, LAI_offset_surfResi, max_surfResist
+    use mo_upscaling_operators, only : upscale_arithmetic_mean
 
     implicit none
 
-    real(dp), dimension(:, :), intent(in) :: LAI0          ! LAI at level-0
-    real(dp), intent(in) :: param       ! input parameter
-    logical, dimension(:, :), intent(in) :: mask0       ! mask at level 0
-    real(dp), intent(in) :: nodata      ! given nodata value
-    integer(i4), dimension(:), intent(in) :: cell_id0    ! Cell ids of hi res field
-    integer(i4), dimension(:), intent(in) :: nL0_in_L1   ! number of l0 cells within a l1 cell
-    integer(i4), dimension(:), intent(in) :: Upp_row_L1  ! upper row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Low_row_L1  ! lower row of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Lef_col_L1  ! left col of a l1 cell in l0 grid
-    integer(i4), dimension(:), intent(in) :: Rig_col_L1  ! right col of a l1 cell in l0 grid
-    ! Output
+    ! LAI at level-0
+    real(dp), dimension(:, :), intent(in) :: LAI0
+
+    ! - global parameter
+    real(dp), intent(in) :: param
+
+    ! mask at level 0
+    logical, dimension(:, :), intent(in) :: mask0
+
+    ! - nodata value
+    real(dp), intent(in) :: nodata
+
+    ! Cell ids of hi res field
+    integer(i4), dimension(:), intent(in) :: cell_id0
+
+    ! number of l0 cells within a l1 cell
+    integer(i4), dimension(:), intent(in) :: nL0_in_L1
+
+    ! upper row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Upp_row_L1
+
+    ! lower row of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Low_row_L1
+
+    ! left col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Lef_col_L1
+
+    ! right col of a l1 cell in l0 grid
+    integer(i4), dimension(:), intent(in) :: Rig_col_L1
+
+    ! bulk surface resistance
     real(dp), dimension(:, :), intent(out) :: bulksurface_resistance1
 
-    ! local
     integer(i4) :: tt
-    real(dp), dimension(:, :), allocatable :: bulksurface_resistance0    ! dim 1 = number of cells on level 0,
-    !                                                                    ! dim 2 = number of months in year (12)
+
+    ! dim 1 = number of cells on level 0,
+    ! dim 2 = number of months in year (12)
+    real(dp), dimension(:, :), allocatable :: bulksurface_resistance0
+
 
     ! initialize some things
     allocate(bulksurface_resistance0 (size(LAI0, 1), size(LAI0, 2))) ; bulksurface_resistance0 = nodata

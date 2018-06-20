@@ -4,7 +4,7 @@
 
 !>       \details Prepare meteorological forcings data for mHM.
 
-!>       \authors s Rohini Kumar
+!>       \authors Rohini Kumar
 
 !>       \date Jan 2012
 
@@ -40,6 +40,15 @@ CONTAINS
   !>       \details Prepare meteorological forcings data for a given variable.
   !>       Internally this subroutine calls another routine meteo_wrapper
   !>       for different meterological variables
+  !>       ADDITIONAL INFORMATION
+  !>       prepare_meteo_forcings_data
+  !>       Matthias Zink,   Jun  2013 - addded NetCDf reader
+  !>       Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  !>       Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
+  !>       Stephan Thober,  Jun  2014 - add chunk_config for chunk read,
+  !>       copied L2 initialization to mo_startup
+  !>       Stephan Thober,  Nov  2016 - moved processMatrix to common variables
+  !>       Stephan Thober,  Jan  2017 - added subroutine for meteo_weights
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -192,93 +201,101 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         meteo_forcings_wrapper
+  !    NAME
+  !        meteo_forcings_wrapper
 
-  !     PURPOSE
-  !>        \brief Prepare meteorological forcings data for mHM at Level-1
+  !    PURPOSE
+  !>       \brief Prepare meteorological forcings data for mHM at Level-1
 
-  !>        \details Prepare meteorological forcings data for mHM, which include \n
-  !>         1) Reading meteo. datasets at their native resolution for every basin \n
-  !>         2) Perform aggregation or disaggregation of meteo. datasets from their \n
-  !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
-  !>         3) Pad the above datasets of every basin to their respective global ones
-  !>                 
+  !>       \details Prepare meteorological forcings data for mHM, which include
+  !>       1) Reading meteo. datasets at their native resolution for every basin
+  !>       2) Perform aggregation or disaggregation of meteo. datasets from their
+  !>       native resolution (level-2) to the required hydrologic resolution (level-1)
+  !>       3) Pad the above datasets of every basin to their respective global ones
 
-  !     CALLING SEQUENCE
+  !>       ADDITIONAL INFORMATION
+  !>       meteo_forcings_wrapper
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"        Basin Id
-  !>        \param[in] "character(len=*)          :: dataPath"      Data path where a given meteo. variable is stored
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"             Basin Id
+  !>       \param[in] "character(len = *) :: dataPath"    Data path where a given meteo. variable is stored
+  !>       \param[in] "character(len = *) :: inputFormat" only 'nc' possible at the moment
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:, :) :: dataOut1" Packed meterological variable for the whole simulation
+  !>       period
 
-  !     INTENT(OUT)
-  !>        \param[in] "real(dp), dimension(:,:)  :: dataOut1"      Packed meterological variable for the whole simulation period
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: lower"               Lower bound for check of validity of data values
+  !>       \param[in] "real(dp), optional :: upper"               Upper bound for check of validity of data values
+  !>       \param[in] "character(len = *), optional :: ncvarName" name of the variable (for .nc files)
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
-  !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values
-  !>        \param[in] "type(period), optional    :: readPer"  reading Period
-  !>        \param[in] "character(len=*), optional:: ncvarName" name of the variable (for .nc files)
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
+  !>       \date Jan 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Jan 2013
-  !         Modified, Stephan Thober, Jun 2014 -- changed to readPer
-  !                   Stephan Thober, Feb 2016 -- refactored deallocate statements
+  ! Modifications:
+  ! Stephan Thober Jun 2014 - changed to readPer
+  ! Stephan Thober Feb 2016 - refactored deallocate statements
 
   subroutine meteo_forcings_wrapper(iBasin, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
 
+    use mo_append, only : append
+    use mo_common_constants, only : nodata_dp
     use mo_common_mhm_mrm_variables, only : readPer
     use mo_common_variables, only : level1
     use mo_global_variables, only : level2
-    use mo_common_constants, only : nodata_dp
     use mo_read_forcing_nc, only : read_forcing_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
-    use mo_append, only : append                    ! append vector
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin        ! Basin Id
-    character(len = *), intent(in) :: dataPath      ! Data path
-    character(len = *), intent(in) :: inputFormat   ! only 'nc' possible at the moment
-    real(dp), dimension(:, :), allocatable, intent(inout) :: dataOut1      ! Packed meteorological variable
-    real(dp), optional, intent(in) :: lower         ! lower bound for data points
-    real(dp), optional, intent(in) :: upper         ! upper bound for data points
-    character(len = *), optional, intent(in) :: ncvarName     ! name of the variable (for .nc files)
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
+
+    ! Data path where a given meteo. variable is stored
+    character(len = *), intent(in) :: dataPath
+
+    ! only 'nc' possible at the moment
+    character(len = *), intent(in) :: inputFormat
+
+    ! Packed meterological variable for the whole simulation period
+    real(dp), dimension(:, :), allocatable, intent(inout) :: dataOut1
+
+    ! Lower bound for check of validity of data values
+    real(dp), optional, intent(in) :: lower
+
+    ! Upper bound for check of validity of data values
+    real(dp), optional, intent(in) :: upper
+
+    ! name of the variable (for .nc files)
+    character(len = *), optional, intent(in) :: ncvarName
 
     logical, dimension(:, :), allocatable :: mask1
+
     integer(i4) :: ncells1
 
     integer(i4) :: nrows2, ncols2
+
     logical, dimension(:, :), allocatable :: mask2
 
-    real(dp), dimension(:, :, :), allocatable :: L2_data            ! meteo data at level-2
-    real(dp), dimension(:, :, :), allocatable :: L1_data            ! meteo data at level-1
-    real(dp), dimension(:, :), allocatable :: L1_data_packed     ! packed meteo data at level-1 from 3D to 2D
+    ! meteo data at level-2
+    real(dp), dimension(:, :, :), allocatable :: L2_data
+
+    ! meteo data at level-1
+    real(dp), dimension(:, :, :), allocatable :: L1_data
+
+    ! packed meteo data at level-1 from 3D to 2D
+    real(dp), dimension(:, :), allocatable :: L1_data_packed
 
     integer(i4) :: nTimeSteps
-    real(dp) :: cellFactorHbyM   ! level-1_resolution/level-2_resolution
+
+    ! level-1_resolution/level-2_resolution
+    real(dp) :: cellFactorHbyM
+
     integer(i4) :: t
+
 
     ! get basic basin information at level-1
     nCells1 = level1(iBasin)%nCells
@@ -351,84 +368,99 @@ CONTAINS
 
 
   ! ------------------------------------------------------------------
-  !     NAME
-  !         meteo_weights_wrapper 
-  !     PURPOSE
-  !>        \brief Prepare weights for meteorological forcings data for mHM at Level-1
-  !>        \details Prepare meteorological weights data for mHM, which include \n
-  !>         1) Reading meteo. weights datasets at their native resolution for every basin \n
-  !>         2) Perform aggregation or disaggregation of meteo. weights datasets from their \n
-  !>            native resolution (level-2) to the required hydrologic resolution (level-1)\n
-  !>         3) Pad the above datasets of every basin to their respective global ones
-  !>                 
-  !     CALLING SEQUENCE
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"             Basin Id
-  !>        \param[in] "logical                   :: read_meteo_weights" Flag for reading meteo weights
-  !>        \param[in] "character(len=*)          :: dataPath"           Data path where a given meteo. variable is stored
-  !     INTENT(INOUT)
-  !         None
-  !     INTENT(OUT)
-  !>        \param[in] "real(dp), dimension(:,:,:) :: dataOut1"      Packed meterological variable for the whole simulation period
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(dp), optional        :: lower"    Lower bound for check of validity of data values
-  !>        \param[in] "real(dp), optional        :: upper"    Upper bound for check of validity of data values
-  !>        \param[in] "character(len=*), optional:: ncvarName" name of the variable (for .nc files)
+  !    NAME
+  !        meteo_weights_wrapper
 
+  !    PURPOSE
+  !>       \brief Prepare weights for meteorological forcings data for mHM at Level-1
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \details Prepare meteorological weights data for mHM, which include
+  !>       1) Reading meteo. weights datasets at their native resolution for every basin
+  !>       2) Perform aggregation or disaggregation of meteo. weights datasets from their
+  !>       native resolution (level-2) to the required hydrologic resolution (level-1)
+  !>       3) Pad the above datasets of every basin to their respective global ones
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  !>       ADDITIONAL INFORMATION
+  !>       meteo_weights_wrapper
 
-  !     RETURN
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"          Basin Id
+  !>       \param[in] "logical :: read_meteo_weights"  Flag for reading meteo weights
+  !>       \param[in] "character(len = *) :: dataPath" Data path where a given meteo. variable is stored
 
-  !     RESTRICTIONS
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:, :, :) :: dataOut1" Packed meterological variable for the whole
+  !>       simulation period
 
-  !     EXAMPLE
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: lower"               Lower bound for check of validity of data values
+  !>       \param[in] "real(dp), optional :: upper"               Upper bound for check of validity of data values
+  !>       \param[in] "character(len = *), optional :: ncvarName" name of the variable (for .nc files)
 
-  !     LITERATURE
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober & Rohini Kumar
 
-  !     HISTORY
-  !>        \author Stephan Thober & Rohini Kumar
-  !>        \date Jan 2017
-  !         Modified, Stephan Thober, May 2017 -- updated documentation
+  !>       \date Jan 2017
+
+  ! Modifications:
+  ! Stephan Thober May 2017 - updated documentation
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
 
-    use mo_global_variables, only : level2
-    use mo_common_variables, only : level1
+    use mo_append, only : append
     use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : level1
+    use mo_global_variables, only : level2
     use mo_read_forcing_nc, only : read_weights_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
-    use mo_append, only : append                    ! append vector
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin             ! Basin Id
-    logical, intent(in) :: read_meteo_weights ! flag for reading meteo weights
-    character(len = *), intent(in) :: dataPath           ! Data path
-    real(dp), dimension(:, :, :), allocatable, intent(inout) :: dataOut1           ! Packed meteorological variable
-    real(dp), optional, intent(in) :: lower              ! lower bound for data points
-    real(dp), optional, intent(in) :: upper              ! upper bound for data points
-    character(len = *), optional, intent(in) :: ncvarName          ! name of the variable (for .nc files)
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
+
+    ! Flag for reading meteo weights
+    logical, intent(in) :: read_meteo_weights
+
+    ! Data path where a given meteo. variable is stored
+    character(len = *), intent(in) :: dataPath
+
+    ! Packed meterological variable for the whole simulation period
+    real(dp), dimension(:, :, :), allocatable, intent(inout) :: dataOut1
+
+    ! Lower bound for check of validity of data values
+    real(dp), optional, intent(in) :: lower
+
+    ! Upper bound for check of validity of data values
+    real(dp), optional, intent(in) :: upper
+
+    ! name of the variable (for .nc files)
+    character(len = *), optional, intent(in) :: ncvarName
 
     logical, dimension(:, :), allocatable :: mask1
+
     integer(i4) :: ncells1
 
     integer(i4) :: nrows2, ncols2
+
     logical, dimension(:, :), allocatable :: mask2
 
-    real(dp), dimension(:, :, :, :), allocatable :: L2_data        ! meteo weights data at level-2
-    real(dp), dimension(:, :, :, :), allocatable :: L1_data        ! meteo weights data at level-1
-    real(dp), dimension(:, :, :), allocatable :: L1_data_packed ! packed meteo weights data at level-1 from 4D to 3D
+    ! meteo weights data at level-2
+    real(dp), dimension(:, :, :, :), allocatable :: L2_data
+
+    ! meteo weights data at level-1
+    real(dp), dimension(:, :, :, :), allocatable :: L1_data
+
+    ! packed meteo weights data at level-1 from 4D to 3D
+    real(dp), dimension(:, :, :), allocatable :: L1_data_packed
 
     integer(i4) :: nMonths, nHours
-    real(dp) :: cellFactorHbyM ! level-1_resolution/level-2_resolution
+
+    ! level-1_resolution/level-2_resolution
+    real(dp) :: cellFactorHbyM
+
     integer(i4) :: t, j
+
 
     ! get basic basin information at level-1
     nCells1 = level1(iBasin)%nCells
@@ -509,21 +541,49 @@ CONTAINS
   !
   ! created: June 2014
   ! ------------------------------------------------------------------
+  !    NAME
+  !        chunk_config
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" current Basin
+  !>       \param[in] "integer(i4) :: tt"     current timestep
+
+  !    INTENT(OUT)
+  !>       \param[out] "logical :: read_flag"    indicate whether reading data should be read
+  !>       \param[out] "type(period) :: readPer" start and end dates of reading Period
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine chunk_config(iBasin, tt, read_flag, readPer)
-    !
-    use mo_kind, only : i4
-    use mo_common_variables, only : period
+
     use mo_common_constants, only : nodata_dp
-    !
+    use mo_common_variables, only : period
+    use mo_kind, only : i4
+
     implicit none
-    !
-    ! input variables
-    integer(i4), intent(in) :: iBasin ! current Basin
-    integer(i4), intent(in) :: tt     ! current timestep
-    !
-    ! output variables
-    logical, intent(out) :: read_flag  ! indicate whether reading data should be read
-    type(period), intent(out) :: readPer    ! start and end dates of reading Period
+
+    ! current Basin
+    integer(i4), intent(in) :: iBasin
+
+    ! current timestep
+    integer(i4), intent(in) :: tt
+
+    ! indicate whether reading data should be read
+    logical, intent(out) :: read_flag
+
+    ! start and end dates of reading Period
+    type(period), intent(out) :: readPer
+
 
     ! initialize
     read_flag = .false.
@@ -548,73 +608,69 @@ CONTAINS
   end subroutine chunk_config
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         is_read
+  !    NAME
+  !        is_read
 
-  !     PURPOSE
-  !>        \brief evaluate whether new chunk should be read at this timestep
+  !    PURPOSE
+  !>       \brief evaluate whether new chunk should be read at this timestep
 
-  !     CALLING SEQUENCE
-  !         flag = is_read( iBasin, tt )
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       is_read
+  !>       flag = is_read( iBasin, tt )
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"    current Basin
-  !>        \param[in] "integer(i4)              :: tt"        current time step
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" current Basin
+  !>       \param[in] "integer(i4) :: tt"     current time step
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jun 2014
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
 
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Jun 2014
-  ! ------------------------------------------------------------------
   function is_read(iBasin, tt)
 
-    use mo_kind, only : i4
+    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_inputs
-    use mo_common_mhm_mrm_variables, only : timestep, simPer, nTstepDay
-    use mo_message, only : message
     use mo_julian, only : caldat
+    use mo_kind, only : i4
+    use mo_message, only : message
 
-    ! input variables
-    integer(i4), intent(in) :: iBasin ! Basin ID
-    integer(i4), intent(in) :: tt     ! timestep
+    implicit none
 
-    ! return variable
+    ! current Basin
+    integer(i4), intent(in) :: iBasin
+
+    ! current time step
+    integer(i4), intent(in) :: tt
+
     logical :: is_read
 
-    ! local variables
-    integer(i4) :: Ndays        ! number of simulated days
-    integer(i4) :: day          ! day
-    integer(i4) :: month        ! months
-    integer(i4) :: year         ! years
-    integer(i4) :: Ndays_before ! number of simulated days one timestep before
-    integer(i4) :: day_before   ! day one simulated timestep before
-    integer(i4) :: month_before ! month one simulated timestep before
-    integer(i4) :: year_before  ! year one simulated timestep before
+    ! number of simulated days
+    integer(i4) :: Ndays
+
+    ! day
+    integer(i4) :: day
+
+    ! months
+    integer(i4) :: month
+
+    ! years
+    integer(i4) :: year
+
+    ! number of simulated days one timestep before
+    integer(i4) :: Ndays_before
+
+    ! day one simulated timestep before
+    integer(i4) :: day_before
+
+    ! month one simulated timestep before
+    integer(i4) :: month_before
+
+    ! year one simulated timestep before
+    integer(i4) :: year_before
 
 
     ! initialize
@@ -660,79 +716,65 @@ CONTAINS
   end function is_read
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         chunk_size
+  !    NAME
+  !        chunk_size
 
-  !     PURPOSE
-  !>        \brief calculate beginning and end of read Period, i.e. that
-  !>               is length of current chunk to read
+  !    PURPOSE
+  !>       \brief calculate beginning and end of read Period, i.e. that
+  !>       is length of current chunk to read
 
-  !     CALLING SEQUENCE
-  !         call chunk_size( iBasin, tt, readPer )
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       chunk_size
+  !>       call chunk_size( iBasin, tt, readPer )
+  !>       modified Stephan Thober - Jan 2015 added iBasin
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"    current Basin to process
-  !>        \param[in] "integer(i4)              :: tt"        current time step
-  !>        \param[in] "type(period)             :: readPer"   start and end dates of read Period
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" current Basin to process
+  !>       \param[in] "integer(i4) :: tt"     current time step
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "type(period) :: readPer" start and end dates of read Period
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jun 2014
 
+  ! Modifications:
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Jun 2014
-  !         modified Stephan Thober - Jan 2015 added iBasin
-  ! ------------------------------------------------------------------
   subroutine chunk_size(iBasin, tt, readPer)
 
-    use mo_kind, only : i4
-    use mo_global_variables, only : &
-            timeStep_model_inputs!,            & !     frequency for reading meteo input
-    use mo_common_mhm_mrm_variables, only : &
-            simPer, & !     start and end of simulation period
-            nTstepDay !     Number of time intervals per day
-    use mo_common_variables, only : &
-            period
-    use mo_message, only : message
+    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer
+    use mo_common_variables, only : period
+    use mo_global_variables, only : timeStep_model_inputs
     use mo_julian, only : caldat, julday
+    use mo_kind, only : i4
+    use mo_message, only : message
 
     implicit none
 
-    ! input variables
-    integer(i4), intent(in) :: tt         ! current time step
-    integer(i4), intent(in) :: iBasin     ! Basin ID
+    ! current time step
+    integer(i4), intent(in) :: tt
 
-    ! output variables
-    type(period), intent(out) :: readPer    ! start and end dates of reading Period
+    ! current Basin to process
+    integer(i4), intent(in) :: iBasin
 
-    ! local variables
-    integer(i4) :: Ndays        ! number of simulated days
-    integer(i4) :: day          ! day
-    integer(i4) :: month        ! months
-    integer(i4) :: year         ! years
+    ! start and end dates of read Period
+    type(period), intent(out) :: readPer
+
+    ! number of simulated days
+    integer(i4) :: Ndays
+
+    ! day
+    integer(i4) :: day
+
+    ! months
+    integer(i4) :: month
+
+    ! years
+    integer(i4) :: year
+
 
     ! calculate date of start date
     Ndays = ceiling(real(tt, dp) / real(nTstepDay, dp))

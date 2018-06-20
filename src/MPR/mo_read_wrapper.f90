@@ -5,7 +5,7 @@
 !>       \details This module is to wrap up all reading routines.
 !>       The general written reading routines are used to store now the read data into global variables.
 
-!>       \authors s Juliane Mai, Matthias Zink
+!>       \authors Juliane Mai, Matthias Zink
 
 !>       \date Jan 2013
 
@@ -34,7 +34,7 @@ CONTAINS
   !>       files are shared across all basins to be modeled.
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), dimension(:), optional :: LAIPer" 
+  !>       \param[in] "type(period), dimension(:), optional :: LAIPer"
 
   !    HISTORY
   !>       \authors Juliane Mai & Matthias Zink
@@ -56,6 +56,7 @@ CONTAINS
   ! Matthias Zink                Mar 2014 - added subroutine for consistency check
   ! Stephan Thober               Nov 2016 - moved processMatrix to common variables
   ! Rohini Kumar                 Dec 2016 - option to handle monthly mean gridded fields of LAI
+  ! Robert Schweppe              Jun 2018 - refactoring and reformatting
 
   subroutine read_data(LAIPer)
 
@@ -329,69 +330,58 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         check_consistency_lut_map
+  !    NAME
+  !        check_consistency_lut_map
 
-  !     PURPOSE
-  !>        \brief Checks if classes in input maps appear in look up tables.
+  !    PURPOSE
+  !>       \brief Checks if classes in input maps appear in look up tables.
 
-  !>        \details Determines wether a class appearing in the morphological input
-  !>                 is occuring in the respective look up table. mHM breaks if inconsistencies
-  !>                 are discovered.
-  !     INTENT(IN)
-  !>        \param[in] " integer(i4), dimension(:) :: data"          map of study domain
-  !>        \param[in] "integer(i4), dimension(:)  :: lookuptable"   look up table corresponding to map
-  !>        \param[in] "character(*)               :: filename"      name of the lut file - ERORR warn 
+  !>       \details Determines wether a class appearing in the morphological input
+  !>       is occuring in the respective look up table. mHM breaks if inconsistencies
+  !>       are discovered.
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: data"        map of study domain
+  !>       \param[in] "integer(i4), dimension(:) :: lookuptable" look up table corresponding to map
+  !>       \param[in] "character(*) :: filename"                 name of the lut file - ERORR warn
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "integer(i4), dimension(:), optional :: unique_values" array of unique values in dataone
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Matthias Zink
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \date Nov 2016
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "integer(i4), dimension(:), allocatable :: unique_values" array of unique values in data
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \none
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Nov 2016
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine check_consistency_lut_map(data, lookuptable, filename, unique_values)
 
-    USE mo_orderpack, ONLY : unista
-    USE mo_string_utils, ONLY : num2str
-    USE mo_message, ONLY : message
+    use mo_message, only : message
+    use mo_orderpack, only : unista
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    integer(i4), dimension(:), intent(in) :: data          ! map of study domain
-    integer(i4), dimension(:), intent(in) :: lookuptable   ! look up table corresponding to map
-    character(*), intent(in) :: filename      ! name of the lut file - ERORR warn
-    integer(i4), dimension(:), allocatable, intent(out), optional :: unique_values ! array of unique values in data
+    ! map of study domain
+    integer(i4), dimension(:), intent(in) :: data
 
-    ! local variables
+    ! look up table corresponding to map
+    integer(i4), dimension(:), intent(in) :: lookuptable
+
+    ! name of the lut file - ERORR warn
+    character(*), intent(in) :: filename
+
+    ! array of unique values in dataone
+    integer(i4), dimension(:), allocatable, intent(out), optional :: unique_values
+
     integer(i4) :: n_unique_elements
+
     integer(i4) :: ielement
+
     integer(i4), dimension(:), allocatable :: temp
+
 
     allocate(temp(size(data, 1)))
     ! copy L0_geoUnit because subroutine unista overwrites the nunit entries of the

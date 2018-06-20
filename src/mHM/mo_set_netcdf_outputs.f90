@@ -4,7 +4,7 @@
 
 !>       \details All output variables are initialized for the NetCDF.
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Apr 2013
 
@@ -37,11 +37,14 @@ CONTAINS
   !>       \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
   !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
+  !>       ADDITIONAL INFORMATION
+  !>       WriteFluxStateInit
+
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: NoNetcdfVars" 
-  !>       \param[in] "integer(i4) :: nrows"        
-  !>       \param[in] "integer(i4) :: ncols"        
+  !>       \param[in] "integer(i4) :: NoNetcdfVars"
+  !>       \param[in] "integer(i4) :: nrows"
+  !>       \param[in] "integer(i4) :: ncols"
 
   !    HISTORY
   !>       \authors Matthias Zink

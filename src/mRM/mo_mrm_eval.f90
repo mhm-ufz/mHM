@@ -4,7 +4,7 @@
 
 !>       \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Sep 2015
 
@@ -29,10 +29,12 @@ contains
   !>       \details Runs mrm with a specific parameter set and returns required variables, e.g. runoff.
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
+  !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION
+  !>       [no. of global_Parameters]
 
   !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION
+  !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" dim1=time dim2=nBasins
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
@@ -45,6 +47,7 @@ contains
 
   ! Modifications:
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 
@@ -120,7 +123,11 @@ contains
     ! factor between routing and hydrological modelling resolution (temporary variable)
     real(dp) :: tsRoutFactorIn
 
-    ! timestep of runoff to rout [h]- identical to timestep of input iftsRoutFactor is less than 1- tsRoutFactor * timestep iftsRoutFactor is greater than 1
+    ! timestep of runoff to rout [h]
+    ! - identical to timestep of input if
+    ! tsRoutFactor is less than 1
+    ! - tsRoutFactor * timestep if
+    ! tsRoutFactor is greater than 1
     integer(i4) :: timestep_rout
 
     real(dp) :: newTime

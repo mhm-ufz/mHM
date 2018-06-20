@@ -31,7 +31,10 @@ contains
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :) :: params" parameter:col_1=Lower bound,col_2=Upper boundcol_3=initial
+  !>       \param[in] "real(dp), dimension(:, :) :: params" parameter:
+  !>       col_1=Lower bound,
+  !>       col_2=Upper bound
+  !>       col_3=initial
 
   !    HISTORY
   !>       \authors Robert Schweppe
@@ -43,7 +46,10 @@ contains
   function in_bound(params)
     implicit none
 
-    ! parameter:col_1=Lower bound,col_2=Upper boundcol_3=initial
+    ! parameter:
+    ! col_1=Lower bound,
+    ! col_2=Upper bound
+    ! col_3=initial
     real(dp), dimension(:, :), intent(in) :: params
 
     logical :: in_bound

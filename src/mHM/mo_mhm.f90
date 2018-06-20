@@ -5,12 +5,12 @@
 !>       \details This module calls all processes of mHM for a given configuration.
 !>       The configuration of the model is stored in the a process matrix.
 !>       This configuration is specified in the namelist mhm.nml.
-!>       
+
 !>       The processes are executed in ascending order. At the moment only
 !>       process 5 and 8 have options.
-!>       
-!>       Currently the following processes are implemented: 
-!>       
+
+!>       Currently the following processes are implemented:
+
 !>       Process    | Name                      | Flag  | Description
 !>       ---------- | ------------------------- | ----- | ------------------------------------------
 !>       1          | interception              |   1   | Maximum interception
@@ -29,7 +29,6 @@
 !>       8          | routing                   |   0   | no routing
 !>       8          | routing                   |   1   | use mRM i.e. Muskingum
 !>       8          | routing                   |   2   | use mRM i.e. adaptive timestep
-!>       
 
 !>       \authors Luis Samaniego
 
@@ -58,23 +57,31 @@ CONTAINS
   !    PURPOSE
   !>       \brief Pure mHM calculations.
 
-  !>       \details Pure mHM calculations. All variables are allocated and initialized. 
-  !>       They will be local variables within this call. 
-  !>       
+  !>       \details Pure mHM calculations. All variables are allocated and initialized.
+  !>       They will be local variables within this call.
+
+  !>       ADDITIONAL INFORMATION
+  !>       mHM
+  !>       Has to be updated...
+  !>       Has to be updated...
+  !>       Has to be updated...
 
   !    INTENT(IN)
-  !>       \param[in] "logical :: read_states"                           indicated whether states have been read from file
+  !>       \param[in] "logical :: read_states"                           indicated whether states have been read from
+  !>       file
   !>       \param[in] "integer(i4) :: tt"                                simulation time step
   !>       \param[in] "real(dp) :: time"                                 current decimal Julian day
   !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix"    mHM process configuration matrix
   !>       \param[in] "real(dp), dimension(:) :: horizon_depth"          Depth of each horizon in mHM
   !>       \param[in] "integer(i4) :: nCells1"                           number of cells in a given basin at level L1
   !>       \param[in] "integer(i4) :: nHorizons_mHM"                     Number of Horizons in mHM
-  !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed in dp
+  !>       \param[in] "real(dp) :: ntimesteps_day"                       number of time intervals per day, transformed
+  !>       in dp
   !>       \param[in] "real(dp), dimension(:) :: neutron_integral_AFast" tabular for neutron flux approximation
   !>       \param[in] "real(dp), dimension(:) :: global_parameters"      global mHM parameters
   !>       \param[in] "real(dp), dimension(:) :: latitude"               latitude on level 1
-  !>       \param[in] "real(dp), dimension(:) :: evap_coeff"             Evaporation coefficent for free-water surface of that current month
+  !>       \param[in] "real(dp), dimension(:) :: evap_coeff"             Evaporation coefficent for free-water surface
+  !>       of that current month
   !>       \param[in] "real(dp), dimension(:) :: fday_prec"              [-] day ratio precipitation < 1
   !>       \param[in] "real(dp), dimension(:) :: fnight_prec"            [-] night ratio precipitation < 1
   !>       \param[in] "real(dp), dimension(:) :: fday_pet"               [-] day ratio PET  < 1
@@ -82,10 +89,13 @@ CONTAINS
   !>       \param[in] "real(dp), dimension(:) :: fday_temp"              [-] day factor mean temp
   !>       \param[in] "real(dp), dimension(:) :: fnight_temp"            [-] night factor mean temp
   !>       \param[in] "real(dp), dimension(:, :, :) :: temp_weights"     multiplicative weights for temperature (deg K)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: pet_weights"      multiplicative weights for potential evapotranspiration
+  !>       \param[in] "real(dp), dimension(:, :, :) :: pet_weights"      multiplicative weights for potential
+  !>       evapotranspiration
   !>       \param[in] "real(dp), dimension(:, :, :) :: pre_weights"      multiplicative weights for precipitation
-  !>       \param[in] "logical :: read_meteo_weights"                    flag whether weights for tavg and pet have read and should be used
-  !>       \param[in] "real(dp), dimension(:) :: pet_in"                 [mm d-1] Daily potential evapotranspiration (input)
+  !>       \param[in] "logical :: read_meteo_weights"                    flag whether weights for tavg and pet have read
+  !>       and should be used
+  !>       \param[in] "real(dp), dimension(:) :: pet_in"                 [mm d-1] Daily potential evapotranspiration
+  !>       (input)
   !>       \param[in] "real(dp), dimension(:) :: tmin_in"                [degc]   Daily minimum temperature
   !>       \param[in] "real(dp), dimension(:) :: tmax_in"                [degc]   Daily maxumum temperature
   !>       \param[in] "real(dp), dimension(:) :: netrad_in"              [w m2]   Daily average net radiation
@@ -103,16 +113,19 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: unsatStorage"          Upper soil storage
   !>       \param[inout] "real(dp), dimension(:) :: satStorage"            Groundwater storage
   !>       \param[inout] "real(dp), dimension(:) :: neutrons"              Ground albedo neutrons
-  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TST-1] estimated PET (if PET is input = corrected values (fAsp*PET))
+  !>       \param[inout] "real(dp), dimension(:) :: pet_calc"              [mm TST-1] estimated PET (if PET is input =
+  !>       corrected values (fAsp*PET))
   !>       \param[inout] "real(dp), dimension(:, :) :: aet_soil"           actual ET
   !>       \param[inout] "real(dp), dimension(:) :: aet_canopy"            Real evaporation intensity from canopy
   !>       \param[inout] "real(dp), dimension(:) :: aet_sealed"            Actual ET from free-water surfaces
   !>       \param[inout] "real(dp), dimension(:) :: baseflow"              Baseflow
-  !>       \param[inout] "real(dp), dimension(:, :) :: infiltration"       Recharge, infiltration intensity or effective precipitation of each horizon
+  !>       \param[inout] "real(dp), dimension(:, :) :: infiltration"       Recharge, infiltration intensity or effective
+  !>       precipitation of each horizon
   !>       \param[inout] "real(dp), dimension(:) :: fast_interflow"        Fast runoff component
   !>       \param[inout] "real(dp), dimension(:) :: melt"                  Melting snow depth
   !>       \param[inout] "real(dp), dimension(:) :: perc"                  Percolation
-  !>       \param[inout] "real(dp), dimension(:) :: prec_effect"           Effective precipitation depth (snow melt + rain)
+  !>       \param[inout] "real(dp), dimension(:) :: prec_effect"           Effective precipitation depth (snow melt +
+  !>       rain)
   !>       \param[inout] "real(dp), dimension(:) :: rain"                  Rain precipitation depth
   !>       \param[inout] "real(dp), dimension(:) :: runoff_sealed"         Direct runoff from impervious areas
   !>       \param[inout] "real(dp), dimension(:) :: slow_interflow"        Slow runoff component
@@ -120,27 +133,37 @@ CONTAINS
   !>       \param[inout] "real(dp), dimension(:) :: throughfall"           Throughfall
   !>       \param[inout] "real(dp), dimension(:) :: total_runoff"          Generated runoff
   !>       \param[inout] "real(dp), dimension(:) :: alpha"                 Exponent for the upper reservoir
-  !>       \param[inout] "real(dp), dimension(:) :: deg_day_incr"          Increase of the Degree-day factor per mm of increase in precipitation
+  !>       \param[inout] "real(dp), dimension(:) :: deg_day_incr"          Increase of the Degree-day factor per mm of
+  !>       increase in precipitation
   !>       \param[inout] "real(dp), dimension(:) :: deg_day_max"           Maximum Degree-day factor
   !>       \param[inout] "real(dp), dimension(:) :: deg_day_noprec"        Degree-day factor with no precipitation
   !>       \param[inout] "real(dp), dimension(:) :: deg_day"               Degree-day factor
   !>       \param[inout] "real(dp), dimension(:) :: fAsp"                  [1]     PET correction for Aspect at level 1
   !>       \param[inout] "real(dp), dimension(:) :: petLAIcorFactorL1"     PET correction factor based on LAI at level 1
-  !>       \param[inout] "real(dp), dimension(:) :: HarSamCoeff"           [1]     PET Hargreaves Samani coefficient at level 1
-  !>       \param[inout] "real(dp), dimension(:) :: PrieTayAlpha"          [1]     PET Priestley Taylor coefficient at level 1
-  !>       \param[inout] "real(dp), dimension(:) :: aeroResist"            [s m-1] PET aerodynamical resitance at level 1
+  !>       \param[inout] "real(dp), dimension(:) :: HarSamCoeff"           [1]     PET Hargreaves Samani coefficient at
+  !>       level 1
+  !>       \param[inout] "real(dp), dimension(:) :: PrieTayAlpha"          [1]     PET Priestley Taylor coefficient at
+  !>       level 1
+  !>       \param[inout] "real(dp), dimension(:) :: aeroResist"            [s m-1] PET aerodynamical resitance at level
+  !>       1
   !>       \param[inout] "real(dp), dimension(:) :: surfResist"            [s m-1] PET bulk surface resitance at level 1
   !>       \param[inout] "real(dp), dimension(:, :) :: frac_roots"         Fraction of Roots in soil horizon
   !>       \param[inout] "real(dp), dimension(:) :: interc_max"            Maximum interception
   !>       \param[inout] "real(dp), dimension(:) :: karst_loss"            Karstic percolation loss
-  !>       \param[inout] "real(dp), dimension(:) :: k0"                    Recession coefficient of the upper reservoir, upper outlet
-  !>       \param[inout] "real(dp), dimension(:) :: k1"                    Recession coefficient of the upper reservoir, lower outlet
+  !>       \param[inout] "real(dp), dimension(:) :: k0"                    Recession coefficient of the upper reservoir,
+  !>       upper outlet
+  !>       \param[inout] "real(dp), dimension(:) :: k1"                    Recession coefficient of the upper reservoir,
+  !>       lower outlet
   !>       \param[inout] "real(dp), dimension(:) :: k2"                    Baseflow recession coefficient
   !>       \param[inout] "real(dp), dimension(:) :: kp"                    Percolation coefficient
-  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_FC"      Soil moisture below which actual ET is reduced
-  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_sat"     Saturation soil moisture for each horizon [mm]
-  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_exponen" Exponential parameter to how non-linear is the soil water retention
-  !>       \param[inout] "real(dp), dimension(:) :: jarvis_thresh_c1"      jarvis critical value for normalized soil water content
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_FC"      Soil moisture below which actual ET is
+  !>       reduced
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_sat"     Saturation soil moisture for each horizon
+  !>       [mm]
+  !>       \param[inout] "real(dp), dimension(:, :) :: soil_moist_exponen" Exponential parameter to how non-linear is
+  !>       the soil water retention
+  !>       \param[inout] "real(dp), dimension(:) :: jarvis_thresh_c1"      jarvis critical value for normalized soil
+  !>       water content
   !>       \param[inout] "real(dp), dimension(:) :: temp_thresh"           Threshold temperature for snow/rain
   !>       \param[inout] "real(dp), dimension(:) :: unsat_thresh"          Threshold water depth in upper reservoir
   !>       \param[inout] "real(dp), dimension(:) :: water_thresh_sealed"   Threshold water depth in impervious areas

@@ -3,19 +3,20 @@
 !>       \brief Startup drainage network for mHM.
 
 !>       \details This module initializes the drainage network at L11 in mHM.
-!>       - Delineation of drainage network at level 11.    
-!>       - Setting network topology (i.e. nodes and link). 
-!>       - Determining routing order.                      
-!>       - Determining cell locations for network links.   
-!>       - Find drainage outlet.                           
-!>       - Determine stream (links) features.              
+!>       - Delineation of drainage network at level 11.
+!>       - Setting network topology (i.e. nodes and link).
+!>       - Determining routing order.
+!>       - Determining cell locations for network links.
+!>       - Find drainage outlet.
+!>       - Determine stream (links) features.
 
-!>       \authors s Luis Samaniego
+!>       \authors Luis Samaniego
 
 !>       \date Dec 2012
 
 ! Modifications:
 ! Rohini Kumar May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 module mo_mrm_net_startup
   use mo_kind, only : i4, dp
@@ -157,139 +158,132 @@ contains
   end subroutine L11_L1_mapping
   ! --------------------------------------------------------------------------
 
-  !     NAME
-  !         L11_flow_direction
+  !    NAME
+  !        L11_flow_direction
 
-  !     PURPOSE
-
+  !    PURPOSE
   !>       \brief Determine the flow direction of the upscaled river
-  !>    network at level L11.
+  !>       network at level L11.
 
   !>       \details The hydrographs generated at each cell are routed
-  !>                through the drainage network at level-11 towards their 
-  !>                outlets. The drainage network at level-11 is conceptualized as a
-  !>                graph whose nodes are hypothetically located at the center of
-  !>                each grid cell connected by links that represent the river
-  !>                reaches. The flow direction of a link correspond to the
-  !>                direction towards a neighboring cell in which the net flow
-  !>                accumulation (outflows minus inflows) attains its maximum
-  !>                value. The net flow accumulation across a cell's boundary at
-  !>                level-11 is estimated based on flow direction and flow
-  !>                accumulation obtained at level-0 (\ref fig_routing "Routing
-  !>                Network"). Note: level-1 denotes the modeling level, whereas
-  !>                level-L11 is at least as coarse as level-1. Experience has
-  !>                shown that routing can be done at a coarser resolution as
-  !>                level-1, hence the level-11 was introduced.
+  !>       through the drainage network at level-11 towards their
+  !>       outlets. The drainage network at level-11 is conceptualized as a
+  !>       graph whose nodes are hypothetically located at the center of
+  !>       each grid cell connected by links that represent the river
+  !>       reaches. The flow direction of a link correspond to the
+  !>       direction towards a neighboring cell in which the net flow
+  !>       accumulation (outflows minus inflows) attains its maximum
+  !>       value. The net flow accumulation across a cell's boundary at
+  !>       level-11 is estimated based on flow direction and flow
+  !>       accumulation obtained at level-0 (\ref fig_routing "Routing
+  !>       Network"). Note: level-1 denotes the modeling level, whereas
+  !>       level-L11 is at least as coarse as level-1. Experience has
+  !>       shown that routing can be done at a coarser resolution as
+  !>       level-1, hence the level-11 was introduced.
+  !>       \image html  routing.png "Upscaling routing network from L0 to L1 (or L11)"
+  !>       \anchor fig_routing \image latex routing.pdf "Upscaling routing network from L0 to L1 (or L11)" width=14cm
+  !>       The left panel depicts a schematic derivation of a drainage
+  !>       network at the level-11 based on level-0 flow direction and
+  !>       flow accumulation. The dotted line circle denotes the point
+  !>       with the highest flow accumulation within a grid cell. The
+  !>       topology of a tipical drainage routing network at level-11 is
+  !>       shown in the right panel. Gray color areas denote the flood
+  !>       plains estimated in mo_init_mrm, where the network
+  !>       upscaling is also carried out.
+  !>       For the sake of simplicity, it is assumed that all runoff leaving
+  !>       a given cell would exit through a major direction.
+  !>       Note that multiple outlets can exist within the modelling domain.
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
+  !>       ADDITIONAL INFORMATION
+  !>       L11_flow_direction
 
-  !>                 \image html  routing.png "Upscaling routing network from L0 to L1 (or L11)"
-  !>                \anchor fig_routing \image latex routing.pdf "Upscaling routing network from L0 to L1 (or L11)" width=14cm
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !>                The left panel depicts a schematic derivation of a drainage
-  !>                network at the level-11 based on level-0 flow direction and
-  !>                flow accumulation. The dotted line circle denotes the point
-  !>                with the highest flow accumulation within a grid cell. The
-  !>                topology of a tipical drainage routing network at level-11 is
-  !>                shown in the right panel. Gray color areas denote the flood
-  !>                plains estimated in mo_init_mrm, where the network
-  !>                upscaling is also carried out.
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !>                For the sake of simplicity, it is assumed that all runoff leaving
-  !>                a given cell would exit through a major direction.
+  !>       \date Dec 2005
 
-  !>                Note that multiple outlets can exist within the modelling domain.
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Rohini Kumar   Apr 2014 - Case of L0 is same as L11 implemented
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Stephan Thober Sep 2015 - create mapping between L11 and L1 if L11 resolution is higher than L1 resolution
+  ! Stephan Thober May 2016 - introducing multiple outlets
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !>                If a variable is added or removed here, then it also has to 
-  !>                be added or removed in the subroutine L11_config_set in
-  !>                module mo_restart and in the subroutine set_L11_config in module
-  !>                mo_set_netcdf_restart
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Rohini Kumar,   Apr 2014 - Case of L0 is same as L11 implemented
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  !                  Stephan Thober, Sep 2015 - create mapping between L11 and L1 if L11 resolution
-  !                                             is higher than L1 resolution
-  !                  Stephan Thober, May 2016 - introducing multiple outlets
-  ! --------------------------------------------------------------------------
   subroutine L11_flow_direction(iBasin)
+
     use mo_append, only : append
-    use mo_message, only : message
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : &
-            level0, L0_Basin, Grid
-    use mo_mrm_global_variables, only : &
-            basin_mrm, &
-            level11, &
-            L0_l11_remap, &
-            L0_fAcc, L0_fDir, &
-            L0_draSC, & ! INOUT: draining cell of each sub catchment (== cell L11)
-            L11_rowOut, & ! INOUT: grid vertical location of the Outlet
-            L11_colOut, & ! INOUT: grid horizontal location  of the Outlet
-            L11_fDir, & ! INOUT: flow direction at L11 (standard notation)
-            L11_nOutlets
+    use mo_common_variables, only : Grid, L0_Basin, level0
+    use mo_message, only : message
+    use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
+                                        L11_nOutlets, L11_rowOut, basin_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4) :: nCells0
+
     integer(i4) :: nrows0, ncols0
+
     integer(i4) :: s0, e0
+
     integer(i4) :: nrows11, ncols11
-    integer(i4) :: nNodes      ! =  ncells11
+
+    ! =  ncells11
+    integer(i4) :: nNodes
+
     integer(i4) :: ii, jj, kk, ic, jc
+
     integer(i4) :: iu, id
+
     integer(i4) :: jl, jr
+
     integer(i4) :: iRow, jCol
+
     integer(i4), dimension(:, :), allocatable :: iD0
+
     integer(i4), dimension(:, :), allocatable :: fDir0
+
     integer(i4), dimension(:, :), allocatable :: fAcc0
+
     integer(i4), dimension(:, :), allocatable :: fDir11
-    integer(i4), dimension(:), allocatable :: rowOut      ! northing cell loc. of the Outlet
-    integer(i4), dimension(:), allocatable :: colOut      ! easting cell loc. of the Outlet
+
+    ! northing cell loc. of the Outlet
+    integer(i4), dimension(:), allocatable :: rowOut
+
+    ! easting cell loc. of the Outlet
+    integer(i4), dimension(:), allocatable :: colOut
+
     integer(i4), dimension(:, :), allocatable :: draSC0
-    integer(i4), dimension(:, :), allocatable :: oLoc        ! output location in L0
+
+    ! output location in L0
+    integer(i4), dimension(:, :), allocatable :: oLoc
+
     integer(i4) :: side
+
     integer(i4) :: fAccMax, idMax
-    integer(i4) :: Noutlet     ! Number of outlet found
-    integer(i4) :: old_Noutlet ! Number of outlets before this basin
-    logical :: is_outlet   ! flag whether outlet is found
+
+    ! Number of outlet found
+    integer(i4) :: Noutlet
+
+    ! Number of outlets before this basin
+    integer(i4) :: old_Noutlet
+
+    ! flag whether outlet is found
+    logical :: is_outlet
+
     type(Grid), pointer :: level0_iBasin
+
 
     !--------------------------------------------------------
     ! STEPS:
@@ -597,83 +591,57 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_set_network_topology
+  !    NAME
+  !        L11_set_network_topology
 
-  !     PURPOSE
-  !>        \brief Set network topology
+  !    PURPOSE
+  !>       \brief Set network topology
 
-  !>        \details Set network topology from and to node for all links
-  !>                 at level-11 (\ref fig_routing "Routing Network"). \n
+  !>       \details Set network topology from and to node for all links
+  !>       at level-11 (\ref fig_routing "Routing Network").
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart.
 
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart.
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"             Basin Id
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(INOUT)
-  !         None           
+  !>       \date Dec 2005
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  !                  Stephan Thober, May 2016 - moved calculation of sink here
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Stephan Thober May 2016 - moved calculation of sink here
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L11_set_network_topology(iBasin)
-    use mo_common_constants, only : nodata_i4
+
     use mo_append, only : append
-    use mo_mrm_global_variables, only : &
-            level11, &
-            L11_fDir, &
-            L11_fromN, & ! INOUT: from node
-            L11_toN                     ! INOUT: to node
+    use mo_common_constants, only : nodata_i4
+    use mo_mrm_global_variables, only : L11_fDir, L11_fromN, L11_toN, level11
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4), dimension(:, :), allocatable :: fDir11
+
     integer(i4), dimension(:, :), allocatable :: dummy_2d_id
+
     integer(i4) :: jj, kk, ic, jc
+
     integer(i4) :: fn, tn
 
     integer(i4), dimension(:), allocatable :: nLinkFromN, nLinkToN
 
+
     !     Routing network vectors have nNodes size instead of nLinks to
     !     avoid the need of having two extra indices to identify a basin. 
-
     ! allocate
     allocate (nLinkFromN (level11(iBasin)%nCells))  ! valid from (1 : nLinks)
     allocate (nLinkToN   (level11(iBasin)%nCells))  ! "
@@ -722,85 +690,68 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_routing_order
+  !    NAME
+  !        L11_routing_order
 
-  !     PURPOSE
-  !>        \brief Find routing order, headwater cells and sink
+  !    PURPOSE
+  !>       \brief Find routing order, headwater cells and sink
 
-  !>        \details Find routing order, headwater cells and sink. \n
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details Find routing order, headwater cells and sink.
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"             Basin Id         
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(INOUT)
-  !         None            
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2005
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Sa. Ku.         Jan 2015 - corrected initialization of nLinkSink
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Sa. Ku.        Jan 2015 - corrected initialization of nLinkSink
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L11_routing_order(iBasin)
-    use mo_common_constants, only : nodata_i4
+
     use mo_append, only : append
-    use mo_mrm_global_variables, only : &
-            level11, &
-            L11_fromN, & ! IN:    from node
-            L11_toN, & ! IN:    to node
-            L11_fDir, & ! IN:    flow direction to identify sink
-            L11_nOutlets, & ! IN:    number of sinks/outlets
-            L11_sink, & ! IN: == .true. if sink node reached
-            L11_rOrder, & ! INOUT: network routing order
-            L11_label, & ! INOUT: label Id [0='', 1=HeadWater, 2=Sink]
-            L11_netPerm                 ! INOUT: routing order (permutation)
+    use mo_common_constants, only : nodata_i4
+    use mo_mrm_global_variables, only : L11_fDir, L11_fromN, L11_label, L11_nOutlets, L11_netPerm, L11_rOrder, L11_sink, L11_toN, &
+                                        level11
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4) :: nLinks
-    integer(i4), dimension(:), allocatable :: nLinkFromN      ! from node
-    integer(i4), dimension(:), allocatable :: nLinkToN        ! to node
-    integer(i4), dimension(:), allocatable :: nLinkROrder     ! network routing order
-    integer(i4), dimension(:), allocatable :: nLinkLabel      ! label Id [0='', 1=HeadWater, 2=Sink]
-    logical, dimension(:), allocatable :: nLinkSink       ! == .true. if sink node reached
-    integer(i4), dimension(:), allocatable :: netPerm         ! routing order (permutation)
+
+    ! from node
+    integer(i4), dimension(:), allocatable :: nLinkFromN
+
+    ! to node
+    integer(i4), dimension(:), allocatable :: nLinkToN
+
+    ! network routing order
+    integer(i4), dimension(:), allocatable :: nLinkROrder
+
+    ! label Id [0='', 1=HeadWater, 2=Sink]
+    integer(i4), dimension(:), allocatable :: nLinkLabel
+
+    ! == .true. if sink node reached
+    logical, dimension(:), allocatable :: nLinkSink
+
+    ! routing order (permutation)
+    integer(i4), dimension(:), allocatable :: netPerm
+
     integer(i4) :: ii, jj, kk
+
     logical :: flag
+
 
     nLinks = level11(iBasin)%nCells - L11_nOutlets(iBasin)
     !  Routing network vectors have nNodes size instead of nLinks to
@@ -900,99 +851,84 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_link_location
+  !    NAME
+  !        L11_link_location
 
-  !     PURPOSE
-  !>        \brief Estimate the LO (row,col) location for each routing link at level L11
+  !    PURPOSE
+  !>       \brief Estimate the LO (row,col) location for each routing link at level L11
 
-  !>        \details If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"        Basin Id 
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2005
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note Cell location  can ONLY be called after routing order is done.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L11_link_location(iBasin)
-    use mo_common_constants, only : nodata_i4
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
+
     use mo_append, only : append
-    use mo_common_variables, only : &
-            level0, L0_Basin, Grid
-    use mo_mrm_global_variables, only : &
-            level11, &
-            basin_mrm, & ! IN
-            L0_fDir, & ! IN:    flow direction (standard notation) L0
-            L11_nOutlets, & ! IN:    Number of Outlets/Sinks
-            L0_draSC, & ! IN:    Index of draining cell of each sub catchment (== cell L11)
-            L11_fromN, & ! IN:    from node
-            L11_rowOut, & ! IN:    grid vertical location of the Outlet
-            L11_colOut, & ! IN:    grid horizontal location  of the Outlet
-            L11_netPerm, & ! IN:    routing order (permutation)
-            L11_fRow, & ! INOUT: from row in L0 grid
-            L11_fCol, & ! INOUT: from col in L0 grid
-            L11_tRow, & ! INOUT: to row in L0 grid
-            L11_tCol       ! INOUT: to col in L0 grid
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : Grid, L0_Basin, level0
+    use mo_message, only : message
+    use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
+                                        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4) :: nLinks
-    integer(i4), dimension(:), allocatable :: rowOut         ! northing cell loc. of the Outlet
-    integer(i4), dimension(:), allocatable :: colOut         ! easting cell loc. of the Outlet
+
+    ! northing cell loc. of the Outlet
+    integer(i4), dimension(:), allocatable :: rowOut
+
+    ! easting cell loc. of the Outlet
+    integer(i4), dimension(:), allocatable :: colOut
+
     integer(i4), dimension(:), allocatable :: nLinkFromN
+
     integer(i4), dimension(:), allocatable :: netPerm
+
     integer(i4), dimension(:), allocatable :: nLinkFromRow
+
     integer(i4), dimension(:), allocatable :: nLinkFromCol
+
     integer(i4), dimension(:), allocatable :: nLinkToRow
+
     integer(i4), dimension(:), allocatable :: nLinkToCol
+
     integer(i4), dimension(:, :), allocatable :: fDir0
+
     integer(i4), dimension(:, :), allocatable :: draSC0
+
     integer(i4) :: ii, rr, kk, s0, e0
+
     integer(i4) :: iNode, iRow, jCol, prevRow, prevCol
-    integer(i4), dimension(:, :), allocatable :: oLoc           ! output location in L0
-    integer(i4) :: nOutlets       ! number of outlets in basin
-    logical :: is_outlet      ! flag for finding outlet
+
+    ! output location in L0
+    integer(i4), dimension(:, :), allocatable :: oLoc
+
+    ! number of outlets in basin
+    integer(i4) :: nOutlets
+
+    ! flag for finding outlet
+    logical :: is_outlet
+
     type(Grid), pointer :: level0_iBasin
+
 
     level0_iBasin => level0(L0_Basin(iBasin))
     s0 = level0_iBasin%iStart
@@ -1112,89 +1048,66 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_set_drain_outlet_gauges
+  !    NAME
+  !        L11_set_drain_outlet_gauges
 
-  !     PURPOSE
-  !>        \brief Draining cell identification and Set gauging node
+  !    PURPOSE
+  !>       \brief Draining cell identification and Set gauging node
 
-  !>        \details Perform the following tasks: \n
-  !>                 - Draining cell identification (cell at L0 to draining cell outlet at L11). \n
-  !>                 - Set gauging nodes \n
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details Perform the following tasks:
+  !>       - Draining cell identification (cell at L0 to draining cell outlet at L11).
+  !>       - Set gauging nodes
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"        Basin Id 
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2005
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Matthias Zink  Mar 2014 - bugfix, added inflow gauge
+  ! Rohini Kumar   Apr 2014 - variable index is changed to index_gauge
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Matthias Zink , Mar 2014 - bugfix, added inflow gauge
-  !                  Rohini Kumar  , Apr 2014 - variable index is changed to index_gauge 
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  ! ------------------------------------------------------------------
   subroutine L11_set_drain_outlet_gauges(iBasin)
-    use mo_common_constants, only : nodata_i4
+
     use mo_append, only : append
-    use mo_mrm_global_variables, only : &
-            l0_l11_remap, &
-            basin_mrm, &
-            L0_fDir, &           ! IN: flow direction (standard notation) L0
-            L0_draSC, &          ! IN: Index of draining cell of each sub catchment (== cell L11)
-            L0_gaugeLoc, &       ! IN: location of gauges (read with gauge Id then
-            !                    !     transformed into gauge running ID => [1,nGaugesTotal]
-            L0_InflowgaugeLoc, & ! IN: location of gauges (read with gauge Id then
-            !                    !     transformed into gauge running ID => [1,nGaugesTotal]
-            L0_draCell           ! INOUT: draining cell id at L11 of ith cell of L0
-    use mo_common_variables, only : &
-            level0, L0_Basin, Grid
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : Grid, L0_Basin, level0
+    use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, basin_mrm, &
+                                        l0_l11_remap
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4), dimension(:, :), allocatable :: draSC0
+
     integer(i4), dimension(:, :), allocatable :: fDir0
+
     integer(i4), dimension(:, :), allocatable :: gaugeLoc0
+
     integer(i4), dimension(:, :), allocatable :: InflowGaugeLoc0
+
     integer(i4), dimension(:, :), allocatable :: draCell0
+
     integer(i4) :: ii, jj, kk, ll, s0, e0
+
     integer(i4) :: iSc
+
     integer(i4) :: iRow, jCol
+
     type(Grid) :: level0_iBasin
+
 
     level0_iBasin = level0(L0_Basin(iBasin))
     s0 = level0_iBasin%iStart
@@ -1278,113 +1191,96 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_stream_features
+  !    NAME
+  !        L11_stream_features
 
-  !     PURPOSE
-  !>        \brief Stream features (stream network and floodplain)
+  !    PURPOSE
+  !>       \brief Stream features (stream network and floodplain)
 
-  !>        \details Stream features (stream network and floodplain)\n
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details Stream features (stream network and floodplain)
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: iBasin"        Basin Id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" Basin Id
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Dec 2005
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  R. Kumar      , Oct 2013 - stack size increased from nNodes to 100 
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  !                  Stephan Thober, Nov 2016 - only read flood plain area if processMatrix for routing equals 1
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! R. Kumar       Oct 2013 - stack size increased from nNodes to 100
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Stephan Thober Nov 2016 - only read flood plain area if processMatrix for routing equals 1
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L11_stream_features(iBasin)
-    use mo_common_constants, only : nodata_i4, nodata_dp
-    use mo_append, only : append
-    use mo_common_variables, only : &
-            level0, &
-            L0_Basin, &
-            Grid, &
-            processMatrix, &
-            iFlag_cordinate_sys, & ! IN:    coordinate system
-            L0_elev
 
-    use mo_mrm_global_variables, only : &
-            level11, &
-            L0_fDir, & ! IN:    flow direction (standard notation) L0
-            L11_fRow, & ! IN:    from row in L0 grid
-            L11_fCol, & ! IN:    from col in L0 grid
-            L11_tRow, & ! IN:    to row in L0 grid
-            L11_tCol, & ! IN:    to col in L0 grid
-            L11_netPerm, & ! IN:    routing order (permutation)
-            L0_streamNet, & ! IN:    stream network
-            L0_floodPlain, & ! IN:    floodplains of stream i
-            L11_length, & ! IN:    total length [m]
-            L11_aFloodPlain, & ! IN:    area of the flood plain [m2]
-            L11_nOutlets, & ! IN:    Number of Outlets/Sinks
-            L11_slope              ! INOUT: normalized average slope
+    use mo_append, only : append
+    use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_common_variables, only : Grid, L0_Basin, L0_elev, iFlag_cordinate_sys, level0, processMatrix
+    use mo_mrm_global_variables, only : L0_fDir, &
+                                        L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
+                                        L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin         ! basin
+    ! Basin Id
+    integer(i4), intent(in) :: iBasin
 
-    ! local
     integer(i4) :: nLinks
+
     integer(i4), dimension(:, :), allocatable :: iD0
+
     integer(i4), dimension(:, :), allocatable :: fDir0
+
     real(dp), dimension(:, :), allocatable :: elev0
+
     real(dp), dimension(:, :), allocatable :: areaCell0
+
     integer(i4), dimension(:, :), allocatable :: streamNet0
+
     integer(i4), dimension(:, :), allocatable :: floodPlain0
-    integer(i4), dimension(:), allocatable :: netPerm         ! routing order (permutation)
+
+    ! routing order (permutation)
+    integer(i4), dimension(:), allocatable :: netPerm
+
     integer(i4), dimension(:), allocatable :: nLinkFromRow
+
     integer(i4), dimension(:), allocatable :: nLinkFromCol
+
     integer(i4), dimension(:), allocatable :: nLinkToRow
+
     integer(i4), dimension(:), allocatable :: nLinkToCol
+
     real(dp), dimension(:), allocatable :: nLinkLength
+
     real(dp), dimension(:), allocatable :: nLinkAFloodPlain
+
     real(dp), dimension(:), allocatable :: nLinkSlope
+
     integer(i4) :: ii, rr, ns, s0, e0
+
     integer(i4) :: frow, fcol
+
     integer(i4) :: fId, tId
+
     integer(i4), dimension(:, :), allocatable :: stack, append_chunk
+
     integer(i4), dimension(:), allocatable :: dummy_1d
+
     real(dp) :: length
+
     integer(i4), dimension(:, :), allocatable :: nodata_i4_tmp
+
     real(dp), dimension(:, :), allocatable :: nodata_dp_tmp
+
     type(Grid) :: level0_iBasin
+
 
     level0_iBasin = level0(L0_Basin(iBasin))
     s0 = level0_iBasin%iStart
@@ -1563,83 +1459,60 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_fraction_sealed_floodplain
+  !    NAME
+  !        L11_fraction_sealed_floodplain
 
-  !     PURPOSE
-  !         \brief Fraction of the flood plain with impervious cover
+  !    PURPOSE
+  !>       \brief Fraction of the flood plain with impervious cover
 
-  !>        \details Fraction of the flood plain with impervious cover (\ref fig_routing "Routing
-  !>                 Network"). This proportion is used to regionalize the Muskingum parameters.
-  !>                 Samaniego et al. \cite SB05 found out that this fraction is one of the statistically
-  !>                 significant predictor variables of peak discharge in mesoscale basins.\n
+  !>       \details Fraction of the flood plain with impervious cover (\ref fig_routing "Routing
+  !>       Network"). This proportion is used to regionalize the Muskingum parameters.
+  !>       Samaniego et al. \cite SB05 found out that this fraction is one of the statistically
+  !>       significant predictor variables of peak discharge in mesoscale basins.
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine L11_config_set in
+  !>       module mo_restart and in the subroutine set_L11_config in module
+  !>       mo_set_netcdf_restart
 
-  !>                 If a variable is added or removed here, then it also has to 
-  !>                 be added or removed in the subroutine L11_config_set in
-  !>                 module mo_restart and in the subroutine set_L11_config in module
-  !>                 mo_set_netcdf_restart
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: LCClassImp" Impervious land cover class Id, e.g. = 2 (old code)
+  !>       \param[in] "logical :: do_init"
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)        :: nLinks"           number of links for a given basin
-  !>        \param[in] "integer(i4)        :: LCover0"          land cover id field (basin)
-  !>        \param[in] "integer(i4)        :: floodPlain0"      floodplains of stream i (basin)
-  !>        \param[in] "real(dp)           :: areaCell0"        area of a cell at level-0 [m2]
-  !>        \param[in] "real(dp)           :: nLinkAFloodPlain" area of the flood plain at level-11 [m2] 
-  !>        \param[in] "integer(i4)        :: LCClassImp"       Impervious land cover class Id, e.g. = 2 (old code)
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2005
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)         :: nLinkFracFPimp"   Fraction of the flood plain with impervious cover
+  ! Modifications:
+  ! Luis Samaniego Jan 2013 - modular version
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note - Call only after L0 and L11 initialization routines\n
-  !>             - All spatial input variables are 2D for a given basin, unlike the L11_, L0_ vectors
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego, Jan 2013 - modular version
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-  ! ------------------------------------------------------------------
   subroutine L11_fraction_sealed_floodplain(LCClassImp, do_init)
 
-    use mo_mrm_global_variables, only : L11_nLinkFracFPimp, L0_floodPlain, level11, L11_aFloodPlain, L11_nOutlets
-    use mo_common_variables, only : level0, L0_LCover, nBasins, nLCoverScene, L0_Basin, Grid
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
+    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, level0, nBasins, nLCoverScene
+    use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
+                                        L11_nLinkFracFPimp, L11_nOutlets, level11
 
     implicit none
 
-    integer(i4), intent(in) :: LCClassImp         ! e.g. = 2 (old code)
+    ! Impervious land cover class Id, e.g. = 2 (old code)
+    integer(i4), intent(in) :: LCClassImp
+
     logical, intent(in) :: do_init
 
-    ! local
     integer(i4) :: nLinks
+
     real(dp), dimension(:), pointer :: nLinkAFloodPlain
+
     real(dp), dimension(:,:), allocatable :: temp_array
+
     integer(i4) :: ii, iBasin, iiLC, s0, e0
+
     type(Grid) :: level0_iBasin
+
 
     ! initialization
     do iBasin = 1, nBasins
@@ -1673,22 +1546,54 @@ contains
   ! ------------------------------------------------------------------
   !  MOVE UPSTREAM FROM-TO
   ! ------------------------------------------------------------------
+  !    NAME
+  !        moveUp
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: elev0"
+  !>       \param[in] "integer(i4), dimension(:, :) :: fDir0"
+  !>       \param[in] "integer(i4) :: fi, fj"                 co-ordinate of the stream bed
+  !>       \param[in] "integer(i4) :: fi, fj"                 co-ordinate of the stream bed
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "integer(i4), dimension(:, :) :: ss"
+  !>       \param[inout] "integer(i4) :: nn"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
   subroutine moveUp(elev0, fDir0, fi, fj, ss, nn)
 
     use mo_mrm_constants, only : deltaH
-    use mo_utils, only : le, ge
+    use mo_utils, only : ge, le
 
     implicit none
 
     real(dp), dimension(:, :), allocatable, intent(IN) :: elev0
+
     integer(i4), dimension(:, :), allocatable, intent(IN) :: fDir0
-    integer(i4), intent(IN) :: fi, fj  ! co-ordinate of the stream bed
+
+    ! co-ordinate of the stream bed
+    integer(i4), intent(IN) :: fi, fj
+
     integer(i4), dimension(:, :), intent(INOUT) :: ss
+
     integer(i4), intent(INOUT) :: nn
 
-    ! local
     integer(i4) :: ii, jj, ip, im, jp, jm
+
     integer(i4) :: nrows, ncols
+
 
     ii = ss(1, 1)
     jj = ss(1, 2)
@@ -1818,12 +1723,35 @@ contains
   ! ------------------------------------------------------------------
   !  MOVE DOWNSTREAM
   ! ------------------------------------------------------------------
-  subroutine moveDownOneCell(fDir, iRow, jCol)
+  !    NAME
+  !        moveDownOneCell
 
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: fDir"
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "integer(i4) :: iRow, jCol"
+  !>       \param[inout] "integer(i4) :: iRow, jCol"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine moveDownOneCell(fDir, iRow, jCol)
     implicit none
 
     integer(i4), intent(IN) :: fDir
+
     integer(i4), intent(INOUT) :: iRow, jCol
+
 
     select case (fDir)
     case(1)   !E
@@ -1855,24 +1783,56 @@ contains
   ! ------------------------------------------------------------------
   !  CELL LENGTH
   ! ------------------------------------------------------------------
+  !    NAME
+  !        cellLength
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"
+  !>       \param[in] "integer(i4) :: fDir"
+  !>       \param[in] "integer(i4) :: iRow"
+  !>       \param[in] "integer(i4) :: jCol"
+  !>       \param[in] "integer(i4) :: iCoorSystem"
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp) :: length"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine cellLength(iBasin, fDir, iRow, jCol, iCoorSystem, length)
 
+    use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_constants, only : SQRT2_dp
-    use mo_common_variables, only : level0, Grid, L0_Basin
 
     implicit none
 
     integer(i4), intent(IN) :: iBasin
+
     integer(i4), intent(IN) :: fDir
+
     integer(i4), intent(IN) :: iRow
+
     integer(i4), intent(IN) :: jCol
+
     integer(i4), intent(IN) :: iCoorSystem
+
     real(dp), intent(OUT) :: length
 
-    ! local variables
     integer(i4) :: iRow_to, jCol_to
+
     real(dp) :: lat_1, long_1, lat_2, long_2
+
     type(Grid) :: level0_iBasin
+
 
     level0_iBasin = level0(L0_Basin(iBasin))
 
@@ -1915,72 +1875,63 @@ contains
 
   ! --------------------------------------------------------------------------
 
-  !     NAME
-  !         get_distance_two_lat_lon_points
+  !    NAME
+  !        get_distance_two_lat_lon_points
 
-  !     PURPOSE
-  !>        \brief estimate distance in [m] between two points in a lat-lon
+  !    PURPOSE
+  !>       \brief estimate distance in [m] between two points in a lat-lon
 
-  !>        \details estimate distance in [m] between two points in a lat-lon
+  !>       \details estimate distance in [m] between two points in a lat-lon
+  !>       Code is based on one that is implemented in the VIC-3L model
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp)    :: lat1"    latitude  of point-1
-  !>        \param[in] "real(dp)    :: long1"   longitude of point-1
-  !>        \param[in] "real(dp)    :: lat2"    latitude  of point-2
-  !>        \param[in] "real(dp)    :: long2"   longitude of point-2
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: lat1, long1, lat2, long2" latitude  of point-1
+  !>       \param[in] "real(dp) :: lat1, long1, lat2, long2" longitude of point-1
+  !>       \param[in] "real(dp) :: lat1, long1, lat2, long2" latitude  of point-2
+  !>       \param[in] "real(dp) :: lat1, long1, lat2, long2" longitude of point-2
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp) :: distance_out" distance between two points [m]
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)    :: distance_out"    distance between two points [m]
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date May 2014
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Aug 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call L11_variable_init(1)
-
-  !     LITERATURE
-  !         Code is based on one that is implemented in the VIC-3L model 
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date   May 2014
-  !         Modified,
-  !                  Stephan Thober, Aug 2015 - ported to mRM
-
-  ! --------------------------------------------------------------------------
   subroutine get_distance_two_lat_lon_points(lat1, long1, lat2, long2, distance_out)
 
-    use mo_constants, only : TWOPI_dp, RadiusEarth_dp
+    use mo_constants, only : RadiusEarth_dp, TWOPI_dp
+
     implicit none
 
+    ! longitude of point-2
     real(dp), intent(in) :: lat1, long1, lat2, long2
+
+    ! distance between two points [m]
     real(dp), intent(out) :: distance_out
 
-    ! local variables
     real(dp) :: theta1
+
     real(dp) :: phi1
+
     real(dp) :: theta2
+
     real(dp) :: phi2
+
     real(dp) :: dtor
+
     real(dp) :: term1
+
     real(dp) :: term2
+
     real(dp) :: term3
+
     real(dp) :: temp
+
 
     dtor = TWOPI_dp / 360.0_dp
     theta1 = dtor * long1

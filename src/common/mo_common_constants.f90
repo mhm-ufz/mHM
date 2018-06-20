@@ -9,6 +9,7 @@
 !>       \date Dec 2017
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 MODULE mo_common_constants
 

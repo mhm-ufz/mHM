@@ -6,7 +6,7 @@
 !>       It shows the module structure, the coding style, and documentation.
 !>       Please read the \ref style "Coding and documentation style" guide.
 
-!>       \authors s Matthias Cuntz, Christoph Schneider
+!>       \authors Matthias Cuntz, Christoph Schneider
 
 !>       \date Dec 2012
 
@@ -42,6 +42,40 @@ MODULE mo_template
   ! Interfaces have to be in a public section for doxygen
   ! ------------------------------------------------------------------
 
+  !    NAME
+  !        mean
+
+  !    PURPOSE
+  !>       \brief The average.
+
+  !>       \details Calculates the average value of a vector, i.e. the first moment of a series of numbers:
+  !>       \f[ \bar{x} = \frac{1}{N} \sum_{i=1}^N x_i \f]
+  !>       If an optinal mask is given, the mean is only over those locations that correspond
+  !>       to true values in the mask.
+  !>       x can be single or double precision. The result will have the same numerical precision.
+  !>       ADDITIONAL INFORMATION
+  !>       vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       m   = mean(vec, mask=(vec >= 0.))
+  !>       -> see also example in test directory
+  !>       Sokal RR & Rohlf FJ - Biometry: the principle and practice of statistics in biological research,
+  !>       Freeman & Co., ISBN 0-7167-2411-1
+  !>       Press WH, Teukolsky SA, Vetterling WT, & Flannery BP - Numerical Recipes in Fortran 90 -
+  !>       The Art of Parallel Scientific Computing, 2nd Edition, Volume 2 of Fortran Numerical Recipes,
+  !>       Cambridge University Press, UK, 1996
+
+  !    RETURN
+  !>       \return real(sp/dp) :: mean &mdash; \f$ \bar{x} \f$ average of all elements in vec
+
+  !    HISTORY
+  !>       \authors Matthias Cuntz
+
+  !>       \date Nov 2011
+
+  ! Modifications:
+  ! Matthias Cuntz Nov 2011 - include mask
+  ! Matthias Cuntz Nov 2011 - test size(mask) == size(dat)
+
+
   Interface mean
     MODULE PROCEDURE mean_sp, mean_dp
   END INTERFACE mean
@@ -49,7 +83,9 @@ MODULE mo_template
   PRIVATE
 
   ! Public parameters
+  !> Constant Pi in double precision
   REAL(dp), PARAMETER :: PI_dp = 3.141592653589793238462643383279502884197_dp
+  !> Constant Pi in single precision
   REAL(sp), PARAMETER :: PI_sp = 3.141592653589793238462643383279502884197_sp
 
   ! Private global parameters (not used, only for demonstration)
@@ -65,33 +101,28 @@ CONTAINS
   !        circum
 
   !    PURPOSE
-  !>       \brief The average.
+  !>       \brief Circumference of a circle
 
-  !>       \details Calculates the average value of a vector, i.e. the first moment of a series of numbers:
-  !>       \f[ \bar{x} = \frac{1}{N} \sum_{i=1}^N x_i \f]
-  !>       If an optinal mask is given, the mean is only over those locations that correspond
-  !>       to true values in the mask.
-  !>       x can be single or double precision. The result will have the same numerical precision.
+  !>       \details Calculates the circumference of a circle
+  !>       \f[ c = 2 \pi r \f]
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp) :: radius" 
+  !>       \param[in] "real(dp) :: radius" Radius
 
   !    RETURN
-  !>       \return real(sp/dp) :: mean &mdash; \f$ \bar{x} \f$ average of all elements in vec
+  !>       \return real(dp) :: circum &mdash; circumference of circle.
 
   !    HISTORY
   !>       \authors Matthias Cuntz
 
-  !>       \date Nov 2011
+  !>       \date Dec 2012
 
   ! Modifications:
-  ! Matthias Cuntz Nov 2011 - include mask
-  ! Matthias Cuntz Nov 2011 - test size(mask) == size(dat) > Constant Pi in double precision > Constant Pi in single precision NAME circum PURPOSE >        \brief Circumference of a circle >        \details Calculates the circumference of a circle >        \f[ c = 2 \pi r \f] CALLING SEQUENCE out = circum(radius) INTENT(IN) >        \param[in] "real(dp) :: radius"        Radius INTENT(INOUT) None INTENT(OUT) None INTENT(IN), OPTIONAL None INTENT(INOUT), OPTIONAL None INTENT(OUT), OPTIONAL None RETURN >       \return     real(dp) :: circum &mdash; circumference of circle. RESTRICTIONS None EXAMPLE r = (/ 1., 2, 3., 5., 6. /) c = circum(r) LITERATURE None HISTORY >        \author Matthias Cuntz
-  ! >        \date Dec 2012 - 
 
   elemental pure function circum(radius)
     implicit none
 
+    ! Radius
     real(dp), intent(in) :: radius
 
     real(dp) :: circum
@@ -104,16 +135,18 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   FUNCTION mean_dp(dat, mask)
-
-    IMPLICIT NONE
+    implicit none
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: dat
+
     LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+
     REAL(dp) :: mean_dp
 
     REAL(dp) :: n
 
     LOGICAL, DIMENSION(size(dat)) :: maske
+
 
     if (present(mask)) then
       if (size(mask) /= size(dat)) stop 'Error mean_dp: size(mask) /= size(dat)'
@@ -132,16 +165,18 @@ CONTAINS
 
 
   FUNCTION mean_sp(dat, mask)
-
-    IMPLICIT NONE
+    implicit none
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: dat
+
     LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+
     REAL(sp) :: mean_sp
 
     REAL(sp) :: n
 
     LOGICAL, DIMENSION(size(dat)) :: maske
+
 
     if (present(mask)) then
       if (size(mask) /= size(dat)) stop 'Error mean_sp: size(mask) /= size(dat)'

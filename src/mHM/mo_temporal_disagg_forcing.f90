@@ -5,7 +5,7 @@
 !>       \details Calculate actual values for precipitation, PET and temperature from daily mean inputs
 !>       ote There is not PET correction for aspect in this routine. Use pet * fasp before or after the routine.
 
-!>       \authors s Matthias Cuntz
+!>       \authors Matthias Cuntz
 
 !>       \date Dec 2012
 
@@ -38,6 +38,11 @@ CONTAINS
   !>       Temperature gets a predefined amplitude added on day and substracted at night.
   !>       Alternatively, weights for each hour and month can be given and disaggregation is
   !>       using these as factors for PET and temperature. Precipitation is distributed uniformly.
+  !>       ADDITIONAL INFORMATION
+  !>       temporal_disagg_forcing
+  !>       elemental pure subroutine temporal_disagg_forcing(isday, ntimesteps_day, prec_day, pet_day, temp_day, &
+  !>       fday_prec, fday_pet, fday_temp, fnight_prec, fnight_pet, fnight_temp, prec, &
+  !>       pet, temp)
 
   !    INTENT(IN)
   !>       \param[in] "logical :: isday"              is day or night

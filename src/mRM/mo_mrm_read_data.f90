@@ -1,10 +1,11 @@
 !>       \file mo_mrm_read_data.f90
 
 !>       \brief This module contains all routines to read mRM data from file.
+!>       \details
 
-!>       \details 
+!>       \details TODO: add description
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Aug 2015
 
@@ -30,11 +31,22 @@ contains
   !>       \details With the exception of L0_mask, L0_elev, and L0_LCover, all
   !>       L0 variables are read from file. The former three are only read if they
   !>       are not provided as variables.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_read_L0_data
+
+
+
+
+
+
+
+
+
 
   !    INTENT(IN)
-  !>       \param[in] "logical :: do_reinit"     
-  !>       \param[in] "logical :: do_readlatlon" 
-  !>       \param[in] "logical :: do_readlcover" 
+  !>       \param[in] "logical :: do_reinit"
+  !>       \param[in] "logical :: do_readlatlon"
+  !>       \param[in] "logical :: do_readlcover"
 
   !    HISTORY
   !>       \authors Juliane Mai, Matthias Zink, and Stephan Thober
@@ -206,78 +218,57 @@ contains
   end subroutine mrm_read_L0_data
   ! ---------------------------------------------------------------------------
 
-  !      NAME
-  !          mrm_read_discharge
+  !    NAME
+  !        mrm_read_discharge
 
-  !>        \brief Read discharge timeseries from file
+  !    PURPOSE
+  !>       \brief Read discharge timeseries from file
 
-  !>        \details Read Observed discharge at the outlet of a catchment
-  !>        and at the inflow of a catchment. Allocate global runoff
-  !>        variable that contains the simulated runoff after the simulation.
+  !>       \details Read Observed discharge at the outlet of a catchment
+  !>       and at the inflow of a catchment. Allocate global runoff
+  !>       variable that contains the simulated runoff after the simulation.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_read_discharge
+  !>       \author  Matthias Zink & Stephan Thober
+  !>       \date    Aug 2015
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  subroutine mrm_read_discharge
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Matthias Zink & Stephan Thober
-  !         \date    Aug 2015
-  subroutine mrm_read_discharge()
-    use mo_message, only : message
     use mo_append, only : paste
-    use mo_string_utils, only : num2str
-    use mo_read_timeseries, only : read_timeseries
-    use mo_mrm_file, only : udischarge
     use mo_common_constants, only : nodata_dp
-    use mo_mrm_global_variables, only : &
-            mRM_runoff, & ! variable storing runoff for each gauge
-            nGaugesTotal, gauge, nMeasPerDay, & ! evaluaton gauging station information
-            nInflowGaugesTotal, InflowGauge ! inflow stations information
-    use mo_common_variables, only : &
-            nBasins
-    use mo_common_mHM_mRM_variables, only : &
-            optimize, & ! optimizeation flag for some error checks
-            opti_function, &   ! opti_function that determines to what data to calibrate
-            evalPer, & ! model evaluation period (for discharge read in)
-            simPer, & ! model simulation period (for inflow read in)
-            nTstepDay
+    use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
+    use mo_common_variables, only : nBasins
+    use mo_message, only : message
+    use mo_mrm_file, only : udischarge
+    use mo_mrm_global_variables, only : InflowGauge, gauge, mRM_runoff, nGaugesTotal, &
+                                        nInflowGaugesTotal, nMeasPerDay
+    use mo_read_timeseries, only : read_timeseries
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    ! local variables
     integer(i4) :: iGauge
+
     integer(i4) :: iBasin
+
     integer(i4) :: maxTimeSteps
-    character(256) :: fName ! file name of file to read
+
+    ! file name of file to read
+    character(256) :: fName
+
     integer(i4), dimension(3) :: start_tmp, end_tmp
+
     real(dp), dimension(:), allocatable :: data_dp_1d
+
     logical, dimension(:), allocatable :: mask_1d
+
 
     !----------------------------------------------------------
     ! INITIALIZE RUNOFF
@@ -339,77 +330,60 @@ contains
 
   ! ---------------------------------------------------------------------------
 
-  !      NAME
-  !          mrm_read_total_runoff
+  !    NAME
+  !        mrm_read_total_runoff
 
-  !>         \brief read simulated runoff that is to be routed
+  !    PURPOSE
+  !>       \brief read simulated runoff that is to be routed
 
-  !>         \details read spatio-temporal field of total runoff that has been
-  !>         simulated by a hydrologic model or land surface model. This 
-  !>         total runoff will then be aggregated to the level 11 resolution
-  !>         and then routed through the stream network.
+  !>       \details read spatio-temporal field of total runoff that has been
+  !>       simulated by a hydrologic model or land surface model. This
+  !>       total runoff will then be aggregated to the level 11 resolution
+  !>       and then routed through the stream network.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_read_total_runoff
+  !>       \author  Stephan Thober
+  !>       \date    Sep 2015
+  !>       MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
+  !>       Sep 2016, Stephan Thober - added ALMA convention
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin" basin id
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        \note The file containing total runoff must be named total_runoff.nc.
-  !>        This file must contain a double precision float variable with the name
-  !>        "total_runoff". There must also be an integer variable time with the
-  !>        units hours, days, months or years.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Stephan Thober
-  !         \date    Sep 2015
-  !     MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
-  !               Sep 2016, Stephan Thober - added ALMA convention
   subroutine mrm_read_total_runoff(iBasin)
+
     use mo_append, only : append
-    use mo_read_forcing_nc, only : read_forcing_nc
-    use mo_mrm_global_variables, only : &
-            dirTotalRunoff, & ! directory of total_runoff file for each basin
-            L1_total_runoff_in, & ! simulated runoff at L1
-            filenameTotalRunoff, & ! filename
-            varnameTotalRunoff ! varname
+    use mo_common_constants, only : HourSecs, nodata_dp
+    use mo_common_mHM_mRM_variables, only : simPer, timestep
     use mo_common_variables, only : ALMA_convention, level1
-    use mo_common_mHM_mRM_variables, only : timestep, simPer
-    use mo_common_constants, only : nodata_dp, HourSecs
+    use mo_mrm_global_variables, only : L1_total_runoff_in, dirTotalRunoff, filenameTotalRunoff, &
+                                        varnameTotalRunoff
+    use mo_read_forcing_nc, only : read_forcing_nc
 
     implicit none
 
-    ! input variables
+    ! basin id
     integer(i4), intent(in) :: iBasin
 
-    ! local variables
     integer(i4) :: tt
+
     integer(i4) :: nTimeSteps
-    integer(i4) :: nctimestep ! tell nc file to read daily or hourly values
-    real(dp), dimension(:, :, :), allocatable :: L1_data ! read data from file
+
+    ! tell nc file to read daily or hourly values
+    integer(i4) :: nctimestep
+
+    ! read data from file
+    real(dp), dimension(:, :, :), allocatable :: L1_data
+
     real(dp), dimension(:, :), allocatable :: L1_data_packed
+
 
     if (timestep .eq. 1) nctimestep = -4 ! hourly input
     if (timestep .eq. 24) nctimestep = -1 ! daily input
@@ -450,15 +424,36 @@ contains
   ! Rotate fdir variable to the new coordinate system
   ! L. Samaniego & R. Kumar
   ! ------------------------------------------------------------------
+  !    NAME
+  !        rotate_fdir_variable
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "integer(i4), dimension(:, :) :: x"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine rotate_fdir_variable(x)
-    USE mo_common_constants, ONLY : nodata_i4    ! mHM's global nodata vales
+
+    use mo_common_constants, only : nodata_i4
 
     implicit none
 
     integer(i4), dimension(:, :), intent(INOUT) :: x
 
-    ! local
+
+    ! 0  -1   0 |
     integer(i4) :: i, j
+
 
     !-------------------------------------------------------------------
     ! NOTE:
@@ -490,13 +485,11 @@ contains
     !
     !     and T = pi, F = - pi/2
     !     thus
-    !          !  0  -1   0 |
     !     [R] =| -1   0   0 |
     !          |  0   0  -1 |
     !     making all 8 directions the following transformation were
     !     obtained.
     !-------------------------------------------------------------------
-
     do i = 1, size(x, 1)
       do j = 1, size(x, 2)
         if (x(i, j)  .eq. nodata_i4) cycle

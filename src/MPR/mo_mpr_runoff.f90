@@ -35,11 +35,11 @@ contains
   !>       \details Perform the multiscale parameter regionalization for runoff
   !>       global parameters (see mhm_parameter.nml). These are the following five
   !>       parameters:
-  !>       - param(1) = interflowStorageCapacityFactor 
-  !>       - param(2) = interflowRecession_slope       
-  !>       - param(3) = fastInterflowRecession_forest  
-  !>       - param(4) = slowInterflowRecession_Ks      
-  !>       - param(5) = exponentSlowInterflow          
+  !>       - param(1) = interflowStorageCapacityFactor
+  !>       - param(2) = interflowRecession_slope
+  !>       - param(3) = fastInterflowRecession_forest
+  !>       - param(4) = slowInterflowRecession_Ks
+  !>       - param(5) = exponentSlowInterflow
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"    land cover at level 0
@@ -70,6 +70,7 @@ contains
   ! Modifications:
   ! Stephan Thober Jan 2013 - updated calling sequence for upscaling operators
   ! Stephan Thober Dec 2013 - made header conform with mo_template
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mpr_runoff(LCOVER0, mask0, SMs_FC0, slope_emp0, KsVar_H0, param, cell_id0, upp_row_L1, low_row_L1, &
                        lef_col_L1, rig_col_L1, nL0_in_L1, c2TSTu, L1_HL1, L1_K0, L1_K1, L1_alpha)

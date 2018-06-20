@@ -3,10 +3,10 @@
 !>       \brief Spatial aggegation or disaggregation of meteorological input data.
 
 !>       \details This module contains two subroutines to upscale and downscale, respectively,
-!>       the level-2 meterological inputs to a required Level-1 hydrological spatial 
+!>       the level-2 meterological inputs to a required Level-1 hydrological spatial
 !>       resolution.
 
-!>       \authors s Rohini Kumar
+!>       \authors Rohini Kumar
 
 !>       \date Jan 2013
 
@@ -29,11 +29,49 @@ MODULE mo_spatial_agg_disagg_forcing
 
   ! ------------------------------------------------------------------
 
+  !    NAME
+  !        spatial_aggregation
+
+  !    PURPOSE
+  !>       \brief Spatial aggregation of meterological variables
+
+  !>       \details Aggregate (or upscale) the given level-2 meteorological data to the
+  !>       required level-1 spatial resolution for the mHM run.
+
+  !    HISTORY
+  !>       \authors Rohini Kumar
+
+  !>       \date Jan 2013
+
+  ! Modifications:
+  ! Rohini Kumar Nov 2013 - data1 changed from intent(inout) to intent(out)
+  ! RK, MZ, DS   May 2014 - added mask2
+
+
   INTERFACE spatial_aggregation
     MODULE PROCEDURE spatial_aggregation_3d, spatial_aggregation_4d
   END INTERFACE spatial_aggregation
 
   ! ------------------------------------------------------------------
+
+  !    NAME
+  !        spatial_disaggregation
+
+  !    PURPOSE
+  !>       \brief Spatial disaggregation of meterological variables
+
+  !>       \details Disaggregate (or downscale) the given level-2 meteorological data to the
+  !>       required level-1 spatial resolution for the mHM run.
+
+  !    HISTORY
+  !>       \authors Rohini Kumar
+
+  !>       \date Jan 2013
+
+  ! Modifications:
+  ! Rohini Kumar Nov 2013 - data1 changed from intent(inout) to intent(out)
+  ! RK, MZ, DS   May 2014 - added mask2
+
 
   INTERFACE spatial_disaggregation
     MODULE PROCEDURE spatial_disaggregation_3d, spatial_disaggregation_4d
@@ -51,32 +89,26 @@ CONTAINS
   !        spatial_aggregation_3d
 
   !    PURPOSE
-  !>       \brief Spatial aggregation of meterological variables
+  !>       \brief TODO: add description
 
-  !>       \details Aggregate (or upscale) the given level-2 meteorological data to the 
-  !>       required level-1 spatial resolution for the mHM run.
+  !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 meteorological datadim1=nRows, dim2=nCols, dim3=nTimeSteps
+  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 data
   !>       \param[in] "real(dp) :: cellsize2"                 Level-2 resolution
   !>       \param[in] "real(dp) :: cellsize1"                 Level-1 resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 basin mask
-  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 basin maskdim1=nRows, dim2=nCols
+  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 mask
+  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 mask
 
   !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" return level-1 meteorological data; DIMENSION [nRows_L1, nCols_L1, nTimeSteps]
+  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" Level-1 data
 
   !    HISTORY
-  !>       \authors Rohini Kumar
+  !>       \authors Robert Schweppe
 
-  !>       \date Jan 2013
+  !>       \date Jun 2018
 
   ! Modifications:
-  ! Rohini Kumar   Nov 2013 - data1 changed from intent(inout) to intent(out)
-  ! RK, MZ, DS     May 2014 - added mask2 NAME spatial_disaggregation PURPOSE >        \brief Spatial disaggregation of meterological variables >        \details Disaggregate (or downscale) the given level-2 meteorological data to the \n >                 required level-1 spatial resolution for the mHM run. CALLING SEQUENCE INTENT(IN) >        \param[in] "real(dp), dimension(:,:,:)   :: data2"         Level-2 meteorological data \n >                                                                   dim1=nRows, dim2=nCols, dim3=nTimeSteps >        \param[in] "real(dp)                     :: cellsize2"     Level-2 resolution >        \param[in] "real(dp)                     :: cellsize1"     Level-1 resolution >        \param[in] "logical, dimension(:,:)      :: mask1"         Level-1 basin mask \n >        \param[in] "logical, dimension(:,:)      :: mask2"         Level-2 basin mask \n >                                                                   dim1=nRows, dim2=nCols INTENT(INOUT) None INTENT(OUT) >        \param[out] "real(dp), allocatable, dimension(:,:,:)  :: data1" >           return level-1 meteorological data; DIMENSION [nRows_L1, nCols_L1, nTimeSteps] INTENT(IN), OPTIONAL None INTENT(INOUT), OPTIONAL None INTENT(OUT), OPTIONAL None RETURN None RESTRICTIONS EXAMPLE LITERATURE None HISTORY >        \author Rohini Kumar
-  ! >        \date Jan 2013 - 
-  ! Rohini Kumar   Nov 2013 - data1 changed from intent(inout) to intent(out)
-  ! RK, MZ, DS     May 2014 - added mask2
 
   subroutine spatial_aggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
@@ -84,7 +116,7 @@ CONTAINS
 
     implicit none
 
-    ! Level-2 meteorological datadim1=nRows, dim2=nCols, dim3=nTimeSteps
+    ! Level-2 data
     real(dp), dimension(:, :, :), intent(in) :: data2
 
     ! Level-2 resolution
@@ -93,13 +125,13 @@ CONTAINS
     ! Level-1 resolution
     real(dp), intent(in) :: cellsize1
 
-    ! Level-1 basin mask
+    ! Level-1 mask
     logical, dimension(:, :), intent(in) :: mask1
 
-    ! Level-2 basin maskdim1=nRows, dim2=nCols
+    ! Level-2 mask
     logical, dimension(:, :), intent(in) :: mask2
 
-    ! return level-1 meteorological data; DIMENSION [nRows_L1, nCols_L1, nTimeSteps]
+    ! Level-1 data
     real(dp), dimension(:, :, :), allocatable, intent(out) :: data1
 
     ! No. of rows and cols at Level-1
@@ -186,27 +218,69 @@ CONTAINS
 
   end subroutine spatial_aggregation_3d
 
+  !    NAME
+  !        spatial_aggregation_4d
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :, :, :) :: data2" Level-2 data
+  !>       \param[in] "real(dp) :: cellsize2"                    Level-2 resolution
+  !>       \param[in] "real(dp) :: cellsize1"                    Level-1 resolution
+  !>       \param[in] "logical, dimension(:, :) :: mask1"        Level-1 mask
+  !>       \param[in] "logical, dimension(:, :) :: mask2"        Level-2 mask
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :, :) :: data1" Level-1 data
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine spatial_aggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
     use mo_common_constants, only : nodata_dp
 
     implicit none
 
-    real(dp), dimension(:, :, :, :), intent(in) :: data2       ! Level-2 data
-    real(dp), intent(in) :: cellsize2   ! Level-2 resolution
-    real(dp), intent(in) :: cellsize1   ! Level-1 resolution
-    logical, dimension(:, :), intent(in) :: mask1       ! Level-1 mask
-    logical, dimension(:, :), intent(in) :: mask2       ! Level-2 mask
+    ! Level-2 data
+    real(dp), dimension(:, :, :, :), intent(in) :: data2
 
-    real(dp), dimension(:, :, :, :), allocatable, intent(out) :: data1       ! Level-1 data
+    ! Level-2 resolution
+    real(dp), intent(in) :: cellsize2
 
-    ! local variables
-    integer(i4) :: nr2, nc2  ! No. of rows and cols at Level-1
-    integer(i4) :: nr1, nc1  ! No. of rows and cols at Level-1
+    ! Level-1 resolution
+    real(dp), intent(in) :: cellsize1
+
+    ! Level-1 mask
+    logical, dimension(:, :), intent(in) :: mask1
+
+    ! Level-2 mask
+    logical, dimension(:, :), intent(in) :: mask2
+
+    ! Level-1 data
+    real(dp), dimension(:, :, :, :), allocatable, intent(out) :: data1
+
+    ! No. of rows and cols at Level-1
+    integer(i4) :: nr2, nc2
+
+    ! No. of rows and cols at Level-1
+    integer(i4) :: nr1, nc1
+
     real(dp) :: cellFactor
+
     integer(i4), dimension(:, :), allocatable :: nTCells
+
     integer(i4) :: nMonths, nHours
+
     integer(i4) :: i, j, ic, jc, t, h
+
 
     ! get number of rows and cols at level-2 from mask2
     ! and the total time steps 
@@ -280,26 +354,64 @@ CONTAINS
 
   end subroutine spatial_aggregation_4d
 
+  !    NAME
+  !        spatial_disaggregation_3d
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 data
+  !>       \param[in] "real(dp) :: cellsize2"                 Level-2 resolution
+  !>       \param[in] "real(dp) :: cellsize1"                 Level-1 resolution
+  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 mask
+  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 mask
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" Level-1 data
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine spatial_disaggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
     use mo_common_constants, only : nodata_dp
 
     implicit none
 
-    real(dp), dimension(:, :, :), intent(in) :: data2       ! Level-2 data
-    real(dp), intent(in) :: cellsize2   ! Level-2 resolution
-    real(dp), intent(in) :: cellsize1   ! Level-1 resolution
-    logical, dimension(:, :), intent(in) :: mask1       ! Level-1 mask
-    logical, dimension(:, :), intent(in) :: mask2       ! Level-2 mask
+    ! Level-2 data
+    real(dp), dimension(:, :, :), intent(in) :: data2
 
-    real(dp), dimension(:, :, :), allocatable, intent(out) :: data1       ! Level-1 data
+    ! Level-2 resolution
+    real(dp), intent(in) :: cellsize2
 
-    ! local variables
-    integer(i4) :: nr1, nc1                ! No. of rows and cols at Level-1
+    ! Level-1 resolution
+    real(dp), intent(in) :: cellsize1
+
+    ! Level-1 mask
+    logical, dimension(:, :), intent(in) :: mask1
+
+    ! Level-2 mask
+    logical, dimension(:, :), intent(in) :: mask2
+
+    ! Level-1 data
+    real(dp), dimension(:, :, :), allocatable, intent(out) :: data1
+
+    ! No. of rows and cols at Level-1
+    integer(i4) :: nr1, nc1
 
     real(dp) :: cellFactor
+
     integer(i4) :: nTimeSteps
+
     integer(i4) :: i, j, t, ic, jc
+
 
     ! get number of rows and cols at level-2 from mask2
     nr1 = size(mask1, 1)
@@ -333,26 +445,64 @@ CONTAINS
 
   end subroutine spatial_disaggregation_3d
 
+  !    NAME
+  !        spatial_disaggregation_4d
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :, :, :) :: data2" Level-2 data
+  !>       \param[in] "real(dp) :: cellsize2"                    Level-2 resolution
+  !>       \param[in] "real(dp) :: cellsize1"                    Level-1 resolution
+  !>       \param[in] "logical, dimension(:, :) :: mask1"        Level-1 mask
+  !>       \param[in] "logical, dimension(:, :) :: mask2"        Level-2 mask
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :, :) :: data1" Level-1 data
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine spatial_disaggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
     use mo_common_constants, only : nodata_dp
 
     implicit none
 
-    real(dp), dimension(:, :, :, :), intent(in) :: data2       ! Level-2 data
-    real(dp), intent(in) :: cellsize2   ! Level-2 resolution
-    real(dp), intent(in) :: cellsize1   ! Level-1 resolution
-    logical, dimension(:, :), intent(in) :: mask1       ! Level-1 mask
-    logical, dimension(:, :), intent(in) :: mask2       ! Level-2 mask
+    ! Level-2 data
+    real(dp), dimension(:, :, :, :), intent(in) :: data2
 
-    real(dp), dimension(:, :, :, :), allocatable, intent(out) :: data1       ! Level-1 data
+    ! Level-2 resolution
+    real(dp), intent(in) :: cellsize2
 
-    ! local variables
-    integer(i4) :: nr1, nc1                ! No. of rows and cols at Level-1
+    ! Level-1 resolution
+    real(dp), intent(in) :: cellsize1
+
+    ! Level-1 mask
+    logical, dimension(:, :), intent(in) :: mask1
+
+    ! Level-2 mask
+    logical, dimension(:, :), intent(in) :: mask2
+
+    ! Level-1 data
+    real(dp), dimension(:, :, :, :), allocatable, intent(out) :: data1
+
+    ! No. of rows and cols at Level-1
+    integer(i4) :: nr1, nc1
 
     real(dp) :: cellFactor
+
     integer(i4) :: nMonths, nHours
+
     integer(i4) :: i, j, t, ic, jc, h
+
 
     ! get number of rows and cols at level-2 from mask2
     nr1 = size(mask1, 1)

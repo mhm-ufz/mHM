@@ -47,6 +47,17 @@ contains
   !>       succeeds if it happens after the write of mHM restart files because
   !>       mHM restart files must exist. Second, simulated discharge is aggregated to the daily
   !>       scale and then written to file jointly with observed discharge
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_write
+
+
+
+
+
+
+
+
+
 
   !    HISTORY
   !>       \authors Juliane Mai, Rohini Kumar & Stephan Thober
@@ -130,116 +141,58 @@ contains
   end subroutine mrm_write
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         write_configfile
+  !    NAME
+  !        write_configfile
 
-  !     PURPOSE
-  !>        \brief This modules writes the results of the configuration into an ASCII-file
+  !    PURPOSE
+  !>       \brief This modules writes the results of the configuration into an ASCII-file
+  !>       \details
 
-  !>        \details 
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       write_configfile
 
-  !     INTENT(IN)
-  !         None
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Christoph Schneider
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date May 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Juliane Mai    May 2013 - module version and documentation
+  ! Stephan Thober Jun 2014 - bug fix in L11 config print out
+  ! Stephan Thober Jun 2014 - updated read_restart
+  ! Rohini, Luis   Jul 2015 - updated version, L1 level prints
+  ! Stephan Thober Sep 2015 - updated write of stream network
+  ! Stephan Thober Nov 2016 - adapted write to selected case for routing process
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  Subroutine write_configfile
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         
-
-  !     LITERATURE
-  !         
-
-  !     HISTORY
-  !>        \author Christoph Schneider
-  !>        \date May 2013
-  !         Modified, Juliane Mai,    May 2013 - module version and documentation
-  !                   Stephan Thober, Jun 2014 - bug fix in L11 config print out 
-  !                   Stephan Thober, Jun 2014 - updated read_restart
-  !                   Rohini, Luis  , Jul 2015 - updated version, L1 level prints
-  !                   Stephan Thober, Sep 2015 - updated write of stream network
-  !                   Stephan Thober, Nov 2016 - adapted write to selected case for routing process
-
-  Subroutine write_configfile()
-
-    use mo_utils, only : ge
-    use mo_kind, only : i4, dp
     use mo_common_constants, only : nodata_dp
+    use mo_common_file, only : file_config, uconfig
+    use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, mrm_coupling_mode, read_restart, &
+                                            resolutionRouting, timeStep, warmPer
+    use mo_common_variables, only : L0_Basin, LC_year_end, LC_year_start, LCfilename, &
+                                    dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, global_parameters, &
+                                    global_parameters_name, level0, level1, nBasins, nLCoverScene, processMatrix, &
+                                    resolutionHydrology, write_restart
+    use mo_kind, only : dp, i4
     use mo_message, only : message
+    use mo_mrm_file, only : version
+    use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
+                                        L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, basin_mrm, &
+                                        dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
-    USE mo_mrm_file, only : version
-    USE mo_common_file, only : file_config, uconfig
-    use mo_mrm_global_variables, only : &
-            level11, &
-            basin_mrm, &
-            gauge, &
-            InflowGauge, &
-            L11_netPerm, &
-            L11_fromN, &
-            L11_toN, &
-            L11_rOrder, &
-            L11_label, &
-            L11_length, &
-            L11_slope, &
-            L11_L1_Id, &
-            L1_L11_Id, &
-            nGaugesTotal, &
-            nInflowGaugesTotal, &
-            dirGauges, &
-            dirTotalRunoff
-
-    use mo_common_mHM_mRM_variables, only : &
-            mrm_coupling_mode, &
-            read_restart, &
-            resolutionRouting, &
-            LCyearId, &
-            timeStep, &
-            warmPer, &
-            evalPer, &
-            SimPer
-    use mo_common_variables, only : &
-            level0, level1, L0_Basin, &
-            write_restart, &
-            dirRestartOut, &
-            nBasins, &
-            resolutionHydrology, &
-            processMatrix, &
-            global_parameters, &
-            global_parameters_name, &
-            LCfilename, &
-            nLCoverScene, &
-            LC_year_start, &
-            LC_year_end, &
-            dirConfigOut, &
-            dirMorpho, &
-            dirLCover, &
-            dirOut
+    use mo_utils, only : ge
 
     implicit none
-    !
-    ! local
-    !
+
     character(256) :: fName
+
     integer(i4) :: i, j, n
+
     integer(i4) :: err
+
 
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_config))
     call message()
@@ -500,87 +453,67 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         write_daily_obs_sim_discharge
+  !    NAME
+  !        write_daily_obs_sim_discharge
 
-  !     PURPOSE
-  !>        \brief Write a file for the daily observed and simulated discharge timeseries 
-  !>                during the evaluation period for each gauging station
+  !    PURPOSE
+  !>       \brief Write a file for the daily observed and simulated discharge timeseries
+  !>       during the evaluation period for each gauging station
 
-  !>        \details Write a file for the daily observed and simulated discharge timeseries 
-  !>                during the evaluation period for each gauging station
+  !>       \details Write a file for the daily observed and simulated discharge timeseries
+  !>       during the evaluation period for each gauging station
+  !>       ADDITIONAL INFORMATION
+  !>       write_daily_obs_sim_discharge
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: Qobs" daily time series of observed dischargedims = (nModeling_days
+  !>       , nGauges_total)
+  !>       \param[in] "real(dp), dimension(:, :) :: Qsim" daily time series of modeled dischargedims = (nModeling_days ,
+  !>       nGauges_total)
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp), dimension(:,:)    :: Qobs"    daily time series of observed discharge 
-  !>                                                             dims = (nModeling_days , nGauges_total)
-  !>        \param[in]  "real(dp), dimension(:,:)    :: Qsim"    daily time series of modeled discharge
-  !>                                                             dims = (nModeling_days , nGauges_total)
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date August 2013
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None 
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date August 2013
+  ! Modifications:
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
+    use mo_common_mhm_mrm_variables, only : evalPer
+    use mo_common_variables, only : dirOut, nBasins
     use mo_errormeasures, only : kge, nse
     use mo_julian, only : dec2date
     use mo_message, only : message
+    use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
+    use mo_mrm_global_variables, only : basin_mrm, gauge
+    use mo_ncwrite, only : var2nc
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
-    use mo_mrm_file, only : file_daily_discharge, udaily_discharge, &
-            ncfile_discharge
-    use mo_mrm_global_variables, only : &
-            basin_mrm, &
-            gauge
-    use mo_ncwrite, only : var2nc
-    use mo_common_mhm_mrm_variables, only : &
-            evalPer
-    use mo_common_variables, only : &
-            nBasins, dirOut
 
     implicit none
 
-    ! input arguments
-    real(dp), dimension(:, :), intent(in) :: Qobs      ! observed time series  [nModeling_days X nGauges_total]
-    real(dp), dimension(:, :), intent(in) :: Qsim      ! simulated time series [nModeling_days X nGauges_total]
+    ! daily time series of observed dischargedims = (nModeling_days , nGauges_total)
+    real(dp), dimension(:, :), intent(in) :: Qobs
 
-    ! local vars
-    character(256) :: fName, formHeader, formData, dummy, dnames(1)
+    ! daily time series of modeled dischargedims = (nModeling_days , nGauges_total)
+    real(dp), dimension(:, :), intent(in) :: Qsim
+
+    character(256), dimension(1) :: fName, formHeader, formData, dummy, dnames
+
     integer(i4) :: bb, gg, tt, err
+
     integer(i4) :: igauge_start, igauge_end
+
     integer(i4) :: day, month, year
+
     integer(i4) :: tlength
-    integer(i4), allocatable :: taxis(:) ! time axis
+
+    ! time axis
+    integer(i4), allocatable, dimension(:) :: taxis
+
     real(dp) :: newTime
+
     logical :: create
 
 
@@ -680,92 +613,111 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mrm_write_output_fluxes
+  !    NAME
+  !        mrm_write_output_fluxes
 
-  !     PURPOSE
-  !>        \brief write fluxes to netcdf output files
-  !
-  !>        \details This subroutine creates a netcdf data set
-  !>        for writing L11_QTIN for different time averages.
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
+  !    PURPOSE
+  !>       \brief write fluxes to netcdf output files
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !       None
-  !
-  !     LITERATURE
-  !       None
+  !>       \details This subroutine creates a netcdf data set
+  !>       for writing L11_QTIN for different time averages.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_write_output_fluxes
 
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Aug 2015
-  !         Modified, 
 
-  subroutine mrm_write_output_fluxes(&
-          iBasin, &
-          nCells, &
-          timeStep_model_outputs, & ! timestep of model outputs
-          warmingDays, & ! number of warming days
-          newTime, & ! julian date of next time step
-          nTimeSteps, & ! number of total timesteps
-          nTStepDay, & ! number of timesteps per day
-          tt, & ! current model timestep
-          day, & ! current day of the year
-          month, & ! current month of the year
-          year, & ! current year
-          timestep, & ! current model time resolution
-          mask11, & ! mask at level 11
-          L11_qmod & ! current routed streamflow
-          )
-    use mo_kind, only : i4, dp
+
+
+
+
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"
+  !>       \param[in] "integer(i4) :: nCells"
+  !>       \param[in] "integer(i4) :: timeStep_model_outputs" timestep of model outputs
+  !>       \param[in] "integer(i4) :: warmingDays"            number of warming days
+  !>       \param[in] "real(dp) :: newTime"                   julian date of next time step
+  !>       \param[in] "integer(i4) :: nTimeSteps"             number of total timesteps
+  !>       \param[in] "integer(i4) :: nTStepDay"              number of timesteps per day
+  !>       \param[in] "integer(i4) :: tt"                     current model timestep
+  !>       \param[in] "integer(i4) :: day"                    current day of the year
+  !>       \param[in] "integer(i4) :: month"                  current month of the year
+  !>       \param[in] "integer(i4) :: year"                   current year
+  !>       \param[in] "integer(i4) :: timestep"               current model time resolution
+  !>       \param[in] "logical, dimension(:, :) :: mask11"    mask at level 11
+  !>       \param[in] "real(dp), dimension(:) :: L11_qMod"    current routed streamflow
+
+  !    HISTORY
+  !>       \authors Stephan Thober
+
+  !>       \date Aug 2015
+
+  ! Modifications:
+
+  subroutine mrm_write_output_fluxes(iBasin, nCells, timeStep_model_outputs, warmingDays, newTime, nTimeSteps, &
+                                    nTStepDay, tt, day, month, year, timestep, mask11, L11_qmod)
+
     use mo_julian, only : caldat
+    use mo_kind, only : dp, i4
 
     implicit none
 
-    ! input variables
     integer(i4), intent(in) :: iBasin
+
     integer(i4), intent(in) :: nCells
+
+    ! timestep of model outputs
     integer(i4), intent(in) :: timeStep_model_outputs
+
+    ! number of warming days
     integer(i4), intent(in) :: warmingDays
+
+    ! julian date of next time step
     real(dp), intent(in) :: newTime
+
+    ! number of total timesteps
     integer(i4), intent(in) :: nTimeSteps
+
+    ! number of timesteps per day
     integer(i4), intent(in) :: nTStepDay
+
+    ! current model timestep
     integer(i4), intent(in) :: tt
+
+    ! current day of the year
     integer(i4), intent(in) :: day
+
+    ! current month of the year
     integer(i4), intent(in) :: month
+
+    ! current year
     integer(i4), intent(in) :: year
+
+    ! current model time resolution
     integer(i4), intent(in) :: timestep
-    logical, intent(in) :: mask11(:, :)
-    real(dp), intent(in) :: L11_qMod(:)
-    ! local variables
+
+    ! mask at level 11
+    logical, intent(in), dimension(:, :) :: mask11
+
+    ! current routed streamflow
+    real(dp), intent(in), dimension(:) :: L11_qMod
+
     integer(i4) :: tIndex_out
+
     logical :: writeout
-    integer(i4) :: new_year ! year of next timestep (newTime)
-    integer(i4) :: new_month ! month of next timestep (newTime)
-    integer(i4) :: new_day ! day of next timestep (newTime)
+
+    ! year of next timestep (newTime)
+    integer(i4) :: new_year
+
+    ! month of next timestep (newTime)
+    integer(i4) :: new_month
+
+    ! day of next timestep (newTime)
+    integer(i4) :: new_day
+
+
     !
     if (tt .EQ. 1) then
       day_counter = day
@@ -828,56 +780,33 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         write_optifile
+  !    NAME
+  !        mrm_write_optifile
 
-  !     PURPOSE
-  !>        \brief Write briefly final optimization results.
+  !    PURPOSE
+  !>       \brief Write briefly final optimization results.
 
-  !>        \details Write overall best objective function and the best optimized parameter set to a file_opti.
+  !>       \details Write overall best objective function and the best optimized parameter set to a file_opti.
+  !>       ADDITIONAL INFORMATION
+  !>       write_optifile
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: best_OF"                             best objective function value as returnedby the
+  !>       optimization routine
+  !>       \param[in] "real(dp), dimension(:) :: best_paramSet"         best associated global parameter setCalled only
+  !>       when optimize is .TRUE.
+  !>       \param[in] "character(len = *), dimension(:) :: param_names"
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp)                   :: best_OF"         best objective function value as returned 
-  !>                                                                    by the optimization routine
-  !>        \param[in]  "real(dp), dimension(:)     :: best_paramSet"   best associated global parameter set
+  !    HISTORY
+  !>       \authors David Schaefer
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date July 2013
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        Called only when optimize is .TRUE.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date July 2013
-
-  !         Modified, Rohini Kumar,   Aug 2013 - change in structure of the code including call statements
-  !                   Juliane Mai,    Oct 2013 - clear parameter names added
-  !                                            - double precision written
-  !                   Stephan Thober, Oct 2015 - ported to mRM
+  ! Modifications:
+  ! Rohini Kumar   Aug 2013 - change in structure of the code including call statements
+  ! Juliane Mai    Oct 2013 - clear parameter names added 
+  !                         - double precision written
+  ! Stephan Thober Oct 2015 - ported to mRM
 
   subroutine mrm_write_optifile(best_OF, best_paramSet, param_names)
 
@@ -888,13 +817,18 @@ contains
 
     implicit none
 
+    ! best objective function value as returnedby the optimization routine
     real(dp), intent(in) :: best_OF
+
+    ! best associated global parameter setCalled only when optimize is .TRUE.
     real(dp), dimension(:), intent(in) :: best_paramSet
+
     character(len = *), dimension(:), intent(in) :: param_names
 
-    ! local variables
     character(256) :: fName, formHeader, formParams
+
     integer(i4) :: ii, err, n_params
+
 
     ! number of parameters
     n_params = size(best_paramSet)
@@ -929,56 +863,30 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         write_optinamelist
+  !    NAME
+  !        mrm_write_optinamelist
 
-  !     PURPOSE
-  !>        \brief Write final, optimized parameter set in a namelist format.
+  !    PURPOSE
+  !>       \brief Write final, optimized parameter set in a namelist format.
 
-  !>        \details  Write final, optimized parameter set in a namelist format. 
+  !>       \details Write final, optimized parameter set in a namelist format.
+  !>       ADDITIONAL INFORMATION
+  !>       write_optinamelist
 
-  !     CALLING SEQUENCE
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :) :: parameters"                               (min, max, opti)
+  !>       \param[in] "logical, dimension(size(parameters, 1)) :: maskpara"                   .true. if parameter was
+  !>       calibrated
+  !>       \param[in] "character(len = *), dimension(size(parameters, 1)) :: parameters_name" clear names of parameters
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp)         :: parameters(:,:)"      information about parameter (min, max, opti)
-  !>        \param[in]  "logical          :: maskpara(:)"          infomation which parameter where optimized
-  !>        \param[in]  "character(len=*) :: parameters_name(:)"   clear names of parameters
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2013
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        Called only when optimize is .TRUE.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2013
-
-  !         Modified,
-  !               Stephan Thober, Oct 2015 - adapted to mRM
-  !               Stephan Thober, Nov 2016 - adapt header to routing process
+  ! Modifications:
+  ! Stephan Thober Oct 2015 - adapted to mRM
+  ! Stephan Thober Nov 2016 - adapt header to routing process
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 
@@ -989,15 +897,23 @@ contains
 
     implicit none
 
-    real(dp), dimension(:, :), intent(in) :: parameters        ! (min, max, opti)
-    logical, dimension(size(parameters, 1)), intent(in) :: maskpara          ! .true. if parameter was calibrated
-    character(len = *), dimension(size(parameters, 1)), intent(in) :: parameters_name   ! clear names of parameters
+    ! (min, max, opti)
+    real(dp), dimension(:, :), intent(in) :: parameters
 
-    ! local variables
+    ! .true. if parameter was calibrated
+    logical, dimension(size(parameters, 1)), intent(in) :: maskpara
+
+    ! clear names of parameters
+    character(len = *), dimension(size(parameters, 1)), intent(in) :: parameters_name
+
     character(256) :: fName
+
     character(3) :: flag
+
     integer(i4) :: err
+
     integer(i4) :: iPar
+
 
     ! open file
     fName = trim(adjustl(dirConfigOut)) // trim(adjustl(file_opti_nml))

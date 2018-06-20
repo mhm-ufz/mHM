@@ -1,10 +1,11 @@
 !>       \file mo_mpr_global_variables.f90
 
 !>       \brief Global variables for mpr only
+!>       \details
 
-!>       \details 
+!>       \details TODO: add description
 
-!>       \authors s Robert Schweppe
+!>       \authors Robert Schweppe
 
 !>       \date Dec 2017
 

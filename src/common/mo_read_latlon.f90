@@ -4,7 +4,7 @@
 
 !>       \details TODO: add description
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Nov 2013
 
@@ -41,13 +41,14 @@ CONTAINS
   !>       variables latitude and longitude.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ii"            basin indexFile name of the basins must be xxx_latlon.nc, wherexxx is the basin id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
-  !>       \param[in] "character(*) :: lon_var_name" 
-  !>       \param[in] "character(*) :: lat_var_name" 
-  !>       \param[in] "character(*) :: level_name"   
+  !>       \param[in] "integer(i4) :: ii"            basin indexFile name of the basins must be xxx_latlon.nc, wherexxx
+  !>       is the basin id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
+  !>       \param[in] "character(*) :: lon_var_name"
+  !>       \param[in] "character(*) :: lat_var_name"
+  !>       \param[in] "character(*) :: level_name"
 
   !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: level" 
+  !>       \param[inout] "type(Grid) :: level"
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -55,6 +56,11 @@ CONTAINS
   !>       \date Nov 2013
 
   ! Modifications:
+  ! Stephan Thober, Sep 2015 - added latitude and longitude for level 0
+  ! Stephan Thober, Oct 2015 - added L1_rect_latitude and L1_rect_longitude
+  ! David Schaefer, May 2016 - removed ncread dependency
+  ! Robert Schweppe, Mar 2018 - major rewrite
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_latlon(ii, lon_var_name, lat_var_name, level_name, level)
 
@@ -65,7 +71,8 @@ CONTAINS
 
     implicit none
 
-    ! basin indexFile name of the basins must be xxx_latlon.nc, wherexxx is the basin id. Variable names in the netcdf filehave to be 'lat' for latitude and 'lon' for longitude.
+    ! basin indexFile name of the basins must be xxx_latlon.nc, wherexxx is the basin id. Variable names in the netcdf
+    ! filehave to be 'lat' for latitude and 'lon' for longitude.
     integer(i4), intent(in) :: ii
 
     character(*), intent(in) :: lon_var_name

@@ -5,7 +5,7 @@
 !>       \details This module contains the subroutines for reading and writing
 !>       routing related variables to file.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Aug 2015
 
@@ -29,6 +29,15 @@ contains
 
   !>       \details write configuration and state variables to a given restart
   !>       directory.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_write_restart
+  !>       modified, Sep 2015, Stephan Thober - added all write restart commands in this subroutine
+  !>       Sep 2015, Stephan Thober - added L11_areaCell L1_ID and L1_L11_Id for routing
+  !>       resolution higher than hydrology resolution
+  !>       Nov 2015, David Schaefer - mo_netcdf
+  !>       May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
+  !>       because multiple outlets could exist
+  !>       Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"                   number of basin
@@ -322,89 +331,74 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         mrm_read_restart_states
+  !    NAME
+  !        mrm_read_restart_states
 
-  !     PURPOSE
-  !>        \brief read routing states
+  !    PURPOSE
+  !>       \brief read routing states
 
-  !>        \details This subroutine reads the routing states from
-  !>        mRM_states_<basin_id>.nc that has to be in the given
-  !>        path directory. This subroutine has to be called directly
-  !>        each time the mHM_eval or mRM_eval is called such that the
-  !>        the states are always the same at the first simulation time
-  !>        step, crucial for optimization.
+  !>       \details This subroutine reads the routing states from
+  !>       mRM_states_<basin_id>.nc that has to be in the given
+  !>       path directory. This subroutine has to be called directly
+  !>       each time the mHM_eval or mRM_eval is called such that the
+  !>       the states are always the same at the first simulation time
+  !>       step, crucial for optimization.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_read_restart_states
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
-  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"    number of basin
+  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Sep 2015
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! David Schaefer Mar 2016 - mo_netcdf
+  ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist 
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !>        \note This subroutine has to be called directly
-  !>        each time the mHM_eval or mRM_eval is called such that the
-  !>        the states are always the same at the first simulation time
-  !>        step, crucial for optimization.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author   Stephan Thober
-  !>        \date     Sep 2015
-  !         Modified  Mar 2016, David Schaefer - mo_netcdf
-  !                   May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
-  !                                              because multiple outlets could exist
-  !
   subroutine mrm_read_restart_states(iBasin, InPath)
+
+    use mo_common_variables, only : nLCoverScene
+    use mo_mrm_constants, only : nRoutingStates
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_Qout, L11_nLinkFracFPimp, L11_qTIN, L11_qTR, &
+                                        L11_xi, level11
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
-    use mo_mrm_constants, only : nRoutingStates
-    use mo_common_variables, only : nLCoverScene
-    use mo_mrm_global_variables, only : &
-            level11, &
-            L11_Qmod, &
-            L11_Qout, &
-            L11_qTIN, &
-            L11_qTR, &
-            L11_K, &
-            L11_xi, &
-            L11_C1, &
-            L11_C2, &
-            L11_nLinkFracFPimp
+
     implicit none
-    ! input variables
+
+    ! number of basin
     integer(i4), intent(in) :: iBasin
+
+    ! Input Path including trailing slash
     character(256), intent(in) :: InPath
-    ! local variables
+
     integer(i4) :: ii
-    integer(i4) :: s11 ! start index at level 11
-    integer(i4) :: e11 ! end index at level 11
-    logical, dimension(:, :), allocatable :: mask11 ! mask at level 11
-    real(dp), dimension(:, :), allocatable :: dummyD2 ! dummy, 2 dimension
-    real(dp), dimension(:, :, :), allocatable :: dummyD3 ! dummy, 3 dimension
+
+    ! start index at level 11
+    integer(i4) :: s11
+
+    ! end index at level 11
+    integer(i4) :: e11
+
+    ! mask at level 11
+    logical, dimension(:, :), allocatable :: mask11
+
+    ! dummy, 2 dimension
+    real(dp), dimension(:, :), allocatable :: dummyD2
+
+    ! dummy, 3 dimension
+    real(dp), dimension(:, :, :), allocatable :: dummyD3
+
     character(256) :: fname
+
     type(NcDataset) :: nc
+
     type(NcVariable) :: var
+
 
     ! set file name
     fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
@@ -475,113 +469,79 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         mrm_read_restart
+  !    NAME
+  !        mrm_read_restart_config
 
-  !     PURPOSE
-  !>        \brief reads Level 11 configuration from a restart directory
+  !    PURPOSE
+  !>       \brief reads Level 11 configuration from a restart directory
 
-  !>        \details read Level 11 configuration variables from a given restart
-  !>        directory and initializes all Level 11 configuration variables,
-  !>        that are initialized in L11_variable_init,
-  !>        contained in module mo_startup.
+  !>       \details read Level 11 configuration variables from a given restart
+  !>       directory and initializes all Level 11 configuration variables,
+  !>       that are initialized in L11_variable_init,
+  !>       contained in module mo_startup.
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_read_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)    :: iBasin"        number of basin
-  !>        \param[in] "character(256) :: InPath"        Input Path including trailing slash
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"    number of basin
+  !>       \param[in] "character(256) :: InPath" Input Path including trailing slash
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Apr 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-  !     RESTRICTIONS 
-  !>        \note Restart Files must have the format, as if
-  !>        it would have been written by subroutine write_restart_files 
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author   Stephan Thober
-  !>        \date     Apr 2013
-
-  !         Modified Apr 2014, Matthias Zink - added inflow gauge
-  !                  Aug 2015, Stephan Thober - adapted for mRM
-  !                  Sep 2015, Stephan Thober - added all read restart commands in this subroutine
-  !                  Sep 2015, Stephan Thober - added L11_areaCell, L1_ID and L1_L11_Id for routing
-  !                                             resolution higher than hydrology resolution
-  !                  Mar 2016, David Schaefer - mo_netcdf
-  !                  Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
+  ! Modifications:
+  ! Matthias Zink  Apr 2014 - added inflow gauge
+  ! Stephan Thober Aug 2015 - adapted for mRM
+  ! Stephan Thober Sep 2015 - added all read restart commands in this subroutine
+  ! Stephan Thober Sep 2015 - added L11_areaCell, L1_ID and L1_L11_Id for routing resolution higher than hydrology resolution
+  ! David Schaefer Mar 2016 - mo_netcdf
+  ! Stephan Thober Nov 2016 - added L11_TSrout, ProcessMatrix
 
   subroutine mrm_read_restart_config(iBasin, InPath)
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-    use mo_kind, only : i4, dp
+
     use mo_append, only : append
-    use mo_netcdf, only : NcDataset, NcVariable
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : processMatrix
-    use mo_mrm_global_variables, only : &
-            basin_mrm, &
-            level11, &
-            L1_L11_Id, &
-            L11_TSrout, &
-            L11_L1_Id, &
-            L11_fDir, &
-            L11_rowOut, &
-            L11_colOut, &
-            L11_fromN, &
-            L11_toN, &
-            L11_rOrder, &
-            L11_label, &
-            L11_sink, &
-            L11_nOutlets, &
-            L11_netPerm, &
-            L11_fRow, &
-            L11_fCol, &
-            L11_tRow, &
-            L11_tCol, &
-            L11_length, &
-            L11_aFloodPlain, &
-            L11_slope
-    use mo_common_variables, only : &
-            level1, &
-            nBasins ! Number of Basins
+    use mo_common_variables, only : level1, nBasins, processMatrix
+    use mo_kind, only : dp, i4
+    use mo_message, only : message
+    use mo_mrm_global_variables, only : L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
+                                        L11_fDir, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
+                                        L11_rOrder, L11_rowOut, L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, &
+                                        L1_L11_Id, basin_mrm, level11
+    use mo_netcdf, only : NcDataset, NcVariable
+    use mo_string_utils, only : num2str
 
     implicit none
 
+    ! number of basin
     integer(i4), intent(in) :: iBasin
-    character(256), intent(in) :: InPath ! list of Output paths per Basin
 
-    ! local variables
+    ! Input Path including trailing slash
+    character(256), intent(in) :: InPath
+
     character(256) :: fname
 
-    ! local variables
-    logical, allocatable :: mask1(:, :)  ! Mask at Level 1
-    logical, allocatable :: mask11(:, :) ! Mask at Level 11
+    ! Mask at Level 1
+    logical, allocatable, dimension(:, :) :: mask1
 
-    ! DUMMY variables
-    integer(i4), allocatable :: dummyI1(:)     ! dummy, 1 dimension I4
-    integer(i4), allocatable :: dummyI2(:, :)  ! dummy, 2 dimension I4
-    real(dp), allocatable :: dummyD1(:)     ! dummy, 1 dimension DP
+    ! Mask at Level 11
+    logical, allocatable, dimension(:, :) :: mask11
+
+    ! dummy, 1 dimension I4
+    integer(i4), allocatable, dimension(:) :: dummyI1
+
+    ! dummy, 2 dimension I4
+    integer(i4), allocatable, dimension(:, :) :: dummyI2
+
+    ! dummy, 1 dimension DP
+    real(dp), allocatable, dimension(:) :: dummyD1
+
     type(NcDataset) :: nc
+
     type(NcVariable) :: var
+
 
     ! set file name
     fname = trim(InPath) // 'mRM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'

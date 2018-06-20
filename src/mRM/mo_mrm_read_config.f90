@@ -5,7 +5,7 @@
 !>       \details This module contains all mRM subroutines related to
 !>       reading the mRM configuration either from file or copy from mHM.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Aug 2015
 
@@ -31,12 +31,24 @@ contains
   !>       \details Depending on the variable mrm_coupling_config, the
   !>       mRM config is either read from mrm.nml and parameters from
   !>       mrm_parameter.nml or copied from mHM.
+  !>       ADDITIONAL INFORMATION
+  !>       read_mrm_config
+
+
+
+
+
+
+
+
+
+
 
   !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
-  !>       \param[in] "integer :: unamelist, unamelist_param"              
-  !>       \param[in] "character(*) :: file_namelist, file_namelist_param" 
-  !>       \param[in] "integer :: unamelist, unamelist_param"              
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+  !>       \param[in] "integer :: unamelist, unamelist_param"
+  !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
+  !>       \param[in] "integer :: unamelist, unamelist_param"
   !>       \param[in] "logical :: do_message"                              - flag for writing mHM standard messages
 
   !    INTENT(OUT)
@@ -363,34 +375,65 @@ contains
   ! ---------------------------------------------------------------------------
   ! SUBROUTINE READ_MRM_ROUTING_PARAMS
   ! ---------------------------------------------------------------------------
+  !    NAME
+  !        read_mrm_routing_params
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: processCase"          it is the default case, should be one
+  !>       \param[in] "character(*) :: file_namelist_param" file name containing parameter namelist
+  !>       \param[in] "integer(i4) :: unamelist_param"      file name id containing parameter namelist
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine read_mrm_routing_params(processCase, file_namelist_param, unamelist_param)
-    use mo_nml, only : open_nml, position_nml, close_nml
-    use mo_message, only : message
-    use mo_common_constants, only : nColPars ! number of properties of the global variables
-    use mo_common_variables, only : &
-            processMatrix, &
-            global_parameters, & ! global parameters
-            global_parameters_name ! clear names of global parameters
+
+    use mo_common_constants, only : nColPars
     use mo_common_functions, only : in_bound
+    use mo_common_variables, only : global_parameters, global_parameters_name, processMatrix
+    use mo_message, only : message
+    use mo_nml, only : close_nml, open_nml, position_nml
 #ifndef MRM2MHM
     use mo_append, only : append
 #endif
 
     implicit none
-    ! input variables
-    integer(i4), intent(in) :: processCase ! it is the default case, should be one
-    character(*), intent(in) :: file_namelist_param ! file name containing parameter namelist
-    integer(i4), intent(in) :: unamelist_param ! file name id containing parameter namelist
-    ! local variables
+
+    ! it is the default case, should be one
+    integer(i4), intent(in) :: processCase
+
+    ! file name containing parameter namelist
+    character(*), intent(in) :: file_namelist_param
+
+    ! file name id containing parameter namelist
+    integer(i4), intent(in) :: unamelist_param
+
 #ifdef MRM2MHM
-    integer(i4) :: start_index ! equals sum of previous parameters
+    ! equals sum of previous parameters
+    integer(i4) :: start_index
+
 #endif
     real(dp), dimension(nColPars) :: muskingumTravelTime_constant
+
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverLength
+
     real(dp), dimension(nColPars) :: muskingumTravelTime_riverSlope
+
     real(dp), dimension(nColPars) :: muskingumTravelTime_impervious
+
     real(dp), dimension(nColPars) :: muskingumAttenuation_riverSlope
+
     real(dp), dimension(nColPars) :: streamflow_celerity
+
 
     namelist /routing1/ muskingumTravelTime_constant, muskingumTravelTime_riverLength, &
             muskingumTravelTime_riverSlope, muskingumTravelTime_impervious, muskingumAttenuation_riverSlope

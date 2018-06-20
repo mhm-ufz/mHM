@@ -6,7 +6,7 @@
 !>       the number soil water content in the ground, air, vegetation and/or snow.
 !>       This module forward-models neutron abundance as a state variable for each cell.
 
-!>       \authors s Martin Schroen
+!>       \authors Martin Schroen
 
 !>       \date Mar 2015
 !>       THIS MODULE IS WORK IN PROGRESS, DO NOT USE FOR RESEARCH.
@@ -46,6 +46,30 @@ CONTAINS
   !>       derived by a semi-empirical, semi-physical relation.
   !>       The result depends on N0, the neutron counts for 0% soil mositure.
   !>       This variable is site-specific and is a global parameter in mHM.
+  !>       ADDITIONAL INFORMATION
+  !>       DesiletsN0
+
+  !>       N0 formula based on Desilets et al. 2010
+
+  !>       call DesiletsN0( Moisture(cells,layers), Depths(layers), &
+  !>       N0-parameter, output(cells) )
+
+
+
+
+
+
+
+
+  !>       Horizons(1) must not be zero.
+
+  !>       N0=1500cph, SoilMoisture(1,1)=700mm, Horizons(1)=200mm
+  !>       1500*(0.372+0.0808/ (70mm/200mm + 0.115))
+  !>       DesiletsN0 = 819cph
+
+  !>       Desilets, D., M. Zreda, and T. P. A. Ferre (2010),
+  !>       Nature's neutron probe: Land surface hydrology at an elusive scale
+  !>       with cosmic rays, WRR, 46, W11505, doi:10.1029/2009WR008726.
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: SoilMoisture" Soil Moisture
@@ -87,95 +111,113 @@ CONTAINS
   end subroutine DesiletsN0
 
   ! -----------------------------------------------------------------------------------
-  !     NAME
-  !         COSMIC
-  !
-  !     PURPOSE
-  !>        \brief Calculate neutrons from soil moisture in all layers.
-  !>        \details Neutron counts above the ground (one value per cell in mHM)
-  !>        can be derived by a simplified physical neutron transport simulation.
-  !>        Fast cosmic-Ray neutrons are generated in the soil and attenuated
-  !>        differently in water and soil. The remaining neutrons that reached 
-  !>        the surface relate to the profile of soil water content below.
-  !>        Variables like N, alpha and L3 are site-specific and need to be calibrated.
-  !         ------------------------------------------------------------------
-  !         COSMIC model based on Shuttleworth et al. 2013                    
-  !         ------------------------------------------------------------------
-  !
-  !     CALLING SEQUENCE
-  !         call COSMIC( Moisture(cells,layers), Depths(layers), &
-  !                          COSMIC-parameterset, neutron_integral_AFast, output(cells) )
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
-  !>        \param[in] "real(dp), dimension(:)   :: neutron_integral_AFast" Tabular for Int Approx
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp), dimension(size(SoilMoisture,1)) :: neutrons" Neutron counts
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         Horizons(:) must not be zero.
-  !
-  !     EXAMPLE
-  !         see supplementaries in literature
-  !
-  !     LITERATURE
-  !         J. Shuttleworth, R. Rosolem, M. Zreda, and T. Franz,
-  !         The COsmic-ray Soil Moisture Interaction Code (COSMIC) for use in data assimilation,
-  !         HESS, 17, 3205-3217, 2013, doi:10.5194/hess-17-3205-2013
-  !         Support and Code: http://cosmos.hwr.arizona.edu/Software/cosmic.html
-  !
-  !     HISTORY
-  !>        \author Martin Schroen, originally written by Rafael Rosolem
-  !>        \date Mar 2015
+  !    NAME
+  !        COSMIC
+
+  !    PURPOSE
+  !>       \brief Calculate neutrons from soil moisture in all layers.
+
+  !>       \details Neutron counts above the ground (one value per cell in mHM)
+  !>       can be derived by a simplified physical neutron transport simulation.
+  !>       Fast cosmic-Ray neutrons are generated in the soil and attenuated
+  !>       differently in water and soil. The remaining neutrons that reached
+  !>       the surface relate to the profile of soil water content below.
+  !>       Variables like N, alpha and L3 are site-specific and need to be calibrated.
+  !>       ADDITIONAL INFORMATION
+
+  !>       COSMIC model based on Shuttleworth et al. 2013
+
+  !>       call COSMIC( Moisture(cells,layers), Depths(layers), &
+  !>       COSMIC-parameterset, neutron_integral_AFast, output(cells) )
+
+
+
+
+
+
+
+
+  !>       Horizons(:) must not be zero.
+
+  !>       see supplementaries in literature
+
+  !>       J. Shuttleworth, R. Rosolem, M. Zreda, and T. Franz,
+  !>       The COsmic-ray Soil Moisture Interaction Code (COSMIC) for use in data assimilation,
+  !>       HESS, 17, 3205-3217, 2013, doi:10.5194/hess-17-3205-2013
+  !>       Support and Code: http://cosmos.hwr.arizona.edu/Software/cosmic.html
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: SoilMoisture"           Soil Moisture
+  !>       \param[in] "real(dp), dimension(:) :: Horizons"               Horizon depths
+  !>       \param[in] "real(dp), dimension(:) :: params"                 ! N0, N1, N2, alpha0, alpha1, L30, L31
+  !>       \param[in] "real(dp), dimension(:) :: neutron_integral_AFast" Tabular for Int Approx
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp) :: neutrons" Neutron counts
+
+  !    HISTORY
+  !>       \authors Martin Schroen, originally written by Rafael Rosolem
+
+  !>       \date Mar 2015
+
+  ! Modifications:
 
   subroutine COSMIC(SoilMoisture, Horizons, params, neutron_integral_AFast, neutrons)
 
-    use mo_mhm_constants, only : H2Odens, &
-            COSMIC_bd, COSMIC_vwclat, COSMIC_N, COSMIC_alpha, &
-            COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4
     use mo_constants, only : PI_dp
+    use mo_mhm_constants, only : COSMIC_L1, COSMIC_L2, COSMIC_L3, COSMIC_L4, COSMIC_N, COSMIC_alpha, COSMIC_bd, COSMIC_vwclat, &
+                                 H2Odens
+
     implicit none
 
+    ! Soil Moisture
     real(dp), dimension(:), intent(in) :: SoilMoisture
+
+    ! Horizon depths
     real(dp), dimension(:), intent(in) :: Horizons
-    real(dp), dimension(:), intent(in) :: params ! 1: N0, 2: N1, 3: N2, 4: alpha0, 5: alpha1, 6: L30, 7. L31
+
+    ! ! N0, N1, N2, alpha0, alpha1, L30, L31
+    real(dp), dimension(:), intent(in) :: params
+
+    ! Tabular for Int Approx
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
+
+    ! Neutron counts
     real(dp), intent(inout) :: neutrons
 
-    ! local variables
     real(dp) :: lambdaHigh
+
     real(dp) :: lambdaFast
+
     real(dp) :: totflux
 
-    real(dp), dimension(size(Horizons)) :: zthick      ! Soil layer thickness (cm)
-    real(dp), dimension(:), allocatable :: isoimass    ! Integrated dry soil mass above layer (g)
-    real(dp), dimension(:), allocatable :: iwatmass    ! Integrated water mass above layer (g)
-    real(dp), dimension(:), allocatable :: hiflux      ! High energy neutron flux
-    real(dp), dimension(:), allocatable :: xeff        ! Fast neutron source strength of layer
-    real(dp), dimension(:), allocatable :: h2oeffdens  ! "Effective" density of water in layer (g/cm3)
-    real(dp), dimension(:), allocatable :: fastflux    ! Contribution to above-ground neutron flux
+    ! Soil layer thickness (cm)
+    real(dp), dimension(size(Horizons)) :: zthick
 
-    !
-    integer(i4) :: layers = 1                 ! Total number of soil layers
+    ! Integrated dry soil mass above layer (g)
+    real(dp), dimension(:), allocatable :: isoimass
+
+    ! Integrated water mass above layer (g)
+    real(dp), dimension(:), allocatable :: iwatmass
+
+    ! High energy neutron flux
+    real(dp), dimension(:), allocatable :: hiflux
+
+    ! Fast neutron source strength of layer
+    real(dp), dimension(:), allocatable :: xeff
+
+    ! "Effective" density of water in layer (g/cm3)
+    real(dp), dimension(:), allocatable :: h2oeffdens
+
+    ! Contribution to above-ground neutron flux
+    real(dp), dimension(:), allocatable :: fastflux
+
+    ! Total number of soil layers
+    integer(i4) :: layers = 1
+
     integer(i4) :: ll = 1
+
+
     !
     layers = size(SoilMoisture) ! 2
 
@@ -243,23 +285,49 @@ CONTAINS
 
   end subroutine COSMIC
 
+  !    NAME
+  !        oldIntegration
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: c"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine oldIntegration(res, c)
+
     use mo_constants, only : PI_dp
+
     implicit none
+
     real(dp) :: res
+
     real(dp), intent(in) :: c
 
-    ! local variables
     real(dp) :: zdeg
+
     real(dp) :: zrad
+
     real(dp) :: costheta
+
     real(dp) :: dtheta
 
-    integer(i4) :: angle ! loop indices for an integration interval
+    ! loop indices for an integration interval
+    integer(i4) :: angle
+
+
     ! Angle distribution parameters (HARDWIRED)
     ! rr: Using 0.5 deg angle intervals appears to be sufficient
     ! rr: (smaller angles increase the computing time for COSMIC)
-
     dtheta = 0.5_dp * (PI_dp / 180.0_dp)
 
     ! This second loop needs to be done for the distribution of angles for fast neutron release
@@ -278,78 +346,71 @@ CONTAINS
   end subroutine
 
   ! -----------------------------------------------------------------------------------
-  !     NAME
-  !         TabularIntegralAFast
-  !
-  !     PURPOSE
-  !>        \brief Save approximation data for A_fast
-  !>        \details The COSMIC subroutine needs A_fast to be calculated.
-  !>            A_fast=int_{0}^{pi/2} exp(-Lambda_fast(z)/cos(phi) dphi)
-  !>            This subroutine stores data for intsize values for
-  !>            c=Lambda_fast(z) between 0 and maxC, and will be written
-  !>            into the global array variable neutron_integral_AFast.
-  !>            The calculation of the values is done with a very precise
-  !>            recursive approximation subroutine. That recursive subroutine
-  !>            should not be used inside the time, cells and layer loops, because
-  !>            it is slow.
-  !>            Inside the loops in the module COSMIC the tabular is used to
-  !>            estimate A_fast, if 0<c<maxC, otherwise the recursive
-  !>            approximation is used.
-  !         ------------------------------------------------------------------
-  !         TabularIntegralAFast: a tabular for calculations with splines                
-  !         ------------------------------------------------------------------
-  !
-  !     CALLING SEQUENCE
-  !         call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:,:) :: SoilMoisture" Soil Moisture
-  !>        \param[in] "real(dp), dimension(:)   :: Horizons" Horizon depths
-  !>        \param[in] "real(dp), dimension(:)   :: params" ! N0, N1, N2, alpha0, alpha1, L30, L31
-  !>        \param[in] "integer(i4)              :: intsize" ! number of values for the approximation
-  !>        \param[in] "real(dp)                 :: maxC" ! maximum value for A_fast
-  !
-  !     INTENT(INOUT)
-  !>        \param[out] "real(dp), dimension(intsize) :: neutron_integral_AFast" approximation values
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         intsize and maxC must be positive
-  !
-  !     EXAMPLE
-  !         intsize=8000, maxC=20.0_dp
-  !
-  !     LITERATURE
-  !         see splines for example
-  !
-  !     HISTORY
-  !>        \author Maren Kaluza
-  !>        \date Nov 2017
+  !    NAME
+  !        TabularIntegralAFast
+
+  !    PURPOSE
+  !>       \brief Save approximation data for A_fast
+
+  !>       \details The COSMIC subroutine needs A_fast to be calculated.
+  !>       A_fast=int_{0}^{pi/2} exp(-Lambda_fast(z)/cos(phi) dphi)
+  !>       This subroutine stores data for intsize values for
+  !>       c=Lambda_fast(z) between 0 and maxC, and will be written
+  !>       into the global array variable neutron_integral_AFast.
+  !>       The calculation of the values is done with a very precise
+  !>       recursive approximation subroutine. That recursive subroutine
+  !>       should not be used inside the time, cells and layer loops, because
+  !>       it is slow.
+  !>       Inside the loops in the module COSMIC the tabular is used to
+  !>       estimate A_fast, if 0<c<maxC, otherwise the recursive
+  !>       approximation is used.
+  !>       ADDITIONAL INFORMATION
+  !>       TabularIntegralAFast
+
+  !>       TabularIntegralAFast: a tabular for calculations with splines
+
+  !>       call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
+
+
+
+
+
+
+
+
+  !>       intsize and maxC must be positive
+
+  !>       intsize=8000, maxC=20.0_dp
+
+  !>       see splines for example
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: maxC" ! maximum value for A_fast
+
+  !    HISTORY
+  !>       \authors Maren Kaluza
+
+  !>       \date Nov 2017
+
+  ! Modifications:
 
   subroutine TabularIntegralAFast(integral, maxC)
+
     use mo_constants, only : PI_dp
+
     implicit none
+
     real(dp), dimension(:) :: integral
+
+    ! ! maximum value for A_fast
     real(dp), intent(in) :: maxC
 
-    !local variables
     integer(i4) :: i
+
     real(dp) :: c
+
     integer(i4) :: intsize
+
 
     intsize = size(integral) - 2
 
@@ -374,23 +435,61 @@ CONTAINS
   ! in a less flat region.
   !
   !For the specific given integral it is very precise with steps=1024
+  !    NAME
+  !        approx_mon_int
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: c"
+  !>       \param[in] "real(dp) :: xmin"
+  !>       \param[in] "real(dp) :: xmax"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: eps"
+  !>       \param[in] "integer(i4), optional :: steps"
+  !>       \param[in] "real(dp), optional :: fxmin"
+  !>       \param[in] "real(dp), optional :: fxmax"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine approx_mon_int(res, f, c, xmin, xmax, eps, steps, fxmin, fxmax)
     implicit none
-    real(dp) :: res
-    real(dp), external :: f
-    real(dp), intent(in) :: c
-    real(dp), intent(in) :: xmax
-    real(dp), intent(in) :: xmin
-    real(dp), optional :: eps
-    integer(i4), optional :: steps
-    real(dp), optional :: fxmin
-    real(dp), optional :: fxmax
 
-    !locale variables
+    real(dp) :: res
+
+    real(dp), external :: f
+
+    real(dp), intent(in) :: c
+
+    real(dp), intent(in) :: xmax
+
+    real(dp), intent(in) :: xmin
+
+    real(dp), intent(in), optional :: eps
+
+    integer(i4), intent(in), optional :: steps
+
+    real(dp), intent(in), optional :: fxmin
+
+    real(dp), intent(in), optional :: fxmax
+
     real(dp) :: epstemp
+
     integer(i4) :: stepstemp
+
     real(dp) :: fxmintemp
+
     real(dp) :: fxmaxtemp
+
 
     ! init
     if (.not. present(eps)) then
@@ -427,22 +526,57 @@ CONTAINS
 
   end subroutine
 
+  !    NAME
+  !        approx_mon_int_steps
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: c"
+  !>       \param[in] "real(dp) :: xmin"
+  !>       \param[in] "real(dp) :: xmax"
+  !>       \param[in] "real(dp) :: eps"
+  !>       \param[in] "integer(i4) :: steps"
+  !>       \param[in] "real(dp) :: fxmin"
+  !>       \param[in] "real(dp) :: fxmax"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   recursive subroutine approx_mon_int_steps(res, f, c, xmin, xmax, eps, steps, fxmin, fxmax)
     implicit none
+
     real(dp) :: res
+
     real(dp), external :: f
+
     real(dp), intent(in) :: c
+
     real(dp), intent(in) :: xmax
+
     real(dp), intent(in) :: xmin
+
     real(dp), intent(in) :: eps
+
     integer(i4), intent(in) :: steps
+
     real(dp), intent(in) :: fxmin
+
     real(dp), intent(in) :: fxmax
 
-    !locale variables
     real(dp) :: xm
+
     real(dp) :: fxm
+
     real(dp) :: err
+
 
     xm = (xmax + xmin) / 2.0_dp
     fxm = f(c, xm)
@@ -462,21 +596,54 @@ CONTAINS
     endif
   end subroutine
 
+  !    NAME
+  !        approx_mon_int_eps
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: c"
+  !>       \param[in] "real(dp) :: xmin"
+  !>       \param[in] "real(dp) :: xmax"
+  !>       \param[in] "real(dp) :: eps"
+  !>       \param[in] "real(dp) :: fxmin"
+  !>       \param[in] "real(dp) :: fxmax"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   recursive subroutine approx_mon_int_eps(res, f, c, xmin, xmax, eps, fxmin, fxmax)
     implicit none
+
     real(dp) :: res
+
     real(dp), external :: f
+
     real(dp), intent(in) :: c
+
     real(dp), intent(in) :: xmax
+
     real(dp), intent(in) :: xmin
+
     real(dp), intent(in) :: eps
+
     real(dp), intent(in) :: fxmin
+
     real(dp), intent(in) :: fxmax
 
-    !locale variables
     real(dp) :: xm
+
     real(dp) :: fxm
+
     real(dp) :: err
+
 
     xm = (xmax + xmin) / 2.0_dp
     fxm = f(c, xm)
@@ -498,18 +665,45 @@ CONTAINS
 
   ! if c>1.0, the function can be fitted very nice with gnuplot
   ! pi/2*exp(a*x**b)
+  !    NAME
+  !        lookUpIntegral
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: integral"
+  !>       \param[in] "real(dp) :: c"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine lookUpIntegral(res, integral, c)
+
     use mo_constants, only : PI_dp
+
     implicit none
+
     real(dp) :: res
+
     real(dp), dimension(:), intent(in) :: integral
+
     real(dp), intent(in) :: c
 
-    !local variables
     integer(i4) :: place
+
     real(dp) :: mu
+
     integer(i4) :: intsize
+
     real(dp) :: maxC
+
 
     intsize = size(integral) - 2
     maxC = integral(intsize + 2)
@@ -526,11 +720,35 @@ CONTAINS
     end if
   end subroutine
 
+  !    NAME
+  !        intgrandFast
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: c"
+  !>       \param[in] "real(dp) :: phi"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   function intgrandFast(c, phi)
     implicit none
+
     real(dp) :: intgrandFast
+
     real(dp), intent(in) :: c
+
     real(dp), intent(in) :: phi
+
+
     intgrandFast = exp(-c / cos(phi))
     return
   end function

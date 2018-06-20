@@ -4,7 +4,7 @@
 
 !>       \details NetCDF is first initialized and later on variables are put to the NetCDF.
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Apr 2013
 
@@ -76,14 +76,31 @@ contains
   !>       \brief Initialize OutputVariable
 
   !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       newOutputVariable
+
+
+  !>       var = OutputVariable(nc, ncells, mask, avg)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
 
   !    INTENT(IN)
   !>       \param[in] "type(NcDataset) :: nc"               -> NcDataset which contains the variable
-  !>       \param[in] "character(*) :: name"                
-  !>       \param[in] "character(*) :: dtype"               
-  !>       \param[in] "character(16), dimension(3) :: dims" 
+  !>       \param[in] "character(*) :: name"
+  !>       \param[in] "character(*) :: dtype"
+  !>       \param[in] "character(16), dimension(3) :: dims"
   !>       \param[in] "integer(i4) :: ncells"               -> number of cells in basin
-  !>       \param[in] "logical, dimension(:, :) :: mask"    
+  !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "logical, optional :: avg" -> average the data before writing
@@ -127,57 +144,52 @@ contains
   end function newOutputVariable
 
   !------------------------------------------------------------------
-  !     NAME
-  !         updateVariable
-  !
-  !     PURPOSE
-  !>        \brief Update OutputVariable
-  !>        \details Add the array given as actual argument
-  !>                 to the derived type's component 'data'
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputVariable):
-  !         call var%updateVariable(data)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "type(NcDataset)   :: nc"        -> NcDataset which contains the variable
-  !>        \param[in] "integer(i4)       :: ncells"    -> number of cells in basin
-  !>        \param[in] "logical, target   :: mask(:,:)" -> mask to reconstruct data
-  !>        \param[in] "logical, optional :: avg"       -> average the data before writing
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputVariable)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        updateVariable
+
+  !    PURPOSE
+  !>       \brief Update OutputVariable
+
+  !>       \details Add the array given as actual argument
+  !>       to the derived type's component 'data'
+  !>       ADDITIONAL INFORMATION
+  !>       updateVariable
+
+
+  !>       -> with nc of type(OutputVariable):
+  !>       call var%updateVariable(data)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputVariable) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data"
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine updateVariable(self, data)
+    implicit none
+
     class(OutputVariable), intent(inout) :: self
-    real(dp), intent(in) :: data(:)
+
+    real(dp), intent(in), dimension(:) :: data
+
 
     self%data = self%data + data
     self%counter = self%counter + 1
@@ -185,57 +197,52 @@ contains
   end subroutine updateVariable
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeVariableTimestep
-  !
-  !     PURPOSE
-  !>        \brief Write timestep to file
-  !>        \details Write the content of the derived types's component
-  !>                 'data' to file, average if necessary
-  !
-  !     CALLING SEQUENCE
-  !         -> with var of type(OutputVariable):
-  !         call var%updateVariable(data)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: timestep"
-  !>            -> index along the time dimension of the netcdf variable
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schafer
-  !>        \date June 2015
-  !         Modified:
-  !             David Schaefer, Sep. 2015 - bugfix
+  !    NAME
+  !        writeVariableTimestep
+
+  !    PURPOSE
+  !>       \brief Write timestep to file
+
+  !>       \details Write the content of the derived types's component
+  !>       'data' to file, average if necessary
+  !>       ADDITIONAL INFORMATION
+  !>       writeVariableTimestep
+
+
+  !>       -> with var of type(OutputVariable):
+  !>       call var%updateVariable(data)
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputVariable) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: timestep" -> index along the time dimension of the netcdf variable
+
+  !    HISTORY
+  !>       \authors David Schafer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeVariableTimestep(self, timestep)
+    implicit none
+
     class(OutputVariable), intent(inout) :: self
+
+    ! -> index along the time dimension of the netcdf variable
     integer(i4), intent(in) :: timestep
+
 
     if (self%avg) then
       self%data = self%data / real(self%counter, dp)
@@ -248,74 +255,71 @@ contains
   end subroutine writeVariableTimestep
 
   !------------------------------------------------------------------
-  !     NAME
-  !         newOutputDataset
-  !
-  !     PURPOSE
-  !>        \brief Initialize OutputDataset
-  !>        \details Create and initialize the output file. If new a new output
-  !>                 variable needs to be written, this is the first of two
-  !>                 procedures to change (second: updateDataset)
-  !
-  !     CALLING SEQUENCE
-  !         nc = OutputDataset(ibasin, mask1)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: ibasin" -> basin id
-  !>        \param[in] "logical     :: mask1"  -> L1 mask to reconstruct the data
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputDataset)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
-  !                                               during writing of the netcdf file
-  !             Matthias Zink       , Feb. 2014 - added aditional output: pet
-  !             V. Prykhodk, J. Mai , Nov. 2014 - adding new variable infilSoil - case 16
-  !             David Schaefer      , Jun. 2015 - major rewrite
-  !             David Schaefer      , Nov. 2016 - moved NcVariable initialization to newOutputVariable
+  !    NAME
+  !        newOutputDataset
+
+  !    PURPOSE
+  !>       \brief Initialize OutputDataset
+
+  !>       \details Create and initialize the output file. If new a new output
+  !>       variable needs to be written, this is the first of two
+  !>       procedures to change (second: updateDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       newOutputDataset
+
+
+  !>       nc = OutputDataset(ibasin, mask1)
+
+
+
+
+
+
+
+  !>       \return type(OutputDataset)
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ibasin"             -> basin id
+  !>       \param[in] "logical, dimension(:, :) :: mask1" -> L1 mask to reconstruct the data
+  !>       \param[in] "integer(i4) :: nCells"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+
   function newOutputDataset(ibasin, mask1, nCells) result(out)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
 
+    implicit none
+
+    ! -> basin id
     integer(i4), intent(in) :: ibasin
-    logical, target, intent(in) :: mask1(:, :)
+
+    ! -> L1 mask to reconstruct the data
+    logical, target, intent(in), dimension(:, :) :: mask1
+
     integer(i4), intent(in) :: nCells
+
     type(OutputDataset) :: out
-    ! local
+
     integer(i4) :: ii, nn
+
     character(3) :: dtype
-    character(16) :: dims1(3), unit
+
+    character(16), dimension(3), unit :: dims1
+
     type(NcDataset) :: nc
-    type(OutputVariable) :: tmpvars(size(outputFlxState) * nSoilHorizons_mHM)
+
+    type(OutputVariable), dimension(size(outputFlxState) * nSoilHorizons_mHM) :: tmpvars
+
 
     dtype = "f64"
     unit = fluxesUnit(ibasin)
@@ -501,138 +505,147 @@ contains
   end function newOutputDataset
 
   !------------------------------------------------------------------
-  !     NAME
-  !         updateDataset
-  !
-  !     PURPOSE
-  !>        \brief Update all variables.
-  !>        \details Call the type bound procedure updateVariable for
-  !>                 all output variables. If a new output
-  !>                 variable needs to be written, this is the second
-  !>                 of two procedures to change (first: newOutputDataset)
-  !
-  !     CALLING SEQUENCE
-  !        with nc of type(OutputDataset):
-  !        call nc%updateDataset(&
-  !             self         , sidx         , eidx,           ,    &
-  !             L1_fSealed   , L1_fNotSealed, L1_inter        ,    &
-  !             L1_snowPack  , L1_soilMoist , L1_soilMoistSat ,    &
-  !             L1_sealSTW   , L1_unsatSTW  , L1_satSTW       ,    &
-  !             L1_neutrons  , L1_pet       , L1_aETSoil      ,    &
-  !             L1_aETCanopy , L1_aETSealed , L1_total_runoff ,    &
-  !             L1_runoffSeal, L1_fastRunoff, L1_slowRunoff   ,    &
-  !             L1_baseflow  , L1_percol    , L1_infilSoil    ,    &
-  !             L1_preEffect                )
-  !
-  !
-  !     INTENT(IN)
-  !>             \param[in] "sidx"        -> start index of the basin related data in L1_* arguments
-  !>             \param[in] "eidx"        -> end index of the basin related data in L1_* arguments
-  !>             \param[in] "L1_fSealed"
-  !>             \param[in] "L1_fNotSealed"
-  !>             \param[in] "L1_inter"
-  !>             \param[in] "L1_snowPack"
-  !>             \param[in] "L1_soilMoist"
-  !>             \param[in] "L1_soilMoistSat"
-  !>             \param[in] "L1_sealSTW"
-  !>             \param[in] "L1_unsatSTW"
-  !>             \param[in] "L1_satSTW"
-  !>             \param[in] "L1_neutrons"
-  !>             \param[in] "L1_pet"
-  !>             \param[in] "L1_aETSoil"
-  !>             \param[in] "L1_aETCanopy"
-  !>             \param[in] "L1_aETSealed"
-  !>             \param[in] "L1_total_runoff"
-  !>             \param[in] "L1_runoffSeal"
-  !>             \param[in] "L1_fastRunoff"
-  !>             \param[in] "L1_slowRunoff"
-  !>             \param[in] "L1_baseflow"
-  !>             \param[in] "L1_percol"
-  !>             \param[in] "L1_infilSoil"
-  !>             \param[in] "L1_preEffect"
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             R. Kumar & S. Thober, Aug. 2013 - code change to incorporate output timestep
-  !                                               during writing of the netcdf file
-  !             L. Samaniego et al.,  Dec  2013 - nullify pointer
-  !             Matthias Zink,        Feb. 2014 - added aditional output: pet
-  !             V. Prykhodk, J. Mai,  Nov. 2014 - adding new variable infilSoil - case 16
-  !             David Schaefer      , Jun. 2015 - major rewrite
-  subroutine updateDataset(&
-          self, sidx, eidx, &
-          L1_fSealed, L1_fNotSealed, L1_inter, &
-          L1_snowPack, L1_soilMoist, L1_soilMoistSat, &
-          L1_sealSTW, L1_unsatSTW, L1_satSTW, &
-          L1_neutrons, L1_pet, L1_aETSoil, &
-          L1_aETCanopy, L1_aETSealed, L1_total_runoff, &
-          L1_runoffSeal, L1_fastRunoff, L1_slowRunoff, &
-          L1_baseflow, L1_percol, L1_infilSoil, &
-          L1_preEffect)
+  !    NAME
+  !        updateDataset
+
+  !    PURPOSE
+  !>       \brief Update all variables.
+
+  !>       \details Call the type bound procedure updateVariable for
+  !>       all output variables. If a new output
+  !>       variable needs to be written, this is the second
+  !>       of two procedures to change (first: newOutputDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       updateDataset
+
+
+  !>       with nc of type(OutputDataset):
+  !>       call nc%updateDataset(&
+  !>       self         , sidx         , eidx,           ,    &
+  !>       L1_fSealed   , L1_fNotSealed, L1_inter        ,    &
+  !>       L1_snowPack  , L1_soilMoist , L1_soilMoistSat ,    &
+  !>       L1_sealSTW   , L1_unsatSTW  , L1_satSTW       ,    &
+  !>       L1_neutrons  , L1_pet       , L1_aETSoil      ,    &
+  !>       L1_aETCanopy , L1_aETSealed , L1_total_runoff ,    &
+  !>       L1_runoffSeal, L1_fastRunoff, L1_slowRunoff   ,    &
+  !>       L1_baseflow  , L1_percol    , L1_infilSoil    ,    &
+  !>       L1_preEffect                )
+
+
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputDataset) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: sidx, eidx"
+  !>       \param[in] "integer(i4) :: sidx, eidx"
+  !>       \param[in] "real(dp), dimension(:) :: L1_fSealed"
+  !>       \param[in] "real(dp), dimension(:) :: L1_fNotSealed"
+  !>       \param[in] "real(dp), dimension(:) :: L1_inter"
+  !>       \param[in] "real(dp), dimension(:) :: L1_snowPack"
+  !>       \param[in] "real(dp), dimension(:, :) :: L1_soilMoist"
+  !>       \param[in] "real(dp), dimension(:, :) :: L1_soilMoistSat"
+  !>       \param[in] "real(dp), dimension(:) :: L1_sealSTW"
+  !>       \param[in] "real(dp), dimension(:) :: L1_unsatSTW"
+  !>       \param[in] "real(dp), dimension(:) :: L1_satSTW"
+  !>       \param[in] "real(dp), dimension(:) :: L1_neutrons"
+  !>       \param[in] "real(dp), dimension(:) :: L1_pet"
+  !>       \param[in] "real(dp), dimension(:, :) :: L1_aETSoil"
+  !>       \param[in] "real(dp), dimension(:) :: L1_aETCanopy"
+  !>       \param[in] "real(dp), dimension(:) :: L1_aETSealed"
+  !>       \param[in] "real(dp), dimension(:) :: L1_total_runoff"
+  !>       \param[in] "real(dp), dimension(:) :: L1_runoffSeal"
+  !>       \param[in] "real(dp), dimension(:) :: L1_fastRunoff"
+  !>       \param[in] "real(dp), dimension(:) :: L1_slowRunoff"
+  !>       \param[in] "real(dp), dimension(:) :: L1_baseflow"
+  !>       \param[in] "real(dp), dimension(:) :: L1_percol"
+  !>       \param[in] "real(dp), dimension(:, :) :: L1_infilSoil"
+  !>       \param[in] "real(dp), dimension(:) :: L1_preEffect"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+  ! L. Samaniego et al. Dec  2013 - nullify pointer Matthias Zink,        Feb. 2014 
+  !                              - added aditional output: pet V. Prykhodk, J. Mai,  Nov. 2014 
+  !                              - adding new variable infilSoil 
+  !                              - case 16 David Schaefer      , Jun. 2015 
+  !                              - major rewrite
+
+  subroutine updateDataset(self, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
+                          L1_soilMoistSat, L1_sealSTW, L1_unsatSTW, L1_satSTW, L1_neutrons, L1_pet, L1_aETSoil, &
+                          L1_aETCanopy, L1_aETSealed, L1_total_runoff, L1_runoffSeal, L1_fastRunoff, L1_slowRunoff, &
+                          L1_baseflow, L1_percol, L1_infilSoil, L1_preEffect)
 
     use mo_global_variables, only : outputFlxState
     use mo_mpr_global_variables, only : nSoilHorizons_mHM
 
-    class(OutputDataset), intent(inout), target :: self
-    integer(i4), intent(in) :: sidx, eidx
-    real(dp), intent(in) :: L1_fSealed(:)
-    real(dp), intent(in) :: L1_fNotSealed(:)
-    ! states
-    real(dp), intent(in) :: L1_inter(:)
-    real(dp), intent(in) :: L1_snowPack(:)
-    real(dp), intent(in) :: L1_soilMoist(:, :)
-    real(dp), intent(in) :: L1_soilMoistSat(:, :)
-    real(dp), intent(in) :: L1_sealSTW(:)
-    real(dp), intent(in) :: L1_unsatSTW(:)
-    real(dp), intent(in) :: L1_satSTW(:)
-    real(dp), intent(in) :: L1_neutrons(:)
-    ! fluxes,
-    real(dp), intent(in) :: L1_pet(:)
-    real(dp), intent(in) :: L1_aETSoil(:, :)
-    real(dp), intent(in) :: L1_aETCanopy(:)
-    real(dp), intent(in) :: L1_aETSealed(:)
-    real(dp), intent(in) :: L1_total_runoff(:)
-    real(dp), intent(in) :: L1_runoffSeal(:)
-    real(dp), intent(in) :: L1_fastRunoff(:)
-    real(dp), intent(in) :: L1_slowRunoff(:)
-    real(dp), intent(in) :: L1_baseflow(:)
-    real(dp), intent(in) :: L1_percol(:)
-    real(dp), intent(in) :: L1_infilSoil(:, :)
-    real(dp), intent(in) :: L1_preEffect(:)
+    implicit none
 
-    ! local
-    type(OutputVariable), pointer :: vars(:)
+    class(OutputDataset), intent(inout), target :: self
+
+    integer(i4), intent(in) :: sidx, eidx
+
+    real(dp), intent(in), dimension(:) :: L1_fSealed
+
+    real(dp), intent(in), dimension(:) :: L1_fNotSealed
+
+    real(dp), intent(in), dimension(:) :: L1_inter
+
+    real(dp), intent(in), dimension(:) :: L1_snowPack
+
+    real(dp), intent(in), dimension(:, :) :: L1_soilMoist
+
+    real(dp), intent(in), dimension(:, :) :: L1_soilMoistSat
+
+    real(dp), intent(in), dimension(:) :: L1_sealSTW
+
+    real(dp), intent(in), dimension(:) :: L1_unsatSTW
+
+    real(dp), intent(in), dimension(:) :: L1_satSTW
+
+    real(dp), intent(in), dimension(:) :: L1_neutrons
+
+    real(dp), intent(in), dimension(:) :: L1_pet
+
+    real(dp), intent(in), dimension(:, :) :: L1_aETSoil
+
+    real(dp), intent(in), dimension(:) :: L1_aETCanopy
+
+    real(dp), intent(in), dimension(:) :: L1_aETSealed
+
+    real(dp), intent(in), dimension(:) :: L1_total_runoff
+
+    real(dp), intent(in), dimension(:) :: L1_runoffSeal
+
+    real(dp), intent(in), dimension(:) :: L1_fastRunoff
+
+    real(dp), intent(in), dimension(:) :: L1_slowRunoff
+
+    real(dp), intent(in), dimension(:) :: L1_baseflow
+
+    real(dp), intent(in), dimension(:) :: L1_percol
+
+    real(dp), intent(in), dimension(:, :) :: L1_infilSoil
+
+    real(dp), intent(in), dimension(:) :: L1_preEffect
+
+    type(OutputVariable), pointer, dimension(:) :: vars
+
     integer(i4) :: ii, nn
+
 
     ii = 0
     vars => self%vars
@@ -834,56 +847,57 @@ contains
   end subroutine updateDataset
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeTimestep
-  !
-  !     PURPOSE
-  !>        \brief Write all accumulated data.
-  !>        \details Write all accumulated and potentially averaged
-  !>                 data to disk.
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputDataset)
-  !         call nc%writeTimestep(timestep)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: timestep" The model timestep to write
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(OutputVariable)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        writeTimestep
+
+  !    PURPOSE
+  !>       \brief Write all accumulated data.
+
+  !>       \details Write all accumulated and potentially averaged
+  !>       data to disk.
+  !>       ADDITIONAL INFORMATION
+  !>       writeTimestep
+
+
+  !>       -> with nc of type(OutputDataset)
+  !>       call nc%writeTimestep(timestep)
+
+
+
+
+
+
+
+  !>       \return type(OutputVariable)
+
+
+
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "class(OutputDataset) :: self"
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: timestep" The model timestep to write
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeTimestep(self, timestep)
+    implicit none
+
     class(OutputDataset), intent(inout), target :: self
+
+    ! The model timestep to write
     integer(i4), intent(in) :: timestep
+
     integer(i4) :: ii
+
     type(NcVariable) :: tvar
+
 
     self%counter = self%counter + 1
 
@@ -898,60 +912,49 @@ contains
   end subroutine writeTimestep
 
   !------------------------------------------------------------------
-  !     NAME
-  !         close
-  !
-  !     PURPOSE
-  !>        \brief Close the file
-  !>        \details Close the file associated with variable of
-  !>                 type(OutputDataset)
-  !
-  !     CALLING SEQUENCE
-  !         -> with nc of type(OutputDataset):
-  !         call nc%close()
-  !
-  !     INTENT(IN)
-  !         None
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Rohini Kumar & Stephan Thober
-  !>        \date August 2013
-  !         Modified:
-  !             David Schaefer, June 2015 - adapted to new structure
+  !    NAME
+  !        close
+
+  !    PURPOSE
+  !>       \brief Close the file
+
+  !>       \details Close the file associated with variable of
+  !>       type(OutputDataset)
+  !>       ADDITIONAL INFORMATION
+  !>       close
+
+
+  !>       -> with nc of type(OutputDataset):
+  !>       call nc%close()
+
+
+
+
+
+
+
+
+
+
+
+  !    HISTORY
+  !>       \authors Rohini Kumar & Stephan Thober
+
+  !>       \date August 2013
+
+  ! Modifications:
+
   subroutine close(self)
 
     use mo_String_utils, only : num2str
-    use mo_message, only : message
     use mo_common_variables, only : dirOut
+    use mo_message, only : message
+
+    implicit none
 
     class(OutputDataset) :: self
+
+
     call self%nc%close()
     call message('  OUTPUT: saved netCDF file for basin', trim(num2str(self%ibasin)))
     call message('    to ', trim(dirOut(self%ibasin)))
@@ -959,70 +962,72 @@ contains
   end subroutine close
 
   !------------------------------------------------------------------
-  !     NAME
-  !         createOutputFile
-  !
-  !     PURPOSE
-  !>        \brief Create and initialize output file
-  !>        \details Create output file, write all non-dynamic variables
-  !>                 and global attributes for the given basin.
-  !>
-  !
-  !     CALLING SEQUENCE
-  !         nc = createOutputFile(ibasin)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)     :: ibasin"      -> basin id
-  !>        \param[in] "logical, target :: mask1(:,:)"  -> level1 mask
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return type(NcDataset)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
-  !         modified,
-  !                  Oct 2015, Stephan Thober - added actual version of mHM
+  !    NAME
+  !        createOutputFile
+
+  !    PURPOSE
+  !>       \brief Create and initialize output file
+
+  !>       \details Create output file, write all non-dynamic variables
+  !>       and global attributes for the given basin.
+
+  !>       ADDITIONAL INFORMATION
+  !>       createOutputFile
+
+
+  !>       nc = createOutputFile(ibasin)
+
+
+
+
+
+
+
+  !>       \return type(NcDataset)
+
+
+
+
+  !>       modified,
+  !>       Oct 2015, Stephan Thober - added actual version of mHM
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ibasin" -> basin id
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   function createOutputFile(ibasin) result(nc)
 
-    use mo_common_variables, only : dirOut, level1
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_grid, only : mapCoordinates, geoCoordinates
+    use mo_common_variables, only : dirOut, level1
     use mo_file, only : version
+    use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_julian, only : dec2date
 
+    implicit none
+
+    ! -> basin id
     integer(i4), intent(in) :: ibasin
+
     type(NcDataset) :: nc
-    type(NcDimension) :: dimids1(3)
+
+    type(NcDimension), dimension(3) :: dimids1
+
     type(NcVariable) :: var
+
     integer(i4) :: day, month, year
+
     character(1028) :: fname
+
     character(128) :: unit, date, time, datetime
-    real(dp), allocatable :: northing(:), easting(:), lat(:, :), lon(:, :)
+
+    real(dp), allocatable, dimension(:), easting(:), lat(:, :), lon(:, :) :: northing
+
 
     fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'
     call mapCoordinates(level1(ibasin), northing, easting)
@@ -1088,53 +1093,49 @@ contains
   end function createOutputFile
 
   !------------------------------------------------------------------
-  !     NAME
-  !         writeVariableAttributes
-  !
-  !     PURPOSE
-  !>        \brief Write output variable attributes
-  !
-  !     CALLING SEQUENCE
-  !         call writeVariableAttributes(var, long_name, unit)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "type(OutputVariable) :: var"
-  !>        \param[in] "character(*)         :: long_name"    -> variable name
-  !>        \param[in] "character(*)         :: unit"         -> physical unit
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !        None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        writeVariableAttributes
+
+  !    PURPOSE
+  !>       \brief Write output variable attributes
+
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       writeVariableAttributes
+
+
+  !>       call writeVariableAttributes(var, long_name, unit)
+
+
+
+
+
+
+
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "type(OutputVariable) :: var"
+  !>       \param[in] "character(*) :: long_name, unit" -> variable name
+  !>       \param[in] "character(*) :: long_name, unit" -> physical unit
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   subroutine writeVariableAttributes(var, long_name, unit)
+    implicit none
+
     type(OutputVariable), intent(in) :: var
+
+    ! -> physical unit
     character(*), intent(in) :: long_name, unit
+
 
     call var%nc%setAttribute("long_name", long_name)
     call var%nc%setAttribute("unit", unit)
@@ -1146,58 +1147,54 @@ contains
 
 
   !------------------------------------------------------------------
-  !     NAME
-  !         fluxesUnit
-  !
-  !     PURPOSE
-  !>        \brief Generate a unit string
-  !>        \details Generate the unit string for the output variable
-  !>                 netcdf attribute based on modeling timestep
-  !
-  !     CALLING SEQUENCE
-  !         unit = fluxesUnit(iBasin)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: iBasin"    -> basin id
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         \return character(16)
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date June 2015
+  !    NAME
+  !        fluxesUnit
+
+  !    PURPOSE
+  !>       \brief Generate a unit string
+
+  !>       \details Generate the unit string for the output variable
+  !>       netcdf attribute based on modeling timestep
+  !>       ADDITIONAL INFORMATION
+  !>       fluxesUnit
+
+
+  !>       unit = fluxesUnit(iBasin)
+
+
+
+
+
+
+
+  !>       \return character(16)
+
+
+
+
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: ibasin"
+
+  !    HISTORY
+  !>       \authors David Schaefer
+
+  !>       \date June 2015
+
+  ! Modifications:
+
   function fluxesUnit(ibasin)
 
-    use mo_common_mhm_mrm_variables, only : simPer, timestep, nTstepDay
+    use mo_common_mhm_mrm_variables, only : nTstepDay, simPer, timestep
     use mo_global_variables, only : timeStep_model_outputs
 
+    implicit none
+
     integer(i4), intent(in) :: ibasin
+
     character(16) :: fluxesUnit
+
     real(dp) :: ntsteps
+
 
     if (timestep * timestep_model_outputs .eq. 1) then
       fluxesUnit = 'mm h-1'

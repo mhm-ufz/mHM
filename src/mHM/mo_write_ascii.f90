@@ -5,12 +5,12 @@
 !>       \details Module to write ascii file output.
 !>       Writing model output to ASCII should be the exception. Therefore, output is written usually as NetCDF
 !>       and only:
-!>       (1) The configuration file of mHM, 
-!>       (2) the final parameter set after optimization, and 
-!>       (3) the simulated vs. observed daily discharge 
+!>       (1) The configuration file of mHM,
+!>       (2) the final parameter set after optimization, and
+!>       (3) the simulated vs. observed daily discharge
 !>       is written in ASCII file format to allow for a quick assurance of proper model runs.
 
-!>       \authors s Christoph Schneider, Juliane Mai, Luis Samaniego
+!>       \authors Christoph Schneider, Juliane Mai, Luis Samaniego
 
 !>       \date May 2013
 
@@ -36,19 +36,16 @@ MODULE mo_write_ascii
   PUBLIC :: write_optinamelist                 ! Write final OF and best parameter set in a namelist format
   ! ------------------------------------------------------------------
 
-  PRIVATE
-
-  ! ------------------------------------------------------------------
-
-CONTAINS
-
   !    NAME
   !        write_configfile
 
   !    PURPOSE
   !>       \brief This modules writes the results of the configuration into an ASCII-file
+  !>       \details
 
-  !>       \details 
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+
 
   !    HISTORY
   !>       \authors Christoph Schneider
@@ -61,6 +58,28 @@ CONTAINS
   ! Stephan Thober Jun 2014 - updated read_restart
   ! Rohini, Luis   Jul 2015 - updated version, L1 level prints
   ! Stephan Thober Nov 2016 - moved processMatrix to common variables
+
+
+  PRIVATE
+
+  ! ------------------------------------------------------------------
+
+CONTAINS
+
+  !    NAME
+  !        write_configfile
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
 
   Subroutine write_configfile
 
@@ -384,55 +403,32 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         write_optifile
+  !    NAME
+  !        write_optifile
 
-  !     PURPOSE
-  !>        \brief Write briefly final optimization results.
+  !    PURPOSE
+  !>       \brief Write briefly final optimization results.
 
-  !>        \details Write overall best objective function and the best optimized parameter set to a file_opti.
+  !>       \details Write overall best objective function and the best optimized parameter set to a file_opti.
+  !>       ADDITIONAL INFORMATION
+  !>       write_optifile
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "real(dp) :: best_OF"                             best objective function value as returnedby the
+  !>       optimization routine
+  !>       \param[in] "real(dp), dimension(:) :: best_paramSet"         best associated global parameter setCalled only
+  !>       when optimize is .TRUE.
+  !>       \param[in] "character(len = *), dimension(:) :: param_names"
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp)                   :: best_OF"         best objective function value as returned
-  !>                                                                    by the optimization routine
-  !>        \param[in]  "real(dp), dimension(:)     :: best_paramSet"   best associated global parameter set
+  !    HISTORY
+  !>       \authors David Schaefer
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date July 2013
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        Called only when optimize is .TRUE.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author David Schaefer
-  !>        \date July 2013
-
-  !         Modified, Rohini Kumar, Aug 2013  - change in structure of the code including call statements
-  !                   Juliane Mai,  Oct 2013  - clear parameter names added
-  !                                           - double precision written
+  ! Modifications:
+  ! Rohini Kumar Aug 2013 - change in structure of the code including call statements
+  ! Juliane Mai  Oct 2013 - clear parameter names added 
+  !                       - double precision written
 
   subroutine write_optifile(best_OF, best_paramSet, param_names)
 
@@ -443,13 +439,18 @@ CONTAINS
 
     implicit none
 
+    ! best objective function value as returnedby the optimization routine
     real(dp), intent(in) :: best_OF
+
+    ! best associated global parameter setCalled only when optimize is .TRUE.
     real(dp), dimension(:), intent(in) :: best_paramSet
+
     character(len = *), dimension(:), intent(in) :: param_names
 
-    ! local variables
     character(256) :: fName, formHeader, formParams
+
     integer(i4) :: ii, err, n_params
+
 
     ! number of parameters
     n_params = size(best_paramSet)
@@ -484,81 +485,68 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         write_optinamelist
+  !    NAME
+  !        write_optinamelist
 
-  !     PURPOSE
-  !>        \brief Write final, optimized parameter set in a namelist format.
+  !    PURPOSE
+  !>       \brief Write final, optimized parameter set in a namelist format.
 
-  !>        \details  Write final, optimized parameter set in a namelist format.
-  !>                  Only parameters of processes which were switched on are written to the namelist.
-  !>                  All others are discarded.
+  !>       \details Write final, optimized parameter set in a namelist format.
+  !>       Only parameters of processes which were switched on are written to the namelist.
+  !>       All others are discarded.
+  !>       ADDITIONAL INFORMATION
+  !>       write_optinamelist
 
-  !     CALLING SEQUENCE
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(nProcesses, 3) :: processMatrix"                information about which
+  !>       process
+  !>       case was used
+  !>       \param[in] "real(dp), dimension(:, :) :: parameters"                               (min, max, opti)
+  !>       \param[in] "logical, dimension(size(parameters, 1)) :: maskpara"                   .true. if parameter was
+  !>       calibrated
+  !>       \param[in] "character(len = *), dimension(size(parameters, 1)) :: parameters_name" clear names of parameters
 
-  !     INTENT(IN)
-  !>        \param[in]  "integer(i4)      :: processMatrix(:,:)"   information on wihich process is switched on and off
-  !>        \param[in]  "real(dp)         :: parameters(:,:)"      information about parameter (min, max, opti)
-  !>        \param[in]  "logical          :: maskpara(:)"          infomation which parameter where optimized
-  !>        \param[in]  "character(len=*) :: parameters_name(:)"   clear names of parameters
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2013
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        Called only when optimize is .TRUE.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2013
-
-  !         Modified,
-  !                 Stephan Thober, Nov  2016 - moved nProcesses to common variables
-  !                 Stephan Thober, Nov  2016 - write namelist for routing process 2
+  ! Modifications:
+  ! Stephan Thober Nov  2016 - moved nProcesses to common variables
+  ! Stephan Thober Nov  2016 - write namelist for routing process 2
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 
     use mo_common_mhm_mrm_file, only : file_opti_nml, uopti_nml
-    use mo_common_variables, only : nProcesses, dirConfigOut
+    use mo_common_variables, only : dirConfigOut, nProcesses
     use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
 
-    integer(i4), dimension(nProcesses, 3), intent(in) :: processMatrix     ! information about which process
-    !                                                                                ! case was used
-    real(dp), dimension(:, :), intent(in) :: parameters        ! (min, max, opti)
-    logical, dimension(size(parameters, 1)), intent(in) :: maskpara          ! .true. if parameter was calibrated
-    character(len = *), dimension(size(parameters, 1)), intent(in) :: parameters_name   ! clear names of parameters
+    ! information about which process
+    ! case was used
+    integer(i4), dimension(nProcesses, 3), intent(in) :: processMatrix
 
-    ! local variables
+    ! (min, max, opti)
+    real(dp), dimension(:, :), intent(in) :: parameters
+
+    ! .true. if parameter was calibrated
+    logical, dimension(size(parameters, 1)), intent(in) :: maskpara
+
+    ! clear names of parameters
+    character(len = *), dimension(size(parameters, 1)), intent(in) :: parameters_name
+
     character(256) :: fName
+
     character(3) :: flag
+
     character(len = 28), dimension(nProcesses) :: Process_descr
+
     integer(i4) :: err
+
     integer(i4) :: iProc, iPar, iPar_start
+
 
     Process_descr(1) = 'interception'
     Process_descr(2) = 'snow'

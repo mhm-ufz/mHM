@@ -5,12 +5,13 @@
 !>       \details This module contains all mpr subroutines related to
 !>       reading the mpr configuration from file.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Aug 2015
 
 ! Modifications:
-! Robert Schweppe Dec 2017 - adapted for mpr
+! Robert Schweppe Dec 2017 - adapted for MPR
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 module mo_mpr_read_config
 
@@ -35,10 +36,10 @@ contains
   !>       mrm_parameter.nml or copied from mHM.
 
   !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist"       
-  !>       \param[in] "integer :: unamelist"                
-  !>       \param[in] "character(*) :: file_namelist_param" 
-  !>       \param[in] "integer :: unamelist_param"          
+  !>       \param[in] "character(*) :: file_namelist"
+  !>       \param[in] "integer :: unamelist"
+  !>       \param[in] "character(*) :: file_namelist_param"
+  !>       \param[in] "integer :: unamelist_param"
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -81,7 +82,8 @@ contains
     ! depth of the single horizons
     real(dp), dimension(maxNoSoilHorizons) :: soil_Depth
 
-    ! directory of gridded LAI dataused when timeStep_LAI_input<0
+    ! directory of gridded LAI data
+    ! used when timeStep_LAI_input<0
     character(256), dimension(maxNoBasins) :: dir_gridded_LAI
 
     character(256) :: dummy

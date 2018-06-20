@@ -2,35 +2,36 @@
 
 !>       \brief Objective Functions for Optimization of mHM/mRM against runoff.
 
-!>       \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against runoff.
+!>       \details This module provides a wrapper for several objective functions used to optimize mRM/mHM against
+!>       runoff.
 !>       If the objective contains besides runoff another variable like TWS move it to mHM/mo_objective_function.f90.
 !>       If it is only regarding runoff implement it here.
-!>       
-!>       All the objective functions are supposed to be minimized!                                      
-!>       (1)  SO: Q:        1.0 - NSE                                                              
-!>       (2)  SO: Q:        1.0 - lnNSE                                                            
-!>       (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)                                                  
-!>       (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
-!>       then lag(1)-autocorrelation removed                              
-!>       (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)                                       
-!>       (6)  SO: Q:        SSE                                                                    
-!>       (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors            
-!>       (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
-!>       then lag(1)-autocorrelation removed                              
-!>       (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)                             
-!>       (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of
-!>       every gauging station based on a power-6 norm                    
-!>       (16) MO: Q:        1st objective: 1.0 - NSE                                               
-!>       Q:        2nd objective: 1.0 - lnNSE                                             
-!>       (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)               
-!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)             
-!>       (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)                 
-!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q 
-!>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume         
-!>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF                    
-!>       (31) SO: Q:        1.0 - wNSE - weighted NSE                                              
 
-!>       \authors s Juliane Mai
+!>       All the objective functions are supposed to be minimized!
+!>       (1)  SO: Q:        1.0 - NSE
+!>       (2)  SO: Q:        1.0 - lnNSE
+!>       (3)  SO: Q:        1.0 - 0.5*(NSE+lnNSE)
+!>       (4)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors and
+!>       then lag(1)-autocorrelation removed
+!>       (5)  SO: Q:        ((1-NSE)**6+(1-lnNSE)**6)**(1/6)
+!>       (6)  SO: Q:        SSE
+!>       (7)  SO: Q:       -1.0 * loglikelihood with trend removed from absolute errors
+!>       (8)  SO: Q:       -1.0 * loglikelihood with trend removed from the relative errors and
+!>       then lag(1)-autocorrelation removed
+!>       (9)  SO: Q:        1.0 - KGE (Kling-Gupta efficiency measure)
+!>       (14) SO: Q:        sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of
+!>       every gauging station based on a power-6 norm
+!>       (16) MO: Q:        1st objective: 1.0 - NSE
+!>       Q:        2nd objective: 1.0 - lnNSE
+!>       (18) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (95% percentile)
+!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)
+!>       (19) MO: Q:        1st objective: 1.0 - lnNSE(Q_highflow)  (non-low flow)
+!>       Q:        2nd objective: 1.0 - lnNSE(Q_lowflow)   (5% of data range)eshold for Q
+!>       (20) MO: Q:        1st objective: absolute difference in FDC's low-segment volume
+!>       Q:        2nd objective: 1.0 - NSE of discharge of months DJF
+!>       (31) SO: Q:        1.0 - wNSE - weighted NSE
+
+!>       \authors Juliane Mai
 
 !>       \date Dec 2012
 
@@ -78,17 +79,21 @@ CONTAINS
   !>       \details The functions selects the objective function case defined in a namelist,
   !>       i.e. the global variable \e opti\_function.
   !>       It return the objective function value for a specific parameter set.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_runoff
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_runoff(para)
 
   !    INTENT(IN)
-  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset" 
-  !>       \param[in] "procedure(eval_interface) :: eval"      
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), optional :: arg1" 
+  !>       \param[in] "real(dp), optional :: arg1"
 
   !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "real(dp), optional :: arg2" 
-  !>       \param[out] "real(dp), optional :: arg3" 
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
 
   !    RETURN
   !>       \return real(dp) :: objective &mdash; objective function value
@@ -177,59 +182,46 @@ CONTAINS
 
   ! ------------------------------------------------------------------ 
 
-  !      NAME 
-  !          multi_objective_runoff 
+  !    NAME
+  !        multi_objective_runoff
 
-  !>        \brief Wrapper for multi-objective functions where at least one is regarding runoff. 
+  !    PURPOSE
+  !>       \brief Wrapper for multi-objective functions where at least one is regarding runoff.
 
-  !>        \details The functions selects the objective function case defined in a namelist,  
-  !>        i.e. the global variable \e opti\_function.\n 
-  !>        It return the multiple objective function values for a specific parameter set. 
+  !>       \details The functions selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It return the multiple objective function values for a specific parameter set.
+  !>       ADDITIONAL INFORMATION
+  !>       multi_objective_runoff
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective(para)
 
-  !     INTENT(IN) 
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT) 
-  !         None 
+  !    INTENT(OUT)
+  !>       \param[out] "REAL(dp), DIMENSION(:) :: multi_objectives"
 
-  !     INTENT(OUT) 
-  !>        \param[out] "real(dp) :: multi_objectives(:)"   1D-array with multiple objective function values 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(IN), OPTIONAL 
-  !         None 
+  !>       \date Oct 2015
 
-  !     INTENT(INOUT), OPTIONAL 
-  !         None 
-
-  !     INTENT(OUT), OPTIONAL 
-  !         None 
-
-  !     RETURN 
-  !        None 
-
-  !     RESTRICTIONS 
-  !>       \note Input values must be floating points. 
-
-  !     EXAMPLE 
-  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
-  !         obj_value = objective(para) 
-
-  !     LITERATURE 
-
-  !     HISTORY 
-  !>        \author Juliane Mai 
-  !>        \date Oct 2015 
-  !         Modified,  
+  ! Modifications:
 
   SUBROUTINE multi_objective_runoff(parameterset, eval, multi_objectives)
 
-    USE mo_common_mHM_mRM_variables, ONLY : opti_function
+    use mo_common_mHM_mRM_variables, only : opti_function
 
-    IMPLICIT NONE
+    implicit none
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     REAL(dp), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: multi_objectives
+
 
     select case (opti_function)
     case (16)
@@ -256,84 +248,96 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          loglikelihood_stddev
+  !    NAME
+  !        loglikelihood_stddev
 
-  !>        \brief Logarithmic likelihood function with removed linear trend and Lag(1)-autocorrelation.
+  !    PURPOSE
+  !>       \brief Logarithmic likelihood function with removed linear trend and Lag(1)-autocorrelation.
 
-  !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
-  !>                 It can also be used for optimization when selecting the likelihood in the
-  !>                 namelist as \e opti\_function.\n
+  !>       \details The logarithmis likelihood function is used when mHM runs in MCMC mode.
+  !>       It can also be used for optimization when selecting the likelihood in the
+  !>       namelist as \e opti\_function.
+  !>       ADDITIONAL INFORMATION
+  !>       loglikelihood_stddev
+  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
+  !>       stddev = 0.5_dp
+  !>       log_likeli = loglikelihood_stddev(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-  !>        \param[in] "real(dp) :: stddev"                 standard deviation of data
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+  !>       \param[in] "real(dp) :: stddev"                     standard deviation of data
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: stddev_new" standard deviation of errors with removed trend and
+  !>       correlationbetween model run using parameter set and observation
+  !>       \param[out] "real(dp), optional :: likeli_new" logarithmic likelihood determined with stddev_new instead of
+  !>       stddev
 
-  !     INTENT(OUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: loglikelihood_stddev &mdash; logarithmic likelihood using given stddev
+  !>       but remove optimal trend and lag(1)-autocorrelation in errors
+  !>       (absolute between running model with parameterset and observation)
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation
-  !>                                                         between model run using parameter set and observation
-  !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
-
-  !     RETURN
-  !>       \return     real(dp) :: loglikelihood_stddev &mdash; logarithmic likelihood using given stddev
-  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors
-  !>                                                     (absolute between running model with parameterset and observation)
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
-
-  !     EXAMPLE
-  !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !         stddev = 0.5_dp
-  !         log_likeli = loglikelihood_stddev(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION loglikelihood_stddev(parameterset, eval, stddev, stddev_new, likeli_new)
-    use mo_moment, only : mean, correlation
-    use mo_linfit, only : linfit
+
     use mo_append, only : append
+    use mo_linfit, only : linfit
+    use mo_moment, only : correlation, mean
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
-    real(dp), intent(in) :: stddev           ! standard deviation of data
-    real(dp), intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
-    real(dp), intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+
+    ! standard deviation of data
+    real(dp), intent(in) :: stddev
+
+    ! standard deviation of errors with removed trend and correlationbetween model run using parameter set and
+    ! observation
+    real(dp), intent(out), optional :: stddev_new
+
+    ! logarithmic likelihood determined with stddev_new instead of stddev
+    real(dp), intent(out), optional :: likeli_new
+
     real(dp) :: loglikelihood_stddev
 
-    ! local
-    real(dp), dimension(:, :), allocatable :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
     integer(i4) :: nmeas
+
     real(dp), dimension(:), allocatable :: errors
+
     real(dp), dimension(:), allocatable :: obs, calc, out
+
     real(dp) :: a, b, c
+
     real(dp) :: stddev_tmp
+
 
     call eval(parameterset, runoff = runoff)
 
@@ -387,92 +391,96 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          loglikelihood_evin2013_2
+  !    NAME
+  !        loglikelihood_evin2013_2
 
-  !>        \brief Logarithmised likelihood with linear error model and lag(1)-autocorrelation
-  !>               of the relative errors.
+  !    PURPOSE
+  !>       \brief Logarithmised likelihood with linear error model and lag(1)-autocorrelation
+  !>       of the relative errors.
 
-  !>        \details This loglikelihood uses a linear error model and a lag(1)-autocorrelation
-  !>                 on the relative errors. This is approach 2 of the paper Evin et al. (WRR, 2013).
-  !>
-  !>                 This is opti_function = 8.
-  !>
-  !>                 mHM then adds two extra (local) parameters for the error model in mhm_driver,
-  !>                 which get optimised together with the other, global parameters.
+  !>       \details This loglikelihood uses a linear error model and a lag(1)-autocorrelation
+  !>       on the relative errors. This is approach 2 of the paper Evin et al. (WRR, 2013).
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-  !>        \param[in] "real(dp) :: stddev_old"                 standard deviation of data
+  !>       This is opti_function = 8.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       mHM then adds two extra (local) parameters for the error model in mhm_driver,
+  !>       which get optimised together with the other, global parameters.
+  !>       ADDITIONAL INFORMATION
+  !>       loglikelihood_evin2013_2
+  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
+  !>       log_likeli = loglikelihood_evin2013_2(para, 1.0_dp)
+  !>       Evin et al., WRR 49, 4518-4524, 2013
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, optional :: regularize"
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: loglikelihood_evin2013_2 &mdash; logarithmic likelihood using given stddev
+  !>       but remove optimal trend and lag(1)-autocorrelation in errors
+  !>       (absolute between running model with parameterset and observation)
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend and correlation
-  !>                                                         between model run using parameter set and observation
-  !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
+  !    HISTORY
+  !>       \authors Juliane Mai and Matthias Cuntz
 
-  !     RETURN
-  !>       \return     real(dp) :: loglikelihood_evin2013_2 &mdash; logarithmic likelihood using given stddev
-  !>                                                     but remove optimal trend and lag(1)-autocorrelation in errors
-  !>                                                     (absolute between running model with parameterset and observation)
+  !>       \date Mar 2014
 
-  !     RESTRICTIONS
-  !>       \note Does not work with MCMC yet.
-
-  !     EXAMPLE
-  !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !         log_likeli = loglikelihood_evin2013_2(para, 1.0_dp)
-
-  !     LITERATURE
-  !         Evin et al., WRR 49, 4518-4524, 2013
-
-  !     HISTORY
-  !>        \author Juliane Mai and Matthias Cuntz
-  !>        \date Mar 2014
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION loglikelihood_evin2013_2(parameterset, eval, regularize)
 
+    use mo_append, only : append
+    use mo_common_variables, only : global_parameters
     use mo_constants, only : pi_dp
     use mo_moment, only : correlation
-    use mo_common_variables, only : global_parameters ! for parameter ranges --> col1=min, col2=max
     use mo_utils, only : eq
-    use mo_append, only : append
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     logical, optional, intent(in) :: regularize
+
     real(dp) :: loglikelihood_evin2013_2
 
-    ! local
-    real(dp), dimension(:, :), allocatable :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    real(dp) :: penalty                  ! penalty term due to a parmeter set out of bound
-    integer(i4) :: gg                       ! gauges counter
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! penalty term due to a parmeter set out of bound
+    real(dp) :: penalty
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
     integer(i4) :: nmeas
+
     real(dp), dimension(:), allocatable :: errors, sigma, eta, y
+
     real(dp), dimension(:), allocatable :: obs, calc, out
+
     real(dp) :: a, b, c, vary, vary1, ln2pi, tmp
+
     integer(i4) :: npara
+
     logical :: iregularize
+
 
     iregularize = .false.
     if (present(regularize)) iregularize = regularize
@@ -539,6 +547,27 @@ CONTAINS
   END FUNCTION loglikelihood_evin2013_2
 
   ! Regularisation function sum(((para-ini)/sigma)**2)
+  !    NAME
+  !        parameter_regularization
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: paraset"
+  !>       \param[in] "real(dp), dimension(size(paraset)) :: prior"
+  !>       \param[in] "real(dp), dimension(size(paraset), 2) :: bounds" (min, max)
+  !>       \param[in] "logical, dimension(size(paraset)) :: mask"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   FUNCTION parameter_regularization(paraset, prior, bounds, mask)
 
     use mo_constants, only : pi_dp
@@ -546,16 +575,24 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: paraset
+
     real(dp), dimension(size(paraset)), intent(in) :: prior
-    real(dp), dimension(size(paraset), 2), intent(in) :: bounds                      ! (min, max)
+
+    ! (min, max)
+    real(dp), dimension(size(paraset), 2), intent(in) :: bounds
+
     logical, dimension(size(paraset)), intent(in) :: mask
+
     real(dp) :: parameter_regularization
 
-    ! local variables
     integer(i4) :: ipara
+
     integer(i4) :: npara
+
     real(dp), parameter :: onetwelveth = 1._dp / 12._dp
+
     real(dp), dimension(size(paraset)) :: sigma
+
 
     npara = size(paraset, 1)
 
@@ -579,83 +616,95 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          loglikelihood_trend_no_autocorr
+  !    NAME
+  !        loglikelihood_trend_no_autocorr
 
-  !>        \brief Logarithmic likelihood function with linear trend removed.
+  !    PURPOSE
+  !>       \brief Logarithmic likelihood function with linear trend removed.
 
-  !>        \details The logarithmis likelihood function is used when mHM runs in MCMC mode.\n
-  !>                 It can also be used for optimization when selecting the likelihood in the
-  !>                 namelist as \e opti\_function.\n
+  !>       \details The logarithmis likelihood function is used when mHM runs in MCMC mode.
+  !>       It can also be used for optimization when selecting the likelihood in the
+  !>       namelist as \e opti\_function.
+  !>       ADDITIONAL INFORMATION
+  !>       loglikelihood_trend_no_autocorr
+  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
+  !>       stddev = 0.5_dp
+  !>       log_likeli = loglikelihood_trend_no_autocorr(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
+  !>       Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !>       to not interfere with mRM
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
-  !>        \param[in] "real(dp) :: stddev"                 standard deviation of data
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+  !>       \param[in] "real(dp) :: stddev_old"                 standard deviation of data
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: stddev_new" standard deviation of errors with removed trendbetween model
+  !>       run using parameter set and observation
+  !>       \param[out] "real(dp), optional :: likeli_new" logarithmic likelihood determined with stddev_new instead of
+  !>       stddev
 
-  !     INTENT(OUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: loglikelihood_trend_no_autocorr &mdash; logarithmic likelihood using given stddev
+  !>       but remove optimal trend in errors
+  !>       (absolute between running model with parameterset and observation)
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai and Matthias Cuntz
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       \date Mar 2014
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: stddev_new"   standard deviation of errors with removed trend 
-  !>                                                         between model run using parameter set and observation
-  !>        \param[out] "real(dp), optional :: likeli_new"   logarithmic likelihood determined with stddev_new instead of stddev
-
-  !     RETURN
-  !>       \return     real(dp) :: loglikelihood_trend_no_autocorr &mdash; logarithmic likelihood using given stddev 
-  !>                                                     but remove optimal trend in errors 
-  !>                                                     (absolute between running model with parameterset and observation) 
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
-
-  !     EXAMPLE
-  !         para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !         stddev = 0.5_dp
-  !         log_likeli = loglikelihood_trend_no_autocorr(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai and Matthias Cuntz
-  !>        \date Mar 2014
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
 
   FUNCTION loglikelihood_trend_no_autocorr(parameterset, eval, stddev_old, stddev_new, likeli_new)
-    use mo_moment, only : stddev
-    use mo_linfit, only : linfit
+
     use mo_append, only : append
+    use mo_linfit, only : linfit
+    use mo_moment, only : stddev
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
-    real(dp), intent(in) :: stddev_old       ! standard deviation of data
-    real(dp), intent(out), optional :: stddev_new       ! standard deviation of errors using paraset
-    real(dp), intent(out), optional :: likeli_new       ! likelihood using stddev_new, i.e. using new parameter set
+
+    ! standard deviation of data
+    real(dp), intent(in) :: stddev_old
+
+    ! standard deviation of errors with removed trendbetween model run using parameter set and observation
+    real(dp), intent(out), optional :: stddev_new
+
+    ! logarithmic likelihood determined with stddev_new instead of stddev
+    real(dp), intent(out), optional :: likeli_new
+
     real(dp) :: loglikelihood_trend_no_autocorr
 
-    ! local
-    real(dp), dimension(:, :), allocatable :: runoff          ! modelled runoff for a given parameter set
-    !                                                        ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg              ! gauges counter
-    real(dp), dimension(:), allocatable :: runoff_agg      ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs      ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask ! mask for aggregated measured runoff
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
     integer(i4) :: nmeas
+
     real(dp), dimension(:), allocatable :: errors
+
     real(dp), dimension(:), allocatable :: obs, calc, out
+
     real(dp) :: a, b
+
     real(dp) :: stddev_tmp
+
 
     call eval(parameterset, runoff = runoff)
 
@@ -706,59 +755,42 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_lnnse
+  !    NAME
+  !        objective_lnnse
 
-  !>        \brief Objective function of logarithmic NSE.
+  !    PURPOSE
+  !>       \brief Objective function of logarithmic NSE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
-  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
-  !>        is calculated.
-  !>        \f[ obj\_value = lnNSE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
+  !>       \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
+  !>       is calculated.
+  !>       \f[ obj\_value = lnNSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_lnnse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_lnnse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_lnnse &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_lnnse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ 1-lnnse \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_lnnse(para)
+  !>       \date May 2013
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date May 2013
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_lnnse(parameterset, eval)
 
@@ -767,17 +799,29 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_lnnse
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
@@ -802,57 +846,41 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_sse
+  !    NAME
+  !        objective_sse
 
-  !>        \brief Objective function of SSE.
+  !    PURPOSE
+  !>       \brief Objective function of SSE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the sum squared errors
-  !>        \f[ SSE = \sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2 \f]
-  !>        is calculated and the objective function is
-  !>        \f[ obj\_value = SSE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the sum squared errors
+  !>       \f[ SSE = \sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2 \f]
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = SSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_sse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_sse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_sse &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_sse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
+  !    HISTORY
+  !>       \authors Juliane Mai and Matthias Cuntz
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_sse(para)
+  !>       \date March 2014
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai and Matthias Cuntz
-  !>        \date March 2014
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_sse(parameterset, eval)
 
@@ -861,17 +889,29 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_sse
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
@@ -896,59 +936,42 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_nse
+  !    NAME
+  !        objective_nse
 
-  !>        \brief Objective function of NSE.
+  !    PURPOSE
+  !>       \brief Objective function of NSE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
-  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
-  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
-  !>        is calculated and the objective function is
-  !>        \f[ obj\_value = 1-NSE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>       \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1-NSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_nse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_nse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_nse &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_nse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ 1-NSE \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_nse(para)
+  !>       \date May 2013
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date May 2013
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_nse(parameterset, eval)
 
@@ -957,17 +980,29 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_nse
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
@@ -992,81 +1027,76 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_equal_nse_lnnse
+  !    NAME
+  !        objective_equal_nse_lnnse
 
-  !>        \brief Objective function equally weighting NSE and lnNSE.
+  !    PURPOSE
+  !>       \brief Objective function equally weighting NSE and lnNSE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
-  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
-  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
-  !>        and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
-  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
-  !>        are calculated and added up equally weighted:
-  !>        \f[ obj\_value = \frac{1}{2} (NSE + lnNSE) \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>       \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>       and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
+  !>       \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
+  !>       are calculated and added up equally weighted:
+  !>       \f[ obj\_value = \frac{1}{2} (NSE + lnNSE) \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_equal_nse_lnnse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_equal_nse_lnnse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_equal_nse_lnnse &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_equal_nse_lnnse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ 1-0.5*(nse + lnnse) \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_equal_nse_lnnse(para)
+  !>       \date May 2013
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date May 2013
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_equal_nse_lnnse(parameterset, eval)
 
-    use mo_errormeasures, only : nse, lnnse
+    use mo_errormeasures, only : lnnse, nse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_equal_nse_lnnse
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff             ! modelled runoff for a given parameter set
-    !                                                           ! dim2=nGauges
-    integer(i4) :: gg                 ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
@@ -1097,80 +1127,74 @@ CONTAINS
 
   ! ------------------------------------------------------------------ 
 
-  !      NAME 
-  !          multi_objective_nse_lnnse 
+  !    NAME
+  !        multi_objective_nse_lnnse
 
-  !>        \brief Multi-objective function with NSE and lnNSE. 
+  !    PURPOSE
+  !>       \brief Multi-objective function with NSE and lnNSE.
 
-  !>        \details The objective function only depends on a parameter vector.  
-  !>        The model will be called with that parameter vector and  
-  !>        the model output is subsequently compared to observed data. 
-  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$ 
-  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2} 
-  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f] 
-  !>        and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$ 
-  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] 
-  !>        are calculated and both returned. 
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
-  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>       \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>       and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
+  !>       \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
+  !>       are calculated and both returned.
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
+  !>       ADDITIONAL INFORMATION
+  !>       multi_objective_nse_lnnse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_equal_nse_lnnse(para)
 
-  !     INTENT(IN) 
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT) 
-  !         None 
+  !    RETURN
+  !>       \return real(dp), dimension(2) :: multi_objective_nse_lnnse &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like PA-DDS)
 
-  !     INTENT(OUT) 
-  !         None 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(IN), OPTIONAL 
-  !         None 
+  !>       \date Oct 2015
 
-  !     INTENT(INOUT), OPTIONAL 
-  !         None 
-
-  !     INTENT(OUT), OPTIONAL 
-  !         None 
-
-  !     RETURN 
-  !>       \return     real(dp), dimension(2) :: multi_objective_nse_lnnse &mdash; objective function value  
-  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
-
-  !     RESTRICTIONS 
-  !>       \note Input values must be floating points. \n 
-  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
-
-  !     EXAMPLE 
-  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
-  !         obj_value = objective_equal_nse_lnnse(para) 
-
-  !     LITERATURE 
-
-  !     HISTORY 
-  !>        \author Juliane Mai 
-  !>        \date Oct 2015 
-  !         Modified,  
+  ! Modifications:
 
   FUNCTION multi_objective_nse_lnnse(parameterset, eval)
 
-    ! use mo_mhm_eval,         only: mhm_eval 
-    use mo_errormeasures, only : nse, lnnse
+    use mo_errormeasures, only : lnnse, nse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp), dimension(2) :: multi_objective_nse_lnnse
 
-    ! local 
-    real(dp), allocatable, dimension(:, :) :: runoff             ! modelled runoff for a given parameter set
-    !                                                           ! dim2=nGauges 
-    integer(i4) :: gg                 ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     ! call mhm_eval(parameterset, runoff=runoff) 
     call eval(parameterset, runoff = runoff)
@@ -1201,95 +1225,102 @@ CONTAINS
 
   ! ------------------------------------------------------------------ 
 
-  !      NAME 
-  !          multi_objective_lnnse_highflow_lnnse_lowflow
+  !    NAME
+  !        multi_objective_lnnse_highflow_lnnse_lowflow
 
-  !>        \brief Multi-objective function with NSE and lnNSE. 
+  !    PURPOSE
+  !>       \brief Multi-objective function with NSE and lnNSE.
 
-  !>        \details The objective function only depends on a parameter vector.  
-  !>        The model will be called with that parameter vector and  
-  !>        the model output is subsequently compared to observed data.\n
-  !>
-  !>        A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if 
-  !>        \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
-  !>        and a timepoint \f$t\f$ of the observed data is marked as a highflow timepoint \f$t_{high}\f$ if 
-  !>        \f[ t_{high} if Q_{obs}(i) > percentile(Q_{obs},95.)\f]
-  !>        This timepoint identification is only performed for the observed data.\n
-  !>
-  !>        The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
-  !>        of discharge values at high-flow timepoints
-  !>        \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
-  !>        The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
-  !>        of discharge values at low-flow timepoints
-  !>        \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
-  !>        Both objectives are returned.
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
-  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN) 
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+  !>       A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if
+  !>       \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
+  !>       and a timepoint \f$t\f$ of the observed data is marked as a highflow timepoint \f$t_{high}\f$ if
+  !>       \f[ t_{high} if Q_{obs}(i) > percentile(Q_{obs},95.)\f]
+  !>       This timepoint identification is only performed for the observed data.
 
-  !     INTENT(INOUT) 
-  !         None 
+  !>       The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
+  !>       of discharge values at high-flow timepoints
+  !>       \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>       The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
+  !>       of discharge values at low-flow timepoints
+  !>       \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>       Both objectives are returned.
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
+  !>       ADDITIONAL INFORMATION
+  !>       multi_objective_lnnse_highflow_lnnse_lowflow
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_equal_nse_lnnse(para)
 
-  !     INTENT(OUT) 
-  !         None 
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL 
-  !         None 
+  !    RETURN
+  !>       \return real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow &mdash; objective function
+  !>       value
+  !>       (which will be e.g. minimized by an optimization routine like PA-DDS)
 
-  !     INTENT(INOUT), OPTIONAL 
-  !         None 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT), OPTIONAL 
-  !         None 
+  !>       \date Oct 2015
 
-  !     RETURN 
-  !>       \return     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow &mdash; objective function value  
-  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
-
-  !     RESTRICTIONS 
-  !>       \note Input values must be floating points. \n 
-  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
-
-  !     EXAMPLE 
-  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
-  !         obj_value = objective_equal_nse_lnnse(para) 
-
-  !     LITERATURE 
-
-  !     HISTORY 
-  !>        \author Juliane Mai 
-  !>        \date Oct 2015 
-  !         Modified,  
+  ! Modifications:
 
   FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow(parameterset, eval)
 
-    ! use mo_mhm_eval,         only: mhm_eval 
     use mo_errormeasures, only : lnnse
     use mo_percentile, only : percentile
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow
 
-    ! local 
-    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
-    integer(i4) :: gg                 ! gauges counter
+    ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    real(dp) :: q_low              ! upper discharge value to determine lowflow timepoints
-    real(dp) :: q_high             ! lower discharge value to determine highflow timepoints
-    integer(i4) :: nrunoff            ! total number of discharge values
-    integer(i4) :: tt                 ! timepoint counter
-    logical, dimension(:), allocatable :: lowflow_mask       ! mask to get lowflow values
-    logical, dimension(:), allocatable :: highflow_mask      ! mask to get highflow values
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! upper discharge value to determine lowflow timepoints
+    real(dp) :: q_low
+
+    ! lower discharge value to determine highflow timepoints
+    real(dp) :: q_high
+
+    ! total number of discharge values
+    integer(i4) :: nrunoff
+
+    ! timepoint counter
+    integer(i4) :: tt
+
+    ! mask to get lowflow values
+    logical, dimension(:), allocatable :: lowflow_mask
+
+    ! mask to get highflow values
+    logical, dimension(:), allocatable :: highflow_mask
+
 
     ! call mhm_eval(parameterset, runoff=runoff) 
     call eval(parameterset, runoff = runoff)
@@ -1342,92 +1373,97 @@ CONTAINS
 
   ! ------------------------------------------------------------------ 
 
-  !      NAME 
-  !          multi_objective_lnnse_highflow_lnnse_lowflow_2
+  !    NAME
+  !        multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-  !>        \brief Multi-objective function with NSE and lnNSE. 
+  !    PURPOSE
+  !>       \brief Multi-objective function with NSE and lnNSE.
 
-  !>        \details The objective function only depends on a parameter vector.  
-  !>        The model will be called with that parameter vector and  
-  !>        the model output is subsequently compared to observed data.\n
-  !>
-  !>        A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if 
-  !>        \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
-  !>        and all other timepoints are marked as a highflow timepoints \f$t_{high}\f$.
-  !>        This timepoint identification is only performed for the observed data.\n
-  !>
-  !>        The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
-  !>        of discharge values at high-flow timepoints
-  !>        \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
-  !>        The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
-  !>        of discharge values at low-flow timepoints
-  !>        \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2} 
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
-  !>        Both objectives are returned.
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
-  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN) 
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+  !>       A timepoint \f$t\f$ of the observed data is marked as a lowflow timepoint \f$t_{low}\f$ if
+  !>       \f[ Q_{obs}(t) < min(Q_{obs}) + 0.05 * ( max(Q_{obs}) - min(Q_{obs}) )\f]
+  !>       and all other timepoints are marked as a highflow timepoints \f$t_{high}\f$.
+  !>       This timepoint identification is only performed for the observed data.
 
-  !     INTENT(INOUT) 
-  !         None 
+  !>       The first objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{high} \f$
+  !>       of discharge values at high-flow timepoints
+  !>       \f[ lnNSE_{high} = 1 - \frac{\sum_{i=1}^{N_{high}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>       The second objective is the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE_{low} \f$
+  !>       of discharge values at low-flow timepoints
+  !>       \f[ lnNSE_{low} = 1 - \frac{\sum_{i=1}^{N_{low}} (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f] .
+  !>       Both objectives are returned.
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
+  !>       ADDITIONAL INFORMATION
+  !>       multi_objective_lnnse_highflow_lnnse_lowflow_2
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_equal_nse_lnnse(para)
 
-  !     INTENT(OUT) 
-  !         None 
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL 
-  !         None 
+  !    RETURN
+  !>       \return real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow_2 &mdash; objective function
+  !>       value
+  !>       (which will be e.g. minimized by an optimization routine like PA-DDS)
 
-  !     INTENT(INOUT), OPTIONAL 
-  !         None 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT), OPTIONAL 
-  !         None 
+  !>       \date Oct 2015
 
-  !     RETURN 
-  !>       \return     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow_2 &mdash; objective function value  
-  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
-
-  !     RESTRICTIONS 
-  !>       \note Input values must be floating points. \n 
-  !>             Actually, \f$ 1-nse \f$ and \f$1-lnnse\f$ will be returned such that it can be minimized. 
-
-  !     EXAMPLE 
-  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
-  !         obj_value = objective_equal_nse_lnnse(para) 
-
-  !     LITERATURE 
-
-  !     HISTORY 
-  !>        \author Juliane Mai 
-  !>        \date Oct 2015 
-  !         Modified,  
+  ! Modifications:
 
   FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset, eval)
 
-    ! use mo_mhm_eval,         only: mhm_eval 
     use mo_errormeasures, only : lnnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp), dimension(2) :: multi_objective_lnnse_highflow_lnnse_lowflow_2
 
-    ! local 
-    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
-    integer(i4) :: gg                 ! gauges counter
+    ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    real(dp) :: q_low              ! upper discharge value to determine lowflow timepoints
-    integer(i4) :: nrunoff            ! total number of discharge values
-    integer(i4) :: tt                 ! timepoint counter
-    logical, dimension(:), allocatable :: lowflow_mask       ! mask to get lowflow values
-    logical, dimension(:), allocatable :: highflow_mask      ! mask to get highflow values
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! upper discharge value to determine lowflow timepoints
+    real(dp) :: q_low
+
+    ! total number of discharge values
+    integer(i4) :: nrunoff
+
+    ! timepoint counter
+    integer(i4) :: tt
+
+    ! mask to get lowflow values
+    logical, dimension(:), allocatable :: lowflow_mask
+
+    ! mask to get highflow values
+    logical, dimension(:), allocatable :: highflow_mask
+
 
     ! call mhm_eval(parameterset, runoff=runoff) 
     call eval(parameterset, runoff = runoff)
@@ -1478,96 +1514,114 @@ CONTAINS
 
   ! ------------------------------------------------------------------ 
 
-  !      NAME 
-  !          multi_objective_ae_fdc_lsv_nse_djf
+  !    NAME
+  !        multi_objective_ae_fdc_lsv_nse_djf
 
-  !>        \brief Multi-objective function with absolute error of Flow Duration Curves
-  !>               low-segment volume and nse of DJF's discharge. 
+  !    PURPOSE
+  !>       \brief Multi-objective function with absolute error of Flow Duration Curves
+  !>       low-segment volume and nse of DJF's discharge.
 
-  !>        \details The objective function only depends on a parameter vector.  
-  !>        The model will be called with that parameter vector and  
-  !>        the model output is subsequently compared to observed data.\n
-  !>
-  !>        The first objective is using the routine "FlowDurationCurves" from "mo_signatures" to determine the
-  !>        low-segment volume of the FDC. The objective is the absolute difference between the observed volume
-  !>        and the simulated volume.\n
-  !>
-  !>        For the second objective the discharge of the winter months December, January and February are extracted
-  !>        from the time series. The objective is then the Nash-Sutcliffe efficiency NSE of the observed winter
-  !>        discharge against the simulated winter discharge.\n
-  !>
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
-  !>        To calibrate this objective you need a multi-objective optimizer like PA-DDS. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN) 
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with 
+  !>       The first objective is using the routine "FlowDurationCurves" from "mo_signatures" to determine the
+  !>       low-segment volume of the FDC. The objective is the absolute difference between the observed volume
+  !>       and the simulated volume.
 
-  !     INTENT(INOUT) 
-  !         None 
+  !>       For the second objective the discharge of the winter months December, January and February are extracted
+  !>       from the time series. The objective is then the Nash-Sutcliffe efficiency NSE of the observed winter
+  !>       discharge against the simulated winter discharge.
 
-  !     INTENT(OUT) 
-  !         None 
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
+  !>       ADDITIONAL INFORMATION
+  !>       multi_objective_ae_fdc_lsv_nse_djf
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_equal_nse_lnnse(para)
 
-  !     INTENT(IN), OPTIONAL 
-  !         None 
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT), OPTIONAL 
-  !         None 
+  !    RETURN
+  !>       \return real(dp), dimension(2) :: multi_objective_ae_fdc_lsv_nse_djf &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like PA-DDS)
 
-  !     INTENT(OUT), OPTIONAL 
-  !         None 
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     RETURN 
-  !>       \return     real(dp), dimension(2) :: multi_objective_ae_fdc_lsv_nse_djf &mdash; objective function value  
-  !>                                             (which will be e.g. minimized by an optimization routine like PA-DDS) 
+  !>       \date Feb 2016
 
-  !     RESTRICTIONS 
-  !>       \note Input values must be floating points. \n 
-  !>             Actually, \f$ 1-ae \f$ and \f$1-nse\f$ will be returned such that it can be minimized. 
-
-  !     EXAMPLE 
-  !         para = (/ 1., 2, 3., -999., 5., 6. /) 
-  !         obj_value = objective_equal_nse_lnnse(para) 
-
-  !     LITERATURE 
-
-  !     HISTORY 
-  !>        \author Juliane Mai 
-  !>        \date Feb 2016
-  !         Modified,  
+  ! Modifications:
 
   FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
 
+    use mo_common_mhm_mrm_variables, only : evalPer
     use mo_errormeasures, only : nse
     use mo_julian, only : dec2date
     use mo_mrm_global_variables, only : gauge, nMeasPerDay
-    use mo_common_mhm_mrm_variables, only : evalPer
     use mo_mrm_signatures, only : FlowDurationCurve
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp), dimension(2) :: multi_objective_ae_fdc_lsv_nse_djf
 
-    ! local 
-    real(dp), dimension(:, :), allocatable :: runoff             ! modelled runoff for a given parameter set
-    integer(i4) :: gg                 ! gauges counter
-    integer(i4) :: nGaugesTotal       ! total number of gauges
-    integer(i4) :: iBasin             ! basin ID of gauge
-    real(dp), dimension(:), allocatable :: runoff_obs         ! measured runoff
-    real(dp), dimension(:), allocatable :: runoff_agg         ! aggregated simulated runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask    ! mask for aggregated measured runoff
-    integer(i4) :: nrunoff            ! total number of discharge values
-    integer(i4) :: tt                 ! timepoint counter
-    integer(i4) :: month              ! month of current time step
-    real(dp) :: current_time       ! Fractional Julian day of current time step
-    logical, dimension(:), allocatable :: djf_mask           ! mask to get lowflow values
-    real(dp), dimension(10) :: quantiles          ! quantiles for FDC
-    integer(i4) :: nquantiles         ! number of quantiles
-    real(dp), dimension(size(quantiles)) :: fdc                ! FDC of simulated or observed discharge
-    real(dp) :: lsv_mod            ! low-segment volume of FDC of simulated discharge
-    real(dp) :: lsv_obs            ! low-segment volume of FDC of observed  discharge
+    ! modelled runoff for a given parameter set
+    real(dp), dimension(:, :), allocatable :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    ! total number of gauges
+    integer(i4) :: nGaugesTotal
+
+    ! basin ID of gauge
+    integer(i4) :: iBasin
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+    ! total number of discharge values
+    integer(i4) :: nrunoff
+
+    ! timepoint counter
+    integer(i4) :: tt
+
+    ! month of current time step
+    integer(i4) :: month
+
+    ! Fractional Julian day of current time step
+    real(dp) :: current_time
+
+    ! mask to get lowflow values
+    logical, dimension(:), allocatable :: djf_mask
+
+    ! quantiles for FDC
+    real(dp), dimension(10) :: quantiles
+
+    ! number of quantiles
+    integer(i4) :: nquantiles
+
+    ! FDC of simulated or observed discharge
+    real(dp), dimension(size(quantiles)) :: fdc
+
+    ! low-segment volume of FDC of simulated discharge
+    real(dp) :: lsv_mod
+
+    ! low-segment volume of FDC of observed  discharge
+    real(dp) :: lsv_obs
+
 
     ! call mhm_eval(parameterset, runoff=runoff) 
     call eval(parameterset, runoff = runoff)
@@ -1623,85 +1677,79 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_power6_nse_lnnse
+  !    NAME
+  !        objective_power6_nse_lnnse
 
-  !>        \brief Objective function of combined NSE and lnNSE with power of 5
-  !>               i.e. the p-norm with p=5.
+  !    PURPOSE
+  !>       \brief Objective function of combined NSE and lnNSE with power of 5
+  !>       i.e. the p-norm with p=5.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>        The model will be called with that parameter vector and 
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
-  !>        \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
-  !>                           {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
-  !>        and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
-  !>        \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
-  !>                             {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
-  !>        are calculated and added up equally weighted:
-  !>        \f[ obj\_value = \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>       \f[ NSE = 1 - \frac{\sum_{i=1}^N (Q_{obs}(i) - Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>       and the logarithmic Nash-Sutcliffe model efficiency coefficient \f$ lnNSE \f$
+  !>       \f[ lnNSE = 1 - \frac{\sum_{i=1}^N (\ln Q_{obs}(i) - \ln Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N (\ln Q_{obs}(i) - \bar{\ln Q_{obs}})^2} \f]
+  !>       are calculated and added up equally weighted:
+  !>       \f[ obj\_value = \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_power6_nse_lnnse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_power6_nse_lnnse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_power6_nse_lnnse &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_power6_nse_lnnse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f$ will be returned such that
-  !>             it can be minimized and converges to 0.
+  !    HISTORY
+  !>       \authors Juliane Mai and Matthias Cuntz
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_power6_nse_lnnse(para)
+  !>       \date March 2014
 
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai and Matthias Cuntz
-  !>        \date March 2014
-  !         Modified, Stephan Thober, Jan 2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan 2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_power6_nse_lnnse(parameterset, eval)
 
-    use mo_errormeasures, only : nse, lnnse
+    use mo_errormeasures, only : lnnse, nse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_power6_nse_lnnse
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
     integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
 
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
@@ -1727,70 +1775,49 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_kge
+  !    NAME
+  !        objective_kge
 
-  !>        \brief Objective function of KGE.
+  !    PURPOSE
+  !>       \brief Objective function of KGE.
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>                 The model will be called with that parameter vector and 
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
-  !>                       \f$ \alpha \f$ = ratio of similated mean to observed mean \n
-  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
-  !>                 is calculated and the objective function is
-  !>                       \f[ obj\_value = 1.0 - KGE \f]
-  !>                 \f$(1-KGE)\f$ is the objective since we always apply minimization methods. 
-  !>                 The minimal value of \f$(1-KGE)\f$ is 0 for the optimal KGE of 1.0. \n
-  !>
-  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$
+  !>       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \alpha \f$ = ratio of similated mean to observed mean
+  !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1.0 - KGE \f]
+  !>       \f$(1-KGE)\f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$(1-KGE)\f$ is 0 for the optimal KGE of 1.0.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_kge
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_kge(para)
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_kge &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_kge &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ KGE \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_kge(para)
+  !>       \date August 2014
 
-  !     LITERATURE
-  !>        Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
-  !>        Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date August 2014
-  !         Modified, R. Kumar & O. Rakovec, Sep. 2014
-  !                   Stephan Thober,        Jan  2015 - introduced extract_runoff
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
+  ! Stephan Thober Jan  2015 - introduced extract_runoff
+  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
 
   FUNCTION objective_kge(parameterset, eval)
 
@@ -1799,19 +1826,31 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_kge
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
-    integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
-    !
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
 
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    !
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1835,72 +1874,53 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_multiple_gauges_kge_power6
+  !    NAME
+  !        objective_multiple_gauges_kge_power6
 
-  !>        \brief combined objective function based on KGE raised to the power 6
+  !    PURPOSE
+  !>       \brief combined objective function based on KGE raised to the power 6
 
-  !>        \details The objective function only depends on a parameter vector. 
-  !>                 The model will be called with that parameter vector and 
-  !>                 the model output is subsequently compared to observed data.\n
-  !>
-  !>                 Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a given gauging station
-  !>                       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                       \f$ r \f$ = Pearson product-moment correlation coefficient \n
-  !>                       \f$ \alpha \f$ = ratio of similated mean to observed mean \n
-  !>                       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation \n
-  !>                 is calculated and the objective function for a given gauging station (\f$ i \f$) is
-  !>                       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
-  !>                 \f$ \phi_{i} \f$ is the objective since we always apply minimization methods. 
-  !>                 The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.\n
-  !>
-  !>                 Finally, the overall \f$ OF \f$ is estimated based on the power-6 norm to 
-  !>                 combine the \f$ \phi_{i} \f$ from all gauging stations (\f$ N \f$). 
-  !>                 \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f]. \n
-  !>                 
-  !>                 The observed data \f$ Q_{obs} \f$ are global in this module. 
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !>       Therefore, the Kling-Gupta model efficiency coefficient \f$ KGE \f$ for a given gauging station
+  !>       \f[ KGE = 1.0 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !>       where
+  !>       \f$ r \f$ = Pearson product-moment correlation coefficient
+  !>       \f$ \alpha \f$ = ratio of similated mean to observed mean
+  !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
+  !>       is calculated and the objective function for a given gauging station (\f$ i \f$) is
+  !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
+  !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
+  !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Finally, the overall \f$ OF \f$ is estimated based on the power-6 norm to
+  !>       combine the \f$ \phi_{i} \f$ from all gauging stations (\f$ N \f$).
+  !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f].
 
-  !     INTENT(OUT)
-  !         None
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_multiple_gauges_kge_power6
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_multiple_gauges_kge_power6(para)
+  !>       Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !>       to not interfere with mRM
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_multiple_gauges_kge_power6 &mdash; objective function value 
+  !    RETURN
+  !>       \return real(dp) :: objective_multiple_gauges_kge_power6 &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ OF \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_multiple_gauges_kge_power6(para)
+  !>       \date March 2015
 
-  !     LITERATURE
-  !>    Gupta, Hoshin V., et al. "Decomposition of the mean squared error and NSE performance criteria: 
-  !>    Implications for improving hydrological modelling." Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date March 2015
-  !                   Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !                                              to not interfere with mRM
+  ! Modifications:
 
   FUNCTION objective_multiple_gauges_kge_power6(parameterset, eval)
 
@@ -1909,20 +1929,33 @@ CONTAINS
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
+
     procedure(eval_interface), INTENT(IN), pointer :: eval
+
     real(dp) :: objective_multiple_gauges_kge_power6
+
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
-    ! local
-    real(dp), allocatable, dimension(:, :) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4) :: gg                       ! gauges counter
-    integer(i4) :: nGaugesTotal
-    real(dp), dimension(:), allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:), allocatable :: runoff_obs               ! measured runoff
-    logical, dimension(:), allocatable :: runoff_obs_mask          ! mask for measured runoff
-    !
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:, :) :: runoff
 
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
+
+    !
     call eval(parameterset, runoff = runoff)
     nGaugesTotal = size(runoff, dim = 2)
 
@@ -1943,76 +1976,71 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          objective_weighted_nse
+  !    NAME
+  !        objective_weighted_nse
 
-  !>        \brief Objective function of weighted NSE.
+  !    PURPOSE
+  !>       \brief Objective function of weighted NSE.
 
-  !>        \details The objective function only depends on a parameter vector.
-  !>        The model will be called with that parameter vector and
-  !>        the model output is subsequently compared to observed data.
-  !>        Therefore, the weighted Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
-  !>        \f[ wNSE = 1 - \frac{\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - Q_{model}(i))^2}
-  !>                           {\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
-  !>        is calculated and the objective function is
-  !>        \f[ obj\_value = 1- wNSE \f]
-  !>        The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       \details The objective function only depends on a parameter vector.
+  !>       The model will be called with that parameter vector and
+  !>       the model output is subsequently compared to observed data.
+  !>       Therefore, the weighted Nash-Sutcliffe model efficiency coefficient \f$ NSE \f$
+  !>       \f[ wNSE = 1 - \frac{\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - Q_{model}(i))^2}
+  !>       {\sum_{i=1}^N Q_{obs}(i) * (Q_{obs}(i) - \bar{Q_{obs}})^2} \f]
+  !>       is calculated and the objective function is
+  !>       \f[ obj\_value = 1- wNSE \f]
+  !>       The observed data \f$ Q_{obs} \f$ are global in this module.
+  !>       ADDITIONAL INFORMATION
+  !>       objective_weighted_nse
+  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
+  !>       obj_value = objective_weighted_nse(para)
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp) :: parameterset(:)"        1D-array with parameters the model is run with
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: objective_weighted_nse &mdash; objective function value
+  !    RETURN
+  !>       \return real(dp) :: objective_weighted_nse &mdash; objective function value
   !>       (which will be e.g. minimized by an optimization routine like DDS)
 
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points. \n
-  !>             Actually, \f$ 1-NSE \f$ will be returned such that it can be minimized.
+  !    HISTORY
+  !>       \authors Stephan Thober, Bjoern Guse
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         obj_value = objective_weighted_nse(para)
+  !>       \date May 2018
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author Stephan Thober, Bjoern Guse
-  !>        \date May 2018
-  !         Modified
+  ! Modifications:
 
   FUNCTION objective_weighted_nse(parameterset, eval)
 
-    use mo_errormeasures,    only: wnse
+    use mo_errormeasures, only : wnse
 
     implicit none
 
     real(dp), dimension(:), intent(in) :: parameterset
-    procedure(eval_interface), INTENT(IN), pointer :: eval
-    real(dp)                           :: objective_weighted_nse
 
-    ! local
-    real(dp), allocatable, dimension(:,:) :: runoff                   ! modelled runoff for a given parameter set
-    !                                                                 ! dim1=nTimeSteps, dim2=nGauges
-    integer(i4)                           :: gg                       ! gauges counter
-    integer(i4)                           :: nGaugesTotal
-    real(dp), dimension(:),   allocatable :: runoff_agg               ! aggregated simulated runoff
-    real(dp), dimension(:),   allocatable :: runoff_obs               ! measured runoff
-    logical,  dimension(:),   allocatable :: runoff_obs_mask          ! mask for aggregated measured runoff
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+
+    real(dp) :: objective_weighted_nse
+
+    ! modelled runoff for a given parameter set
+    ! dim1=nTimeSteps, dim2=nGauges
+    real(dp), allocatable, dimension(:,:) :: runoff
+
+    ! gauges counter
+    integer(i4) :: gg
+
+    integer(i4) :: nGaugesTotal
+
+    ! aggregated simulated runoff
+    real(dp), dimension(:), allocatable :: runoff_agg
+
+    ! measured runoff
+    real(dp), dimension(:), allocatable :: runoff_obs
+
+    ! mask for aggregated measured runoff
+    logical, dimension(:), allocatable :: runoff_obs_mask
+
 
     call eval(parameterset, runoff=runoff)
     nGaugesTotal = size(runoff, dim=2)
@@ -2038,87 +2066,82 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  ! NAME
-  !         extract_runoff
+  !    NAME
+  !        extract_runoff
 
-  !>        \brief extracts runoff data from global variables
+  !    PURPOSE
+  !>       \brief extracts runoff data from global variables
 
-  !>        \details extracts simulated and measured runoff from global variables,
-  !>                 such that they overlay exactly. For measured runoff, only the runoff
-  !>                 during the evaluation period are cut, not succeeding nodata values.
-  !>                 For simulated runoff, warming days as well as succeeding nodata values
-  !>                 are neglected and the simulated runoff is aggregated to the resolution
-  !>                 of the observed runoff.\n
+  !>       \details extracts simulated and measured runoff from global variables,
+  !>       such that they overlay exactly. For measured runoff, only the runoff
+  !>       during the evaluation period are cut, not succeeding nodata values.
+  !>       For simulated runoff, warming days as well as succeeding nodata values
+  !>       are neglected and the simulated runoff is aggregated to the resolution
+  !>       of the observed runoff.
+  !>       ADDITIONAL INFORMATION
+  !>       extract_runoff
+  !>       see use in this module above
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4) :: gaugeID"   - ID of the current gauge to process
-  !>        \param[in] "real(dp)    :: runoff(:)" - simulated runoff at this gauge
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: gaugeId"              current gauge Id
+  !>       \param[in] "real(dp), dimension(:, :) :: runoff" simulated runoff
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: runoff_agg"     aggregated simulated
+  !>       \param[out] "real(dp), dimension(:) :: runoff_obs"     extracted measured
+  !>       \param[out] "logical, dimension(:) :: runoff_obs_mask" mask of no data values
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp)   :: runoff_agg(:)"      - aggregated simulated runoff at this gauge\n
-  !>        \param[out] "real(dp)   :: runoff_obs(:)"      - extracted observed runoff\n
-  !>        \param[out] "logical    :: runoff_obs_mask(:)" - masking non-negative values in runoff_obs\n
+  !    HISTORY
+  !>       \authors Stephan Thober
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jan 2015
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         see use in this module above
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Stephan Thober
-  !>        \date Jan 2015
-
-  ! ------------------------------------------------------------------
   subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
-    use mo_mrm_global_variables, only : gauge, nMeasPerDay
-    use mo_common_mhm_mrm_variables, only : evalPer, warmingDays, nTstepDay
+    use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
     use mo_message, only : message
+    use mo_mrm_global_variables, only : gauge, nMeasPerDay
     use mo_utils, only : ge
 
     implicit none
 
-    ! input variables
-    integer(i4), intent(in) :: gaugeId      ! current gauge Id
-    real(dp), dimension(:, :), intent(in) :: runoff       ! simulated runoff
+    ! current gauge Id
+    integer(i4), intent(in) :: gaugeId
 
-    ! output variables
-    real(dp), dimension(:), allocatable, intent(out) :: runoff_agg      ! aggregated simulated
-    ! runoff to the resolution
-    ! of the measurement
-    real(dp), dimension(:), allocatable, intent(out) :: runoff_obs      ! extracted measured 
-    ! runoff to exactly the
-    ! evaluation period
-    logical, dimension(:), allocatable, intent(out) :: runoff_obs_mask ! mask of no data values
-    ! in runoff_obs
+    ! simulated runoff
+    real(dp), dimension(:, :), intent(in) :: runoff
 
-    ! local variables
-    integer(i4) :: iBasin  ! basin id
-    integer(i4) :: tt      ! timestep counter
-    integer(i4) :: length  ! length of extracted time series
-    integer(i4) :: factor  ! between simulated and measured time scale
-    integer(i4) :: TPD_sim ! simulated Timesteps per Day
-    integer(i4) :: TPD_obs ! observed Timesteps per Day
+    ! aggregated simulated
+    real(dp), dimension(:), allocatable, intent(out) :: runoff_agg
+
+    ! extracted measured
+    real(dp), dimension(:), allocatable, intent(out) :: runoff_obs
+
+    ! mask of no data values
+    logical, dimension(:), allocatable, intent(out) :: runoff_obs_mask
+
+    ! basin id
+    integer(i4) :: iBasin
+
+    ! timestep counter
+    integer(i4) :: tt
+
+    ! length of extracted time series
+    integer(i4) :: length
+
+    ! between simulated and measured time scale
+    integer(i4) :: factor
+
+    ! simulated Timesteps per Day
+    integer(i4) :: TPD_sim
+
+    ! observed Timesteps per Day
+    integer(i4) :: TPD_obs
+
     real(dp), dimension(:), allocatable :: dummy
+
 
     ! copy time resolution to local variables
     TPD_sim = nTstepDay

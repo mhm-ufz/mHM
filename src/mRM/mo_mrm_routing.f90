@@ -44,6 +44,10 @@ CONTAINS
   !>       and eventually routes the water in a third step. The last step is
   !>       repeated multiple times if the routing timestep is smaller than
   !>       the timestep of the hydrological timestep
+  !>       ADDITIONAL INFORMATION
+  !>       mrm_routing
+
+
 
   !    INTENT(IN)
   !>       \param[in] "logical :: read_states"                            whether states are derived from restart file
@@ -59,20 +63,24 @@ CONTAINS
   !>       \param[in] "integer(i4), dimension(:) :: L11_toN"              L11 target grid cell order
   !>       \param[in] "integer(i4) :: L11_nOutlets"                       L11 number of outlets/sinks
   !>       \param[in] "integer(i4) :: timestep"                           simulation timestep in [h]
-  !>       \param[in] "real(dp) :: tsRoutFactor"                          factor between routing timestep and hydrological timestep
+  !>       \param[in] "real(dp) :: tsRoutFactor"                          factor between routing timestep and
+  !>       hydrological timestep
   !>       \param[in] "integer(i4) :: nNodes"                             number of nodes
   !>       \param[in] "integer(i4) :: nInflowGauges"                      number of inflow gauges
   !>       \param[in] "integer(i4), dimension(:) :: InflowGaugeIndexList" index list of inflow gauges
   !>       \param[in] "logical, dimension(:) :: InflowGaugeHeadwater"     flag for headwater cell of inflow gauge
   !>       \param[in] "integer(i4), dimension(:) :: InflowGaugeNodeList"  gauge node list at L11
-  !>       \param[in] "real(dp), dimension(:) :: InflowDischarge"         inflowing discharge at discharge gauge at current day
+  !>       \param[in] "real(dp), dimension(:) :: InflowDischarge"         inflowing discharge at discharge gauge at
+  !>       current day
   !>       \param[in] "integer(i4) :: nGauges"                            number of recording gauges
   !>       \param[in] "integer(i4), dimension(:) :: gaugeIndexList"       index list for outflow gauges
   !>       \param[in] "integer(i4), dimension(:) :: gaugeNodeList"        gauge node list at L11
-  !>       \param[in] "logical :: map_flag"                               flag indicating whether routing resolution iscoarser than hydrologic resolution
+  !>       \param[in] "logical :: map_flag"                               flag indicating whether routing resolution
+  !>       iscoarser than hydrologic resolution
   !>       \param[in] "real(dp), dimension(:) :: L11_length"              L11 link length
   !>       \param[in] "real(dp), dimension(:) :: L11_slope"               L11 slope
-  !>       \param[in] "real(dp), dimension(:) :: L11_FracFPimp"           L11 fraction of flood plain with impervios cover
+  !>       \param[in] "real(dp), dimension(:) :: L11_FracFPimp"           L11 fraction of flood plain with impervios
+  !>       cover
 
   !    INTENT(INOUT)
   !>       \param[inout] "real(dp), dimension(:) :: L11_C1"         L11 muskingum parameter 1
@@ -298,90 +306,83 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_runoff_acc
+  !    NAME
+  !        L11_runoff_acc
 
-  !     PURPOSE
-  !>        \brief total runoff accumulation at L11.
+  !    PURPOSE
+  !>       \brief total runoff accumulation at L11.
 
-  !>        \details Upscales runoff in space from L1 to L11 if routing resolution
-  !>                 is higher than hydrology resolution (map_flag equals .true.) or
-  !>                 downscales runoff from L1 to L11 if routing resolution is lower
-  !>                 than hydrology resolution.
+  !>       \details Upscales runoff in space from L1 to L11 if routing resolution
+  !>       is higher than hydrology resolution (map_flag equals .true.) or
+  !>       downscales runoff from L1 to L11 if routing resolution is lower
+  !>       than hydrology resolution.
+  !>       ADDITIONAL INFORMATION
+  !>       L11_runoff_acc
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm tst-1]
+  !>       \param[in] "real(dp), dimension(:) :: efecarea"     effective area in [km2] at Level 1
+  !>       \param[in] "integer(i4), dimension(:) :: L1_L11_Id" L11 Ids mapped on L1
+  !>       \param[in] "real(dp), dimension(:) :: L11_areacell" effective area in [km2] at Level 11
+  !>       \param[in] "integer(i4), dimension(:) :: L11_L1_Id" L1 Ids mapped on L11
+  !>       \param[in] "integer(i4) :: TS"                      time step in [s]
+  !>       \param[in] "logical :: map_flag"                    Flag indicating whether routing resolution is higher than
+  !>       hydrologic one
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp)    ::  qAll"              total runoff L1 [mm tst-1]
-  !>        \param[in] "real(dp)    ::  efecArea"          effective area in [km2] at Level 1
-  !>        \param[in] "integer(i4) ::  L1_L11_Id"         L11 Ids mapped on L1
-  !>        \param[in] "real(dp)    ::  L11_areaCell"      effective area in [km2] at Level 11
-  !>        \param[in] "integer(i4) ::  L11_L1_Id"         L1 Ids mapped on L11
-  !>        \param[in] "integer(i4) ::  TS"                time step in [s]
-  !>        \param[in] "logical     ::  map_flag"          Flag indicating whether routing resolution is higher than hydrologic one
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: qAcc" aggregated runoff at L11 [m3 s-1]
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: qAcc"                 aggregated runoff at L11 [m3 s-1]
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Matthias Zink  Mar 2014 - added inflow from upstream areas
+  ! Matthias Zink  Dec 2014 - adopted inflow gauges to ignore headwater cells
+  ! Stephan Thober Sep 2015 - included downscaling of runoff
+  ! Stephan Thober Feb 2016 - refactored upscaling of discharge from L1 to L11
+  ! Stephan Thober Feb 2016 - refactored downscaling of discharge from L1 to L11
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Luis Samaniego
-  !>        \date Jan 2013
-  !         Modified  Matthias Zink , Mar 2014 - added inflow from upstream areas
-  !                   Matthias Zink,  Dec 2014 - adopted inflow gauges to ignore headwater cells
-  !                   Stephan Thober, Sep 2015 - included downscaling of runoff
-  !                   Stephan Thober, Feb 2016 - refactored upscaling of discharge from L1 to L11
-  !                   Stephan Thober, Feb 2016 - refactored downscaling of discharge from L1 to L11
-
-  ! ------------------------------------------------------------------
-  SUBROUTINE L11_runoff_acc(qAll, efecArea, L1_L11_Id, &
-          L11_areaCell, L11_L1_Id, &
-          TS, map_flag, qAcc)
+  SUBROUTINE L11_runoff_acc(qAll, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, qAcc)
 
     use mo_common_constants, only : HourSecs, nodata_dp
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), intent(in) :: qall(:) ! [mm tst-1] total runoff l1
-    real(dp), intent(in) :: efecarea(:) ! [km2]      efective area at l1
-    integer(i4), intent(in) :: L1_L11_Id(:) ! l1 ids     mapped on l11
-    real(dp), intent(in) :: L11_areacell(:) ! [km2]      efective area at l11
-    integer(i4), intent(in) :: L11_L1_Id(:) ! l11 ids    mapped on l1
-    integer(i4), intent(in) :: TS ! [h] time step 
-    logical, intent(in) :: map_flag ! true when routing resolution is larger than hydrologic resolution
-    real(dp), intent(out) :: qAcc(:) ! [m3 s-1]   aggregated runoff at l11
+    ! total runoff L1 [mm tst-1]
+    real(dp), intent(in), dimension(:) :: qall
 
-    ! local variables
+    ! effective area in [km2] at Level 1
+    real(dp), intent(in), dimension(:) :: efecarea
+
+    ! L11 Ids mapped on L1
+    integer(i4), intent(in), dimension(:) :: L1_L11_Id
+
+    ! effective area in [km2] at Level 11
+    real(dp), intent(in), dimension(:) :: L11_areacell
+
+    ! L1 Ids mapped on L11
+    integer(i4), intent(in), dimension(:) :: L11_L1_Id
+
+    ! time step in [s]
+    integer(i4), intent(in) :: TS
+
+    ! Flag indicating whether routing resolution is higher than hydrologic one
+    logical, intent(in) :: map_flag
+
+    ! aggregated runoff at L11 [m3 s-1]
+    real(dp), intent(out), dimension(:) :: qAcc
+
     integer(i4) :: k
-    real(dp) :: TST             ! [s] time step
+
+    ! [s] time step
+    real(dp) :: TST
+
 
     ! ------------------------------------------------------------------
     ! ACCUMULATION OF DISCHARGE TO A ROUTING CELL
     ! ------------------------------------------------------------------
-
     ! Hydrologic timestep in seconds
     TST = HourSecs * TS
 
@@ -418,81 +419,75 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         add_inflow
-
-  !     PURPOSE 
-
   !>    \brief
   !>        Adds inflow discharge to the runoff produced at the
   !>        cell where the inflow is occurring.
-
   !>    \details
-
   !>        If a inflow gauge is given, then this routine is adding the
   !>        values to the runoff produced at the grid cell where the
   !>        inflow is happening. The values are not directly added to the
   !>        river network. If this cell is not a headwater then the streamflow
   !>        produced upstream will be neglected.
-
-  !     INTENT(IN)
   !>      \param[in] "integer(i4)  :: nInflowGauges"   number of inflow gauges
   !>      \param[in] "integer(i4)  :: InflowIndexList" index of inflow points
   !>      \param[in] "logical      :: InflowHeadwater" flag to consider headwater cells of inflow gauge
   !>      \param[in] "integer(i4)  :: InflowNodeList"  L11 ID of inflow points
   !>      \param[in] "real(dp)     :: QInflow"         [m3 s-1] inflowing water
-
-  !     INTENT(INOUT)
   !>      \param[in,out] "real(dp) :: qOut"            [m3 s-1] Series of attenuated runoff 
+  !    NAME
+  !        add_inflow
 
-  !     INTENT(OUT)
-  !         None
+  !    PURPOSE
+  !>       \brief TODO: add description
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       none
+  !>       none
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: nInflowGauges"                 [-] number of inflow points
+  !>       \param[in] "integer(i4), dimension(:) :: InflowIndexList" [-] index of inflow points
+  !>       \param[in] "logical, dimension(:) :: InflowHeadwater"     [-] if to consider headwater cells of inflow gauge
+  !>       \param[in] "integer(i4), dimension(:) :: InflowNodeList"  [-]        L11 ID of inflow points
+  !>       \param[in] "real(dp), dimension(:) :: QInflow"            [m3 s-1]   inflowing water
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:) :: qOut" [m3 s-1] Series of attenuated runoff
 
-  !     RETURN
+  !    HISTORY
+  !>       \authors Stephan Thober & Matthias Zink
 
+  !>       \date Jul 2016
 
-  !     RESTRICTIONS
-  !        none
+  ! Modifications:
 
-  !     EXAMPLE
-  !        none
+  subroutine add_inflow(nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow, qOut)
 
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author  Stephan Thober & Matthias Zink
-  !>        \date    Jul 2016
-
-  !         Modified 
-  ! ------------------------------------------------------------------
-  subroutine add_inflow(nInflowGauges, InflowIndexList, InflowHeadwater, &
-          InflowNodeList, QInflow, & ! Intent IN
-          qOut) ! Intent INOUT
-
-    use mo_kind, only : i4, dp
+    use mo_kind, only : dp, i4
 
     implicit none
 
-    ! input variables
-    integer(i4), intent(in) :: nInflowGauges      ! [-] number of inflow points
-    integer(i4), intent(in) :: InflowIndexList(:) ! [-] index of inflow points
-    logical, intent(in) :: InflowHeadwater(:) ! [-] if to consider headwater cells of inflow gauge
-    integer(i4), intent(in) :: InflowNodeList(:)  ! [-]        L11 ID of inflow points
-    real(dp), intent(in) :: QInflow(:)         ! [m3 s-1]   inflowing water
-    ! output variables
-    real(dp), intent(inout) :: qOut(:)            ! [m3 s-1] Series of attenuated runoff
+    ! [-] number of inflow points
+    integer(i4), intent(in) :: nInflowGauges
 
-    ! local variables
+    ! [-] index of inflow points
+    integer(i4), intent(in), dimension(:) :: InflowIndexList
+
+    ! [-] if to consider headwater cells of inflow gauge
+    logical, intent(in), dimension(:) :: InflowHeadwater
+
+    ! [-]        L11 ID of inflow points
+    integer(i4), intent(in), dimension(:) :: InflowNodeList
+
+    ! [m3 s-1]   inflowing water
+    real(dp), intent(in), dimension(:) :: QInflow
+
+    ! [m3 s-1] Series of attenuated runoff
+    real(dp), intent(inout), dimension(:) :: qOut
+
     integer(i4) :: ii
+
 
     ! discharge for inflow gauges (e.g. for missing upstream catchments) is added here
     ! should be put after UH attenuation because it is measured runoff at this cell 
@@ -511,139 +506,145 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L11_routing
+  !    NAME
+  !        L11_routing
 
-  !     PURPOSE 
+  !    PURPOSE
+  !>       \brief Performs runoff routing for mHM at L11 upscaled network
+  !>       (\ref fig_routing "Routing Network").
+  !>       \details
+  !>       Hydrograph routing is carried out with the Muskingum algorithm
+  !>       \cite CMM1988.  This simplification of the St. Venant
+  !>       equations is justified in mHM because the potential areas of
+  !>       application of this model would hardly exhibit abruptly
+  !>       changing hydrographs with supercritical flows.  The discharge
+  !>       leaving the river reach located on cell \f$ i \f$ \f$
+  !>       Q_{i}^{1}(t) \f$ at time step \f$ t \f$ can be determined by
+  !>       \f[ Q_{i}^{1}(t) =  Q_{i}^{1}(t-1)
+  !>       + c_{1} \left( Q_{i}^{0}(t-1) - Q_{i}^{1}(t-1) \right)
+  !>       + c_{2} \left( Q_{i}^{0}(t)   - Q_{i}^{0}(t-1) \right) \f]
+  !>       with
+  !>       \f[  Q_{i}^{0}(t) = Q_{i'}(t) + Q_{i'}^{1}(t) \f]
+  !>       \f[ c_{1}= \frac{\Delta t} { \kappa (1- \xi ) + \frac{\Delta t}{2} } \f]
+  !>       \f[ c_{2}= \frac{ \frac{\Delta t}{2} - \kappa \xi} { \kappa (1- \xi)
+  !>       + \frac{\Delta t}{2} } \f]
+  !>       where
+  !>       \f$ Q_{i}^{0} \f$ and \f$ Q_{i}^{1} \f$ denote the discharge
+  !>       entering and leaving the river reach located on cell \f$ i \f$
+  !>       respectively.
+  !>       \f$ Q_{i'} \f$ is the contribution from the upstream cell \f$
+  !>       i'\f$.
+  !>       \f$ \kappa \f$ Muskingum travel time parameter.
+  !>       \f$ \xi \f$ Muskingum attenuation parameter.
+  !>       \f$ \Delta t \f$ time interval in hours.
+  !>       \f$ t \f$ Time index for each \f$ \Delta t \f$ interval.
+  !>       To improve performance, a routing sequence "netPerm" is
+  !>       required. This permutation is determined in the mo_init_mrm
+  !>       routine.
 
-  !>    \brief Performs runoff routing for mHM at L11 upscaled network
-  !>     (\ref fig_routing "Routing Network").
+  !>       \details TODO: add description
+  !>       ADDITIONAL INFORMATION
+  !>       L11_routing
+  !>       none
 
-  !>    \details
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: nNodes"                       number of network nodes = nCells1
+  !>       \param[in] "integer(i4) :: nLinks"                       number of stream segment (reaches)
+  !>       \param[in] "integer(i4), dimension(:) :: netPerm"        routing order of a given basin (permutation)
+  !>       \param[in] "integer(i4), dimension(:) :: netLink_fromN"  from node
+  !>       \param[in] "integer(i4), dimension(:) :: netLink_toN"    to node
+  !>       \param[in] "real(dp), dimension(:) :: netLink_C1"        routing parameter  C1 (\cite CMM1988 p. 25-41)
+  !>       \param[in] "real(dp), dimension(:) :: netLink_C2"        routing parameters C2 (id)
+  !>       \param[in] "real(dp), dimension(:) :: netNode_qOUT"      Total outflow from cells (given basin) L11 at time
+  !>       tt in [m3 s-1]
+  !>       \param[in] "integer(i4) :: nInflowGauges"                [-]      number of inflow points
+  !>       \param[in] "logical, dimension(:) :: InflowHeadwater"    [-]      if to consider headwater cells of inflow
+  !>       gauge
+  !>       \param[in] "integer(i4), dimension(:) :: InflowNodeList" [-]      L11 ID of inflow points
 
-  !>    Hydrograph routing is carried out with the Muskingum algorithm
-  !>    \cite CMM1988.  This simplification of the St. Venant
-  !>    equations is justified in mHM because the potential areas of
-  !>    application of this model would hardly exhibit abruptly
-  !>    changing hydrographs with supercritical flows.  The discharge
-  !>    leaving the river reach located on cell \f$ i \f$ \f$
-  !>    Q_{i}^{1}(t) \f$ at time step \f$ t \f$ can be determined by
+  !    INTENT(INOUT)
+  !>       \param[inout] "real(dp), dimension(:, :) :: netNode_qTIN" [m3 s-1] Total inputs at t-1 and t
+  !>       \param[inout] "real(dp), dimension(:, :) :: netNode_qTR"  [m3 s-1] Transformed outflow leaving
+  !>       node I (Muskingum)
 
-  !>     \f[ Q_{i}^{1}(t) =  Q_{i}^{1}(t-1) 
-  !>             + c_{1} \left( Q_{i}^{0}(t-1) - Q_{i}^{1}(t-1) \right) 
-  !>             + c_{2} \left( Q_{i}^{0}(t)   - Q_{i}^{0}(t-1) \right) \f]
-  !>    with
-  !>     \f[  Q_{i}^{0}(t) = Q_{i'}(t) + Q_{i'}^{1}(t) \f]
-  !>     \f[ c_{1}= \frac{\Delta t} { \kappa (1- \xi ) + \frac{\Delta t}{2} } \f]
-  !>     \f[ c_{2}= \frac{ \frac{\Delta t}{2} - \kappa \xi} { \kappa (1- \xi)
-  !>        + \frac{\Delta t}{2} } \f]
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(nNodes) :: netNode_Qmod" [m3 s-1] Simulated routed discharge
 
-  !>    where \n
-  !>    \f$ Q_{i}^{0} \f$ and \f$ Q_{i}^{1} \f$ denote the discharge
-  !>    entering and leaving the river reach located on cell \f$ i \f$
-  !>    respectively. \n 
-  !>    \f$ Q_{i'} \f$ is the contribution from the upstream cell \f$
-  !>    i'\f$. \n 
-  !>    \f$ \kappa \f$ Muskingum travel time parameter. \n
-  !>    \f$ \xi \f$ Muskingum attenuation parameter. \n 
-  !>    \f$ \Delta t \f$ time interval in hours. \n 
-  !>    \f$ t \f$ Time index for each \f$ \Delta t \f$ interval. \n
-  !>    To improve performance, a routing sequence "netPerm" is
-  !>    required. This permutation is determined in the mo_init_mrm
-  !>    routine.
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(IN)
-  !>      \param[in] "integer(i4)  ::  nNodes"  number of network nodes = nCells1
-  !>      \param[in] "integer(i4)  ::  nLinks"  number of stream segment (reaches)
-  !>      \param[in] "integer(i4)  ::  netPerm" routing order of a given basin (permutation)
-  !>      \param[in] "integer(i4)  ::  netLink_fromN" from node 
-  !>      \param[in] "integer(i4)  ::  netLink_toN"   to node
-  !>      \param[in] "real(dp)     ::  netLink_C1"    routing parameter  C1 (\cite CMM1988 p. 25-41)
-  !>      \param[in] "real(dp)     ::  netLink_C2"    routing parameters C2 (id)
-  !>      \param[in] "real(dp)     ::  netNode_qOUT"  Total outflow from cells (given basin) L11 at time tt in [m3 s-1]
+  !>       \date Dec 2005
 
-  !     INTENT(INOUT)
-  !>      \param[in,out] "real(dp) ::  netNode_qTIN(nNodes,2)"  Total discharge inputs at t-1 and t
-  !>      \param[in,out] "real(dp) ::  netNode_qTR(nNodes,2)"   Routed outflow leaving a node (\cite TS2006 )
+  ! Modifications:
+  ! Luis Samaniego Feb 2008 - routing module (cells)
+  ! Rohini Kumar   Aug 2011 - vector version of mHM-UFZ
+  !                Nov 2011 - parallel version
+  ! Luis Samaniego Jan 2013 - modularization, documentation
 
-  !     INTENT(OUT)
-  !>     \param[out]  "real(dp)    :: netNode_Qmod(nNodes)"   Simulated discharge [m3 s-1] 
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-
-
-  !     RESTRICTIONS
-  !>       \note A basin outlet should be identified.
-
-  !     EXAMPLE
-  !        none
-
-  !     LITERATURE
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2005
-
-  !         Modified Luis Samaniego   Feb 2008 - routing module (cells)
-  !                  Rohini Kumar     Aug 2011 - vector version of mHM-UFZ
-  !                                   Nov 2011 - parallel version
-  !                  Luis Samaniego   Jan 2013 - modularization, documentation
-  ! ------------------------------------------------------------------
-  subroutine L11_routing(&
-          nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, &
-          netLink_C1, netLink_C2, netNode_qOUT, nInflowGauges, InflowHeadwater, InflowNodeList, &
-          netNode_qTIN, netNode_qTR, netNode_Qmod)
-
+  subroutine L11_routing(nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, netLink_C1, netLink_C2, netNode_qOUT, &
+                        nInflowGauges, InflowHeadwater, InflowNodeList, netNode_qTIN, netNode_qTR, netNode_Qmod)
     implicit none
 
-    ! Input
-    integer(i4), intent(in) :: nNodes        ! number of network nodes = nCells1
-    integer(i4), intent(in) :: nLinks        ! number of stream segment (reaches)
-    ! Stream link description   network topology  ==>    netLink
-    integer(i4), dimension(:), intent(in) :: netPerm       ! basin routing order (permutation)
-    integer(i4), dimension(:), intent(in) :: netLink_fromN ! from node
-    integer(i4), dimension(:), intent(in) :: netLink_toN   ! to node
-    real(dp), dimension(:), intent(in) :: netLink_C1    ! [1]   routing parameter  C1 (Chow, 25-41)
-    real(dp), dimension(:), intent(in) :: netLink_C2    ! [1]   routing parameters C2 (")
-    ! State variables
-    real(dp), dimension(:), intent(in) :: netNode_qOUT  ! [m3 s-1] Total outflow, all cells, basin,
-    !                                                                !          level L11 at time tt
-    integer(i4), intent(in) :: nInflowGauges   ! [-]      number of inflow points
-    logical, dimension(:), intent(in) :: InflowHeadwater ! [-]      if to consider headwater cells of inflow gauge
-    integer(i4), dimension(:), intent(in) :: InflowNodeList  ! [-]      L11 ID of inflow points
+    ! number of network nodes = nCells1
+    integer(i4), intent(in) :: nNodes
 
-    ! Input - Output
-    real(dp), dimension(:, :), intent(inout) :: netNode_qTIN  ! [m3 s-1] Total inputs at t-1 and t
-    real(dp), dimension(:, :), intent(inout) :: netNode_qTR   ! [m3 s-1] Transformed outflow leaving
-    !                                                              !          node I (Muskingum)
-    ! Output
-    real(dp), dimension(nNodes), intent(out) :: netNode_Qmod  ! [m3 s-1] Simulated routed discharge
+    ! number of stream segment (reaches)
+    integer(i4), intent(in) :: nLinks
 
+    ! routing order of a given basin (permutation)
+    integer(i4), dimension(:), intent(in) :: netPerm
 
-    ! local
+    ! from node
+    integer(i4), dimension(:), intent(in) :: netLink_fromN
+
+    ! to node
+    integer(i4), dimension(:), intent(in) :: netLink_toN
+
+    ! routing parameter  C1 (\cite CMM1988 p. 25-41)
+    real(dp), dimension(:), intent(in) :: netLink_C1
+
+    ! routing parameters C2 (id)
+    real(dp), dimension(:), intent(in) :: netLink_C2
+
+    ! Total outflow from cells (given basin) L11 at time tt in [m3 s-1]
+    real(dp), dimension(:), intent(in) :: netNode_qOUT
+
+    ! [-]      number of inflow points
+    integer(i4), intent(in) :: nInflowGauges
+
+    ! [-]      if to consider headwater cells of inflow gauge
+    logical, dimension(:), intent(in) :: InflowHeadwater
+
+    ! [-]      L11 ID of inflow points
+    integer(i4), dimension(:), intent(in) :: InflowNodeList
+
+    ! [m3 s-1] Total inputs at t-1 and t
+    real(dp), dimension(:, :), intent(inout) :: netNode_qTIN
+
+    ! [m3 s-1] Transformed outflow leaving
+    ! node I (Muskingum)
+    real(dp), dimension(:, :), intent(inout) :: netNode_qTR
+
+    ! [m3 s-1] Simulated routed discharge
+    real(dp), dimension(nNodes), intent(out) :: netNode_Qmod
+
     integer(i4) :: i, k, iNode, tNode
-    integer(i4), parameter :: IT = 2              ! current routing state (2)
-    integer(i4), parameter :: IT1 = 1              ! past routing state (1)
+
+    ! current routing state (2)
+    integer(i4), parameter :: IT = 2
+
+    ! past routing state (1)
+    integer(i4), parameter :: IT1 = 1
+
+
     ! Entry value for the auxiliary vectors
     !   netNode_qTIN(iNode,:)
     !   netNode_qTR(iNode,:)
     ! which store current and past states of
     ! incoming and outgoing of discharge at iNode
-
-
     !--------------------------------------------------------------------------
     !                             Muskingum Flood Routing
     !--------------------------------------------------------------------------
-
     ! initialize total input at point time IT in all nodes
     netNode_qTIN(:, IT) = 0.0_dp
     !--------------------------------------------------------------------------

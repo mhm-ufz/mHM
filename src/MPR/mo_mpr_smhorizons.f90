@@ -33,28 +33,39 @@ contains
 
   !>       \details calculate soil properties at the level 1.
   !>       Global parameters needed (see mhm_parameter.nml):
-  !>       - param(1) = rootFractionCoefficient_forest     
-  !>       - param(2) = rootFractionCoefficient_impervious 
-  !>       - param(3) = rootFractionCoefficient_pervious   
-  !>       - param(4) = infiltrationShapeFactor            
+  !>       - param(1) = rootFractionCoefficient_forest
+  !>       - param(2) = rootFractionCoefficient_impervious
+  !>       - param(3) = rootFractionCoefficient_pervious
+  !>       - param(4) = infiltrationShapeFactor
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: param"               parameters
   !>       \param[in] "integer(i4), dimension(:, :) :: processMatrix" - matrix specifying user defined processes
   !>       \param[in] "integer(i4) :: iFlag_soil"                     - flags for handling multiple soil databases
   !>       \param[in] "integer(i4) :: nHorizons_mHM"                  - number of horizons to model
-  !>       \param[in] "real(dp), dimension(:) :: HorizonDepth"        [10^-3 m] horizon depth fromsurface, postive downwards
+  !>       \param[in] "real(dp), dimension(:) :: HorizonDepth"        [10^-3 m] horizon depth from
+  !>       surface, postive downwards
   !>       \param[in] "integer(i4), dimension(:) :: LCOVER0"          Land cover at level 0
   !>       \param[in] "integer(i4), dimension(:, :) :: soilID0"       soil ID at level 0
   !>       \param[in] "integer(i4), dimension(:) :: nHorizons"        horizons per soil type
   !>       \param[in] "integer(i4), dimension(:) :: nTillHorizons"    Number of Tillage horizons
-  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaS_till"   saturated water content of soilhorizons upto tillage depth,f(OM, management)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaFC_till"  Field capacity of tillagelayers; LUC dependent,f(OM, management)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaPW_till"  Permament wilting point oftillage layers; LUC dependent,f(OM, management)
-  !>       \param[in] "real(dp), dimension(:, :) :: thetaS"           saturated water content of soilhorizons after tillage depth
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaS_till"   saturated water content of soil
+  !>       horizons upto tillage depth,
+  !>       f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaFC_till"  Field capacity of tillage
+  !>       layers; LUC dependent,
+  !>       f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: thetaPW_till"  Permament wilting point of
+  !>       tillage layers; LUC dependent,
+  !>       f(OM, management)
+  !>       \param[in] "real(dp), dimension(:, :) :: thetaS"           saturated water content of soil
+  !>       horizons after tillage depth
   !>       \param[in] "real(dp), dimension(:, :) :: thetaFC"          Field capacity of deeper layers
-  !>       \param[in] "real(dp), dimension(:, :) :: thetaPW"          Permanent wilting point ofdeeper layers
-  !>       \param[in] "real(dp), dimension(:, :, :) :: Wd"            weights of mHM Horizonsaccording to horizons providedin soil database
+  !>       \param[in] "real(dp), dimension(:, :) :: thetaPW"          Permanent wilting point of
+  !>       deeper layers
+  !>       \param[in] "real(dp), dimension(:, :, :) :: Wd"            weights of mHM Horizons
+  !>       according to horizons provided
+  !>       in soil database
   !>       \param[in] "real(dp), dimension(:, :, :) :: Db"            Bulk density
   !>       \param[in] "real(dp), dimension(:, :) :: DbM"              mineral Bulk density
   !>       \param[in] "real(dp), dimension(:) :: RZdepth"             [mm]       Total soil depth
@@ -67,7 +78,9 @@ contains
   !>       \param[in] "integer(i4), dimension(:) :: nL0_in_L1"        Number of L0 cells within a L1 cel
 
   !    INTENT(INOUT)
-  !>       \param[inout] "real(dp), dimension(:, :) :: L1_beta"   Parameter that determines therelative contribution to SM, upscaledBulk density
+  !>       \param[inout] "real(dp), dimension(:, :) :: L1_beta"   Parameter that determines the
+  !>       relative contribution to SM, upscaled
+  !>       Bulk density
   !>       \param[inout] "real(dp), dimension(:, :) :: L1_SMs"    [10^-3 m] depth of saturated SM cont
   !>       \param[inout] "real(dp), dimension(:, :) :: L1_FC"     [10^-3 m] field capacity
   !>       \param[inout] "real(dp), dimension(:, :) :: L1_PW"     [10^-3 m] permanent wilting point
@@ -85,6 +98,7 @@ contains
   ! Stephan Thober                  Mar 2014 - added omp parallelization
   ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
   ! M. Cuneyd Demirel, Simon Stisen Apr 2017 - added FC dependency on root fraction coefficient
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mpr_SMhorizons(param, processMatrix, iFlag_soil, nHorizons_mHM, HorizonDepth, LCOVER0, soilID0, nHorizons, &
                            nTillHorizons, thetaS_till, thetaFC_till, thetaPW_till, thetaS, thetaFC, thetaPW, Wd, Db, &
@@ -110,7 +124,8 @@ contains
     ! - number of horizons to model
     integer(i4), intent(in) :: nHorizons_mHM
 
-    ! [10^-3 m] horizon depth fromsurface, postive downwards
+    ! [10^-3 m] horizon depth from
+    ! surface, postive downwards
     real(dp), dimension(:), intent(in) :: HorizonDepth
 
     ! Land cover at level 0
@@ -125,25 +140,35 @@ contains
     ! Number of Tillage horizons
     integer(i4), dimension(:), intent(in) :: nTillHorizons
 
-    ! saturated water content of soilhorizons upto tillage depth,f(OM, management)
+    ! saturated water content of soil
+    ! horizons upto tillage depth,
+    ! f(OM, management)
     real(dp), dimension(:, :, :), intent(in) :: thetaS_till
 
-    ! Field capacity of tillagelayers; LUC dependent,f(OM, management)
+    ! Field capacity of tillage
+    ! layers; LUC dependent,
+    ! f(OM, management)
     real(dp), dimension(:, :, :), intent(in) :: thetaFC_till
 
-    ! Permament wilting point oftillage layers; LUC dependent,f(OM, management)
+    ! Permament wilting point of
+    ! tillage layers; LUC dependent,
+    ! f(OM, management)
     real(dp), dimension(:, :, :), intent(in) :: thetaPW_till
 
-    ! saturated water content of soilhorizons after tillage depth
+    ! saturated water content of soil
+    ! horizons after tillage depth
     real(dp), dimension(:, :), intent(in) :: thetaS
 
     ! Field capacity of deeper layers
     real(dp), dimension(:, :), intent(in) :: thetaFC
 
-    ! Permanent wilting point ofdeeper layers
+    ! Permanent wilting point of
+    ! deeper layers
     real(dp), dimension(:, :), intent(in) :: thetaPW
 
-    ! weights of mHM Horizonsaccording to horizons providedin soil database
+    ! weights of mHM Horizons
+    ! according to horizons provided
+    ! in soil database
     real(dp), dimension(:, :, :), intent(in) :: Wd
 
     ! Bulk density
@@ -176,7 +201,9 @@ contains
     ! Number of L0 cells within a L1 cel
     integer(i4), dimension(:), intent(in) :: nL0_in_L1
 
-    ! Parameter that determines therelative contribution to SM, upscaledBulk density
+    ! Parameter that determines the
+    ! relative contribution to SM, upscaled
+    ! Bulk density
     real(dp), dimension(:, :), intent(inout) :: L1_beta
 
     ! [10^-3 m] depth of saturated SM cont
@@ -233,13 +260,16 @@ contains
 
     real(dp) :: tmp_rootFractionCoefficient_pervious
 
-    ! Field capacity dependentroot frac coeffiecient
+    ! Field capacity dependent
+    ! root frac coeffiecient
     real(dp) :: tmp_rootFractionCoefficient_perviousFC
 
-    ! Model parameter describing the threshold foractual ET reduction for sand
+    ! Model parameter describing the threshold for
+    ! actual ET reduction for sand
     real(dp) :: tmp_rootFractionCoefficient_sand
 
-    ! Model parameter describing the threshold for actualET reduction for clay
+    ! Model parameter describing the threshold for actual
+    ! ET reduction for clay
     real(dp) :: tmp_rootFractionCoefficient_clay
 
     ! Calculate FCmin at level 0 once to speed up the code

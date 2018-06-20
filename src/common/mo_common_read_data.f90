@@ -124,35 +124,47 @@ CONTAINS
 
   end subroutine read_dem
 
+  !    NAME
+  !        read_lcover
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine read_lcover
 
-    USE mo_read_spatial_data, ONLY : &
-            read_spatial_data_ascii
-    USE mo_append, ONLY : append, paste
-    USE mo_string_utils, ONLY : num2str
-    USE mo_message, ONLY : message
-    !
-    USE mo_common_file, ONLY : &
-            ulcoverclass ! unit of land cover class map
-    use mo_common_variables, ONLY : &
-            L0_LCover, & ! classical mHM land cover class (L0)
-            level0, & ! grid information (ncols, nrows, ..)
-            dirLCover, & ! directories
-            L0_Basin, & ! L0_Basin ID
-            LCfilename, nLCoverScene, & ! file names and number of land cover scenes
-            nBasins, & ! number of basins
-            Grid
-    USE mo_common_constants, ONLY : nodata_i4                   ! mHM's global nodata vales
+    use mo_append, only : append, paste
+    use mo_common_constants, only : nodata_i4
+    use mo_common_file, only : ulcoverclass
+    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, LCfilename, dirLCover, level0, nBasins, nLCoverScene
+    use mo_message, only : message
+    use mo_read_spatial_data, only : read_spatial_data_ascii
+    use mo_string_utils, only : num2str
 
     implicit none
 
-    ! local variables
-    integer(i4) :: iBasin, iVar                  ! loop variables
-    character(256) :: fName                      ! file name of file to read
+    ! loop variables
+    integer(i4) :: iBasin, iVar
+
+    ! file name of file to read
+    character(256) :: fName
+
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
+
     logical, dimension(:, :), allocatable :: mask_2d
+
     type(Grid), pointer :: level0_iBasin
+
 
     do iBasin = 1, nBasins
 

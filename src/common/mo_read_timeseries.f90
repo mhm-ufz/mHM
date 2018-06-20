@@ -5,7 +5,7 @@
 !>       \details This routine is reading time series input data for a particular time period. The files need to have a
 !>       specific header specified in the different routines.
 
-!>       \authors s Matthias Zink, Juliane Mai
+!>       \authors Matthias Zink, Juliane Mai
 
 !>       \date Jan 2013
 
@@ -50,7 +50,7 @@ CONTAINS
   !>       \param[in] "integer(i4), dimension(3) :: periodStart" Start day of reading (YYYY,MM,DD)
   !>       \param[in] "integer(i4), dimension(3) :: periodEnd"   End   day of reading (YYYY,MM,DD)
   !>       \param[in] "logical :: optimize"                      optimization flag
-  !>       \param[in] "integer(i4) :: opti_function"             
+  !>       \param[in] "integer(i4) :: opti_function"
 
   !    INTENT(OUT)
   !>       \param[out] "real(dp), dimension(:) :: data" Data vector
@@ -60,7 +60,7 @@ CONTAINS
   !>       \param[out] "integer(i4), optional :: nMeasPerDay"    Number of data points per day
 
   !    HISTORY
-  !>       \authors s Matthias Zink, Juliane Mai
+  !>       \authors Matthias Zink, Juliane Mai
 
   !>       \date Jan 2013
 
@@ -150,7 +150,8 @@ CONTAINS
     ! number of days in period
     integer(i4) :: length_period
 
-    ! time series output (fileStart:fileEnd)points --> 0.25 [d-1]
+    ! time series output (fileStart:fileEnd)
+    ! points --> 0.25 [d-1]
     real(dp), dimension(:), allocatable :: data_file
 
     ! dummy for char read in

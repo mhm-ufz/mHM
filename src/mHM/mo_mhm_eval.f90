@@ -4,7 +4,7 @@
 
 !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
-!>       \authors s Juliane Mai, Rohini Kumar
+!>       \authors Juliane Mai, Rohini Kumar
 
 !>       \date Feb 2013
 
@@ -33,16 +33,23 @@ CONTAINS
   !>       \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
   !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
+  !>       ADDITIONAL INFORMATION
+  !>       mhm_eval
 
   !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
+  !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION
+  !>       [no. of global_Parameters]
 
   !    INTENT(OUT), OPTIONAL
-  !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
-  !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       returns soil moisture time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
-  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION
+  !>       [nTimeSteps, nGaugesTotal]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       returns soil moisture time series for all
+  !>       grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" returns basin averaged total water storage
+  !>       time series, DIMENSION [nTimeSteps, nBasins]
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
-  !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       returns evapotranspiration time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
+  !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       returns evapotranspiration time series for
+  !>       all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
 
   !    HISTORY
   !>       \authors Juliane Mai, Rohini Kumar
@@ -132,7 +139,8 @@ CONTAINS
     ! returns runoff time series, DIMENSION [nTimeSteps, nGaugesTotal]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff
 
-    ! returns soil moisture time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
+    ! returns soil moisture time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
     ! returns basin averaged total water storage time series, DIMENSION [nTimeSteps, nBasins]
@@ -141,7 +149,8 @@ CONTAINS
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
 
-    ! returns evapotranspiration time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells, nTimeSteps]
+    ! returns evapotranspiration time series for all grid cells (of multiple basins concatenated),DIMENSION [nCells,
+    ! nTimeSteps]
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti
 
     ! for writing netcdf file
@@ -165,7 +174,13 @@ CONTAINS
     ! meteorological time step for process 5 (PET)
     integer(i4), dimension(6) :: iMeteo_p5
 
-    ! process 5: start and end index of vectorsindex 1: petindex 2: tminindex 3: tmaxindex 4: netradindex 5: absolute vapour pressureindex 6: windspeed
+    ! process 5: start and end index of vectors
+    ! index 1: pet
+    ! index 2: tmin
+    ! index 3: tmax
+    ! index 4: netrad
+    ! index 5: absolute vapour pressure
+    ! index 6: windspeed
     integer(i4), dimension(6) :: s_p5, e_p5
 
     integer(i4) :: s_meteo, e_meteo
@@ -209,7 +224,11 @@ CONTAINS
     ! factor between routing and hydrological modelling resolution (dummy)
     real(dp) :: tsRoutFactorIn
 
-    ! timestep of runoff to rout [h]- identical to timestep of input iftsRoutFactor is less than 1- tsRoutFactor * timestep iftsRoutFactor is greater than 1
+    ! timestep of runoff to rout [h]
+    ! - identical to timestep of input if
+    ! tsRoutFactor is less than 1
+    ! - tsRoutFactor * timestep if
+    ! tsRoutFactor is greater than 1
     integer(i4) :: timestep_rout
 
     ! Runoff that is input for routing

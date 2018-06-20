@@ -43,10 +43,14 @@ CONTAINS
   !>       defined in them mo_global_variables.f90 file. After allocating any variable
   !>       in this routine, initalize them in the following variables_default_init
   !>       subroutine:
-  !>       
+
+  !>       ADDITIONAL INFORMATION
+  !>       variables_alloc
+
+  !>       call variables_alloc(iBasin)
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: ncells1" 
+  !>       \param[in] "integer(i4) :: ncells1"
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -63,8 +67,7 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
-                                    L1_fastRunoff, L1_infilSoil, &
+    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, &
                                     L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
                                     L1_soilMoist, L1_total_runoff, L1_unsatSTW
@@ -165,82 +168,57 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          variables_default_init
+  !    NAME
+  !        variables_default_init
 
-  !>        \brief Default initalization mHM related L1 variables
+  !    PURPOSE
+  !>       \brief Default initalization mHM related L1 variables
 
-  !>        \details Default initalization of mHM related L1 variables (e.g., states,
-  !>                 fluxes, and parameters) as per given constant values given in mo_mhm_constants.
-  !>                 Variables initalized here is defined in the mo_global_variables.f90 file.
-  !>                 Only Variables that are defined in the variables_alloc subroutine are
-  !>                 intialized here.
-  !
-  !>                 If a variable is added or removed here, then it also has to be added or removed
-  !>                 in the subroutine state_variables_set in the module mo_restart and in the
-  !>                 subroutine set_state in the module mo_set_netcdf_restart.
-  !
-  !     CALLING SEQUENCE
-  !         call variables_default_init()
+  !>       \details Default initalization of mHM related L1 variables (e.g., states,
+  !>       fluxes, and parameters) as per given constant values given in mo_mhm_constants.
+  !>       Variables initalized here is defined in the mo_global_variables.f90 file.
+  !>       Only Variables that are defined in the variables_alloc subroutine are
+  !>       intialized here.
+  !>       If a variable is added or removed here, then it also has to be added or removed
+  !>       in the subroutine state_variables_set in the module mo_restart and in the
+  !>       subroutine set_state in the module mo_set_netcdf_restart.
+  !>       ADDITIONAL INFORMATION
+  !>       variables_default_init
 
-  !     INTENT(IN)
 
-  !     INTENT(INOUT)
-  !         None
+  !>       call variables_default_init()
+  !>       \authors  R. Kumar & J. Mai
+  !>       \date    Sep. 2013
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Robert Schweppe
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jun 2018
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! R. Kumar       Sep 2013 - documentation added according to the template
+  ! Stephan Thober Aug 2015 - moved routing variables to mRM
 
-  !     INTENT(OUT), OPTIONAL
-
-  !     RETURN
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-
-  !     HISTORY
-  !         \authors  R. Kumar & J. Mai
-  !         \date    Sep. 2013
-  !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
-  !              Stephan Thober Aug 2015   - moved routing variables to mRM
-
-  subroutine variables_default_init()
-
-    use mo_mpr_global_variables, only : &
-            nSoilHorizons_mHM, HorizonDepth_mHM, &
-            L1_fSealed, L1_alpha, L1_degDayInc, &
-            L1_degDayMax, L1_degDayNoPre, L1_degDay, L1_karstLoss, L1_fAsp, L1_petLAIcorFactor, &
-            L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, L1_surfResist, &
-            L1_fRoots, L1_maxInter, L1_kfastFlow, L1_kSlowFlow, L1_kBaseFlow, &
-            L1_kPerco, L1_soilMoistFC, L1_soilMoistSat, L1_soilMoistExp, &
-            L1_jarvis_thresh_c1, L1_tempThresh, L1_unsatThresh, L1_sealedThresh, L1_wiltingPoint
-    use mo_global_variables, only : &
-            L1_inter, L1_snowPack, L1_sealSTW, &
-            L1_soilMoist, L1_unsatSTW, L1_satSTW, &
-            L1_pet_calc, L1_aETSoil, L1_aETCanopy, L1_aETSealed, &
-            L1_baseflow, L1_infilSoil, L1_fastRunoff, L1_melt, &
-            L1_percol, L1_preEffect, L1_rain, L1_runoffSeal, L1_slowRunoff, &
-            L1_snow, L1_Throughfall, L1_total_runoff, L1_neutrons
+  subroutine variables_default_init
 
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_mpr_constants, only : &
-            P2_InitStateFluxes, &
-            P3_InitStateFluxes, P4_InitStateFluxes, &
-            P5_InitStateFluxes, C1_InitStateSM
+    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, &
+                                    L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
+                                    L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
+                                    L1_soilMoist, L1_total_runoff, L1_unsatSTW
+    use mo_mpr_constants, only : C1_InitStateSM, P2_InitStateFluxes, P3_InitStateFluxes, &
+                                 P4_InitStateFluxes, P5_InitStateFluxes
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, L1_HarSamCoeff, L1_PrieTayAlpha, &
+                                        L1_aeroResist, L1_alpha, L1_degDay, L1_degDayInc, L1_degDayMax, L1_degDayNoPre, &
+                                        L1_fAsp, L1_fRoots, L1_fSealed, L1_jarvis_thresh_c1, L1_kBaseFlow, L1_kPerco, &
+                                        L1_kSlowFlow, L1_karstLoss, L1_kfastFlow, L1_maxInter, L1_petLAIcorFactor, &
+                                        L1_sealedThresh, L1_soilMoistExp, L1_soilMoistFC, L1_soilMoistSat, L1_surfResist, &
+                                        L1_tempThresh, L1_unsatThresh, L1_wiltingPoint, nSoilHorizons_mHM
 
     implicit none
 
-    ! inital values
     integer(i4) :: i
+
 
     !-------------------------------------------
     ! STATE VARIABLES

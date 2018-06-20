@@ -1,10 +1,11 @@
 !>       \file mo_global_variables.f90
 
 !>       \brief Global variables ONLY used in reading, writing and startup.
+!>       \details
 
-!>       \details 
+!>       \details TODO: add description
 
-!>       \authors s Luis Samaniego
+!>       \authors Luis Samaniego
 
 !>       \date Dec 2012
 

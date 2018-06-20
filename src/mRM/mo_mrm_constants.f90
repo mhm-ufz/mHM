@@ -9,6 +9,7 @@
 !>       \date Aug 2015
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 module mo_mrm_constants
   use mo_kind, only : i4, dp

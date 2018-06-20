@@ -7,7 +7,7 @@
 !>       (2) LUT containing geological formation information.
 !>       (3) LUT containing LAI class information.
 
-!>       \authors s Juliane Mai, Matthias Zink
+!>       \authors Juliane Mai, Matthias Zink
 
 !>       \date Jan 2013
 
@@ -40,7 +40,7 @@ CONTAINS
   !>       nGeo_Formations  < Number of lines containing data >
   !>       GeoParam(i)   ClassUnit     Karstic      Description
   !>       \endverbatim
-  !>       
+
   !>       The subsequent lines contains the geological formation information:
   !>       \verbatim
   !>       <GeoParam(i)>  <ClassUnit_i4>  <Karstic_i4>  <Description_char>
@@ -65,6 +65,7 @@ CONTAINS
   !>       \date Jan 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_geoformation_lut(filename, fileunit, nGeo, geo_unit, geo_karstic)
     implicit none
@@ -111,77 +112,65 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         read_lai_lut
+  !    NAME
+  !        read_lai_lut
 
-  !     PURPOSE
-  !>        \brief Reads LUT containing LAI information.
+  !    PURPOSE
+  !>       \brief Reads LUT containing LAI information.
 
-  !>        \details The LUT needs to have the following header:\n
-  !>        \verbatim
-  !>        NoLAIclasses  <Number of lines containing data>
-  !>        Id  land-use  Jan.   Feb.    Mar.    Apr.    May    Jun.    Jul.    Aug.    Sep.    Oct.    Nov.    Dec.
-  !>        \endverbatim
-  !>        The subsequent lines contains the lai class information:\n
-  !>        \verbatim
-  !>        <ID_i4>  <landuse_char>  <val_1_dp>  <val_2_dp>  <val_3_dp>  <val_4_dp> ... <val_12_dp>
-  !>        \endverbatim
-  !>        All following lines will be discarded while reading.
+  !>       \details The LUT needs to have the following header:
+  !>       \verbatim
+  !>       NoLAIclasses  <Number of lines containing data>
+  !>       Id  land-use  Jan.   Feb.    Mar.    Apr.    May    Jun.    Jul.    Aug.    Sep.    Oct.    Nov.    Dec.
+  !>       \endverbatim
+  !>       The subsequent lines contains the lai class information:
+  !>       \verbatim
+  !>       <ID_i4>  <landuse_char>  <val_1_dp>  <val_2_dp>  <val_3_dp>  <val_4_dp> ... <val_12_dp>
+  !>       \endverbatim
+  !>       All following lines will be discarded while reading.
 
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: filename"        File name of LUT
-  !>        \param[in] "integer(i4)      :: fileunit"        Unit to open file
+  !    INTENT(IN)
+  !>       \param[in] "character(len = *) :: filename" File name of LUT
+  !>       \param[in] "integer(i4) :: fileunit"        Unit to open file
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "integer(i4) :: nLAI"                    Number of LAI classes
+  !>       \param[out] "integer(i4), dimension(:) :: LAIIDlist" List of ids of LAI classes
+  !>       \param[out] "real(dp), dimension(:, :) :: LAI"       LAI per class (row) and month (col)
 
-  !     INTENT(OUT)
-  !>        \param[out] "integer(i4)                              :: nLAI"      Number of LAI classes
-  !>        \param[out] "integer(i4), dimension(:),   allocatable :: LAIIDlist" List of ids of LAI classes
-  !>        \param[out] "real(dp),    dimension(:,:), allocatable :: LAI"       LAI per class (row) and month (col)
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jan 2013
-
-  ! ------------------------------------------------------------------
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_lai_lut(filename, fileunit, nLAI, LAIIDlist, LAI)
 
-    use mo_common_constants, only : YearMonths  ! months per year
+    use mo_common_constants, only : YearMonths
 
     implicit none
 
-    character(len = *), intent(in) :: filename      ! name of file
-    integer(i4), intent(in) :: fileunit      ! unit to open file
-    integer(i4), intent(out) :: nLAI          ! number of LAI classes
-    integer(i4), dimension(:), allocatable, intent(out) :: LAIIDlist     ! List of ids of LAI classes
-    real(dp), dimension(:, :), allocatable, intent(out) :: LAI           ! LAI per class (row) and month (col)
+    ! File name of LUT
+    character(len = *), intent(in) :: filename
 
-    ! local variables
+    ! Unit to open file
+    integer(i4), intent(in) :: fileunit
+
+    ! Number of LAI classes
+    integer(i4), intent(out) :: nLAI
+
+    ! List of ids of LAI classes
+    integer(i4), dimension(:), allocatable, intent(out) :: LAIIDlist
+
+    ! LAI per class (row) and month (col)
+    real(dp), dimension(:, :), allocatable, intent(out) :: LAI
+
     integer(i4) :: i, j
+
     character(256) :: dummy
+
 
     open(fileunit, file = filename, action = 'read')
 

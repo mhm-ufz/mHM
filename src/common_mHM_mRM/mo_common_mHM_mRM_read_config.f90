@@ -4,7 +4,7 @@
 
 !>       \details This routine reads the configurations of common program parts
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Dec 2012
 
@@ -35,8 +35,8 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist" 
-  !>       \param[in] "integer :: unamelist"          
+  !>       \param[in] "character(*) :: file_namelist"
+  !>       \param[in] "integer :: unamelist"
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -181,20 +181,31 @@ CONTAINS
 
   end subroutine common_mHM_mRM_read_config
 
-  subroutine check_optimization_settings()
+  !    NAME
+  !        check_optimization_settings
 
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+  subroutine check_optimization_settings
+
+    use mo_common_mHM_mRM_variables, only : dds_r, nIterations, sce_ngs, sce_npg, sce_nps
     use mo_common_variables, only : global_parameters
     use mo_message, only : message
-    use mo_common_mHM_mRM_variables, only : &
-            nIterations, &         ! number of iterations for optimization
-            dds_r, &               ! DDS: perturbation rate
-            sce_ngs, &             ! SCE: # of complexes
-            sce_npg, &             ! SCE: # of points per complex
-            sce_nps                ! SCE: # of points per subcomplex
 
     implicit none
 
     integer(i4) :: n_true_pars
+
 
     ! check and set default values
     if (nIterations .le. 0_i4) then
@@ -227,20 +238,43 @@ CONTAINS
 
   end subroutine check_optimization_settings
 
+  !    NAME
+  !        common_check_resolution
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(IN)
+  !>       \param[in] "logical :: do_message"
+  !>       \param[in] "logical :: allow_subgrid_routing"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine common_check_resolution(do_message, allow_subgrid_routing)
-    use mo_common_mHM_mRM_variables, only : &
-            resolutionRouting ! resolution of routing
-    use mo_common_variables, only : &
-            resolutionHydrology, & ! resolutions of hydrology
-            nBasins                                              ! number of basins
-    use mo_string_utils, only : num2str
+
+    use mo_common_mHM_mRM_variables, only : resolutionRouting
+    use mo_common_variables, only : nBasins, resolutionHydrology
     use mo_message, only : message
+    use mo_string_utils, only : num2str
+
+    implicit none
 
     logical, intent(in) :: do_message
+
     logical, intent(in) :: allow_subgrid_routing
 
     integer(i4) :: ii
-    real(dp) :: cellFactorRbyH            ! conversion factor L11 to L1
+
+    ! conversion factor L11 to L1
+    real(dp) :: cellFactorRbyH
+
 
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing

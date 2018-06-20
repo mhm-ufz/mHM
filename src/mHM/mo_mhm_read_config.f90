@@ -6,7 +6,7 @@
 !>       output directories, module usage specification, simulation time periods,
 !>       global parameters, ...
 
-!>       \authors s Matthias Zink
+!>       \authors Matthias Zink
 
 !>       \date Dec 2012
 
@@ -41,10 +41,12 @@ CONTAINS
   !>       <li> mhm_outputs.nml
   !>       </ol>
   !>       For details please refer to the above mentioned namelist files.
+  !>       ADDITIONAL INFORMATION
+  !>       read_config
 
   !    INTENT(IN)
-  !>       \param[in] "character(*) :: file_namelist" 
-  !>       \param[in] "integer :: unamelist"          
+  !>       \param[in] "character(*) :: file_namelist"
+  !>       \param[in] "integer :: unamelist"
 
   !    HISTORY
   !>       \authors Matthias Zink

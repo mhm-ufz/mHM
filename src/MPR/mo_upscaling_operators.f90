@@ -4,7 +4,7 @@
 
 !>       \details This module provides the routines for upscaling_operators.
 
-!>       \authors s Giovanni Dalmasso, Rohini Kumar
+!>       \authors Giovanni Dalmasso, Rohini Kumar
 
 !>       \date Dec 2012
 
@@ -42,10 +42,14 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: nClass"                                number of classes
-  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"     upper row boundary (level-0) of a level-1 cell
-  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"     lower row boundary (level-0) of a level-1 cell
-  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"    left colon boundary (level-0) of a level-1 cell
-  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell"   right colon boundary (level-0) of a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"     upper row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"     lower row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"    left colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell"   right colon boundary (level-0) of a level-1
+  !>       cell
   !>       \param[in] "integer(i4), dimension(:, :) :: L0_fineScale_2D_data" high resolution data
 
   !    RETURN
@@ -57,6 +61,7 @@ contains
   !>       \date Dec 2012
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function majority_statistics(nClass, L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, &
                               L1_right_colonId_cell, L0_fineScale_2D_data)
@@ -115,91 +120,79 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          L0_fractionalCover_in_Lx
+  !    NAME
+  !        L0_fractionalCover_in_Lx
 
-  !>         \brief fractional coverage of a given class of L0 fields in Lx field (Lx = L1 or L11)
+  !    PURPOSE
+  !>       \brief fractional coverage of a given class of L0 fields in Lx field (Lx = L1 or L11)
 
-  !>         \details Fractional coverage of a given class of L0 fields in Lx field (Lx = L1 or L11). 
-  !>                  For example, this routine can be used for calculating the karstic fraction.
+  !>       \details Fractional coverage of a given class of L0 fields in Lx field (Lx = L1 or L11).
+  !>       For example, this routine can be used for calculating the karstic fraction.
 
-  !     INTENT(IN)
-  !>         \param[in] "integer(i4), dimension(:,:)  :: dataIn0"            input fields at finer scale
-  !>         \param[in] "integer(i4)                  :: classId"            class id for which fraction has to be estimated
-  !>         \param[in] "logical, dimension(:,:)      :: mask0"              finer scale L0 mask
-  !>         \param[in] "integer(i4), dimension(:)    :: L0upBound_inLx"     row start at finer L0 scale
-  !>         \param[in] "integer(i4), dimension(:)    :: L0downBound_inLx"   row end   at finer L0 scale
-  !>         \param[in] "integer(i4), dimension(:)    :: L0leftBound_inLx"   col start at finer L0 scale
-  !>         \param[in] "integer(i4), dimension(:)    :: L0rightBound_inLx"  col end   at finer L0 scale
-  !>         \param[in] "integer(i4), dimension(:)    :: nTCells0_inLx"      total number of valid L0 cells in a given Lx cell
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: dataIn0"           input fields at finer scale
+  !>       \param[in] "integer(i4) :: classId"                         class id for which fraction has to be estimated
+  !>       \param[in] "logical, dimension(:, :) :: mask0"              finer scale L0 mask
+  !>       \param[in] "integer(i4), dimension(:) :: L0upBound_inLx"    row start at finer L0 scale
+  !>       \param[in] "integer(i4), dimension(:) :: L0downBound_inLx"  row end   at finer L0 scale
+  !>       \param[in] "integer(i4), dimension(:) :: L0leftBound_inLx"  col start at finer L0 scale
+  !>       \param[in] "integer(i4), dimension(:) :: L0rightBound_inLx" col end   at finer L0 scale
+  !>       \param[in] "integer(i4), dimension(:) :: nTCells0_inLx"     total number of valid L0 cells in a given Lx cell
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: L0_fractionalCover_in_Lx(:) &mdash; packed 1D fraction coverage (Lx) of given class id
 
-  !      INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !          None
+  !>       \date Feb 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: L0_fractionalCover_in_Lx(:) &mdash; packed 1D fraction coverage (Lx) of given class id
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Rohini Kumar
-  !>         \date Feb 2013
-
-  ! ------------------------------------------------------------------
-
-  function L0_fractionalCover_in_Lx(&
-          dataIn0, &  ! input fields at finer scale
-          classId, &  ! class id for which fraction has to be estimated
-          mask0, &  ! finer scale L0 mask
-          L0upBound_inLx, &  ! row start at finer L0 scale
-          L0downBound_inLx, &  ! row end   at finer L0 scale
-          L0leftBound_inLx, &  ! col start at finer L0 scale
-          L0rightBound_inLx, &  ! col end   at finer L0 scale
-          nTCells0_inLx              &  ! total number of valid L0 cells in a given Lx cell
-          ) result(frac_cover_Lx)       ! packed 1D data at coarser scale (Lx = L1 or L11)
+  function L0_fractionalCover_in_Lx(dataIn0, classId, mask0, L0upBound_inLx, L0downBound_inLx, L0leftBound_inLx, &
+                                   L0rightBound_inLx, nTCells0_inLx) result(frac_cover_Lx)
 
     use mo_common_constants, only : nodata_i4
 
     implicit none
 
-    ! input
+    ! input fields at finer scale
     integer(i4), dimension(:), intent(in) :: dataIn0
+
+    ! class id for which fraction has to be estimated
     integer(i4), intent(in) :: classId
+
+    ! finer scale L0 mask
     logical, dimension(:, :), intent(in) :: mask0
+
+    ! row start at finer L0 scale
     integer(i4), dimension(:), intent(in) :: L0upBound_inLx
+
+    ! row end   at finer L0 scale
     integer(i4), dimension(:), intent(in) :: L0downBound_inLx
+
+    ! col start at finer L0 scale
     integer(i4), dimension(:), intent(in) :: L0leftBound_inLx
+
+    ! col end   at finer L0 scale
     integer(i4), dimension(:), intent(in) :: L0rightBound_inLx
+
+    ! total number of valid L0 cells in a given Lx cell
     integer(i4), dimension(:), intent(in) :: nTCells0_inLx
 
-    ! return
     real(dp), dimension(size(L0upBound_inLx, 1)) :: frac_cover_Lx
 
-    ! local variables
     integer(i4) :: kk, iu, id, jl, jr, nT
+
     integer(i4) :: nrows0, ncols0
+
     integer(i4), dimension(:, :), allocatable :: dummy_Matrix
+
     integer(i4), dimension(:, :), allocatable :: nodata_val
+
     integer(i4) :: nCells1
+
 
     ! estimate number of cells
     nCells1 = size(L0upBound_inLx, 1)
@@ -236,95 +229,86 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !          upscale_arithmetic_mean
+  !    NAME
+  !        upscale_arithmetic_mean
 
-  !>         \brief aritmetic mean
+  !    PURPOSE
+  !>       \brief aritmetic mean
 
-  !>         \details upscaling of level-0 grid data to level-1 using aritmetic mean
+  !>       \details upscaling of level-0 grid data to level-1 using aritmetic mean
 
-  !      INTENT(IN)
-  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"  number of level-0 cells within a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"           cell ID at level-0
-  !>         \param[in] "logical     :: mask0(:,:)"               mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             no data value
-  !>         \param[in] "real(dp)    :: L0_fineScale_data(:,:)"   high resolution data
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_cells_in_L1_cell"  number of level-0 cells within a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"   upper row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"   lower row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"  left colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell" right colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L0_cellId"             cell ID at level-0
+  !>       \param[in] "logical, dimension(:, :) :: mask0"                  mask at level 0
+  !>       \param[in] "real(dp) :: nodata_value"                           no data value
+  !>       \param[in] "real(dp), dimension(:) :: L0_fineScale_data"        high resolution data
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: upscale_arithmetic_mean(:) &mdash; Upscaled variable from L0 to L1 using arithmetic mean
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Giovanni Dalmasso, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Feb 2013 - changed dimension of L0 input from 2d to 1d
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: upscale_arithmetic_mean(:) &mdash; Upscaled variable from L0 to L1 using arithmetic mean
-
-  !     RESTRICTIONS
-  !         None
-
-  !      EXAMPLE
-  !          variable = upscale_arithmetic_mean( nL0_cells_in_L1_cell,                           &
-  !                                              L1_upper_rowId_cell, L1_lower_rowId_cell,       &
-  !                                              L1_left_colonId_cell, L1_right_colonId_cell,    &
-  !                                              L0_cellId, mask0,                               &
-  !                                              nodata_value, L0_fineScale_2D_data              &
-  !                                             )
-
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Giovanni Dalmasso, Rohini Kumar
-  !>         \date Dec 2012
-  !          Written,  Giovanni Dalmasso, Dec 2012
-  !          Modified, Stephan Thober,    Feb 2013 - changed dimension of L0 input from 2d to 1d
-
-  function upscale_arithmetic_mean(&
-          nL0_cells_in_L1_cell, &   ! number of level-0 cells within a level-1 cell
-          L1_upper_rowId_cell, &   ! upper row boundary (level-0) of a level-1 cell
-          L1_lower_rowId_cell, &   ! lower row boundary (level-0) of a level-1 cell
-          L1_left_colonId_cell, &   ! left colon boundary (level-0) of a level-1 cell
-          L1_right_colonId_cell, &   ! right colon boundary (level-0) of a level-1 cell
-          L0_cellId, &   ! cell ID at level-0
-          mask0, &   ! mask at level 0
-          nodata_value, &   ! no data value
-          L0_fineScale_data       &   ! high resolution data
-          )
-
+  function upscale_arithmetic_mean(nL0_cells_in_L1_cell, L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, &
+                                  L1_right_colonId_cell, L0_cellId, mask0, nodata_value, L0_fineScale_data)
     implicit none
-    ! input
+
+    ! number of level-0 cells within a level-1 cell
     integer(i4), dimension(:), intent(in) :: nL0_cells_in_L1_cell
+
+    ! upper row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_upper_rowId_cell
+
+    ! lower row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_lower_rowId_cell
+
+    ! left colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_left_colonId_cell
+
+    ! right colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_right_colonId_cell
+
+    ! cell ID at level-0
     integer(i4), dimension(:), intent(in) :: L0_cellId
+
+    ! mask at level 0
     logical, dimension(:, :), intent(in) :: mask0
+
+    ! no data value
     real(dp), intent(in) :: nodata_value
+
+    ! high resolution data
     real(dp), dimension(:), intent(in) :: L0_fineScale_data
-    ! output
+
     real(dp), dimension(size(nL0_cells_in_L1_cell, 1)) :: upscale_arithmetic_mean
 
-    ! local variables
     integer(i4) :: L1_nCells
+
     integer(i4) :: iu, id, jl, jr
+
     integer(i4) :: kk
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: nodata_2d
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: L0_cellId_2d
+
     real(dp), dimension(size(mask0, 1), size(mask0, 2)) :: L0_fineScale_2D_data
+
 
     ! allocation and initialisation
     upscale_arithmetic_mean(:) = 0.0_dp
@@ -347,98 +331,87 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !          upscale_harmonic_mean
+  !    NAME
+  !        upscale_harmonic_mean
 
-  !>         \brief harmonic mean
+  !    PURPOSE
+  !>       \brief harmonic mean
 
-  !>         \details upscaling of level-0 grid data to level-1 using harmonic mean
+  !>       \details upscaling of level-0 grid data to level-1 using harmonic mean
 
-  !       INTENT(IN)
-  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"   number of level-0 cells within a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"    upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"    lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"   left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)"  right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"            cell ID at level-0
-  !>         \param[in] "logical     :: mask0(:,:)"                mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"              no data value
-  !>         \param[in] "real(dp)    :: L0_fineScale_2D_data(:,:)" high resolution data
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_cells_in_L1_cell"  number of level-0 cells within a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"   upper row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"   lower row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"  left colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell" right colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L0_cellId"             cell ID at level-0
+  !>       \param[in] "logical, dimension(:, :) :: mask0"                  mask at Level 0
+  !>       \param[in] "real(dp) :: nodata_value"                           no data value
+  !>       \param[in] "real(dp), dimension(:) :: L0_fineScale_data"        high resolution data
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: upscale_harmonic_mean(:) &mdash; Upscaled variable from L0 to L1 using harmonic mean
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Giovanni Dalmasso, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Jan 2013 - change example calling sequence
+  ! Stephan Thober Feb 2013 - added Level 0 mask
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(dp) :: upscale_harmonic_mean(:) &mdash; Upscaled variable from L0 to L1 using harmonic mean
-
-  !     RESTRICTIONS
-  !>       \note Input values must be floating points.
-
-  !      EXAMPLE
-  !          calling sequence
-  !          variable = upscale_harmonic_mean(   nL0_cells_in_L1_cell,                           &
-  !                                              L1_upper_rowId_cell, L1_lower_rowId_cell,       &
-  !                                              L1_left_colonId_cell, L1_right_colonId_cell,    &
-  !                                              L0_cellId, mask0,                               &
-  !                                              nodata_value, L0_fineScale_2D_data              &
-  !                                             )
-
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Giovanni Dalmasso, Rohini Kumar
-  !>         \date Dec 2012
-  !          Written, Giovanni Dalmasso, Dec 2012
-  !          Modified,   Stephan Thober, Jan 2013 - change example calling sequence
-  !                      Stephan Thober, Feb 2013 - added Level 0 mask
-
-  function upscale_harmonic_mean(&
-          nL0_cells_in_L1_cell, &   ! number of level-0 cells within a level-1 cell
-          L1_upper_rowId_cell, &   ! upper row boundary (level-0) of a level-1 cell
-          L1_lower_rowId_cell, &   ! lower row boundary (level-0) of a level-1 cell
-          L1_left_colonId_cell, &   ! left colon boundary (level-0) of a level-1 cell
-          L1_right_colonId_cell, &   ! right colon boundary (level-0) of a level-1 cell
-          L0_cellId, &   ! cell ID at level-0
-          mask0, &   ! mask at Level 0
-          nodata_value, &   ! no data value
-          L0_fineScale_data       &   ! high resolution data
-          )
-
+  function upscale_harmonic_mean(nL0_cells_in_L1_cell, L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, &
+                                L1_right_colonId_cell, L0_cellId, mask0, nodata_value, L0_fineScale_data)
     implicit none
 
-    ! input
+    ! number of level-0 cells within a level-1 cell
     integer(i4), dimension(:), intent(in) :: nL0_cells_in_L1_cell
+
+    ! upper row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_upper_rowId_cell
+
+    ! lower row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_lower_rowId_cell
+
+    ! left colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_left_colonId_cell
+
+    ! right colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_right_colonId_cell
+
+    ! cell ID at level-0
     integer(i4), dimension(:), intent(in) :: L0_cellId
+
+    ! mask at Level 0
     logical, dimension(:, :), intent(in) :: mask0
+
+    ! no data value
     real(dp), intent(in) :: nodata_value
+
+    ! high resolution data
     real(dp), dimension(:), intent(in) :: L0_fineScale_data
-    ! output
+
     real(dp), dimension(size(nL0_cells_in_L1_cell, 1)) :: upscale_harmonic_mean
 
-    ! local variables
     integer(i4) :: L1_nCells
+
     integer(i4) :: iu, id, jl, jr
+
     integer(i4) :: kk
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: nodata_2d
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: L0_cellId_2d
+
     real(dp), dimension(size(mask0, 1), size(mask0, 2)) :: L0_fineScale_2D_data
+
 
     ! allocation and initialisation
     upscale_harmonic_mean(:) = 0.0_dp
@@ -461,88 +434,81 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !          upscale_geometric_mean
+  !    NAME
+  !        upscale_geometric_mean
 
-  !>         \brief geometric mean
+  !    PURPOSE
+  !>       \brief geometric mean
 
-  !>         \details upscaling of level-0 grid data to level-1 using geometric mean
+  !>       \details upscaling of level-0 grid data to level-1 using geometric mean
 
-  !       INTENT(IN)
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "logical     :: mask0(:,:)"               mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             no data value
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"   upper row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"   lower row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"  left colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell" right colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "logical, dimension(:, :) :: mask0"                  mask at level 0
+  !>       \param[in] "real(dp) :: nodata_value"                           no data value
+  !>       \param[in] "real(dp), dimension(:) :: L0_fineScale_data"        high resolution data
 
-  !     INTENT(INOUT)
-  !>         \param[in,out] real(dp) :: L0_fineScale_2D_data(:,:)  high resolution data
+  !    RETURN
+  !>       \return real(dp) :: upscale_geometric_mean(:) &mdash; Upscaled variable from L0 to L1 using geometric mean
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Giovanni Dalmasso, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Rohini Kumar Jun 2016 - fixed bug
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  function upscale_geometric_mean(L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, L1_right_colonId_cell, &
+                                 mask0, nodata_value, L0_fineScale_data)
 
-  !     RETURN
-  !>       \return     real(dp) :: upscale_geometric_mean(:) &mdash; Upscaled variable from L0 to L1 using geometric mean
+    use mo_utils, only : ne
 
-  !     RESTRICTIONS
-  !         None
-
-  !      EXAMPLE
-  !          calling sequence
-  !          variable = upscale_geometric_mean(  L1_upper_rowId_cell, L1_lower_rowId_cell,       &
-  !                                              L1_left_colonId_cell, L1_right_colonId_cell,    &
-  !                                              mask0, nodata_value, L0_fineScale_2D_data       &
-  !                                             )
-
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Giovanni Dalmasso, Rohini Kumar
-  !>         \date Dec 2012
-  !          Written, Giovanni Dalmasso, Dec 2012
-  !          Modified, Rohini Kumar, Jun 2016 - fixed bug
-
-  function upscale_geometric_mean(&
-          L1_upper_rowId_cell, &   ! upper row boundary (level-0) of a level-1 cell
-          L1_lower_rowId_cell, &   ! lower row boundary (level-0) of a level-1 cell
-          L1_left_colonId_cell, &   ! left colon boundary (level-0) of a level-1 cell
-          L1_right_colonId_cell, &   ! right colon boundary (level-0) of a level-1 cell
-          mask0, &   ! mask at level 0
-          nodata_value, &   ! no data value
-          L0_fineScale_data           &   ! high resolution data
-          )
-    use  mo_utils, only : ne
     implicit none
 
-    ! input
+    ! upper row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_upper_rowId_cell
+
+    ! lower row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_lower_rowId_cell
+
+    ! left colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_left_colonId_cell
+
+    ! right colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_right_colonId_cell
+
+    ! mask at level 0
     logical, dimension(:, :), intent(in) :: mask0
+
+    ! no data value
     real(dp), intent(in) :: nodata_value
+
+    ! high resolution data
     real(dp), dimension(:), intent(in) :: L0_fineScale_data
-    ! output
+
     real(dp), dimension(size(L1_upper_rowId_cell, 1)) :: upscale_geometric_mean
 
-    ! loca variables
     integer(i4) :: iu, id, jl, jr
+
     integer(i4) :: kk
+
     integer(i4) :: nCells_L0_in_L1
+
     real(dp), dimension(size(mask0, 1), size(mask0, 2)) :: L0_fineScale_2D_data
+
     real(dp), dimension(size(mask0, 1), size(mask0, 2)) :: nodata_2d
+
     real(dp), dimension(:), allocatable :: dummy_V
+
 
     ! allocation and initialisation
     upscale_geometric_mean(:) = nodata_value
@@ -572,98 +538,93 @@ contains
 
   ! ----------------------------------------------------------------------------
 
-  !      NAME
-  !          upscale_arithmetic_mean
+  !    NAME
+  !        upscale_p_norm
 
-  !>         \brief aritmetic mean
+  !    PURPOSE
+  !>       \brief aritmetic mean
 
-  !>         \details upscaling of level-0 grid data to level-1 using aritmetic mean
+  !>       \details upscaling of level-0 grid data to level-1 using aritmetic mean
 
-  !      INTENT(IN)
-  !>         \param[in] "integer(i4) :: nL0_cells_in_L1_cell(:)"  number of level-0 cells within a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_upper_rowId_cell(:)"   upper row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_lower_rowId_cell(:)"   lower row boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_left_colonId_cell(:)"  left colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L1_right_colonId_cell(:)" right colon boundary (level-0) of a level-1 cell
-  !>         \param[in] "integer(i4) :: L0_cellId(:,:)"           cell ID at level-0
-  !>         \param[in] "logical     :: mask0(:,:)"               mask at Level 0
-  !>         \param[in] "real(dp)    :: nodata_value"             no data value
-  !>         \param[in] "real(dp)    :: L0_fineScale_data(:,:)"   high resolution data
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4), dimension(:) :: nL0_cells_in_L1_cell"  number of level-0 cells within a level-1 cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_upper_rowId_cell"   upper row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_lower_rowId_cell"   lower row boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_left_colonId_cell"  left colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L1_right_colonId_cell" right colon boundary (level-0) of a level-1
+  !>       cell
+  !>       \param[in] "integer(i4), dimension(:) :: L0_cellId"             cell ID at level-0
+  !>       \param[in] "logical, dimension(:, :) :: mask0"                  mask at level 0
+  !>       \param[in] "real(dp) :: nodata_value"                           no data value
+  !>       \param[in] "real(dp) :: p_norm"                                 p_norm value
+  !>       \param[in] "real(dp), dimension(:) :: L0_fineScale_data"        high resolution data
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: upscale_arithmetic_mean(:) &mdash; Upscaled variable from L0 to L1 using arithmetic mean
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Giovanni Dalmasso, Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Stephan Thober Feb 2013 - changed dimension of L0 input from 2d to 1d
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  function upscale_p_norm(nL0_cells_in_L1_cell, L1_upper_rowId_cell, L1_lower_rowId_cell, L1_left_colonId_cell, &
+                         L1_right_colonId_cell, L0_cellId, mask0, nodata_value, p_norm, L0_fineScale_data)
 
-  !     RETURN
-  !>       \return     real(dp) :: upscale_arithmetic_mean(:) &mdash; Upscaled variable from L0 to L1 using arithmetic mean
-
-  !     RESTRICTIONS
-  !         None
-
-  !      EXAMPLE
-  !          variable = upscale_arithmetic_mean( nL0_cells_in_L1_cell,                           &
-  !                                              L1_upper_rowId_cell, L1_lower_rowId_cell,       &
-  !                                              L1_left_colonId_cell, L1_right_colonId_cell,    &
-  !                                              L0_cellId, mask0,                               &
-  !                                              nodata_value, L0_fineScale_2D_data              &
-  !                                             )
-
-  !     LITERATURE
-  !         None
-
-  !      HISTORY
-  !>         \author Giovanni Dalmasso, Rohini Kumar
-  !>         \date Dec 2012
-  !          Written,  Giovanni Dalmasso, Dec 2012
-  !          Modified, Stephan Thober,    Feb 2013 - changed dimension of L0 input from 2d to 1d
-
-  function upscale_p_norm(&
-          nL0_cells_in_L1_cell, &   ! number of level-0 cells within a level-1 cell
-          L1_upper_rowId_cell, &   ! upper row boundary (level-0) of a level-1 cell
-          L1_lower_rowId_cell, &   ! lower row boundary (level-0) of a level-1 cell
-          L1_left_colonId_cell, &   ! left colon boundary (level-0) of a level-1 cell
-          L1_right_colonId_cell, &   ! right colon boundary (level-0) of a level-1 cell
-          L0_cellId, &   ! cell ID at level-0
-          mask0, &   ! mask at level 0
-          nodata_value, &   ! no data value
-          p_norm, &   ! p_norm value
-          L0_fineScale_data       &   ! high resolution data
-          )
-    use  mo_utils, only : ne
+    use mo_utils, only : ne
 
     implicit none
-    ! input
+
+    ! number of level-0 cells within a level-1 cell
     integer(i4), dimension(:), intent(in) :: nL0_cells_in_L1_cell
+
+    ! upper row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_upper_rowId_cell
+
+    ! lower row boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_lower_rowId_cell
+
+    ! left colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_left_colonId_cell
+
+    ! right colon boundary (level-0) of a level-1 cell
     integer(i4), dimension(:), intent(in) :: L1_right_colonId_cell
+
+    ! cell ID at level-0
     integer(i4), dimension(:), intent(in) :: L0_cellId
+
+    ! mask at level 0
     logical, dimension(:, :), intent(in) :: mask0
+
+    ! no data value
     real(dp), intent(in) :: nodata_value
+
+    ! p_norm value
     real(dp), intent(in) :: p_norm
+
+    ! high resolution data
     real(dp), dimension(:), intent(in) :: L0_fineScale_data
-    ! output
+
     real(dp), dimension(size(nL0_cells_in_L1_cell, 1)) :: upscale_p_norm
 
-    ! local variables
     integer(i4) :: L1_nCells
+
     integer(i4) :: iu, id, jl, jr
+
     integer(i4) :: kk
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: nodata_2d
+
     integer(i4), dimension(size(mask0, 1), size(mask0, 2)) :: L0_cellId_2d
+
     real(dp), dimension(size(mask0, 1), size(mask0, 2)) :: L0_fineScale_2D_data
+
 
     ! allocation and initialisation
     upscale_p_norm(:) = 0.0_dp

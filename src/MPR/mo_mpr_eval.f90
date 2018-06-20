@@ -4,7 +4,7 @@
 
 !>       \details Runs MPR and writes to global effective parameters
 
-!>       \authors s Robert Schweppe
+!>       \authors Robert Schweppe
 
 !>       \date Feb 2018
 
@@ -35,7 +35,8 @@ CONTAINS
   !>       \details Runs MPR and writes to global effective parameters
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "real(dp), dimension(:), optional :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION [no. of global_Parameters]
+  !>       \param[in] "real(dp), dimension(:), optional :: parameterset" a set of global parameter (gamma) to run mHM,
+  !>       DIMENSION [no. of global_Parameters]
 
   !    HISTORY
   !>       \authors Juliane Mai, Rohini Kumar

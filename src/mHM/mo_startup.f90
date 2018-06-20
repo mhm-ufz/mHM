@@ -36,16 +36,18 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin. 
+  !>       \details Initialize main mHM variables for a given basin.
   !>       Calls the following procedures in this order:
-  !>       - Constant initialization. 
-  !>       - Generate soil database. 
-  !>       - Checking inconsistencies input fields. 
-  !>       - Variable initialization at level-0. 
-  !>       - Variable initialization at level-1. 
-  !>       - Variable initialization at level-11. 
-  !>       - Space allocation of remaining variable/parameters. 
-  !>       Global variables will be used at this stage. 
+  !>       - Constant initialization.
+  !>       - Generate soil database.
+  !>       - Checking inconsistencies input fields.
+  !>       - Variable initialization at level-0.
+  !>       - Variable initialization at level-1.
+  !>       - Variable initialization at level-11.
+  !>       - Space allocation of remaining variable/parameters.
+  !>       Global variables will be used at this stage.
+  !>       ADDITIONAL INFORMATION
+  !>       mhm_initialize
 
   !    HISTORY
   !>       \authors Luis Samaniego, Rohini Kumar
@@ -122,61 +124,36 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          constants_init
+  !    NAME
+  !        constants_init
 
-  !>        \brief Initialize mHM constants
+  !    PURPOSE
+  !>       \brief Initialize mHM constants
 
-  !>        \details transformation of time units & initialize constants
+  !>       \details transformation of time units & initialize constants
+  !>       ADDITIONAL INFORMATION
+  !>       constants_init
 
-  !     INTENT(IN)
-  !         None
+  !    HISTORY
+  !>       \authors Luis Samaniego
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INTENT(OUT)
-  !         None
+  ! Modifications:
+  ! Rohini Kumar                 Jan 2013 - 
+  ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  subroutine constants_init
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author  Luis Samaniego
-  !>        \date    Dec 2012
-  !         Modified Rohini Kumar,                 Jan 2013
-  !                  Juliane Mai & Matthias Cuntz, Nov 2013 - check timeStep
-
-  subroutine constants_init()
-
-    use mo_global_variables, only : neutron_integral_AFast
+    use mo_common_mHM_mRM_variables, only : timestep
     use mo_common_variables, only : processMatrix
-    use mo_neutrons, only : TabularIntegralAFast
-    use mo_mpr_global_variables, only : GeoUnitList, c2TSTu
-    use mo_mpr_file, only : file_hydrogeoclass
-    use mo_string_utils, only : num2str
     use mo_file, only : file_namelist_mhm_param
+    use mo_global_variables, only : neutron_integral_AFast
     use mo_message, only : message
-    use mo_common_mHM_mRM_variables, only : &
-            timestep ! model time step
+    use mo_mpr_file, only : file_hydrogeoclass
+    use mo_mpr_global_variables, only : GeoUnitList, c2TSTu
+    use mo_neutrons, only : TabularIntegralAFast
+    use mo_string_utils, only : num2str
 
     implicit none
 
@@ -207,87 +184,69 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         L2_variable_init
+  !    NAME
+  !        L2_variable_init
 
-  !     PURPOSE
-  !>        \brief Initalize Level-2 meteorological forcings data
+  !    PURPOSE
+  !>       \brief Initalize Level-2 meteorological forcings data
 
-  !>        \details following tasks are performed
-  !>                 1)  cell id & numbering
-  !>                 2)  mask creation
-  !>                 3)  append variable of intrest to global ones
+  !>       \details following tasks are performed
+  !>       1)  cell id & numbering
+  !>       2)  mask creation
+  !>       3)  append variable of intrest to global ones
+  !>       ADDITIONAL INFORMATION
+  !>       L2_variable_init
 
-  !     CALLING SEQUENCE
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: iBasin"       Basin Id
+  !>       \param[in] "type(Grid) :: level0_iBasin"
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)              :: iBasin"        Basin Id
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid) :: level2_iBasin"
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Feb 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
 
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-
-  !     EXAMPLE
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Rohini Kumar
-  !>        \date Feb 2013
-
-  ! --------------------------------------------------------------------------
   subroutine L2_variable_init(iBasin, level0_iBasin, level2_iBasin)
 
-    use mo_common_variables, only : &
-            Grid
-
-    use mo_read_spatial_data, only : read_header_ascii
-    use mo_message, only : message
-    use mo_string_utils, only : num2str
-
+    use mo_common_variables, only : Grid
     use mo_global_variables, only : dirPrecipitation
-    use mo_mpr_file, only : file_meteo_header, umeteo_header
     use mo_grid, only : init_lowres_level
+    use mo_message, only : message
+    use mo_mpr_file, only : file_meteo_header, umeteo_header
+    use mo_read_spatial_data, only : read_header_ascii
+    use mo_string_utils, only : num2str
 
     implicit none
 
+    ! Basin Id
     integer(i4), intent(in) :: iBasin
+
     type(Grid), intent(in) :: level0_iBasin
+
     type(Grid), intent(inout) :: level2_iBasin
 
-    ! local variables
     integer(i4) :: nrows2, ncols2
+
     real(dp) :: xllcorner2, yllcorner2
+
     real(dp) :: cellsize2, nodata_dummy
+
     character(256) :: fName
 
+    ! STEPS :: 
+
+
     !--------------------------------------------------------
-    ! STEPS::
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
-
     ! read header file
     ! NOTE: assuming the header file for all metero variables are same as that of precip.
-
     fName = trim(adjustl(dirPrecipitation(iBasin))) // trim(adjustl(file_meteo_header))
     call read_header_ascii(trim(fName), umeteo_header, &
             nrows2, ncols2, xllcorner2, &

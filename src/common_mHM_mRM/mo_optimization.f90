@@ -5,7 +5,7 @@
 !>       \details This module provides a wrapper subroutine for optimization of mRM/mHM
 !>       against runoff or soil moisture.
 
-!>       \authors s Stephan Thober
+!>       \authors Stephan Thober
 
 !>       \date Oct 2015
 
@@ -32,13 +32,14 @@ contains
   !>       It return the objective function value for a specific parameter set.
 
   !    INTENT(IN)
-  !>       \param[in] "procedure(eval_interface) :: eval"           
+  !>       \param[in] "procedure(eval_interface) :: eval"
   !>       \param[in] "procedure(objective_interface) :: objective" - objective function used in the optimization
   !>       \param[in] "character(len = *) :: dirConfigOut"          - directory where to write ascii output
 
   !    INTENT(OUT)
   !>       \param[out] "real(dp) :: funcbest"              - best objective function value obtained during optimization
-  !>       \param[out] "logical, dimension(:) :: maskpara" true  = parameter will be optimized     = parameter(i,4) = 1false = parameter will not be optimized = parameter(i,4) = 0
+  !>       \param[out] "logical, dimension(:) :: maskpara" true  = parameter will be optimized     = parameter(i,4) = 1
+  !>       false = parameter will not be optimized = parameter(i,4) = 0
 
   !    HISTORY
   !>       \authors Matthias Cuntz, Luis Samaniego, Juliane Mai, Matthias Zink and Stephan Thober
@@ -76,7 +77,8 @@ contains
     ! - best objective function value obtained during optimization
     real(dp), intent(out) :: funcbest
 
-    ! true  = parameter will be optimized     = parameter(i,4) = 1false = parameter will not be optimized = parameter(i,4) = 0
+    ! true  = parameter will be optimized     = parameter(i,4) = 1
+    ! false = parameter will not be optimized = parameter(i,4) = 0
     logical, intent(out), allocatable, dimension(:) :: maskpara
 
     integer(i4) :: ii

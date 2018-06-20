@@ -3,10 +3,11 @@
 !>       \brief Generating soil database from input file.
 
 !>       \details This module provides the routines for generating the soil database for mHM from an ASCII input file.
-!>       One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial soil database.
+!>       One routine \e read_soil_LUT reads a soil LookUpTable, performs some consistency checks and returns an initial
+!>       soil database.
 !>       The second routine \e generate_soil_database calculates based on the initial one the proper soil database.
 
-!>       \authors s Juliane Mai
+!>       \authors Juliane Mai
 
 !>       \date Dec 2012
 
@@ -52,8 +53,9 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
-  ! : Luis Samaniego Nov 2013 - , transform relation op. == -> .eq. etc
+  ! Luis Samaniego   Nov 2013 - transform relation op. == -> .eq. etc
   ! Rohini Kumar     Mar 2016 - new variables for handling different soil databases
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_soil_LUT(filename)
 
@@ -338,68 +340,42 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         generate_soil_database
+  !    NAME
+  !        generate_soil_database
 
-  !>        \brief Generates soil database.
+  !    PURPOSE
+  !>       \brief Generates soil database.
 
-  !>        \details Calculates the proper soil database using the initialized soil database from read_soil_LUT.
+  !>       \details Calculates the proper soil database using the initialized soil database from read_soil_LUT.
 
-  !     INDENT(IN)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INDENT(INOUT)
-  !>        \param[in,out] "type(soilType) :: soilDB"          initialized/ proper soil database
-  !>        \param[in] "integer(i4)        :: iFlag_soilDB"    option for which kind of database to read
-  !     INDENT(OUT)
-  !         None
+  !>       \date Dec 2012
 
-  !     INDENT(IN), OPTIONAL
-  !         None
+  ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INDENT(INOUT), OPTIONAL
-  !         None
+  subroutine generate_soil_database
 
-  !     INDENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call generate_soil_database(soilDB)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Dec 2012
-  !         Modified, Rohini Kumar &
-  !                    Juliane Mai, Apr, 2013 - wieght for no-contributing soil horizons are intialized with nodata value
-  !                   Rohini Kumar, Mar, 2016 - new variables for handling different soil databases
-
-  ! ------------------------------------------------------------------
-
-  subroutine generate_soil_database()
-
-    use mo_mpr_global_variables, only : nSoilTypes, nSoilHorizons_mHM, HorizonDepth_mHM ! Type definition
-    use mo_common_constants, only : nodata_i4, nodata_dp   ! global nodata values (i4, dp)
-    use mo_mpr_global_variables, only : soilDB, &
-            iFlag_soilDB               ! options to handle different types of soil databases
+    use mo_common_constants, only : nodata_dp, nodata_i4
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB
 
     implicit none
 
-    ! local variables
     integer(i4) :: ii, jj, kk
+
     real(dp) :: dmin
+
     real(dp) :: dpth_f, dpth_t
+
     integer(i4) :: layer_f, layer_t
+
     real(dp), parameter :: small = 0.000001_dp
-    real(dp), parameter :: soil_dAccuracy = 0.5_dp ! [mm]       soil depth accuracy
+
+    ! [mm]       soil depth accuracy
+    real(dp), parameter :: soil_dAccuracy = 0.5_dp
+
 
     SELECT CASE (iFlag_soilDB)
       ! classical mHM soil database

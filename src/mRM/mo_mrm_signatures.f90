@@ -9,7 +9,7 @@
 !>       * Flow duration curves
 !>       * Peak distribution
 
-!>       \authors s Remko Nijzink,
+!>       \authors Remko Nijzink,
 
 !>       \date March 2014
 
@@ -45,13 +45,23 @@ CONTAINS
   !>       The function is basically a wrapper of the function autocorr
   !>       from the module mo_corr.
   !>       An optional mask of data points can be specified.
+  !>       ADDITIONAL INFORMATION
+  !>       Autocorrelation
+  !>       auto_correlation = Autocorrelation(data, lags, mask=mask)
+  !>       \return     real(dp), dimension(size(lags,1)) :: Autocorrelation &mdash; autocorrelation of data at given
+  !>       lags
+  !>       Used as hydrologic signature with lag 1 in
+  !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !>       A framework to assess the realism of model structures using hydrological signatures.
+  !>       Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: data"    Array of data
   !>       \param[in] "integer(i4), dimension(:) :: lags" Array of lags where autocorrelation is requested
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" Mask for data points givenWorks only with 1d double precision input data.
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" Mask for data points givenWorks only with 1d
+  !>       double precision input data.
 
   !    HISTORY
   !>       \authors Juliane Mai
@@ -88,147 +98,153 @@ CONTAINS
   END FUNCTION Autocorrelation
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         FlowDurationCurves
+  !    NAME
+  !        FlowDurationCurve
 
-  !     PURPOSE
-  !>        \brief   Flow duration curves.
+  !    PURPOSE
+  !>       \brief Flow duration curves.
 
-  !>        \details Calculates the flow duration curves for a given data vector. The Flow duration curve at a
-  !>                 certain quantile x is the data point p where x% of the data points are above the value p.\n
-  !>                 Hence the function percentile of the module mo_percentile is used. But percentile is
-  !>                 determining the point p where x% of the data points are below that value. Therfore, the
-  !>                 given quantiles are transformed by (1.0-quantile) to get the percentiles of exceedance probabilities.\n
-  !>
-  !>                 Optionally, the concavity index CI can be calculated [Zhang2014]. CI is defined by
-  !>                         \f[ CI = \frac{q_{10\%}-q_{99\%}}{q_{1\%}-q_{99\%}} \f]
-  !>                 where \f$ q_{x} \f$ is the data point where x% of the data points are above that value.
-  !>                 Hence, exceedance probabilities are used.\n
-  !>
-  !>                 Optionally, the FDC mid-segment slope \f$FDC_{MSS}\f$ as used by Shafii et. al (2014) can be returned. 
-  !>                 The \f$FDC_{MSS}\f$ is defined as
-  !>                         \f[ FDC_{MSS} = \log(q_{m_1})-\log(q_{m_2}) \f]
-  !>                 where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exceedance probabilities within the 
-  !>                 midsegment of FDC. The settings \f$m_1=0.2\f$ and \f$0.7\f$ are used by Shafii et. al (2014) and are 
-  !>                 implemented like that.\n
-  !>
-  !>                 Optionally, the FDC medium high-segment volume \f$FDC_{MHSV}\f$ as used by Shafii et. al (2014) can be 
-  !>                 returned. The \f$FDC_{MHSV}\f$ is defined as
-  !>                         \f[ FDC_{MHSV} = \sum_{h=1}^{H} q_h \f]
-  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities  
-  !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.2\f$ is used here  
-  !>                 to be consistent with the definitions of the low-segment (0.7-1.0) and the mid-segment (0.2-0.7).\n
-  !>
-  !>                 Optionally, the FDC high-segment volume \f$FDC_{HSV}\f$ as used by Shafii et. al (2014) can be returned. 
-  !>                 The \f$FDC_{HSV}\f$ is defined as
-  !>                         \f[ FDC_{HSV} = \sum_{h=1}^{H} q_h \f]
-  !>                 where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities  
-  !>                 lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.02\f$ is used by  
-  !>                 Shafii et. al (2014) and is implemented like that.\n
-  !>
-  !>                 Optionally, the FDC low-segment volume \f$FDC_{LSV}\f$ as used by Shafii et. al (2014) can be returned. 
-  !>                 The \f$FDC_{LSV}\f$ is defined as
-  !>                         \f[ FDC_{LSV} = -\sum_{l=1}^{L} (\log(q_l) - \log(q_L)) \f]
-  !>                 where \f$ l=1,2,...,L \f$ are flow indeces located within the low-flow segment (exceedance probabilities  
-  !>                 larger than \f$m_1\f$). \f$L\f$ is the index of the minimum flow. The settings \f$m_1=0.7\f$ is used by  
-  !>                 Shafii et. al (2014) and is implemented like that.\n
-  !>
-  !>                 An optional mask of data points can be specified.
+  !>       \details Calculates the flow duration curves for a given data vector. The Flow duration curve at a
+  !>       certain quantile x is the data point p where x% of the data points are above the value p.
+  !>       Hence the function percentile of the module mo_percentile is used. But percentile is
+  !>       determining the point p where x% of the data points are below that value. Therfore, the
+  !>       given quantiles are transformed by (1.0-quantile) to get the percentiles of exceedance probabilities.
 
-  !     CALLING SEQUENCE
-  !         flow_duration_curve = FlowDurationCurves(data, quantiles, mask=mask)
+  !>       Optionally, the concavity index CI can be calculated [Zhang2014]. CI is defined by
+  !>       \f[ CI = \frac{q_{10\%}-q_{99\%}}{q_{1\%}-q_{99\%}} \f]
+  !>       where \f$ q_{x} \f$ is the data point where x% of the data points are above that value.
+  !>       Hence, exceedance probabilities are used.
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:) :: data"              data series
-  !>        \param[in] "real(dp), dimension(:) :: Quantiles"         Percentages of exceedance
+  !>       Optionally, the FDC mid-segment slope \f$FDC_{MSS}\f$ as used by Shafii et. al (2014) can be returned.
+  !>       The \f$FDC_{MSS}\f$ is defined as
+  !>       \f[ FDC_{MSS} = \log(q_{m_1})-\log(q_{m_2}) \f]
+  !>       where \f$ m_1 \f$ and \f$ m_2 \f$ are the lowest and highest flow exceedance probabilities within the
+  !>       midsegment of FDC. The settings \f$m_1=0.2\f$ and \f$0.7\f$ are used by Shafii et. al (2014) and are
+  !>       implemented like that.
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Optionally, the FDC medium high-segment volume \f$FDC_{MHSV}\f$ as used by Shafii et. al (2014) can be
+  !>       returned. The \f$FDC_{MHSV}\f$ is defined as
+  !>       \f[ FDC_{MHSV} = \sum_{h=1}^{H} q_h \f]
+  !>       where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities
+  !>       lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.2\f$ is used here
+  !>       to be consistent with the definitions of the low-segment (0.7-1.0) and the mid-segment (0.2-0.7).
 
-  !     INTENT(OUT)  
-  !         None
+  !>       Optionally, the FDC high-segment volume \f$FDC_{HSV}\f$ as used by Shafii et. al (2014) can be returned.
+  !>       The \f$FDC_{HSV}\f$ is defined as
+  !>       \f[ FDC_{HSV} = \sum_{h=1}^{H} q_h \f]
+  !>       where \f$ h=1,2,...,H \f$ are flow indeces located within the high-flow segment (exceedance probabilities
+  !>       lower than \f$m_1\f$). \f$H\f$ is the index of the maximum flow. The settings \f$m_1=0.02\f$ is used by
+  !>       Shafii et. al (2014) and is implemented like that.
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1)) :: mask"    mask of data array
+  !>       Optionally, the FDC low-segment volume \f$FDC_{LSV}\f$ as used by Shafii et. al (2014) can be returned.
+  !>       The \f$FDC_{LSV}\f$ is defined as
+  !>       \f[ FDC_{LSV} = -\sum_{l=1}^{L} (\log(q_l) - \log(q_L)) \f]
+  !>       where \f$ l=1,2,...,L \f$ are flow indeces located within the low-flow segment (exceedance probabilities
+  !>       larger than \f$m_1\f$). \f$L\f$ is the index of the minimum flow. The settings \f$m_1=0.7\f$ is used by
+  !>       Shafii et. al (2014) and is implemented like that.
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>       An optional mask of data points can be specified.
+  !>       ADDITIONAL INFORMATION
+  !>       FlowDurationCurves
+  !>       flow_duration_curve = FlowDurationCurves(data, quantiles, mask=mask)
+  !>       Thresholds in mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume are hard
+  !>       coded.
+  !>       FDC is used as hydrologic signature (quantiles not specified) in
+  !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !>       A framework to assess the realism of model structures using hydrological signatures.
+  !>       Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
+  !>       Concavity Index used as hydrologic signature in
+  !>       Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !>       Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !>       rainfall-runoff modelling.
+  !>       Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
+  !>       Concavity index is defined using exceedance probabilities by
+  !>       Sauquet, E., & Catalogne, C. (2011).
+  !>       Comparison of catchment grouping methods for flow duration curve estimation at ungauged sites in France.
+  !>       Hydrology and Earth System Sciences, 15(8), 2421-2435. doi:10.5194/hess-15-2421-2011
+  !>       mid_segment_slope, high_segment_volume, low_segment_volume used as hydrologic signature in
+  !>       Shafii, M., & Tolson, B. A. (2015).
+  !>       Optimizing hydrological consistency by incorporating hydrological signatures into model calibration
+  !>       objectives.
+  !>       Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional :: concavity_index"      concavity index as defined by Sauquet et al. (2011)
-  !>        \param[out] "real(dp), optional :: mid_segment_slope"    mid-segment slope as defined by Shafii et al. (2014)
-  !>        \param[out] "real(dp), optional :: mhigh_segment_volume" medium high-segment volume 
-  !>        \param[out] "real(dp), optional :: high_segment_volume"  high-segment volume as defined by Shafii et al. (2014)
-  !>        \param[out] "real(dp), optional :: low_segment_volume"   low-segment volume as defined by Shafii et al. (2014)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data"      data series
+  !>       \param[in] "real(dp), dimension(:) :: quantiles" Percentages of exceedance (x-axis of FDC)
 
-  !     RETURN
-  !>        \return real(dp), dimension(size(quantiles,1)) :: FlowDurationCurve &mdash; Flow Duration Curve value at resp. quantile
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(:), optional :: mask" mask of data array
 
-  !     RESTRICTIONS
-  !         Thresholds in mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume are hard coded.
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: concavity_index"      concavity index as defined by Sauquet et al. (2011)
+  !>       \param[out] "real(dp), optional :: mid_segment_slope"    mid-segment slope as defined by Shafii et al. (2014)
+  !>       \param[out] "real(dp), optional :: mhigh_segment_volume" medium high-segment volume
+  !>       \param[out] "real(dp), optional :: high_segment_volume"  high-segment volume as defined by Shafii et al.
+  !>       (2014)
+  !>       \param[out] "real(dp), optional :: low_segment_volume"   low-segment volume as defined by Shafii et al.
+  !>       (2014)
 
-  !     EXAMPLE
-  !         None
+  !    RETURN
+  !>       \return real(dp), dimension(size(quantiles,1)) :: FlowDurationCurve &mdash; Flow Duration Curve value at
+  !>       resp. quantile
 
-  !     LITERATURE
-  !         FDC is used as hydrologic signature (quantiles not specified) in
-  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
-  !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
-  !         Concavity Index used as hydrologic signature in
-  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
-  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
-  !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
-  !         Concavity index is defined using exceedance probabilities by
-  !            Sauquet, E., & Catalogne, C. (2011).
-  !            Comparison of catchment grouping methods for flow duration curve estimation at ungauged sites in France.
-  !            Hydrology and Earth System Sciences, 15(8), 2421-2435. doi:10.5194/hess-15-2421-2011
-  !         mid_segment_slope, high_segment_volume, low_segment_volume used as hydrologic signature in
-  !            Shafii, M., & Tolson, B. A. (2015).
-  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
+  !    HISTORY
+  !>       \authors Remko Nijzink, Juliane Mai
 
-  !     HISTORY
-  !>        \author Remko Nijzink, Juliane Mai
-  !>        \date March 2014
-  !         Modified   Juliane Mai, Jun 2015  - mask added
-  !                                           - function instead of subroutine
-  !                                           - use of percentile
-  !                                           - add concavity_index
-  !                    Juliane Mai, Jun 2015  - add mid_segment_slope, mhigh_segment_volume, high_segment_volume,
-  !                                             low_segment_volume
+  !>       \date March 2014
 
-  FUNCTION FlowDurationCurve(data, quantiles, mask, concavity_index, &
-          mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume)
+  ! Modifications:
+  ! Juliane Mai Jun 2015 - mask added 
+  !                      - function instead of subroutine 
+  !                      - use of percentile 
+  !                      - add concavity_index
+  ! Juliane Mai Jun 2015 - add mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume
+
+  FUNCTION FlowDurationCurve(data, quantiles, mask, concavity_index, mid_segment_slope, mhigh_segment_volume, &
+                            high_segment_volume, low_segment_volume)
 
     use mo_percentile, only : percentile
     use mo_utils, only : ge, le
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data                 ! data series
-    real(dp), dimension(:), intent(in) :: quantiles            ! Percentages of exceedance (x-axis of FDC)
-    logical, dimension(:), optional, intent(in) :: mask                 ! mask for data
-    real(dp), optional, intent(out) :: concavity_index      ! Concavity index as defined by
-    !                                                                                    ! Sauquet et al. (2011)
-    real(dp), optional, intent(out) :: mid_segment_slope    ! mid-segment slope as defined by
-    !                                                                                    ! Shafii et al. (2014)
-    real(dp), optional, intent(out) :: mhigh_segment_volume ! medium-high-segment volume
-    !                                                                                    ! 0.0 <= exceed. prob. <= 0.2
-    real(dp), optional, intent(out) :: high_segment_volume  ! high-segment volume as defined by
-    !                                                                                    ! Shafii et al. (2014)
-    !                                                                                    ! 0.0 <= exceed. prob. <= 0.02
-    real(dp), optional, intent(out) :: low_segment_volume   ! low-segment volume as defined by
-    !                                                                                    ! Shafii et al. (2014)
-    !                                                                                    ! 0.7 <= exceed. prob. <= 1.0
-    real(dp), dimension(size(quantiles, 1)) :: FlowDurationCurve    ! data point where x% of the data points
-    !                                                                                    ! are above that value
+    ! data series
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
-    logical, dimension(size(data, 1)) :: maske            ! mask for data points
-    real(dp) :: min_flow_value   ! minimal flow value
-    real(dp) :: flow_value_thres ! flow value at a threshold quantile
+    ! Percentages of exceedance (x-axis of FDC)
+    real(dp), dimension(:), intent(in) :: quantiles
+
+    ! mask of data array
+    logical, dimension(:), optional, intent(in) :: mask
+
+    ! concavity index as defined by Sauquet et al. (2011)
+    real(dp), optional, intent(out) :: concavity_index
+
+    ! mid-segment slope as defined by Shafii et al. (2014)
+    real(dp), optional, intent(out) :: mid_segment_slope
+
+    ! medium high-segment volume
+    real(dp), optional, intent(out) :: mhigh_segment_volume
+
+    ! high-segment volume as defined by Shafii et al. (2014)
+    real(dp), optional, intent(out) :: high_segment_volume
+
+    ! low-segment volume as defined by Shafii et al. (2014)
+    real(dp), optional, intent(out) :: low_segment_volume
+
+    ! data point where x% of the data points
+    ! are above that value
+    real(dp), dimension(size(quantiles, 1)) :: FlowDurationCurve
+
+    ! mask for data points
+    logical, dimension(size(data, 1)) :: maske
+
+    ! minimal flow value
+    real(dp) :: min_flow_value
+
+    ! flow value at a threshold quantile
+    real(dp) :: flow_value_thres
+
 
     ! checking optionals
     if (present(mask)) then
@@ -280,88 +296,89 @@ CONTAINS
   END FUNCTION FlowDurationCurve
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         Limb_densities
+  !    NAME
+  !        Limb_densities
 
-  !     PURPOSE
-  !>        \brief   Calculates limb densities
+  !    PURPOSE
+  !>       \brief Calculates limb densities
 
-  !>        \details Calculates rising and declinging limb densities. The peaks of the given series are
-  !>                 first determined by looking for points where preceding and subsequent datapoint are lower.
-  !>                 Second, the number of datapoints with rising values (nrise) and declining values (ndecline)
-  !>                 are counted basically by comparing neighbors.\n
+  !>       \details Calculates rising and declinging limb densities. The peaks of the given series are
+  !>       first determined by looking for points where preceding and subsequent datapoint are lower.
+  !>       Second, the number of datapoints with rising values (nrise) and declining values (ndecline)
+  !>       are counted basically by comparing neighbors.
+  !>       The duration the data increase (nrise) divided by the number of peaks (npeaks)
+  !>       gives the rising limb density RLD
+  !>       \f[ RLD=t_{rise}/n_{peak} \f]
+  !>       whereas the duration the data decrease (ndecline) divided by the number of peaks (npeaks)
+  !>       gives the declining limb density DLD
+  !>       \f[ DLD=t_{fall}/n_{peak}. \f]
+  !>       An optional mask of data points can be specified.
+  !>       ADDITIONAL INFORMATION
+  !>       Limb_densities
+  !>       call Limb_densities(data, mask=mask, RLD=rising_limb_density, DLD=declining_limb_density)
+  !>       Rising limb density used as hydrologic signature in
+  !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !>       A framework to assess the realism of model structures using hydrological signatures.
+  !>       Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
-  !>                 The duration the data increase (nrise) divided by the number of peaks (npeaks)
-  !>                 gives the rising limb density RLD
-  !>                     \f[ RLD=t_{rise}/n_{peak} \f]
-  !>                 whereas the duration the data decrease (ndecline) divided by the number of peaks (npeaks)
-  !>                 gives the declining limb density DLD
-  !>                     \f[ DLD=t_{fall}/n_{peak}. \f]
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data" data series
 
-  !>                 An optional mask of data points can be specified.
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" mask for data series
 
-  !     CALLING SEQUENCE
-  !         call Limb_densities(data, mask=mask, RLD=rising_limb_density, DLD=declining_limb_density)
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: RLD" rising    limb density
+  !>       \param[out] "real(dp), optional :: DLD" declining limb density
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)           :: data"    data series
+  !    HISTORY
+  !>       \authors Remko Nijzink
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \date March 2014
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1)) :: mask"    mask for data series
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp), optional              :: RLD"     rising    limb density
-  !>        \param[out] "real(dp), optional              :: DLD"     declining limb density
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         Rising limb density used as hydrologic signature in
-  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
-  !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-  !         Modified   Juliane Mai, Jun 2015  - RLD and DLD as optional
-  !                                           - optional mask for data can be given
+  ! Modifications:
+  ! Juliane Mai Jun 2015 - RLD and DLD as optional 
+  !                      - optional mask for data can be given
 
   SUBROUTINE Limb_densities(data, mask, RLD, DLD)
 
     use mo_message, only : message
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data    ! data series (with rising and declining limbs)
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask    ! mask for data series
-    real(dp), optional, intent(out) :: RLD     ! rising limb density
-    real(dp), optional, intent(out) :: DLD     ! declining limb density
+    ! data series
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
-    logical, dimension(size(data, 1)) :: maske      ! mask for data points
-    integer(i4) :: jj         ! Counter
-    integer(i4) :: n_peak     ! Number of peaks
-    integer(i4) :: n_decline  ! Number of declining data points
-    integer(i4) :: n_rise     ! Number of rising data points
-    logical, dimension(size(data, 1)) :: goes_up    ! True if rising, False if declining or contains masked values
-    real(dp) :: thres_rise ! Threshold that is has to rise at least to be detected as rising value
+    ! mask for data series
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! rising    limb density
+    real(dp), optional, intent(out) :: RLD
+
+    ! declining limb density
+    real(dp), optional, intent(out) :: DLD
+
+    ! mask for data points
+    logical, dimension(size(data, 1)) :: maske
+
+    ! Counter
+    integer(i4) :: jj
+
+    ! Number of peaks
+    integer(i4) :: n_peak
+
+    ! Number of declining data points
+    integer(i4) :: n_decline
+
+    ! Number of rising data points
+    integer(i4) :: n_rise
+
+    ! True if rising, False if declining or contains masked values
+    logical, dimension(size(data, 1)) :: goes_up
+
+    ! Threshold that is has to rise at least to be detected as rising value
+    real(dp) :: thres_rise
+
 
     ! checking optionals
     if (present(mask)) then
@@ -455,83 +472,89 @@ CONTAINS
   END SUBROUTINE Limb_densities
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         MaximumMonthlyFlow
+  !    NAME
+  !        MaximumMonthlyFlow
 
-  !     PURPOSE
-  !>        \brief   Maximum of average flows per months.
+  !    PURPOSE
+  !>       \brief Maximum of average flows per months.
 
-  !>        \details Maximum of average flow per month is defined as
-  !>                    \f[ max_{monthly flow} = Max( F(i), i=1,..12 ) \f]
-  !>                 where \$f F(i) $\f is the average flow of month i.
+  !>       \details Maximum of average flow per month is defined as
+  !>       \f[ max_{monthly flow} = Max( F(i), i=1,..12 ) \f]
+  !>       where \$f F(i) $\f is the average flow of month i.
+  !>       ADDITIONAL INFORMATION
+  !>       MaximumMonthlyFlow
+  !>       max_monthly_flow = MaximumMonthlyFlow(data, yr_start=yr_start, mo_start=1, dy_start=1, mask=mask)
+  !>       used as hydrologic signature in
+  !>       Shafii, M., & Tolson, B. A. (2015).
+  !>       Optimizing hydrological consistency by incorporating hydrological signatures into model calibration
+  !>       objectives.
+  !>       Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
-  !     CALLING SEQUENCE
-  !         max_monthly_flow = MaximumMonthlyFlow(data, yr_start=yr_start, mo_start=1, dy_start=1, mask=mask)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data" array of data
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" mask for data points given
+  !>       \param[in] "integer(i4), optional :: yr_start"                   year  of date of first data point given
+  !>       \param[in] "integer(i4), optional :: mo_start"                   month of date of first data point given
+  !>       (default: 1)
+  !>       \param[in] "integer(i4), optional :: dy_start"                   month of date of first data point given
+  !>       (default: 1)
 
-  !     INTENT(INOUT)
-  !         None
+  !    RETURN
+  !>       \return real(dp) :: MaximumMonthlyFlow &mdash; Maximum of average flow per month
+  !>       Works only with 1d double precision input data.
+  !>       Assumes data are daily values.
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
-  !>        \param[in] "integer(i4)  :: yr_start"   year  of date of first data point given 
-  !>        \param[in] "integer(i4)  :: mo_start"   month of date of first data point given (default: 1)
-  !>        \param[in] "integer(i4)  :: dy_start"   month of date of first data point given (default: 1)
+  !>       \date Jun 2015
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return real(dp) :: MaximumMonthlyFlow &mdash; Maximum of average flow per month
-
-  !     RESTRICTIONS
-  !>        Works only with 1d double precision input data.\n
-  !>        Assumes data are daily values.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         used as hydrologic signature in
-  !            Shafii, M., & Tolson, B. A. (2015).
-  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jun 2015
+  ! Modifications:
 
   FUNCTION MaximumMonthlyFlow(data, mask, yr_start, mo_start, dy_start)
 
     use mo_julian, only : date2dec, dec2date
     use mo_message, only : message
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data               ! Data series
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask               ! mask for data points
-    integer(i4), optional, intent(in) :: yr_start           ! year  of date of first data point given
-    integer(i4), optional, intent(in) :: mo_start           ! month of date of first data point given
-    !                                                                                 ! DEFAULT: 1
-    integer(i4), optional, intent(in) :: dy_start           ! day   of date of first data point given
-    !                                                                                 ! DEFAULT: 1
-    real(dp) :: MaximumMonthlyFlow ! return: maximum of average monthly flow
+    ! array of data
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
+    ! mask for data points given
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! year  of date of first data point given
+    integer(i4), optional, intent(in) :: yr_start
+
+    ! month of date of first data point given (default: 1)
+    integer(i4), optional, intent(in) :: mo_start
+
+    ! month of date of first data point given (default: 1)
+    integer(i4), optional, intent(in) :: dy_start
+
+    ! return: maximum of average monthly flow
+    real(dp) :: MaximumMonthlyFlow
+
     logical, dimension(size(data, 1)) :: maske
-    integer(i4) :: ii               ! counter
-    integer(i4) :: yr, mo, dy, imo  ! date variables
-    integer(i4), dimension(12) :: counter          ! number of data points per month
-    real(dp), dimension(12) :: flow_month       ! summed data points per months
-    real(dp) :: ref_jul_day      ! julian day of one day before start day
+
+    ! counter
+    integer(i4) :: ii
+
+    ! date variables
+    integer(i4) :: yr, mo, dy, imo
+
+    ! number of data points per month
+    integer(i4), dimension(12) :: counter
+
+    ! summed data points per months
+    real(dp), dimension(12) :: flow_month
+
+    ! julian day of one day before start day
+    real(dp) :: ref_jul_day
+
 
     if (present(mask)) then
       maske = mask
@@ -584,98 +607,105 @@ CONTAINS
   END FUNCTION MaximumMonthlyFlow
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         Moments
+  !    NAME
+  !        Moments
 
-  !     PURPOSE
-  !>        \brief   Moments of data and log-transformed data, e.g. mean and standard deviation.
+  !    PURPOSE
+  !>       \brief Moments of data and log-transformed data, e.g. mean and standard deviation.
 
-  !>        \details Returns several moments of data series given, i.e.
-  !>                     * mean               of data 
-  !>                     * standard deviation of data 
-  !>                     * median             of data 
-  !>                     * maximum/ peak      of data 
-  !>                     * mean               of log-transformed data 
-  !>                     * standard deviation of log-transformed data 
-  !>                     * median             of log-transformed data 
-  !>                     * maximum/ peak      of log-transformed data 
-  !>                 An optional mask of data points can be specified.
+  !>       \details Returns several moments of data series given, i.e.
+  !>       * mean               of data
+  !>       * standard deviation of data
+  !>       * median             of data
+  !>       * maximum/ peak      of data
+  !>       * mean               of log-transformed data
+  !>       * standard deviation of log-transformed data
+  !>       * median             of log-transformed data
+  !>       * maximum/ peak      of log-transformed data
+  !>       An optional mask of data points can be specified.
+  !>       ADDITIONAL INFORMATION
+  !>       Moments
+  !>       call moments(data, mask=mask, mean_data=mean_data, stddev_data=stddev_data, median_data=median_data,
+  !>       max_data=max_data,&
+  !>       mean_log=mean_log,   stddev_log=stddev_log,   median_log=median_log,   max_log=max_log)
+  !>       mean_log and stddev_log used as hydrologic signature in
+  !>       Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !>       Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !>       rainfall-runoff modelling.
+  !>       Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
+  !>       mean_data, stddev_data, median_data, max_data, mean_log, and stddev_log used as hydrologic signature in
+  !>       Shafii, M., & Tolson, B. A. (2015).
+  !>       Optimizing hydrological consistency by incorporating hydrological signatures into model calibration
+  !>       objectives.
+  !>       Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
-  !     CALLING SEQUENCE
-  !         call moments(data, mask=mask, mean_data=mean_data, stddev_data=stddev_data, median_data=median_data, max_data=max_data,&
-  !                                       mean_log=mean_log,   stddev_log=stddev_log,   median_log=median_log,   max_log=max_log)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data" array of data
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" mask for data points given
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: mean_data"   mean               of data
+  !>       \param[out] "real(dp), optional :: stddev_data" standard deviation of data
+  !>       \param[out] "real(dp), optional :: median_data" median             of data
+  !>       \param[out] "real(dp), optional :: max_data"    maximum/ peak      of data
+  !>       \param[out] "real(dp), optional :: mean_log"    mean               of log-transformed data
+  !>       \param[out] "real(dp), optional :: stddev_log"  standard deviation of log-transformed data
+  !>       \param[out] "real(dp), optional :: median_log"  median             of log-transformed data
+  !>       \param[out] "real(dp), optional :: max_log"     maximum/ peak      of log-transformed dataWorks only with 1d
+  !>       double precision input data.
 
-  !     INTENT(OUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
+  !>       \date Jun 2015
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "real(dp)  :: mean_data"    mean               of data
-  !>        \param[out] "real(dp)  :: stddev_data"  standard deviation of data
-  !>        \param[out] "real(dp)  :: median_data"  median             of data
-  !>        \param[out] "real(dp)  :: max_data"     maximum/ peak      of data
-  !>        \param[out] "real(dp)  :: mean_log"     mean               of log-transformed data
-  !>        \param[out] "real(dp)  :: stddev_log"   standard deviation of log-transformed data
-  !>        \param[out] "real(dp)  :: median_log"   median             of log-transformed data
-  !>        \param[out] "real(dp)  :: max_log"      maximum/ peak      of log-transformed data
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>        Works only with 1d double precision input data.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         mean_log and stddev_log used as hydrologic signature in
-  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
-  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
-  !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
-  !         mean_data, stddev_data, median_data, max_data, mean_log, and stddev_log used as hydrologic signature in
-  !            Shafii, M., & Tolson, B. A. (2015).
-  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jun 2015
-
-  SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, max_log)
+  SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, &
+                    max_log)
 
     use mo_message, only : message
     use mo_moment, only : mean, stddev
     use mo_percentile, only : median
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data            ! Data series
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
-    real(dp), optional, intent(out) :: mean_data       ! mean               of data
-    real(dp), optional, intent(out) :: stddev_data     ! standard deviation of data
-    real(dp), optional, intent(out) :: median_data     ! median             of data
-    real(dp), optional, intent(out) :: max_data        ! max/ peak          of data
-    real(dp), optional, intent(out) :: mean_log        ! mean               of log-transformed data
-    real(dp), optional, intent(out) :: stddev_log      ! standard deviation of log-transformed data
-    real(dp), optional, intent(out) :: median_log      ! median             of log-transformed data
-    real(dp), optional, intent(out) :: max_log         ! max/ peak          of log-transformed data
+    ! array of data
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
+    ! mask for data points given
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! mean               of data
+    real(dp), optional, intent(out) :: mean_data
+
+    ! standard deviation of data
+    real(dp), optional, intent(out) :: stddev_data
+
+    ! median             of data
+    real(dp), optional, intent(out) :: median_data
+
+    ! maximum/ peak      of data
+    real(dp), optional, intent(out) :: max_data
+
+    ! mean               of log-transformed data
+    real(dp), optional, intent(out) :: mean_log
+
+    ! standard deviation of log-transformed data
+    real(dp), optional, intent(out) :: stddev_log
+
+    ! median             of log-transformed data
+    real(dp), optional, intent(out) :: median_log
+
+    ! maximum/ peak      of log-transformed dataWorks only with 1d double precision input data.
+    real(dp), optional, intent(out) :: max_log
+
     logical, dimension(size(data, 1)) :: maske
+
     real(dp), dimension(size(data, 1)) :: logdata
+
 
     if (present(mask)) then
       maske = mask
@@ -713,90 +743,96 @@ CONTAINS
   END SUBROUTINE Moments
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         PeakDistribution
+  !    NAME
+  !        PeakDistribution
 
-  !     PURPOSE
-  !>        \brief   Calculates the peak distribution.
+  !    PURPOSE
+  !>       \brief Calculates the peak distribution.
 
-  !>        \details First, the peaks of the time series given are identified. For the peak distribution
-  !>                 only this subset of data points are considered. Second, the peak distribution at the
-  !>                 quantiles given is calculated. Calculates the peak distribution at the quantiles given
-  !>                 using mo_percentile. Since the exceedance probabilities are usually used in 
-  !>                 hydrology the function percentile is used with (1.0-quantiles). \n
-  !>                 
-  !>                 Optionally, the slope of the peak distribution between 10th and 50th percentile, i.e.
-  !>                    \f[ slope = \frac{\mathrm{peak\_{data}}_{0.1}-\mathrm{peak\_{data}}_{0.5}}{0.9-0.5} \f]
-  !>                 can be returned.\n
-  !>                 An optional mask for the data points can be given.
+  !>       \details First, the peaks of the time series given are identified. For the peak distribution
+  !>       only this subset of data points are considered. Second, the peak distribution at the
+  !>       quantiles given is calculated. Calculates the peak distribution at the quantiles given
+  !>       using mo_percentile. Since the exceedance probabilities are usually used in
+  !>       hydrology the function percentile is used with (1.0-quantiles).
 
-  !     CALLING SEQUENCE
-  !         peak_distr_at_quantiles = PeakDistribution(data, quantiles, peaks, Q_quantiles)
+  !>       Optionally, the slope of the peak distribution between 10th and 50th percentile, i.e.
+  !>       \f[ slope = \frac{\mathrm{peak\_{data}}_{0.1}-\mathrm{peak\_{data}}_{0.5}}{0.9-0.5} \f]
+  !>       can be returned.
+  !>       An optional mask for the data points can be given.
+  !>       ADDITIONAL INFORMATION
+  !>       PeakDistribution
+  !>       peak_distr_at_quantiles = PeakDistribution(data, quantiles, peaks, Q_quantiles)
+  !>       slope_peak_distribution used as hydrologic signature in
+  !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
+  !>       A framework to assess the realism of model structures using hydrological signatures.
+  !>       Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)  :: data"                       data array
-  !>        \param[in] "real(dp), dimension(:)  :: quantiles"                  requested quantiles for distribution
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data"      data array
+  !>       \param[in] "real(dp), dimension(:) :: quantiles" requested quantiles for distribution
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" mask of data array
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: slope_peak_distribution" slope of the Peak distribution between10th and
+  !>       50th percentile
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1)), optional  :: mask"   mask of data array
+  !    RETURN
+  !>       \return real(dp), dimension(size(quantiles,1)) :: PeakDistribution &mdash; Distribution of peak values
+  !>       at resp. quantiles
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Remko Nijzink
 
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[in] "real(dp), optional :: slope_peak_distribution"         slope of the Peak distribution between \n
-  !>                                                                           10th and 50th percentile
+  !>       \date March 2014
 
-  !     RETURN
-  !>        \return real(dp), dimension(size(quantiles,1)) :: PeakDistribution &mdash; Distribution of peak values \n
-  !>                                                                                   at resp. quantiles
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         slope_peak_distribution used as hydrologic signature in
-  !            Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
-  !            A framework to assess the realism of model structures using hydrological signatures.
-  !            Hydrology and Earth System Sciences, 17(5), 1893-1912. doi:10.5194/hess-17-1893-2013
-
-  !     HISTORY
-  !>        \author Remko Nijzink
-  !>        \date March 2014
-  !         Modified   Juliane Mai, Jun 2015  - mask added
-  !                                           - function instead of subroutine
-  !                                           - use of percentile
+  ! Modifications:
+  ! Juliane Mai Jun 2015 - mask added 
+  !                      - function instead of subroutine 
+  !                      - use of percentile
 
   FUNCTION PeakDistribution(data, quantiles, mask, slope_peak_distribution)
 
-    USE mo_percentile, only : percentile
+    use mo_percentile, only : percentile
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data                      ! data points
-    real(dp), dimension(:), intent(in) :: quantiles                 ! percentages of occurence
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask                      ! mask of data points
-    real(dp), optional, intent(out) :: slope_peak_distribution   ! slope of peak flow duration curve
-    real(dp), dimension(size(quantiles, 1)) :: PeakDistribution          ! distribution of peaks in data
-    !                                                                                         ! returns values of distribution at
-    !                                                                                         ! given quantiles
+    ! data array
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
-    integer(i4) :: ii, jj      ! counters
-    logical, dimension(size(data, 1)) :: maske       ! mask of data
-    integer(i4) :: n_peak      ! Number of peaks
-    real(dp), dimension(2) :: pp          ! array containing some quantiles
-    real(dp), dimension(2) :: data_pp     ! data points of quantiles pp
-    real(dp), allocatable, dimension(:) :: data_peak   ! series containing only peak values of original series data
+    ! requested quantiles for distribution
+    real(dp), dimension(:), intent(in) :: quantiles
+
+    ! mask of data array
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! slope of the Peak distribution between10th and 50th percentile
+    real(dp), optional, intent(out) :: slope_peak_distribution
+
+    ! distribution of peaks in data
+    ! returns values of distribution at
+    ! given quantiles
+    real(dp), dimension(size(quantiles, 1)) :: PeakDistribution
+
+    ! counters
+    integer(i4) :: ii, jj
+
+    ! mask of data
+    logical, dimension(size(data, 1)) :: maske
+
+    ! Number of peaks
+    integer(i4) :: n_peak
+
+    ! array containing some quantiles
+    real(dp), dimension(2) :: pp
+
+    ! data points of quantiles pp
+    real(dp), dimension(2) :: data_pp
+
+    ! series containing only peak values of original series data
+    real(dp), allocatable, dimension(:) :: data_peak
+
 
     ! checking optionals
     if (present(mask)) then
@@ -841,99 +877,97 @@ CONTAINS
   END FUNCTION PeakDistribution
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         RunoffRatio
+  !    NAME
+  !        RunoffRatio
 
-  !     PURPOSE
-  !>        \brief   Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d]).
+  !    PURPOSE
+  !>       \brief Runoff ratio (accumulated daily discharge [mm/d] / accumulated daily precipitation [mm/d]).
 
-  !>        \details The runoff ratio is defined as
-  !>                       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}{\sum_{t=1}^{N} p_t}\f]
-  !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
-  !>                 Therefore, precipitation over the entire basin is required and both discharge and precipitation
-  !>                 have to be converted to the same units [mm/d].\n
-  !>  
-  !>                 Input discharge is given in [m**3/s] as this is mHM default while precipitation has to be given
-  !>                 in [mm/km**2 / day].\n
-  !>                 
-  !>                 Either "precip_sum" or "precip_series" has to be specified.
-  !>                 If "precip_series" is used the optional mask is also applied to precipitation values.
-  !>                 The "precip_sum" is the accumulated "precip_series".\n
-  !>
-  !>                 Optionally, a mask for the data (=discharge) can be given. If optional "log_data" is set to .true.
-  !>                 the runoff ratio will be calculated as
-  !>                       \f[ runoff\_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}{\sum_{t=1}^{N} p_t}\f]
-  !>                 where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively. \n 
+  !>       \details The runoff ratio is defined as
+  !>       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}{\sum_{t=1}^{N} p_t}\f]
+  !>       where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively.
+  !>       Therefore, precipitation over the entire basin is required and both discharge and precipitation
+  !>       have to be converted to the same units [mm/d].
 
-  !     CALLING SEQUENCE
-  !         Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_sum=precip_sum,       log_data=.False.)
-  !            OR
-  !         Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_series=precip_series, log_data=.False.)
+  !>       Input discharge is given in [m**3/s] as this is mHM default while precipitation has to be given
+  !>       in [mm/km**2 / day].
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data   [m**3/s]
-  !>        \param[in] "real(dp)                   :: basin_area"    area of basin   [km**2]
+  !>       Either "precip_sum" or "precip_series" has to be specified.
+  !>       If "precip_series" is used the optional mask is also applied to precipitation values.
+  !>       The "precip_sum" is the accumulated "precip_series".
 
-  !     INTENT(INOUT)
-  !         None
+  !>       Optionally, a mask for the data (=discharge) can be given. If optional "log_data" is set to .true.
+  !>       the runoff ratio will be calculated as
+  !>       \f[ runoff\_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}{\sum_{t=1}^{N} p_t}\f]
+  !>       where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively.
+  !>       ADDITIONAL INFORMATION
+  !>       RunoffRatio
+  !>       Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_sum=precip_sum,       log_data=.False.)
+  !>       Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_series=precip_series, log_data=.False.)
+  !>       \return     real(dp), dimension(size(lags,1)) :: RunoffRation &mdash; Ratio of discharge and precipitation
+  !>       Used as hydrologic signature in
+  !>       Shafii, M., & Tolson, B. A. (2015).
+  !>       Optimizing hydrological consistency by incorporating hydrological signatures into model calibration
+  !>       objectives.
+  !>       Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
 
-  !     INTENT(OUT)
-  !         None
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data" array of data   [m**3/s]
+  !>       \param[in] "real(dp) :: basin_area"         area of basin   [km**2]
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1))  :: mask"            mask for data points given
-  !>        \param[in] "real(dp)                          :: precip_sum"      sum of daily precip. values of whole period 
-  !>                                                                          [mm/km**2 / day]
-  !>        \param[in] "real(dp), dimension(size(data,1)) :: precip_series"   daily precipitation values [mm/km**2 / day]
-  !>        \param[in] "logical                           :: log_data"        ratio using logarithmic data
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask"           mask for data points given
+  !>       \param[in] "real(dp), dimension(size(data, 1)), optional :: precip_series" daily precipitation values
+  !>       [mm/km**2 / day]
+  !>       \param[in] "real(dp), optional :: precip_sum"                              sum of daily precip. values of
+  !>       whole period[mm/km**2 / day]
+  !>       \param[in] "logical, optional :: log_data"                                 ratio using logarithmic dataWorks
+  !>       only with 1d double precision input data.
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  !>       \date Jun 2015
 
-  !     RETURN
-  !         \return     real(dp), dimension(size(lags,1)) :: RunoffRation &mdash; Ratio of discharge and precipitation
-
-  !     RESTRICTIONS
-  !>        Works only with 1d double precision input data.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         Used as hydrologic signature in
-  !            Shafii, M., & Tolson, B. A. (2015).
-  !            Optimizing hydrological consistency by incorporating hydrological signatures into model calibration objectives.
-  !            Water Resources Research, 51(5), 3796-3814. doi:10.1002/2014WR016520
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jun 2015
+  ! Modifications:
 
   FUNCTION RunoffRatio(data, basin_area, mask, precip_series, precip_sum, log_data)
 
     use mo_message, only : message
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data            ! Discharge series [m**3/s]
-    real(dp), intent(in) :: basin_area      ! Basin area       [km**2]
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
-    real(dp), dimension(size(data, 1)), optional, intent(in) :: precip_series   ! series of daily precip. [mm/km**2 / d]
-    !                                                                              ! optional mask will be applied
-    real(dp), optional, intent(in) :: precip_sum      ! sum    of daily precip. [mm/km**2 / d]
-    !                                                                              ! optional mask will not be applied
-    logical, optional, intent(in) :: log_data        ! if log(data) is used in ratio
-    !                                                                              ! DEFAULT: .false.
-    real(dp) :: RunoffRatio     ! sum(data) / sum(precip)
+    ! array of data   [m**3/s]
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
-    logical, dimension(size(data, 1)) :: maske    ! mask of data
-    logical :: log_dat  ! if logarithmic data are used --> sum(log(data)) / sum(precip)
+    ! area of basin   [km**2]
+    real(dp), intent(in) :: basin_area
+
+    ! mask for data points given
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! daily precipitation values [mm/km**2 / day]
+    real(dp), dimension(size(data, 1)), optional, intent(in) :: precip_series
+
+    ! sum of daily precip. values of whole period[mm/km**2 / day]
+    real(dp), optional, intent(in) :: precip_sum
+
+    ! ratio using logarithmic dataWorks only with 1d double precision input data.
+    logical, optional, intent(in) :: log_data
+
+    ! sum(data) / sum(precip)
+    real(dp) :: RunoffRatio
+
+    ! mask of data
+    logical, dimension(size(data, 1)) :: maske
+
+    ! if logarithmic data are used --> sum(log(data)) / sum(precip)
+    logical :: log_dat
+
     real(dp) :: sum_discharge
+
     real(dp) :: sum_precip
+
 
     ! checking optionals
     if (present(mask)) then
@@ -986,70 +1020,63 @@ CONTAINS
   END FUNCTION RunoffRatio
 
   !-------------------------------------------------------------------------------
-  !     NAME
-  !         ZeroFlowRatio
+  !    NAME
+  !        ZeroFlowRatio
 
-  !     PURPOSE
-  !>        \brief   Ratio of zero values to total number of data points.
+  !    PURPOSE
+  !>       \brief Ratio of zero values to total number of data points.
 
-  !>        \details An optional mask of data points can be specified.
+  !>       \details An optional mask of data points can be specified.
+  !>       ADDITIONAL INFORMATION
+  !>       ZeroFlowRatio
+  !>       Zero_Flow_Ratio = ZeroFlowRatio(data, mask=mask)
+  !>       \return     real(dp), dimension(size(lags,1)) :: ZeroFlowRatio &mdash; Ratio of zero values to total number
+  !>       of data points
+  !>       Used as hydrologic signature in
+  !>       Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
+  !>       Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
+  !>       rainfall-runoff modelling.
+  !>       Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
 
-  !     CALLING SEQUENCE
-  !         Zero_Flow_Ratio = ZeroFlowRatio(data, mask=mask)
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:) :: data" array of data
 
-  !     INTENT(IN)
-  !>        \param[in] "real(dp), dimension(:)     :: data"          array of data
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask" mask for data points givenWorks only with 1d
+  !>       double precision input data.
 
-  !     INTENT(INOUT)
-  !         None
+  !    HISTORY
+  !>       \authors Juliane Mai
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jun 2015
 
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "logical, dimension(size(data,1))  :: mask"   mask for data points given
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return     real(dp), dimension(size(lags,1)) :: ZeroFlowRatio &mdash; Ratio of zero values to total number of data points
-
-  !     RESTRICTIONS
-  !>        Works only with 1d double precision input data.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         Used as hydrologic signature in
-  !            Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
-  !            Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
-  !            rainfall-runoff modelling.
-  !            Journal of Hydrology, 517(C), 936-948. doi:10.1016/j.jhydrol.2014.06.032
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Jun 2015
+  ! Modifications:
 
   FUNCTION ZeroFlowRatio(data, mask)
 
     use mo_message, only : message
     use mo_utils, only : eq
 
-    IMPLICIT NONE
+    implicit none
 
-    real(dp), dimension(:), intent(in) :: data            ! Data series
-    logical, dimension(size(data, 1)), optional, intent(in) :: mask            ! mask for data points
-    real(dp) :: ZeroFlowRatio   ! Autocorrelation of data at given lags
+    ! array of data
+    real(dp), dimension(:), intent(in) :: data
 
-    ! local variables
-    logical, dimension(size(data, 1)) :: maske   ! mask of data
-    integer(i4) :: nall    ! total number of data points
-    integer(i4) :: nzero   ! number of zero data points
+    ! mask for data points givenWorks only with 1d double precision input data.
+    logical, dimension(size(data, 1)), optional, intent(in) :: mask
+
+    ! Autocorrelation of data at given lags
+    real(dp) :: ZeroFlowRatio
+
+    ! mask of data
+    logical, dimension(size(data, 1)) :: maske
+
+    ! total number of data points
+    integer(i4) :: nall
+
+    ! number of zero data points
+    integer(i4) :: nzero
+
 
     ! checking optionals
     if (present(mask)) then

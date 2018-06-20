@@ -9,6 +9,8 @@
 !>       \date Aug 2015
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
 MODULE mo_common_file
 

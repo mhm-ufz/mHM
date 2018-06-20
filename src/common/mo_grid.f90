@@ -39,21 +39,22 @@ contains
   !>       mo_set_netcdf_restart
 
   !    INTENT(IN)
-  !>       \param[in] "type(Grid) :: highres"         
-  !>       \param[in] "real(dp) :: target_resolution" 
+  !>       \param[in] "type(Grid) :: highres"
+  !>       \param[in] "real(dp) :: target_resolution"
 
   !    INTENT(INOUT)
-  !>       \param[inout] "type(Grid) :: lowres" 
+  !>       \param[inout] "type(Grid) :: lowres"
 
   !    INTENT(INOUT), OPTIONAL
-  !>       \param[inout] "type(GridRemapper), optional :: highres_lowres_remap" 
+  !>       \param[inout] "type(GridRemapper), optional :: highres_lowres_remap"
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Rohini Kumar
 
-  !>       \date Jun 2018
+  !>       \date Jan 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine init_lowres_level(highres, target_resolution, lowres, highres_lowres_remap)
 
@@ -183,16 +184,34 @@ contains
 
   end subroutine init_lowres_level
 
+  !    NAME
+  !        set_basin_indices
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid), dimension(:) :: grids"
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
   subroutine set_basin_indices(grids)
-    ! this is separate because the Grid initialization is usually called within a basin loop...
 
     use mo_common_variables, only : Grid
+
     implicit none
 
     type(Grid), intent(inout), dimension(:) :: grids
 
-    ! local variables
     integer(i4) :: iBasin
+
 
     do iBasin = 1, size(grids)
       ! Saving indices of mask and packed data
@@ -208,85 +227,60 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          L0_variable_init
+  !    NAME
+  !        L0_grid_setup
 
-  !>        \brief   level 0 variable initialization
+  !    PURPOSE
+  !>       \brief level 0 variable initialization
 
-  !>        \details following tasks are performed for L0 data sets
-  !>                 -  cell id & numbering
-  !>                 -  storage of cell cordinates (row and coloum id)
-  !>                 -  empirical dist. of terrain slope
-  !>                 -  flag to determine the presence of a particular soil id
-  !>                    in this configuration of the model run
-  !>                 If a variable is added or removed here, then it also has to
-  !>                 be added or removed in the subroutine config_variables_set in
-  !>                 module mo_restart and in the subroutine set_config in module
-  !>                 mo_set_netcdf_restart
+  !>       \details following tasks are performed for L0 data sets
+  !>       -  cell id & numbering
+  !>       -  storage of cell cordinates (row and coloum id)
+  !>       -  empirical dist. of terrain slope
+  !>       -  flag to determine the presence of a particular soil id
+  !>       in this configuration of the model run
+  !>       If a variable is added or removed here, then it also has to
+  !>       be added or removed in the subroutine config_variables_set in
+  !>       module mo_restart and in the subroutine set_config in module
+  !>       mo_set_netcdf_restart
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iBasin"  basin id
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(Grid) :: new_grid"
 
-  !     INTENT(INOUT)
-  !>        \param[in,out] "integer(i4), dimension(:) :: soilId_isPresent"
-  !>        flag to indicate wether a given soil-id is present or not, DIMENSION [nSoilTypes]
+  !    HISTORY
+  !>       \authors Rohini Kumar
 
-  !     INTENT(OUT)
-  !         None
+  !>       \date Jan 2013
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author  Rohini Kumar
-  !         \date    Jan 2013
-  !         Modified
-  !         Rohini Kumar & Matthias Cuntz,  May 2014 - cell area calulation based on a regular lat-lon grid or
-  !                                                    on a regular X-Y coordinate system
-  !         Matthias Cuntz,                 May 2014 - changed empirical distribution function
-  !                                                    so that doubles get the same value
-  !         Matthias Zink & Matthias Cuntz, Feb 2016 - code speed up due to reformulation of CDF calculation
-  !                           Rohini Kumar, Mar 2016 - changes for handling multiple soil database options
+  ! Modifications:
+  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  ! Matthias Cuntz                 May 2014 - changed empirical distribution function so that doubles get the same value
+  ! Matthias Zink & Matthias Cuntz Feb 2016 - code speed up due to reformulation of CDF calculation
+  ! Rohini Kumar                   Mar 2016 - changes for handling multiple soil database options
+  ! Robert Schweppe                Jun 2018 - refactoring and reformatting
 
   subroutine L0_grid_setup(new_grid)
 
     use mo_common_variables, only : Grid, iFlag_cordinate_sys
-    use mo_constants, only : TWOPI_dp, RadiusEarth_dp
+    use mo_constants, only : RadiusEarth_dp, TWOPI_dp
 
     implicit none
 
     type(Grid), intent(inout) :: new_grid
 
-    ! local variables
     real(dp), dimension(:, :), allocatable :: areaCell_2D
 
     integer(i4) :: i, j, k
+
     real(dp) :: rdum, degree_to_radian, degree_to_metre
 
+    ! STEPS :: 
+
+
     !--------------------------------------------------------
-    ! STEPS::
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
-
     ! level-0 information
     new_grid%nCells = count(new_grid%mask)
 
@@ -341,64 +335,47 @@ contains
 
 
   !------------------------------------------------------------------
-  !     NAME
-  !         mapCoordinates
-  !
-  !     PURPOSE
-  !>        \brief Generate map coordinates
-  !>        \details Generate map coordinate arrays for given basin and level
-  !
-  !     CALLING SEQUENCE
-  !         call mapCoordinates(ibasin, level, y, x)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)      :: iBasin" -> basin number
-  !>        \param[in] "type(geoGridRef) :: level"  -> grid reference
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(:)  :: y(:)"          -> y-coordinates
-  !>        \param[out] "real(dp) :: x(:)"          -> x-coorindates
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             Stephan Thober, Nov 2013 - removed fproj dependency
-  !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
+  !    NAME
+  !        mapCoordinates
+
+  !    PURPOSE
+  !>       \brief Generate map coordinates
+
+  !>       \details Generate map coordinate arrays for given basin and level
+
+  !    INTENT(IN)
+  !>       \param[in] "type(Grid) :: level" -> grid reference
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:) :: x, y"
+  !>       \param[out] "real(dp), dimension(:) :: x, y"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+  ! Stephan Thober Nov 2013 - removed fproj dependency
+  ! David Schaefer Jun 2015 - refactored the former subroutine CoordSystem
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
+
   subroutine mapCoordinates(level, y, x)
 
     use mo_common_variables, only : Grid
 
     implicit none
 
+    ! -> grid reference
     type(Grid), intent(in) :: level
-    real(dp), intent(out), allocatable :: x(:), y(:)
+
+    real(dp), intent(out), allocatable, dimension(:) :: x, y
+
     integer(i4) :: ii, ncols, nrows
+
     real(dp) :: cellsize
+
 
     cellsize = level%cellsize
     nrows = level%nrows
@@ -420,64 +397,44 @@ contains
   end subroutine mapCoordinates
 
   !------------------------------------------------------------------
-  !     NAME
-  !         geoCoordinates
-  !
-  !     PURPOSE
-  !>        \brief Generate geographic coordinates
-  !>        \details Generate geographic coordinate arrays for given basin and level
-  !
-  !     CALLING SEQUENCE
-  !         call mapCoordinates(ibasin, level, y, x)
-  !
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)      :: iBasin"    -> basin number
-  !>        \param[in] "type(Grid) :: level"     -> grid reference
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !>        \param[out] "real(dp) :: lat(:,:)"         -> lat-coordinates
-  !>        \param[out] "real(dp) :: lon(:,:)"         -> lon-coorindates
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         None
-  !
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Apr 2013
-  !         Modified:
-  !             Stephan Thober, Nov 2013 - removed fproj dependency
-  !             David Schaefer, Jun 2015 - refactored the former subroutine CoordSystem
-  !             Stephan Thober, Sep 2015 - using mask to unpack coordinates
-  !             Stephan Thober, Oct 2015 - writing full lat/lon again
+  !    NAME
+  !        geoCoordinates
+
+  !    PURPOSE
+  !>       \brief Generate geographic coordinates
+
+  !>       \details Generate geographic coordinate arrays for given basin and level
+
+  !    INTENT(IN)
+  !>       \param[in] "type(Grid) :: level" -> grid reference
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :) :: lat, lon"
+  !>       \param[out] "real(dp), dimension(:, :) :: lat, lon"
+
+  !    HISTORY
+  !>       \authors Matthias Zink
+
+  !>       \date Apr 2013
+
+  ! Modifications:
+  ! Stephan Thober  Nov 2013 - removed fproj dependency
+  ! David Schaefer  Jun 2015 - refactored the former subroutine CoordSystem
+  ! Stephan Thober  Sep 2015 - using mask to unpack coordinates
+  ! Stephan Thober  Oct 2015 - writing full lat/lon again
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
   subroutine geoCoordinates(level, lat, lon)
 
     use mo_common_variables, only : Grid
 
     implicit none
 
+    ! -> grid reference
     type(Grid), intent(in) :: level
-    real(dp), intent(out), allocatable :: lat(:, :), lon(:, :)
+
+    real(dp), intent(out), allocatable, dimension(:, :) :: lat, lon
+
 
     lat = level%y
     lon = level%x
@@ -486,94 +443,86 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         calculate_grid_properties
+  !    NAME
+  !        calculate_grid_properties
 
-  !     PURPOSE
-  !>        \brief Calculates basic grid properties at a required coarser level using
-  !>              information of a given finer level.
+  !    PURPOSE
+  !>       \brief Calculates basic grid properties at a required coarser level using
+  !>       information of a given finer level.
+  !>       Calculates basic grid properties at a required coarser level (e.g., L11) using
+  !>       information of a given finer level (e.g., L0). Basic grid properties such as
+  !>       nrows, ncols, xllcorner, yllcorner cellsize are estimated in this
+  !>       routine.
 
-  !>        \brief Calculates basic grid properties at a required coarser level (e.g., L11) using
-  !>              information of a given finer level (e.g., L0). Basic grid properties such as
-  !>              nrows, ncols, xllcorner, yllcorner cellsize are estimated in this
-  !>              routine.
+  !>       \details TODO: add description
 
-  !     CALLING SEQUENCE
-  !         call calculate_grid_properties( nrowsIn, ncolsIn,  xllcornerIn,                     &
-  !                                         yllcornerIn,  cellsizeIn, nodata_valueIn,           &
-  !                                         aimingResolution, nrowsOut, ncolsOut, xllcornerOut, &
-  !                                         yllcornerOut, cellsizeOut, nodata_valueOut )
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4)             :: nrowsIn"           no. of rows at an input level
-  !>        \param[in] "integer(i4)             :: ncolsIn"           no. of cols at an input level
-  !>        \param[in] "real(dp)                :: xllcornerIn"       xllcorner at an input level
-  !>        \param[in] "real(dp)                :: yllcornerIn"       yllcorner at an input level
-  !>        \param[in] "real(dp)                :: cellsizeIn"        cell size at an input level
-  !>        \param[in] "real(dp)                :: nodata_valueIn"    nodata value at an input level
-  !>        \param[in] "real(dp)                :: aimingResolution"  resolution of an output level
+  !    INTENT(IN)
+  !>       \param[in] "integer(i4) :: nrowsIn"       no. of rows at an input level
+  !>       \param[in] "integer(i4) :: ncolsIn"       no. of cols at an input level
+  !>       \param[in] "real(dp) :: xllcornerIn"      xllcorner at an input level
+  !>       \param[in] "real(dp) :: yllcornerIn"      yllcorner at an input level
+  !>       \param[in] "real(dp) :: cellsizeIn"       cell size at an input level
+  !>       \param[in] "real(dp) :: aimingResolution" resolution of an output level
 
-  !     INTENT(INOUT)
-  !         None
+  !    INTENT(OUT)
+  !>       \param[out] "integer(i4) :: nrowsOut"  no. of rows at an output level
+  !>       \param[out] "integer(i4) :: ncolsOut"  no. of cols at an output level
+  !>       \param[out] "real(dp) :: xllcornerOut" xllcorner at an output level
+  !>       \param[out] "real(dp) :: yllcornerOut" yllcorner at an output level
+  !>       \param[out] "real(dp) :: cellsizeOut"  cell size at an output level
 
-  !     INTENT(OUT)
-  !>        \param[out] "integer(i4)             :: nrowsOut"         no. of rows at an output level
-  !>        \param[out] "integer(i4)             :: ncolsOut"         no. of cols at an output level
-  !>        \param[out] "real(dp)                :: xllcornerOut"      xllcorner at an output level
-  !>        \param[out] "real(dp)                :: yllcornerOut"      yllcorner at an output level
-  !>        \param[out] "real(dp)                :: cellsizeOut"       cell size at an output level
-  !>        \param[out] "real(dp)                :: nodata_valueOut"   nodata value at an output level
+  !    HISTORY
+  !>       \authors Matthias Zink & Rohini Kumar
 
-  !     INTENT(IN), OPTIONAL
-  !         None
+  !>       \date Feb 2013
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! Modifications:
+  ! R. Kumar        Sep 2013 - documentation added according to the template
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  subroutine calculate_grid_properties(nrowsIn, ncolsIn, xllcornerIn, yllcornerIn, cellsizeIn, aimingResolution, &
+                                      nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut)
 
-  !     RETURN
-  !         None
-
-  !     RESTRICTIONS
-  !>       \note resolutions of input and output levels should confirm each other.
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink & Rohini Kumar
-  !>        \date Feb 2013
-  !         Modified, R. Kumar, Sep 2013   - documentation added according to the template
-
-  subroutine calculate_grid_properties(&
-          nrowsIn, ncolsIn, xllcornerIn, yllcornerIn, cellsizeIn, &
-          aimingResolution, &
-          nrowsOut, ncolsOut, xllcornerOut, yllcornerOut, cellsizeOut)
-
-    use mo_message, only : message       ! for print out
+    use mo_message, only : message
     use mo_string_utils, only : num2str
 
     implicit none
 
+    ! no. of rows at an input level
     integer(i4), intent(in) :: nrowsIn
+
+    ! no. of cols at an input level
     integer(i4), intent(in) :: ncolsIn
+
+    ! xllcorner at an input level
     real(dp), intent(in) :: xllcornerIn
+
+    ! yllcorner at an input level
     real(dp), intent(in) :: yllcornerIn
+
+    ! cell size at an input level
     real(dp), intent(in) :: cellsizeIn
+
+    ! resolution of an output level
     real(dp), intent(in) :: aimingResolution
 
+    ! no. of rows at an output level
     integer(i4), intent(out) :: nrowsOut
+
+    ! no. of cols at an output level
     integer(i4), intent(out) :: ncolsOut
+
+    ! xllcorner at an output level
     real(dp), intent(out) :: xllcornerOut
+
+    ! yllcorner at an output level
     real(dp), intent(out) :: yllcornerOut
+
+    ! cell size at an output level
     real(dp), intent(out) :: cellsizeOut
 
-    ! local variables
     real(dp) :: cellfactor
+
 
     cellFactor = aimingResolution / cellsizeIn
 

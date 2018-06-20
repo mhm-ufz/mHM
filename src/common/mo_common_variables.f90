@@ -12,6 +12,8 @@
 ! Modifications:
 ! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
 ! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
 module mo_common_variables
 
