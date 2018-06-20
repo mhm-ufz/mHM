@@ -63,7 +63,8 @@ CONTAINS
 
     use mo_append, only : append
     use mo_common_constants, only : P1_InitStateFluxes
-    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, L1_fastRunoff, L1_infilSoil, &
+    use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, L1_baseflow, &
+                                    L1_fastRunoff, L1_infilSoil, &
                                     L1_inter, L1_melt, L1_neutrons, L1_percol, L1_pet_calc, L1_preEffect, L1_rain, &
                                     L1_runoffSeal, L1_satSTW, L1_sealSTW, L1_slowRunoff, L1_snow, L1_snowPack, &
                                     L1_soilMoist, L1_total_runoff, L1_unsatSTW

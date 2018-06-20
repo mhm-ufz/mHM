@@ -341,6 +341,11 @@ for irelease in ${release} ; do
                 if [[ -f ${mhm_exe} ]] ; then rm ${mhm_exe} ; fi
                 ln -s ../../${mhm_exe} . 
 
+		# create the empty dirs, which git does not support
+                if [[ ! -d 'output_b1' ]] ; then mkdir 'output_b1' ; fi
+                if [[ ! -d 'restart' ]] ; then mkdir 'restart' ; fi
+
+		
                 # remove old files
                 if [[ -f mhm_terminal.${pid}.out ]] ; then rm mhm_terminal.${pid}.out ; fi
                 if [[ -f cdo.${pid}.terminal ]] ; then rm cdo.${pid}.terminal ; fi
