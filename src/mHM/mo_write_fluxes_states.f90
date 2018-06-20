@@ -76,23 +76,8 @@ contains
   !>       \brief Initialize OutputVariable
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       newOutputVariable
-
-
-  !>       var = OutputVariable(nc, ncells, mask, avg)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "type(NcDataset) :: nc"               -> NcDataset which contains the variable
@@ -112,6 +97,7 @@ contains
 
   ! Modifications:
   ! David Schaefer Nov 2017 - , added NcVariable initialization
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function newOutputVariable(nc, name, dtype, dims, ncells, mask, avg) result(out)
     implicit none
@@ -152,23 +138,8 @@ contains
 
   !>       \details Add the array given as actual argument
   !>       to the derived type's component 'data'
-  !>       ADDITIONAL INFORMATION
-  !>       updateVariable
-
-
-  !>       -> with nc of type(OutputVariable):
-  !>       call var%updateVariable(data)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputVariable) :: self"
@@ -182,6 +153,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine updateVariable(self, data)
     implicit none
@@ -205,22 +177,6 @@ contains
 
   !>       \details Write the content of the derived types's component
   !>       'data' to file, average if necessary
-  !>       ADDITIONAL INFORMATION
-  !>       writeVariableTimestep
-
-
-  !>       -> with var of type(OutputVariable):
-  !>       call var%updateVariable(data)
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputVariable) :: self"
@@ -234,6 +190,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeVariableTimestep(self, timestep)
     implicit none
@@ -264,22 +221,8 @@ contains
   !>       \details Create and initialize the output file. If new a new output
   !>       variable needs to be written, this is the first of two
   !>       procedures to change (second: updateDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       newOutputDataset
-
-
-  !>       nc = OutputDataset(ibasin, mask1)
-
-
-
-
-
-
 
   !>       \return type(OutputDataset)
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ibasin"             -> basin id
@@ -292,6 +235,7 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function newOutputDataset(ibasin, mask1, nCells) result(out)
 
@@ -515,33 +459,6 @@ contains
   !>       all output variables. If a new output
   !>       variable needs to be written, this is the second
   !>       of two procedures to change (first: newOutputDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       updateDataset
-
-
-  !>       with nc of type(OutputDataset):
-  !>       call nc%updateDataset(&
-  !>       self         , sidx         , eidx,           ,    &
-  !>       L1_fSealed   , L1_fNotSealed, L1_inter        ,    &
-  !>       L1_snowPack  , L1_soilMoist , L1_soilMoistSat ,    &
-  !>       L1_sealSTW   , L1_unsatSTW  , L1_satSTW       ,    &
-  !>       L1_neutrons  , L1_pet       , L1_aETSoil      ,    &
-  !>       L1_aETCanopy , L1_aETSealed , L1_total_runoff ,    &
-  !>       L1_runoffSeal, L1_fastRunoff, L1_slowRunoff   ,    &
-  !>       L1_baseflow  , L1_percol    , L1_infilSoil    ,    &
-  !>       L1_preEffect                )
-
-
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputDataset) :: self"
@@ -583,6 +500,7 @@ contains
   !                              - adding new variable infilSoil 
   !                              - case 16 David Schaefer      , Jun. 2015 
   !                              - major rewrite
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine updateDataset(self, sidx, eidx, L1_fSealed, L1_fNotSealed, L1_inter, L1_snowPack, L1_soilMoist, &
                           L1_soilMoistSat, L1_sealSTW, L1_unsatSTW, L1_satSTW, L1_neutrons, L1_pet, L1_aETSoil, &
@@ -855,23 +773,8 @@ contains
 
   !>       \details Write all accumulated and potentially averaged
   !>       data to disk.
-  !>       ADDITIONAL INFORMATION
-  !>       writeTimestep
-
-
-  !>       -> with nc of type(OutputDataset)
-  !>       call nc%writeTimestep(timestep)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputDataset) :: self"
@@ -885,6 +788,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeTimestep(self, timestep)
     implicit none
@@ -920,22 +824,6 @@ contains
 
   !>       \details Close the file associated with variable of
   !>       type(OutputDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       close
-
-
-  !>       -> with nc of type(OutputDataset):
-  !>       call nc%close()
-
-
-
-
-
-
-
-
-
-
 
   !    HISTORY
   !>       \authors Rohini Kumar & Stephan Thober
@@ -943,6 +831,7 @@ contains
   !>       \date August 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine close(self)
 
@@ -971,25 +860,7 @@ contains
   !>       \details Create output file, write all non-dynamic variables
   !>       and global attributes for the given basin.
 
-  !>       ADDITIONAL INFORMATION
-  !>       createOutputFile
-
-
-  !>       nc = createOutputFile(ibasin)
-
-
-
-
-
-
-
   !>       \return type(NcDataset)
-
-
-
-
-  !>       modified,
-  !>       Oct 2015, Stephan Thober - added actual version of mHM
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ibasin" -> basin id
@@ -1000,6 +871,8 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Stephan Thober  Oct 2015 - added actual version of mHM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function createOutputFile(ibasin) result(nc)
 
@@ -1100,21 +973,6 @@ contains
   !>       \brief Write output variable attributes
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       writeVariableAttributes
-
-
-  !>       call writeVariableAttributes(var, long_name, unit)
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "type(OutputVariable) :: var"
@@ -1127,6 +985,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeVariableAttributes(var, long_name, unit)
     implicit none
@@ -1155,22 +1014,8 @@ contains
 
   !>       \details Generate the unit string for the output variable
   !>       netcdf attribute based on modeling timestep
-  !>       ADDITIONAL INFORMATION
-  !>       fluxesUnit
-
-
-  !>       unit = fluxesUnit(iBasin)
-
-
-
-
-
-
 
   !>       \return character(16)
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ibasin"
@@ -1181,6 +1026,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function fluxesUnit(ibasin)
 

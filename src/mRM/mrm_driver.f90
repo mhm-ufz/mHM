@@ -4,11 +4,12 @@
 
 !>       \details TODO: add description
 
-!>       \authors Robert Schweppe
+!>       \authors Stephan Thober
 
 !>       \date Jun 2018
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 #ifndef MRM2MHM
 program mrm_driver

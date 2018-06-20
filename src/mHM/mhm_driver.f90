@@ -68,7 +68,8 @@
 ! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15 for simultaneous calibration based on runoff and TWS
 ! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included soil horizon specific properties/parameters
 ! Stephan Thober                Nov 2016 - implemented adaptive timestep for routing
-! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields 
+! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields
+! Robert Schweppe               Jun 2018 - refactoring and reformatting
 
 PROGRAM mhm_driver
 

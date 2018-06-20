@@ -40,15 +40,6 @@ CONTAINS
   !>       \details Prepare meteorological forcings data for a given variable.
   !>       Internally this subroutine calls another routine meteo_wrapper
   !>       for different meterological variables
-  !>       ADDITIONAL INFORMATION
-  !>       prepare_meteo_forcings_data
-  !>       Matthias Zink,   Jun  2013 - addded NetCDf reader
-  !>       Rohini Kumar,    Aug  2013 - name changed "inputFormat" to inputFormat_meteo_forcings
-  !>       Matthias Zink,   Feb  2014 - added read in for different PET processes (process 5)
-  !>       Stephan Thober,  Jun  2014 - add chunk_config for chunk read,
-  !>       copied L2 initialization to mo_startup
-  !>       Stephan Thober,  Nov  2016 - moved processMatrix to common variables
-  !>       Stephan Thober,  Jan  2017 - added subroutine for meteo_weights
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -60,6 +51,14 @@ CONTAINS
   !>       \date Jan 2013
 
   ! Modifications:
+  ! Matthias Zink,   Jun 2013 - addded NetCDf reader
+  ! Rohini Kumar,    Aug 2013 - name changed "inputFormat" to inputFormat_meteo_forcings
+  ! Matthias Zink,   Feb 2014 - added read in for different PET processes (process 5)
+  ! Stephan Thober,  Jun 2014 - add chunk_config for chunk read,
+  !                             copied L2 initialization to mo_startup
+  ! Stephan Thober,  Nov 2016 - moved processMatrix to common variables
+  ! Stephan Thober,  Jan 2017 - added subroutine for meteo_weights
+  ! Robert Schweppe  Jun 2018 - refactoring and reformatting
 
   subroutine prepare_meteo_forcings_data(iBasin, tt)
 
@@ -213,9 +212,6 @@ CONTAINS
   !>       native resolution (level-2) to the required hydrologic resolution (level-1)
   !>       3) Pad the above datasets of every basin to their respective global ones
 
-  !>       ADDITIONAL INFORMATION
-  !>       meteo_forcings_wrapper
-
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"             Basin Id
   !>       \param[in] "character(len = *) :: dataPath"    Data path where a given meteo. variable is stored
@@ -238,6 +234,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jun 2014 - changed to readPer
   ! Stephan Thober Feb 2016 - refactored deallocate statements
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine meteo_forcings_wrapper(iBasin, dataPath, inputFormat, dataOut1, lower, upper, ncvarName)
 
@@ -380,9 +377,6 @@ CONTAINS
   !>       native resolution (level-2) to the required hydrologic resolution (level-1)
   !>       3) Pad the above datasets of every basin to their respective global ones
 
-  !>       ADDITIONAL INFORMATION
-  !>       meteo_weights_wrapper
-
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"          Basin Id
   !>       \param[in] "logical :: read_meteo_weights"  Flag for reading meteo weights
@@ -404,6 +398,7 @@ CONTAINS
 
   ! Modifications:
   ! Stephan Thober May 2017 - updated documentation
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
 
@@ -531,21 +526,11 @@ CONTAINS
 
 
   ! ------------------------------------------------------------------
-  !
-  ! subroutine chunk_config
-  !
-  ! determines the start date, end date, and read_flag 
-  ! given basin id and current timestep
-  !
-  ! author: Stephan Thober
-  !
-  ! created: June 2014
-  ! ------------------------------------------------------------------
   !    NAME
   !        chunk_config
 
   !    PURPOSE
-  !>       \brief TODO: add description
+  !>       \brief determines the start date, end date, and read_flag given basin id and current timestep
 
   !>       \details TODO: add description
 
@@ -558,11 +543,12 @@ CONTAINS
   !>       \param[out] "type(period) :: readPer" start and end dates of reading Period
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Stephan Thober
 
-  !>       \date Jun 2018
+  !>       \date Jun 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine chunk_config(iBasin, tt, read_flag, readPer)
 
@@ -615,9 +601,6 @@ CONTAINS
   !>       \brief evaluate whether new chunk should be read at this timestep
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       is_read
-  !>       flag = is_read( iBasin, tt )
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" current Basin
@@ -629,6 +612,7 @@ CONTAINS
   !>       \date Jun 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function is_read(iBasin, tt)
 
@@ -724,10 +708,6 @@ CONTAINS
   !>       is length of current chunk to read
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       chunk_size
-  !>       call chunk_size( iBasin, tt, readPer )
-  !>       modified Stephan Thober - Jan 2015 added iBasin
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" current Basin to process
@@ -742,6 +722,8 @@ CONTAINS
   !>       \date Jun 2014
 
   ! Modifications:
+  ! Stephan Thober  Jan 2015 - added iBasin
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine chunk_size(iBasin, tt, readPer)
 

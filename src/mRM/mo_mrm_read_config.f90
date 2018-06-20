@@ -31,18 +31,6 @@ contains
   !>       \details Depending on the variable mrm_coupling_config, the
   !>       mRM config is either read from mrm.nml and parameters from
   !>       mrm_parameter.nml or copied from mHM.
-  !>       ADDITIONAL INFORMATION
-  !>       read_mrm_config
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "character(*) :: file_namelist, file_namelist_param"
@@ -60,8 +48,9 @@ contains
   !>       \date Aug 2015
 
   ! Modifications:
-  ! Stephan Thober Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
-  ! Stephan Thober Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
+  ! Stephan Thober  Sep 2015 - removed stop condition when routing resolution is smaller than hydrologic resolution
+  ! Stephan Thober  Oct 2015 - added NLoutputResults namelist, fileLatLon to directories_general namelist, and readLatLon flag
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
 

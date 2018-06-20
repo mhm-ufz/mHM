@@ -44,11 +44,6 @@ CONTAINS
   !>       in this routine, initalize them in the following variables_default_init
   !>       subroutine:
 
-  !>       ADDITIONAL INFORMATION
-  !>       variables_alloc
-
-  !>       call variables_alloc(iBasin)
-
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ncells1"
 
@@ -62,6 +57,7 @@ CONTAINS
   ! S. Thober          Aug 2015 - removed routing related variables
   ! Zink M. Demirel C. Mar 2017 - Init Jarvis soil water stress variable at SM process(3)
   ! Robert Schweppe    Dec 2017 - restructured allocation in variables_alloc, expanded dimensions of effective parameters
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine variables_alloc(ncells1)
 
@@ -182,22 +178,16 @@ CONTAINS
   !>       If a variable is added or removed here, then it also has to be added or removed
   !>       in the subroutine state_variables_set in the module mo_restart and in the
   !>       subroutine set_state in the module mo_set_netcdf_restart.
-  !>       ADDITIONAL INFORMATION
-  !>       variables_default_init
-
-
-  !>       call variables_default_init()
-  !>       \authors  R. Kumar & J. Mai
-  !>       \date    Sep. 2013
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors R. Kumar & J. Mai
 
-  !>       \date Jun 2018
+  !>       \date Sep 2013
 
   ! Modifications:
   ! R. Kumar       Sep 2013 - documentation added according to the template
   ! Stephan Thober Aug 2015 - moved routing variables to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine variables_default_init
 
@@ -218,7 +208,6 @@ CONTAINS
     implicit none
 
     integer(i4) :: i
-
 
     !-------------------------------------------
     ! STATE VARIABLES

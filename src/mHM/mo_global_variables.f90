@@ -1,7 +1,6 @@
 !>       \file mo_global_variables.f90
 
 !>       \brief Global variables ONLY used in reading, writing and startup.
-!>       \details
 
 !>       \details TODO: add description
 
@@ -10,6 +9,8 @@
 !>       \date Dec 2012
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
 MODULE mo_global_variables
 

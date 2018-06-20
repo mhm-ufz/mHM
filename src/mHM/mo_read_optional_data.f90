@@ -37,8 +37,6 @@ CONTAINS
   !>       a variable "sm" inside. The data are read only for the evaluation period
   !>       they are intended to be used for calibration. Soil moisture data are only
   !>       read if one of the corresponding objective functions is chosen.
-  !>       ADDITIONAL INFORMATION
-  !>       read_soil_moisture
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -49,6 +47,7 @@ CONTAINS
   !>       \date Mar 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_soil_moisture(iBasin)
 
@@ -137,17 +136,14 @@ CONTAINS
 
   !>       \details Read basin average TWS timeseries
   !>       Allocate global basin_avg_TWS variable that contains the simulated values after the simulation.
-  !>       ADDITIONAL INFORMATION
-  !>       read_basin_avg_TWS
-  !>       \author  Oldrich Rakovec, based on modification of mrm_read_discharge by S. Thober
-  !>       \date    Oct 2015
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Oldrich Rakovec
 
-  !>       \date Jun 2018
+  !>       \date Oct 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_basin_avg_TWS
 
@@ -218,8 +214,6 @@ CONTAINS
   !>       a variable "neutrons" inside. The data are read only for the evaluation period
   !>       they are intended to be used for calibration. Neutrons data are only
   !>       read if one of the corresponding objective functions is chosen.
-  !>       ADDITIONAL INFORMATION
-  !>       read_neutrons
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -230,6 +224,7 @@ CONTAINS
   !>       \date Jul 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_neutrons(iBasin)
 
@@ -322,8 +317,6 @@ CONTAINS
   !>       a variable "et" inside. The data are read only for the evaluation period
   !>       they are intended to be used for calibration. Evapotranspiration data are only
   !>       read if one of the corresponding objective functions is chosen.
-  !>       ADDITIONAL INFORMATION
-  !>       read_evapotranspiration
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" Basin Id
@@ -334,6 +327,7 @@ CONTAINS
   !>       \date Feb 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_evapotranspiration(iBasin)
 

@@ -73,23 +73,8 @@ contains
   !>       \brief Initialize OutputVariable
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       newOutputVariable
-
-
-  !>       var = OutputVariable(nc, ncells, mask, avg)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "type(NcDataset) :: nc"               -> NcDataset which contains the variable
@@ -109,6 +94,7 @@ contains
 
   ! Modifications:
   ! David Schaefer Nov 2017 - , added NcVariable initialization
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function newOutputVariable(nc, name, dtype, dims, ncells, mask, avg) result(out)
     implicit none
@@ -140,20 +126,6 @@ contains
     if (present(avg)) out%avg = avg
   end function newOutputVariable
 
-  ! function newOutputVariable(nc, ncells, mask, avg) result(out)
-  !   type(NcVariable), intent(in) :: nc
-  !   integer(i4), intent(in)      :: ncells
-  !   logical, target              :: mask(:,:)
-  !   logical, optional            :: avg
-  !   type(OutputVariable)         :: out
-
-  !   allocate(out%data(ncells))
-  !   out%nc   =  nc
-  !   out%mask => mask
-  !   out%data =  0
-  !   if (present(avg)) out%avg = avg
-  ! end function newOutputVariable
-
   !------------------------------------------------------------------
   !    NAME
   !        updateVariable
@@ -163,23 +135,8 @@ contains
 
   !>       \details Add the array given as actual argument
   !>       to the derived type's component 'data'
-  !>       ADDITIONAL INFORMATION
-  !>       updateVariable
-
-
-  !>       -> with nc of type(OutputVariable):
-  !>       call var%updateVariable(data)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputVariable) :: self"
@@ -193,6 +150,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine updateVariable(self, data)
     implicit none
@@ -216,22 +174,6 @@ contains
 
   !>       \details Write the content of the derived types's component
   !>       'data' to file, average if necessary
-  !>       ADDITIONAL INFORMATION
-  !>       writeVariableTimestep
-
-
-  !>       -> with var of type(OutputVariable):
-  !>       call var%updateVariable(data)
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputVariable) :: self"
@@ -245,6 +187,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeVariableTimestep(self, timestep)
     implicit none
@@ -276,22 +219,8 @@ contains
   !>       \details Create and initialize the output file. If new a new output
   !>       variable needs to be written, this is the first of two
   !>       procedures to change (second: updateDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       newOutputDataset
-
-
-  !>       nc = OutputDataset(ibasin, mask1)
-
-
-
-
-
-
 
   !>       \return type(OutputDataset)
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ibasin"            -> basin id
@@ -304,6 +233,7 @@ contains
   !>       \date Apr 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function newOutputDataset(ibasin, mask, nCells) result(out)
 
@@ -364,26 +294,6 @@ contains
   !>       all output variables. If a new output
   !>       variable needs to be written, this is the second
   !>       of two procedures to change (first: newOutputDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       updateDataset
-
-
-  !>       with nc of type(OutputDataset):
-  !>       call nc%updateDataset(&
-  !>       self         , sidx         , eidx,           ,    &
-  !>       L11_qMod )
-
-
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputDataset) :: self"
@@ -405,6 +315,7 @@ contains
   !                              - case 16 David Schaefer      , Jun. 2015 
   !                              - major rewrite
   ! Stephan Thober      Oct  2015 - adapted to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine updateDataset(self, sidx, eidx, L11_Qmod)
 
@@ -447,23 +358,8 @@ contains
 
   !>       \details Write all accumulated and potentially averaged
   !>       data to disk.
-  !>       ADDITIONAL INFORMATION
-  !>       writeTimestep
-
-
-  !>       -> with nc of type(OutputDataset)
-  !>       call nc%writeTimestep(timestep)
-
-
-
-
-
-
 
   !>       \return type(OutputVariable)
-
-
-
 
   !    INTENT(INOUT)
   !>       \param[inout] "class(OutputDataset) :: self"
@@ -477,6 +373,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeTimestep(self, timestep)
     implicit none
@@ -512,22 +409,6 @@ contains
 
   !>       \details Close the file associated with variable of
   !>       type(OutputDataset)
-  !>       ADDITIONAL INFORMATION
-  !>       close
-
-
-  !>       -> with nc of type(OutputDataset):
-  !>       call nc%close()
-
-
-
-
-
-
-
-
-
-
 
   !    HISTORY
   !>       \authors Rohini Kumar & Stephan Thober
@@ -536,6 +417,7 @@ contains
 
   ! Modifications:
   ! Stephan Thober Oct  2015 - adapted to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine close(self)
 
@@ -564,25 +446,7 @@ contains
   !>       \details Create output file, write all non-dynamic variables
   !>       and global attributes for the given basin.
 
-  !>       ADDITIONAL INFORMATION
-  !>       createOutputFile
-
-
-  !>       nc = createOutputFile(ibasin)
-
-
-
-
-
-
-
   !>       \return type(NcDataset)
-
-
-
-
-  !>       modified,
-  !>       Stephan Thober, Oct  2015 - adapted to mRM
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: ibasin" -> basin id
@@ -593,6 +457,8 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Stephan Thober  Oct 2015 - adapted to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function createOutputFile(ibasin) result(nc)
 
@@ -694,21 +560,6 @@ contains
   !>       \brief Write output variable attributes
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       writeVariableAttributes
-
-
-  !>       call writeVariableAttributes(var, long_name, unit)
-
-
-
-
-
-
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "type(OutputVariable) :: var"
@@ -721,6 +572,7 @@ contains
   !>       \date June 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine writeVariableAttributes(var, long_name, unit)
     implicit none

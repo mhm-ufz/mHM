@@ -41,8 +41,6 @@ CONTAINS
   !>       <li> mhm_outputs.nml
   !>       </ol>
   !>       For details please refer to the above mentioned namelist files.
-  !>       ADDITIONAL INFORMATION
-  !>       read_config
 
   !    INTENT(IN)
   !>       \param[in] "character(*) :: file_namelist"
@@ -83,6 +81,7 @@ CONTAINS
   ! M.Zink & M. Cuneyd Demirel   Mar  2017 - Added Jarvis soil water stress function at SM process(3)
   ! M.C. Demirel & Simon Stisen  Apr  2017 - Added FC dependency on root fraction coefficient (ET) at SM process(3)
   ! Robert Schweppe              Dec  2017 - switched from fractional julian day to integer
+  ! Robert Schweppe              Jun  2018 - refactoring and reformatting
 
   subroutine mhm_read_config(file_namelist, unamelist)
 

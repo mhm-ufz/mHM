@@ -37,9 +37,6 @@ CONTAINS
   !>       \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
   !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
-  !>       ADDITIONAL INFORMATION
-  !>       WriteFluxStateInit
-
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: NoNetcdfVars"
@@ -52,6 +49,8 @@ CONTAINS
   !>       \date Apr 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
   subroutine set_netCDF(NoNetcdfVars, nrows, ncols)
 

@@ -29,15 +29,6 @@ contains
 
   !>       \details write configuration and state variables to a given restart
   !>       directory.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_write_restart
-  !>       modified, Sep 2015, Stephan Thober - added all write restart commands in this subroutine
-  !>       Sep 2015, Stephan Thober - added L11_areaCell L1_ID and L1_L11_Id for routing
-  !>       resolution higher than hydrology resolution
-  !>       Nov 2015, David Schaefer - mo_netcdf
-  !>       May 2016, Stephan Thober - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
-  !>       because multiple outlets could exist
-  !>       Nov 2016, Stephan Thober - added L11_TSrout, ProcessMatrix
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"                   number of basin
@@ -49,6 +40,14 @@ contains
   !>       \date Aug 2015
 
   ! Modifications:
+  ! Stephan Thober  Sep 2015 - added all write restart commands in this subroutine
+  ! Stephan Thober  Sep 2015 - added L11_areaCell L1_ID and L1_L11_Id for routing
+  !                            resolution higher than hydrology resolution
+  ! David Schaefer  Nov 2015 - mo_netcdf
+  ! Stephan Thober  May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet
+  !                            because multiple outlets could exist
+  ! Stephan Thober  Nov 2016 - added L11_TSrout, ProcessMatrix
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_write_restart(iBasin, OutPath)
 
@@ -343,8 +342,6 @@ contains
   !>       each time the mHM_eval or mRM_eval is called such that the
   !>       the states are always the same at the first simulation time
   !>       step, crucial for optimization.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_read_restart_states
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"    number of basin
@@ -358,6 +355,7 @@ contains
   ! Modifications:
   ! David Schaefer Mar 2016 - mo_netcdf
   ! Stephan Thober May 2016 - split L0_OutletCoord into L0_rowOutlet & L0_colOutlet because multiple outlets could exist 
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_restart_states(iBasin, InPath)
 
@@ -479,8 +477,6 @@ contains
   !>       directory and initializes all Level 11 configuration variables,
   !>       that are initialized in L11_variable_init,
   !>       contained in module mo_startup.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_read_restart
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"    number of basin
@@ -498,6 +494,7 @@ contains
   ! Stephan Thober Sep 2015 - added L11_areaCell, L1_ID and L1_L11_Id for routing resolution higher than hydrology resolution
   ! David Schaefer Mar 2016 - mo_netcdf
   ! Stephan Thober Nov 2016 - added L11_TSrout, ProcessMatrix
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_restart_config(iBasin, InPath)
 

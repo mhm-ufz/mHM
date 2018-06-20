@@ -38,10 +38,6 @@ CONTAINS
   !>       Calculates snow melting rates.
   !>       Calculates snow, rain and effective precipitation depth
   !>       and snow pack.
-  !>       ADDITIONAL INFORMATION
-  !>       snow_accum_melt
-  !>       snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, temperature, temperature_tresh, thrfall, &
-  !>       deg_day, snow_pack, melt,  prec_effect, rain, snow)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: deg_day_incr"       Increase of the Degree-day factor per mm of increasein
@@ -70,6 +66,7 @@ CONTAINS
 
   ! Modifications:
   ! JM Aug 2013 - ordering of arguments changed
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   SUBROUTINE snow_accum_melt(deg_day_incr, deg_day_max, deg_day_noprec, prec, temperature, temperature_thresh, thrfall, &
                             snow_pack, deg_day, melt, prec_effect, rain, snow)

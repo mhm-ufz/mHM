@@ -31,17 +31,6 @@ contains
   !>       \details With the exception of L0_mask, L0_elev, and L0_LCover, all
   !>       L0 variables are read from file. The former three are only read if they
   !>       are not provided as variables.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_read_L0_data
-
-
-
-
-
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "logical :: do_reinit"
@@ -55,6 +44,7 @@ contains
 
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
 
@@ -227,17 +217,14 @@ contains
   !>       \details Read Observed discharge at the outlet of a catchment
   !>       and at the inflow of a catchment. Allocate global runoff
   !>       variable that contains the simulated runoff after the simulation.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_read_discharge
-  !>       \author  Matthias Zink & Stephan Thober
-  !>       \date    Aug 2015
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Matthias Zink & Stephan Thober
 
-  !>       \date Jun 2018
+  !>       \date Aug 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_discharge
 
@@ -340,22 +327,19 @@ contains
   !>       simulated by a hydrologic model or land surface model. This
   !>       total runoff will then be aggregated to the level 11 resolution
   !>       and then routed through the stream network.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_read_total_runoff
-  !>       \author  Stephan Thober
-  !>       \date    Sep 2015
-  !>       MODIFIED, Feb 2016, Stephan Thober - refactored deallocate statements
-  !>       Sep 2016, Stephan Thober - added ALMA convention
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin" basin id
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Stephan Thober
 
-  !>       \date Jun 2018
+  !>       \date Sep 2015
 
   ! Modifications:
+  ! Stephan Thober  Feb 2016 - refactored deallocate statements
+  ! Stephan Thober  Sep 2016 - added ALMA convention
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_read_total_runoff(iBasin)
 
@@ -420,10 +404,6 @@ contains
 
   end subroutine mrm_read_total_runoff
 
-  ! ------------------------------------------------------------------
-  ! Rotate fdir variable to the new coordinate system
-  ! L. Samaniego & R. Kumar
-  ! ------------------------------------------------------------------
   !    NAME
   !        rotate_fdir_variable
 
@@ -436,11 +416,12 @@ contains
   !>       \param[inout] "integer(i4), dimension(:, :) :: x"
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors L. Samaniego & R. Kumar
 
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine rotate_fdir_variable(x)
 

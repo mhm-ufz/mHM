@@ -47,12 +47,6 @@ CONTAINS
   !>       \f[ \theta[t] = \theta[t-1] + I[t] - \mathit{ET}[t] \f]
   !>       with \f$ \mathit{ET} \f$ (omit \f$[k,t]\f$) being
   !>       \f[ \mathit{ET} = f_\mathrm{roots} \cdot f_{SM} \cdot \mathit{PET} \f].
-  !>       ADDITIONAL INFORMATION
-  !>       soil_moisture
-  !>       subroutine soil_moisture(frac_sealed, water_thresh_sealed, pet, &
-  !>       evap_coeff, soil_moist_sat, frac_roots, soil_moist_FC, wilting_point, &
-  !>       soil_moist_exponen, aet_canopy, prec_effec, runoff_sealed, storage_sealed, &
-  !>       infiltration, soil_moist, aet, aet_sealed)
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: processCase"                   1 - Feddes equation for PET reduction2 - Jarvis
@@ -95,6 +89,7 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine soil_moisture(processCase, frac_sealed, water_thresh_sealed, pet, evap_coeff, soil_moist_sat, frac_roots, &
                           soil_moist_FC, wilting_point, soil_moist_exponen, jarvis_thresh_c1, aet_canopy, prec_effec, &
@@ -316,8 +311,6 @@ CONTAINS
   !>       0 & if \theta < \theta_{pwp}
   !>       \end{array}
   !>       \right. \f]
-  !>       ADDITIONAL INFORMATION
-  !>       feddes_et_reduction
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: soil_moist"    Soil moisture of each horizon [mm]
@@ -334,6 +327,7 @@ CONTAINS
   !>       \date March 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION feddes_et_reduction(soil_moist, soil_moist_FC, wilting_point, frac_roots)
     implicit none
@@ -389,8 +383,6 @@ CONTAINS
   !>       if  \theta_{norm} < jarvis\_sm\_threshold\_c1 \\
   !>       \end{array}
   !>       \right. \f]
-  !>       ADDITIONAL INFORMATION
-  !>       jarvis_et_reduction
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: soil_moist"       Soil moisture of each horizon [mm]
@@ -408,6 +400,7 @@ CONTAINS
   !>       \date March 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION jarvis_et_reduction(soil_moist, soil_moist_sat, wilting_point, frac_roots, jarvis_thresh_c1)
     implicit none

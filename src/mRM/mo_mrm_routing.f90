@@ -44,10 +44,6 @@ CONTAINS
   !>       and eventually routes the water in a third step. The last step is
   !>       repeated multiple times if the routing timestep is smaller than
   !>       the timestep of the hydrological timestep
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_routing
-
-
 
   !    INTENT(IN)
   !>       \param[in] "logical :: read_states"                            whether states are derived from restart file
@@ -101,6 +97,7 @@ CONTAINS
   ! Stephan Thober Sep 2015 - added variables for routing resolution higher than hydrologic resolution
   ! Stephan Thober May 2016 - added check whether gauge is actually inside modelling domain before copying simulated runoff
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mRM_routing(read_states, processCase, global_routing_param, L1_total_runoff, L1_areaCell, L1_L11_Id, &
                         L11_areaCell, L11_L1_Id, L11_netPerm, L11_fromN, L11_toN, L11_nOutlets, timestep, tsRoutFactor, &
@@ -316,8 +313,6 @@ CONTAINS
   !>       is higher than hydrology resolution (map_flag equals .true.) or
   !>       downscales runoff from L1 to L11 if routing resolution is lower
   !>       than hydrology resolution.
-  !>       ADDITIONAL INFORMATION
-  !>       L11_runoff_acc
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: qall"         total runoff L1 [mm tst-1]
@@ -343,6 +338,7 @@ CONTAINS
   ! Stephan Thober Sep 2015 - included downscaling of runoff
   ! Stephan Thober Feb 2016 - refactored upscaling of discharge from L1 to L11
   ! Stephan Thober Feb 2016 - refactored downscaling of discharge from L1 to L11
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   SUBROUTINE L11_runoff_acc(qAll, efecArea, L1_L11_Id, L11_areaCell, L11_L1_Id, TS, map_flag, qAcc)
 
@@ -419,31 +415,19 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !>    \brief
-  !>        Adds inflow discharge to the runoff produced at the
-  !>        cell where the inflow is occurring.
-  !>    \details
-  !>        If a inflow gauge is given, then this routine is adding the
-  !>        values to the runoff produced at the grid cell where the
-  !>        inflow is happening. The values are not directly added to the
-  !>        river network. If this cell is not a headwater then the streamflow
-  !>        produced upstream will be neglected.
-  !>      \param[in] "integer(i4)  :: nInflowGauges"   number of inflow gauges
-  !>      \param[in] "integer(i4)  :: InflowIndexList" index of inflow points
-  !>      \param[in] "logical      :: InflowHeadwater" flag to consider headwater cells of inflow gauge
-  !>      \param[in] "integer(i4)  :: InflowNodeList"  L11 ID of inflow points
-  !>      \param[in] "real(dp)     :: QInflow"         [m3 s-1] inflowing water
-  !>      \param[in,out] "real(dp) :: qOut"            [m3 s-1] Series of attenuated runoff 
   !    NAME
   !        add_inflow
 
   !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       none
-  !>       none
+  !>       \brief
+  !>          Adds inflow discharge to the runoff produced at the
+  !>          cell where the inflow is occurring.
+  !>       \details
+  !>          If a inflow gauge is given, then this routine is adding the
+  !>          values to the runoff produced at the grid cell where the
+  !>          inflow is happening. The values are not directly added to the
+  !>          river network. If this cell is not a headwater then the streamflow
+  !>          produced upstream will be neglected.
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: nInflowGauges"                 [-] number of inflow points
@@ -461,6 +445,7 @@ CONTAINS
   !>       \date Jul 2016
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine add_inflow(nInflowGauges, InflowIndexList, InflowHeadwater, InflowNodeList, QInflow, qOut)
 
@@ -543,9 +528,6 @@ CONTAINS
   !>       routine.
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       L11_routing
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: nNodes"                       number of network nodes = nCells1
@@ -580,6 +562,7 @@ CONTAINS
   ! Rohini Kumar   Aug 2011 - vector version of mHM-UFZ
   !                Nov 2011 - parallel version
   ! Luis Samaniego Jan 2013 - modularization, documentation
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L11_routing(nNodes, nLinks, netPerm, netLink_fromN, netLink_toN, netLink_C1, netLink_C2, netNode_qOUT, &
                         nInflowGauges, InflowHeadwater, InflowNodeList, netNode_qTIN, netNode_qTR, netNode_Qmod)

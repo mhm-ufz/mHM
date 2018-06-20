@@ -46,20 +46,8 @@ CONTAINS
   !>       derived by a semi-empirical, semi-physical relation.
   !>       The result depends on N0, the neutron counts for 0% soil mositure.
   !>       This variable is site-specific and is a global parameter in mHM.
-  !>       ADDITIONAL INFORMATION
-  !>       DesiletsN0
 
   !>       N0 formula based on Desilets et al. 2010
-
-  !>       call DesiletsN0( Moisture(cells,layers), Depths(layers), &
-  !>       N0-parameter, output(cells) )
-
-
-
-
-
-
-
 
   !>       Horizons(1) must not be zero.
 
@@ -85,6 +73,7 @@ CONTAINS
   !>       \date Mar 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine DesiletsN0(SoilMoisture, Horizons, N0, neutrons)
 
@@ -127,16 +116,6 @@ CONTAINS
 
   !>       COSMIC model based on Shuttleworth et al. 2013
 
-  !>       call COSMIC( Moisture(cells,layers), Depths(layers), &
-  !>       COSMIC-parameterset, neutron_integral_AFast, output(cells) )
-
-
-
-
-
-
-
-
   !>       Horizons(:) must not be zero.
 
   !>       see supplementaries in literature
@@ -161,6 +140,7 @@ CONTAINS
   !>       \date Mar 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine COSMIC(SoilMoisture, Horizons, params, neutron_integral_AFast, neutrons)
 
@@ -302,6 +282,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine oldIntegration(res, c)
 
@@ -364,19 +345,8 @@ CONTAINS
   !>       Inside the loops in the module COSMIC the tabular is used to
   !>       estimate A_fast, if 0<c<maxC, otherwise the recursive
   !>       approximation is used.
-  !>       ADDITIONAL INFORMATION
-  !>       TabularIntegralAFast
 
   !>       TabularIntegralAFast: a tabular for calculations with splines
-
-  !>       call TabularIntegralAFast(neutron_integral_AFast,intsize,maxC)
-
-
-
-
-
-
-
 
   !>       intsize and maxC must be positive
 
@@ -393,6 +363,7 @@ CONTAINS
   !>       \date Nov 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine TabularIntegralAFast(integral, maxC)
 
@@ -422,6 +393,12 @@ CONTAINS
     integral(intsize + 2) = maxC
   end subroutine
 
+  !For the specific given integral it is very precise with steps=1024
+  !    NAME
+  !        approx_mon_int
+
+  !    PURPOSE
+  !>       \brief TODO: add description
   ! integrate a monotonuous function f, dependend on two parameters c and phi
   ! xmin and xmax are the borders for the integration
   ! if the values for f(xmin) or f(xmax) are undefined (like exp(-1/0)), they
@@ -434,12 +411,6 @@ CONTAINS
   ! in a specific flat region regarding the error it can be interpolated better
   ! in a less flat region.
   !
-  !For the specific given integral it is very precise with steps=1024
-  !    NAME
-  !        approx_mon_int
-
-  !    PURPOSE
-  !>       \brief TODO: add description
 
   !>       \details TODO: add description
 
@@ -460,6 +431,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine approx_mon_int(res, f, c, xmin, xmax, eps, steps, fxmin, fxmax)
     implicit none
@@ -549,6 +521,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   recursive subroutine approx_mon_int_steps(res, f, c, xmin, xmax, eps, steps, fxmin, fxmax)
     implicit none
@@ -618,6 +591,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   recursive subroutine approx_mon_int_eps(res, f, c, xmin, xmax, eps, fxmin, fxmax)
     implicit none
@@ -663,13 +637,13 @@ CONTAINS
     endif
   end subroutine
 
-  ! if c>1.0, the function can be fitted very nice with gnuplot
-  ! pi/2*exp(a*x**b)
   !    NAME
   !        lookUpIntegral
 
   !    PURPOSE
   !>       \brief TODO: add description
+  ! if c>1.0, the function can be fitted very nice with gnuplot
+  ! pi/2*exp(a*x**b)
 
   !>       \details TODO: add description
 
@@ -683,6 +657,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine lookUpIntegral(res, integral, c)
 
@@ -738,6 +713,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   function intgrandFast(c, phi)
     implicit none

@@ -41,12 +41,6 @@ CONTAINS
   !>       \details Calculates the runoff generation for the unsaturated zone.
   !>       Calculates percolation, interflow and baseflow.
   !>       Updates upper soil and groundwater storages.
-  !>       ADDITIONAL INFORMATION
-  !>       runoff_unsat_zone
-  !>       runoff_unsat_zone(k1, kp, coeff_up, alpha, karst_loss, pefec_soil, &
-  !>       unsat_thresh, slow_interflow, perc, fast_interflow, &
-  !>       sat_storage, unsat_storage )
-  !>       Created  LS, Dec 2005
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: k1"           Recession coefficient of the upper reservoir,lower outlet [d-1]
@@ -78,6 +72,8 @@ CONTAINS
   ! LS Dec 2012 - variable names and process sat. zone
   ! LS Jan 2013 - total runoff accumulation L11
   ! JM Aug 2013 - ordering of arguments changed
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
   SUBROUTINE runoff_unsat_zone(k1, kp, k0, alpha, karst_loss, pefec_soil, unsat_thresh, sat_storage, unsat_storage, &
                               slow_interflow, fast_interflow, perc)
@@ -176,13 +172,6 @@ CONTAINS
   !>       the baseflow is equal to baseflow recession coefficient times the level
   !>       of the ground water reservoir, which
   !>       will be then reduced by the value of baseflow.
-  !>       ADDITIONAL INFORMATION
-  !>       runoff_sat_zone
-  !>       runoff_sat_zone(k2, baseflow, sat_storage)
-  !>       K=0.1
-  !>       B=5.0
-  !>       S=10.0
-  !>       runoff_sat_zone(K,B,S)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: k2" Baseflow recession coefficient [d-1]
@@ -200,6 +189,8 @@ CONTAINS
 
   ! Modifications:
   ! JM Aug 2013 - ordering of arguments changed
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
   SUBROUTINE runoff_sat_zone(k2, sat_storage, baseflow)
     implicit none
@@ -236,9 +227,6 @@ CONTAINS
   !>       \details Accumulates runoff.
   !>       \f[ q_{T} = ( q_0 + q_1 + q_2 ) * (1-fSealed) + q_{D} * fSealed \f],
   !>       where fSealed is the fraction of sealed area.
-  !>       ADDITIONAL INFORMATION
-  !>       L1_total_runoff
-  !>       runoff_accum(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow,  direct_runoff, total_runoff)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp) :: fSealed_area_fraction" sealed area fraction [1]
@@ -258,6 +246,8 @@ CONTAINS
   ! Modifications:
   ! RK Jul 2013 - A Mosiac approach is implemented for processes accounted within the permeamble & impervious area.
   ! ST May 2015 - updated equation in the documentation
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+
 
   SUBROUTINE L1_total_runoff(fSealed_area_fraction, fast_interflow, slow_interflow, baseflow, direct_runoff, &
                             total_runoff)

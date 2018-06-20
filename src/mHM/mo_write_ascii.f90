@@ -44,8 +44,6 @@ MODULE mo_write_ascii
   !>       \details
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-
 
   !    HISTORY
   !>       \authors Christoph Schneider
@@ -58,7 +56,7 @@ MODULE mo_write_ascii
   ! Stephan Thober Jun 2014 - updated read_restart
   ! Rohini, Luis   Jul 2015 - updated version, L1 level prints
   ! Stephan Thober Nov 2016 - moved processMatrix to common variables
-
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   PRIVATE
 
@@ -80,6 +78,7 @@ CONTAINS
   !>       \date Jun 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   Subroutine write_configfile
 
@@ -410,8 +409,6 @@ CONTAINS
   !>       \brief Write briefly final optimization results.
 
   !>       \details Write overall best objective function and the best optimized parameter set to a file_opti.
-  !>       ADDITIONAL INFORMATION
-  !>       write_optifile
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: best_OF"                             best objective function value as returnedby the
@@ -429,6 +426,7 @@ CONTAINS
   ! Rohini Kumar Aug 2013 - change in structure of the code including call statements
   ! Juliane Mai  Oct 2013 - clear parameter names added 
   !                       - double precision written
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine write_optifile(best_OF, best_paramSet, param_names)
 
@@ -494,8 +492,6 @@ CONTAINS
   !>       \details Write final, optimized parameter set in a namelist format.
   !>       Only parameters of processes which were switched on are written to the namelist.
   !>       All others are discarded.
-  !>       ADDITIONAL INFORMATION
-  !>       write_optinamelist
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4), dimension(nProcesses, 3) :: processMatrix"                information about which
@@ -514,6 +510,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Nov  2016 - moved nProcesses to common variables
   ! Stephan Thober Nov  2016 - write namelist for routing process 2
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine write_optinamelist(processMatrix, parameters, maskpara, parameters_name)
 

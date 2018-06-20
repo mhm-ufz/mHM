@@ -46,8 +46,6 @@ CONTAINS
   !>       - Variable initialization at level-11.
   !>       - Space allocation of remaining variable/parameters.
   !>       Global variables will be used at this stage.
-  !>       ADDITIONAL INFORMATION
-  !>       mhm_initialize
 
   !    HISTORY
   !>       \authors Luis Samaniego, Rohini Kumar
@@ -67,6 +65,7 @@ CONTAINS
   ! Stephan Thober Jun 2014 - updated flag for read_restart
   ! Stephan Thober Aug 2015 - removed initialisation of routing
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mhm_initialize
 
@@ -131,8 +130,6 @@ CONTAINS
   !>       \brief Initialize mHM constants
 
   !>       \details transformation of time units & initialize constants
-  !>       ADDITIONAL INFORMATION
-  !>       constants_init
 
   !    HISTORY
   !>       \authors Luis Samaniego
@@ -142,6 +139,7 @@ CONTAINS
   ! Modifications:
   ! Rohini Kumar                 Jan 2013 - 
   ! Juliane Mai & Matthias Cuntz Nov 2013 - check timeStep
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine constants_init
 
@@ -194,8 +192,6 @@ CONTAINS
   !>       1)  cell id & numbering
   !>       2)  mask creation
   !>       3)  append variable of intrest to global ones
-  !>       ADDITIONAL INFORMATION
-  !>       L2_variable_init
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"       Basin Id
@@ -210,6 +206,7 @@ CONTAINS
   !>       \date Feb 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine L2_variable_init(iBasin, level0_iBasin, level2_iBasin)
 
@@ -237,9 +234,6 @@ CONTAINS
     real(dp) :: cellsize2, nodata_dummy
 
     character(256) :: fName
-
-    ! STEPS :: 
-
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given basin

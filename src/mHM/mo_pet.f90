@@ -49,8 +49,6 @@ CONTAINS
   !>       where \f$ R_a\;[W\;m^{-2}]\f$ is the incoming solar radiation and
   !>       \f$ T_{avg}, T_{max} \f$ and \f$ T_{min}\f$  \f$ [ ^{\circ}C]\f$ are the mean, maximum,
   !>       and minimum daily temperatures at the given day, respectively.
-  !>       ADDITIONAL INFORMATION
-  !>       pet_hargreaves
   !>       \note Hargreaves, G.H., and Samani, Z.A. (1982). "Estimating potential evapotranspiration."
   !>       Tech. Note, J. Irrig. and drain. Engrg., ASCE, 108(3):225-230.
 
@@ -72,6 +70,7 @@ CONTAINS
   !>       \date Dec 2012
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION pet_hargreaves(HarSamCoeff, HarSamConst, tavg, tmax, tmin, latitude, doy)
 
@@ -132,8 +131,6 @@ CONTAINS
   !>       \f[ PET = \alpha * \frac{\Delta}{(\gamma + \Delta)} * R_n \f]
   !>       where \f$R_n\;[W\;m^{-2}]\f$ is the net solar radiation \f$\Delta =  f(T_{avg})\f$ is the slope
   !>       of the saturation-vapour pressure curve and \f$\alpha\f$ is a emperical coefficient.
-  !>       ADDITIONAL INFORMATION
-  !>       pet_priestly
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: PrieTayParam" Priestley-Taylor coefficient \f$ \alpha [-] \f$
@@ -149,6 +146,7 @@ CONTAINS
   !>       \date Apr 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION pet_priestly(PrieTayParam, Rn, tavg)
 
@@ -214,8 +212,6 @@ CONTAINS
   !>       but they do not consider the dependency of the long-wave component of the soil surface or leaf energy balance
   !>       (\f$ R_l \f$) on soil or leaf temperature (\f$ T_l \f$). We assume that net radiation
   !>       equals the absorbed short-wave radiation, i.e. \f$ R_N = R_s \f$ (p.79 in Monteith and Unsworth, 2013).
-  !>       ADDITIONAL INFORMATION
-  !>       pet_penman
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: net_rad"                net radiation \f$[W m^{-2}]\f$
@@ -237,6 +233,7 @@ CONTAINS
 
   ! Modifications:
   ! Johannes Brenner Nov 2017 - include arguments a_s and a_sh to enable corrected MU approach
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION pet_penman(net_rad, tavg, act_vap_pressure, aerodyn_resistance, bulksurface_resistance, a_s, &
                                     a_sh)
@@ -301,10 +298,7 @@ CONTAINS
   !>       \f[ \delta  = 0.4093 \cdot \sin\left( \frac{2 \cdot \pi \cdot doy}{365} - 1.405 \right) \f]
   !>       The sunset hour angle [radians]:
   !>       \f[ \omega  = \arccos( - \tan(latitude) * \tan(\delta) )  \f]
-  !>       ADDITIONAL INFORMATION
-  !>       extraterr_rad_approx
   !>       <                 \f$ \lambda = 2.45 \cdot 10^6\;J\;m^{-2}\;mm^{-1} \f$ is the latent heat of vaporization.
-  !>       \n
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: doy"   day of year [-]
@@ -319,6 +313,7 @@ CONTAINS
   !>       \date Apr 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION extraterr_rad_approx(doy, latitude)
 
@@ -375,8 +370,6 @@ CONTAINS
 
   !>       \details slope of saturation vapour pressure curve after Tetens
   !>       \f[ \Delta = \frac{0.6108 * e_s(T_a)}{e^(2 \cdot \log(T_a + 237.3))} \f]
-  !>       ADDITIONAL INFORMATION
-  !>       slope_satpressure
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: tavg" average daily temperature \f$[^{\circ}C]\f$
@@ -391,6 +384,7 @@ CONTAINS
   !>       \date Apr 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION slope_satpressure(tavg)
 
@@ -419,8 +413,6 @@ CONTAINS
 
   !>       \details Calculation of the saturation vapour pressure
   !>       \f[ e_s(T_a) = 0.6108 \cdot \exp \left( \frac{17.27 \cdot T_a}{T_a + 237.3} \right)  \f]
-  !>       ADDITIONAL INFORMATION
-  !>       sat_vap_pressure
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: tavg" temperature [degC]
@@ -434,6 +426,7 @@ CONTAINS
   !>       \date Apr 2014
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   elemental pure FUNCTION sat_vap_pressure(tavg)
 

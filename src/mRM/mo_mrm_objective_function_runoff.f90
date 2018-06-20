@@ -43,7 +43,9 @@
 ! Juliane Mai                Feb 2016 - multi-objective function (18) using lnNSE(highflows) and lnNSE(lowflows) 
 !                                     - multi-objective function (19) using lnNSE(highflows) and lnNSE(lowflows) 
 !                                     - multi-objective function (20) using FDC and discharge of months DJF
-! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following (Hundecha and Bardossy, 2004)
+! Stephan Thober,Bjoern Guse May 2018 - single objective function (21) using weighted NSE following
+!                                       (Hundecha and Bardossy, 2004)
+! Robert Schweppe            Jun 2018 - refactoring and reformatting
 
 MODULE mo_mrm_objective_function_runoff
 
@@ -79,10 +81,6 @@ CONTAINS
   !>       \details The functions selects the objective function case defined in a namelist,
   !>       i.e. the global variable \e opti\_function.
   !>       It return the objective function value for a specific parameter set.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_runoff
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_runoff(para)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
@@ -106,7 +104,9 @@ CONTAINS
 
   ! Modifications:
   ! Stephan Thober              Oct 2015 - only runoff objective functions
-  ! Stephan Thober, Bjoern Guse May 2018 - added weighted objective function 
+  ! Stephan Thober, Bjoern Guse May 2018 - added weighted objective function
+  ! Robert Schweppe             Jun 2018 - refactoring and reformatting
+
 
   FUNCTION single_objective_runoff(parameterset, eval, arg1, arg2, arg3)
 
@@ -191,10 +191,6 @@ CONTAINS
   !>       \details The functions selects the objective function case defined in a namelist,
   !>       i.e. the global variable \e opti\_function.
   !>       It return the multiple objective function values for a specific parameter set.
-  !>       ADDITIONAL INFORMATION
-  !>       multi_objective_runoff
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective(para)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
@@ -209,6 +205,7 @@ CONTAINS
   !>       \date Oct 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   SUBROUTINE multi_objective_runoff(parameterset, eval, multi_objectives)
 
@@ -257,11 +254,6 @@ CONTAINS
   !>       \details The logarithmis likelihood function is used when mHM runs in MCMC mode.
   !>       It can also be used for optimization when selecting the likelihood in the
   !>       namelist as \e opti\_function.
-  !>       ADDITIONAL INFORMATION
-  !>       loglikelihood_stddev
-  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !>       stddev = 0.5_dp
-  !>       log_likeli = loglikelihood_stddev(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -287,6 +279,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION loglikelihood_stddev(parameterset, eval, stddev, stddev_new, likeli_new)
 
@@ -406,9 +399,6 @@ CONTAINS
   !>       mHM then adds two extra (local) parameters for the error model in mhm_driver,
   !>       which get optimised together with the other, global parameters.
   !>       ADDITIONAL INFORMATION
-  !>       loglikelihood_evin2013_2
-  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !>       log_likeli = loglikelihood_evin2013_2(para, 1.0_dp)
   !>       Evin et al., WRR 49, 4518-4524, 2013
 
   !    INTENT(IN)
@@ -431,6 +421,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION loglikelihood_evin2013_2(parameterset, eval, regularize)
 
@@ -546,7 +537,6 @@ CONTAINS
 
   END FUNCTION loglikelihood_evin2013_2
 
-  ! Regularisation function sum(((para-ini)/sigma)**2)
   !    NAME
   !        parameter_regularization
 
@@ -625,13 +615,6 @@ CONTAINS
   !>       \details The logarithmis likelihood function is used when mHM runs in MCMC mode.
   !>       It can also be used for optimization when selecting the likelihood in the
   !>       namelist as \e opti\_function.
-  !>       ADDITIONAL INFORMATION
-  !>       loglikelihood_trend_no_autocorr
-  !>       para = (/ 1._dp, 2._dp, 3._dp, -999._dp, 5._dp, 6._dp /)
-  !>       stddev = 0.5_dp
-  !>       log_likeli = loglikelihood_trend_no_autocorr(para, stddev, stddev_new=stddev_new, likeli_new=likeli_new)
-  !>       Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !>       to not interfere with mRM
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -655,6 +638,9 @@ CONTAINS
   !>       \date Mar 2014
 
   ! Modifications:
+  ! Stephan Thober  Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                            to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION loglikelihood_trend_no_autocorr(parameterset, eval, stddev_old, stddev_new, likeli_new)
 
@@ -770,10 +756,6 @@ CONTAINS
   !>       is calculated.
   !>       \f[ obj\_value = lnNSE \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_lnnse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -789,8 +771,9 @@ CONTAINS
   !>       \date May 2013
 
   ! Modifications:
-  ! Stephan Thober Jan 2015 - introduced extract_runoff
-  ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Stephan Thober  Jan 2015 - introduced extract_runoff
+  ! Stephan Thober  Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_lnnse(parameterset, eval)
 
@@ -860,10 +843,6 @@ CONTAINS
   !>       is calculated and the objective function is
   !>       \f[ obj\_value = SSE \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_sse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_sse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -881,6 +860,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_sse(parameterset, eval)
 
@@ -951,10 +931,6 @@ CONTAINS
   !>       is calculated and the objective function is
   !>       \f[ obj\_value = 1-NSE \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_nse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_nse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -972,6 +948,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_nse(parameterset, eval)
 
@@ -1045,10 +1022,6 @@ CONTAINS
   !>       are calculated and added up equally weighted:
   !>       \f[ obj\_value = \frac{1}{2} (NSE + lnNSE) \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_equal_nse_lnnse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_equal_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1066,6 +1039,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_equal_nse_lnnse(parameterset, eval)
 
@@ -1145,10 +1119,6 @@ CONTAINS
   !>       are calculated and both returned.
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
   !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
-  !>       ADDITIONAL INFORMATION
-  !>       multi_objective_nse_lnnse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_equal_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1164,6 +1134,7 @@ CONTAINS
   !>       \date Oct 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION multi_objective_nse_lnnse(parameterset, eval)
 
@@ -1252,10 +1223,6 @@ CONTAINS
   !>       Both objectives are returned.
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
   !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
-  !>       ADDITIONAL INFORMATION
-  !>       multi_objective_lnnse_highflow_lnnse_lowflow
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_equal_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1272,6 +1239,7 @@ CONTAINS
   !>       \date Oct 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow(parameterset, eval)
 
@@ -1399,10 +1367,6 @@ CONTAINS
   !>       Both objectives are returned.
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
   !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
-  !>       ADDITIONAL INFORMATION
-  !>       multi_objective_lnnse_highflow_lnnse_lowflow_2
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_equal_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1419,6 +1383,7 @@ CONTAINS
   !>       \date Oct 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION multi_objective_lnnse_highflow_lnnse_lowflow_2(parameterset, eval)
 
@@ -1535,10 +1500,6 @@ CONTAINS
 
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
   !>       To calibrate this objective you need a multi-objective optimizer like PA-DDS.
-  !>       ADDITIONAL INFORMATION
-  !>       multi_objective_ae_fdc_lsv_nse_djf
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_equal_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1554,6 +1515,7 @@ CONTAINS
   !>       \date Feb 2016
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION multi_objective_ae_fdc_lsv_nse_djf(parameterset, eval)
 
@@ -1696,10 +1658,6 @@ CONTAINS
   !>       are calculated and added up equally weighted:
   !>       \f[ obj\_value = \sqrt[6]{(1-NSE)^6 + (1-lnNSE)^6} \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_power6_nse_lnnse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_power6_nse_lnnse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1717,6 +1675,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan 2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_power6_nse_lnnse(parameterset, eval)
 
@@ -1797,10 +1756,6 @@ CONTAINS
   !>       The minimal value of \f$(1-KGE)\f$ is 0 for the optimal KGE of 1.0.
 
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_kge
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_kge(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1818,6 +1773,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Jan  2015 - introduced extract_runoff
   ! Stephan Thober Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2) to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_kge(parameterset, eval)
 
@@ -1900,12 +1856,6 @@ CONTAINS
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }  \f].
 
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_multiple_gauges_kge_power6
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_multiple_gauges_kge_power6(para)
-  !>       Stephan Thober, Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
-  !>       to not interfere with mRM
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1921,6 +1871,9 @@ CONTAINS
   !>       \date March 2015
 
   ! Modifications:
+  ! Stephan Thober  Aug 2015 - substituted nGaugesTotal variable with size(runoff, dim=2)
+  !                            to not interfere with mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_multiple_gauges_kge_power6(parameterset, eval)
 
@@ -1991,10 +1944,6 @@ CONTAINS
   !>       is calculated and the objective function is
   !>       \f[ obj\_value = 1- wNSE \f]
   !>       The observed data \f$ Q_{obs} \f$ are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_weighted_nse
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_weighted_nse(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -2010,6 +1959,7 @@ CONTAINS
   !>       \date May 2018
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_weighted_nse(parameterset, eval)
 
@@ -2078,8 +2028,6 @@ CONTAINS
   !>       For simulated runoff, warming days as well as succeeding nodata values
   !>       are neglected and the simulated runoff is aggregated to the resolution
   !>       of the observed runoff.
-  !>       ADDITIONAL INFORMATION
-  !>       extract_runoff
   !>       see use in this module above
 
   !    INTENT(IN)
@@ -2097,6 +2045,7 @@ CONTAINS
   !>       \date Jan 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine extract_runoff(gaugeId, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 

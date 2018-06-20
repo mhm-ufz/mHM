@@ -16,9 +16,6 @@ MODULE mo_spatial_agg_disagg_forcing
 
   ! This module provides routines for spatial aggegation or disaggregation of meteorological input data.
 
-  ! Written  Rohini Kumar, Jan 2013
-  ! Modified 
-
   USE mo_kind, ONLY : i4, dp
 
   IMPLICIT NONE
@@ -46,6 +43,7 @@ MODULE mo_spatial_agg_disagg_forcing
   ! Modifications:
   ! Rohini Kumar Nov 2013 - data1 changed from intent(inout) to intent(out)
   ! RK, MZ, DS   May 2014 - added mask2
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 
   INTERFACE spatial_aggregation
@@ -62,6 +60,16 @@ MODULE mo_spatial_agg_disagg_forcing
 
   !>       \details Disaggregate (or downscale) the given level-2 meteorological data to the
   !>       required level-1 spatial resolution for the mHM run.
+
+  !    INTENT(IN)
+  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 data
+  !>       \param[in] "real(dp) :: cellsize2"                 Level-2 resolution
+  !>       \param[in] "real(dp) :: cellsize1"                 Level-1 resolution
+  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 mask
+  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 mask
+
+  !    INTENT(OUT)
+  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" Level-1 data
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -84,31 +92,6 @@ MODULE mo_spatial_agg_disagg_forcing
   ! ------------------------------------------------------------------
 
 CONTAINS
-
-  !    NAME
-  !        spatial_aggregation_3d
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 data
-  !>       \param[in] "real(dp) :: cellsize2"                 Level-2 resolution
-  !>       \param[in] "real(dp) :: cellsize1"                 Level-1 resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 mask
-  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 mask
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" Level-1 data
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
 
   subroutine spatial_aggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
@@ -217,31 +200,6 @@ CONTAINS
     deallocate(nTCells)
 
   end subroutine spatial_aggregation_3d
-
-  !    NAME
-  !        spatial_aggregation_4d
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :, :, :) :: data2" Level-2 data
-  !>       \param[in] "real(dp) :: cellsize2"                    Level-2 resolution
-  !>       \param[in] "real(dp) :: cellsize1"                    Level-1 resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask1"        Level-1 mask
-  !>       \param[in] "logical, dimension(:, :) :: mask2"        Level-2 mask
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :, :) :: data1" Level-1 data
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
 
   subroutine spatial_aggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
@@ -354,31 +312,6 @@ CONTAINS
 
   end subroutine spatial_aggregation_4d
 
-  !    NAME
-  !        spatial_disaggregation_3d
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :, :) :: data2" Level-2 data
-  !>       \param[in] "real(dp) :: cellsize2"                 Level-2 resolution
-  !>       \param[in] "real(dp) :: cellsize1"                 Level-1 resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask1"     Level-1 mask
-  !>       \param[in] "logical, dimension(:, :) :: mask2"     Level-2 mask
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :) :: data1" Level-1 data
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
   subroutine spatial_disaggregation_3d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 
     use mo_common_constants, only : nodata_dp
@@ -444,31 +377,6 @@ CONTAINS
     end do
 
   end subroutine spatial_disaggregation_3d
-
-  !    NAME
-  !        spatial_disaggregation_4d
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(IN)
-  !>       \param[in] "real(dp), dimension(:, :, :, :) :: data2" Level-2 data
-  !>       \param[in] "real(dp) :: cellsize2"                    Level-2 resolution
-  !>       \param[in] "real(dp) :: cellsize1"                    Level-1 resolution
-  !>       \param[in] "logical, dimension(:, :) :: mask1"        Level-1 mask
-  !>       \param[in] "logical, dimension(:, :) :: mask2"        Level-2 mask
-
-  !    INTENT(OUT)
-  !>       \param[out] "real(dp), dimension(:, :, :, :) :: data1" Level-1 data
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
 
   subroutine spatial_disaggregation_4d(data2, cellsize2, cellsize1, mask1, mask2, data1)
 

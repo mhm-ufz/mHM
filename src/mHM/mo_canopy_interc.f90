@@ -46,8 +46,7 @@ CONTAINS
   !>       intecepted by the vegetation.
   !>       \f[ E = E_{p}(C/C_{max})^{2/3} \f]
   !>       ADDITIONAL INFORMATION
-  !>       canopy_interc
-  !>       content(\f$C_{max}\f$) that can be intecepted by the vegetation.\n
+  !>       content(\f$C_{max}\f$) that can be intecepted by the vegetation.
   !>       canopy_interc(pet, interc_month_max, interc_max, precip, throughfall, evap_canopy, interc)
 
   !    INTENT(IN)
@@ -70,6 +69,7 @@ CONTAINS
   ! Modifications:
   ! JM Aug 2013 - ordering of arguments changed
   ! RK Sep 2013 - Documentation updated (formula and a short description added)
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   ELEMENTAL PURE SUBROUTINE canopy_interc(pet, interc_max, precip, interc, throughfall, evap_canopy)
     implicit none

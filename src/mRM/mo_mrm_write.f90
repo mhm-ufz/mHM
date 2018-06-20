@@ -47,17 +47,6 @@ contains
   !>       succeeds if it happens after the write of mHM restart files because
   !>       mHM restart files must exist. Second, simulated discharge is aggregated to the daily
   !>       scale and then written to file jointly with observed discharge
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_write
-
-
-
-
-
-
-
-
-
 
   !    HISTORY
   !>       \authors Juliane Mai, Rohini Kumar & Stephan Thober
@@ -65,6 +54,7 @@ contains
   !>       \date Aug 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_write
 
@@ -146,12 +136,8 @@ contains
 
   !    PURPOSE
   !>       \brief This modules writes the results of the configuration into an ASCII-file
-  !>       \details
 
   !>       \details TODO: add description
-  !>       ADDITIONAL INFORMATION
-  !>       write_configfile
-
 
   !    HISTORY
   !>       \authors Christoph Schneider
@@ -165,6 +151,7 @@ contains
   ! Rohini, Luis   Jul 2015 - updated version, L1 level prints
   ! Stephan Thober Sep 2015 - updated write of stream network
   ! Stephan Thober Nov 2016 - adapted write to selected case for routing process
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   Subroutine write_configfile
 
@@ -462,8 +449,6 @@ contains
 
   !>       \details Write a file for the daily observed and simulated discharge timeseries
   !>       during the evaluation period for each gauging station
-  !>       ADDITIONAL INFORMATION
-  !>       write_daily_obs_sim_discharge
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:, :) :: Qobs" daily time series of observed dischargedims = (nModeling_days
@@ -477,6 +462,7 @@ contains
   !>       \date August 2013
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine write_daily_obs_sim_discharge(Qobs, Qsim)
 
@@ -621,17 +607,6 @@ contains
 
   !>       \details This subroutine creates a netcdf data set
   !>       for writing L11_QTIN for different time averages.
-  !>       ADDITIONAL INFORMATION
-  !>       mrm_write_output_fluxes
-
-
-
-
-
-
-
-
-
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"
@@ -655,6 +630,7 @@ contains
   !>       \date Aug 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_write_output_fluxes(iBasin, nCells, timeStep_model_outputs, warmingDays, newTime, nTimeSteps, &
                                     nTStepDay, tt, day, month, year, timestep, mask11, L11_qmod)
@@ -787,8 +763,6 @@ contains
   !>       \brief Write briefly final optimization results.
 
   !>       \details Write overall best objective function and the best optimized parameter set to a file_opti.
-  !>       ADDITIONAL INFORMATION
-  !>       write_optifile
 
   !    INTENT(IN)
   !>       \param[in] "real(dp) :: best_OF"                             best objective function value as returnedby the
@@ -807,6 +781,7 @@ contains
   ! Juliane Mai    Oct 2013 - clear parameter names added 
   !                         - double precision written
   ! Stephan Thober Oct 2015 - ported to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_write_optifile(best_OF, best_paramSet, param_names)
 
@@ -870,8 +845,6 @@ contains
   !>       \brief Write final, optimized parameter set in a namelist format.
 
   !>       \details Write final, optimized parameter set in a namelist format.
-  !>       ADDITIONAL INFORMATION
-  !>       write_optinamelist
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:, :) :: parameters"                               (min, max, opti)
@@ -887,6 +860,7 @@ contains
   ! Modifications:
   ! Stephan Thober Oct 2015 - adapted to mRM
   ! Stephan Thober Nov 2016 - adapt header to routing process
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mrm_write_optinamelist(parameters, maskpara, parameters_name)
 

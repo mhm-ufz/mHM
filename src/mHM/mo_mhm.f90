@@ -60,12 +60,6 @@ CONTAINS
   !>       \details Pure mHM calculations. All variables are allocated and initialized.
   !>       They will be local variables within this call.
 
-  !>       ADDITIONAL INFORMATION
-  !>       mHM
-  !>       Has to be updated...
-  !>       Has to be updated...
-  !>       Has to be updated...
-
   !    INTENT(IN)
   !>       \param[in] "logical :: read_states"                           indicated whether states have been read from
   !>       file
@@ -198,6 +192,7 @@ CONTAINS
   ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 neutron_integral_AFast, global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &

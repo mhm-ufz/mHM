@@ -33,8 +33,6 @@ CONTAINS
   !>       \brief Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
 
   !>       \details Runs mhm with a specific parameter set and returns required variables, e.g. runoff.
-  !>       ADDITIONAL INFORMATION
-  !>       mhm_eval
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset" a set of global parameter (gamma) to run mHM, DIMENSION
@@ -80,6 +78,7 @@ CONTAINS
   ! Stephan Thober       Jan 2017 - added prescribed weights for tavg and pet
   ! Zink M. Demirel C.   Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
+  ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
   SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
 

@@ -9,6 +9,7 @@
 !>       \date Jan 2012
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 MODULE mo_file
 

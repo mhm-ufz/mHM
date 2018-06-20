@@ -45,11 +45,8 @@ CONTAINS
   !>       The function is basically a wrapper of the function autocorr
   !>       from the module mo_corr.
   !>       An optional mask of data points can be specified.
+
   !>       ADDITIONAL INFORMATION
-  !>       Autocorrelation
-  !>       auto_correlation = Autocorrelation(data, lags, mask=mask)
-  !>       \return     real(dp), dimension(size(lags,1)) :: Autocorrelation &mdash; autocorrelation of data at given
-  !>       lags
   !>       Used as hydrologic signature with lag 1 in
   !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !>       A framework to assess the realism of model structures using hydrological signatures.
@@ -69,6 +66,7 @@ CONTAINS
   !>       \date Jun 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION Autocorrelation(data, lags, mask)
 
@@ -145,8 +143,7 @@ CONTAINS
 
   !>       An optional mask of data points can be specified.
   !>       ADDITIONAL INFORMATION
-  !>       FlowDurationCurves
-  !>       flow_duration_curve = FlowDurationCurves(data, quantiles, mask=mask)
+
   !>       Thresholds in mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume are hard
   !>       coded.
   !>       FDC is used as hydrologic signature (quantiles not specified) in
@@ -199,6 +196,7 @@ CONTAINS
   !                      - use of percentile 
   !                      - add concavity_index
   ! Juliane Mai Jun 2015 - add mid_segment_slope, mhigh_segment_volume, high_segment_volume, low_segment_volume
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION FlowDurationCurve(data, quantiles, mask, concavity_index, mid_segment_slope, mhigh_segment_volume, &
                             high_segment_volume, low_segment_volume)
@@ -313,9 +311,8 @@ CONTAINS
   !>       gives the declining limb density DLD
   !>       \f[ DLD=t_{fall}/n_{peak}. \f]
   !>       An optional mask of data points can be specified.
+
   !>       ADDITIONAL INFORMATION
-  !>       Limb_densities
-  !>       call Limb_densities(data, mask=mask, RLD=rising_limb_density, DLD=declining_limb_density)
   !>       Rising limb density used as hydrologic signature in
   !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !>       A framework to assess the realism of model structures using hydrological signatures.
@@ -339,6 +336,7 @@ CONTAINS
   ! Modifications:
   ! Juliane Mai Jun 2015 - RLD and DLD as optional 
   !                      - optional mask for data can be given
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   SUBROUTINE Limb_densities(data, mask, RLD, DLD)
 
@@ -482,8 +480,6 @@ CONTAINS
   !>       \f[ max_{monthly flow} = Max( F(i), i=1,..12 ) \f]
   !>       where \$f F(i) $\f is the average flow of month i.
   !>       ADDITIONAL INFORMATION
-  !>       MaximumMonthlyFlow
-  !>       max_monthly_flow = MaximumMonthlyFlow(data, yr_start=yr_start, mo_start=1, dy_start=1, mask=mask)
   !>       used as hydrologic signature in
   !>       Shafii, M., & Tolson, B. A. (2015).
   !>       Optimizing hydrological consistency by incorporating hydrological signatures into model calibration
@@ -512,6 +508,7 @@ CONTAINS
   !>       \date Jun 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION MaximumMonthlyFlow(data, mask, yr_start, mo_start, dy_start)
 
@@ -624,10 +621,6 @@ CONTAINS
   !>       * maximum/ peak      of log-transformed data
   !>       An optional mask of data points can be specified.
   !>       ADDITIONAL INFORMATION
-  !>       Moments
-  !>       call moments(data, mask=mask, mean_data=mean_data, stddev_data=stddev_data, median_data=median_data,
-  !>       max_data=max_data,&
-  !>       mean_log=mean_log,   stddev_log=stddev_log,   median_log=median_log,   max_log=max_log)
   !>       mean_log and stddev_log used as hydrologic signature in
   !>       Zhang, Y., Vaze, J., Chiew, F. H. S., Teng, J., & Li, M. (2014).
   !>       Predicting hydrological signatures in ungauged catchments using spatial interpolation, index model, and
@@ -662,6 +655,7 @@ CONTAINS
   !>       \date Jun 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   SUBROUTINE Moments(data, mask, mean_data, stddev_data, median_data, max_data, mean_log, stddev_log, median_log, &
                     max_log)
@@ -760,8 +754,6 @@ CONTAINS
   !>       can be returned.
   !>       An optional mask for the data points can be given.
   !>       ADDITIONAL INFORMATION
-  !>       PeakDistribution
-  !>       peak_distr_at_quantiles = PeakDistribution(data, quantiles, peaks, Q_quantiles)
   !>       slope_peak_distribution used as hydrologic signature in
   !>       Euser, T., Winsemius, H. C., Hrachowitz, M., Fenicia, F., Uhlenbrook, S., & Savenije, H. H. G. (2013).
   !>       A framework to assess the realism of model structures using hydrological signatures.
@@ -791,6 +783,7 @@ CONTAINS
   ! Juliane Mai Jun 2015 - mask added 
   !                      - function instead of subroutine 
   !                      - use of percentile
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION PeakDistribution(data, quantiles, mask, slope_peak_distribution)
 
@@ -901,9 +894,6 @@ CONTAINS
   !>       \f[ runoff\_ratio = \frac{\sum_{t=1}^{N} \log(q_t)}{\sum_{t=1}^{N} p_t}\f]
   !>       where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively.
   !>       ADDITIONAL INFORMATION
-  !>       RunoffRatio
-  !>       Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_sum=precip_sum,       log_data=.False.)
-  !>       Runoff_Ratio = RunoffRatio(data, basin_area, mask=mask, precip_series=precip_series, log_data=.False.)
   !>       \return     real(dp), dimension(size(lags,1)) :: RunoffRation &mdash; Ratio of discharge and precipitation
   !>       Used as hydrologic signature in
   !>       Shafii, M., & Tolson, B. A. (2015).
@@ -930,6 +920,7 @@ CONTAINS
   !>       \date Jun 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION RunoffRatio(data, basin_area, mask, precip_series, precip_sum, log_data)
 
@@ -1028,8 +1019,6 @@ CONTAINS
 
   !>       \details An optional mask of data points can be specified.
   !>       ADDITIONAL INFORMATION
-  !>       ZeroFlowRatio
-  !>       Zero_Flow_Ratio = ZeroFlowRatio(data, mask=mask)
   !>       \return     real(dp), dimension(size(lags,1)) :: ZeroFlowRatio &mdash; Ratio of zero values to total number
   !>       of data points
   !>       Used as hydrologic signature in
@@ -1051,6 +1040,7 @@ CONTAINS
   !>       \date Jun 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION ZeroFlowRatio(data, mask)
 

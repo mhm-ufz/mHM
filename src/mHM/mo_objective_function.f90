@@ -24,6 +24,7 @@
 
 ! Modifications:
 ! Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 MODULE mo_objective_function
 
@@ -56,10 +57,6 @@ CONTAINS
   !>       \details The functions selects the objective function case defined in a namelist,
   !>       i.e. the global variable \e opti\_function.
   !>       It return the objective function value for a specific parameter set.
-  !>       ADDITIONAL INFORMATION
-  !>       objective
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective(para)
 
   !    INTENT(IN)
   !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
@@ -83,6 +80,7 @@ CONTAINS
 
   ! Modifications:
   ! Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective(parameterset, eval, arg1, arg2, arg3)
 
@@ -185,11 +183,6 @@ CONTAINS
   !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_sm_kge_catchment_avg
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_sm_corr(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -205,6 +198,7 @@ CONTAINS
   !>       \date May 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_sm_kge_catchment_avg(parameterset, eval)
 
@@ -351,13 +345,6 @@ CONTAINS
   !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }. \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_sm_corr
-
-
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_sm_corr(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -373,6 +360,7 @@ CONTAINS
   !>       \date March 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_sm_corr(parameterset, eval)
 
@@ -492,15 +480,6 @@ CONTAINS
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objecive_sm_pd
-
-
-
-
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_sm_corr(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -516,6 +495,7 @@ CONTAINS
   !>       \date May 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_sm_pd(parameterset, eval)
 
@@ -653,12 +633,6 @@ CONTAINS
   !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum(\phi_{i}/N)^6 }.  \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_sm_sse_standard_score
-
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_sm_sse_standard_score(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -674,6 +648,7 @@ CONTAINS
   !>       \date March 2015
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_sm_sse_standard_score(parameterset, eval)
 
@@ -776,10 +751,6 @@ CONTAINS
   !>       \brief Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
 
   !>       \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
-  !>       ADDITIONAL INFORMATION
-  !>       objective_kge_q_rmse_tws
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_kge(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -795,8 +766,8 @@ CONTAINS
   !>       \date Oct. 2015
 
   ! Modifications:
-  ! Stephan Thober Oct 2015 - , 
-  !                         - moved tws optimization from mo_mrm_objective_function_runoff here
+  ! Stephan Thober Oct 2015 - moved tws optimization from mo_mrm_objective_function_runoff here
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_kge_q_rmse_tws(parameterset, eval)
 
@@ -1039,11 +1010,6 @@ CONTAINS
   !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_neutronsdata, L1_neutronsdata_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_neutrons_kge_catchment_avg
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_neutrons_kge_catchment_avg(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1060,6 +1026,7 @@ CONTAINS
 
   ! Modifications:
   ! Maren Kaluza Mar 2018 - changed format string to '(I10)'
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_neutrons_kge_catchment_avg(parameterset, eval)
 
@@ -1188,11 +1155,6 @@ CONTAINS
   !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_et, L1_et_mask are global in this module.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_et_kge_catchment_avg
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_et_kge_catchment_avg(para)
-  !>       none
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1208,6 +1170,7 @@ CONTAINS
   !>       \date Feb 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_et_kge_catchment_avg(parameterset, eval)
 
@@ -1320,10 +1283,6 @@ CONTAINS
   !>       \details Objective function of KGE for runoff and SSE for soil moisture (standarized scores).
   !>       Further details can be found in the documentation of objective functions
   !>       '14 - objective_multiple_gauges_kge_power6' and '13 - objective_sm_corr'.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_kge_q_sse_sm(parameterset, eval)
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_kge_q_sse_sm(parameterset, eval)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1339,6 +1298,7 @@ CONTAINS
   !>       \date Mar. 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_kge_q_sm_corr(parameterset, eval)
 
@@ -1508,10 +1468,6 @@ CONTAINS
   !>       \details Objective function of KGE for runoff and KGE for ET.
   !>       Further details can be found in the documentation of objective functions
   !>       '14 - objective_multiple_gauges_kge_power6'.
-  !>       ADDITIONAL INFORMATION
-  !>       objective_kge_q_et(parameterset, eval)
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_kge_q_et(parameterset, eval)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1527,6 +1483,7 @@ CONTAINS
   !>       \date July 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_kge_q_et(parameterset, eval)
 
@@ -1692,10 +1649,6 @@ CONTAINS
   !>       \brief Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
 
   !>       \details Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
-  !>       ADDITIONAL INFORMATION
-  !>       objective_kge_q_rmse_et
-  !>       para = (/ 1., 2, 3., -999., 5., 6. /)
-  !>       obj_value = objective_kge(para)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1711,6 +1664,7 @@ CONTAINS
   !>       \date July 2017
 
   ! Modifications:
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   FUNCTION objective_kge_q_rmse_et(parameterset, eval)
 
@@ -1991,8 +1945,6 @@ CONTAINS
   !>       during the evaluation period are cut, not succeeding nodata values.
   !>       For simulated tws, warming days as well as succeeding nodata values
   !>       are neglected.
-  !>       ADDITIONAL INFORMATION
-  !>       extract_basin_avg_tws
   !>       see use in this module above
 
   !    INTENT(IN)
@@ -2005,13 +1957,13 @@ CONTAINS
   !>       \param[out] "logical, dimension(:) :: tws_obs_mask" mask of no data values
 
   !    HISTORY
-  !>       \authors Robert Schweppe
+  !>       \authors Stephan Thober
 
-  !>       \date Jun 2018
+  !>       \date Oct 2015
 
   ! Modifications:
-  ! >        \date Oct 2015 - 
   ! Stephan Thober Oct 2015 - moved subroutine to objective_function_sm
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine extract_basin_avg_tws(basinId, tws, tws_sim, tws_obs, tws_obs_mask)
 

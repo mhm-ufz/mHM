@@ -27,6 +27,35 @@ MODULE mo_restart
   PUBLIC :: read_restart_states     ! read restart files for state variables from a given path
   PUBLIC :: write_restart_files     ! write restart files for configuration to a given path
 
+  !    NAME
+  !        unpack_field_and_write
+
+  !    PURPOSE
+  !>       \brief TODO: add description
+
+  !>       \details TODO: add description
+
+  !    INTENT(INOUT)
+  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
+
+  !    INTENT(IN)
+  !>       \param[in] "character(*) :: var_name"                    variable name
+  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
+  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
+  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
+  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
+
+  !    HISTORY
+  !>       \authors Robert Schweppe
+
+  !>       \date Jun 2018
+
+  ! Modifications:
+
+
   INTERFACE unpack_field_and_write
     MODULE PROCEDURE unpack_field_and_write_1d_i4, &
             unpack_field_and_write_1d_dp, &
@@ -49,8 +78,6 @@ CONTAINS
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
   !>       basin index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
-  !>       ADDITIONAL INFORMATION
-  !>       write_restart
 
   !    INTENT(IN)
   !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
@@ -66,6 +93,7 @@ CONTAINS
   ! Stephan Thober     Nov  2016 - moved processMatrix to common variables
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine write_restart_files(OutPath)
 
@@ -281,8 +309,6 @@ CONTAINS
   !>       restart directory and initialises all state variables
   !>       that are initialized in the subroutine initialise,
   !>       contained in module mo_startup.
-  !>       ADDITIONAL INFORMATION
-  !>       read_restart_states
 
   !    INTENT(IN)
   !>       \param[in] "integer(i4) :: iBasin"    number of basin
@@ -297,6 +323,7 @@ CONTAINS
   ! Stephan Thober Aug  2015 - moved read of routing states to mRM
   ! David Schaefer Nov  2015 - mo_netcdf
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine read_restart_states(iBasin, InPath)
 
@@ -713,34 +740,6 @@ CONTAINS
 
   end subroutine read_restart_states
 
-  !    NAME
-  !        unpack_field_and_write_1d_i4
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "integer(i4) :: fill_value"                   fill value used for missing values
-  !>       \param[in] "integer(i4), dimension(:) :: data"           packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
   subroutine unpack_field_and_write_1d_i4(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : i4
@@ -786,34 +785,6 @@ CONTAINS
 
   end subroutine
 
-  !    NAME
-  !        unpack_field_and_write_1d_dp
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
-  !>       \param[in] "real(dp), dimension(:) :: data"              packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
-
   subroutine unpack_field_and_write_1d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
     use mo_kind, only : dp
@@ -858,34 +829,6 @@ CONTAINS
     end if
 
   end subroutine
-
-  !    NAME
-  !        unpack_field_and_write_2d_dp
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
-  !>       \param[in] "real(dp), dimension(:, :) :: data"           packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
 
   subroutine unpack_field_and_write_2d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 
@@ -943,34 +886,6 @@ CONTAINS
     end if
 
   end subroutine
-
-  !    NAME
-  !        unpack_field_and_write_3d_dp
-
-  !    PURPOSE
-  !>       \brief TODO: add description
-
-  !>       \details TODO: add description
-
-  !    INTENT(INOUT)
-  !>       \param[inout] "type(NcDataset) :: nc" NcDataset to add variable to
-
-  !    INTENT(IN)
-  !>       \param[in] "character(*) :: var_name"                    variable name
-  !>       \param[in] "type(NcDimension), dimension(:) :: var_dims" vector of Variable dimensions
-  !>       \param[in] "real(dp) :: fill_value"                      fill value used for missing values
-  !>       \param[in] "real(dp), dimension(:, :, :) :: data"        packed data to be set to variable
-  !>       \param[in] "logical, dimension(:, :) :: mask"            mask used for unpacking
-
-  !    INTENT(IN), OPTIONAL
-  !>       \param[in] "character(*), optional :: var_long_name" variable long name attribute
-
-  !    HISTORY
-  !>       \authors Robert Schweppe
-
-  !>       \date Jun 2018
-
-  ! Modifications:
 
   subroutine unpack_field_and_write_3d_dp(nc, var_name, var_dims, fill_value, data, mask, var_long_name)
 

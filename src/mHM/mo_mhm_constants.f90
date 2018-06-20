@@ -9,11 +9,9 @@
 !>       \date Nov 2011
 
 ! Modifications:
+! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 MODULE mo_mhm_constants
-
-  ! Written   Matthias Cuntz,     Nov 2011
-  ! Modified  Robert Schweppe,    May 2018 - refactoring
 
   USE mo_kind, ONLY : i4, dp
 
