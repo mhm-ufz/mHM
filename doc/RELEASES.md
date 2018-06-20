@@ -1,7 +1,7 @@
 # mHM RELEASE NOTES
 
 
-## mHM v5.9 (June 2018)
+## mHM v5.9 (July 2018)
 
 ### New Features:
 
