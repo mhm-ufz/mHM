@@ -196,7 +196,16 @@ contains
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = minCorrectionFactorPET --> param(2) = maxCorrectionFactorPET --> param(3) = aspectTresholdPET maxCorrectionFactorPET = minCorrectionFactorPET + delta NEW parametrization --> param(1) = minCorrectionFactorPET --> param(2) = delta --> param(3) = aspectTresholdPET
+  ! Juliane Mai    Oct 2013 - OLD parametrization  --> param(1) = minCorrectionFactorPET
+  !                                                --> param(2) = maxCorrectionFactorPET
+  !                                                --> param(3) = aspectTresholdPET
+  !                                             -------------------------------
+  !                                             maxCorrectionFactorPET = minCorrectionFactorPET + delta
+  !                                             -------------------------------
+  !                                             NEW parametrization
+  !                                                --> param(1) = minCorrectionFactorPET
+  !                                                --> param(2) = delta
+  !                                                --> param(3) = aspectTresholdPET
   ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
   ! Stephan Thober Sep 2015 - Mapping L1 to Lo, latitude on L0
   ! Luis Samaniego Sep 2015 - PET correction on the southern hemisphere
@@ -205,7 +214,6 @@ contains
 
   subroutine pet_correctbyASP(Id0, latitude_l0, Asp0, param, nodata, fAsp0)
     !$ use omp_lib
-#endif
 
     implicit none
 

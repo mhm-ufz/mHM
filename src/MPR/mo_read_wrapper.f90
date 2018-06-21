@@ -44,8 +44,10 @@ CONTAINS
   ! Modifications:
   ! Luis Samaniego               Feb 2013 - rotate fdir variable to the new coordinate system
   ! Rohini Kumar                 Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
-  ! Rohini Kumar                 Aug 2013 - added dirSoil_LUT and dirGeology_LUT, and changed to read datapaths and variables made accordingly
-  ! Rohini Kumar                 Aug 2013 - added iFlag_LAI_data_format to handle LAI options, and changed within the code made accordingly
+  ! Rohini Kumar                 Aug 2013 - added dirSoil_LUT and dirGeology_LUT, and changed to
+  !                                         read datapaths and variables made accordingly
+  ! Rohini Kumar                 Aug 2013 - added iFlag_LAI_data_format to handle LAI options, and changed
+  !                                         within the code made accordingly
   ! Rohini  Kumar                Sep 2013 - read input data for routing processes according to process_matrix flag
   ! Matthias Zink                Mar 2014 - added inflow gauge
   ! Kumar & Schroen              Apr 2014 - added check for consistency of L0 and L1 spatial resolution

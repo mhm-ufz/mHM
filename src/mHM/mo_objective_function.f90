@@ -855,7 +855,7 @@ CONTAINS
 
     ! gauges counter
     integer(i4) :: gg
-
+#endif
 
     ! obtain hourly values of runoff and tws:
     call eval(parameterset, runoff = runoff, basin_avg_tws = tws)
@@ -1366,7 +1366,7 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-
+#endif
 
     ! run mHM
     call eval(parameterset, runoff = runoff, sm_opti = sm_opti)
@@ -1550,7 +1550,7 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-
+#endif
 
     ! run mHM
     call eval(parameterset, runoff = runoff, et_opti = et_opti)
@@ -1763,7 +1763,7 @@ CONTAINS
 
     ! mask for measured runoff
     logical, dimension(:), allocatable :: runoff_obs_mask
-
+#endif
 
     ! obtain simulation values of runoff (hourly) and ET
     ! for ET only valid cells (basins concatenated)

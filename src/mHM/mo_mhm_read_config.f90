@@ -55,11 +55,14 @@ CONTAINS
   ! Luis Samaniego               Jan 2013 - messages Rohini Kumar
   ! Matthias Cuntz               Jan  2013 - namelist consolidation and positioning
   ! Matthias Zink                Jan  2013 - bug fix, added gaugeinfo reading
-  ! Rohini Kumar                 Jun  2013 - added restart flags R. Kumar & S. Thober,                   Aug. 2013 
-  !                                       - code change to incorporate output timestep during writing of the netcdf file
+  ! Rohini Kumar                 Jun  2013 - added restart flags
+  ! R. Kumar & S. Thober         Aug  2013 - code change to incorporate output timestep during
+  !                                          writing of the netcdf file
   ! Rohini Kumar                 Aug  2013 - name changed from "inputFormat" to inputFormat_meteo_forcings
-  ! Rohini Kumar                 Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed in namelist made accordingly
-  ! Rohini Kumar                 Aug  2013 - added new namelist for LAI related datasets, and changed in within the code made accordingly
+  ! Rohini Kumar                 Aug  2013 - added dirSoil_LUT and dirGeology_LUT, and changed
+  !                                          in namelist made accordingly
+  ! Rohini Kumar                 Aug  2013 - added new namelist for LAI related datasets, and changed in within
+  !                                          the code made accordingly
   ! Matthias Zink                Aug  2013 - changed read in for land cover period
   ! Juliane Mai                  Oct  2013 - adding global_parameters_name
   ! Matthias Zink                Nov  2013 - edited documentation and included DEFAULT cases for ptocess Matrix

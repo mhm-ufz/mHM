@@ -253,7 +253,8 @@ contains
   !>       \date Jan 2013
 
   ! Modifications:
-  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                           on a regular X-Y coordinate system
   ! Matthias Cuntz                 May 2014 - changed empirical distribution function so that doubles get the same value
   ! Matthias Zink & Matthias Cuntz Feb 2016 - code speed up due to reformulation of CDF calculation
   ! Rohini Kumar                   Mar 2016 - changes for handling multiple soil database options

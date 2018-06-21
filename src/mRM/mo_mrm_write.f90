@@ -485,7 +485,8 @@ contains
     ! daily time series of modeled dischargedims = (nModeling_days , nGauges_total)
     real(dp), dimension(:, :), intent(in) :: Qsim
 
-    character(256), dimension(1) :: fName, formHeader, formData, dummy, dnames
+    character(256) :: fName, formHeader, formData, dummy
+    character(256), dimension(1) :: dnames
 
     integer(i4) :: bb, gg, tt, err
 

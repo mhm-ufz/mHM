@@ -486,7 +486,9 @@ contains
 
     character(128) :: unit, date, time, datetime
 
-    real(dp), allocatable, dimension(:), easting(:), lat(:, :), lon(:, :) :: northing
+    real(dp), allocatable, dimension(:) :: easting, northing
+
+    real(dp), allocatable, dimension(:,:) :: lat, lon
 
 
     fname = trim(dirOut(ibasin)) // trim(file_mrm_output)

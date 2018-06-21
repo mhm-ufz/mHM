@@ -288,7 +288,7 @@ CONTAINS
     !                                                               !     0, print information on the best point of the population
     !                                                               !     1, print information on every point of the population
     !                                                               !     2, no printing (DEFAULT)
-    logical, optional, intent(in), dimension(size(pini, 1)) :: mymask      ! parameter included in optimization (true) or discarded (false)
+    logical, optional, intent(in), dimension(size(pini, 1)) :: mymask ! parameter included in optimization (true) or discarded (false)
     !                                                               !     DEFAULT: .true.
     real(dp), optional, intent(in) :: myalpha     ! parameter for reflection  of points in complex
     !                                                               !     DEFAULT: 0.8_dp

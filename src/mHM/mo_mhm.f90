@@ -175,11 +175,13 @@ CONTAINS
   ! Rohini Kumar                    May 2013 - Error checks
   ! Rohini Kumar                    Jun 2013 - sealed area correction in total runoff 
   !                                          - initalization of soil moist. at first timestep
-  ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code made accordingly (e.g., canopy intecpt.) 
+  ! Rohini Kumar                    Aug 2013 - dynamic LAI option included, and changed within the code
+  !                                            made accordingly (e.g., canopy intecpt.)
   !                                          - max. canopy interception is estimated outside of MPR call
   ! Matthias Zink                   Feb 2014 - added PET calculation: Hargreaves-Samani (Process 5)
   ! Matthias Zink                   Mar 2014 - added inflow from upstream areas
-  ! Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penamn-Monteith and its parameterization (Process 5)
+  ! Matthias Zink                   Apr 2014 - added PET calculation: Priestley-Taylor and Penman-Monteith
+  !                                            and its parameterization (Process 5)
   ! Rohini Kumar                    Apr 2014 - mHM run with a single L0 grid cell, also in the routing mode
   ! Stephan Thober                  Jun 2014 - added flag for switching of MPR
   ! Matthias Cuntz & Juliane Mai    Nov 2014 - LAI input from daily, monthly or yearly files
@@ -192,7 +194,7 @@ CONTAINS
   ! M.Cuneyd Demirel & Simon Stisen May 2017 - added FC dependency on root fraction coef. at SM process(3)
   ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
-  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
 
   subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
                 neutron_integral_AFast, global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &

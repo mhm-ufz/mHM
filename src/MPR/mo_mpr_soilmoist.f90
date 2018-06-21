@@ -81,10 +81,18 @@ contains
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = orgMatterContent_forest --> param(2) = orgMatterContent_impervious --> param(3) = orgMatterContent_pervious --> param(4:13) = ... orgMatterContent_forest = orgMatterContent_perv + delta_1 NEW parametrization --> param(1) = delta_1 --> param(2) = orgMatterContent_impervious --> param(3) = orgMatterContent_pervious --> param(4:13) = ...
+  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = orgMatterContent_forest
+  !                                               --> param(2) = orgMatterContent_impervious
+  !                                               --> param(3) = orgMatterContent_pervious
+  !                                               --> param(4:13) = ... orgMatterContent_forest = orgMatterContent_perv
+  !                                                                 + delta_1 NEW parametrization
+  !                                               --> param(1) = delta_1 --> param(2) = orgMatterContent_impervious
+  !                                               --> param(3) = orgMatterContent_pervious --> param(4:13) = ...
   ! Matthias Zink  Nov 2013 - documentation, inouts --> out moved constants to mhm_constants
   ! Stephan Thober Mar 2014 - separated cell loop from soil loop for better scaling in parallelisation
-  ! David Schaefer Mar 2015 - Added dummy variable to avoid redundant computations -> Total number of instruction is reduced by ~25% (tested on packaged example/gnu48/{release,debug})
+  ! David Schaefer Mar 2015 - Added dummy variable to avoid redundant computations
+  !                           -> Total number of instruction is reduced by ~25%
+  !                           (tested on packaged example/gnu48/{release,debug})
   ! Rohini Kumar   Mar 2016 - changes for handling multiple soil database options
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
@@ -606,10 +614,10 @@ contains
 
   subroutine Genuchten(thetaS, Genu_Mual_n, Genu_Mual_alpha, param, sand, clay, Db)
 
-    use mo_mpr_constants, only : vGenuchtenN_c1, vGenuchtenN_c10, vGenuchtenN_c11, vGenuchtenN_c12, vGenuchtenN_c13, vGenuchtenN_c14, &
-                                 vGenuchtenN_c15, vGenuchtenN_c16, vGenuchtenN_c17, vGenuchtenN_c18, vGenuchtenN_c2, &
-                                 vGenuchtenN_c3, vGenuchtenN_c4, vGenuchtenN_c5, vGenuchtenN_c6, vGenuchtenN_c7, &
-                                 vGenuchtenN_c8, vGenuchtenN_c9, vGenuchten_sandtresh
+    use mo_mpr_constants, only : vGenuchtenN_c1, vGenuchtenN_c10, vGenuchtenN_c11, vGenuchtenN_c12, vGenuchtenN_c13, &
+                                 vGenuchtenN_c14, vGenuchtenN_c15, vGenuchtenN_c16, vGenuchtenN_c17, vGenuchtenN_c18, &
+                                 vGenuchtenN_c2, vGenuchtenN_c3, vGenuchtenN_c4, vGenuchtenN_c5, vGenuchtenN_c6, &
+                                 vGenuchtenN_c7, vGenuchtenN_c8, vGenuchtenN_c9, vGenuchten_sandtresh
 
     implicit none
 

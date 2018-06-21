@@ -256,11 +256,13 @@ CONTAINS
   !>       \date Jan 2013
 
   ! Modifications:
-  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  ! Rohini Kumar & Matthias Cuntz  May 2014 - cell area calulation based on a regular lat-lon grid or
+  !                                           on a regular X-Y coordinate system
   ! Matthias Cuntz                 May 2014 - changed empirical distribution function so that doubles get the same value
   ! Matthias Zink & Matthias Cuntz Feb 2016 - code speed up due to reformulation of CDF calculation
   ! Rohini Kumar                   Mar 2016 - changes for handling multiple soil database options
-  ! Maren Kaluza                   Feb 2018 - removed slope_val, temp, only sort the index to speed up finding the empirical distribution slope_emp
+  ! Maren Kaluza                   Feb 2018 - removed slope_val, temp, only sort the index to speed up
+  !                                           finding the empirical distribution slope_emp
   ! Robert Schweppe                Jun 2018 - refactoring and reformatting
 
   subroutine L0_variable_init(iBasin)
@@ -268,7 +270,8 @@ CONTAINS
     use mo_append, only : append
     use mo_common_variables, only : level0
     use mo_grid, only : L0_grid_setup
-    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, nSoilTypes, soilDB
+    use mo_mpr_global_variables, only : L0_slope, L0_slope_emp, L0_soilId, iFlag_soilDB, nSoilHorizons_mHM, &
+            nSoilTypes, soilDB
     use mo_orderpack, only : sort_index
     use mo_utils, only : eq
 

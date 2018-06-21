@@ -93,8 +93,22 @@ contains
 
   ! Modifications:
   ! Stephan Thober                  Jan 2013 - updated calling sequence for upscaling operators
-  ! Juliane Mai                     Oct 2013 - OLD parametrization --> param(1) = rootFractionCoefficient_forest --> param(2) = rootFractionCoefficient_impervious --> param(3) = rootFractionCoefficient_pervious --> param(4) = infiltrationShapeFactor rootFractionCoeff_perv   = rootFractionCoeff_forest 
-  !                                          - delta_1 NEW parametrization --> param(1) = rootFractionCoefficient_forest --> param(2) = rootFractionCoefficient_impervious --> param(3) = delta_1 --> param(4) = infiltrationShapeFactor if processMatrix(3,1) = 3 additionally --> param(5) = rootFractionCoefficient_sand --> param(6) = rootFractionCoefficient_clay
+  ! Juliane Mai                     Oct 2013 - OLD parametrization
+  !                                                --> param(1) = rootFractionCoefficient_forest
+  !                                                --> param(2) = rootFractionCoefficient_impervious
+  !                                                --> param(3) = rootFractionCoefficient_pervious
+  !                                                --> param(4) = infiltrationShapeFactor
+  !                                             -------------------------------
+  !                                             rootFractionCoeff_perv   = rootFractionCoeff_forest - delta_1
+  !                                             -------------------------------
+  !                                             NEW parametrization
+  !                                                --> param(1) = rootFractionCoefficient_forest
+  !                                                --> param(2) = rootFractionCoefficient_impervious
+  !                                                --> param(3) = delta_1
+  !                                                --> param(4) = infiltrationShapeFactor
+  !                                                ! if processMatrix(3,1) = 3 additionally
+  !                                                --> param(5) = rootFractionCoefficient_sand
+  !                                                --> param(6) = rootFractionCoefficient_clay
   ! Stephan Thober                  Mar 2014 - added omp parallelization
   ! Rohini Kumar                    Mar 2016 - changes for handling multiple soil database options
   ! M. Cuneyd Demirel, Simon Stisen Apr 2017 - added FC dependency on root fraction coefficient

@@ -33,7 +33,7 @@ GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(GNUBIN)/x86_64-apple-darwin11.4.2-gfortran
+F90 := $(GNUBIN)/x86_64-apple-darwin17.5.0-gfortran
 FC  := $(F90)
 CC  := $(GNUDIR)/gcc
 CPP := $(GNUDIR)/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
@@ -55,7 +55,7 @@ DEFINES  += -DGFORTRAN -DgFortran
 # Linking
 LIBS += -L$(GNULIB)
 RPATH += -Wl,-rpath,$(GNULIB)
-iLDPATH = $(GNUDIR)/lib/gcc/x86_64-apple-darwin11.4.2/4.8.5:/Users/ottor/miniconda3/pkgs/isl-0.12.2-1/lib:/Users/ottor/miniconda3/pkgs/cloog-0.18.0-0/lib:/Users/ottor/miniconda3/pkgs/mpc-1.1.0-4/lib:/Users/ottor/miniconda3/pkgs/mpfr-3.1.5-0/lib:/Users/ottor/miniconda3/pkgs/gmp-6.1.2-0/lib
+iLDPATH = $(GNUDIR)/lib/gcc/x86_64-apple-darwin17.5.0/8.1.0/
 ifneq ($(LDPATH),)
     LDPATH += :$(iLDPATH)
 else

@@ -258,7 +258,9 @@ contains
 
     character(3) :: dtype
 
-    character(16), dimension(3), unit :: dims1
+    character(16), dimension(3) :: dims1
+
+    character(16) :: unit
 
     type(NcDataset) :: nc
 
@@ -899,7 +901,9 @@ contains
 
     character(128) :: unit, date, time, datetime
 
-    real(dp), allocatable, dimension(:), easting(:), lat(:, :), lon(:, :) :: northing
+    real(dp), allocatable, dimension(:) :: easting, northing
+
+    real(dp), allocatable, dimension(:, :) :: lat, lon
 
 
     fname = trim(dirOut(ibasin)) // 'mHM_Fluxes_States.nc'

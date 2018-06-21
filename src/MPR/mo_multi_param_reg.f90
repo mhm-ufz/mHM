@@ -781,7 +781,32 @@ contains
   !>       \date Dec 2012
 
   ! Modifications:
-  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = snowTreshholdTemperature --> param(2) = degreeDayFactor_forest --> param(3) = degreeDayFactor_impervious --> param(4) = degreeDayFactor_pervious --> param(5) = increaseDegreeDayFactorByPrecip --> param(6) = maxDegreeDayFactor_forest --> param(7) = maxDegreeDayFactor_impervious --> param(8) = maxDegreeDayFactor_pervious degreeDayFactor_impervious    = degreeDayFactor_forest + delta_1 + delta_2 degreeDayFactor_pervious      = degreeDayFactor_forest + delta_1 maxDegreeDayFactor_forest     = degreeDayFactor_forest + delta_3 maxDegreeDayFactor_impervious = degreeDayFactor_impervious + delta_5 = degreeDayFactor_forest + delta_1 + delta_2 + delta_5 maxDegreeDayFactor_pervious   = degreeDayFactor_pervious + delta_4 = degreeDayFactor_forest + delta_1 + delta_4 NEW parametrization --> param(1) = snowTreshholdTemperature --> param(2) = degreeDayFactor_forest --> param(3) = delta_2 --> param(4) = delta_1 --> param(5) = increaseDegreeDayFactorByPrecip --> param(6) = delta_3 --> param(7) = delta_5 --> param(8) = delta_4
+  ! Juliane Mai    Oct 2013 - OLD parametrization --> param(1) = snowTreshholdTemperature
+  !                                                --> param(2) = degreeDayFactor_forest
+  !                                                --> param(3) = degreeDayFactor_impervious
+  !                                                --> param(4) = degreeDayFactor_pervious
+  !                                                --> param(5) = increaseDegreeDayFactorByPrecip
+  !                                                --> param(6) = maxDegreeDayFactor_forest
+  !                                                --> param(7) = maxDegreeDayFactor_impervious
+  !                                                --> param(8) = maxDegreeDayFactor_pervious
+  !                                             -------------------------------
+  !                                             degreeDayFactor_impervious    = degreeDayFactor_forest + delta_1 + delta_2
+  !                                             degreeDayFactor_pervious      = degreeDayFactor_forest + delta_1
+  !                                             maxDegreeDayFactor_forest     = degreeDayFactor_forest + delta_3
+  !                                             maxDegreeDayFactor_impervious = degreeDayFactor_impervious + delta_5
+  !                                                                           = degreeDayFactor_forest + delta_1 + delta_2 + delta_5
+  !                                             maxDegreeDayFactor_pervious   = degreeDayFactor_pervious + delta_4
+  !                                                                           = degreeDayFactor_forest + delta_1 + delta_4
+  !                                             -------------------------------
+  !                                             NEW parametrization
+  !                                                --> param(1) = snowTreshholdTemperature
+  !                                                --> param(2) = degreeDayFactor_forest
+  !                                                --> param(3) = delta_2
+  !                                                --> param(4) = delta_1
+  !                                                --> param(5) = increaseDegreeDayFactorByPrecip
+  !                                                --> param(6) = delta_3
+  !                                                --> param(7) = delta_5
+  !                                                --> param(8) = delta_4
   ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 

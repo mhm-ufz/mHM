@@ -55,8 +55,10 @@
 ! Modifications:
 ! Stephan Thober                Nov 2013 - added read in of latitude longitude fields
 ! Matthias Zink                 Mar 2013 - edited screen output for gauges added inflow gauges
-! Matthias Cuntz & Juliane Mai  Mar 2014 - Likelihood Kavetski uses 2 more parameters for the error model global_parameters -> local_parameters
-! Rohini Kumar                  Apr 2014 - implementation of the mHM run on a single cell configuration also for the routing mode. 
+! Matthias Cuntz & Juliane Mai  Mar 2014 - Likelihood Kavetski uses 2 more parameters for the
+!                                          error model global_parameters -> local_parameters
+! Rohini Kumar                  Apr 2014 - implementation of the mHM run on a single cell configuration
+!                                          also for the routing mode.
 !                                        - run mHM at the input data level i.e. L0 grid
 ! Rohini Kumar                  May 2014 - model run on a regular lat-lon grid or on a regular X-Y coordinate system
 ! Stephan Thober                May 2014 - moved read meteo forcings to mo_mhm_eval
@@ -65,8 +67,10 @@
 ! Luis Samaniego                Jul 2015 - added temporal directories for optimization
 ! Stephan Thober                Aug 2015 - removed routing related variables
 ! Stephan Thober                Oct 2015 - reorganized optimization (now compatible with mRM)
-! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15 for simultaneous calibration based on runoff and TWS
-! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included soil horizon specific properties/parameters
+! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15
+!                                          for simultaneous calibration based on runoff and TWS
+! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included
+!                                          soil horizon specific properties/parameters
 ! Stephan Thober                Nov 2016 - implemented adaptive timestep for routing
 ! Rohini Kumar                  Dec 2016 - options to read (monthly mean) LAI fields
 ! Robert Schweppe               Jun 2018 - refactoring and reformatting
@@ -123,7 +127,7 @@ PROGRAM mhm_driver
   USE mo_write_ascii, ONLY : &
           write_configfile, &      ! Writing Configuration file
           write_optifile, &      ! Writing optimized parameter set and objective
-          write_optinamelist                                           ! Writing optimized parameter set to a namelist
+          write_optinamelist     ! Writing optimized parameter set to a namelist
   USE mo_objective_function, ONLY : objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
@@ -132,7 +136,7 @@ PROGRAM mhm_driver
   USE mo_mrm_write, only : mrm_write
 
 #endif
-  !$ USE omp_lib,             ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
+  !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
 
   IMPLICIT NONE
 
@@ -143,8 +147,8 @@ PROGRAM mhm_driver
   integer(i4) :: iTimer           ! Current timer number
   integer(i4) :: nTimeSteps
   real(dp) :: funcbest         ! best objective function achivied during optimization
-  logical, dimension(:), allocatable :: maskpara         ! true  = parameter will be optimized     = parameter(i,4) = 1
-  !                                                         ! false = parameter will not be optimized = parameter(i,4) = 0
+  logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
+  !                                              ! false = parameter will not be optimized = parameter(i,4) = 0
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
