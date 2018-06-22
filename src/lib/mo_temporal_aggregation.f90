@@ -33,10 +33,9 @@ MODULE mo_temporal_aggregation
 
   ! Copyright 2015 Oldrich Rakovec, Rohini Kumar
 
-  use mo_kind,   ONLY: i4, dp
-  use mo_julian, ONLY: julday, dec2date
-  use mo_constants,    ONLY: eps_dp
-
+  use mo_kind, ONLY : i4, dp
+  use mo_julian, ONLY : julday, dec2date
+  use mo_common_constants, ONLY : eps_dp
 
   IMPLICIT NONE
 
@@ -89,15 +88,15 @@ MODULE mo_temporal_aggregation
 
   !     LITERATURE
   !
-  
+
   !     HISTORY
   !>        \author Oldrich Rakovec, Rohini Kumar
   !>        \date Oct 2015
   !         Modified,
 
-   INTERFACE day2mon_average
-      MODULE PROCEDURE day2mon_average_dp
-   END INTERFACE day2mon_average
+  INTERFACE day2mon_average
+    MODULE PROCEDURE day2mon_average_dp
+  END INTERFACE day2mon_average
 
   ! ------------------------------------------------------------------
   !     NAME
@@ -146,15 +145,15 @@ MODULE mo_temporal_aggregation
 
   !     LITERATURE
   !
-  
+
   !     HISTORY
   !>        \author Oldrich Rakovec, Rohini Kumar
   !>        \date Oct 2015
   !         Modified,
 
-   INTERFACE hour2day_average
-      MODULE PROCEDURE hour2day_average_dp
-   END INTERFACE hour2day_average
+  INTERFACE hour2day_average
+    MODULE PROCEDURE hour2day_average_dp
+  END INTERFACE hour2day_average
 
   ! ------------------------------------------------------------------
 
@@ -164,185 +163,185 @@ MODULE mo_temporal_aggregation
 
 CONTAINS
 
-  SUBROUTINE day2mon_average_dp(daily_data,yearS,monthS,dayS,mon_avg, misval, rm_misval )
+  SUBROUTINE day2mon_average_dp(daily_data, yearS, monthS, dayS, mon_avg, misval, rm_misval)
 
     IMPLICIT NONE
 
-    REAL(dp), dimension(:),                         INTENT(IN)  :: daily_data      ! array of daily data
-    INTEGER(i4),                                    INTENT(IN)  :: yearS           ! year of the initial time step
-    INTEGER(i4),                                    INTENT(IN)  :: monthS          ! month of the initial time step
-    INTEGER(i4),                                    INTENT(IN)  :: dayS            ! day of the initial time step
+    REAL(dp), dimension(:), INTENT(IN) :: daily_data      ! array of daily data
+    INTEGER(i4), INTENT(IN) :: yearS           ! year of the initial time step
+    INTEGER(i4), INTENT(IN) :: monthS          ! month of the initial time step
+    INTEGER(i4), INTENT(IN) :: dayS            ! day of the initial time step
 
-    REAL(dp), dimension(:), allocatable,          INTENT(INOUT) :: mon_avg         ! array of the monthly averages
+    REAL(dp), dimension(:), allocatable, INTENT(INOUT) :: mon_avg         ! array of the monthly averages
 
-    REAL(dp),                             optional, INTENT(IN)  :: misval          ! missing value definition
-    logical,                              optional, INTENT(IN)  :: rm_misval       ! switch to remove missing values
+    REAL(dp), optional, INTENT(IN) :: misval          ! missing value definition
+    logical, optional, INTENT(IN) :: rm_misval       ! switch to remove missing values
 
     ! local variables 
-    INTEGER(i4)                                                 :: ndays, tt, kk      ! number of days, indices
-    INTEGER(i4)                                                 :: start_day, end_day ! size of input array, size of days  
-    INTEGER(i4)                                                 :: y, m                
-    INTEGER(i4)                                                 :: year, month, day    ! variables for date
-    INTEGER(i4)                                                 :: yearE, monthE, dayE ! vatiables for End date    
-    REAL(dp)                                                    :: newTime 
+    INTEGER(i4) :: ndays, tt, kk      ! number of days, indices
+    INTEGER(i4) :: start_day, end_day ! size of input array, size of days
+    INTEGER(i4) :: y, m
+    INTEGER(i4) :: year, month, day    ! variables for date
+    INTEGER(i4) :: yearE, monthE, dayE ! vatiables for End date
+    REAL(dp) :: newTime
 
-    REAL(dp), dimension(:,:), allocatable                       :: nCounter_m       ! counter number of days in months (w/ data)
-    REAL(dp), dimension(:,:), allocatable                       :: nCounter_m_full  ! counter number of days in months (complete) 
-    REAL(dp), dimension(:,:), allocatable                       :: mon_sum          ! monthly sum
+    REAL(dp), dimension(:, :), allocatable :: nCounter_m       ! counter number of days in months (w/ data)
+    REAL(dp), dimension(:, :), allocatable :: nCounter_m_full  ! counter number of days in months (complete)
+    REAL(dp), dimension(:, :), allocatable :: mon_sum          ! monthly sum
 
-    INTEGER(i4)                                                 :: nmonths     ! number of days, number of months
-    LOGICAL                                                     :: remove      ! switch for considering missing data
-    REAL(dp)                                                    :: missing  ! switch for reading missing value or default -9999.
+    INTEGER(i4) :: nmonths     ! number of days, number of months
+    LOGICAL :: remove      ! switch for considering missing data
+    REAL(dp) :: missing  ! switch for reading missing value or default -9999.
 
     if (present(misval)) then
-       missing = misval
+      missing = misval
     else
-       missing = -9999._dp
-    end if   
-   
+      missing = -9999._dp
+    end if
+
     if (present(rm_misval)) then
-       remove = rm_misval
+      remove = rm_misval
     else
-       remove = .FALSE.
-    end if   
-    
+      remove = .FALSE.
+    end if
+
     ! get total number of days 
-    ndays   = SIZE(daily_data)
-  
+    ndays = SIZE(daily_data)
+
     ! assign initial julian day
-    start_day = julday(dayS,monthS,yearS) 
+    start_day = julday(dayS, monthS, yearS)
 
     ! calculate last julian day
     end_day = start_day + ndays - 1_i4
 
     ! get year, month and day of the end date:
-    call dec2date( real(end_day, dp), yy=yearE, mm=monthE, dd=dayE)
- 
+    call dec2date(real(end_day, dp), yy = yearE, mm = monthE, dd = dayE)
+
     ! get number of days with data for each month
-    allocate( nCounter_m(yearS:yearE,12) )
-    allocate( nCounter_m_full(yearS:yearE,12) )
-    allocate(mon_sum(yearS:yearE,12))
-    nCounter_m(:,:)      = 0
-    nCounter_m_full(:,:) = 0
-    mon_sum(:,:)         = 0.0_dp
+    allocate(nCounter_m(yearS : yearE, 12))
+    allocate(nCounter_m_full(yearS : yearE, 12))
+    allocate(mon_sum(yearS : yearE, 12))
+    nCounter_m(:, :) = 0
+    nCounter_m_full(:, :) = 0
+    mon_sum(:, :) = 0.0_dp
 
     newTime = real(start_day, dp)
     ! calculate monthly sums
-    do tt = 1, (end_day - start_day + 1)          
-       call dec2date( (newTime + tt - 1), yy=year, mm=month, dd=day)
-       nCounter_m_full(year,month) = nCounter_m_full(year,month) + 1.0_dp
-       if ( abs( daily_data(tt) - missing ) .lt. eps_dp ) cycle
-       mon_sum(year,month) = mon_sum(year,month) + daily_data(tt)
-       nCounter_m(year,month) = nCounter_m(year,month) + 1.0_dp
+    do tt = 1, (end_day - start_day + 1)
+      call dec2date((newTime + tt - 1), yy = year, mm = month, dd = day)
+      nCounter_m_full(year, month) = nCounter_m_full(year, month) + 1.0_dp
+      if (abs(daily_data(tt) - missing) .lt. eps_dp) cycle
+      mon_sum(year, month) = mon_sum(year, month) + daily_data(tt)
+      nCounter_m(year, month) = nCounter_m(year, month) + 1.0_dp
     end do
 
     ! calculate number of months
     nmonths = 0
     do y = yearS, yearE
-       do m = 1, 12
-          if ( (y .EQ. yearS) .AND. ( m .LT. monthS ) ) cycle
-          if ( (y .EQ. yearE) .AND. ( m .GT. monthE ) ) cycle         
-          nmonths = nmonths + 1
-       end do
+      do m = 1, 12
+        if ((y .EQ. yearS) .AND. (m .LT. monthS)) cycle
+        if ((y .EQ. yearE) .AND. (m .GT. monthE)) cycle
+        nmonths = nmonths + 1
+      end do
     end do
-   
+
     ! calculate monthly averages
     allocate(mon_avg(nmonths))
     mon_avg(:) = missing
     kk = 0
     do y = yearS, yearE
-       do m = 1, 12
-          if ( (y .EQ. yearS) .AND. ( m .LT. monthS ) ) cycle
-          if ( (y .EQ. yearE) .AND. ( m .GT. monthE ) ) cycle         
-          kk = kk + 1
-          if ( ( nCounter_m(y,m) .GT. 0 ) .AND. &
-               ( abs( nCounter_m_full(y,m) - nCounter_m(y,m)) .LT. eps_dp ) ) then
-             mon_avg(kk) = mon_sum(y,m) / real( nCounter_m(y,m), dp)
-          else if ( ( nCounter_m(y,m) .GT. 0 ) .AND. remove) then
-             mon_avg(kk) = mon_sum(y,m) / real( nCounter_m(y,m), dp)
-          end if    
-       end do
+      do m = 1, 12
+        if ((y .EQ. yearS) .AND. (m .LT. monthS)) cycle
+        if ((y .EQ. yearE) .AND. (m .GT. monthE)) cycle
+        kk = kk + 1
+        if ((nCounter_m(y, m) .GT. 0) .AND. &
+                (abs(nCounter_m_full(y, m) - nCounter_m(y, m)) .LT. eps_dp)) then
+          mon_avg(kk) = mon_sum(y, m) / real(nCounter_m(y, m), dp)
+        else if ((nCounter_m(y, m) .GT. 0) .AND. remove) then
+          mon_avg(kk) = mon_sum(y, m) / real(nCounter_m(y, m), dp)
+        end if
+      end do
     end do
-    
+
     deallocate(nCounter_m_full)
     deallocate(nCounter_m)
     deallocate(mon_sum)
-    
+
   END SUBROUTINE day2mon_average_dp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE hour2day_average_dp(hourly_data,yearS,monthS,dayS,hourS,day_avg, misval, rm_misval )
+  SUBROUTINE hour2day_average_dp(hourly_data, yearS, monthS, dayS, hourS, day_avg, misval, rm_misval)
 
     IMPLICIT NONE
 
-    REAL(dp), dimension(:),                         INTENT(IN)  :: hourly_data     ! array of hourly data
-    INTEGER(i4),                                    INTENT(IN)  :: yearS           ! year of the initial time step
-    INTEGER(i4),                                    INTENT(IN)  :: monthS          ! month of the initial time step
-    INTEGER(i4),                                    INTENT(IN)  :: dayS            ! day of the initial time step
-    INTEGER(i4),                                    INTENT(IN)  :: hourS           ! hour of the initial time step   
+    REAL(dp), dimension(:), INTENT(IN) :: hourly_data     ! array of hourly data
+    INTEGER(i4), INTENT(IN) :: yearS           ! year of the initial time step
+    INTEGER(i4), INTENT(IN) :: monthS          ! month of the initial time step
+    INTEGER(i4), INTENT(IN) :: dayS            ! day of the initial time step
+    INTEGER(i4), INTENT(IN) :: hourS           ! hour of the initial time step
 
-    REAL(dp), dimension(:), allocatable,          INTENT(INOUT) :: day_avg         ! array of the daily averages
+    REAL(dp), dimension(:), allocatable, INTENT(INOUT) :: day_avg         ! array of the daily averages
 
-    REAL(dp),                             optional, INTENT(IN)  :: misval          ! missing value definition
-    logical,                              optional, INTENT(IN)  :: rm_misval       ! switch to remove missing values
+    REAL(dp), optional, INTENT(IN) :: misval          ! missing value definition
+    logical, optional, INTENT(IN) :: rm_misval       ! switch to remove missing values
 
     ! local variables 
-    INTEGER(i4)                                                 :: nhours, ndays_dummy, tt, dd, kk 
-    REAL(dp)                                                    :: start_day, end_day   ! assign julian values
-    INTEGER(i4)                                                 :: yearE, monthE, dayE, hourE, hourEd ! End dates, incl. Dummy
+    INTEGER(i4) :: nhours, ndays_dummy, tt, dd, kk
+    REAL(dp) :: start_day, end_day   ! assign julian values
+    INTEGER(i4) :: yearE, monthE, dayE, hourE, hourEd ! End dates, incl. Dummy
 
-    REAL(dp), dimension(:), allocatable                         :: nCounter_h       ! counter number of hours in day (w/ data)
-    REAL(dp), dimension(:), allocatable                         :: nCounter_h_full  ! counter number of hours in day (complete) 
-    REAL(dp), dimension(:), allocatable                         :: day_sum          ! daily sum
-    
-    LOGICAL                                                     :: remove   ! switch for considering missing data
-    REAL(dp)                                                    :: missing  ! switch for reading missing value or default -9999.
+    REAL(dp), dimension(:), allocatable :: nCounter_h       ! counter number of hours in day (w/ data)
+    REAL(dp), dimension(:), allocatable :: nCounter_h_full  ! counter number of hours in day (complete)
+    REAL(dp), dimension(:), allocatable :: day_sum          ! daily sum
+
+    LOGICAL :: remove   ! switch for considering missing data
+    REAL(dp) :: missing  ! switch for reading missing value or default -9999.
 
     if (present(misval)) then
-       missing = misval
+      missing = misval
     else
-       missing = -9999._dp
-    end if   
+      missing = -9999._dp
+    end if
 
     if (present(rm_misval)) then
-       remove = rm_misval
+      remove = rm_misval
     else
-       remove = .FALSE.
-    end if   
-   
+      remove = .FALSE.
+    end if
+
     ! get total number of hours 
-    nhours   = SIZE(hourly_data)
+    nhours = SIZE(hourly_data)
     ! assign initial julian day
-    start_day = julday(dayS,monthS,yearS) - 0.5_dp + real(hourS,dp)/24._dp
-    
+    start_day = julday(dayS, monthS, yearS) - 0.5_dp + real(hourS, dp) / 24._dp
+
     ! calculate last julian day
-    end_day = start_day + real( nhours - 1._dp ,dp )/ 24._dp 
+    end_day = start_day + real(nhours - 1._dp, dp) / 24._dp
 
     ! get year, month and day of the end date 
-    call dec2date( end_day , yy=yearE, mm=monthE, dd=dayE, hh=hourE)
+    call dec2date(end_day, yy = yearE, mm = monthE, dd = dayE, hh = hourE)
 
     ! get largerst possible number of calendar days
-    ndays_dummy = ceiling( real(nhours,dp) / 24._dp + 2._dp ) 
-   
-    allocate( day_sum(ndays_dummy))
-    allocate( nCounter_h(ndays_dummy) )
-    allocate( nCounter_h_full(ndays_dummy) )
-    day_sum(:)         = 0.0_dp
-    nCounter_h(:)      = 0
+    ndays_dummy = ceiling(real(nhours, dp) / 24._dp + 2._dp)
+
+    allocate(day_sum(ndays_dummy))
+    allocate(nCounter_h(ndays_dummy))
+    allocate(nCounter_h_full(ndays_dummy))
+    day_sum(:) = 0.0_dp
+    nCounter_h(:) = 0
     nCounter_h_full(:) = 0
 
     ! calculate daily sums
     dd = 1
     do tt = 1, nhours
-       call dec2date( start_day + real(tt-1,dp)/24._dp , hh=hourEd)
-       nCounter_h_full(dd) = nCounter_h_full(dd) + 1
-       if ( abs( hourly_data(tt) - missing ) .lt. eps_dp ) then
-          day_sum(dd) = day_sum(dd)          
-       else
-          day_sum(dd) = day_sum(dd) + hourly_data(tt)
-          nCounter_h(dd) = nCounter_h(dd) + 1
-       end if  
-       if ( (hourEd .EQ. 23) .AND. (tt .LT. nhours)) dd = dd + 1    
+      call dec2date(start_day + real(tt - 1, dp) / 24._dp, hh = hourEd)
+      nCounter_h_full(dd) = nCounter_h_full(dd) + 1
+      if (abs(hourly_data(tt) - missing) .lt. eps_dp) then
+        day_sum(dd) = day_sum(dd)
+      else
+        day_sum(dd) = day_sum(dd) + hourly_data(tt)
+        nCounter_h(dd) = nCounter_h(dd) + 1
+      end if
+      if ((hourEd .EQ. 23) .AND. (tt .LT. nhours)) dd = dd + 1
     end do
 
     ! dd is the total number of calendar days, between hourS and hourE
@@ -350,19 +349,19 @@ CONTAINS
     day_avg(:) = missing
 
     ! calculate daily average
-    do kk = 1,dd      
-       if ( ( nCounter_h(kk) .GT. 0 ) .AND. &
-            ( abs( nCounter_h_full(kk) - nCounter_h(kk)) .LT. eps_dp ) ) then
-          day_avg(kk) = day_sum(kk) / real( nCounter_h(kk), dp)
-       else if ( ( nCounter_h(kk) .GT. 0 ) .AND. remove) then
-          day_avg(kk) = day_sum(kk) / real( nCounter_h(kk), dp)
-       end if
-    end do   
-    
+    do kk = 1, dd
+      if ((nCounter_h(kk) .GT. 0) .AND. &
+              (abs(nCounter_h_full(kk) - nCounter_h(kk)) .LT. eps_dp)) then
+        day_avg(kk) = day_sum(kk) / real(nCounter_h(kk), dp)
+      else if ((nCounter_h(kk) .GT. 0) .AND. remove) then
+        day_avg(kk) = day_sum(kk) / real(nCounter_h(kk), dp)
+      end if
+    end do
+
     deallocate(nCounter_h_full)
     deallocate(nCounter_h)
     deallocate(day_sum)
-    
+
   END SUBROUTINE hour2day_average_dp
-   
+
 END MODULE mo_temporal_aggregation

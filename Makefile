@@ -82,7 +82,7 @@
 #    along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
 #    If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2011-2015 Matthias Cuntz
+#    Copyright 2011-2018 Matthias Cuntz
 #
 # Written Matthias Cuntz, Nov. 2011 - mc (at) macu.de
 # Modified Matthias Cuntz, Juliane Mai, Stephan Thober, UFZ Leipzig, Germany
@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM # ./src/mHM # where are the source files
+SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/common_mHM_mRM ./src/MPR ./src/mHM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
@@ -800,6 +800,7 @@ ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)
     export LD_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
+    export DYLD_FALLBACK_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
 endif
 
 INCLUDES += $(addprefix -I,$(OBJPATH))

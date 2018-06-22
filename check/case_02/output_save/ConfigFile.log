@@ -1,18 +1,17 @@
 --------------------------------------------------------------------------------
-                                                                   mHM-UFZ v-5.7
+                                                                   mHM-UFZ v-5.8
                                                     L. Samaniego & R. Kumar, UFZ
 --------------------------------------------------------------------------------
 
          M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         
 
-Number of basins                       2
-Total No. of nodes                     0
-Total No. of reaches                  -1
-No. of cells L0                    46545
-No. of cells L1                       68
+Number of basins                       1
 Time Step [h]                          1
+             Basin                     1
+No. of cells L0                    46545
+             Basin                     1
+No. of cells L1                       34
 Basin   1   Hydrology Resolution [m]              24000.
-Basin   2   Hydrology Resolution [m]              24000.
 Flag READ  restart                     F
 Flag WRITE restart                     T
 
@@ -21,42 +20,15 @@ Flag WRITE restart                     T
 -------------------------------------------------------------
                                        From                To
                             Day Month  Year   Day Month  Year
-Warming Period (1)            6     1  1989    31    12  1989
-Evaluation Period (2)         1     1  1990    31    12  1993
-Simulation Period (1)+(2)     6     1  1989    31    12  1993
-
-
--------------------------------------------------------------
-                      Model Run Periods for Basin          2
--------------------------------------------------------------
-                                       From                To
-                            Day Month  Year   Day Month  Year
-Warming Period (1)            6     1  1989    31    12  1989
-Evaluation Period (2)         1     1  1990    31    12  1993
-Simulation Period (1)+(2)     6     1  1989    31    12  1993
-
+Warming Period (1)            1     1  1990    30     6  1990Evaluation Period (2)         1     7  1990    30     6  1991Simulation Period (1)+(2)     1     1  1990    30     6  1991
 
 --------------------------------------------------
-       Land Cover Observations for Basin         3
+       Land Cover Observations for Basin         2
 --------------------------------------------------
-      Year    Land cover scene     Land Cover File
+ Start Yea  End Year    Land cover scene     Land Cover File
 
-      1989                   1         lc_1990.asc
-      1990                   1         lc_1990.asc
-      1991                   2         lc_1990.asc
-      1992                   2         lc_1990.asc
-      1993                   2         lc_1990.asc
-
---------------------------------------------------
-       Land Cover Observations for Basin         6
---------------------------------------------------
-      Year    Land cover scene     Land Cover File
-
-      1989                   1         lc_1990.asc
-      1990                   1         lc_1990.asc
-      1991                   2         lc_1990.asc
-      1992                   2         lc_1990.asc
-      1993                   2         lc_1990.asc
+      1981      1990                   1         lc_1981.asc
+      1991      2000                   2         lc_1991.asc
 
 -------------------------------------------------------
   Initial Transfer Function Parameter Ranges (gammas)  
@@ -123,17 +95,6 @@ Directory to land cover input                ../../test_basin/input/luse/
 Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
 Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
 Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
-Directory to write output by default         output_b1/                                                                                                                                                                                                                                                      
-Directory to write output when restarted     output_b1/                                                                                                                                                                                                                                                      
-
---------------------------------------------------------------------------------
-                                 Directory list
---------------------------------------------------------------------------------
-Directory to morphological input             ../../test_basin/input/morph/                                                                                                                                                                                                                                   
-Directory to land cover input                ../../test_basin/input/luse/                                                                                                                                                                                                                                    
-Directory to precipitation input             ../../test_basin/input/meteo/pre/                                                                                                                                                                                                                               
-Directory to temperature input               ../../test_basin/input/meteo/tavg/                                                                                                                                                                                                                              
-Directory to reference ET input              ../../test_basin/input/meteo/pet/                                                                                                                                                                                                                               
-Directory to write output by default         output_b2/                                                                                                                                                                                                                                                      
-Directory to write output when restarted     output_b2/                                                                                                                                                                                                                                                      
-
+Directory to write output by default         output_b1/b1_                                                                                                                                                                                                                                                   
+Directory to write output when restarted     output_b1/b1_                                                                                                                                                                                                                                                   
+ 

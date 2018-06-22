@@ -271,7 +271,7 @@ def date2dec(calendar = 'standard', units=None,
         GNU Lesser General Public License for more details.
 
         You should have received a copy of the GNU Lesser General Public License
-        along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
+        along with the UFZ Python package (cf. gpl.txt and lgpl.txt).
         If not, see <http://www.gnu.org/licenses/>.
 
         Copyright 2010-2013 Arndt Piayda, Matthias Cuntz
@@ -294,27 +294,35 @@ def date2dec(calendar = 'standard', units=None,
                  MC, Nov 2013 - removed remnant of time treatment before time check in eng keyword
                  MC, Jun 2015 - adapted to new netCDF4/netcdftime (>= v1.0) and datetime (>= Python v2.7.9)
                  MC, Oct 2015 - call date2num with list instead of single netCDF4.datetime objects
+                 DS, Dec 2016 - fixed import problem with newer versions of netcdftime
     """
 
     #
-    # Checks
+    # Constants
     calendars = ['standard', 'gregorian', 'julian', 'proleptic_gregorian',
                  'excel1900', 'excel1904', '365_day', 'noleap', '366_day',
                  'all_leap', '360_day', 'decimal', 'decimal360']
-    is1 = False
+    #
+    # Checks
     try:
         import netcdftime as nt
-        testit = nt.__version__
-    except:
-        is1 = True
-    if not is1:
+        nt.date2dec # check if method exists
         if ((nt.__version__ <= '0.9.2') & (calendar == '360_day')):
             raise ValueError("date2dec error: Your version of netcdftime.py is equal"
                              " or below 0.9.2. The 360_day calendar does not work with"
                              " arrays here. Please download a newer one.")
-    else:
+    except (ImportError, AttributeError):
         import netCDF4 as nt
-    #
+        try:
+            nt.datetime
+        except AttributeError:
+            # the date functions in netCDF (e.g. date2num) are only forwarded from a module
+            # called cftime. At one point in time the implementation of netCDF4 changed and
+            # the function datetime is not explicitly propagated anymore, so let's monkey
+            # patch that here
+            import cftime
+            nt.datetime = cftime.datetime
+
     calendar = calendar.lower()
     if (calendar not in calendars):
         raise ValueError("date2dec error: Wrong calendar!"
@@ -501,7 +509,7 @@ def date2dec(calendar = 'standard', units=None,
     # depending on chosen calendar and optional set of the time units
     # decimal date is calculated
     output = np.zeros(outsize)
-    t0    = nt.datetime(1582, 10, 05, 00, 00, 00)
+    t0    = nt.datetime(1582, 10, 5, 00, 00, 00)
     t1    = nt.datetime(1582, 10, 15, 00, 00, 00)
     is121 = True if (min(timeobj)<t0) and (max(timeobj)>=t1) else False
     if (calendar == 'standard') or (calendar == 'gregorian'):

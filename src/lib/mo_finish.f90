@@ -34,7 +34,7 @@ MODULE mo_finish
 
   ! Copyright 2011 Matthias Cuntz
 
-  USE mo_string_utils, ONLY: separator
+  USE mo_string_utils, ONLY : separator
 
   IMPLICIT NONE
 
@@ -97,30 +97,30 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(len=*), INTENT(IN)           :: name
-    CHARACTER(len=*), INTENT(IN), OPTIONAL :: text
-    INTEGER,          INTENT(IN), OPTIONAL :: unit
+    CHARACTER(len = *), INTENT(IN) :: name
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: text
+    INTEGER, INTENT(IN), OPTIONAL :: unit
 
     IF (PRESENT(unit)) THEN
-       WRITE (unit,'(a)') separator
+      WRITE (unit, '(a)') separator
 
-       IF (PRESENT(text)) THEN
-          WRITE (unit,'(a,a,a)') name, ': ', text
-       ELSE
-          WRITE (unit,'(a)') name
-       END IF
+      IF (PRESENT(text)) THEN
+        WRITE (unit, '(a,a,a)') name, ': ', text
+      ELSE
+        WRITE (unit, '(a)') name
+      END IF
 
-       WRITE (unit,'(a)') separator
+      WRITE (unit, '(a)') separator
     ELSE
-       WRITE (*,'(a)') separator
+      WRITE (*, '(a)') separator
 
-       IF (PRESENT(text)) THEN
-          WRITE (*,'(a,a,a)') name, ': ', text
-       ELSE
-          WRITE (*,'(a)') name
-       END IF
+      IF (PRESENT(text)) THEN
+        WRITE (*, '(a,a,a)') name, ': ', text
+      ELSE
+        WRITE (*, '(a)') name
+      END IF
 
-       WRITE (*,'(a)') separator
+      WRITE (*, '(a)') separator
     end if
 
     STOP

@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 
 def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
-               variables=False, codes=False, units=False, longnames=False,
+               variables=False, codes=False, dims=False, units=False, longnames=False,
                attributes=False, sort=False, pointer=False, overwrite=False):
     """
         Gets variables or prints information of netcdf file.
@@ -12,7 +12,7 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         Definition
         ----------
         def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
-                       variables=False, codes=False, units=False, longnames=False, 
+                       variables=False, codes=False, dims=False, units=False, longnames=False, 
                        attributes=False, sort=False, pointer=False, overwrite=False):
 
 
@@ -35,15 +35,16 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         squeeze      same as reform
         variables    get list of variables in netcdf file
         codes        get list of codes attribute code
+        dims         get list of dimensions a variable is depending on
         units        get list of units of variables from attribute units
         longnames    get list of long names of variables from
                      attribute long_name
-        attributes   get dictionary of all attributes of specific variable
+        attributes   get dictionary of all attributes of specific variable or of file if variable is omitted
         sort         sort variable names. Codes, units and longnames will be
                      sorted accoringly so that indeces still match.
         pointer      if True, (return file pointer, variable pointer); only for reading
-        overwrite    if True, (return file pointer, variable pointer); modification of file/variable possible
-
+        overwrite    if True, (return file pointer, variable pointer); modification of file/variable possible if
+                     file contains only one variable
 
         Output
         ------
@@ -92,6 +93,10 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         >>> print([str(i) for i in readnetcdf('test_readnetcdf.nc',longnames=True,sort=True)])
         ['all ones', 'all twos', 'x-axis', 'y-axis']
 
+        # Get dims (change from unicode to string)
+        >>> print([ str(i) for i in readnetcdf('test_readnetcdf.nc',var='is1', dims=True) ])
+        ['y', 'x']
+
         # Get attributes
         # old: {'units': 'arbitrary', 'long_name': 'all ones', 'code': 128}
         # new: {u'units': u'arbitrary', u'long_name': u'all ones', u'code': 128}
@@ -126,22 +131,23 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
 
         License
         -------
-        This file is part of the UFZ Python library.
+        This file is part of the UFZ Python package.
 
-        The UFZ Python library is free software: you can redistribute it and/or modify
+        The UFZ Python package is free software: you can redistribute it and/or modify
         it under the terms of the GNU Lesser General Public License as published by
         the Free Software Foundation, either version 3 of the License, or
         (at your option) any later version.
 
-        The UFZ Python library is distributed in the hope that it will be useful,
+        The UFZ Python package is distributed in the hope that it will be useful,
         but WITHOUT ANY WARRANTY; without even the implied warranty of
         MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
         GNU Lesser General Public License for more details.
 
         You should have received a copy of the GNU Lesser General Public License
-        along with The UFZ Python library.  If not, see <http://www.gnu.org/licenses/>.
+        along with the UFZ Python package (cf. gpl.txt and lgpl.txt).
+        If not, see <http://www.gnu.org/licenses/>.
 
-        Copyright 2009-2013 Matthias Cuntz
+        Copyright 2009-2014 Matthias Cuntz, Stephan Thober
 
 
         History
@@ -151,6 +157,9 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
                   MC, Feb 2013 - ported to Python 3
                   MC, Oct 2013 - netcdfread, ncread, readnc
                   ST, Apr 2014 - added overwrite flag
+                  ST, May 2014 - added dims flag
+                  ST, Jun 2016 - added read of file attributes
+                  ST, Aug 2016 - restricted use of overwrite option
     """
     try:
         import netCDF4 as nc
@@ -160,6 +169,9 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
     try:
         if overwrite:
             f = nc.Dataset(file, 'a')
+            if len(f.variables) > 1:
+                f.close()
+                raise ValueError('ERROR: only use the overwrite option for files with one variable.')
         else:
             f = nc.Dataset(file, 'r')
     except IOError:
@@ -198,6 +210,14 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
             scods = np.compress(scods!=-1, scods)
         f.close()
         return scods
+    # Get dimensions
+    if dims:
+        if var not in vars:
+            f.close()
+            raise ValueError('Variable '+var+' not in file '+file)
+        dimensions = f.variables[ var ].dimensions
+        f.close()
+        return dimensions        
     # Get units
     if units:
         unis = list()
@@ -240,7 +260,14 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         return slongs
     # Get attributes
     if attributes:
-        if var not in vars:
+        if var == '':
+            attrs = dict()
+            attr = f.ncattrs()
+            for a in attr:
+                attrs[a] = getattr(f, a)
+            f.close()
+            return attrs
+        elif var not in vars:
             f.close()
             raise ValueError('Variable '+var+' not in file '+file)
         attrs = dict()
@@ -285,8 +312,8 @@ def netcdfread(*args, **kwargs):
     """
         Wrapper for readnetcdf
         def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
-                       variables=False, codes=False, units=False,
-                       longnames=False, attributes=False, sort=False):
+                       variables=False, codes=False, dims=False, units=False, longnames=False, 
+                       attributes=False, sort=False, pointer=False, overwrite=False):
 
 
         Examples
@@ -329,8 +356,8 @@ def ncread(*args, **kwargs):
     """
         Wrapper for readnetcdf
         def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
-                       variables=False, codes=False, units=False,
-                       longnames=False, attributes=False, sort=False):
+                       variables=False, codes=False, dims=False, units=False, longnames=False, 
+                       attributes=False, sort=False, pointer=False, overwrite=False):
 
 
         Examples
@@ -373,8 +400,8 @@ def readnc(*args, **kwargs):
     """
         Wrapper for readnetcdf
         def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
-                       variables=False, codes=False, units=False,
-                       longnames=False, attributes=False, sort=False):
+                       variables=False, codes=False, dims=False, units=False, longnames=False, 
+                       attributes=False, sort=False, pointer=False, overwrite=False):
 
 
         Examples

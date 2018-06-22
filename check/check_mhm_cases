@@ -98,6 +98,7 @@ set -e
 #          Mar 2015 Matthias Zink                  - added soil moisture calibration test
 #          Oct 2015 Matthias Cuntz                 - added multi-job make
 #          Jan 2016 Matthias Cuntz                 - run only specific test cases
+#          May 2018 Robert Schweppe                - use python script to compare *.out and *restart.nc files
 
 # -------------------------------------------------------------------------------------------
 #
@@ -245,26 +246,43 @@ if [[ "${icdo}z" == "z" ]] ; then
     if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
         echo '   try to load module cdo ...'
 
-	if [[ -f /home/$USER/.lmod-yes ]]; then
-	    ## New module system (= Lmod), after Feb 2018, OR:
-	    BASH_ENV="/software/lmod/lmod/init/profile"
-	else
-	    ## Old module system (before Lmod system, prior to Feb 2018), OR:
-	    source /etc/profile.d/000-modules.sh
-	fi
-	
+        ## New module system (= Lmod)
+		BASH_ENV="/software/lmod/lmod/init/profile"
+
         if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
             module load cdo
-	else
-	    echo "Host not specified!"
+		else
+		    echo "Host not specified!"
         fi
-	set +e
-        icdo=$(which cdo 2> /dev/null)
-	set -e
+		set +e
+	    icdo=$(which cdo 2> /dev/null)
+		set -e
     fi
 fi
 #set -ex
 if [[ "${icdo}z" == "z" ]] ; then printf "Error ${pprog}: cdo not found.\n\n" ; exit 1 ; fi
+# check for python3 environment with numpy and xarray installed
+if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
+    echo '   try to load module python ...'
+    if [[ -f /home/$USER/.lmod-no ]]; then
+        ## Old module system (before Lmod system, prior to Feb 2018), OR:
+	source /etc/profile.d/000-modules.sh
+    else
+	## New module system (= Lmod)
+        BASH_ENV="/software/lmod/lmod/init/profile"
+    fi
+
+    if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+        # the complete path is /global/apps/chspython/modules/pyvenvs/3.6.2
+        # but /global/apps/chspython/modules should be in MODULEPATH
+        module load pyvenvs/3.6.2
+    else
+	echo "Host not specified!"
+    fi
+    set +e
+    ipython=$(which python 2> /dev/null)
+    set -e
+fi
 
 # rm coloured ls
 if [[ -n ${CLICOLOR_FORCE} ]] ; then unset CLICOLOR_FORCE ; fi
@@ -323,6 +341,11 @@ for irelease in ${release} ; do
                 if [[ -f ${mhm_exe} ]] ; then rm ${mhm_exe} ; fi
                 ln -s ../../${mhm_exe} . 
 
+		# create the empty dirs, which git does not support
+                if [[ ! -d 'output_b1' ]] ; then mkdir 'output_b1' ; fi
+                if [[ ! -d 'restart' ]] ; then mkdir 'restart' ; fi
+
+		
                 # remove old files
                 if [[ -f mhm_terminal.${pid}.out ]] ; then rm mhm_terminal.${pid}.out ; fi
                 if [[ -f cdo.${pid}.terminal ]] ; then rm cdo.${pid}.terminal ; fi
@@ -345,12 +368,17 @@ for irelease in ${release} ; do
                     nRecordsDiffer=0
                     cd output_save
                     set +e
-                    nc_files=$(\ls *.nc 2> /dev/null)                        # causes failure if no such file exists
-                    discharge_files=$(\ls *daily_discharge.out 2> /dev/null) # causes failure if no such file exists
-                    finalpara_files=$(\ls *FinalParam.out 2> /dev/null)      # causes failure if no such file exists
+                    nc_files=$(\ls *discharge.nc *States.nc  2> /dev/null)    # causes failure if no such file exists
+                    restart_files=$(\ls *restart*.nc 2> /dev/null)            # causes failure if no such file exists
+                    discharge_files=$(\ls *discharge.out 2> /dev/null)        # causes failure if no such file exists
+                    finalpara_files=$(\ls *FinalParam.out 2> /dev/null)       # causes failure if no such file exists
+                    python_check_files=$(\ls *FinalParam.out *discharge.out *restart*.nc 2> /dev/null) # causes failure if no such file exists
                     set -e
                     if [[ -z ${nc_files} ]] ; then
                         echo '   No NetCDF     files written!'
+                    fi
+                    if [[ -z ${nc_files} ]] ; then
+                        echo '   No Restart    files written!'
                     fi
                     if [[ -z ${discharge_files} ]] ; then
                         echo '   No discharge  files written!'
@@ -384,64 +412,29 @@ for irelease in ${release} ; do
                     done
 
                     # compare daily_discharge outputs in output_b1/ with reference in output_save/
-                    for discharge_file in ${discharge_files} ; do
-                        echo '   *  diff output_save/'${discharge_file}' output_b1/'${discharge_file}
+                    for python_check_file in ${python_check_files} ; do
+                        echo '   *  python ../check_files.py -s output_save/'${python_check_file}' -n output_b1/'${python_check_file}
                         set +e
-			if [[ ${verbose} -eq 1 ]] ; then
-                            diff output_save/${discharge_file} output_b1/${discharge_file} | tee diff1.${pid}.terminal
-			else
-                            diff output_save/${discharge_file} output_b1/${discharge_file} > diff1.${pid}.terminal
-			fi
-                        set -e
-                        iRecordsDiffer=$(echo $(wc -l diff1.${pid}.terminal) | cut -d ' ' -f 1)
-                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                            iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
-                        fi
+						if [[ ${verbose} -eq 1 ]] ; then
+                            ${ipython} ../check_files.py -s output_save/${python_check_file} -n output_b1/${python_check_file} | tee diff1.${pid}.terminal
+						else
+                            ${ipython} ../check_files.py -s output_save/${python_check_file} -n output_b1/${python_check_file} > diff1.${pid}.terminal
+						fi
+                        iRecordsDiffer=$(grep -i 'differ' diff1.${pid}.terminal | tail -1 | cut -f 1 -d 'o')
                         nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
                         nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
-                        echo '      Number of records that differ: '${iRecordsDiffer}
+                        echo '      Number of records that differ more than 0.001: '${iRecordsDiffer}
                         if [[ ${iRecordsDiffer} -gt 0 ]] ; then
                             echo '            --------------------------------------'
                             echo '                  Details                         '
                             echo '            --------------------------------------'
                             set +e
-                            diff output_save/${discharge_file} output_b1/${discharge_file}
+                            ${ipython} ../check_files.py -s output_save/${python_check_file} -n output_b1/${python_check_file}
                             set -e
                             echo '            --------------------------------------'
                         fi
                         echo ''
                     done
-
-                    # compare FinalParam.out outputs in output_b1/ with reference in output_save/
-                    # --> only for optimization cases
-                    for finalpara_file in ${finalpara_files} ; do
-                        echo '   *  diff output_save/'${finalpara_file}' output_b1/'${finalpara_file}
-                        set +e
-			if [[ ${verbose} -eq 1 ]] ; then
-                            diff output_save/${finalpara_file} output_b1/${finalpara_file} | tee diff2.${pid}.terminal
-			else
-                            diff output_save/${finalpara_file} output_b1/${finalpara_file} > diff2.${pid}.terminal
-			fi
-                        set -e
-                        iRecordsDiffer=$(echo $(wc -l diff2.${pid}.terminal) | cut -d ' ' -f 1)
-                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                            iRecordsDiffer=$(( (iRecordsDiffer - 2) / 2 ))
-                        fi
-                        nRecordsDiffer=$((nRecordsDiffer+iRecordsDiffer))
-                        nRecordsDiffer_allCases=$((nRecordsDiffer_allCases+iRecordsDiffer))
-                        echo '      Number of records that differ: '${iRecordsDiffer}
-                        if [[ ${iRecordsDiffer} -gt 0 ]] ; then
-                            echo '            --------------------------------------'
-                            echo '                  Details                         '
-                            echo '            --------------------------------------'
-                            set +e
-                            diff output_save/${finalpara_file} output_b1/${finalpara_file}
-                            set -e
-                            echo '            --------------------------------------'
-                        fi
-                        echo ''
-                    done
-                    
                     echo '   Total Number of records that differ: '${nRecordsDiffer}
 
                     if [[ ${nRecordsDiffer} -eq 0 ]] ; then

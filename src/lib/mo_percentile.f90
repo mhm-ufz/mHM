@@ -11,13 +11,23 @@ MODULE mo_percentile
   ! -------
   ! This file is part of the UFZ Fortran library.
 
-  ! It is NOT released under the GNU Lesser General Public License, yet.
+  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU Lesser General Public License as published by
+  ! the Free Software Foundation, either version 3 of the License, or
+  ! (at your option) any later version.
 
-  ! If you use this routine, please contact Matthias Cuntz or Juliane Mai.
+  ! The UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  ! GNU Lesser General Public License for more details.
+
+  ! You should have received a copy of the GNU Lesser General Public License
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011-2014 Matthias Cuntz, Juliane Mai, Stephan Thober
 
-  USE mo_kind, ONLY: i4, sp, dp
+  USE mo_kind, ONLY : i4, sp, dp
 
   Implicit NONE
 
@@ -76,7 +86,7 @@ MODULE mo_percentile
   !         Written,  Matthias Cuntz, Mar 2011
   !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - uses previous of ksmallest to half execution time
   INTERFACE median
-     MODULE PROCEDURE median_sp, median_dp
+    MODULE PROCEDURE median_sp, median_dp
   END INTERFACE median
 
   ! ------------------------------------------------------------------
@@ -131,7 +141,7 @@ MODULE mo_percentile
   !     HISTORY
   !         Written,  Matthias Cuntz, May 2014 - based on qmedian
   INTERFACE n_element
-     MODULE PROCEDURE n_element_dp, n_element_sp
+    MODULE PROCEDURE n_element_dp, n_element_sp
   END INTERFACE n_element
 
   ! ------------------------------------------------------------------
@@ -205,7 +215,7 @@ MODULE mo_percentile
   !                   Juliane Mai,    July 2012 - different interpolation schemes
   !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - uses previous of ksmallest to half execution time
   INTERFACE percentile
-     MODULE PROCEDURE percentile_0d_sp, percentile_0d_dp, percentile_1d_sp, percentile_1d_dp
+    MODULE PROCEDURE percentile_0d_sp, percentile_0d_dp, percentile_1d_sp, percentile_1d_dp
   END INTERFACE percentile
 
   ! ------------------------------------------------------------------
@@ -255,7 +265,7 @@ MODULE mo_percentile
   !         Modified, Matthias Cuntz, Jul 2012 - function, k=n/2+1
   !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - real median for even n
   INTERFACE qmedian
-     MODULE PROCEDURE qmedian_sp, qmedian_dp
+    MODULE PROCEDURE qmedian_sp, qmedian_dp
   END INTERFACE qmedian
 
   ! ------------------------------------------------------------------
@@ -272,39 +282,39 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN) :: arrin
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    REAL(dp)                                        :: median_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: arrin
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: median_dp
 
     INTEGER(i4) :: n
     REAL(dp), DIMENSION(:), ALLOCATABLE :: arr
     REAL(dp) :: tmp
 
     if (present(mask)) then
-       n = count(mask)
-       allocate(arr(n))
-       arr = pack(arrin,mask)
+      n = count(mask)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
 
-       if (n < 2) stop 'median_dp: n < 2'
+      if (n < 2) stop 'median_dp: n < 2'
 
-       if (mod(n,2) == 0) then ! Even
-          median_dp = n_element(arr,n/2+1,previous=tmp)
-          median_dp = 0.5_dp*(median_dp+tmp)
-       else ! Odd
-          median_dp = n_element(arr,(n+1)/2)
-       end if
+      if (mod(n, 2) == 0) then ! Even
+        median_dp = n_element(arr, n / 2 + 1, previous = tmp)
+        median_dp = 0.5_dp * (median_dp + tmp)
+      else ! Odd
+        median_dp = n_element(arr, (n + 1) / 2)
+      end if
 
-       deallocate(arr)
+      deallocate(arr)
     else
-       n = size(arrin)
-       if (n < 2) stop 'median_dp: n < 2'
+      n = size(arrin)
+      if (n < 2) stop 'median_dp: n < 2'
 
-       if (mod(n,2) == 0) then ! Even
-          median_dp = n_element(arrin,n/2+1,previous=tmp)
-          median_dp = 0.5_dp*(median_dp+tmp)
-       else ! Odd
-          median_dp = n_element(arrin,(n+1)/2)
-       end if
+      if (mod(n, 2) == 0) then ! Even
+        median_dp = n_element(arrin, n / 2 + 1, previous = tmp)
+        median_dp = 0.5_dp * (median_dp + tmp)
+      else ! Odd
+        median_dp = n_element(arrin, (n + 1) / 2)
+      end if
     end if
 
   END FUNCTION median_dp
@@ -314,39 +324,39 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN) :: arrin
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    REAL(sp)                                        :: median_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: arrin
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp) :: median_sp
 
     INTEGER(i4) :: n
     REAL(sp), DIMENSION(:), ALLOCATABLE :: arr
     REAL(sp) :: tmp
 
     if (present(mask)) then
-       n = count(mask)
-       allocate(arr(n))
-       arr = pack(arrin,mask)
+      n = count(mask)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
 
-       if (n < 2) stop 'median_sp: n < 2'
+      if (n < 2) stop 'median_sp: n < 2'
 
-       if (mod(n,2) == 0) then ! Even
-          median_sp = n_element(arr,n/2+1,previous=tmp)
-          median_sp = 0.5_sp*(median_sp+tmp)
-       else ! Odd
-          median_sp = n_element(arr,(n+1)/2)
-       end if
+      if (mod(n, 2) == 0) then ! Even
+        median_sp = n_element(arr, n / 2 + 1, previous = tmp)
+        median_sp = 0.5_sp * (median_sp + tmp)
+      else ! Odd
+        median_sp = n_element(arr, (n + 1) / 2)
+      end if
 
-       deallocate(arr)
+      deallocate(arr)
     else
-       n = size(arrin)
-       if (n < 2) stop 'median_sp: n < 2'
+      n = size(arrin)
+      if (n < 2) stop 'median_sp: n < 2'
 
-       if (mod(n,2) == 0) then ! Even
-          median_sp = n_element(arrin,n/2+1,previous=tmp)
-          median_sp = 0.5_sp*(median_sp+tmp)
-       else ! Odd
-          median_sp = n_element(arrin,(n+1)/2)
-       end if
+      if (mod(n, 2) == 0) then ! Even
+        median_sp = n_element(arrin, n / 2 + 1, previous = tmp)
+        median_sp = 0.5_sp * (median_sp + tmp)
+      else ! Odd
+        median_sp = n_element(arrin, (n + 1) / 2)
+      end if
     end if
 
   END FUNCTION median_sp
@@ -357,28 +367,28 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(dp),    dimension(:), intent(in)            :: idat
-    integer(i4),               intent(in)            :: n
-    logical,     dimension(:), optional, intent(in)  :: mask
-    real(dp),                  optional, intent(out) :: before
-    real(dp),                  optional, intent(out) :: after
-    real(dp),                  optional, intent(out) :: previous
-    real(dp),                  optional, intent(out) :: next
-    real(dp)                                         :: n_element_dp
+    real(dp), dimension(:), intent(in) :: idat
+    integer(i4), intent(in) :: n
+    logical, dimension(:), optional, intent(in) :: mask
+    real(dp), optional, intent(out) :: before
+    real(dp), optional, intent(out) :: after
+    real(dp), optional, intent(out) :: previous
+    real(dp), optional, intent(out) :: next
+    real(dp) :: n_element_dp
 
     real(dp), dimension(:), allocatable :: dat
     real(dp) :: w
     integer(i4) :: nn, k
-    integer(i4) :: l,r,i,j
+    integer(i4) :: l, r, i, j
 
     if (present(mask)) then
-       nn = count(mask)
-       allocate(dat(nn))
-       dat = pack(idat,mask)
+      nn = count(mask)
+      allocate(dat(nn))
+      dat = pack(idat, mask)
     else
-       nn = size(idat)
-       allocate(dat(nn))
-       dat = idat
+      nn = size(idat)
+      allocate(dat(nn))
+      dat = idat
     end if
 
     if (n < 1)  stop 'n_element_dp: n < 1'
@@ -389,28 +399,28 @@ CONTAINS
     k = n !nn/2 + 1
     l = 1
     r = nn
-    do while( l < r )
-       n_element_dp = dat(k)
-       i = l
-       j = r
-       do
-          do while( dat(i) < n_element_dp )
-             i = i + 1
-          enddo
-          do while( n_element_dp < dat(j) )
-             j = j - 1
-          enddo
-          if ( i <= j ) then
-             w      = dat(i)
-             dat(i) = dat(j)
-             dat(j) = w
-             i = i + 1
-             j = j - 1
-          end if
-          if ( i > j ) exit
-       enddo
-       if ( j < k ) l = i
-       if ( k < i ) r = j
+    do while(l < r)
+      n_element_dp = dat(k)
+      i = l
+      j = r
+      do
+        do while(dat(i) < n_element_dp)
+          i = i + 1
+        enddo
+        do while(n_element_dp < dat(j))
+          j = j - 1
+        enddo
+        if (i <= j) then
+          w = dat(i)
+          dat(i) = dat(j)
+          dat(j) = w
+          i = i + 1
+          j = j - 1
+        end if
+        if (i > j) exit
+      enddo
+      if (j < k) l = i
+      if (k < i) r = j
     enddo
     ! if (mod(nn,2) == 0) then
     !    n_element_dp = 0.5_dp*(dat(k) + maxval(dat(:k-1)))
@@ -419,10 +429,10 @@ CONTAINS
     ! end if
     n_element_dp = dat(k)
 
-    if (present(before))   before   = maxval(dat(:k-1))
-    if (present(previous)) previous = maxval(dat(:k-1))
-    if (present(after))    after    = minval(dat(k+1:))
-    if (present(next))     next     = minval(dat(k+1:))
+    if (present(before))   before = maxval(dat(: k - 1))
+    if (present(previous)) previous = maxval(dat(: k - 1))
+    if (present(after))    after = minval(dat(k + 1 :))
+    if (present(next))     next = minval(dat(k + 1 :))
 
     deallocate(dat)
 
@@ -432,28 +442,28 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(sp),    dimension(:), intent(in)            :: idat
-    integer(i4),               intent(in)            :: n
-    logical,     dimension(:), optional, intent(in)  :: mask
-    real(sp),                  optional, intent(out) :: before
-    real(sp),                  optional, intent(out) :: after
-    real(sp),                  optional, intent(out) :: previous
-    real(sp),                  optional, intent(out) :: next
-    real(sp)                                         :: n_element_sp
+    real(sp), dimension(:), intent(in) :: idat
+    integer(i4), intent(in) :: n
+    logical, dimension(:), optional, intent(in) :: mask
+    real(sp), optional, intent(out) :: before
+    real(sp), optional, intent(out) :: after
+    real(sp), optional, intent(out) :: previous
+    real(sp), optional, intent(out) :: next
+    real(sp) :: n_element_sp
 
     real(sp), dimension(:), allocatable :: dat
     real(sp) :: w
     integer(i4) :: nn, k
-    integer(i4) :: l,r,i,j
+    integer(i4) :: l, r, i, j
 
     if (present(mask)) then
-       nn = count(mask)
-       allocate(dat(nn))
-       dat = pack(idat,mask)
+      nn = count(mask)
+      allocate(dat(nn))
+      dat = pack(idat, mask)
     else
-       nn = size(idat)
-       allocate(dat(nn))
-       dat = idat
+      nn = size(idat)
+      allocate(dat(nn))
+      dat = idat
     end if
 
     if (n < 1)  stop 'n_element_sp: n < 1'
@@ -464,28 +474,28 @@ CONTAINS
     k = n !nn/2 + 1
     l = 1
     r = nn
-    do while( l < r )
-       n_element_sp = dat(k)
-       i = l
-       j = r
-       do
-          do while( dat(i) < n_element_sp )
-             i = i + 1
-          enddo
-          do while( n_element_sp < dat(j) )
-             j = j - 1
-          enddo
-          if ( i <= j ) then
-             w      = dat(i)
-             dat(i) = dat(j)
-             dat(j) = w
-             i = i + 1
-             j = j - 1
-          end if
-          if ( i > j ) exit
-       enddo
-       if ( j < k ) l = i
-       if ( k < i ) r = j
+    do while(l < r)
+      n_element_sp = dat(k)
+      i = l
+      j = r
+      do
+        do while(dat(i) < n_element_sp)
+          i = i + 1
+        enddo
+        do while(n_element_sp < dat(j))
+          j = j - 1
+        enddo
+        if (i <= j) then
+          w = dat(i)
+          dat(i) = dat(j)
+          dat(j) = w
+          i = i + 1
+          j = j - 1
+        end if
+        if (i > j) exit
+      enddo
+      if (j < k) l = i
+      if (k < i) r = j
     enddo
     ! if (mod(nn,2) == 0) then
     !    n_element_sp = 0.5_sp*(dat(k) + maxval(dat(:k-1)))
@@ -494,10 +504,10 @@ CONTAINS
     ! end if
     n_element_sp = dat(k)
 
-    if (present(before))   before   = maxval(dat(:k-1))
-    if (present(previous)) previous = maxval(dat(:k-1))
-    if (present(after))    after    = minval(dat(k+1:))
-    if (present(next))     next     = minval(dat(k+1:))
+    if (present(before))   before = maxval(dat(: k - 1))
+    if (present(previous)) previous = maxval(dat(: k - 1))
+    if (present(after))    after = minval(dat(k + 1 :))
+    if (present(next))     next = minval(dat(k + 1 :))
 
     deallocate(dat)
 
@@ -505,257 +515,257 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  FUNCTION percentile_0d_dp(arrin,k,mask,mode_in)
+  FUNCTION percentile_0d_dp(arrin, k, mask, mode_in)
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN) :: arrin
-    REAL(dp),                            INTENT(IN) :: k
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    INTEGER(i4),               OPTIONAL, INTENT(IN) :: mode_in
-    REAL(dp)                                        :: percentile_0d_dp
+    REAL(dp), DIMENSION(:), INTENT(IN) :: arrin
+    REAL(dp), INTENT(IN) :: k
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    INTEGER(i4), OPTIONAL, INTENT(IN) :: mode_in
+    REAL(dp) :: percentile_0d_dp
 
-    INTEGER(i4)                         :: n, nn1, nn2
-    INTEGER(i4)                         :: mode
-    REAL(dp)                            :: kk, ks1, ks2
+    INTEGER(i4) :: n, nn1, nn2
+    INTEGER(i4) :: mode
+    REAL(dp) :: kk, ks1, ks2
     REAL(dp), DIMENSION(:), ALLOCATABLE :: arr
 
     if (present(mask)) then
-       n = count(mask)
+      n = count(mask)
     else
-       n = size(arrin)
+      n = size(arrin)
     end if
 
     if (present(mode_in)) then
-       mode = mode_in
+      mode = mode_in
     else
-       ! Default : Inverse empirical CDF
-       mode = 1_i4
+      ! Default : Inverse empirical CDF
+      mode = 1_i4
     end if
 
     if (n < 2) stop 'percentile_0d_dp: n < 2'
 
     select case (mode)
-       ! Inverse empirical CDF: Mathematica default
+      ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-       kk = k/100._dp*real(n,dp)
-       nn1 = min(n, max(1_i4,ceiling(kk,kind=i4)))
-       nn2 = nn1
+      kk = k / 100._dp * real(n, dp)
+      nn1 = min(n, max(1_i4, ceiling(kk, kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (California method)
+      ! Linear interpolation (California method)
     case(2_i4)
-       kk  = k/100._dp*real(n,dp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = k / 100._dp * real(n, dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Element numbered closest
+      ! Element numbered closest
     case(3_i4)
-       kk = 0.5_dp+k/100._dp*real(n,dp)
-       nn1 = min(n, max(1_i4,floor(kk,kind=i4)))
-       nn2 = nn1
+      kk = 0.5_dp + k / 100._dp * real(n, dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (hydrologist method)
+      ! Linear interpolation (hydrologist method)
     case(4_i4)
-       kk  = 0.5_dp+k/100._dp*(real(n,dp))
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 0.5_dp + k / 100._dp * (real(n, dp))
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Mean-based estimate (Weibull method): IMSL default
+      ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-       kk  = k/100._dp*(real(n,dp)+1._dp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = k / 100._dp * (real(n, dp) + 1._dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Mode-based estimate
+      ! Mode-based estimate
     case(6_i4)
-       kk  = 1.0_dp+k/100._dp*(real(n,dp)-1._dp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 1.0_dp + k / 100._dp * (real(n, dp) - 1._dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Median-based estimate
+      ! Median-based estimate
     case(7_i4)
-       kk  = 1.0_dp/3.0_dp+k/100._dp*(real(n,dp)+1.0_dp/3.0_dp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 1.0_dp / 3.0_dp + k / 100._dp * (real(n, dp) + 1.0_dp / 3.0_dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Normal distribution estimate
+      ! Normal distribution estimate
     case(8_i4)
-       kk  = 3.0_dp/8.0_dp+k/100._dp*(real(n,dp)+1.0_dp/4.0_dp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 3.0_dp / 8.0_dp + k / 100._dp * (real(n, dp) + 1.0_dp / 4.0_dp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! No valid mode
+      ! No valid mode
     case default
-       stop 'percentile_0d_dp: mode > 8 not implemented'
+      stop 'percentile_0d_dp: mode > 8 not implemented'
 
     end select
 
     if (present(mask)) then
-       allocate(arr(n))
-       arr = pack(arrin,mask)
-       if (nn1 .eq. nn2) then
-          ! no interpolation
-          percentile_0d_dp = n_element(arr,nn1)
-       else
-          ! interpolation
-          ks2 = n_element(arr,nn2,previous=ks1)
-          percentile_0d_dp = ks1 + (ks2-ks1)*(kk-real(nn1,dp))
-       end if
-       deallocate(arr)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
+      if (nn1 .eq. nn2) then
+        ! no interpolation
+        percentile_0d_dp = n_element(arr, nn1)
+      else
+        ! interpolation
+        ks2 = n_element(arr, nn2, previous = ks1)
+        percentile_0d_dp = ks1 + (ks2 - ks1) * (kk - real(nn1, dp))
+      end if
+      deallocate(arr)
     else
-       if (nn1 .eq. nn2) then
-          ! no interpolation
-          percentile_0d_dp = n_element(arrin,nn1)
-       else
-          ! interpolation
-          ks2 = n_element(arrin,nn2,previous=ks1)
-          percentile_0d_dp = ks1 + (ks2-ks1)*(kk-real(nn1,dp))
-       end if
+      if (nn1 .eq. nn2) then
+        ! no interpolation
+        percentile_0d_dp = n_element(arrin, nn1)
+      else
+        ! interpolation
+        ks2 = n_element(arrin, nn2, previous = ks1)
+        percentile_0d_dp = ks1 + (ks2 - ks1) * (kk - real(nn1, dp))
+      end if
     end if
 
   END FUNCTION percentile_0d_dp
 
 
-  FUNCTION percentile_0d_sp(arrin,k,mask,mode_in)
+  FUNCTION percentile_0d_sp(arrin, k, mask, mode_in)
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN) :: arrin
-    REAL(sp),                            INTENT(IN) :: k
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    INTEGER(i4),               OPTIONAL, INTENT(IN) :: mode_in
-    REAL(sp)                                        :: percentile_0d_sp
+    REAL(sp), DIMENSION(:), INTENT(IN) :: arrin
+    REAL(sp), INTENT(IN) :: k
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    INTEGER(i4), OPTIONAL, INTENT(IN) :: mode_in
+    REAL(sp) :: percentile_0d_sp
 
-    INTEGER(i4)                         :: n, nn1, nn2
-    INTEGER(i4)                         :: mode
-    REAL(sp)                            :: kk, ks1, ks2
+    INTEGER(i4) :: n, nn1, nn2
+    INTEGER(i4) :: mode
+    REAL(sp) :: kk, ks1, ks2
     REAL(sp), DIMENSION(:), ALLOCATABLE :: arr
 
     if (present(mask)) then
-       n = count(mask)
+      n = count(mask)
     else
-       n = size(arrin)
+      n = size(arrin)
     end if
 
     if (present(mode_in)) then
-       mode = mode_in
+      mode = mode_in
     else
-       ! Default : Inverse empirical CDF
-       mode = 1_i4
+      ! Default : Inverse empirical CDF
+      mode = 1_i4
     end if
 
     if (n < 2) stop 'percentile_0d_sp: n < 2'
 
     select case (mode)
-       ! Inverse empirical CDF: Mathematica default
+      ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-       kk = k/100._sp*real(n,sp)
-       nn1 = min(n, max(1_i4,ceiling(kk,kind=i4)))
-       nn2 = nn1
+      kk = k / 100._sp * real(n, sp)
+      nn1 = min(n, max(1_i4, ceiling(kk, kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (California method)
+      ! Linear interpolation (California method)
     case(2_i4)
-       kk  = k/100._sp*real(n,sp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = k / 100._sp * real(n, sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Element numbered closest
+      ! Element numbered closest
     case(3_i4)
-       kk = 0.5_sp+k/100._sp*real(n,sp)
-       nn1 = min(n, max(1_i4,floor(kk,kind=i4)))
-       nn2 = nn1
+      kk = 0.5_sp + k / 100._sp * real(n, sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (hydrologist method)
+      ! Linear interpolation (hydrologist method)
     case(4_i4)
-       kk  = 0.5_sp+k/100._sp*(real(n,sp))
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 0.5_sp + k / 100._sp * (real(n, sp))
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Mean-based estimate (Weibull method): IMSL default
+      ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-       kk  = k/100._sp*(real(n,sp)+1._sp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = k / 100._sp * (real(n, sp) + 1._sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Mode-based estimate
+      ! Mode-based estimate
     case(6_i4)
-       kk  = 1.0_sp+k/100._sp*(real(n,sp)-1._sp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 1.0_sp + k / 100._sp * (real(n, sp) - 1._sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Median-based estimate
+      ! Median-based estimate
     case(7_i4)
-       kk  = 1.0_sp/3.0_sp+k/100._sp*(real(n,sp)+1.0_sp/3.0_sp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 1.0_sp / 3.0_sp + k / 100._sp * (real(n, sp) + 1.0_sp / 3.0_sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! Normal distribution estimate
+      ! Normal distribution estimate
     case(8_i4)
-       kk  = 3.0_sp/8.0_sp+k/100._sp*(real(n,sp)+1.0_sp/4.0_sp)
-       nn1 = min(n, max(1_i4,  floor(kk,kind=i4)))
-       nn2 = min(n, max(1_i4,ceiling(kk,kind=i4)))
+      kk = 3.0_sp / 8.0_sp + k / 100._sp * (real(n, sp) + 1.0_sp / 4.0_sp)
+      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
-       ! No valid mode
+      ! No valid mode
     case default
-       stop 'percentile_0d_sp: mode > 8 not implemented'
+      stop 'percentile_0d_sp: mode > 8 not implemented'
 
     end select
 
     if (present(mask)) then
-       allocate(arr(n))
-       arr = pack(arrin,mask)
-       if (nn1 .eq. nn2) then
-          ! no interpolation
-          percentile_0d_sp = n_element(arr,nn1)
-       else
-          ! interpolation
-          ks2 = n_element(arr,nn2,previous=ks1)
-          percentile_0d_sp = ks1 + (ks2-ks1)*(kk-real(nn1,sp))
-       end if
-       deallocate(arr)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
+      if (nn1 .eq. nn2) then
+        ! no interpolation
+        percentile_0d_sp = n_element(arr, nn1)
+      else
+        ! interpolation
+        ks2 = n_element(arr, nn2, previous = ks1)
+        percentile_0d_sp = ks1 + (ks2 - ks1) * (kk - real(nn1, sp))
+      end if
+      deallocate(arr)
     else
-       if (nn1 .eq. nn2) then
-          ! no interpolation
-          percentile_0d_sp = n_element(arrin,nn1)
-       else
-          ! interpolation
-          ks2 = n_element(arrin,nn2,previous=ks1)
-          percentile_0d_sp = ks1 + (ks2-ks1)*(kk-real(nn1,sp))
-       end if
+      if (nn1 .eq. nn2) then
+        ! no interpolation
+        percentile_0d_sp = n_element(arrin, nn1)
+      else
+        ! interpolation
+        ks2 = n_element(arrin, nn2, previous = ks1)
+        percentile_0d_sp = ks1 + (ks2 - ks1) * (kk - real(nn1, sp))
+      end if
     end if
 
   END FUNCTION percentile_0d_sp
 
 
-  function percentile_1d_dp(arrin,k,mask,mode_in)
+  function percentile_1d_dp(arrin, k, mask, mode_in)
 
     IMPLICIT NONE
 
-    REAL(dp),    DIMENSION(:),           INTENT(IN) :: arrin
-    REAL(dp),    DIMENSION(:),           INTENT(IN) :: k
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    INTEGER(i4),               OPTIONAL, INTENT(IN) :: mode_in
+    REAL(dp), DIMENSION(:), INTENT(IN) :: arrin
+    REAL(dp), DIMENSION(:), INTENT(IN) :: k
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    INTEGER(i4), OPTIONAL, INTENT(IN) :: mode_in
 
-    REAL(dp),    DIMENSION(size(k))                 :: percentile_1d_dp
+    REAL(dp), DIMENSION(size(k)) :: percentile_1d_dp
 
-    INTEGER(i4)                            :: i, n
-    INTEGER(i4)                            :: mode
-    INTEGER(i4), DIMENSION(size(k))        :: nn1, nn2
-    REAL(dp),    DIMENSION(size(k))        :: kk
-    REAL(dp)                               :: ks1, ks2
-    REAL(dp),    DIMENSION(:), ALLOCATABLE :: arr
+    INTEGER(i4) :: i, n
+    INTEGER(i4) :: mode
+    INTEGER(i4), DIMENSION(size(k)) :: nn1, nn2
+    REAL(dp), DIMENSION(size(k)) :: kk
+    REAL(dp) :: ks1, ks2
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: arr
 
     if (present(mask)) then
-       n = count(mask)
+      n = count(mask)
     else
-       n = size(arrin)
+      n = size(arrin)
     end if
 
     if (present(mode_in)) then
-       mode = mode_in
+      mode = mode_in
     else
-       ! Default : Inverse empirical CDF
-       mode = 1_i4
+      ! Default : Inverse empirical CDF
+      mode = 1_i4
     end if
 
     ! check consistency
@@ -763,119 +773,119 @@ CONTAINS
     if (n < 2) stop 'percentile_1d_dp: n < 2'
 
     select case (mode)
-       ! Inverse empirical CDF: Mathematica default
+      ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-       kk(:) = k(:)/100._dp*real(n,dp)
-       nn1(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
-       nn2 = nn1
+      kk(:) = k(:) / 100._dp * real(n, dp)
+      nn1(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (California method)
+      ! Linear interpolation (California method)
     case(2_i4)
-       kk(:)  = k(:)/100._dp*real(n,dp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = k(:) / 100._dp * real(n, dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Element numbered closest
+      ! Element numbered closest
     case(3_i4)
-       kk(:) = 0.5_dp+k(:)/100._dp*real(n,dp)
-       nn1(:) = min(n, max(1_i4,floor(kk(:),kind=i4)))
-       nn2 = nn1
+      kk(:) = 0.5_dp + k(:) / 100._dp * real(n, dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (hydrologist method)
+      ! Linear interpolation (hydrologist method)
     case(4_i4)
-       kk(:)  = 0.5_dp+k(:)/100._dp*(real(n,dp))
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 0.5_dp + k(:) / 100._dp * (real(n, dp))
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Mean-based estimate (Weibull method): IMSL default
+      ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-       kk(:)  = k(:)/100._dp*(real(n,dp)+1._dp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = k(:) / 100._dp * (real(n, dp) + 1._dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Mode-based estimate
+      ! Mode-based estimate
     case(6_i4)
-       kk(:)  = 1.0_dp+k(:)/100._dp*(real(n,dp)-1._dp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 1.0_dp + k(:) / 100._dp * (real(n, dp) - 1._dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Median-based estimate
+      ! Median-based estimate
     case(7_i4)
-       kk(:)  = 1.0_dp/3.0_dp+k(:)/100._dp*(real(n,dp)+1.0_dp/3.0_dp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 1.0_dp / 3.0_dp + k(:) / 100._dp * (real(n, dp) + 1.0_dp / 3.0_dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Normal distribution estimate
+      ! Normal distribution estimate
     case(8_i4)
-       kk(:)  = 3.0_dp/8.0_dp+k(:)/100._dp*(real(n,dp)+1.0_dp/4.0_dp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 3.0_dp / 8.0_dp + k(:) / 100._dp * (real(n, dp) + 1.0_dp / 4.0_dp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! No valid mode
+      ! No valid mode
     case default
-       stop 'percentile_1d_dp: mode > 8 not implemented'
+      stop 'percentile_1d_dp: mode > 8 not implemented'
 
     end select
 
     if (present(mask)) then
-       allocate(arr(n))
-       arr = pack(arrin,mask)
-       do i=1, size(k)
-          if (nn1(i) .eq. nn2(i)) then
-             ! no interpolation
-             percentile_1d_dp(i) = n_element(arr,nn1(i))
-          else
-             ! interpolation
-             ks2 = n_element(arr,nn2(i),previous=ks1)
-             percentile_1d_dp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),dp))
-          end if
-       end do
-       deallocate(arr)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
+      do i = 1, size(k)
+        if (nn1(i) .eq. nn2(i)) then
+          ! no interpolation
+          percentile_1d_dp(i) = n_element(arr, nn1(i))
+        else
+          ! interpolation
+          ks2 = n_element(arr, nn2(i), previous = ks1)
+          percentile_1d_dp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), dp))
+        end if
+      end do
+      deallocate(arr)
     else
-       do i=1, size(k)
-          if (nn1(i) .eq. nn2(i)) then
-             ! no interpolation
-             percentile_1d_dp(i) = n_element(arrin,nn1(i))
-          else
-             ! interpolation
-             ks2 = n_element(arrin,nn2(i),previous=ks1)
-             percentile_1d_dp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),dp))
-          end if
-       end do
+      do i = 1, size(k)
+        if (nn1(i) .eq. nn2(i)) then
+          ! no interpolation
+          percentile_1d_dp(i) = n_element(arrin, nn1(i))
+        else
+          ! interpolation
+          ks2 = n_element(arrin, nn2(i), previous = ks1)
+          percentile_1d_dp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), dp))
+        end if
+      end do
     end if
 
   END function percentile_1d_dp
 
 
-  function percentile_1d_sp(arrin,k,mask,mode_in)
+  function percentile_1d_sp(arrin, k, mask, mode_in)
 
     IMPLICIT NONE
 
-    REAL(sp),    DIMENSION(:),           INTENT(IN) :: arrin
-    REAL(sp),    DIMENSION(:),           INTENT(IN) :: k
-    LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    INTEGER(i4),               OPTIONAL, INTENT(IN) :: mode_in
+    REAL(sp), DIMENSION(:), INTENT(IN) :: arrin
+    REAL(sp), DIMENSION(:), INTENT(IN) :: k
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    INTEGER(i4), OPTIONAL, INTENT(IN) :: mode_in
 
-    REAL(sp),    DIMENSION(size(k))                 :: percentile_1d_sp
+    REAL(sp), DIMENSION(size(k)) :: percentile_1d_sp
 
-    INTEGER(i4)                            :: i, n
-    INTEGER(i4)                            :: mode
-    INTEGER(i4), DIMENSION(size(k))        :: nn1, nn2
-    REAL(sp),    DIMENSION(size(k))        :: kk
-    REAL(sp)                               :: ks1, ks2
-    REAL(sp),    DIMENSION(:), ALLOCATABLE :: arr
+    INTEGER(i4) :: i, n
+    INTEGER(i4) :: mode
+    INTEGER(i4), DIMENSION(size(k)) :: nn1, nn2
+    REAL(sp), DIMENSION(size(k)) :: kk
+    REAL(sp) :: ks1, ks2
+    REAL(sp), DIMENSION(:), ALLOCATABLE :: arr
 
     if (present(mask)) then
-       n = count(mask)
+      n = count(mask)
     else
-       n = size(arrin)
+      n = size(arrin)
     end if
 
     if (present(mode_in)) then
-       mode = mode_in
+      mode = mode_in
     else
-       ! Default : Inverse empirical CDF
-       mode = 1_i4
+      ! Default : Inverse empirical CDF
+      mode = 1_i4
     end if
 
     ! check consistency
@@ -883,85 +893,85 @@ CONTAINS
     if (n < 2) stop 'percentile_1d_sp: n < 2'
 
     select case (mode)
-       ! Inverse empirical CDF: Mathematica default
+      ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-       kk(:) = k(:)/100._sp*real(n,sp)
-       nn1(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
-       nn2 = nn1
+      kk(:) = k(:) / 100._sp * real(n, sp)
+      nn1(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (California method)
+      ! Linear interpolation (California method)
     case(2_i4)
-       kk(:)  = k(:)/100._sp*real(n,sp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = k(:) / 100._sp * real(n, sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Element numbered closest
+      ! Element numbered closest
     case(3_i4)
-       kk(:) = 0.5_sp+k(:)/100._sp*real(n,sp)
-       nn1(:) = min(n, max(1_i4,floor(kk(:),kind=i4)))
-       nn2 = nn1
+      kk(:) = 0.5_sp + k(:) / 100._sp * real(n, sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2 = nn1
 
-       ! Linear interpolation (hydrologist method)
+      ! Linear interpolation (hydrologist method)
     case(4_i4)
-       kk(:)  = 0.5_sp+k(:)/100._sp*(real(n,sp))
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 0.5_sp + k(:) / 100._sp * (real(n, sp))
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Mean-based estimate (Weibull method): IMSL default
+      ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-       kk(:)  = k(:)/100._sp*(real(n,sp)+1._sp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = k(:) / 100._sp * (real(n, sp) + 1._sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Mode-based estimate
+      ! Mode-based estimate
     case(6_i4)
-       kk(:)  = 1.0_sp+k(:)/100._sp*(real(n,sp)-1._sp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 1.0_sp + k(:) / 100._sp * (real(n, sp) - 1._sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Median-based estimate
+      ! Median-based estimate
     case(7_i4)
-       kk(:)  = 1.0_sp/3.0_sp+k(:)/100._sp*(real(n,sp)+1.0_sp/3.0_sp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 1.0_sp / 3.0_sp + k(:) / 100._sp * (real(n, sp) + 1.0_sp / 3.0_sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! Normal distribution estimate
+      ! Normal distribution estimate
     case(8_i4)
-       kk(:)  = 3.0_sp/8.0_sp+k(:)/100._sp*(real(n,sp)+1.0_sp/4.0_sp)
-       nn1(:) = min(n, max(1_i4,  floor(kk(:),kind=i4)))
-       nn2(:) = min(n, max(1_i4,ceiling(kk(:),kind=i4)))
+      kk(:) = 3.0_sp / 8.0_sp + k(:) / 100._sp * (real(n, sp) + 1.0_sp / 4.0_sp)
+      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
-       ! No valid mode
+      ! No valid mode
     case default
-       stop 'percentile_1d_sp: mode > 8 not implemented'
+      stop 'percentile_1d_sp: mode > 8 not implemented'
 
     end select
 
     if (present(mask)) then
-       allocate(arr(n))
-       arr = pack(arrin,mask)
-       do i=1, size(k)
-          if (nn1(i) .eq. nn2(i)) then
-             ! no interpolation
-             percentile_1d_sp(i) = n_element(arr,nn1(i))
-          else
-             ! interpolation
-             ks2 = n_element(arr,nn2(i),previous=ks1)
-             percentile_1d_sp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),sp))
-          end if
-       end do
-       deallocate(arr)
+      allocate(arr(n))
+      arr = pack(arrin, mask)
+      do i = 1, size(k)
+        if (nn1(i) .eq. nn2(i)) then
+          ! no interpolation
+          percentile_1d_sp(i) = n_element(arr, nn1(i))
+        else
+          ! interpolation
+          ks2 = n_element(arr, nn2(i), previous = ks1)
+          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), sp))
+        end if
+      end do
+      deallocate(arr)
     else
-       do i=1, size(k)
-          if (nn1(i) .eq. nn2(i)) then
-             ! no interpolation
-             percentile_1d_sp(i) = n_element(arrin,nn1(i))
-          else
-             ! interpolation
-             ks2 = n_element(arrin,nn2(i),previous=ks1)
-             percentile_1d_sp(i) = ks1 + (ks2-ks1)*(kk(i)-real(nn1(i),sp))
-          end if
-       end do
+      do i = 1, size(k)
+        if (nn1(i) .eq. nn2(i)) then
+          ! no interpolation
+          percentile_1d_sp(i) = n_element(arrin, nn1(i))
+        else
+          ! interpolation
+          ks2 = n_element(arrin, nn2(i), previous = ks1)
+          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), sp))
+        end if
+      end do
     end if
 
   END function percentile_1d_sp
@@ -976,40 +986,40 @@ CONTAINS
     real(dp) :: qmedian_dp
 
     real(dp) :: w
-    integer(i4) :: n,k
-    integer(i4) :: l,r,i,j
+    integer(i4) :: n, k
+    integer(i4) :: l, r, i, j
 
     n = size(dat)
-    k = n/2 + 1
+    k = n / 2 + 1
     l = 1
     r = n
-    do while( l < r )
-       qmedian_dp = dat(k)
-       i = l
-       j = r
-       do
-          do while( dat(i) < qmedian_dp )
-             i = i + 1
-          enddo
-          do while( qmedian_dp < dat(j) )
-             j = j - 1
-          enddo
-          if ( i <= j ) then
-             w      = dat(i)
-             dat(i) = dat(j)
-             dat(j) = w
-             i = i + 1
-             j = j - 1
-          end if
-          if ( i > j ) exit
-       enddo
-       if ( j < k ) l = i
-       if ( k < i ) r = j
+    do while(l < r)
+      qmedian_dp = dat(k)
+      i = l
+      j = r
+      do
+        do while(dat(i) < qmedian_dp)
+          i = i + 1
+        enddo
+        do while(qmedian_dp < dat(j))
+          j = j - 1
+        enddo
+        if (i <= j) then
+          w = dat(i)
+          dat(i) = dat(j)
+          dat(j) = w
+          i = i + 1
+          j = j - 1
+        end if
+        if (i > j) exit
+      enddo
+      if (j < k) l = i
+      if (k < i) r = j
     enddo
-    if (mod(n,2) == 0) then
-       qmedian_dp = 0.5_dp*(dat(k) + maxval(dat(:k-1)))
+    if (mod(n, 2) == 0) then
+      qmedian_dp = 0.5_dp * (dat(k) + maxval(dat(: k - 1)))
     else
-       qmedian_dp = dat(k)
+      qmedian_dp = dat(k)
     end if
 
   end function qmedian_dp
@@ -1023,40 +1033,40 @@ CONTAINS
     real(sp) :: qmedian_sp
 
     real(sp) :: w
-    integer(i4) :: n,k
-    integer(i4) :: l,r,i,j
+    integer(i4) :: n, k
+    integer(i4) :: l, r, i, j
 
     n = size(dat)
-    k = n/2 + 1
+    k = n / 2 + 1
     l = 1
     r = n
-    do while( l < r )
-       qmedian_sp = dat(k)
-       i = l
-       j = r
-       do
-          do while( dat(i) < qmedian_sp )
-             i = i + 1
-          enddo
-          do while( qmedian_sp < dat(j) )
-             j = j - 1
-          enddo
-          if ( i <= j ) then
-             w      = dat(i)
-             dat(i) = dat(j)
-             dat(j) = w
-             i = i + 1
-             j = j - 1
-          end if
-          if ( i > j ) exit
-       enddo
-       if ( j < k ) l = i
-       if ( k < i ) r = j
+    do while(l < r)
+      qmedian_sp = dat(k)
+      i = l
+      j = r
+      do
+        do while(dat(i) < qmedian_sp)
+          i = i + 1
+        enddo
+        do while(qmedian_sp < dat(j))
+          j = j - 1
+        enddo
+        if (i <= j) then
+          w = dat(i)
+          dat(i) = dat(j)
+          dat(j) = w
+          i = i + 1
+          j = j - 1
+        end if
+        if (i > j) exit
+      enddo
+      if (j < k) l = i
+      if (k < i) r = j
     enddo
-    if (mod(n,2) == 0) then
-       qmedian_sp = 0.5_sp*(dat(k) + maxval(dat(:k-1)))
+    if (mod(n, 2) == 0) then
+      qmedian_sp = 0.5_sp * (dat(k) + maxval(dat(: k - 1)))
     else
-       qmedian_sp = dat(k)
+      qmedian_sp = dat(k)
     end if
 
   end function qmedian_sp

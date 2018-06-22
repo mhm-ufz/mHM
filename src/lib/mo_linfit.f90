@@ -32,7 +32,7 @@ MODULE mo_linfit
 
   ! Copyright 2011 Matthias Cuntz
 
-  USE mo_kind, ONLY: sp, dp
+  USE mo_kind, ONLY : sp, dp
 
   Implicit NONE
 
@@ -104,7 +104,7 @@ MODULE mo_linfit
   !         Modified Matthias Cuntz, Nov 2011  - sp, dp
   !                                            - documentation
   INTERFACE linfit
-     MODULE PROCEDURE linfit_sp, linfit_dp
+    MODULE PROCEDURE linfit_sp, linfit_dp
   END INTERFACE linfit
 
   ! ------------------------------------------------------------------
@@ -121,9 +121,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:), INTENT(IN)  :: x, y
-    REAL(dp), OPTIONAL,     INTENT(OUT) :: a, b, siga, sigb, chi2
-    LOGICAL , OPTIONAL,     INTENT(IN)  :: model2
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x, y
+    REAL(dp), OPTIONAL, INTENT(OUT) :: a, b, siga, sigb, chi2
+    LOGICAL, OPTIONAL, INTENT(IN) :: model2
     REAL(dp), DIMENSION(:), allocatable :: linfit_dp
 
     REAL(dp) :: sigdat, nx, sx, sxoss, sy, st2
@@ -136,73 +136,73 @@ CONTAINS
     if (size(x) /= size(y))   stop 'linfit_dp: size(x) /= size(y)'
     if (.not. allocated(linfit_dp)) allocate(linfit_dp(size(x)))
     if (present(model2)) then
-       mod2 = model2
+      mod2 = model2
     else
-       mod2 = .false.
+      mod2 = .false.
     end if
 
     if (mod2) then
-       nx = real(size(x),dp)
-       mx = sum(x)/nx
-       my = sum(y)/nx
-       sx2 = sum((x-mx)*(x-mx))
-       sy2 = sum((y-my)*(y-my))
-       sxy = sum((x-mx)*(y-my))
-       !r = sxy / sqrt(sx2) / sqrt(sy2)
-       bb = sign(sqrt(sy2/sx2),sxy)
-       aa = my - bb*mx
-       linfit_dp(:) = aa + bb*x(:)
-       if (present(a)) a = aa
-       if (present(b)) b = bb
-       if (present(chi2)) then
-          t(:) = y(:)-linfit_dp(:)
-          chi2 = dot_product(t,t)
-       end if
-       if (present(siga) .or. present(sigb)) then
-          syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_dp)
-          sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_dp)
-          ! syx2 should be >0
-          ! ssigb = sqrt(syx2/sx2)
-          ssigb = sqrt(abs(syx2)/sx2)
-          if (present(sigb)) sigb = ssigb
-          if (present(siga)) then
-             ! siga = sqrt(syx2*(1.0_dp/nX+mx*mx/sx2))
-             siga = sqrt(abs(syx2)*(1.0_dp/nX+mx*mx/sx2))
-             ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
-             ! They take the error estimate of the chi-squared error for a.
-             ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
-             siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
-          end if
-       end if
+      nx = real(size(x), dp)
+      mx = sum(x) / nx
+      my = sum(y) / nx
+      sx2 = sum((x - mx) * (x - mx))
+      sy2 = sum((y - my) * (y - my))
+      sxy = sum((x - mx) * (y - my))
+      !r = sxy / sqrt(sx2) / sqrt(sy2)
+      bb = sign(sqrt(sy2 / sx2), sxy)
+      aa = my - bb * mx
+      linfit_dp(:) = aa + bb * x(:)
+      if (present(a)) a = aa
+      if (present(b)) b = bb
+      if (present(chi2)) then
+        t(:) = y(:) - linfit_dp(:)
+        chi2 = dot_product(t, t)
+      end if
+      if (present(siga) .or. present(sigb)) then
+        syx2 = (sy2 - sxy * sxy / sx2) / (nx - 2.0_dp)
+        sxy2 = (sx2 - sxy * sxy / sy2) / (nx - 2.0_dp)
+        ! syx2 should be >0
+        ! ssigb = sqrt(syx2/sx2)
+        ssigb = sqrt(abs(syx2) / sx2)
+        if (present(sigb)) sigb = ssigb
+        if (present(siga)) then
+          ! siga = sqrt(syx2*(1.0_dp/nX+mx*mx/sx2))
+          siga = sqrt(abs(syx2) * (1.0_dp / nX + mx * mx / sx2))
+          ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
+          ! They take the error estimate of the chi-squared error for a.
+          ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+          siga = sqrt(siga * siga + bb * bb * abs(sxy2) / nx)
+        end if
+      end if
     else
-       nx = real(size(x),dp)
-       sx = sum(x)
-       sy = sum(y)
-       sxoss = sx/nx
-       t(:) = x(:)-sxoss
-       bb = dot_product(t,y)
-       st2 = dot_product(t,t)
-       bb = bb/st2
-       aa = (sy-sx*bb)/nx
-       linfit_dp(:) = aa + bb*x(:)
-       if (present(a)) a = aa
-       if (present(b)) b = bb
-       if (present(chi2) .or. present(siga) .or. present(sigb)) then
-          t(:) = y(:)-linfit_dp(:)
-          cchi2 = dot_product(t,t)
-          if (present(chi2)) chi2 = cchi2
-          if (present(siga) .or. present(sigb)) then
-             sigdat = sqrt(cchi2/(size(x)-2))
-             if (present(siga)) then
-                siga = sqrt((1.0_dp+sx*sx/(nx*st2))/nx)
-                siga = siga*sigdat
-             end if
-             if (present(sigb)) then
-                sigb = sqrt(1.0_dp/st2)
-                sigb = sigb*sigdat
-             end if
+      nx = real(size(x), dp)
+      sx = sum(x)
+      sy = sum(y)
+      sxoss = sx / nx
+      t(:) = x(:) - sxoss
+      bb = dot_product(t, y)
+      st2 = dot_product(t, t)
+      bb = bb / st2
+      aa = (sy - sx * bb) / nx
+      linfit_dp(:) = aa + bb * x(:)
+      if (present(a)) a = aa
+      if (present(b)) b = bb
+      if (present(chi2) .or. present(siga) .or. present(sigb)) then
+        t(:) = y(:) - linfit_dp(:)
+        cchi2 = dot_product(t, t)
+        if (present(chi2)) chi2 = cchi2
+        if (present(siga) .or. present(sigb)) then
+          sigdat = sqrt(cchi2 / (size(x) - 2))
+          if (present(siga)) then
+            siga = sqrt((1.0_dp + sx * sx / (nx * st2)) / nx)
+            siga = siga * sigdat
           end if
-       end if
+          if (present(sigb)) then
+            sigb = sqrt(1.0_dp / st2)
+            sigb = sigb * sigdat
+          end if
+        end if
+      end if
     end if
 
   END FUNCTION linfit_dp
@@ -212,9 +212,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(sp), DIMENSION(:), INTENT(IN)  :: x, y
-    REAL(sp), OPTIONAL,     INTENT(OUT) :: a, b, siga, sigb, chi2
-    LOGICAL , OPTIONAL,     INTENT(IN)  :: model2
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x, y
+    REAL(sp), OPTIONAL, INTENT(OUT) :: a, b, siga, sigb, chi2
+    LOGICAL, OPTIONAL, INTENT(IN) :: model2
     REAL(sp), DIMENSION(:), allocatable :: linfit_sp
 
     REAL(sp) :: sigdat, nx, sx, sxoss, sy, st2
@@ -227,73 +227,73 @@ CONTAINS
     if (size(x) /= size(y))   stop 'linfit_sp: size(x) /= size(y)'
     if (.not. allocated(linfit_sp)) allocate(linfit_sp(size(x)))
     if (present(model2)) then
-       mod2 = model2
+      mod2 = model2
     else
-       mod2 = .false.
+      mod2 = .false.
     end if
 
     if (mod2) then
-       nx = real(size(x),sp)
-       mx = sum(x)/nx
-       my = sum(y)/nx
-       sx2 = sum((x-mx)*(x-mx))
-       sy2 = sum((y-my)*(y-my))
-       sxy = sum((x-mx)*(y-my))
-       !r = sxy / sqrt(sx2) / sqrt(sy2)
-       bb = sign(sqrt(sy2/sx2),sxy)
-       aa = my - bb*mx
-       linfit_sp(:) = aa + bb*x(:)
-       if (present(a)) a = aa
-       if (present(b)) b = bb
-       if (present(chi2)) then
-          t(:) = y(:)-linfit_sp(:)
-          chi2 = dot_product(t,t)
-       end if
-       if (present(siga) .or. present(sigb)) then
-          syx2 = (sy2 - sxy*sxy/sx2) / (nx-2.0_sp)
-          sxy2 = (sx2 - sxy*sxy/sy2) / (nx-2.0_sp)
-          ! syx2 should be >0
-          ! ssigb = sqrt(syx2/sx2)
-          ssigb = sqrt(abs(syx2)/sx2)
-          if (present(sigb)) sigb = ssigb
-          if (present(siga)) then
-             ! siga = sqrt(syx2*(1.0_sp/nX+mx*mx/sx2))
-             siga = sqrt(abs(syx2)*(1.0_sp/nX+mx*mx/sx2))
-             ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
-             ! They take the error estimate of the chi-squared error for a.
-             ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
-             siga = sqrt(siga*siga + bb*bb*abs(sxy2)/nx)
-          end if
-       end if
+      nx = real(size(x), sp)
+      mx = sum(x) / nx
+      my = sum(y) / nx
+      sx2 = sum((x - mx) * (x - mx))
+      sy2 = sum((y - my) * (y - my))
+      sxy = sum((x - mx) * (y - my))
+      !r = sxy / sqrt(sx2) / sqrt(sy2)
+      bb = sign(sqrt(sy2 / sx2), sxy)
+      aa = my - bb * mx
+      linfit_sp(:) = aa + bb * x(:)
+      if (present(a)) a = aa
+      if (present(b)) b = bb
+      if (present(chi2)) then
+        t(:) = y(:) - linfit_sp(:)
+        chi2 = dot_product(t, t)
+      end if
+      if (present(siga) .or. present(sigb)) then
+        syx2 = (sy2 - sxy * sxy / sx2) / (nx - 2.0_sp)
+        sxy2 = (sx2 - sxy * sxy / sy2) / (nx - 2.0_sp)
+        ! syx2 should be >0
+        ! ssigb = sqrt(syx2/sx2)
+        ssigb = sqrt(abs(syx2) / sx2)
+        if (present(sigb)) sigb = ssigb
+        if (present(siga)) then
+          ! siga = sqrt(syx2*(1.0_sp/nX+mx*mx/sx2))
+          siga = sqrt(abs(syx2) * (1.0_sp / nX + mx * mx / sx2))
+          ! Add Extra Term for Error in xmean which is not in Sokal & Rohlf.
+          ! They take the error estimate of the chi-squared error for a.
+          ! siga = sqrt(siga*siga + bb*bb*sxy2/nx)
+          siga = sqrt(siga * siga + bb * bb * abs(sxy2) / nx)
+        end if
+      end if
     else
-       nx = real(size(x),sp)
-       sx = sum(x)
-       sy = sum(y)
-       sxoss = sx/nx
-       t(:) = x(:)-sxoss
-       bb = dot_product(t,y)
-       st2 = dot_product(t,t)
-       bb = bb/st2
-       aa = (sy-sx*bb)/nx
-       linfit_sp(:) = aa + bb*x(:)
-       if (present(a)) a = aa
-       if (present(b)) b = bb
-       if (present(chi2) .or. present(siga) .or. present(sigb)) then
-          t(:) = y(:)-linfit_sp(:)
-          cchi2 = dot_product(t,t)
-          if (present(chi2)) chi2 = cchi2
-          if (present(siga) .or. present(sigb)) then
-             sigdat = sqrt(cchi2/(size(x)-2))
-             if (present(siga)) then
-                siga = sqrt((1.0_sp+sx*sx/(nx*st2))/nx)
-                siga = siga*sigdat
-             end if
-             if (present(sigb)) then
-                sigb = sqrt(1.0_sp/st2)
-                sigb = sigb*sigdat
-             end if
+      nx = real(size(x), sp)
+      sx = sum(x)
+      sy = sum(y)
+      sxoss = sx / nx
+      t(:) = x(:) - sxoss
+      bb = dot_product(t, y)
+      st2 = dot_product(t, t)
+      bb = bb / st2
+      aa = (sy - sx * bb) / nx
+      linfit_sp(:) = aa + bb * x(:)
+      if (present(a)) a = aa
+      if (present(b)) b = bb
+      if (present(chi2) .or. present(siga) .or. present(sigb)) then
+        t(:) = y(:) - linfit_sp(:)
+        cchi2 = dot_product(t, t)
+        if (present(chi2)) chi2 = cchi2
+        if (present(siga) .or. present(sigb)) then
+          sigdat = sqrt(cchi2 / (size(x) - 2))
+          if (present(siga)) then
+            siga = sqrt((1.0_sp + sx * sx / (nx * st2)) / nx)
+            siga = siga * sigdat
           end if
-       end if
+          if (present(sigb)) then
+            sigb = sqrt(1.0_sp / st2)
+            sigb = sigb * sigdat
+          end if
+        end if
+      end if
     end if
 
   END FUNCTION linfit_sp

@@ -50,7 +50,7 @@ MODULE mo_julian
 
   ! Copyright 2011-2014 Matthias Cuntz
 
-  USE mo_kind, ONLY: i4, i8, dp
+  USE mo_kind, ONLY : i4, i8, dp
 
   IMPLICIT NONE
 
@@ -64,13 +64,13 @@ MODULE mo_julian
   PUBLIC :: ndyin        ! Day, month and year from IMSL Julian day
   public :: setCalendar
   public :: caldatJulian
-  
+
   integer(i4), save, private :: calendar = 1
 
   interface setCalendar
-     module procedure setCalendarInteger, setCalendarString
+    module procedure setCalendarInteger, setCalendarString
   end interface setCalendar
-  
+
 CONTAINS
 
 
@@ -106,19 +106,19 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Jan 2015
-   subroutine setCalendarString(selector)
+  subroutine setCalendarString(selector)
     character(*), intent(in) :: selector
-    
+
     select case(selector)
     case("julian")
-       call setCalendarInteger(1)  
+      call setCalendarInteger(1)
     case("365day")
-       call setCalendarInteger(2)  
+      call setCalendarInteger(2)
     case("360day")
-       call setCalendarInteger(3)  
+      call setCalendarInteger(3)
     case default
-       print*, "Unknown selector! Select on of 'julian', '365day', '360day'."
-       stop 1
+      print*, "Unknown selector! Select on of 'julian', '365day', '360day'."
+      stop 1
     end select
   end subroutine setCalendarString
 
@@ -154,12 +154,12 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Jan 2015
-   subroutine setCalendarInteger(selector)
+  subroutine setCalendarInteger(selector)
     integer(i4), intent(in) :: selector
 
     if ((selector .lt. 1) .or. (selector .gt. 3)) then
-       print*, "Unknown selector! Select on of 1, 2, 3."
-       stop 1
+      print*, "Unknown selector! Select on of 1, 2, 3."
+      stop 1
     end if
     calendar = selector
 
@@ -203,15 +203,15 @@ CONTAINS
   !>        \date Jan 2015
   pure function selectCalendar(selector)
     integer(i4), intent(in), optional :: selector
-    integer(i4)                       :: selectCalendar
+    integer(i4) :: selectCalendar
 
     selectCalendar = calendar
     if (present(selector)) then
-       if ((selector .gt. 0) .and. (selector .lt. 4)) then
-          selectCalendar = selector
-       end if
+      if ((selector .gt. 0) .and. (selector .lt. 4)) then
+        selectCalendar = selector
+      end if
     end if
-   
+
   end function selectCalendar
 
   ! ------------------------------------------------------------------
@@ -263,17 +263,17 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in)           :: julian
-    integer(i4), intent(out)          :: dd, mm, yy
+    integer(i4), intent(in) :: julian
+    integer(i4), intent(out) :: dd, mm, yy
     integer(i4), intent(in), optional :: calendar
-    
+
     select case(selectCalendar(calendar))
     case(1)
-       call caldatJulian(julian,dd,mm,yy)
+      call caldatJulian(julian, dd, mm, yy)
     case(2)
-       call caldat365(julian,dd,mm,yy)
+      call caldat365(julian, dd, mm, yy)
     case(3)
-       call caldat360(julian,dd,mm,yy)
+      call caldat360(julian, dd, mm, yy)
     end select
 
   end subroutine caldat
@@ -330,19 +330,19 @@ CONTAINS
 
     implicit none
 
-    real(dp),    intent(in)            :: julian
+    real(dp), intent(in) :: julian
     integer(i4), intent(out), optional :: dd, mm, yy, hh, nn, ss
-    integer(i4), intent(in), optional  :: calendar
-    
+    integer(i4), intent(in), optional :: calendar
+
     select case(selectCalendar(calendar))
     case(1)
-       call dec2dateJulian(julian, dd, mm, yy, hh, nn, ss)
+      call dec2dateJulian(julian, dd, mm, yy, hh, nn, ss)
     case(2)
-       call dec2date365(julian, dd, mm, yy, hh, nn, ss)
+      call dec2date365(julian, dd, mm, yy, hh, nn, ss)
     case(3)
-       call dec2date360(julian, dd, mm, yy, hh, nn, ss)
+      call dec2date360(julian, dd, mm, yy, hh, nn, ss)
     end select
-    
+
   end subroutine dec2date
 
   ! ------------------------------------------------------------------
@@ -403,15 +403,15 @@ CONTAINS
     integer(i4), intent(in), optional :: dd, mm, yy
     integer(i4), intent(in), optional :: hh, nn, ss
     integer(i4), intent(in), optional :: calendar
-    real(dp)                          :: date2dec
+    real(dp) :: date2dec
 
     select case(selectCalendar(calendar))
     case(1)
-       date2dec = date2decJulian(dd, mm, yy, hh, nn, ss)
+      date2dec = date2decJulian(dd, mm, yy, hh, nn, ss)
     case(2)
-       date2dec = date2dec365(dd, mm, yy, hh, nn, ss)
+      date2dec = date2dec365(dd, mm, yy, hh, nn, ss)
     case(3)
-       date2dec = date2dec360(dd, mm, yy, hh, nn, ss)
+      date2dec = date2dec360(dd, mm, yy, hh, nn, ss)
     end select
 
   end function date2dec
@@ -467,17 +467,17 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in)           :: dd, mm, yy
+    integer(i4), intent(in) :: dd, mm, yy
     integer(i4), intent(in), optional :: calendar
-    integer(i4)                       :: julday
-    
+    integer(i4) :: julday
+
     select case(selectCalendar(calendar))
     case(1)
-       julday = juldayJulian(dd, mm, yy)
+      julday = juldayJulian(dd, mm, yy)
     case(2)
-       julday = julday365(dd, mm, yy)
+      julday = julday365(dd, mm, yy)
     case(3)
-       julday = julday360(dd, mm, yy)
+      julday = julday360(dd, mm, yy)
     end select
 
   end function julday
@@ -552,40 +552,40 @@ CONTAINS
   !>        Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
   !>                                            removed numerical recipes
   !>                 David Schaefer, Jan 2016 - renamed procodure
-  ELEMENTAL SUBROUTINE caldatJulian(julian,dd,mm,yy)
+  ELEMENTAL SUBROUTINE caldatJulian(julian, dd, mm, yy)
 
     IMPLICIT NONE
 
-    INTEGER(i4), INTENT(IN)  :: julian
+    INTEGER(i4), INTENT(IN) :: julian
     INTEGER(i4), INTENT(OUT) :: dd, mm, yy
 
     INTEGER(i8) :: A, B, C, D, E, g
     INTEGER(i4), PARAMETER :: IGREG = 2299161_i4
 
     if (julian < IGREG) then
-       A = int(julian, i8) ! julian
+      A = int(julian, i8) ! julian
     else
-       g = int((real(julian,dp)-1867216.25_dp)/36524.25_dp, i8) ! gregorian
-       A = julian + 1_i8 + g - g/4_i8
+      g = int((real(julian, dp) - 1867216.25_dp) / 36524.25_dp, i8) ! gregorian
+      A = julian + 1_i8 + g - g / 4_i8
     end if
 
     B = A + 1524_i8
-    C = int((real(B,dp)-122.1_dp) / 365.25_dp, i8)
-    D = int(365.25_dp * real(C,dp), i8)
-    E = int(real(B-D,dp) / 30.6001_dp, i8)
+    C = int((real(B, dp) - 122.1_dp) / 365.25_dp, i8)
+    D = int(365.25_dp * real(C, dp), i8)
+    E = int(real(B - D, dp) / 30.6001_dp, i8)
 
-    dd = int(B - D - int(30.6001_dp*real(E,dp), i8), i4)
+    dd = int(B - D - int(30.6001_dp * real(E, dp), i8), i4)
 
     if (E<14_i8) then
-       mm = int(E-1_i8, i4)
+      mm = int(E - 1_i8, i4)
     else
-       mm = int(E-13_i8, i4)
+      mm = int(E - 13_i8, i4)
     end if
 
     if (mm > 2) then
-       yy = int(C - 4716_i8, i4)
+      yy = int(C - 4716_i8, i4)
     else
-       yy = int(C - 4715_i8, i4)
+      yy = int(C - 4715_i8, i4)
     end if
 
   END SUBROUTINE caldatJulian
@@ -670,20 +670,20 @@ CONTAINS
   !>        Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
   !>                                            removed numerical recipes
   !>                 David Schaefer, Jan 2016 - renamed procodure
-  ELEMENTAL FUNCTION date2decJulian(dd,mm,yy,hh,nn,ss)
+  ELEMENTAL FUNCTION date2decJulian(dd, mm, yy, hh, nn, ss)
 
     IMPLICIT NONE
 
     INTEGER(i4), INTENT(IN), OPTIONAL :: dd, mm, yy
     INTEGER(i4), INTENT(IN), OPTIONAL :: hh, nn, ss
-    REAL(dp)                          :: date2decJulian
+    REAL(dp) :: date2decJulian
 
-    INTEGER(i4), PARAMETER :: IGREG2 = 15 + 31*(10+12*1582)
-    INTEGER(i4), PARAMETER :: IGREG1 =  4 + 31*(10+12*1582)
+    INTEGER(i4), PARAMETER :: IGREG2 = 15 + 31 * (10 + 12 * 1582)
+    INTEGER(i4), PARAMETER :: IGREG1 = 4 + 31 * (10 + 12 * 1582)
     INTEGER(i4) :: idd, imm, iyy
-    REAL(dp)    :: ihh, inn, iss
+    REAL(dp) :: ihh, inn, iss
     INTEGER(i8) :: jm, jy
-    REAL(dp)    :: jd, H, eps
+    REAL(dp) :: jd, H, eps
     INTEGER(i8) :: A, B
 
     ! Presets
@@ -694,35 +694,36 @@ CONTAINS
     iyy = 1
     if (present(yy)) iyy = yy
     ihh = 0.0_dp
-    if (present(hh)) ihh = real(hh,dp)
+    if (present(hh)) ihh = real(hh, dp)
     inn = 0.0_dp
-    if (present(nn)) inn = real(nn,dp)
+    if (present(nn)) inn = real(nn, dp)
     iss = 0.0_dp
-    if (present(ss)) iss = real(ss,dp)
+    if (present(ss)) iss = real(ss, dp)
 
     if (imm > 2) then
-       jm = int(imm, i8)
-       jy = int(iyy, i8)
+      jm = int(imm, i8)
+      jy = int(iyy, i8)
     else
-       jm = int(imm+12, i8)
-       jy = int(iyy-1, i8)
+      jm = int(imm + 12, i8)
+      jy = int(iyy - 1, i8)
     end if
 
     jd = real(idd, dp)
-    
-    H = ihh/24._dp + inn/1440._dp + iss/86400._dp
 
-    if (dd+31*(mm+12*yy) >= IGREG2) then ! gregorian
-       A = jy/100_i8
-       B = 2_i8 - A + A/4_i8
-    else if (dd+31*(mm+12*yy) <= IGREG1) then ! julian
-       B = 0_i8
-    ! else
-    !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
+    H = ihh / 24._dp + inn / 1440._dp + iss / 86400._dp
+
+    if (dd + 31 * (mm + 12 * yy) >= IGREG2) then ! gregorian
+      A = jy / 100_i8
+      B = 2_i8 - A + A / 4_i8
+    else if (dd + 31 * (mm + 12 * yy) <= IGREG1) then ! julian
+      B = 0_i8
+      ! else
+      !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
     end if
-    
+
     ! Fractional Julian day starts at noon
-    date2decJulian = floor(365.25_dp*real(jy+4716_i8,dp)) + floor(30.6001_dp*real(jm+1_i8,dp)) + jd + H + real(B,dp) - 1524.5_dp
+    date2decJulian = floor(365.25_dp * real(jy + 4716_i8, dp)) + &
+            floor(30.6001_dp * real(jm + 1_i8, dp)) + jd + H + real(B, dp) - 1524.5_dp
 
     ! Add a small offset (proportional to julian date) for correct re-conversion.
     eps = epsilon(1.0_dp)
@@ -808,16 +809,16 @@ CONTAINS
   !>        Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
   !>                                            removed numerical recipes
   !>                 David Schaefer, Jan 2016 - renamed procodure
-  ELEMENTAL SUBROUTINE dec2dateJulian(julian,dd,mm,yy,hh,nn,ss)
+  ELEMENTAL SUBROUTINE dec2dateJulian(julian, dd, mm, yy, hh, nn, ss)
 
     IMPLICIT NONE
 
-    REAL(dp),    INTENT(IN)            :: julian
+    REAL(dp), INTENT(IN) :: julian
     INTEGER(i4), INTENT(OUT), OPTIONAL :: dd, mm, yy
     INTEGER(i4), INTENT(OUT), OPTIONAL :: hh, nn, ss
 
     INTEGER(i4) :: day, month, year, hour, minute, second
-    REAL(dp)    :: fraction
+    REAL(dp) :: fraction
     ! REAL(dp)    :: eps
 
     INTEGER(i8) :: A, B, C, D, E, g, Z
@@ -826,29 +827,29 @@ CONTAINS
     Z = int(julian + 0.5, i8)
 
     if (Z < IGREG) then
-       A = Z ! julian
+      A = Z ! julian
     else
-       g = int((real(Z,dp)-1867216.25_dp)/36524.25_dp, i8) ! gregorian
-       A = Z + 1_i8 + g - g/4_i8
+      g = int((real(Z, dp) - 1867216.25_dp) / 36524.25_dp, i8) ! gregorian
+      A = Z + 1_i8 + g - g / 4_i8
     end if
 
     B = A + 1524_i8
-    C = int((real(B,dp)-122.1_dp) / 365.25_dp, i8)
-    D = int(365.25_dp * real(C,dp), i8)
-    E = int(real(B-D,dp) / 30.6001_dp, i8)
+    C = int((real(B, dp) - 122.1_dp) / 365.25_dp, i8)
+    D = int(365.25_dp * real(C, dp), i8)
+    E = int(real(B - D, dp) / 30.6001_dp, i8)
 
-    day = int(B - D - int(30.6001_dp*real(E,dp), i8), i4)
+    day = int(B - D - int(30.6001_dp * real(E, dp), i8), i4)
 
     if (E<14_i8) then
-       month = int(E-1_i8, i4)
+      month = int(E - 1_i8, i4)
     else
-       month = int(E-13_i8, i4)
+      month = int(E - 13_i8, i4)
     end if
 
     if (month > 2) then
-       year = int(C - 4716_i8, i4)
+      year = int(C - 4716_i8, i4)
     else
-       year = int(C - 4715_i8, i4)
+      year = int(C - 4715_i8, i4)
     end if
 
     ! ! Fractional part
@@ -861,24 +862,24 @@ CONTAINS
     ! second   = max(nint((fraction - real(minute,dp)/1440.0_dp)*86400.0_dp), 0)
 
     ! Fractional part
-    fraction = julian + 0.5_dp - real(Z,dp)
-    hour     = min(max(floor(fraction * 24.0_dp), 0), 23)
-    fraction = fraction - real(hour,dp)/24.0_dp
-    minute   = min(max(floor(fraction*1440.0_dp), 0), 59)
-    second   = max(nint((fraction - real(minute,dp)/1440.0_dp)*86400.0_dp), 0)
+    fraction = julian + 0.5_dp - real(Z, dp)
+    hour = min(max(floor(fraction * 24.0_dp), 0), 23)
+    fraction = fraction - real(hour, dp) / 24.0_dp
+    minute = min(max(floor(fraction * 1440.0_dp), 0), 59)
+    second = max(nint((fraction - real(minute, dp) / 1440.0_dp) * 86400.0_dp), 0)
 
     ! If seconds==60
     if (second==60) then
-       second = 0
-       minute = minute + 1
-       if (minute==60) then
-          minute = 0
-          hour   = hour + 1
-          if (hour==24) then
-             hour = 0
-             call caldat(julday(day, month, year) + 1, day, month, year)
-          end if
-       end if
+      second = 0
+      minute = minute + 1
+      if (minute==60) then
+        minute = 0
+        hour = hour + 1
+        if (hour==24) then
+          hour = 0
+          call caldat(julday(day, month, year) + 1, day, month, year)
+        end if
+      end if
     end if
 
     if (present(dd)) dd = day
@@ -963,41 +964,41 @@ CONTAINS
   !>        Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
   !>                                            removed numerical recipes
   !>                 David Schaefer, Jan 2016 - renamed procodure
-  ELEMENTAL FUNCTION juldayJulian(dd,mm,yy)
+  ELEMENTAL FUNCTION juldayJulian(dd, mm, yy)
 
     IMPLICIT NONE
 
     INTEGER(i4), INTENT(IN) :: dd, mm, yy
     INTEGER(i4) :: juldayJulian
 
-    INTEGER(i4), PARAMETER :: IGREG2 = 15 + 31*(10+12*1582)
-    INTEGER(i4), PARAMETER :: IGREG1 =  4 + 31*(10+12*1582)
+    INTEGER(i4), PARAMETER :: IGREG2 = 15 + 31 * (10 + 12 * 1582)
+    INTEGER(i4), PARAMETER :: IGREG1 = 4 + 31 * (10 + 12 * 1582)
     INTEGER(i8) :: jd, jm, jy
     INTEGER(i8) :: A, B
 
     if (mm > 2) then
-       jm = int(mm, i8)
-       jy = int(yy, i8)
+      jm = int(mm, i8)
+      jy = int(yy, i8)
     else
-       jm = int(mm+12, i8)
-       jy = int(yy-1, i8)
+      jm = int(mm + 12, i8)
+      jy = int(yy - 1, i8)
     end if
 
     jd = int(dd, i8)
 
-    if (dd+31*(mm+12*yy) >= IGREG2) then ! gregorian
-       A = jy/100_i8
-       B = 2_i8 - A + A/4_i8
-    else if (dd+31*(mm+12*yy) <= IGREG1) then ! julian
-       B = 0_i8
-    ! else
-    !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
+    if (dd + 31 * (mm + 12 * yy) >= IGREG2) then ! gregorian
+      A = jy / 100_i8
+      B = 2_i8 - A + A / 4_i8
+    else if (dd + 31 * (mm + 12 * yy) <= IGREG1) then ! julian
+      B = 0_i8
+      ! else
+      !    stop 'No Gregorian dates between 04.10.1582 and 15.10.1582'
     end if
-    
+
     ! add 0.5 to Wiki formula because formula was for fractional day
     ! juldayJulian = int(365.25_dp*real(jy+4716_i8,dp) + real(int(30.6001*real(jm+1_i8,dp),i8),dp) + real(jd+B,dp) - 1524.5_dp, i4)
-    juldayJulian = int(365.25_dp*real(jy+4716_i8,dp) + real(int(30.6001*real(jm+1_i8,dp),i8),dp) &
-         + real(jd+B,dp) - 1524.5_dp + 0.5_dp, i4)
+    juldayJulian = int(365.25_dp * real(jy + 4716_i8, dp) + real(int(30.6001 * real(jm + 1_i8, dp), i8), dp) &
+            + real(jd + B, dp) - 1524.5_dp + 0.5_dp, i4)
 
   END FUNCTION juldayJulian
 
@@ -1055,7 +1056,7 @@ CONTAINS
   !>        \author Written, Matthias Cuntz
   !>        \date Dec 2011
 
-  ELEMENTAL FUNCTION ndays(dd,mm,yy)
+  ELEMENTAL FUNCTION ndays(dd, mm, yy)
 
     IMPLICIT NONE
 
@@ -1119,16 +1120,16 @@ CONTAINS
   !>        \author Written, Matthias Cuntz
   !>        \date Dec 2011
 
-  ELEMENTAL SUBROUTINE ndyin(julian,dd,mm,yy)
+  ELEMENTAL SUBROUTINE ndyin(julian, dd, mm, yy)
 
     IMPLICIT NONE
 
-    INTEGER(i4), INTENT(IN)  :: julian
+    INTEGER(i4), INTENT(IN) :: julian
     INTEGER(i4), INTENT(OUT) :: dd, mm, yy
 
     INTEGER(i4), PARAMETER :: IMSLday = 2415021_i4
 
-    call caldat(julian+IMSLday, dd, mm, yy)
+    call caldat(julian + IMSLday, dd, mm, yy)
 
   END SUBROUTINE ndyin
 
@@ -1175,18 +1176,18 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Oct 2015
-  elemental subroutine caldat360(julian,dd,mm,yy)
+  elemental subroutine caldat360(julian, dd, mm, yy)
 
     implicit none
 
-    integer(i4), intent(in)  :: julian
+    integer(i4), intent(in) :: julian
     integer(i4), intent(out) :: dd, mm, yy
-    integer(i4), parameter   :: year=360, month=30
-    integer(i4)              :: remainder
+    integer(i4), parameter :: year = 360, month = 30
+    integer(i4) :: remainder
 
-    yy = julian/year
-    remainder = mod(abs(julian),year)
-    mm = remainder/month + 1
+    yy = julian / year
+    remainder = mod(abs(julian), year)
+    mm = remainder / month + 1
     dd = mod(abs(julian), month) + 1
 
   end subroutine caldat360
@@ -1236,15 +1237,15 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer 
   !>        \date Oct 2015
-  elemental function julday360(dd,mm,yy)
+  elemental function julday360(dd, mm, yy)
 
     implicit none
 
     integer(i4), intent(in) :: dd, mm, yy
-    integer(i4)             :: julday360
-    integer(i4), parameter  :: year=360, month=30
+    integer(i4) :: julday360
+    integer(i4), parameter :: year = 360, month = 30
 
-    julday360 = abs(yy)*year + (mm-1)*month + (dd-1)
+    julday360 = abs(yy) * year + (mm - 1) * month + (dd - 1)
     if (yy < 0) julday360 = julday360 * (-1)
 
   end function julday360
@@ -1295,40 +1296,40 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Oct 2015
-  elemental subroutine dec2date360(julian,dd,mm,yy,hh,nn,ss)
+  elemental subroutine dec2date360(julian, dd, mm, yy, hh, nn, ss)
 
     implicit none
 
-    real(dp),    intent(in)            :: julian
+    real(dp), intent(in) :: julian
     integer(i4), intent(out), optional :: dd, mm, yy
     integer(i4), intent(out), optional :: hh, nn, ss
-    integer(i4)                        :: day, month, year
-    real(dp)                           :: fraction, fJulian
-    integer(i4)                        :: hour, minute, second
+    integer(i4) :: day, month, year
+    real(dp) :: fraction, fJulian
+    integer(i4) :: hour, minute, second
 
     fJulian = julian + .5_dp
-    call caldat360(int(floor(fJulian),i4),day,month,year)
-    
-    fraction = fJulian - floor(fJulian) 
-    hour     = min(max(floor(fraction * 24.0_dp), 0), 23)
-    fraction = fraction - real(hour,dp)/24.0_dp
-    minute   = min(max(floor(fraction*1440.0_dp), 0), 59)
-    second   = max(nint((fraction - real(minute,dp)/1440.0_dp)*86400.0_dp), 0)
+    call caldat360(int(floor(fJulian), i4), day, month, year)
+
+    fraction = fJulian - floor(fJulian)
+    hour = min(max(floor(fraction * 24.0_dp), 0), 23)
+    fraction = fraction - real(hour, dp) / 24.0_dp
+    minute = min(max(floor(fraction * 1440.0_dp), 0), 59)
+    second = max(nint((fraction - real(minute, dp) / 1440.0_dp) * 86400.0_dp), 0)
 
     ! If seconds==60
     if (second==60) then
-       second = 0
-       minute = minute + 1
-       if (minute==60) then
-          minute = 0
-          hour   = hour + 1
-          if (hour==24) then
-             hour = 0
-             call caldat360(julday360(day, month, year) + 1, day, month, year)
-          end if
-       end if
+      second = 0
+      minute = minute + 1
+      if (minute==60) then
+        minute = 0
+        hour = hour + 1
+        if (hour==24) then
+          hour = 0
+          call caldat360(julday360(day, month, year) + 1, day, month, year)
+        end if
+      end if
     end if
-    
+
     if (present(dd)) dd = day
     if (present(mm)) mm = month
     if (present(yy)) yy = year
@@ -1386,16 +1387,16 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Oct 2015
-  elemental function date2dec360(dd,mm,yy,hh,nn,ss)
+  elemental function date2dec360(dd, mm, yy, hh, nn, ss)
 
     implicit none
 
     integer(i4), intent(in), optional :: dd, mm, yy
     integer(i4), intent(in), optional :: hh, nn, ss
-    real(dp)                          :: date2dec360, eps
-    integer(i4)                       :: idd, imm, iyy
-    real(dp)                          :: ihh, inn, iss
-    real(dp)                          :: hour
+    real(dp) :: date2dec360, eps
+    integer(i4) :: idd, imm, iyy
+    real(dp) :: ihh, inn, iss
+    real(dp) :: hour
 
     ! Presets
     idd = 1
@@ -1405,16 +1406,16 @@ CONTAINS
     iyy = 1
     if (present(yy)) iyy = yy
     ihh = 0.0_dp
-    if (present(hh)) ihh = real(hh,dp)
+    if (present(hh)) ihh = real(hh, dp)
     inn = 0.0_dp
-    if (present(nn)) inn = real(nn,dp)
+    if (present(nn)) inn = real(nn, dp)
     iss = 0.0_dp
-    if (present(ss)) iss = real(ss,dp)
+    if (present(ss)) iss = real(ss, dp)
 
-    hour = ihh/24._dp + inn/1440._dp + iss/86400._dp - .5_dp
+    hour = ihh / 24._dp + inn / 1440._dp + iss / 86400._dp - .5_dp
 
     ! Fractional Julian day starts at noon
-    date2dec360 = real(julday360(idd,imm,iyy),dp) + hour
+    date2dec360 = real(julday360(idd, imm, iyy), dp) + hour
 
     ! Add a small offset (proportional to julian date) for correct re-conversion.
     eps = epsilon(1.0_dp)
@@ -1466,27 +1467,27 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Dec 2015
-  elemental subroutine caldat365(julian,dd,mm,yy)
+  elemental subroutine caldat365(julian, dd, mm, yy)
 
     implicit none
 
-    integer(i4), intent(in)  :: julian
+    integer(i4), intent(in) :: julian
     integer(i4), intent(out) :: dd, mm, yy
-    integer(i4), parameter   :: year=365
-    integer(i4), dimension(12), parameter   :: months=(/31,28,31,30,31,30,31,31,30,31,30,31/)
-    integer(i4)              :: remainder
+    integer(i4), parameter :: year = 365
+    integer(i4), dimension(12), parameter :: months = (/31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/)
+    integer(i4) :: remainder
 
-    yy = julian/year
-    remainder = mod(abs(julian),year) + 1
-       
-    do mm = 1,size(months) 
-       if (remainder .le. months(mm)) then
-          exit
-       end if
-       remainder = remainder - months(mm)
+    yy = julian / year
+    remainder = mod(abs(julian), year) + 1
+
+    do mm = 1, size(months)
+      if (remainder .le. months(mm)) then
+        exit
+      end if
+      remainder = remainder - months(mm)
     end do
-    
-    dd = remainder 
+
+    dd = remainder
 
   end subroutine caldat365
 
@@ -1535,17 +1536,17 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer 
   !>        \date Dec 2015
-  elemental function julday365(dd,mm,yy)
+  elemental function julday365(dd, mm, yy)
 
     implicit none
 
     integer(i4), intent(in) :: dd, mm, yy
-    integer(i4)             :: julday365
-    integer(i4), parameter  :: year=365
-    integer(i4),dimension(12),parameter  :: months=(/31,28,31,30,31,30,31,31,30,31,30,31/)
+    integer(i4) :: julday365
+    integer(i4), parameter :: year = 365
+    integer(i4), dimension(12), parameter :: months = (/31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/)
 
-    julday365 = abs(yy)*year +  sum(months(1:mm-1)) + (dd-1)
-    
+    julday365 = abs(yy) * year + sum(months(1 : mm - 1)) + (dd - 1)
+
     if (yy < 0) julday365 = julday365 * (-1)
 
   end function julday365
@@ -1596,40 +1597,40 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Dec 2015
-  elemental subroutine dec2date365(julian,dd,mm,yy,hh,nn,ss)
+  elemental subroutine dec2date365(julian, dd, mm, yy, hh, nn, ss)
 
     implicit none
 
-    real(dp),    intent(in)            :: julian
+    real(dp), intent(in) :: julian
     integer(i4), intent(out), optional :: dd, mm, yy
     integer(i4), intent(out), optional :: hh, nn, ss
-    integer(i4)                        :: day, month, year
-    real(dp)                           :: fraction, fJulian
-    integer(i4)                        :: hour, minute, second
+    integer(i4) :: day, month, year
+    real(dp) :: fraction, fJulian
+    integer(i4) :: hour, minute, second
 
     fJulian = julian + .5_dp
-    call caldat365(int(floor(fJulian),i4),day,month,year)
-    
-    fraction = fJulian - floor(fJulian) 
-    hour     = min(max(floor(fraction * 24.0_dp), 0), 23)
-    fraction = fraction - real(hour,dp)/24.0_dp
-    minute   = min(max(floor(fraction*1440.0_dp), 0), 59)
-    second   = max(nint((fraction - real(minute,dp)/1440.0_dp)*86400.0_dp), 0)
+    call caldat365(int(floor(fJulian), i4), day, month, year)
+
+    fraction = fJulian - floor(fJulian)
+    hour = min(max(floor(fraction * 24.0_dp), 0), 23)
+    fraction = fraction - real(hour, dp) / 24.0_dp
+    minute = min(max(floor(fraction * 1440.0_dp), 0), 59)
+    second = max(nint((fraction - real(minute, dp) / 1440.0_dp) * 86400.0_dp), 0)
 
     ! If seconds==60
     if (second==60) then
-       second = 0
-       minute = minute + 1
-       if (minute==60) then
-          minute = 0
-          hour   = hour + 1
-          if (hour==24) then
-             hour = 0
-             call caldat365(julday365(day, month, year) + 1, day, month, year)
-          end if
-       end if
+      second = 0
+      minute = minute + 1
+      if (minute==60) then
+        minute = 0
+        hour = hour + 1
+        if (hour==24) then
+          hour = 0
+          call caldat365(julday365(day, month, year) + 1, day, month, year)
+        end if
+      end if
     end if
-    
+
     if (present(dd)) dd = day
     if (present(mm)) mm = month
     if (present(yy)) yy = year
@@ -1687,16 +1688,16 @@ CONTAINS
   !     HISTORY
   !>        \author Written, David Schaefer
   !>        \date Dec 2015
-  elemental function date2dec365(dd,mm,yy,hh,nn,ss)
+  elemental function date2dec365(dd, mm, yy, hh, nn, ss)
 
     implicit none
 
     integer(i4), intent(in), optional :: dd, mm, yy
     integer(i4), intent(in), optional :: hh, nn, ss
-    real(dp)                          :: date2dec365, eps
-    integer(i4)                       :: idd, imm, iyy
-    real(dp)                          :: ihh, inn, iss
-    real(dp)                          :: hour
+    real(dp) :: date2dec365, eps
+    integer(i4) :: idd, imm, iyy
+    real(dp) :: ihh, inn, iss
+    real(dp) :: hour
 
     ! Presets
     idd = 1
@@ -1706,16 +1707,16 @@ CONTAINS
     iyy = 1
     if (present(yy)) iyy = yy
     ihh = 0.0_dp
-    if (present(hh)) ihh = real(hh,dp)
+    if (present(hh)) ihh = real(hh, dp)
     inn = 0.0_dp
-    if (present(nn)) inn = real(nn,dp)
+    if (present(nn)) inn = real(nn, dp)
     iss = 0.0_dp
-    if (present(ss)) iss = real(ss,dp)
+    if (present(ss)) iss = real(ss, dp)
 
-    hour = ihh/24._dp + inn/1440._dp + iss/86400._dp - .5_dp
+    hour = ihh / 24._dp + inn / 1440._dp + iss / 86400._dp - .5_dp
 
     ! Fractional Julian day starts at noon
-    date2dec365 = real(julday365(idd,imm,iyy),dp) + hour
+    date2dec365 = real(julday365(idd, imm, iyy), dp) + hour
 
     ! Add a small offset (proportional to julian date) for correct re-conversion.
     eps = epsilon(1.0_dp)
@@ -1725,6 +1726,6 @@ CONTAINS
   end function date2dec365
 
 
-! ------------------------------------------------------------------
+  ! ------------------------------------------------------------------
 
 END MODULE mo_julian

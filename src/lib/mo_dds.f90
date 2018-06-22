@@ -138,56 +138,52 @@ CONTAINS
   !                   Juliane Mai,                  Nov 2012 - masked parameter
   !                   Juliane Mai,                  Dec 2012 - history output
 
-  function DDS(obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
+  function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
 
-    use mo_kind,    only: i4, i8, dp
-    use mo_xor4096, only: xor4096, xor4096g
+    use mo_kind, only : i4, i8, dp
+    use mo_xor4096, only : xor4096, xor4096g
+    use mo_optimization_utils, only : eval_interface, objective_interface
 
     implicit none
 
-    INTERFACE
-       function obj_func(pp)
-         use mo_kind, only: dp
-         implicit none
-         real(dp), dimension(:), intent(in) :: pp
-         real(dp) :: obj_func
-       end function obj_func
-    END INTERFACE
-    real(dp),    dimension(:),             intent(in)  :: pini     ! inital value of decision variables
-    real(dp),    dimension(:,:),           intent(in)  :: prange   ! Min/max values of decision variables
-    real(dp),                    optional, intent(in)  :: r        ! DDS perturbation parameter (-> 0.2 by default)
-    integer(i8),                 optional, intent(in)  :: seed     ! User seed to initialise the random number generator
-    integer(i8),                 optional, intent(in)  :: maxiter  ! Maximum number of iteration or function evaluation
-    logical,                     optional, intent(in)  :: maxit    ! Maximization or minimization of function
-    logical,     dimension(:),   optional, intent(in)  :: mask     ! parameter to be optimized (true or false)
-    character(len=*),            optional, intent(in)  :: tmp_file    ! file for temporal output
-    real(dp),                    optional, intent(out) :: funcbest ! Best value of the function.
-    real(dp),    dimension(:),   optional, intent(out), &
-         allocatable                                   :: history  ! History of objective function values
-    real(dp),    dimension(size(pini))                 :: DDS      ! Best value of decision variables
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    procedure(objective_interface), intent(in), pointer :: obj_func
+
+    real(dp), dimension(:), intent(in) :: pini     ! inital value of decision variables
+    real(dp), dimension(:, :), intent(in) :: prange   ! Min/max values of decision variables
+    real(dp), optional, intent(in) :: r        ! DDS perturbation parameter (-> 0.2 by default)
+    integer(i8), optional, intent(in) :: seed     ! User seed to initialise the random number generator
+    integer(i8), optional, intent(in) :: maxiter  ! Maximum number of iteration or function evaluation
+    logical, optional, intent(in) :: maxit    ! Maximization or minimization of function
+    logical, dimension(:), optional, intent(in) :: mask     ! parameter to be optimized (true or false)
+    character(len = *), optional, intent(in) :: tmp_file    ! file for temporal output
+    real(dp), optional, intent(out) :: funcbest ! Best value of the function.
+    real(dp), dimension(:), optional, intent(out), &
+            allocatable :: history  ! History of objective function values
+    real(dp), dimension(size(pini)) :: DDS      ! Best value of decision variables
 
     ! Local variables
-    integer(i4)                             :: pnum                   ! Total number of decision variables
-    integer(i8)                             :: iseed                  ! User given seed
-    integer(i8)                             :: imaxiter               ! Maximum number of iteration or function evaluation
-    real(dp)                                :: ir                     ! DDS perturbation parameter
-    real(dp)                                :: imaxit                 ! Maximization or minimization of function
-    real(dp)                                :: of_new, of_best        ! intermediate results
-    real(dp)                                :: Pn, new_value          ! intermediate results
-    real(dp), dimension(size(pini))         :: pnew                   ! Test value of decision variables
-    real(dp)                                :: ranval                 ! random value
-    integer(i8)                             :: i                      ! maxiter=i8
-    integer(i4)                             :: j, dvn_count, dv       ! pnum=i4
-    integer(i4)                             :: idummy                 ! dummy vaiable
-    integer, dimension(8)                   :: sdate                  ! date_and_time return
-    logical, dimension(size(pini))          :: maske                  ! parameter to be optimized (true or false)
-    integer(i4), dimension(:), allocatable  :: truepara               ! parameter to be optimized (their indexes)
+    integer(i4) :: pnum                   ! Total number of decision variables
+    integer(i8) :: iseed                  ! User given seed
+    integer(i8) :: imaxiter               ! Maximum number of iteration or function evaluation
+    real(dp) :: ir                     ! DDS perturbation parameter
+    real(dp) :: imaxit                 ! Maximization or minimization of function
+    real(dp) :: of_new, of_best        ! intermediate results
+    real(dp) :: Pn, new_value          ! intermediate results
+    real(dp), dimension(size(pini)) :: pnew                   ! Test value of decision variables
+    real(dp) :: ranval                 ! random value
+    integer(i8) :: i                      ! maxiter=i8
+    integer(i4) :: j, dvn_count, dv       ! pnum=i4
+    integer(i4) :: idummy                 ! dummy vaiable
+    integer, dimension(8) :: sdate                  ! date_and_time return
+    logical, dimension(size(pini)) :: maske                  ! parameter to be optimized (true or false)
+    integer(i4), dimension(:), allocatable :: truepara               ! parameter to be optimized (their indexes)
 
 
     ! Check input
     pnum = size(pini)
-    if (size(prange,1) /= pnum) stop 'Error DDS: size(prange,1) /= size(pini)'
-    if (size(prange,2) /= 2)    stop 'Error DDS: size(prange,2) /= 2'
+    if (size(prange, 1) /= pnum) stop 'Error DDS: size(prange,1) /= size(pini)'
+    if (size(prange, 2) /= 2)    stop 'Error DDS: size(prange,2) /= 2'
     ! r Perturbation parameter
     ir = 0.2_dp
     if (present(r)) ir = r
@@ -198,12 +194,12 @@ CONTAINS
     if (imaxiter < 6) stop 'Error DDS: max function evals must be minimum 6'
     ! history output
     if (present(history)) then
-       allocate(history(imaxiter))
+      allocate(history(imaxiter))
     end if
     ! Min or max objective function
     imaxit = 1.0_dp
     if (present(maxit)) then
-       if (maxit) imaxit = -1.0_dp
+      if (maxit) imaxit = -1.0_dp
     end if
     ! Given seed
     iseed = 0
@@ -211,120 +207,120 @@ CONTAINS
     iseed = max(iseed, 0_i8)
 
     if (present(mask)) then
-       if (count(mask) .eq. 0_i4) then
-          stop 'Input argument mask: At least one element has to be true'
-       else
-          maske = mask
-       end if
+      if (count(mask) .eq. 0_i4) then
+        stop 'Input argument mask: At least one element has to be true'
+      else
+        maske = mask
+      end if
     else
-       maske = .true.
+      maske = .true.
     end if
 
-    allocate ( truepara(count(maske)) )
+    allocate (truepara(count(maske)))
     idummy = 0_i4
-    do j=1,size(pini,1)
-       if ( maske(j) ) then
-          idummy = idummy+1_i4
-          truepara(idummy) = j
-       end if
+    do j = 1, size(pini, 1)
+      if (maske(j)) then
+        idummy = idummy + 1_i4
+        truepara(idummy) = j
+      end if
     end do
 
     ! Seed random numbers
     if (iseed == 0) then
-       call date_and_time(values=sdate)
-       iseed = sdate(1)*31536000000_i8 + sdate(2)*2592000000_i8 + sdate(3)*86400000_i8 + &
-            sdate(5)*3600000_i8 + sdate(6)*60000_i8 + sdate(7)*1000_i8 + sdate(8)
-       call xor4096(iseed,ranval)
-       call xor4096g(iseed,ranval)
+      call date_and_time(values = sdate)
+      iseed = sdate(1) * 31536000000_i8 + sdate(2) * 2592000000_i8 + sdate(3) * 86400000_i8 + &
+              sdate(5) * 3600000_i8 + sdate(6) * 60000_i8 + sdate(7) * 1000_i8 + sdate(8)
+      call xor4096(iseed, ranval)
+      call xor4096g(iseed, ranval)
     else
-       call xor4096(iseed,ranval)
-       call xor4096g(iseed,ranval)
+      call xor4096(iseed, ranval)
+      call xor4096g(iseed, ranval)
     end if
 
     ! Temporal file writing
     if(present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', status = 'unknown')
-       write(999,*) '# settings :: general'
-       write(999,*) '# nIterations    iseed'
-       write(999,*) imaxiter, iseed
-       write(999,*) '# settings :: dds specific'
-       write(999,*) '# dds_r'
-       write(999,*) ir
-       write(999,*) '# iter   bestf   (bestx(j),j=1,nopt)'
-       close(999)
+      open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', status = 'unknown')
+      write(999, *) '# settings :: general'
+      write(999, *) '# nIterations    iseed'
+      write(999, *) imaxiter, iseed
+      write(999, *) '# settings :: dds specific'
+      write(999, *) '# dds_r'
+      write(999, *) ir
+      write(999, *) '# iter   bestf   (bestx(j),j=1,nopt)'
+      close(999)
     end if
-  
+
     ! Evaluate initial solution and return objective function value
     ! and Initialise the other variables (e.g. of_best)
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
-    DDS        = pini
+    DDS = pini
     print *, imaxit
-    of_new     = imaxit * obj_func(pini)
-    of_best    = of_new
+    of_new = imaxit * obj_func(pini, eval)
+    of_best = of_new
     if (present(history)) history(1) = of_new
 
-    file_write: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
-       if (imaxit .lt. 0.0_dp) then
-          ! Maximize
-          write(999,*) '0', -of_best, pini
-       else
-          ! Minimize
-          write(999,*) '0', of_best, pini
-       end if
-       close(999)
+    file_write : if (present(tmp_file)) then
+      open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+      if (imaxit .lt. 0.0_dp) then
+        ! Maximize
+        write(999, *) '0', -of_best, pini
+      else
+        ! Minimize
+        write(999, *) '0', of_best, pini
+      end if
+      close(999)
     end if file_write
 
     ! Code below is now the DDS algorithm as presented in Figure 1 of Tolson and Shoemaker (2007)
 
-    do i=1, imaxiter-1
-       ! Determine Decision Variable (DV) selected for perturbation:
-       Pn        = 1.0_dp - log(real(i,dp))/log(real(imaxiter-1,dp)) ! probability each DV selected
-       dvn_count = 0                                                 ! counter for how many DVs selected for perturbation
-       pnew      = DDS                                               ! define pnew initially as best current solution
+    do i = 1, imaxiter - 1
+      ! Determine Decision Variable (DV) selected for perturbation:
+      Pn = 1.0_dp - log(real(i, dp)) / log(real(imaxiter - 1, dp)) ! probability each DV selected
+      dvn_count = 0                                                 ! counter for how many DVs selected for perturbation
+      pnew = DDS                                               ! define pnew initially as best current solution
 
-       ! Step 3 of Fig 1 of Tolson and Shoemaker (2007)
-       do j=1, size(truepara) !pnum
-          call xor4096(0_i8,ranval)                           ! selects next uniform random number in sequence
-          ! Step 4 of Fig 1 of Tolson and Shoemaker (2007)
-          if (ranval < Pn) then                               ! jth DV selected for perturbation
-             dvn_count = dvn_count + 1
-             ! call 1-D perturbation function to get new DV value (new_value)
-             call neigh_value(DDS(truepara(j)), prange(truepara(j),1), prange(truepara(j),2), ir, new_value)
-             pnew(truepara(j)) = new_value
-          end if
-       end do
+      ! Step 3 of Fig 1 of Tolson and Shoemaker (2007)
+      do j = 1, size(truepara) !pnum
+        call xor4096(0_i8, ranval)                           ! selects next uniform random number in sequence
+        ! Step 4 of Fig 1 of Tolson and Shoemaker (2007)
+        if (ranval < Pn) then                               ! jth DV selected for perturbation
+          dvn_count = dvn_count + 1
+          ! call 1-D perturbation function to get new DV value (new_value)
+          call neigh_value(DDS(truepara(j)), prange(truepara(j), 1), prange(truepara(j), 2), ir, new_value)
+          pnew(truepara(j)) = new_value
+        end if
+      end do
 
-       ! Step 3 of Fig 1 of Tolson and Shoemaker (2007) in case {N} empty
-       if (dvn_count == 0) then                               ! no DVs selected at random, so select one
-          call xor4096(0_i8,ranval)                           ! selects next uniform random number in sequence
-          dv = truepara(int(( ranval * real(size(truepara),dp))  + 1.0_dp, i4 ))  ! index for one DV
-          ! call 1-D perturbation function to get new DV value (new_value):
-          call neigh_value(DDS(dv), prange(dv,1), prange(dv,2), ir, new_value)
-          pnew(dv) = new_value                                ! change relevant DV value in stest
-       end if
+      ! Step 3 of Fig 1 of Tolson and Shoemaker (2007) in case {N} empty
+      if (dvn_count == 0) then                               ! no DVs selected at random, so select one
+        call xor4096(0_i8, ranval)                           ! selects next uniform random number in sequence
+        dv = truepara(int((ranval * real(size(truepara), dp)) + 1.0_dp, i4))  ! index for one DV
+        ! call 1-D perturbation function to get new DV value (new_value):
+        call neigh_value(DDS(dv), prange(dv, 1), prange(dv, 2), ir, new_value)
+        pnew(dv) = new_value                                ! change relevant DV value in stest
+      end if
 
-       ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
-       ! Evaluate obj function value for test
-       of_new = imaxit * obj_func(pnew)                       ! imaxit handles min(=1) and max(=-1) problems
-       ! update current best solution
-       if (of_new <= of_best) then
-          of_best = of_new
-          DDS     = pnew
-       end if
-       if (present(history)) history(i+1) = of_best
+      ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
+      ! Evaluate obj function value for test
+      of_new = imaxit * obj_func(pnew, eval)                       ! imaxit handles min(=1) and max(=-1) problems
+      ! update current best solution
+      if (of_new <= of_best) then
+        of_best = of_new
+        DDS = pnew
+      end if
+      if (present(history)) history(i + 1) = of_best
 
-       file_write2: if (present(tmp_file)) then
-          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
-          if (imaxit .lt. 0.0_dp) then
-             ! Maximize
-             write(999,*) i, -of_best, dds
-          else
-             ! Minimize
-             write(999,*) i, of_best, dds
-          end if
-          close(999)
-       end if file_write2
+      file_write2 : if (present(tmp_file)) then
+        open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+        if (imaxit .lt. 0.0_dp) then
+          ! Maximize
+          write(999, *) i, -of_best, dds
+        else
+          ! Minimize
+          write(999, *) i, of_best, dds
+        end if
+        close(999)
+      end if file_write2
 
     end do
     if (present(funcbest)) funcbest = of_best
@@ -422,67 +418,62 @@ CONTAINS
   !         Modified, Juliane Mai,                  Nov 2012 - masked parameter
   !                   Juliane Mai,                  Dec 2012 - history output
 
-  function MDDS(obj_func, pini, prange, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
+  function MDDS(eval, obj_func, pini, prange, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
 
-    use mo_kind,    only: i4, i8, dp
-    use mo_xor4096, only: xor4096, xor4096g
+    use mo_kind, only : i4, i8, dp
+    use mo_xor4096, only : xor4096, xor4096g
+    use mo_optimization_utils, only : eval_interface, objective_interface
 
     implicit none
 
-    INTERFACE
-       function obj_func(pp)
-         use mo_kind, only: dp
-         implicit none
-         real(dp), dimension(:), intent(in) :: pp
-         real(dp) :: obj_func
-       end function obj_func
-    END INTERFACE
-    real(dp),    dimension(:),             intent(in)  :: pini     ! inital value of decision variables
-    real(dp),    dimension(:,:),           intent(in)  :: prange   ! Min/max values of decision variables
-    integer(i8),                 optional, intent(in)  :: seed     ! User seed to initialise the random number generator
-    integer(i8),                 optional, intent(in)  :: maxiter  ! Maximum number of iteration or function evaluation
-    logical,                     optional, intent(in)  :: maxit    ! Maximization or minimization of function
-    logical,     dimension(:),   optional, intent(in)  :: mask     ! parameter to be optimized (true or false)
-    character(len=*),            optional, intent(in)  :: tmp_file ! file for temporal output
-    real(dp),                    optional, intent(out) :: funcbest ! Best value of the function.
-    real(dp),    dimension(:),   optional, intent(out), &
-         allocatable                                   :: history  ! History of objective function values
-    real(dp),    dimension(size(pini))                 :: MDDS     ! Best value of decision variables
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    procedure(objective_interface), intent(in), pointer :: obj_func
+    real(dp), dimension(:), intent(in) :: pini     ! inital value of decision variables
+    real(dp), dimension(:, :), intent(in) :: prange   ! Min/max values of decision variables
+    integer(i8), optional, intent(in) :: seed     ! User seed to initialise the random number generator
+    integer(i8), optional, intent(in) :: maxiter  ! Maximum number of iteration or function evaluation
+    logical, optional, intent(in) :: maxit    ! Maximization or minimization of function
+    logical, dimension(:), optional, intent(in) :: mask     ! parameter to be optimized (true or false)
+    character(len = *), optional, intent(in) :: tmp_file ! file for temporal output
+    real(dp), optional, intent(out) :: funcbest ! Best value of the function.
+    real(dp), dimension(:), optional, intent(out), &
+            allocatable :: history  ! History of objective function values
+    real(dp), dimension(size(pini)) :: MDDS     ! Best value of decision variables
 
     ! Local variables
-    integer(i4)                             :: pnum                   ! Total number of decision variables
-    integer(i8)                             :: iseed                  ! User given seed
-    integer(i8)                             :: imaxiter               ! Maximum number of iteration or function evaluation
-    real(dp)                                :: ir                     ! MDDS perturbation parameter
-    real(dp)                                :: imaxit                 ! Maximization or minimization of function
-    real(dp)                                :: of_new, of_best        ! intermediate results
-    real(dp)                                :: Pn, new_value          ! intermediate results
-    real(dp), dimension(size(pini))         :: pnew                   ! Test value of decision variables
-    real(dp)                                :: ranval                 ! random value
-    integer(i8)                             :: i                      ! maxiter=i8
-    integer(i4)                             :: j, dvn_count, dv       ! pnum=i4
-    integer(i4)                             :: idummy                 ! dummy vaiable
-    integer, dimension(8)                   :: sdate                  ! date_and_time return
-    logical, dimension(size(pini))          :: maske                  ! parameter to be optimized (true or false)
-    integer(i4), dimension(:), allocatable  :: truepara               ! parameter to be optimized (their indexes)
+    integer(i4) :: pnum                   ! Total number of decision variables
+    integer(i8) :: iseed                  ! User given seed
+    integer(i8) :: imaxiter               ! Maximum number of iteration or function evaluation
+    real(dp) :: ir                     ! MDDS perturbation parameter
+    real(dp) :: imaxit                 ! Maximization or minimization of function
+    real(dp) :: of_new, of_best        ! intermediate results
+    real(dp) :: Pn, new_value          ! intermediate results
+    real(dp), dimension(size(pini)) :: pnew                   ! Test value of decision variables
+    real(dp) :: ranval                 ! random value
+    integer(i8) :: i                      ! maxiter=i8
+    integer(i4) :: j, dvn_count, dv       ! pnum=i4
+    integer(i4) :: idummy                 ! dummy vaiable
+    integer, dimension(8) :: sdate                  ! date_and_time return
+    logical, dimension(size(pini)) :: maske                  ! parameter to be optimized (true or false)
+    integer(i4), dimension(:), allocatable :: truepara               ! parameter to be optimized (their indexes)
 
 
     ! Check input
     pnum = size(pini)
-    if (size(prange,1) /= pnum) stop 'Error MDDS: size(prange,1) /= size(pini)'
-    if (size(prange,2) /= 2)    stop 'Error MDDS: size(prange,2) /= 2'
+    if (size(prange, 1) /= pnum) stop 'Error MDDS: size(prange,1) /= size(pini)'
+    if (size(prange, 2) /= 2)    stop 'Error MDDS: size(prange,2) /= 2'
     ! max. iteration
     imaxiter = 1000
     if (present(maxiter)) imaxiter = maxiter
     if (imaxiter < 6) stop 'Error MDDS: max function evals must be minimum 6'
     ! history output
     if (present(history)) then
-       allocate(history(imaxiter))
+      allocate(history(imaxiter))
     end if
     ! Min or max objective function
     imaxit = 1.0_dp
     if (present(maxit)) then
-       if (maxit) imaxit = -1.0_dp
+      if (maxit) imaxit = -1.0_dp
     end if
     ! Given seed
     iseed = 0
@@ -491,138 +482,138 @@ CONTAINS
 
     ! Seed random numbers
     if (iseed == 0) then
-       call date_and_time(values=sdate)
-       iseed = sdate(1)*31536000000_i8 + sdate(2)*2592000000_i8 + sdate(3)*86400000_i8 + &
-            sdate(5)*3600000_i8 + sdate(6)*60000_i8 + sdate(7)*1000_i8 + sdate(8)
-       call xor4096(iseed,ranval)
-       call xor4096g(iseed,ranval)
+      call date_and_time(values = sdate)
+      iseed = sdate(1) * 31536000000_i8 + sdate(2) * 2592000000_i8 + sdate(3) * 86400000_i8 + &
+              sdate(5) * 3600000_i8 + sdate(6) * 60000_i8 + sdate(7) * 1000_i8 + sdate(8)
+      call xor4096(iseed, ranval)
+      call xor4096g(iseed, ranval)
     else
-       call xor4096(iseed,ranval)
-       call xor4096g(iseed,ranval)
+      call xor4096(iseed, ranval)
+      call xor4096g(iseed, ranval)
     end if
 
     ! Masked parameters
     if (present(mask)) then
-       if (count(mask) .eq. 0_i4) then
-          stop 'Input argument mask: At least one element has to be true'
-       else
-          maske = mask
-       end if
+      if (count(mask) .eq. 0_i4) then
+        stop 'Input argument mask: At least one element has to be true'
+      else
+        maske = mask
+      end if
     else
-       maske = .true.
+      maske = .true.
     end if
 
-    allocate ( truepara(count(maske)) )
+    allocate (truepara(count(maske)))
     idummy = 0_i4
-    do j=1,size(pini,1)
-       if ( maske(j) ) then
-          idummy = idummy+1_i4
-          truepara(idummy) = j
-       end if
+    do j = 1, size(pini, 1)
+      if (maske(j)) then
+        idummy = idummy + 1_i4
+        truepara(idummy) = j
+      end if
     end do
 
     ! Temporal file writing
     if(present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', status = 'unknown')
-       write(999,*) '# settings :: general'
-       write(999,*) '# nIterations    iseed'
-       write(999,*) imaxiter, iseed
-       write(999,*) '# settings :: mdds specific'
-       write(999,*) '# None'
-       write(999,*) ''
-       write(999,*) '# iter   bestf   (bestx(j),j=1,nopt)'
-       close(999)
+      open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', status = 'unknown')
+      write(999, *) '# settings :: general'
+      write(999, *) '# nIterations    iseed'
+      write(999, *) imaxiter, iseed
+      write(999, *) '# settings :: mdds specific'
+      write(999, *) '# None'
+      write(999, *) ''
+      write(999, *) '# iter   bestf   (bestx(j),j=1,nopt)'
+      close(999)
     end if
 
     ! Evaluate initial solution and return objective function value
     ! and Initialise the other variables (e.g. of_best)
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
-    MDDS     = pini
-    of_new  = imaxit * obj_func(pini)
+    MDDS = pini
+    of_new = imaxit * obj_func(pini, eval)
     of_best = of_new
     if (present(history)) history(1) = of_new
 
-    file_write: if (present(tmp_file)) then
-       open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
-       if (imaxit .lt. 0.0_dp) then
-          ! Maximize
-          write(999,*) '0', -of_best, mdds
-       else
-          ! Minimize
-          write(999,*) '0', of_best, mdds
-       end if
-       close(999)
+    file_write : if (present(tmp_file)) then
+      open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+      if (imaxit .lt. 0.0_dp) then
+        ! Maximize
+        write(999, *) '0', -of_best, mdds
+      else
+        ! Minimize
+        write(999, *) '0', of_best, mdds
+      end if
+      close(999)
     end if file_write
 
     ! Code below is now the MDDS algorithm as presented in Figure 1 of Tolson and Shoemaker (2007)
 
-    do i=1, imaxiter-1
-       ! Determine Decision Variable (DV) selected for perturbation:
-       Pn        = 1.0_dp - log(real(i,dp))/log(real(imaxiter-1,dp)) ! probability each DV selected
-       dvn_count = 0                                                 ! counter for how many DVs selected for perturbation
-       pnew      = MDDS                                               ! define pnew initially as best current solution
-       ! Modifications by Huang et al. (2010)
-       Pn        = max(Pn, 0.05_dp)
-       ir        = max(min(0.3_dp, Pn), 0.05_dp)
+    do i = 1, imaxiter - 1
+      ! Determine Decision Variable (DV) selected for perturbation:
+      Pn = 1.0_dp - log(real(i, dp)) / log(real(imaxiter - 1, dp)) ! probability each DV selected
+      dvn_count = 0                                                 ! counter for how many DVs selected for perturbation
+      pnew = MDDS                                               ! define pnew initially as best current solution
+      ! Modifications by Huang et al. (2010)
+      Pn = max(Pn, 0.05_dp)
+      ir = max(min(0.3_dp, Pn), 0.05_dp)
 
-       ! Step 3 of Fig 1 of Tolson and Shoemaker (2007)
-       do j=1, pnum
-          call xor4096(0_i8,ranval)                           ! selects next uniform random number in sequence
-          ! Step 4 of Fig 1 of Tolson and Shoemaker (2007)
-          if (ranval < Pn) then                               ! jth DV selected for perturbation
-             dvn_count = dvn_count + 1
-             ! call 1-D perturbation function to get new DV value (new_value)
-             call neigh_value(MDDS(truepara(j)), prange(truepara(j),1), prange(truepara(j),2), ir, new_value)
-             pnew(truepara(j)) = new_value
-          end if
-       end do
+      ! Step 3 of Fig 1 of Tolson and Shoemaker (2007)
+      do j = 1, pnum
+        call xor4096(0_i8, ranval)                           ! selects next uniform random number in sequence
+        ! Step 4 of Fig 1 of Tolson and Shoemaker (2007)
+        if (ranval < Pn) then                               ! jth DV selected for perturbation
+          dvn_count = dvn_count + 1
+          ! call 1-D perturbation function to get new DV value (new_value)
+          call neigh_value(MDDS(truepara(j)), prange(truepara(j), 1), prange(truepara(j), 2), ir, new_value)
+          pnew(truepara(j)) = new_value
+        end if
+      end do
 
-       ! Step 3 of Fig 1 of Tolson and Shoemaker (2007) in case {N} empty
-       if (dvn_count == 0) then                               ! no DVs selected at random, so select one
-          call xor4096(0_i8,ranval)                           ! selects next uniform random number in sequence
-          dv = truepara(int(( ranval * real(size(truepara),dp))  + 1.0_dp, i4 ))  ! index for one DV
-          ! call 1-D perturbation function to get new DV value (new_value):
-          call neigh_value(MDDS(dv), prange(dv,1), prange(dv,2), ir, new_value)
-          pnew(dv) = new_value                                ! change relevant DV value in stest
-       end if
+      ! Step 3 of Fig 1 of Tolson and Shoemaker (2007) in case {N} empty
+      if (dvn_count == 0) then                               ! no DVs selected at random, so select one
+        call xor4096(0_i8, ranval)                           ! selects next uniform random number in sequence
+        dv = truepara(int((ranval * real(size(truepara), dp)) + 1.0_dp, i4))  ! index for one DV
+        ! call 1-D perturbation function to get new DV value (new_value):
+        call neigh_value(MDDS(dv), prange(dv, 1), prange(dv, 2), ir, new_value)
+        pnew(dv) = new_value                                ! change relevant DV value in stest
+      end if
 
-       ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
-       ! Evaluate obj function value for test
-       of_new = imaxit * obj_func(pnew)                       ! imaxit handles min(=1) and max(=-1) problems
-       ! update current best solution
-       if (of_new <= of_best) then
+      ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
+      ! Evaluate obj function value for test
+      of_new = imaxit * obj_func(pnew, eval)                       ! imaxit handles min(=1) and max(=-1) problems
+      ! update current best solution
+      if (of_new <= of_best) then
+        of_best = of_new
+        MDDS = pnew
+      else ! Modifications by Huang et al. (2010)
+        call xor4096(0_i8, ranval)
+        if (exp(-(of_new - of_best) / of_best) > (1.0_dp - ranval * Pn)) then
           of_best = of_new
-          MDDS    = pnew
-       else ! Modifications by Huang et al. (2010)
-          call xor4096(0_i8,ranval)
-          if (exp(-(of_new-of_best)/of_best) > (1.0_dp-ranval*Pn)) then
-             of_best = of_new
-             MDDS    = pnew
-          end if
-       end if
-       if (present(history)) then
-          if (present(maxit)) then
-             if (maxit) then
-                history(i+1) = max(history(i),of_best)
-             else
-                history(i+1) = min(history(i),of_best)
-             end if
+          MDDS = pnew
+        end if
+      end if
+      if (present(history)) then
+        if (present(maxit)) then
+          if (maxit) then
+            history(i + 1) = max(history(i), of_best)
           else
-             history(i+1) = min(history(i),of_best)
+            history(i + 1) = min(history(i), of_best)
           end if
-       end if
+        else
+          history(i + 1) = min(history(i), of_best)
+        end if
+      end if
 
-       file_write2: if (present(tmp_file)) then
-          open(unit=999,file=trim(adjustl(tmp_file)), action='write', position='append', recl=(pnum+2)*30)
-          if (imaxit .lt. 0.0_dp) then
-             ! Maximize
-             write(999,*) i, -of_best, mdds
-          else
-             ! Minimize
-             write(999,*) i, of_best, mdds
-          end if
-          close(999)
-       end if file_write2
+      file_write2 : if (present(tmp_file)) then
+        open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+        if (imaxit .lt. 0.0_dp) then
+          ! Maximize
+          write(999, *) i, -of_best, mdds
+        else
+          ! Minimize
+          write(999, *) i, of_best, mdds
+        end if
+        close(999)
+      end if file_write2
 
     end do
     if (present(funcbest)) funcbest = of_best
@@ -645,40 +636,40 @@ CONTAINS
 
   subroutine neigh_value(x_cur, x_min, x_max, r, new_value)
 
-    use mo_kind,    only: i8, dp
-    use mo_xor4096, only: xor4096g
+    use mo_kind, only : i8, dp
+    use mo_xor4096, only : xor4096g
 
     implicit none
 
-    real(dp), intent(in)   :: x_cur, x_min, x_max, r
-    real(dp), intent(out)  :: new_value
-    real(dp)               :: x_range
+    real(dp), intent(in) :: x_cur, x_min, x_max, r
+    real(dp), intent(out) :: new_value
+    real(dp) :: x_range
     real(dp) :: zvalue
 
     x_range = x_max - x_min
 
     ! generate a standard normal random variate (zvalue)
-    call xor4096g(0_i8,zvalue)
+    call xor4096g(0_i8, zvalue)
 
     ! calculate new decision variable value:
-    new_value = x_cur + zvalue*r*x_range
+    new_value = x_cur + zvalue * r * x_range
 
     !  check new value is within bounds. If not, bounds are reflecting.
     if (new_value < x_min) then
-       new_value = x_min + (x_min - new_value)
-       if (new_value > x_max) then
-          ! if reflection goes past x_max then value should be x_min since
-          ! without reflection the approach goes way past lower bound.
-          ! This keeps x close to lower bound when x_cur is close to lower bound
-          ! Practically speaking, this should never happen with r values <0.3.
-          new_value = x_min
-       end if
+      new_value = x_min + (x_min - new_value)
+      if (new_value > x_max) then
+        ! if reflection goes past x_max then value should be x_min since
+        ! without reflection the approach goes way past lower bound.
+        ! This keeps x close to lower bound when x_cur is close to lower bound
+        ! Practically speaking, this should never happen with r values <0.3.
+        new_value = x_min
+      end if
     else if (new_value > x_max) then
-       new_value = x_max - (new_value - x_max)
-       if (new_value < x_min) then
-          ! if reflection goes past x_min then value should be x_max for same reasons as above.
-          new_value = x_max
-       end if
+      new_value = x_max - (new_value - x_max)
+      if (new_value < x_min) then
+        ! if reflection goes past x_min then value should be x_max for same reasons as above.
+        new_value = x_max
+      end if
     end if
 
   end subroutine neigh_value
