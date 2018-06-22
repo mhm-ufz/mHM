@@ -97,7 +97,7 @@ contains
 
     if (do_readlcover .and. processMatrix(8, 1) .eq. 1) then
       call read_lcover()
-    else if (do_readlcover .and. ((processMatrix(8, 1) .eq. 2) .or. (processMatrix .eq. 3)) then
+    else if (do_readlcover .and. ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3))) then
       allocate(dataMatrix_i4(count(mask_global), 1))
       dataMatrix_i4 = nodata_i4
       call append(L0_LCover, dataMatrix_i4)
@@ -105,8 +105,9 @@ contains
       deallocate(dataMatrix_i4)
     end if
 
-    if (procesMatrix(8, 1) .eq. 3) then 
-	call read_slope()
+    if (processMatrix(8, 1) .eq. 3) then 
+       print *, 'call read_slope()'
+       stop 'testing'
     end if
 
     do iBasin = 1, nBasins

@@ -30,6 +30,9 @@ module mo_mrm_net_startup
   PUBLIC :: L11_stream_features
   PUBLIC :: L11_fraction_sealed_floodplain
   PUBLIC :: get_distance_two_lat_lon_points
+  PUBLIC :: L11_flow_accumulation
+  PUBLIC :: L11_calc_celerity
+  PUBLIC :: L0_smooth_riverslope
 contains
 
   !    NAME
@@ -1949,5 +1952,464 @@ contains
 
   end subroutine get_distance_two_lat_lon_points
 
+  ! --------------------------------------------------------------------------
+
+  !     NAME
+  !         L11_flow_accumulation
+
+  !     PURPOSE
+
+  !>       \brief Calculates L11 flow accumulation per grid cell
+  !>       \details Calculates L11 flow accumulation per grid cell using L11_fDir
+  !>                and L11_areaCell. L11_flow_accumulation contains the recursiv subroutine
+  !>                calculate_L11_flow_accumulation
+
+  !     INTENT(IN)
+  !>        iBasin
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         L11_fAcc, L11_LinkIn_fAcc
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+  
+  !     LITERATURE
+  !         None
+  
+  !     HISTORY
+  !>        \author Matthias Kelbling
+  !>        \date   Aug 2017
+
+  ! --------------------------------------------------------------------------
+  subroutine L11_flow_accumulation(iBasin)
+
+    use mo_mrm_global_variables, only: &
+      L11_fDir,          & !  IN: flow direction at L11 (standard notation)
+      L11_areaCell,      & !  IN: km^2 of grid in basin
+      L11_fromN,         &
+      L11_nOutlets,      &
+      L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
+      L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
+      L11_CellCoor       
+    use mo_mrm_tools,            only: get_basin_info_mrm
+    use mo_mrm_constants,        only: nodata_i4, nodata_dp
+    use mo_append,               only: append
+
+    implicit none
+
+    ! local variables
+    integer(i4), intent(in)                   :: iBasin
+    real(dp),    dimension(:,:), allocatable  :: fAcc11             ! L11_fAcc array
+    integer(i4)                               :: ii, jj             ! row and col index
+    integer(i4)                               :: iStart11, iEnd11   ! Vec. position iBasin - fAcc
+    integer(i4)                               :: nrows11, ncols11   ! array size basin
+    integer(i4)                               :: nNodes
+    integer(i4), dimension(:,:), allocatable  :: fDir11             ! L11_fDir array
+    real(dp),    dimension(:,:), allocatable  :: areaCell11         ! L11_cellArea array
+    logical,     dimension(:,:), allocatable  :: mask11             ! Basin mask
+    real(dp),    dimension(:),   allocatable  :: LinkIn_fAcc        ! fAcc inflow per Link
+    integer(i4), dimension(:,:), allocatable  :: CellCoor11
+    integer(i4), dimension(:),   allocatable  :: fromN11
+
+    ! get basin information
+    call get_basin_info_mrm(iBasin, 11, nrows11, ncols11, ncells=nNodes, &
+                            iStart=iStart11, iEnd=iEnd11, mask=mask11)
+
+    ! allocate arrays
+    allocate(fDir11      (nrows11, ncols11))
+    allocate(areaCell11  (nrows11, ncols11))
+    allocate(fAcc11      (nrows11, ncols11))
+    allocate(LinkIn_fAcc (nNodes))
+    allocate(fromN11     (nNodes))
+    allocate(CellCoor11  (nNodes , 2))
+
+    ! initialize
+    fDir11(:,:)     = nodata_i4
+    areaCell11(:,:) = nodata_dp
+    LinkIn_fAcc(:)  = nodata_dp
+    CellCoor11(:,:) = nodata_i4
+    fromN11(:)      = nodata_i4
+
+    ! get data
+    fDir11(:,:)     = UNPACK( L11_fDir     (iStart11:iEnd11),  mask11, nodata_i4 )
+    areaCell11(:,:) = UNPACK( L11_areaCell (iStart11:iEnd11),  mask11, nodata_dp )
+    CellCoor11(:,:) = L11_cellCoor(iStart11:iEnd11, :)
+    fromN11(:)      = L11_fromN(iStart11:iEnd11)
+
+    ! initialize fAcc11
+    fAcc11          = areaCell11
+
+    ! For each sink call "calculate_L11_flow_accumulation"
+    do jj=1, ncols11
+      do ii=1, nrows11
+        if (fDir11(ii,jj) .eq. 0) then
+          call calculate_L11_flow_accumulation(fDir = fDir11, &
+                                               fAcc = fAcc11, &
+                                               ii = ii, &
+                                               jj = jj, &
+                                               nrow = nrows11, &
+                                               ncol = ncols11)
+        end if
+      end do
+    end do
+
+    ! Transfer to LinkIn_fAcc
+    do jj=1, (nNodes - L11_nOutlets(iBasin))
+      ii = fromN11(jj)
+      LinkIn_fAcc(jj) = fAcc11(CellCoor11(ii, 1), CellCoor11(ii, 2))
+    end do
+
+    ! Append
+    call append( L11_fAcc, pack( fAcc11(:,:),mask11))
+    call append( L11_LinkIn_fAcc, LinkIn_fAcc(:))
+  
+    ! free space
+    deallocate(fDir11, areaCell11, fAcc11, mask11, LinkIn_fAcc, CellCoor11)
+
+  contains
+
+  recursive subroutine calculate_L11_flow_accumulation(fDir, fAcc, ii, jj, nrow, ncol)
+
+    implicit none
+
+    integer(i4), intent(in)            :: fDir(:,:)      ! flow Direction
+    real(dp), intent (inout)           :: fAcc(:,:)      ! flow accumulation
+    integer(i4), intent(in)            :: ii, jj         ! row and col index
+    integer(i4), intent(in)            :: nrow, ncol     ! number of rows,cols in array
+
+    ! Scan order:
+    !
+    !    6 7 8
+    !    5 x 1
+    !    4 3 2
+    !
+    ! Each:
+    ! 1. Check if cell is inflow cell to current grid
+    ! 2. If yes: Call calculate_subroutine and add result
+
+    if (jj+1 .le. ncol) then
+      if (fDir(ii,jj+1) .eq. 16_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj+1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj+1)
+      end if
+    end if
+
+    if ((ii+1 .le. nrow) .and. (jj+1 .le. ncol)) then
+      if (fDir(ii+1,jj+1) .eq. 32_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj+1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj+1)
+      end if
+    end if
+
+    if (ii+1 .le. nrow) then
+      if (fDir(ii+1,jj) .eq. 64_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj)
+      end if
+    end if
+
+    if ((ii+1 .le. nrow) .and. (jj-1 .ge. 1)) then
+      if (fDir(ii+1,jj-1) .eq. 128_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj-1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj-1)
+      end if
+    end if
+
+    if (jj-1 .ge. 1) then
+      if (fDir(ii,jj-1) .eq. 1_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj-1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj-1)
+      end if
+    end if
+
+    if ((ii-1 .ge. 1) .and. (jj-1 .ge. 1)) then
+      if (fDir(ii-1,jj-1) .eq. 2_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj-1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj-1)
+      end if
+    end if
+
+    if (ii-1 .ge. 1) then
+      if (fDir(ii-1,jj) .eq. 4_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj)
+      end if
+    end if
+
+    if ((ii-1 .ge. 1) .and. (jj+1 .le. ncol)) then
+      if (fDir11(ii-1,jj+1) .eq. 8_i4) then
+        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj+1, nrow, ncol)
+        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj+1)
+      end if
+    end if    
+    
+  end subroutine calculate_L11_flow_accumulation
+
+  end subroutine L11_flow_accumulation
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         L11_calc_celerity
+  
+  !     PURPOSE
+  !>        \brief L11 celerity based on L0 elevation and L0 fAcc
+
+  !>        \details L11 celerity based on L0 elevation and L0 fAcc
+
+  !     INTENT(IN)
+  !>        \param[in] 
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !         None
+
+  !     EXAMPLE
+  !         None
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author  Matthias Kelbling
+  !>        \date    Oct 2017
+
+  ! ------------------------------------------------------------------
+
+  subroutine L11_calc_celerity(iBasin, param)
+    use mo_mrm_constants, only: nodata_i4, nodata_dp
+    use mo_append, only: append
+    use mo_mrm_tools, only: get_basin_info_mrm
+    use mo_mrm_global_variables, only: &
+         L0_slope_mRM,        & ! IN:    slope [%]
+         L0_LCover_mRM,       & ! IN:    Normal Landcover
+         L0_Id,               & ! IN:    level-0 id
+         L0_fDir,             & ! IN:    flow direction (standard notation) L0
+         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
+         L0_areaCell,         & ! IN:    area of a cell at level-0, -> is same for all basin [m2]
+         L11_fRow,            & ! IN:    from row in L0 grid 
+         L11_fCol,            & ! IN:    from col in L0 grid
+         L11_tRow,            & ! IN:    to row in L0 grid 
+         L11_tCol,            & ! IN:    to col in L0 grid 
+         L11_netPerm,         & ! IN:    routing order (permutation)
+         L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
+         L11_celerity,        & ! INOUT: averaged celerity
+         L0_celerity            ! INOUT
+
+    implicit none
+
+    integer(i4), intent(in)                  :: iBasin         ! basin 
+    real(dp), dimension(:), intent(in)       :: param 
+
+    ! local
+    integer(i4)                              :: nCells0
+    integer(i4)                              :: nNodes
+    integer(i4)                              :: nLinks
+    integer(i4)                              :: nrows0, ncols0
+    integer(i4)                              :: iStart0, iEnd0
+    integer(i4)                              :: nrows11, ncols11
+    integer(i4)                              :: iStart11, iEnd11
+    logical,     dimension(:,:), allocatable :: mask0
+    integer(i4), dimension(:,:), allocatable :: iD0
+    integer(i4), dimension(:,:), allocatable :: fDir0
+    integer(i4), dimension(:,:), allocatable :: fAcc0
+    real(dp),    dimension(:,:), allocatable :: slope0
+    real(dp),    dimension(:,:), allocatable :: slope_tmp
+    integer(i4), dimension(:,:), allocatable :: lcover0
+    real(dp),    dimension(:,:), allocatable :: areaCell0
+    integer(i4), dimension(:),   allocatable :: netPerm         ! routing order (permutation)
+    integer(i4), dimension(:),   allocatable :: nLinkFromRow   
+    integer(i4), dimension(:),   allocatable :: nLinkFromCol
+    integer(i4), dimension(:),   allocatable :: nLinkToRow     
+    integer(i4), dimension(:),   allocatable :: nLinkToCol  
+    integer(i4)                              :: ii, rr, ns
+    integer(i4)                              :: frow, fcol
+    integer(i4)                              :: fId,  tId
+    real(dp),    dimension(:),   allocatable :: stack, append_chunk ! Stacks celerity along the L0 river-path
+    integer(i4), dimension(:),   allocatable :: dummy_1d
+
+    real(dp)                                 :: L0_link_slope
+    real(dp),    dimension(:),   allocatable :: celerity11
+    real(dp),    dimension(:,:), allocatable :: celerity0
+
+    integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
+    real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
+    real(dp)                                 :: cellsize0
+    logical,     dimension(:),   allocatable :: slopemask0
+
+    ! level-0 information
+    call get_basin_info_mrm ( iBasin, 0, nrows0, ncols0, ncells=nCells0, &
+         iStart=iStart0, iEnd=iEnd0, mask=mask0, cellsize = cellsize0 ) 
+    ! level-11 information
+    call get_basin_info_mrm (iBasin, 11, nrows11, ncols11, ncells=nNodes, iStart=iStart11, iEnd=iEnd11)
+
+    nLinks  = nNodes - L11_nOutlets(iBasin)
+
+    ! allocate
+    allocate ( iD0           ( nrows0, ncols0 ) )
+    allocate ( slope0        ( nrows0, ncols0 ) )
+    allocate ( lcover0       ( nrows0, ncols0 ) )
+    allocate ( fDir0         ( nrows0, ncols0 ) )
+    allocate ( fAcc0         ( nrows0, ncols0 ) )
+    allocate ( areaCell0     ( nrows0, ncols0 ) )
+    allocate ( celerity0     ( nrows0, ncols0 ) )
+
+    !  Routing network vectors have nNodes size instead of nLinks to
+    !  avoid the need of having two extra indices to identify a basin.
+    allocate ( stack             ( 1 ) )
+    allocate ( append_chunk      ( 1 ) ) 
+    allocate ( dummy_1d          ( 2 ))
+    allocate ( netPerm           ( nNodes ) )  
+    allocate ( nLinkFromRow      ( nNodes ) )
+    allocate ( nLinkFromCol      ( nNodes ) )
+    allocate ( nLinkToRow        ( nNodes ) )  
+    allocate ( nLinkToCol        ( nNodes ) ) 
+    allocate ( celerity11        ( nNodes ) )
+
+    allocate (nodata_i4_tmp      ( nrows0, ncols0 ) )
+    allocate (nodata_dp_tmp      ( nrows0, ncols0 ) )
+
+    ! initialize
+    iD0(:,:)             = nodata_i4
+    fDir0(:,:)           = nodata_i4
+    fAcc0(:,:)           = nodata_i4
+    areaCell0(:,:)       = nodata_dp
+    slope0(:,:)          = nodata_dp
+    lcover0(:,:)         = nodata_i4
+
+    stack(:)             = nodata_dp
+    append_chunk(:)      = nodata_dp
+    netPerm(:)           = nodata_i4
+    nLinkFromRow(:)      = nodata_i4
+    nLinkFromCol(:)      = nodata_i4
+    nLinkToRow(:)        = nodata_i4
+    nLinkToCol(:)        = nodata_i4
+    celerity11(:)        = nodata_dp
+    celerity0(:,:)       = nodata_dp
+
+    nodata_i4_tmp(:,:)   = nodata_i4
+    nodata_dp_tmp(:,:)   = nodata_dp
+
+    ! for a single node model run
+    
+    if(nNodes .GT. 1) then
+        ! get L0 fields
+        iD0(:,:) =         UNPACK( L0_Id   (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        fDir0(:,:) =       UNPACK( L0_fDir (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        fAcc0(:,:) =       UNPACK( L0_fAcc (iStart0:iEnd0),  mask0, nodata_i4_tmp )
+        areaCell0(:,:) =   UNPACK( L0_areaCell (iStart0:iEnd0),  mask0, nodata_dp_tmp )
+        lcover0(:,:) =     UNPACK( L0_LCover_mRM(iStart0:iEnd0, 1), mask0, nodata_i4_tmp )
+
+        ! smoothing river slope
+        slope_tmp = L0_slope(iStart0:iEnd0)
+        where ( slope_tmp .lt. 0.1_dp ) slope_tmp = 0.1_dp
+
+        slopemask0(:) = (L0_streamNet(iStart0:iEnd0) .ne. nodata_i4)
+
+        if( count(slopemask0) .GT. 1) then
+           print *, "Smoothing river slope ..."
+           slope_tmp = mad2(arr = slope_tmp, z = 2.25_dp, mask = slopemask0)
+        else
+           print *, "Number of L0-stream-cells <= 1, no slope-smoothing possible..."
+        end if
+        slope0(:,:) = UNPACK(slope_tmp,  mask0, nodata_dp_tmp )
+        ! end smoothing river slope
+        
+        ! get network vectors of L11 
+        netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
+        nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
+        nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
+        nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
+        nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
+
+        do rr = 1, nLinks
+
+           ii   = netPerm(rr)
+           frow = nLinkFromRow(ii)
+           fcol = nLinkFromCol(ii)
+
+           ! Init
+           stack(:) = 0_dp
+           ns    = 1
+
+           fId = iD0( frow, fcol )
+           tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
+           do
+              L0_link_slope = slope0(frow, fcol) / 100._dp
+
+              ! celerity parametrization
+              stack(ns) = param(1) * sqrt(L0_link_slope )
+              
+              celerity0(frow, fcol) = stack(ns)
+              ns = ns + 1                
+              fId = iD0(frow, fcol)
+              if( .NOT. (fID == tID)) then
+                call append(stack, append_chunk)
+              end if
+              if (fId == tId) exit
+              ! move downstream
+              call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
+           end do
+
+           celerity11(ii) = size(stack) / sum(1/stack(:))
+           deallocate(stack)
+           allocate  (stack(1))
+
+        end do
+
+     else
+
+        print *, 'BUG ST: even in one cell, move along river network'
+        celerity11(:) =  size(L0_slope_mRM(iStart0:iEnd0)) / sum(1._dp/(param(1) * sqrt(L0_slope_mRM(iStart0:iEnd0))))
+        
+     end if
+     
+      ! Write celerity
+      L11_celerity(iStart11:iEnd11) = celerity11(:)
+      L0_celerity(iStart0:iEnd0)  = PACK( celerity0(:,:), mask0)
+
+     ! free space
+     deallocate (&
+          mask0, iD0, slope_tmp, slopemask0, &
+          slope0, fDir0, areaCell0,   &
+          stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
+
+   end subroutine L11_calc_celerity
 
 end module mo_mrm_net_startup

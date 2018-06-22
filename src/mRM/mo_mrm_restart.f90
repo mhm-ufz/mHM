@@ -54,7 +54,8 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene, processMatrix
+    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix
+    use mo_mpr_global_variables, only : L0_slope
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
@@ -77,6 +78,21 @@ contains
     character(256) :: Fname
 
     integer(i4) :: ii
+
+    ! start index at level 0
+    integer(i4) :: s0
+
+    ! end index at level 0
+    integer(i4) :: e0
+
+    ! number of colums at level 0
+    integer(i4) :: ncols0
+
+    ! number of rows at level 0
+    integer(i4) :: nrows0
+
+    ! mask at level 0
+    logical, dimension(:, :), allocatable :: mask0
 
     ! start index at level 1
     integer(i4) :: s1
@@ -107,7 +123,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(NcDimension) :: rows1, cols1, rows11, cols11, it11, lcscenes
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes
 
     type(NcDimension) :: links, nts, nproc
 
@@ -115,6 +131,11 @@ contains
 
 
     ! get Level1 and Level11 information about the basin
+    s0 = level0(iBasin)%iStart
+    e0 = level0(iBasin)%iEnd
+    mask0 = level0(iBasin)%mask
+    ncols0 = level0(iBasin)%ncols
+    nrows0 = level0(iBasin)%nrows
     s1 = level1(iBasin)%iStart
     e1 = level1(iBasin)%iEnd
     mask1 = level1(iBasin)%mask
@@ -132,9 +153,12 @@ contains
 
     nc = NcDataset(fname, "w")
 
+    call write_grid_info(level0(iBasin), "0", nc)
     call write_grid_info(level1(iBasin), "1", nc)
     call write_grid_info(level11(iBasin), "11", nc)
 
+    rows0 = nc%getDimension("nrows0")
+    cols0 = nc%getDimension("ncols0")
     rows1 = nc%getDimension("nrows1")
     cols1 = nc%getDimension("ncols1")
     rows11 = nc%getDimension("nrows11")
@@ -147,9 +171,9 @@ contains
     lcscenes = nc%setDimension("LCoverScenes", nLCoverScene)
 
 
-    var = nc%setVariable("L0_slope_mRM", "f64", (/rows0, cols0/))
+    var = nc%setVariable("L0_slope", "f64", (/rows0, cols0/))
     call var%setFillValue(nodata_dp)
-    call var%setData(unpack(L0_slope_mRM(s0:e0), mask0, nodata_dp))
+    call var%setData(unpack(L0_slope(s0:e0), mask0, nodata_dp))
     call var%setAttribute("long_name", "slope at Level 0 [%]")
 
     var = nc%setVariable("L0_celerity", "f64", (/rows0, cols0/))
