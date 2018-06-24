@@ -37,6 +37,7 @@ module mo_common_variables
   integer(i4), public :: iFlag_cordinate_sys        ! options model for the run cordinate system
   real(dp), dimension(:), allocatable, public :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
   integer(i4), dimension(:), allocatable, public :: L0_Basin
+  integer(i4), dimension(:), allocatable, public :: L11_Basin
   logical, public :: write_restart              ! flag
 
   ! ------------------------------------------------------------------
@@ -92,7 +93,9 @@ module mo_common_variables
   end type Grid
 
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
-  type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at runoff level
+  type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
+
+  type(Grid), dimension(:), target, allocatable, public :: level11 ! grid information at routing level
 
   type GridRemapper
     type(Grid), pointer :: high_res_grid
@@ -108,7 +111,9 @@ module mo_common_variables
 
   end type GridRemapper
 
-  type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap ! grid information at morphological level (e.g., dem, fDir)
+  type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap  ! grid information at morphological level (e.g., dem, fDir)
+  type(GridRemapper), dimension(:), allocatable, public :: l0_l11_remap ! grid information at morphological level (e.g., dem, fDir)
+  type(GridRemapper), dimension(:), allocatable, public :: l1_l11_remap ! grid information at morphological level (e.g., dem, fDir)
 
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> <only domain>

@@ -209,7 +209,7 @@ contains
           Lcover_yID = LCyearId(year, iBasin)
           !
           do_rout = .True.
-          L11_tsRout(ii) = (timestep * HourSecs)
+          L11_tsRout(iBasin) = (timestep * HourSecs)
           tsRoutFactorIn = 1._dp
           timestep_rout = timestep
           RunToRout = L1_total_runoff_in(s1:e1, tt) ! runoff [mm TST-1] mm per timestep
@@ -226,7 +226,7 @@ contains
           !
           do_rout = .False.
           ! calculate factor
-          tsRoutFactor = L11_tsRout(ii) / (timestep * HourSecs)
+          tsRoutFactor = L11_tsRout(iBasin) / (timestep * HourSecs)
           ! print *, 'routing factor: ', tsRoutFactor
           ! prepare routing call
           if (tsRoutFactor .lt. 1._dp) then

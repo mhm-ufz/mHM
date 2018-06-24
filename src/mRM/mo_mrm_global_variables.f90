@@ -122,6 +122,8 @@ module mo_mrm_global_variables
   integer(i4), public, dimension(:), allocatable :: L0_draCell    ! Draining cell id at L11 of ith cell of L0
   integer(i4), public, dimension(:), allocatable :: L0_streamNet  ! Stream network
   integer(i4), public, dimension(:), allocatable :: L0_floodPlain ! Floodplains of stream i
+  integer(i4), public, dimension(:), allocatable :: L0_noutlet    ! number of river outlets at level 0
+  real(dp),    public, dimension(:), allocatable :: L0_celerity   ! celerity at level 0
 
   ! -------------------------------------------------------------------
   ! L1 DOMAIN description
@@ -140,10 +142,19 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! dim1 = number grid cells L11
   ! dim2 = 2
+  integer(i4), public, dimension(:,:), allocatable :: L11_cellCoor ! Cell coordinates (row,col)
+  !                                                                ! -> <only domain> Routing
   integer(i4), public, dimension(:), allocatable :: L1_L11_ID  ! Mapping of L1 Id on L11
+  real(dp),    public, dimension(:), allocatable :: L11_areaCell ! [km2] Effective area of cell at this level
+  real(dp),    public, dimension(:), allocatable :: L11_fAcc ! [km2] flow Accumulation of cell at this level
   integer(i4), public, dimension(:), allocatable :: L11_fDir ! Flow direction (standard notation)
   integer(i4), public, dimension(:), allocatable :: L11_nOutlets
-
+  real(dp),    public, dimension(:), allocatable :: L11_celerity ! [m/s] celerity per grid-cell, only for
+                                                                 ! routing-case = 3
+  real(dp),    public, dimension(:), allocatable :: L11_meandering ! Proxy: L11_length/Lopt
+                                                                   ! Lopt := shortest possible way of stream
+  real(dp),    public, dimension(:), allocatable :: L11_LinkIn_fAcc ! fAcc inflow per Link
+  
   ! Constants
   ! dim1 = number grid cells L11
   integer(i4), public, dimension(:), allocatable :: L11_rowOut ! Grid vertical location of the Outlet

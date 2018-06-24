@@ -72,8 +72,7 @@ CONTAINS
                                         l0_l11_remap, l1_l11_remap, level11
     use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
-                                   L11_set_network_topology, L11_stream_features, l11_l1_mapping, &
-                                   L0_smooth_riverslope
+                                   L11_set_network_topology, L11_stream_features, l11_l1_mapping
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
                                  mrm_read_total_runoff
@@ -194,10 +193,7 @@ CONTAINS
         call L11_set_drain_outlet_gauges(iBasin)
         ! stream characteristics
         call L11_stream_features(iBasin)
-        if(processMatrix(8, 1) .eq. 3) call L0_smooth_riverslope(iBasin)
-  
       end if
-
     end do
 
     ! check whether there are gauges within the modelling domain
@@ -618,8 +614,8 @@ CONTAINS
   subroutine mrm_init_param(iBasin, param)
 
     use mo_common_constants, only : HourSecs
-    use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep
-    use mo_common_variables, only : iFlag_cordinate_sys, nBasins, processMatrix
+    use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep, optimize
+    use mo_common_variables, only : level11, iFlag_cordinate_sys, nBasins, processMatrix
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_constants, only : given_TS
@@ -645,6 +641,14 @@ CONTAINS
     ! [s] wave travel time parameter
     real(dp) :: K
 
+    ! start and end index at level11
+    integer(i4) :: s11, e11
+
+    ! Number of cells within 
+
+    ! initialize indices
+    s11 = level11(iBasin)%iStart
+    e11 = level11(iBasin)%iEnd
 
     ! temporal resolution of routing
     if (iBasin .eq. 1 .and. .not. allocated(L11_tsRout)) then
@@ -661,7 +665,7 @@ CONTAINS
        call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
        
        if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-            (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
+            (basin_mrm(iBasin)%nInflowGauges .gt. 0)) then
           call message('***WARNING: routing timestep is not a multiple of 24 h.')
           call message('            Inflowgauge timeseries is averaged over values')
           call message('            of different days, small mismatches at')
@@ -701,7 +705,7 @@ CONTAINS
     call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
 
     if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-        (basin_mrm%nInflowGauges(iBasin) .gt. 0)) then
+        (basin_mrm(iBasin)%nInflowGauges .gt. 0)) then
        call message('***WARNING: routing timestep is not a multiple of 24 h.')
        call message('            Inflowgauge timeseries is averaged over values')
        call message('            of different days, small mismatches at')
@@ -732,21 +736,24 @@ CONTAINS
   subroutine mrm_update_param(iBasin, param)
 
     use mo_kind, only: i4, dp
-    use mo_common_variables, only: processMatrix, optimize
+    use mo_common_variables, only: processMatrix, iFlag_cordinate_sys
     use mo_mrm_global_variables, only: &
          ! input variable
-         resolutionRouting, L11_TSrout, iFlag_cordinate_sys, &
-         L11_celerity, L11_nOutlets, timeStep,   & 
+         L11_TSrout, &
+         L11_celerity, L11_nOutlets,   & 
          ! output variables
          L11_C1, L11_C2
-    use mo_mrm_constants,   only: rout_space_weight, given_TS
-    use mo_mrm_tools,       only: get_basin_info_mrm
-    use mo_utils,           only: locate
+    use mo_common_mHM_mRM_variables, only: resolutionRouting, optimize, timeStep, &
+         optimize
+    use mo_mrm_constants, only: rout_space_weight, given_TS
+    use mo_utils, only: locate
     use mo_mrm_net_startup, only: L11_calc_celerity
-    use mo_mrm_constants,   only: HourSecs, given_TS
-    use mo_message,         only: message
-    use mo_string_utils,    only: num2str
-    use mo_utils,         only: locate
+    use mo_mrm_constants, only: given_TS
+    use mo_common_constants, only: HourSecs
+    use mo_common_variables, only: level11
+    use mo_message, only: message
+    use mo_string_utils, only: num2str
+    use mo_utils, only: locate
     
     implicit none
 
@@ -757,11 +764,11 @@ CONTAINS
     real(dp), intent(in), dimension(1) :: param
 
     integer(i4) :: s11
-
     integer(i4) :: e11
+    integer(i4) :: nNodes
 
     ! index selected from given_TS
-    integer(i4) :: index
+    integer(i4) :: ind
 
     ! spatial routing resolution
     real(dp) :: deltaX
@@ -772,16 +779,16 @@ CONTAINS
     ! [1] Muskingum diffusion parameter (attenuation)
     real(dp) :: xi
 
-
     ! get basin information
     s11 = level11(iBasin)%iStart
     e11 = level11(iBasin)%iEnd
+    Nnodes = level11(iBasin)%nCells
 
     ! adjust spatial resolution
     deltaX = resolutionRouting(iBasin)
     if (iFlag_cordinate_sys .eq. 1_i4) deltaX = deltaX * 1.e5_dp ! conversion from degree to m (it's rough)
 
-    if      (ProcessMatrix(8, 1) .eq. 2_i4) then
+    if (ProcessMatrix(8, 1) .eq. 2_i4) then
      
       allocate(K(1))
       ! [s] wave travel time parameter
@@ -790,9 +797,9 @@ CONTAINS
       ! set time-weighting scheme
       xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
-    ! determine routing timestep
-    index = locate(given_TS, K)
-    L11_TSrout(iBasin) = given_TS(index)
+      ! determine routing timestep
+      ind = locate(given_TS, K(1))
+      L11_TSrout(iBasin) = given_TS(ind)
     
       ! Muskingum parameters 
       L11_C1(s11: e11) = L11_TSrout(iBasin) / ( K(1) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )

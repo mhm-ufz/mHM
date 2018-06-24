@@ -54,16 +54,17 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix
+    use mo_common_variables, only : level0, level1, l0_l11_remap, l1_l11_remap, nLCoverScene, processMatrix
     use mo_mpr_global_variables, only : L0_slope
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
-    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
+    use mo_mrm_global_variables, only : L0_streamNet, L0_floodPlain, L0_celerity, L0_fAcc, L0_draCell, L0_draSC, L0_noutlet, &
+                                        L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
                                         L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
-                                        L11_fDir, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
+                                        L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
                                         L11_netPerm, L11_qOUT, L11_qTIN, L11_qTR, L11_rOrder, L11_rowOut, L11_rowOut, &
-                                        L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L1_L11_Id, basin_mrm, &
-                                        level11
+                                        L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L1_L11_Id, L11_celerity, &
+                                        level11, basin_mrm
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
 
@@ -94,6 +95,9 @@ contains
     ! mask at level 0
     logical, dimension(:, :), allocatable :: mask0
 
+    ! number of outlets at Level 0
+    integer(i4) :: Noutlet
+
     ! start index at level 1
     integer(i4) :: s1
 
@@ -123,7 +127,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes, nout
 
     type(NcDimension) :: links, nts, nproc
 
@@ -136,6 +140,7 @@ contains
     mask0 = level0(iBasin)%mask
     ncols0 = level0(iBasin)%ncols
     nrows0 = level0(iBasin)%nrows
+    noutlet = L0_noutlet(iBasin)
     s1 = level1(iBasin)%iStart
     e1 = level1(iBasin)%iEnd
     mask1 = level1(iBasin)%mask
@@ -157,6 +162,7 @@ contains
     call write_grid_info(level1(iBasin), "1", nc)
     call write_grid_info(level11(iBasin), "11", nc)
 
+    nout = nc%setDimension("Noutlet", Noutlet)
     rows0 = nc%getDimension("nrows0")
     cols0 = nc%getDimension("ncols0")
     rows1 = nc%getDimension("nrows1")
@@ -194,17 +200,12 @@ contains
 
     var = nc%setVariable("L1_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L1_Id(s1:e1), mask1, nodata_i4))
+    call var%setData(unpack(level1(iBasin)%Id(s1:e1), mask1, nodata_i4))
     call var%setAttribute("long_name", "cell IDs at level 1")
 
-    var = nc%setVariable("L1_areaCell", "f64", (/rows1, cols1/))
-    call var%setFillValue(nodata_dp)
-    call var%setData(unpack(L1_areaCell(s1:e1), mask1, nodata_dp))
-    call var%setAttribute("long_name", "Effective area of cell at this level [km2]")
-    
     var = nc%setVariable("L1_L11_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L1_L11_Id(s1 : e1), mask1, nodata_i4))
+    call var%setData(L1_L11_remap(iBasin)%lowres_id_on_highres)
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
     var = nc%setVariable("L11_Qmod", "f64", (/rows11, cols11/))
@@ -268,9 +269,7 @@ contains
     ! ----------------------------------------------------------
     var = nc%setVariable("L11_basin_Mask", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(merge(1_i4, 0_i4,  &
-         reshape(basin_mrm%L11_Mask(basin_mrm%L11_iStartMask(iBasin):basin_mrm%L11_iEndMask(iBasin)),&
-         (/nrows11,ncols11/))))
+    call var%setData(merge(1_i4, 0_i4,  mask11))
     call var%setAttribute("long_name", "Mask at Level 11")
 
     var = nc%setVariable("L11_TSrout", "i32", (/nts/))
@@ -281,23 +280,18 @@ contains
     
     var = nc%setVariable("L11_rowCoor", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_cellCoor(s11:e11,1), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%cellCoor(s11:e11,1), mask11, nodata_i4))
     call var%setAttribute("long_name", "row coordinates at Level 11")
 
     var = nc%setVariable("L11_colCoor", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_cellCoor(s11:e11,2), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%cellCoor(s11:e11,2), mask11, nodata_i4))
     call var%setAttribute("long_name", "col coordinates at Level 11")
 
     var = nc%setVariable("L11_Id", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_Id(s11:e11), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%Id(s11:e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "cell Ids at Level 11")
-
-    var = nc%setVariable("L11_areaCell", "f64", (/rows11, cols11/))
-    call var%setFillValue(nodata_dp)
-    call var%setData(unpack(L11_areaCell(s11:e11), mask11, nodata_dp))
-    call var%setAttribute("long_name", "cell area at Level 11")
 
     var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
     call var%setFillValue(nodata_dp)
@@ -319,25 +313,25 @@ contains
     call var%setData(unpack(L11_colOut(s11 : e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "Grid horizontal location of the Outlet at Level 11")
 
-    var = nc%setVariable("L11_upBound_L0", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_upBound_L0(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Row start at finer level-0 scale of Level 11 cell")
+    ! var = nc%setVariable("L11_upBound_L0", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_upBound_L0(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Row start at finer level-0 scale of Level 11 cell")
 
-    var = nc%setVariable("L11_downBound_L0", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_downBound_L0(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Row end at finer level-0 scale of Level 11 cell")
+    ! var = nc%setVariable("L11_downBound_L0", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_downBound_L0(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Row end at finer level-0 scale of Level 11 cell")
 
-    var = nc%setVariable("L11_leftBound_L0", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_leftBound_L0(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Col start at finer level-0 scale of Level 11 cell")
+    ! var = nc%setVariable("L11_leftBound_L0", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_leftBound_L0(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Col start at finer level-0 scale of Level 11 cell")
 
-    var = nc%setVariable("L11_rightBound_L0", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_rightBound_L0(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Col end at finer level-0 scale of Level 11 cell")
+    ! var = nc%setVariable("L11_rightBound_L0", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_rightBound_L0(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Col end at finer level-0 scale of Level 11 cell")
 
     var = nc%setVariable("L11_fromN", "i32", (/links/))
     call var%setFillValue(nodata_i4)
@@ -406,27 +400,27 @@ contains
 
     var = nc%setVariable("L0_draCell", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_draCell(s110:e110), mask0, nodata_i4))
+    call var%setData(unpack(L0_draCell(s11:e11), mask0, nodata_i4))
     call var%setAttribute("long_name", "Draining cell id at L11 of ith cell of L0")
 
     var = nc%setVariable("L0_streamNet", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_streamNet(s110:e110), mask0, nodata_i4))
+    call var%setData(unpack(L0_streamNet(s11:e11), mask0, nodata_i4))
     call var%setAttribute("long_name", "Stream network")
 
     var = nc%setVariable("L0_floodPlain", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_floodPlain(s110:e110), mask0, nodata_i4))
+    call var%setData(unpack(L0_floodPlain(s11:e11), mask0, nodata_i4))
     call var%setAttribute("long_name", "Floodplains of stream i")
 
     var = nc%setVariable("L0_draSC", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_draSC(s110:e110), mask0, nodata_i4))
+    call var%setData(unpack(L0_draSC(s11:e11), mask0, nodata_i4))
     call var%setAttribute("long_name", "Floodplains of stream i")
 
     var = nc%setVariable("L0_L11_Id", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_L11_Id(s110:e110), mask0, nodata_i4))
+    call var%setData(L0_L11_remap(iBasin)%lowres_id_on_highres)
     call var%setAttribute("long_name", "Mapping of L11 Id on L0")
 
     var = nc%setVariable("L11_L1_Id", "i32", (/rows11, cols11/))
@@ -434,34 +428,34 @@ contains
     call var%setData(unpack(L11_L1_Id(s11 : e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
-    var = nc%setVariable("L11_upBound_L1", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_upBound_L1(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Row start at finer level-1 scale")
+    ! var = nc%setVariable("L11_upBound_L1", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_upBound_L1(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Row start at finer level-1 scale")
 
-    var = nc%setVariable("L11_downBound_L1", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack( L11_downBound_L1(s11:e11), mask11, nodata_i4 ))
-    call var%setAttribute("long_name", "Row end at finer level-1 scale")
+    ! var = nc%setVariable("L11_downBound_L1", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack( L11_downBound_L1(s11:e11), mask11, nodata_i4 ))
+    ! call var%setAttribute("long_name", "Row end at finer level-1 scale")
 
-    var = nc%setVariable("L11_leftBound_L1", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_leftBound_L1(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Col start at finer level-1 scale")
+    ! var = nc%setVariable("L11_leftBound_L1", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_leftBound_L1(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Col start at finer level-1 scale")
 
-    var = nc%setVariable("L11_rightBound_L1", "i32", (/rows11, cols11/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L11_rightBound_L1(s11:e11), mask11, nodata_i4))
-    call var%setAttribute("long_name", "Col start at finer level-1 scale")
+    ! var = nc%setVariable("L11_rightBound_L1", "i32", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(unpack(L11_rightBound_L1(s11:e11), mask11, nodata_i4))
+    ! call var%setAttribute("long_name", "Col start at finer level-1 scale")
 
     var = nc%setVariable("L0_RowOutletCoord", "i32", (/nout/))
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm%L0_rowOutlet(:Noutlet, iBasin))
+    call var%setData(basin_mrm(iBasin)%L0_rowOutlet(:Noutlet))
     call var%setAttribute("long_name", "Row outlet coordinates at level 0")
 
     var = nc%setVariable("L0_ColOutletCoord", "i32", (/nout/))
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm%L0_colOutlet(:Noutlet, iBasin))
+    call var%setData(basin_mrm(iBasin)%L0_colOutlet(:Noutlet))
     call var%setAttribute("long_name", "Column outlet coordinates at level 0")
 
     var = nc%setVariable("gaugeNodeList", "i32", &
