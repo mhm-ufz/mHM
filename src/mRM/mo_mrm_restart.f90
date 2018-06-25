@@ -60,6 +60,7 @@ contains
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mrm_global_variables, only : L0_streamNet, L0_floodPlain, L0_celerity, L0_fAcc, L0_draCell, L0_draSC, L0_noutlet, &
+                                        L1_L11_Id, &
                                         L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
                                         L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
                                         L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
@@ -141,7 +142,7 @@ contains
     mask0 = level0(iBasin)%mask
     ncols0 = level0(iBasin)%ncols
     nrows0 = level0(iBasin)%nrows
-    noutlet = L0_noutlet(iBasin)
+    noutlet = basin_mrm(iBasin)%L0_noutlet
     s1 = level1(iBasin)%iStart
     e1 = level1(iBasin)%iEnd
     mask1 = level1(iBasin)%mask
@@ -206,7 +207,8 @@ contains
 
     var = nc%setVariable("L1_L11_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    call var%setData(L1_L11_remap(iBasin)%lowres_id_on_highres)
+    ! call var%setData(L1_L11_remap(iBasin)%lowres_id_on_highres)
+    call var%setData(unpack(L1_L11_Id(s1 : e1), mask1, nodata_i4))
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
     var = nc%setVariable("L11_Qmod", "f64", (/rows11, cols11/))
@@ -294,10 +296,10 @@ contains
     call var%setData(unpack(level11(iBasin)%Id(s11:e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "cell Ids at Level 11")
 
-    var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
-    call var%setFillValue(nodata_dp)
-    call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
-    call var%setAttribute("long_name", "flow accumulation at Level 11")
+    ! var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
+    ! call var%setFillValue(nodata_dp)
+    ! call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
+    ! call var%setAttribute("long_name", "flow accumulation at Level 11")
 
     var = nc%setVariable("L11_fDir", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
@@ -419,10 +421,10 @@ contains
     call var%setData(unpack(L0_draSC(s11:e11), mask0, nodata_i4))
     call var%setAttribute("long_name", "Floodplains of stream i")
 
-    var = nc%setVariable("L0_L11_Id", "i32", (/rows0, cols0/))
-    call var%setFillValue(nodata_i4)
-    call var%setData(L0_L11_remap(iBasin)%lowres_id_on_highres)
-    call var%setAttribute("long_name", "Mapping of L11 Id on L0")
+    ! var = nc%setVariable("L0_L11_Id", "i32", (/rows0, cols0/))
+    ! call var%setFillValue(nodata_i4)
+    ! call var%setData(L0_L11_remap(iBasin)%lowres_id_on_highres)
+    ! call var%setAttribute("long_name", "Mapping of L11 Id on L0")
 
     var = nc%setVariable("L11_L1_Id", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)

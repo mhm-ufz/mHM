@@ -54,6 +54,7 @@ CONTAINS
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
   ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Network
+  ! Stephan Thober Jun 2018 - refactored for mpr_extract version
 
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
@@ -143,49 +144,56 @@ CONTAINS
         call read_grid_info(iBasin, dirRestartIn(iBasin), "11", "mRM", level11(iBasin))
         call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
       else
-        if (iBasin .eq. 1) then
-          call L0_check_input_routing(L0_Basin(iBasin))
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iBasin)))
-          end if
-        else if ((L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1))) then
-          call L0_check_input_routing(L0_Basin(iBasin))
-          if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iBasin)))
-          end if
-        end if
+         if (iBasin .eq. 1) then
+            call L0_check_input_routing(L0_Basin(iBasin))
+            if (mrm_coupling_mode .eq. 0_i4) then
+               call L0_grid_setup(level0(L0_Basin(iBasin)))
+            end if
+         else if ((L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1))) then
+            call L0_check_input_routing(L0_Basin(iBasin))
+            if (mrm_coupling_mode .eq. 0_i4) then
+               call L0_grid_setup(level0(L0_Basin(iBasin)))
+            end if
+         end if
 
-        if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
-                  level1(iBasin), l0_l1_remap(iBasin))
-        end if
-        call init_lowres_level(level0(L0_Basin(iBasin)), resolutionRouting(iBasin), &
-                level11(iBasin), l0_l11_remap(iBasin))
-        call init_lowres_level(level1(iBasin), resolutionRouting(iBasin), &
-                level11(iBasin), l1_l11_remap(iBasin))
-        call L11_L1_mapping(iBasin)
+         if (mrm_coupling_mode .eq. 0_i4) then
+            call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
+                 level1(iBasin), l0_l1_remap(iBasin))
+         end if
+         call init_lowres_level(level0(L0_Basin(iBasin)), resolutionRouting(iBasin), &
+              level11(iBasin), l0_l11_remap(iBasin))
+         call init_lowres_level(level1(iBasin), resolutionRouting(iBasin), &
+              level11(iBasin), l1_l11_remap(iBasin))
+         call L11_L1_mapping(iBasin)
 
-        if (ReadLatLon) then
-          ! read lat lon coordinates of each basin
-          call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
-        else
-          ! allocate the memory and set to nodata
-          allocate(level11(iBasin)%x(level11(iBasin)%nrows, level11(iBasin)%ncols))
-          allocate(level11(iBasin)%y(level11(iBasin)%nrows, level11(iBasin)%ncols))
-          level11(iBasin)%x = nodata_dp
-          level11(iBasin)%y = nodata_dp
-        end if
+         if (ReadLatLon) then
+            ! read lat lon coordinates of each basin
+            call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
+         else
+            ! allocate the memory and set to nodata
+            allocate(level11(iBasin)%x(level11(iBasin)%nrows, level11(iBasin)%ncols))
+            allocate(level11(iBasin)%y(level11(iBasin)%nrows, level11(iBasin)%ncols))
+            level11(iBasin)%x = nodata_dp
+            level11(iBasin)%y = nodata_dp
+         end if
       end if
-    end do
+   end do
 
     call set_basin_indices(level11)
     call set_basin_indices(level1)
 
+    ! ----------------------------------------------------------
+    ! INITIALIZE STATES AND AUXILLIARY VARIABLES
+    ! ----------------------------------------------------------
+    do iBasin = 1, nBasins
+      call variables_alloc_routing(iBasin)
+    end do
+
+    ! ----------------------------------------------------------
+    ! INITIALIZE STREAM NETWORK
+    ! ----------------------------------------------------------
     do iBasin = 1, nBasins
       if (.not. read_restart) then
-        ! ----------------------------------------------------------
-        ! INITIALIZE STREAM NETWORK
-        ! ----------------------------------------------------------
         call L11_flow_direction(iBasin)
         call L11_set_network_topology(iBasin)
         call L11_routing_order(iBasin)
@@ -194,6 +202,15 @@ CONTAINS
         ! stream characteristics
         call L11_stream_features(iBasin)
       end if
+    end do
+
+    ! ----------------------------------------------------------
+    ! INITIALIZE PARAMETERS
+    ! ----------------------------------------------------------
+    do iBasin = 1, nBasins
+      iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
+      iEnd = processMatrix(8, 3)
+      call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
     end do
 
     ! check whether there are gauges within the modelling domain
@@ -209,22 +226,7 @@ CONTAINS
         call message('    WARNING: no gauge found within modelling domain')
       end if
     end if
-    ! ----------------------------------------------------------
-    ! INITIALIZE PARAMETERS
-    ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
-      iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
-      iEnd = processMatrix(8, 3)
-      call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
-    end do
-
-    ! ----------------------------------------------------------
-    ! INITIALIZE STATES AND ROUTING PARAMETERS
-    ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
-      call variables_alloc_routing(iBasin)
-    end do
-
+    
     ! mpr-like definiton of sealed floodplain fraction
     if ((processMatrix(8, 1) .eq. 1_i4) .and. (.not. read_restart)) then
       call L11_fraction_sealed_floodplain(2_i4, .true.)
@@ -530,7 +532,10 @@ CONTAINS
     use mo_append, only : append
     use mo_kind, only : dp, i4
     use mo_mrm_constants, only : nRoutingStates
-    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi, level11, L11_celerity
+    use mo_common_variables, only : level0, L0_Basin
+    use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, &
+         L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi, &
+         level11, L11_celerity, L0_celerity
 
     implicit none
 
@@ -581,6 +586,12 @@ CONTAINS
     dummy_Vector11(:) = 0.0_dp
     call append(L11_celerity, dummy_Vector11)
 
+    ! celerity at level 0
+    if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
+    allocate(dummy_Vector11(level0(L0_Basin(iBasin))%ncells))
+    dummy_Vector11(:) = 0.0_dp
+    call append(L0_celerity, dummy_Vector11)
+
     ! free space
     if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
     if (allocated(dummy_Matrix11_IT)) deallocate(dummy_Matrix11_IT)
@@ -615,11 +626,11 @@ CONTAINS
 
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep, optimize
-    use mo_common_variables, only : level11, iFlag_cordinate_sys, nBasins, processMatrix
+    use mo_common_variables, only : iFlag_cordinate_sys, nBasins, processMatrix
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_constants, only : given_TS
-    use mo_mrm_global_variables, only : L11_tsRout, basin_mrm, L11_celerity
+    use mo_mrm_global_variables, only : level11, L11_tsRout, basin_mrm, L11_celerity
     use mo_string_utils, only : num2str
     use mo_utils, only : locate, notequal
     use mo_mrm_net_startup, only : L11_calc_celerity
@@ -739,6 +750,7 @@ CONTAINS
     use mo_common_variables, only: processMatrix, iFlag_cordinate_sys
     use mo_mrm_global_variables, only: &
          ! input variable
+         level11, &
          L11_TSrout, &
          L11_celerity, L11_nOutlets,   & 
          ! output variables
@@ -750,7 +762,6 @@ CONTAINS
     use mo_mrm_net_startup, only: L11_calc_celerity
     use mo_mrm_constants, only: given_TS
     use mo_common_constants, only: HourSecs
-    use mo_common_variables, only: level11
     use mo_message, only: message
     use mo_string_utils, only: num2str
     use mo_utils, only: locate

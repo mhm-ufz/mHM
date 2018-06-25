@@ -172,7 +172,7 @@ contains
       ! get basin information at L11 and L1 if routing is activated
       s1 = level1(iBasin)%iStart
       e1 = level1(iBasin)%iEnd
-      s11 = level11(iBasin)%iEnd
+      s11 = level11(iBasin)%iStart
       e11 = level11(iBasin)%iEnd
       mask11 = level11(iBasin)%mask
       !

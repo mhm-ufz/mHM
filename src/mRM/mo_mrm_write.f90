@@ -378,7 +378,7 @@ contains
               '        Id', '       [-]', '     [km2]'
       if (ge(resolutionRouting(n), resolutionHydrology(n))) then
         do i = level1(n)%Id(1), level1(n)%Id(level1(n)%nCells)
-          write(uconfig, 110) i + level1(n)%iStart - 1, L1_L11_Id (i + level1(n)%iStart - 1), level1(n)%CellArea(i) * 1.E-6_dp
+          write(uconfig, 113) i + level1(n)%iStart - 1, L1_L11_Id (i + level1(n)%iStart - 1), level1(n)%CellArea(i) * 1.E-6_dp
         end do
       else
         do i = level11(n)%Id(1), level11(n)%Id(level11(n)%nCells)
@@ -405,7 +405,7 @@ contains
     110 format (2i10)
     !
     111 format (/ 30('-') / 3a10 / 3a10 / 3a10 /  30('-'))
-    !113 format (            2i10,   1f10.3         )
+    113 format (            2i10,   1f10.3         )
     114 format (30('-') / a15, 5x, 1f10.3 /)
     !
     115 format (/61('-')/ a50, a10 /61('-'))

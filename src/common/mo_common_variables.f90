@@ -95,8 +95,6 @@ module mo_common_variables
   type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
   type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at hydrologic level
 
-  type(Grid), dimension(:), target, allocatable, public :: level11 ! grid information at routing level
-
   type GridRemapper
     type(Grid), pointer :: high_res_grid
     type(Grid), pointer :: low_res_grid

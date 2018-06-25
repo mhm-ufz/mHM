@@ -153,7 +153,7 @@ contains
     ! L1 data sets
     call append(L1_L11_Id, pack (L11Id_on_L1(:, :), level1(iBasin)%mask))
     ! L11 data sets
-    call append(L11_L1_Id, PACK (L1Id_on_L11(:, :), level11(iBasin)%mask))
+    call append(L11_L1_Id, pack (L1Id_on_L11(:, :), level11(iBasin)%mask))
     ! free space
     deallocate(L11Id_on_L1, L1Id_on_L11, dummy_2d_id)
 
@@ -1995,6 +1995,8 @@ contains
   !     HISTORY
   !>        \author Matthias Kelbling
   !>        \date   Aug 2017
+  !     Modified
+  !         Stephan Thober, Jun 2018 - refactored to fit MPR_extract
 
   ! --------------------------------------------------------------------------
   subroutine L11_flow_accumulation(iBasin)
@@ -2006,7 +2008,8 @@ contains
       L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
       L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
       L11_CellCoor
-    use mo_common_variables, only : grid, level11, l11_Basin
+    use mo_common_variables, only : grid, l11_Basin
+    use mo_mrm_global_variables, only : level11
     use mo_common_constants, only : nodata_i4, nodata_dp
     use mo_append, only : append
 
@@ -2220,12 +2223,12 @@ contains
          Grid,                &
          L0_Basin,            & ! IN:    L0 Basin indexer
          level0,              & ! IN:    level 0 grid
-         level11,             & ! IN:    level 11 grid
          L0_LCover              ! IN:    Normal Landcover
     use mo_mrm_global_variables, only: &
          L0_fDir,             & ! IN:    flow direction (standard notation) L0
          L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
          L0_streamNet,        & ! IN:    stream Network at Level 0
+         level11,             & ! IN:    level 11 grid
          L11_fRow,            & ! IN:    from row in L0 grid 
          L11_fCol,            & ! IN:    from col in L0 grid
          L11_tRow,            & ! IN:    to row in L0 grid 
@@ -2254,7 +2257,6 @@ contains
     integer(i4), dimension(:,:), allocatable :: fAcc0
     real(dp),    dimension(:,:), allocatable :: slope0
     real(dp),    dimension(:), allocatable :: slope_tmp
-    integer(i4), dimension(:,:), allocatable :: lcover0
     real(dp),    dimension(:,:), allocatable :: cellarea0
     integer(i4), dimension(:),   allocatable :: netPerm         ! routing order (permutation)
     integer(i4), dimension(:),   allocatable :: nLinkFromRow   
@@ -2286,8 +2288,11 @@ contains
     nCells0 = level0_iBasin%ncells
     iStart0 = level0_iBasin%iStart
     iEnd0 = level0_iBasin%iEnd
+    mask0 = level0_iBasin%mask
 
     ! level-11 information
+    iStart11 = level11(iBasin)%iStart
+    iEnd11 = level11(iBasin)%iEnd
     nrows11 = level11(iBasin)%nrows
     ncols11 = level11(iBasin)%ncols
     nNodes = level11(iBasin)%ncells
@@ -2297,7 +2302,6 @@ contains
     ! allocate
     allocate ( iD0         ( nrows0, ncols0 ) )
     allocate ( slope0      ( nrows0, ncols0 ) )
-    allocate ( lcover0     ( nrows0, ncols0 ) )
     allocate ( fDir0       ( nrows0, ncols0 ) )
     allocate ( fAcc0       ( nrows0, ncols0 ) )
     allocate ( cellarea0   ( nrows0, ncols0 ) )
@@ -2325,7 +2329,6 @@ contains
     fAcc0(:,:)         = nodata_i4
     cellarea0(:,:)     = nodata_dp
     slope0(:,:)        = nodata_dp
-    lcover0(:,:)       = nodata_i4
 
     stack(:)           = nodata_dp
     append_chunk(:)    = nodata_dp
@@ -2349,7 +2352,6 @@ contains
         fDir0(:,:) = UNPACK(L0_fDir(iStart0:iEnd0), mask0, nodata_i4_tmp)
         fAcc0(:,:) = UNPACK(L0_fAcc(iStart0:iEnd0), mask0, nodata_i4_tmp)
         cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(iStart0:iEnd0), mask0, nodata_dp_tmp)
-        lcover0(:,:) = UNPACK(L0_LCover(iStart0:iEnd0, 1), mask0, nodata_i4_tmp)
 
         ! smoothing river slope
         slope_tmp = L0_slope(iStart0:iEnd0)
@@ -2358,7 +2360,6 @@ contains
         slopemask0(:) = (L0_streamNet(iStart0:iEnd0) .ne. nodata_i4)
 
         if( count(slopemask0) .GT. 1) then
-           print *, "Smoothing river slope ..."
            slope_tmp = mad2(arr = slope_tmp, z = 2.25_dp, mask = slopemask0)
         else
            print *, "Number of L0-stream-cells <= 1, no slope-smoothing possible..."
