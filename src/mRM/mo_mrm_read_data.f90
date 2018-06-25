@@ -44,13 +44,16 @@ contains
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Stephan Thober Jun 2018 - including varying celerity functionality
 
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
 
     use mo_append, only : append
-    use mo_common_constants, only : nodata_i4
+    use mo_common_constants, only : nodata_i4, nodata_dp
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_Basin, L0_LCover, dirMorpho, level0, nBasins, processMatrix
+    use mo_mpr_file, only: file_slope, uslope
+    use mo_mpr_global_variables, only: L0_slope
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, &
                             file_gaugeloc, ufacc, ufdir, ugaugeloc
@@ -79,6 +82,8 @@ contains
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
 
+    real(dp), dimension(:, :), allocatable :: data_dp_2d
+
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
     logical, dimension(:, :), allocatable :: mask_2d
@@ -105,11 +110,6 @@ contains
       deallocate(dataMatrix_i4)
     end if
 
-    if (processMatrix(8, 1) .eq. 3) then 
-       print *, 'call read_slope()'
-       stop 'testing'
-    end if
-
     do iBasin = 1, nBasins
 
       level0_iBasin => level0(L0_Basin(iBasin))
@@ -134,7 +134,7 @@ contains
       end if
 
       ! read fAcc, fDir, gaugeLoc
-      do iVar = 1, 3
+      do iVar = 1, 4
         select case (iVar)
         case(1) ! flow accumulation
           fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_facc))
@@ -145,15 +145,39 @@ contains
         case(3) ! location of gauging stations
           fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_gaugeloc))
           nunit = ugaugeloc
-        end select
-        !
-        ! reading and transposing
-        call read_spatial_data_ascii(trim(fName), nunit, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+       case(4)
+          fName = trim(adjustl(dirMorpho(iBasin))) // trim(adjustl(file_slope))
+          nunit = uslope
+       end select
 
-        ! put global nodata value into array (probably not all grid cells have values)
-        data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+       if (iVar .le. 3) then
+          !
+          ! reading and transposing
+          call read_spatial_data_ascii(trim(fName), nunit, &
+               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
+               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
+       end if
+
+#ifndef MRM2MHM
+       ! only read slope if not coupled to mHM and using third process Matrix
+       if ((iVar .eq. 4) .and. (processMatrix(8, 1) .eq. 3)) then
+          ! reading
+          call read_spatial_data_ascii(trim(fName), nunit, &
+               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
+               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, mask_2d)
+          ! put global nodata value into array (probably not all grid cells have values)
+          data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
+          ! put data in variable
+          call append(L0_slope, pack(data_dp_2d, level0_iBasin%mask))
+
+          ! deallocate arrays
+          deallocate(data_dp_2d, mask_2d)
+       end if
+#endif
+
         ! put data into global L0 variable
         select case (iVar)
         case(1) ! flow accumulation
@@ -204,7 +228,8 @@ contains
         end select
         !
         ! deallocate arrays
-        deallocate(data_i4_2d, mask_2d)
+        if (allocated(data_i4_2d)) deallocate(data_i4_2d)
+        if (allocated(mask_2d)) deallocate(mask_2d)
         !
       end do
     end do

@@ -537,7 +537,7 @@ contains
 
     ! check if parameter are in range
     if (.not. in_bound(global_parameters)) then
-      call message('***ERROR: parameter in namelist "routing1" out of bound in ', &
+      call message('***ERROR: parameter in routing namelist out of bound in ', &
               trim(adjustl(file_namelist_param)))
       stop
     end if

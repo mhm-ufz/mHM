@@ -49,7 +49,8 @@ contains
   ! Stephan Thober    Nov 2016 - added L11_TSrout, ProcessMatrix
   ! Matthias Kelbling Aug 2017 - added L11_fAcc, L0_slope, L0_celerity, L11_celerity, L11_meandering
   ! Robert Schweppe   Jun 2018 - refactoring and reformatting
-
+  ! Stephan Thboer    Jun 2018 - including varying celerity functionality
+  
   subroutine mrm_write_restart(iBasin, OutPath)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -63,7 +64,7 @@ contains
                                         L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
                                         L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
                                         L11_netPerm, L11_qOUT, L11_qTIN, L11_qTR, L11_rOrder, L11_rowOut, L11_rowOut, &
-                                        L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L1_L11_Id, L11_celerity, &
+                                        L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L11_celerity, &
                                         level11, basin_mrm
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
