@@ -41,10 +41,10 @@ MODULE mo_nml
 
   ! Copyright 2001-2011 Luis Kornblueh, Matthias Cuntz
 
-  USE mo_kind,         ONLY: i4
-  USE mo_string_utils, ONLY: tolower
-  USE mo_message,      ONLY: message, message_text
-  USE mo_finish,       ONLY: finish
+  USE mo_kind, ONLY : i4
+  USE mo_string_utils, ONLY : tolower
+  USE mo_message, ONLY : message, message_text
+  USE mo_finish, ONLY : finish
 
   IMPLICIT NONE
 
@@ -58,16 +58,16 @@ MODULE mo_nml
 
   ! return values in optinal status of function 'position_nml'
   !> Information: file pointer set to namelist group
-  INTEGER(i4), PARAMETER :: POSITIONED   =  0
+  INTEGER(i4), PARAMETER :: POSITIONED = 0
   !> Error: namelist group is missing
-  INTEGER(i4), PARAMETER :: MISSING      =  1
+  INTEGER(i4), PARAMETER :: MISSING = 1
   !> Error: namelist group name too long
-  INTEGER(i4), PARAMETER :: LENGTH_ERROR =  2
+  INTEGER(i4), PARAMETER :: LENGTH_ERROR = 2
   !> Error occured during read of namelist file
-  INTEGER(i4), PARAMETER :: READ_ERROR   =  3
+  INTEGER(i4), PARAMETER :: READ_ERROR = 3
 
   ! default namelist unit
-  INTEGER,     SAVE      :: nunitnml         = -1
+  INTEGER, SAVE :: nunitnml = -1
 
   ! ------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ CONTAINS
 
   !     CALLING SEQUENCE
   !         call open_nml(file, unit, quiet=quiet)
-  
+
   !     INTENT(IN)
   !>        \param[in] "character(len=*) :: file"   namelist filename
   !>        \param[in] "integer          :: unit"   namelist unit
@@ -95,7 +95,7 @@ CONTAINS
   !         None
 
   !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: logical :: quiet"   Be verbose or not (default: .true.)\n
+  !>       \param[in] "logical, optional :: quiet"   Be verbose or not (default: .true.)\n
   !>                                                            .true.:  no messages\n
   !>                                                            .false.: write out messages
 
@@ -119,28 +119,28 @@ CONTAINS
   !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   !>        \date Dec 2011
   !         Modified, Matthias Cuntz, Jan 2013 - quiet=.true. default
-  !         Modified, Luis Samaniegi, Nov 2013 comparison statements == -> .eq., etc
+  !         Modified, Luis Samaniego, Nov 2013 comparison statements == -> .eq., etc
 
   SUBROUTINE open_nml(file, unit, quiet)
 
     IMPLICIT NONE
 
-    CHARACTER(len=*), INTENT(IN) :: file
-    INTEGER         , INTENT(IN) :: unit
-    LOGICAL         , INTENT(IN), OPTIONAL :: quiet
+    CHARACTER(len = *), INTENT(IN) :: file
+    INTEGER, INTENT(IN) :: unit
+    LOGICAL, INTENT(IN), OPTIONAL :: quiet
     INTEGER :: istat
     LOGICAL :: iquiet
 
     iquiet = .false.
-    if (present(quiet)) iquiet=quiet
+    if (present(quiet)) iquiet = quiet
 
     nunitnml = unit
     if (.not. iquiet) CALL message('    This is namelist ', trim(file))
-    OPEN (nunitnml, file=file, iostat=istat, status='old', action='read', delim='apostrophe')
+    OPEN (nunitnml, file = file, iostat = istat, status = 'old', action = 'read', delim = 'apostrophe')
 
     IF (istat .ne. 0) THEN
-       write(message_text,'(A,A)') 'Could not open namelist file ', trim(file)
-      CALL finish('OPEN_NML',trim(message_text))
+      write(message_text, '(A,A)') 'Could not open namelist file ', trim(file)
+      CALL finish('OPEN_NML', trim(message_text))
     END IF
 
   END SUBROUTINE open_nml
@@ -155,7 +155,7 @@ CONTAINS
 
   !     CALLING SEQUENCE
   !         call close_nml(unit=unit)
-  
+
   !     INTENT(IN)
   !         None
 
@@ -202,12 +202,12 @@ CONTAINS
 
     nnml = nunitnml
     if (present(unit)) nnml = unit
-    
-    IF (nnml .lt. 0) CALL finish('CLOSE_NML','No namelist file opened.')
 
-    CLOSE(nnml, IOSTAT=istat)
+    IF (nnml .lt. 0) CALL finish('CLOSE_NML', 'No namelist file opened.')
 
-    IF (istat .ne. 0) CALL finish('CLOSE_NML','Could not close namelist file.')
+    CLOSE(nnml, IOSTAT = istat)
+
+    IF (istat .ne. 0) CALL finish('CLOSE_NML', 'Could not close namelist file.')
 
     if (.not. present(unit)) nunitnml = -1
 
@@ -227,7 +227,7 @@ CONTAINS
 
   !     CALLING SEQUENCE
   !         call position_nml(name, unit=unit, status=status, first=first)
-  
+
   !     INTENT(IN)
   !>        \param[in] "character(len=*) :: name"     namelist name (case independent)
 
@@ -273,95 +273,95 @@ CONTAINS
 
     IMPLICIT NONE
 
-    CHARACTER(len=*), INTENT(in)            :: name   ! namelist group name
-    INTEGER,          INTENT(in),  OPTIONAL :: unit   ! file unit number
-    INTEGER(i4),      INTENT(out), OPTIONAL :: status ! error return value
-    LOGICAL,          INTENT(in),  OPTIONAL :: first  ! default: true
+    CHARACTER(len = *), INTENT(in) :: name   ! namelist group name
+    INTEGER, INTENT(in), OPTIONAL :: unit   ! file unit number
+    INTEGER(i4), INTENT(out), OPTIONAL :: status ! error return value
+    LOGICAL, INTENT(in), OPTIONAL :: first  ! default: true
 
-    CHARACTER(len=256) :: yline    ! line read
-    CHARACTER(len=256) :: test     ! uppercase namelist group name
-    INTEGER(i4)        :: stat     ! local copy of status variable
-    INTEGER            :: ios      ! status variable from read operation
-    LOGICAL            :: lrew     ! local copy of rewind flag
-    INTEGER(i4)        :: iunit    ! local copy of unit number
-    INTEGER(i4)        :: len_name ! length of requested namelist group name
-    CHARACTER          :: ytest    ! character to test for delimiter
-    CHARACTER(len=12)  :: code     ! error code printed
-    INTEGER(i4)        :: ind      ! index from index routine
-    INTEGER(i4)        :: indc     ! index of comment character (!)
+    CHARACTER(len = 256) :: yline    ! line read
+    CHARACTER(len = 256) :: test     ! uppercase namelist group name
+    INTEGER(i4) :: stat     ! local copy of status variable
+    INTEGER :: ios      ! status variable from read operation
+    LOGICAL :: lrew     ! local copy of rewind flag
+    INTEGER(i4) :: iunit    ! local copy of unit number
+    INTEGER(i4) :: len_name ! length of requested namelist group name
+    CHARACTER :: ytest    ! character to test for delimiter
+    CHARACTER(len = 12) :: code     ! error code printed
+    INTEGER(i4) :: ind      ! index from index routine
+    INTEGER(i4) :: indc     ! index of comment character (!)
 
-    lrew  = .TRUE.
-    IF (PRESENT(first)) lrew  = first
-    iunit =  nunitnml
-    IF (PRESENT(unit)) iunit = unit   
-    stat  =  MISSING
-    code  = 'MISSING'
+    lrew = .TRUE.
+    IF (PRESENT(first)) lrew = first
+    iunit = nunitnml
+    IF (PRESENT(unit)) iunit = unit
+    stat = MISSING
+    code = 'MISSING'
 
     len_name = LEN_TRIM(name)
 
-    IF ( len_name .gt. LEN(test) ) THEN
-       stat =  LENGTH_ERROR
-       code = 'LENGTH_ERROR'
+    IF (len_name .gt. LEN(test)) THEN
+      stat = LENGTH_ERROR
+      code = 'LENGTH_ERROR'
     END IF
 
     !test = '&'//tolower(name)
-    write(test,'(A,A)') '&', tolower(name)
+    write(test, '(A,A)') '&', tolower(name)
 
     ! Reposition file at beginning:
     IF (lrew) REWIND(iunit)
 
     ! Search start of namelist
     DO
-       IF (stat .ne. MISSING) EXIT
+      IF (stat .ne. MISSING) EXIT
 
-       yline = ' '
+      yline = ' '
 
-       READ (iunit,'(a)', IOSTAT=ios ) yline
-       IF (ios .lt. 0) THEN
-          EXIT  ! MISSING
-       ELSE IF (ios .gt. 0) THEN
-          stat =  READ_ERROR
-          code = 'READ_ERROR'
-          EXIT
-       END IF
+      READ (iunit, *, IOSTAT = ios) yline
+      IF (ios .lt. 0) THEN
+        EXIT  ! MISSING
+      ELSE IF (ios .gt. 0) THEN
+        stat = READ_ERROR
+        code = 'READ_ERROR'
+        EXIT
+      END IF
 
-       yline = tolower(yline)
+      yline = tolower(yline)
 
-       ind = INDEX(yline,TRIM(test))
+      ind = INDEX(yline, TRIM(test))
 
-       IF (ind .eq. 0) CYCLE
+      IF (ind .eq. 0) CYCLE
 
-       indc = INDEX(yline,'!')
+      indc = INDEX(yline, '!')
 
-       IF (indc .gt. 0 .AND. indc .lt. ind) CYCLE
+      IF (indc .gt. 0 .AND. indc .lt. ind) CYCLE
 
-       ! test for delimiter
-       ytest = yline(ind+len_name+1:ind+len_name+1)
+      ! test for delimiter
+      ytest = yline(ind + len_name + 1 : ind + len_name + 1)
 
-       IF ( (LGE(ytest,'0') .AND. LLE(ytest,'9')) .OR. &
-            (LGE(ytest,'a') .AND. LLE(ytest,'z')) .OR. &
-            ytest .eq. '_'                         .OR. &
-            (LGE(ytest,'A') .AND. LLE(ytest,'Z'))) THEN
-          CYCLE
-       ELSE 
-          stat = POSITIONED
-          BACKSPACE(iunit)
-          EXIT
-       END IF
+      IF ((LGE(ytest, '0') .AND. LLE(ytest, '9')) .OR. &
+              (LGE(ytest, 'a') .AND. LLE(ytest, 'z')) .OR. &
+              ytest .eq. '_'                         .OR. &
+              (LGE(ytest, 'A') .AND. LLE(ytest, 'Z'))) THEN
+        CYCLE
+      ELSE
+        stat = POSITIONED
+        BACKSPACE(iunit)
+        EXIT
+      END IF
     END DO
 
     IF (PRESENT(status)) status = stat
     SELECT CASE (stat)
     CASE (POSITIONED)
-       RETURN
+      RETURN
     CASE (MISSING)
-       IF (PRESENT(status)) RETURN
+      IF (PRESENT(status)) RETURN
     END SELECT
 
     ! Error if it reaches here
     !message_text = 'namelist /'//TRIM(name)//'/ '//code
-    write(message_text,'(A,A,A,A)') 'namelist /', trim(name), '/ ', trim(code)
-    CALL finish('POSITION_NML',message_text)
+    write(message_text, '(A,A,A,A)') 'namelist /', trim(name), '/ ', trim(code)
+    CALL finish('POSITION_NML', message_text)
 
   END SUBROUTINE position_nml
 

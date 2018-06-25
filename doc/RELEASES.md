@@ -1,5 +1,81 @@
 # mHM RELEASE NOTES
 
+
+## mHM v5.9 (July 2018)
+
+### New Features:
+
+- Major restructuralization of the mHM code.
+- MPR is now executed before mHM is run.
+- MPR can be compiled as a standalone tool.
+- mHM without mRM can be compiled.
+- The code in general is strictly reorganized into modules that belong
+to their respective processes (MPR, mHM, mRM). This is not only done
+for constants, global variables and so on, but also for every module
+and the reading of input as well as the namelists.
+- This leads to the creation of those folders:
+ - `./common` (code shared by MPR, mHM and mRM) included for every compilation option
+ - `./lib` (code shared by MPR, mHM and mRM) included for every compilation option
+ - `./MPR` (code for MPR), not included for mRM standalone
+ - `./common_mHM_mRM` (code shared by mHM and mRM), not included for MPR standalone
+ - `./mHM` (code for mHM), not included for MPR and mRM standalone
+ - `./mRM` (code for mRM), not included for MPR standalone and mHM without routing
+- Code is reformatted (indentation=2, spacing unified)
+- Removed many duplicate code parts (e.g. shared between mHM and mRM)
+- Check cases are minimized (reduced output, shorter time periods (<=2 years), less basins)
+- Check cases can now be set up more easily (by use of model_wrapper for automatic creation of new nml files)
+- Check cases now run a python script for output comparison, advantage: tolerance now also allowed for ascii-output and support of 4-D netCDF files without time dimension
+- fSealed is now an effective parameter
+- mHM effective parameters now all have three dimensions internally (nCells_L1, [iHorizon, LAI-Time], nLCoverScenes)
+- Introduction of new derived types:
+ - `Grid` (merge of basin_info, basin_info_mrm, gridGeoRef, nCells, longitude, latitude, Id) used for each level (0, 1, 11, 2) individually
+ - `GridRemapper` (merge of lower_bound, upper_bound, etc.)
+- mhm_eval and mrm_eval now have common procedure interface (needed for fully flexible optimisation)
+- A new post-processor can check and adapt some fields for doxygen generation
+
+- Changes that are not backwards-compatible:
+ - Restart files are restructured (now contain only the minimum required for restart):
+ - MPR: effective parameters at L1 + grid information
+ - mHM: effective parameters, states and fluxes at L1 + grid information
+ - mRM: routing-specific parameters, states, fluxes, configs at L1/L11 + grid information
+ - mhm.nml is restructured and not backwards compatible mainly due to the reorganization of modules in dependency of their processes
+ - gridded LAI values are now used for all effective parameters (no fallback to LAIclasses anymore)
+ - canopy height used for aerodynamic resistance is now scaled with the actual LAI timeseries and not with a dummy timeseries of intensive orchard
+
+- Considerable improvements and reduced redundancy in estimation of an empirical distribution of slopes (sort function in the mo_startup).
+Example for the Australian domain (180 million L0 cells), it reduced time for sorting slope from 32hours to only 1 minute.
+- mtCLIM preprocessor in pre-proc/mtCLIM, based on [mtCLIM v4.3](http://www.ntsg.umt.edu/project/mt-clim.php). This code
+is able to estimate humidity (vapore pressure or vapore pressure deficit) and incoming shortwave radiation based on meteorological variables
+(minimum and maximum air temperature, precipitation) and morphological characteristics of the underlying terrain (digital elevation model, slope, aspect).
+- mHM2OGS preprocessor in pre-proc/GIS2FEM3. This code converts the
+triangular-wise or quadrilateral-wise recharge data from mHM
+into the nodal source terms of a three dimensional finite element model for [OGS](https://www.ufz.de/index.php?en=38011).
+- Updated documentation for CYGWIN installations under Windows 7
+and 10.
+- Added new objective function number 31: weighted NSE (NSE is
+weighted with observed discharge)
+- Removal of bin files and related code (only nc and ascii files are used)
+
+### Bugs resolved from release 5.8:
+
+- Enable use of i8 for time_data in common/mo_read_forcing_nc.f90,
+  otherwise netcdf time stamps with initial dates prior to 1900 were
+  wrong (due to overflow)
+
+### Known bugs:
+
+None.
+
+### Restrictions:
+
+- For `gfortran` compilers mHM supports only v4.8 and higher.
+- If you wish to use features connected to ground albedo neutrons (`processCase(9)`), please contact [Martin Schrön](mailto:martin.schroen@ufz.de).
+- If you wish to use the multi-scale Routing Model as stand-alone version, please contact [Stephan Thober](mailto:stephan.thober@ufz.de).
+
+
+
+
+
 ## mHM v5.8 (Dec 2017)
 
 ### New Features:

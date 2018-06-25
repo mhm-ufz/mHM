@@ -67,7 +67,7 @@ module mo_timer
 
   ! Copyright 2012 Matthias Cuntz
 
-  use mo_kind, only: i4, sp
+  use mo_kind, only : i4, sp
 
   implicit none
 
@@ -92,19 +92,19 @@ module mo_timer
 
   ! Save variables
   !> max number of timers allowed
-  integer(i4),      parameter                   :: max_timers = 99
+  integer(i4), parameter :: max_timers = 99
   !> max value of clock allowed by system
-  integer(i4),                             save :: cycles_max
+  integer(i4), save :: cycles_max
   !> clock_rate in seconds for each cycle
-  real(sp),                                save :: clock_rate
+  real(sp), save :: clock_rate
   !> cycle number at start for each timer
-  integer(i4),      dimension(max_timers), save :: cycles1
+  integer(i4), dimension(max_timers), save :: cycles1
   !> cycle number at stop  for each timer
-  integer(i4),      dimension(max_timers), save :: cycles2
+  integer(i4), dimension(max_timers), save :: cycles2
   !> accumulated cpu time in each timer
-  real(sp),         dimension(max_timers), save :: cputime
+  real(sp), dimension(max_timers), save :: cputime
   !>  timer status string
-  character(len=8), dimension(max_timers), save :: status
+  character(len = 8), dimension(max_timers), save :: status
 
   ! -----------------------------------------------------------------------
 
@@ -160,8 +160,8 @@ contains
     integer(i4), intent(in) :: timer            ! timer number
 
     if (status(timer) .eq. 'running') then
-       call timer_stop (timer)
-       call timer_start(timer)
+      call timer_stop (timer)
+      call timer_start(timer)
     end if
 
   end subroutine timer_check
@@ -216,9 +216,9 @@ contains
     integer(i4), intent(in), optional :: timer            ! timer number
 
     if (present(timer)) then
-       cputime(timer) = 0.0_sp ! clear the timer
+      cputime(timer) = 0.0_sp ! clear the timer
     else
-       cputime(:)     = 0.0_sp ! clear all timers
+      cputime(:) = 0.0_sp ! clear all timers
     end if
 
   end subroutine timer_clear
@@ -275,11 +275,11 @@ contains
     real(sp) :: timer_get   ! accumulated cputime in given timer
 
     if (status(timer) .eq. 'stopped') then
-       timer_get = cputime(timer)
+      timer_get = cputime(timer)
     else
-       call timer_stop(timer)
-       timer_get = cputime(timer)
-       call timer_start(timer)
+      call timer_stop(timer)
+      timer_get = cputime(timer)
+      call timer_start(timer)
     end if
 
   end function timer_get
@@ -337,13 +337,13 @@ contains
     !---
 
     if (status(timer) .eq. 'stopped') then
-       write(*,"(' CPU time for timer',i3,':',1p,e16.8)")   &
-            timer,cputime(timer)
+      write(*, "(' CPU time for timer',i3,':',1p,e16.8)")   &
+              timer, cputime(timer)
     else
-       call timer_stop(timer)
-       write(*,"(' CPU time for timer',i3,':',1p,e16.8)")   &
-            timer,cputime(timer)
-       call timer_start(timer)
+      call timer_stop(timer)
+      write(*, "(' CPU time for timer',i3,':',1p,e16.8)")   &
+              timer, cputime(timer)
+      call timer_start(timer)
     end if
 
   end subroutine timer_print
@@ -400,8 +400,8 @@ contains
     !---
 
     if (status(timer) .eq. 'stopped') then
-       call system_clock(count=cycles1(timer))
-       status(timer) = 'running'
+      call system_clock(count = cycles1(timer))
+      status(timer) = 'running'
     end if
 
   end subroutine timer_start
@@ -455,29 +455,29 @@ contains
 
     if (status(timer) .eq. 'running') then
 
-       !---
-       !--- Stop the desired timer.
-       !---
+      !---
+      !--- Stop the desired timer.
+      !---
 
-       call system_clock(count=cycles2(timer))
+      call system_clock(count = cycles2(timer))
 
-       !---
-       !--- check and correct for cycle wrapping
-       !---
+      !---
+      !--- check and correct for cycle wrapping
+      !---
 
-       if (cycles2(timer) .ge. cycles1(timer)) then
-          cputime(timer) = cputime(timer) + clock_rate*   &
-               (cycles2(timer) - cycles1(timer))
-       else
-          cputime(timer) = cputime(timer) + clock_rate*   &
-               (cycles2(timer) - cycles1(timer) + cycles_max)
-       end if
+      if (cycles2(timer) .ge. cycles1(timer)) then
+        cputime(timer) = cputime(timer) + clock_rate * &
+                (cycles2(timer) - cycles1(timer))
+      else
+        cputime(timer) = cputime(timer) + clock_rate * &
+                (cycles2(timer) - cycles1(timer) + cycles_max)
+      end if
 
-       !---
-       !--- Change timer status.
-       !---
+      !---
+      !--- Change timer status.
+      !---
 
-       status(timer)='stopped'
+      status(timer) = 'stopped'
 
     end if
 
@@ -544,20 +544,20 @@ contains
     cycles1(:) = 0
     cycles2(:) = 0
     cputime(:) = 0.0_sp
-    status(:)  = 'stopped'
+    status(:) = 'stopped'
 
     !---
     !--- Call F90 intrinsic system_clock to determine clock rate
     !--- and maximum cycles.  If no clock available, print message.
     !---
 
-    call system_clock(count_rate=cycles, count_max=cycles_max)
+    call system_clock(count_rate = cycles, count_max = cycles_max)
 
     if (cycles /= 0) then
-       clock_rate = 1.0_sp/real(cycles)
+      clock_rate = 1.0_sp / real(cycles)
     else
-       clock_rate = 0.0_sp
-       print *, '--- No system clock available ---'
+      clock_rate = 0.0_sp
+      print *, '--- No system clock available ---'
     end if
 
   end subroutine timers_init

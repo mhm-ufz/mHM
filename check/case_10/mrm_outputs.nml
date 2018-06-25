@@ -15,7 +15,7 @@
 ! -1: daily
 ! -2: monthly
 ! -3: yearly
-timeStep_model_outputs_mrm = -1
+timeStep_model_outputs_mrm = 0
 !
 !----------------
 ! 1. Fluxes

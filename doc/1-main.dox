@@ -160,7 +160,7 @@ optimization algorithms \cite PG2009 . To overcome this problem a
 multiscale parameter regionalization (MPR) was employed in the mHM
 model \cite SKA2010 .
 
-\image html upscaling.png "MPR"
+\image html upscaling.pdf "MPR"
 \anchor fig_mpr \image latex upscaling.pdf "MPR" width=10cm
 
 Based on this regionalization method, model parameters at a coarser

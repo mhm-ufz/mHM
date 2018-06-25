@@ -1,0 +1,15 @@
+/**
+ * \file Configure.h.in
+ *
+ * #defines which gets set through CMake
+ */
+ #ifndef CONFIGURE_H
+ #define CONFIGURE_H
+
+
+
+#cmakedefine _POSIX_SOURCE
+#cmakedefine NO_ERROR_CONTROL
+
+
+#endif // CONFIGURE_H

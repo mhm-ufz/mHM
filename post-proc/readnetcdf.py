@@ -39,12 +39,12 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         units        get list of units of variables from attribute units
         longnames    get list of long names of variables from
                      attribute long_name
-        attributes   get dictionary of all attributes of specific variable
+        attributes   get dictionary of all attributes of specific variable or of file if variable is omitted
         sort         sort variable names. Codes, units and longnames will be
                      sorted accoringly so that indeces still match.
         pointer      if True, (return file pointer, variable pointer); only for reading
-        overwrite    if True, (return file pointer, variable pointer); modification of file/variable possible
-
+        overwrite    if True, (return file pointer, variable pointer); modification of file/variable possible if
+                     file contains only one variable
 
         Output
         ------
@@ -144,7 +144,7 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         GNU Lesser General Public License for more details.
 
         You should have received a copy of the GNU Lesser General Public License
-        along with the UFZ makefile project (cf. gpl.txt and lgpl.txt).
+        along with the UFZ Python package (cf. gpl.txt and lgpl.txt).
         If not, see <http://www.gnu.org/licenses/>.
 
         Copyright 2009-2014 Matthias Cuntz, Stephan Thober
@@ -158,6 +158,8 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
                   MC, Oct 2013 - netcdfread, ncread, readnc
                   ST, Apr 2014 - added overwrite flag
                   ST, May 2014 - added dims flag
+                  ST, Jun 2016 - added read of file attributes
+                  ST, Aug 2016 - restricted use of overwrite option
     """
     try:
         import netCDF4 as nc
@@ -167,6 +169,9 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
     try:
         if overwrite:
             f = nc.Dataset(file, 'a')
+            if len(f.variables) > 1:
+                f.close()
+                raise ValueError('ERROR: only use the overwrite option for files with one variable.')
         else:
             f = nc.Dataset(file, 'r')
     except IOError:
@@ -255,7 +260,14 @@ def readnetcdf(file, var='', code=-1, reform=False, squeeze=False,
         return slongs
     # Get attributes
     if attributes:
-        if var not in vars:
+        if var == '':
+            attrs = dict()
+            attr = f.ncattrs()
+            for a in attr:
+                attrs[a] = getattr(f, a)
+            f.close()
+            return attrs
+        elif var not in vars:
             f.close()
             raise ValueError('Variable '+var+' not in file '+file)
         attrs = dict()

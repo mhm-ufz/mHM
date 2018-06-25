@@ -1,21 +1,145 @@
-!> \file mo_common_variables.f90
+!>       \file mo_common_variables.f90
 
-!> \brief Provides structures needed by mHM and mRM.
+!>       \brief Provides structures needed by mHM, mRM and/or mpr.
 
-!> \details Provides the global structure period that is used
-!>     by both mHM and mRM.
+!>       \details Provides the global structure period that is used
+!>       by both mHM and mRM.
 
-!> \author Stephan Thober
-!> \date Sep 2015
-!  Modified Stephan Thober, Nov 2016 - moved processdescription from mo_global_variables to here
+!>       \authors Stephan Thober
+
+!>       \date Sep 2015
+
+! Modifications:
+! Stephan Thober  Nov 2016 - moved processdescription from mo_global_variables to here
+! Robert Schweppe Dec 2017 - merged more duplicated variables from mhm and mrm global variables
+! Robert Schweppe Jun 2018 - refactoring and reformatting
+
+
 module mo_common_variables
-  use mo_kind, only: i4, i8, dp
+
+  use mo_kind, only : i4, i8, dp
   implicit none
+
+  ! -------------------------------------------------------------------
+  ! PROJECT DESCRIPTION for the NETCDF output file
+  ! -------------------------------------------------------------------
+  character(1024), public :: project_details            ! project including funding instituion., PI, etc.
+  character(1024), public :: setup_description          ! any specific description of simulation
+  character(1024), public :: simulation_type            ! e.g. seasonal forecast, climate projection, ...
+  character(256), public :: Conventions                ! convention used for dataset
+  character(1024), public :: contact                    ! contact details, incl. PI name
+  character(1024), public :: mHM_details                ! developing institution, specific mHM revision
+  character(1024), public :: history                    ! details on version/creation date
+
+  ! -------------------------------------------------------------------
+  ! INPUT variables for configuration of main part
+  ! -------------------------------------------------------------------
+  integer(i4), public :: iFlag_cordinate_sys        ! options model for the run cordinate system
+  real(dp), dimension(:), allocatable, public :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
+  integer(i4), dimension(:), allocatable, public :: L0_Basin
+  logical, public :: write_restart              ! flag
+
+  ! ------------------------------------------------------------------
+  ! DIRECTORIES
+  ! ------------------------------------------------------------------
+  ! has the dimension of nBasins
+  character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
+  character(256), public :: dirConfigOut
+  character(256), public :: dirCommonFiles ! directory where common input files should be located
+  character(256), dimension(:), allocatable, public :: dirMorpho ! Directory where morphological files are located
+  character(256), dimension(:), allocatable, public :: dirLCover ! Directory where land cover files are located
+  character(256), dimension(:), allocatable, public :: dirOut ! Directory where output is written to
+  character(256), dimension(:), allocatable, public :: fileLatLon ! Directory where the Lat Lon Files are located
+
+  ! -------------------------------------------------------------------
+  ! PERIOD description
+  ! -------------------------------------------------------------------
+  type period
+    integer(i4) :: dStart      ! first day
+    integer(i4) :: mStart      ! first month
+    integer(i4) :: yStart      ! first year
+    integer(i4) :: dEnd        ! last  day
+    integer(i4) :: mEnd        ! last  month
+    integer(i4) :: yEnd        ! last  year
+    integer(i4) :: julStart    ! first julian day
+    integer(i4) :: julEnd      ! last  julian day
+    integer(i4) :: nObs        ! total number of observations
+  end type period
+
+  ! -------------------------------------------------------------------
+  ! GRID description
+  ! -------------------------------------------------------------------
+  type Grid
+    ! general basin information
+    integer(i4) :: ncols     ! Number of columns
+    integer(i4) :: nrows     ! Number of rows
+    integer(i4) :: nCells     ! Number of rows
+    real(dp) :: xllcorner    ! x coordinate of the lowerleft corner
+    real(dp) :: yllcorner    ! y coordinate of the lowerleft corner
+    real(dp) :: cellsize     ! Cellsize x = cellsize y
+    real(dp) :: nodata_value ! Code to define the mask
+    real(dp), dimension(:, :), allocatable :: x  ! 2d longitude array (unmasked version is needed for output anyway)
+    real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
+    logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
+    ! for referencing values in the nValidCells vector
+    integer(i4) :: iStart          ! Starting cell index of a given basin
+    integer(i4) :: iEnd            ! Ending cell index of a given basin
+    ! dimension(nCells, (x,y) )
+    integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
+    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sqkm
+    integer(i4), dimension(:), allocatable :: Id
+
+  end type Grid
+
+  type(Grid), dimension(:), target, allocatable, public :: level0 ! grid information at morphological level (e.g., dem, fDir)
+  type(Grid), dimension(:), target, allocatable, public :: level1 ! grid information at runoff level
+
+  type GridRemapper
+    type(Grid), pointer :: high_res_grid
+    type(Grid), pointer :: low_res_grid
+
+    ! dimension nCells
+    integer(i4), dimension(:), allocatable :: lower_bound  ! 1d index of lower side subgrid
+    integer(i4), dimension(:), allocatable :: upper_bound  ! 1d index of upper side subgrid
+    integer(i4), dimension(:), allocatable :: left_bound  ! 1d index of left side subgrid
+    integer(i4), dimension(:), allocatable :: right_bound  ! 1d index of right side subgrid
+    integer(i4), dimension(:), allocatable :: n_subcells   ! 1d numberof valid subgrid cells
+    integer(i4), dimension(:, :), allocatable :: lowres_id_on_highres   ! 2d index array of lowres id
+
+  end type GridRemapper
+
+  type(GridRemapper), dimension(:), allocatable, public :: l0_l1_remap ! grid information at morphological level (e.g., dem, fDir)
+
+  ! -------------------------------------------------------------------
+  ! L0 DOMAIN description -> <only domain>
+  ! -------------------------------------------------------------------
+  ! dim1 = number grid cells
+  ! input data - morphological variables
+  real(dp), public, dimension(:), allocatable :: L0_elev    ! [m]      Elevation (sinks removed)
+  !          target variable for coupling to mRM
+  integer(i4), public, dimension(:, :), allocatable :: L0_LCover      ! Classic mHM landcover class (upto 3 classes)
+  !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
+  !                                                                          ! target variable for coupling to mRM
+
+  ! -------------------------------------------------------------------
+  ! BASIN general description
+  ! -------------------------------------------------------------------
+  integer(i4), public :: nBasins ! Number of basins for multi-basin optimization
+  integer(i4), public :: nuniquel0Basins ! Number of unique basins for L0
+
+  ! -----------------------------------------------------------------
+  ! LAND COVER DATA
+  ! -----------------------------------------------------------------
+  ! Land cover information
+  integer(i4), public :: nLCoverScene        ! Number of land cover scene (lcs)
+  character(256), dimension(:), allocatable, public :: LCfilename          ! file names for the different lcs
+  integer(i4), dimension(:), allocatable, public :: LC_year_start       ! vector of start years for lcs
+  integer(i4), dimension(:), allocatable, public :: LC_year_end         ! vector of end years for lcs
 
   ! -------------------------------------------------------------------
   ! PROCESSES description
   ! -------------------------------------------------------------------
-  integer(i4), parameter,                public :: nProcesses = 10 ! Number of possible processes to consider
+  integer(i4), parameter, public :: nProcesses = 10 ! Number of possible processes to consider
   !                                                                !   process 1 :: interception
   !                                                                !   process 2 :: snow
   !                                                                !   process 3 :: soilmoisture
@@ -33,70 +157,24 @@ module mo_common_variables
   !                                                                !   col3: cum. no. of parameters
 
   ! -------------------------------------------------------------------
-  ! PERIOD description
+  ! PARAMETERS
   ! -------------------------------------------------------------------
-  type period
-      integer(i4) :: dStart      ! first day
-      integer(i4) :: mStart      ! first month
-      integer(i4) :: yStart      ! first year
-      integer(i4) :: dEnd        ! last  day
-      integer(i4) :: mEnd        ! last  month
-      integer(i4) :: yEnd        ! last  year
-      integer(i4) :: julStart    ! first julian day 
-      integer(i4) :: julEnd      ! last  julian day 
-      integer(i4) :: nObs        ! total number of observations
-   end type period
-   ! -------------------------------------------------------------------
-   ! OPTIMIZATION
-   ! -------------------------------------------------------------------
-   integer(i4), public                              :: opti_method         ! Optimization algorithm:
-   !                                                                       ! 1 - DDS
-   !                                                                       ! 2 - Simulated Annealing
-   !                                                                       ! 3 - SCE
-   integer(i4), public                              :: opti_function       ! Objective function:
-   !                                                                       ! 1 - 1.0-NSE
-   !                                                                       ! 2 - 1.0-lnNSE
-   !                                                                       ! 3 - 1.0-0.5*(NSE+lnNSE)
-   logical,     public                              :: optimize            ! Optimization   (.true. ) or
-   !                                                                       ! Evaluation run (.false.)
-   logical,     public                              :: optimize_restart    ! Optimization will be restarted from
-   !                                                                       ! mo_<opti_method>.restart file (.true.)
-   ! settings for optimization algorithms: 
-   integer(i8), public                              :: seed                ! seed used for optimization
-   !                                                                       ! default: -9 --> system time 
-   integer(i4), public                              :: nIterations         ! number of iterations for optimization
-   real(dp),    public                              :: dds_r               ! DDS: perturbation rate
-   !                                                                       !      default: 0.2
-   real(dp),    public                              :: sa_temp             ! SA:  initial temperature
-   !                                                                       !      default: -9.0 --> estimated
-   integer(i4), public                              :: sce_ngs             ! SCE: # of complexes
-   !                                                                       !      default: 2
-   integer(i4), public                              :: sce_npg             ! SCE: # of points per complex
-   !                                                                       !      default: -9 --> 2n+1
-   integer(i4), public                              :: sce_nps             ! SCE: # of points per subcomplex
-   !                                                                       !      default: -9 --> n+1
-   logical,     public                              :: mcmc_opti           ! MCMC: Optimization (.true. ) or
-   !                                                                       !       Only parameter uncertainty (.false.)
-   integer(i4), public, parameter                   :: nerror_model = 2    !       # possible parameters in error model
-   !                                                                       !       e.g. for opti_function=8: 2
-   real(dp),    public, dimension(nerror_model)     :: mcmc_error_params   !       Parameters of error model if mcmc_opti=.false.
-   !                                                                       !       e.g. for opti_function=8: 0.01, 0.3
-   
-   ! -------------------------------------------------------------------
-   ! PARAMETERS
-   ! -------------------------------------------------------------------
-   real(dp),       dimension(:,:), allocatable, public :: global_parameters      ! Matrix of global parameters (former: gamma)
-   !                                                                             !   col1: min,  col2: max, col3: initial, 
-   !                                                                             !   col4: flag, col5: scaling
-   character(256), dimension(:), allocatable,   public :: global_parameters_name ! Matrix of global parameters (former: gamma)
-   !                                                                             !   col1: names
-   ! -------------------------------------------------------------------
-   ! ALMA convention
-   ! -------------------------------------------------------------------
-   logical :: ALMA_convention ! flag for ALMA convention
-   !                          ! see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
-   !                          ! .True.: ALMA convention is used for Input/Output
-   !                          ! .False.: default mHM units are used
-   !                          ! CAUTION: only Qall is considered at the moment
-   
+  real(dp), dimension(:, :), allocatable, public, target :: global_parameters
+  !                                                               ! Matrix of global parameters (former: gamma)
+  !                                                               !   col1: min,  col2: max, col3: initial,
+  !                                                               !   col4: flag, col5: scaling
+  character(256), dimension(:), allocatable, public :: global_parameters_name
+  !                                                               ! Matrix of global parameters (former: gamma)
+  !                                                               !   col1: names
+  ! -------------------------------------------------------------------
+  ! ALMA convention
+  ! -------------------------------------------------------------------
+  ! TODO: this is currently used only be mRM, but could be useful for MPR and mHM also, ...
+  ! so it is already in common_variables
+  logical :: ALMA_convention ! flag for ALMA convention
+  !                          ! see http://www.lmd.jussieu.fr/~polcher/ALMA/convention_3.html
+  !                          ! .True.: ALMA convention is used for Input/Output
+  !                          ! .False.: default mHM units are used
+  !                          ! CAUTION: only Qall is considered at the moment
+
 end module mo_common_variables
