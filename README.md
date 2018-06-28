@@ -9,7 +9,6 @@
 
 **Please note:** The [GitLab repository](https://git.ufz.de/mhm/mhm) grants read access to the code of the release versions only.
 If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:mhm-admin@ufz.de).
-The [repository on GitHub.com](https://github.com/mhm-ufz/mhm) will be always a mirror of the releases at [GitLab](https://git.ufz.de/mhm) and is not meant for development.
 
 ## Cite as
 
