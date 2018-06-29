@@ -30,8 +30,6 @@ MODULE mo_mad
   Implicit NONE
 
   PUBLIC :: mad             ! Mean absolute deviation test
-  PUBLIC :: mad2            ! Same as above but the output is the 
-                            ! modified vector, and an info is printed 
 
   ! ------------------------------------------------------------------
 
@@ -45,12 +43,22 @@ MODULE mo_mad
   !
   !         If an optinal mask is given, the mad test is only performed on those locations that correspond
   !         to true values in the mask.
+  !
+  !         If tout is given mad returns the array with the enteries exceeding the treshold
+  !         being set to the threshold. With this setting arrays are accepted. 
+  !         tout accepts: u. upper values are cut at the threshold,
+  !         l. lower values are cut at the threshold, b. upper and lower values are cut at the threshold
+  !         With this setting only the variant 0 is available (no argument implemented).
 
   !     CALLING SEQUENCE
   !         out = mad(vec, z=z, mask=mask, deriv=deriv)
+  !
+  !         out = mad(arr, z=z, mask=mask, tout=tout)
 
   !     INTENT(IN)
   !         real(sp/dp) :: vec(:)     1D-array with input numbers
+  !
+  !         real(sp/dp) :: arr        nD-array with input numbers
 
   !     INTENT(INOUT)
   !         None
@@ -58,6 +66,8 @@ MODULE mo_mad
   !     INTENT(OUT)
   !         logical :: out            mask with true everywhere except where input deviates more
   !                                   than z standard deviations from median
+  !
+  !         arr     :: out            Array with values exceeding the threshold being trimmed. 
 
   !     INTENT(IN), OPTIONAL
   !         real(sp/dp) :: z          Input is allowed to deviate maximum z standard deviations from the median (default: 7)
@@ -66,6 +76,10 @@ MODULE mo_mad
   !                                   2: Use 2nd derivatives
   !         logical     :: mask(:)    1D-array of logical values with size(vec).
   !                                   If present, only those locations in vec corresponding to the true values in mask are used.
+  !                                   nD-array if tout is used.
+  !         character(1):: tout       u: Trim only values above mad
+  !                                   l: Trim only values below mad
+  !                                   l: Trim values below and above mad
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -92,8 +106,9 @@ MODULE mo_mad
 
   !     HISTORY
   !         Written,  Matthias Cuntz, Mar 2011
+  !         mad_val added, Matthias Kelbling, May 2018
   INTERFACE mad
-     MODULE PROCEDURE mad_sp, mad_dp
+     MODULE PROCEDURE mad_sp, mad_dp, mad_val_dp, mad_val_sp
   END INTERFACE mad
 
   ! ------------------------------------------------------------------
@@ -101,7 +116,7 @@ MODULE mo_mad
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         mad2
+  !         mad_val
 
   !     PURPOSE
   !         Mean absolute deviation test with optional z-value (default: 7) and mask,
@@ -112,7 +127,7 @@ MODULE mo_mad
   !         to true values in the mask.
 
   !     CALLING SEQUENCE
-  !         out = mad(vec, z=z, mask=mask, deriv=deriv)
+  !         out = mad(vec, z=z, mask=mask, deriv=deriv, mval = mval)
 
   !     INTENT(IN)
   !         real(sp/dp) :: vec(:)     1D-array with input numbers
@@ -131,6 +146,7 @@ MODULE mo_mad
   !                                   2: Use 2nd derivatives
   !         logical     :: mask(:)    1D-array of logical values with size(vec).
   !                                   If present, only those locations in vec corresponding to the true values in mask are used.
+  !         real(sp/dp) :: mval       Mask-Value. A value to mask for calculation.
 
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -158,9 +174,6 @@ MODULE mo_mad
   !     HISTORY
   !         Written,  Matthias Kelbling, Dec 2017
   !                   Using the mad-code from Matthias Cuntz
-  INTERFACE mad2
-     MODULE PROCEDURE mad2_sp, mad2_dp
-  END INTERFACE mad2
 
   ! ------------------------------------------------------------------
 
@@ -310,24 +323,25 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  FUNCTION mad2_dp(arr, z, mask)
+  FUNCTION mad_val_dp(arr, z, mask, tout, mval)
 
     IMPLICIT NONE
 
     REAL(dp),    DIMENSION(:),           INTENT(IN) :: arr
-    REAL(dp),                  OPTIONAL, INTENT(IN) :: z
+    REAL(dp),                  OPTIONAL, INTENT(IN) :: z, mval
     LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    REAL(dp),    DIMENSION(size(arr))               :: mad2_dp
+    REAL(dp),    DIMENSION(size(arr))               :: mad_val_dp
+    CHARACTER(1)                                    :: tout ! type out
+    ! u : cut upper; l : cut lower; b : cut upper and lower
 
     LOGICAL,  DIMENSION(size(arr)) :: maske
     INTEGER(i4) :: n
-    !INTEGER(i4) :: m
     REAL(dp)    :: iz, med, mabsdev, thresh
 
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_dp: size(mask) /= size(arr)'
+       if (size(mask) /= n) stop 'Error mad_val_dp: size(mask) /= size(arr)'
        maske = mask
     endif
     if (present(z)) then
@@ -336,36 +350,57 @@ CONTAINS
        iz = 7.0_dp
     endif
 
-    !m       = count(maske)
+    if (present(mval)) then
+       where (arr .eq. mval) maske = .false.
+    endif
+
     med     = median(arr,mask=maske)
     mabsdev = median(abs(arr-med),mask=maske)
     thresh  = mabsdev * iz/0.6745_dp
-    mad2_dp = arr
-    print *, "The threshold is set to", med, "+", thresh
-    where ((mad2_dp .gt. (med+thresh)) &
-         .and. maske) mad2_dp = med+thresh
+    mad_val_dp = arr
 
-  END FUNCTION mad2_dp
+    select case(tout)
+    case("u")
+      print *, "The threshold is set to", med, "+", thresh
+      where ((mad_val_dp .gt. (med+thresh)) &
+           .and. maske) mad_val_dp = med+thresh
+    case("l")
+      print *, "The threshold is set to", med, "-", thresh
+      where ((mad_val_dp .lt. (med-thresh)) &
+           .and. maske) mad_val_dp = med-thresh
+    case("b")
+      print *, "The threshold is set to", med, "+/-", thresh
+      where ((mad_val_dp .gt. (med+thresh)) &
+           .and. maske) mad_val_dp = med+thresh
+      where ((mad_val_dp .lt. (med-thresh)) &
+           .and. maske) mad_val_dp = med-thresh
+    case default
+       stop 'Unimplemented option in mad_val_dp'
+    end select
 
+  END FUNCTION mad_val_dp
 
-  FUNCTION mad2_sp(arr, z, mask)
+  ! ------------------------------------------------------------------
+
+  FUNCTION mad_val_sp(arr, z, mask, tout, mval)
 
     IMPLICIT NONE
 
     REAL(sp),    DIMENSION(:),           INTENT(IN) :: arr
-    REAL(sp),                  OPTIONAL, INTENT(IN) :: z
+    REAL(sp),                  OPTIONAL, INTENT(IN) :: z, mval
     LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
-    REAL(sp),     DIMENSION(size(arr))              :: mad2_sp
+    REAL(sp),    DIMENSION(size(arr))               :: mad_val_sp
+    CHARACTER(1)                                    :: tout ! type out
+    ! u : cut upper; l : cut lower; b : cut upper and lower
 
     LOGICAL,  DIMENSION(size(arr)) :: maske
     INTEGER(i4) :: n
-    !INTEGER(i4) :: m
     REAL(sp)    :: iz, med, mabsdev, thresh
 
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_sp: size(mask) /= size(arr)'
+       if (size(mask) /= n) stop 'Error mad_val_sp: size(mask) /= size(arr)'
        maske = mask
     endif
     if (present(z)) then
@@ -374,16 +409,34 @@ CONTAINS
        iz = 7.0_sp
     endif
 
-    !m       = count(maske)
+    if (present(mval)) then
+       where (arr .eq. mval) maske = .false.
+    endif
+
     med     = median(arr,mask=maske)
     mabsdev = median(abs(arr-med),mask=maske)
     thresh  = mabsdev * iz/0.6745_sp
-    mad2_sp = arr
-    print *, "The threshold is set to", med, "+/-", thresh
-    where ((mad2_sp .gt. (med+thresh)) &
-         .and. maske) mad2_sp = med+thresh
+    mad_val_sp = arr
+    select case(tout)
+    case("u")
+      print *, "The threshold is set to", med, "+", thresh
+      where ((mad_val_sp .gt. (med+thresh)) &
+           .and. maske) mad_val_sp = med+thresh
+    case("l")
+      print *, "The threshold is set to", med, "-", thresh
+      where ((mad_val_sp .lt. (med-thresh)) &
+           .and. maske) mad_val_sp = med-thresh
+    case("b")
+      print *, "The threshold is set to", med, "+/-", thresh
+      where ((mad_val_sp .gt. (med+thresh)) &
+           .and. maske) mad_val_sp = med+thresh
+      where ((mad_val_sp .lt. (med-thresh)) &
+           .and. maske) mad_val_sp = med-thresh
+    case default
+       stop 'Unimplemented option in mad_val_sp'
+    end select
 
-  END FUNCTION mad2_sp
+  END FUNCTION mad_val_sp
 
   ! ------------------------------------------------------------------
 
