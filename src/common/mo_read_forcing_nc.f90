@@ -315,6 +315,7 @@ contains
   !     HISTORY
   !>        \author Lennart Schueler, heavily influenced by read_forcing_nc
   !>        \date May 2018
+
     use mo_kind,             only: i4, dp
     use mo_message,          only: message
     use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
@@ -336,7 +337,6 @@ contains
     integer(i4), allocatable, dimension(:) :: var_shape    ! shape of NetCDF variable
 
     character(256)                         :: fName        ! name of NetCDF file
-    integer(i4)                            :: i            ! loop variable
     real(dp)                               :: nodata_value ! data nodata value
 
     fName = varName
