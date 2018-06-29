@@ -18,7 +18,6 @@ module mo_mrm_read_data
   public :: mrm_read_discharge
   public :: mrm_read_total_runoff
   public :: mrm_read_bankfull_runoff
-  public :: mrm_read_discharge
   private
 contains
 
@@ -451,12 +450,12 @@ contains
   !     HISTORY
   !         \author Lennart Schueler
   !         \date    May 2018
-    use mo_append, only: append
-    use mo_mrm_tools, only: get_basin_info_mrm
-    use mo_mrm_constants, only: HourSecs
+
+    use mo_mrm_global_variables, only: level11
+    use mo_common_constants, only: HourSecs
+    use mo_common_mHM_mRM_variables, only: timestep
     use mo_read_forcing_nc, only: read_const_forcing_nc
     use mo_mrm_global_variables, only: &
-         timestep, &
          dirBankfullRunoff, &   ! directory of bankfull_runoff file for each basin
          L11_bankfull_runoff_in ! bankfull runoff at L1
     use mo_common_variables, only: ALMA_convention
@@ -468,42 +467,29 @@ contains
 
     ! local variables
     integer(i4) :: tt
-    integer(i4) :: nrows
-    integer(i4) :: ncols
     integer(i4) :: ncells
     logical, dimension(:,:), allocatable :: mask
-    real(dp), dimension(:,:), allocatable :: L1_data ! read data from file
-    real(dp), dimension(:), allocatable :: L1_data_packed     
+    real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
+    real(dp), dimension(:), allocatable :: L11_data_packed
 
-    ! get basin information at level 1
-    call get_basin_info_mrm(iBasin, 1, nrows, ncols, ncells=ncells, mask=mask)
+    call read_const_forcing_nc(trim(dirBankfullRunoff(iBasin)), &
+                               level11(iBasin)%nrows, &
+                               level11(iBasin)%ncols, &
+                               "Q_bkfl", mask, L11_data)
 
-    call read_const_forcing_nc(trim(dirBankfullRunoff(iBasin)), nrows, ncols, &
-         "Q_bkfl", mask, L1_data)
-
-    allocate(L1_data_packed(nCells))
-    L1_data_packed(:) = pack(L1_data(:,:), mask=mask)
-    deallocate(L1_data)
-
-    if (ALMA_convention) then
-       ! convert from kg m-2 s-1 to mm TST-1
-       ! 1 kg m-2 -> 1 mm depth
-       ! multiply with time to obtain per timestep
-       L1_data_packed = L1_data_packed * timestep * HourSecs
-    else
-       ! convert from mm hr-1 to mm TST-1
-       L1_data_packed = L1_data_packed * timestep
-    end if
+    allocate(L11_data_packed(level11(iBasin)%nCells))
+    L11_data_packed(:) = pack(L11_data(:,:), mask=level11(iBasin)%mask)
 
     ! append
     if (allocated(L11_bankfull_runoff_in)) then
-        L11_bankfull_runoff_in = [L11_bankfull_runoff_in, L1_data_packed]
+        L11_bankfull_runoff_in = [L11_bankfull_runoff_in, L11_data_packed]
     else
-        allocate(L11_bankfull_runoff_in(size(L1_data_packed)))
-        L11_bankfull_runoff_in = L1_data_packed
+        allocate(L11_bankfull_runoff_in(size(L11_data_packed)))
+        L11_bankfull_runoff_in = L11_data_packed
     end if
 
-    deallocate(L1_data_packed)
+    deallocate(L11_data)
+    deallocate(L11_data_packed)
 
   end subroutine mrm_read_bankfull_runoff
 
