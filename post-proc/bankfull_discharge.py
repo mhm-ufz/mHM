@@ -96,7 +96,7 @@ def set_nc_attrs(nc_var, long_name):
     nc_var.setncattr('long_name', long_name)
     nc_var.setncattr('units', 'm3 s-1')
     nc_var.setncattr('scale_factor', 1.)
-    nc_var.setncattr('missing_value', 9999.)
+    nc_var.setncattr('missing_value', -9999.)
     nc_var.setncattr('coordinates', 'lat lon')
 
 
