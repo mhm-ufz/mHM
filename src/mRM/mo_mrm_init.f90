@@ -71,7 +71,8 @@ CONTAINS
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : basin_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11, mrm_gw_coupling
+                                        l0_l11_remap, l1_l11_remap, level11, mrm_gw_coupling, &
+                                        L0_river_head
     use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
@@ -80,7 +81,7 @@ CONTAINS
                                  mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
     use mo_read_latlon, only : read_latlon
-    use mo_mrm_river_head, only: calc_channel_elevation
+    use mo_mrm_river_head, only: init_river_head, calc_channel_elevation
 
     implicit none
 
@@ -251,6 +252,7 @@ CONTAINS
 
     if (mrm_gw_coupling) then
         do iBasin = 1, nBasins
+            call init_river_head(iBasin, L0_river_head)
             call mrm_read_bankfull_runoff(iBasin)
         end do
         call calc_channel_elevation()

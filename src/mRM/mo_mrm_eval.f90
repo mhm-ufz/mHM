@@ -62,10 +62,11 @@ contains
                                         L11_C1, L11_C2, L11_L1_ID, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, &
                                         L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
                                         L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
-                                        outputFlxState_mrm, timeStep_model_outputs_mrm
+                                        outputFlxState_mrm, timeStep_model_outputs_mrm, mrm_gw_coupling, L0_river_head
     use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
+    use mo_mrm_river_head, only : calc_river_head
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
 
@@ -295,6 +296,14 @@ contains
                 L11_qMod(s11 : e11), &
                 mRM_runoff(tt, :) &
                 )
+
+        ! -------------------------------------------------------------------
+        ! groundwater coupling
+        ! -------------------------------------------------------------------
+        if(mrm_gw_coupling) then
+            call calc_river_head(iBasin, L11_Qmod, L0_river_head)
+        end if
+
         ! -------------------------------------------------------------------
         ! reset variables
         ! -------------------------------------------------------------------
@@ -336,6 +345,9 @@ contains
                   ! output variables
                   L11_qmod(s11 : e11))
         end if
+        if(mrm_gw_coupling .and. .not. optimize) then
+            ! TODO output
+          end if
       end do
       ! clean runoff variable
       deallocate(RunToRout)

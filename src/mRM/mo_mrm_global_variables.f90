@@ -196,12 +196,14 @@ module mo_mrm_global_variables
   ! GROUNDWATER COUPLING VARIABLES
   ! -------------------------------------------------------------------
   !
+  ! TODO this must be read from nml
   logical :: mrm_gw_coupling = .TRUE.
   ! dim1 = number grid cells L1
   real(dp), public, dimension(:), allocatable :: L11_bankfull_runoff_in
-  ! dim1 = number of basins
   ! dim2 = number grid cells L0
-  real(dp), public, dimension(:,:), allocatable :: L0_channel_depth
-  real(dp), public, dimension(:,:), allocatable :: L0_channel_elevation
+  real(dp), public, dimension(:), allocatable :: L0_channel_depth
+  real(dp), public, dimension(:), allocatable :: L0_channel_elevation
+  real(dp), public, dimension(:), allocatable :: L0_river_head
+  real(dp), public, dimension(:), allocatable :: L0_slope
 
 end module mo_mrm_global_variables
