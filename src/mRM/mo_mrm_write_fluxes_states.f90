@@ -244,7 +244,7 @@ contains
     ! -> basin id
     integer(i4), intent(in) :: ibasin
 
-    logical, intent(in), target, dimension(:, :) :: mask
+    logical, intent(in), pointer, dimension(:, :) :: mask
 
     integer(i4), intent(in) :: nCells
 
