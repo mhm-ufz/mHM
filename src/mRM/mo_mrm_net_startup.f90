@@ -2215,7 +2215,7 @@ contains
 
   subroutine L11_calc_celerity(iBasin, param)
     use mo_common_constants, only: nodata_i4, nodata_dp
-    use mo_mad, only: mad2
+    use mo_mad, only: mad
     use mo_append, only: append
     use mo_mpr_global_variables, only: &
          L0_slope               ! IN:    slope [%]
@@ -2360,7 +2360,7 @@ contains
         slopemask0(:) = (L0_streamNet(iStart0:iEnd0) .ne. nodata_i4)
 
         if( count(slopemask0) .GT. 1) then
-           slope_tmp = mad2(arr = slope_tmp, z = 2.25_dp, mask = slopemask0)
+           slope_tmp = mad(arr = slope_tmp, z = 2.25_dp, mask = slopemask0, tout='u', mval=0.1_dp)
         else
            print *, "Number of L0-stream-cells <= 1, no slope-smoothing possible..."
         end if
