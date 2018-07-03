@@ -422,7 +422,7 @@ contains
       ! call dump_netcdf('test.nc', L1_data_packed)
     else
       ! convert from mm hr-1 to mm TST-1
-      L1_data_packed = L1_data_packed * timestep
+      L1_data_packed = L1_data_packed ! * timestep
     end if
 
     ! append
