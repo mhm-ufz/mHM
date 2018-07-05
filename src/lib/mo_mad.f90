@@ -351,7 +351,7 @@ CONTAINS
     endif
 
     if (present(mval)) then
-       where (arr .eq. mval) maske = .false.
+       where (abs(arr - mval) .lt. tiny(1._dp) ) maske = .false.
     endif
 
     med     = median(arr,mask=maske)
@@ -410,7 +410,7 @@ CONTAINS
     endif
 
     if (present(mval)) then
-       where (arr .eq. mval) maske = .false.
+       where (abs(arr - mval) .lt. tiny(1._sp)) maske = .false.
     endif
 
     med     = median(arr,mask=maske)
