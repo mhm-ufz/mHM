@@ -175,7 +175,7 @@ CONTAINS
       single_objective_runoff = objective_multiple_gauges_kge_power6(parameterset, eval)
     case (31)
        ! weighted NSE with observed streamflow
-       single_objective_runoff = objective_weighted_nse(parameterset)
+       single_objective_runoff = objective_weighted_nse(parameterset, eval)
     case default
       call message("Error objective: This opti_function is either not implemented yet or is not a single-objective one.")
       stop 1
