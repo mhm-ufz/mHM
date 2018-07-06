@@ -466,8 +466,6 @@ contains
     integer(i4), intent(in) :: iBasin
 
     ! local variables
-    integer(i4) :: tt
-    integer(i4) :: ncells
     logical, dimension(:,:), allocatable :: mask
     real(dp), dimension(:,:), allocatable :: L11_data ! read data from file
     real(dp), dimension(:), allocatable :: L11_data_packed
