@@ -197,13 +197,14 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   !
   ! TODO this must be read from nml
-  logical :: mrm_gw_coupling = .TRUE.
+  logical :: gw_coupling
   ! dim1 = number grid cells L1
   real(dp), public, dimension(:), allocatable :: L11_bankfull_runoff_in
   ! dim2 = number grid cells L0
   real(dp), public, dimension(:), allocatable :: L0_channel_depth
   real(dp), public, dimension(:), allocatable :: L0_channel_elevation
-  real(dp), public, dimension(:), allocatable :: L0_river_head
+  ! the cumulated river heads, for monthly average
+  real(dp), public, dimension(:), allocatable :: L0_river_head_mon_sum
   real(dp), public, dimension(:), allocatable :: L0_slope
 
 end module mo_mrm_global_variables

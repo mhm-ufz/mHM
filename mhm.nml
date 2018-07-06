@@ -30,6 +30,7 @@
 ! Robert Schweppe          Apr 2018  - reorganized namelists depending on relation to processes (MPR, mHM, mRM)
 ! S. Thober, B. Guse       May 2018  - added weighted NSE
 ! Lennart Schueler         May 2018  - added new paths for bankfull discharge for gw coupling
+! Lennart Schueler         Jun 2018  - added flag for writing river head output
 
 !******************************************************************************************
 ! PROJECT DESCRIPTION (mandatory)
@@ -204,6 +205,8 @@ ALMA_convention = .TRUE.
 !-----------------------------------------------------------------------------
 varnametotalrunoff = 'total_runoff'
 filenametotalrunoff = 'total_runoff'
+!> couple mRM to a groundwater model
+gw_coupling = .false.
 /
 
 !******************************************************************************************

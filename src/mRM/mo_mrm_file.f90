@@ -65,4 +65,7 @@ MODULE mo_mrm_file
   !> file containing mrm output
   character(len = *), PARAMETER :: file_mrm_output = 'mRM_Fluxes_States.nc'
 
+!> file containing mrm output for groundwater coupling
+  character(len = *), PARAMETER :: file_gw_output = 'mRM_gw_Fluxes_States.nc'
+
 END MODULE mo_mrm_file
