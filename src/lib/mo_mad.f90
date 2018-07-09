@@ -352,6 +352,10 @@ CONTAINS
 
     if (present(mval)) then
        where (abs(arr - mval) .lt. tiny(1._dp) ) maske = .false.
+       ! reset if no values remain
+       if (.not. any(maske)) then
+          where ( abs(arr - mval) .lt. tiny(1._dp) ) maske = .true.
+       end if
     endif
 
     med     = median(arr,mask=maske)
@@ -411,6 +415,10 @@ CONTAINS
 
     if (present(mval)) then
        where (abs(arr - mval) .lt. tiny(1._sp)) maske = .false.
+       ! reset if no values remain
+       if (.not. any(maske)) then
+          where ( abs(arr - mval) .lt. tiny(1._dp) ) maske = .true.
+       end if
     endif
 
     med     = median(arr,mask=maske)
