@@ -138,7 +138,7 @@ contains
     ! inflowing discharge
     real(dp), allocatable, dimension(:) :: InflowDischarge
 
-    logical, allocatable, dimension(:, :) :: mask11
+    logical, pointer, dimension(:, :) :: mask11
 
     ! flag for performing routing
     logical :: do_rout
@@ -174,7 +174,7 @@ contains
       e1 = level1(iBasin)%iEnd
       s11 = level11(iBasin)%iEnd
       e11 = level11(iBasin)%iEnd
-      mask11 = level11(iBasin)%mask
+      mask11 => level11(iBasin)%mask
       !
       ! initialize routing parameters (has to be called only for Routing option 2)
       if (processMatrix(8, 1) .eq. 2) call mrm_update_param(iBasin, &
