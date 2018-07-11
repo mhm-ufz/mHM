@@ -676,7 +676,7 @@ contains
     integer(i4), intent(in) :: timestep
 
     ! mask at level 11
-    logical, intent(in), dimension(:, :) :: mask11
+    logical, intent(in), dimension(:, :), pointer :: mask11
 
     ! current routed streamflow
     real(dp), intent(in), dimension(:) :: L11_qMod
