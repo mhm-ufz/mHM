@@ -3,7 +3,7 @@ ifneq (,$(findstring $(compiler),gnu gfortran gcc))
     icompiler := gnu48
 endif
 ifneq (,$(findstring $(compiler),intel ifort ifort13))
-    icompiler := intel13
+    icompiler := intel18
 endif
 ifneq (,$(findstring $(compiler),nag nagfor))
     icompiler := nag61
