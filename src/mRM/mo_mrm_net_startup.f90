@@ -1831,10 +1831,10 @@ contains
 
     real(dp) :: lat_1, long_1, lat_2, long_2
 
-    type(Grid) :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin
 
 
-    level0_iBasin = level0(L0_Basin(iBasin))
+    level0_iBasin => level0(L0_Basin(iBasin))
 
     ! regular X-Y cordinate system
     IF(iCoorSystem .EQ. 0) THEN
