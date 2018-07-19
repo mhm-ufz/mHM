@@ -486,7 +486,11 @@ ifeq ($(openmp),true)
     ifneq (,$(findstring $(icompiler),$(gnucompilers)))
         iopenmp += -fopenmp
     else
-        iopenmp += -openmp
+        ifneq (,$(findstring $(icompiler),$(intelcompilers)))
+            iopenmp += -qopenmp
+        else
+            iopenmp += -openmp
+        endif
     endif
     DEFINES += -DOPENMP
 endif
