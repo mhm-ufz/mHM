@@ -64,12 +64,13 @@ module mo_mrm_river_head
     subroutine calc_channel_elevation()
         use mo_common_constants, only : nodata_i4
         use mo_common_variables, only : nBasins, L0_elev
-        use mo_mrm_global_variables, only : L0_fDir, L0_channel_depth
+        use mo_mrm_global_variables, only : L0_fDir, L0_fAcc, L0_channel_depth
         real(dp), dimension(:,:), allocatable :: channel_dpth
         real(dp), dimension(:,:), allocatable :: channel_elev
         real(dp), dimension(:,:), allocatable :: slope
         real(dp), dimension(:,:), allocatable :: elev0
         integer(i4), dimension(:,:), allocatable :: fDir0
+        integer(i4), dimension(:,:), allocatable :: fAcc0
         real(dp) n ! Manning's roughness coefficient
         integer(i4) :: nrows0, ncols0
         integer(i4) :: s0, e0
@@ -87,6 +88,7 @@ module mo_mrm_river_head
             allocate(channel_elev(nrows0, ncols0))
             allocate(elev0(nrows0, ncols0))
             allocate(fDir0(nrows0, ncols0))
+            allocate(fAcc0(nrows0, ncols0))
             allocate(slope(nrows0, ncols0))
             channel_dpth(:,:) = nodata_dp
             channel_elev(:,:) = nodata_dp
@@ -94,11 +96,12 @@ module mo_mrm_river_head
 
             elev0(:,:) = unpack(L0_elev(s0:e0), level0(iBasin)%mask, nodata_dp)
             fDir0(:,:) = unpack(L0_fDir(s0:e0), level0(iBasin)%mask, nodata_i4)
+            fAcc0(:,:) = unpack(L0_fAcc(s0:e0), level0(iBasin)%mask, nodata_i4)
 
             do k = 1, level0(iBasin)%nCells
                 i = level0(iBasin)%CellCoor(k, 1)
                 j = level0(iBasin)%CellCoor(k, 2)
-                if (fDir0(i,j) /= nodata_i4) then
+                if (fAcc0(i,j) > 1) then
                     slope(i,j) = calc_slope(iBasin, elev0, fDir0, i, j)
                     channel_dpth(i,j) = &
     ((n * L11_bankfull_runoff_in(L0_L11_remap(iBasin)%lowres_id_on_highres(i,j))) &
@@ -118,6 +121,7 @@ module mo_mrm_river_head
             deallocate(channel_elev)
             deallocate(elev0)
             deallocate(fDir0)
+            deallocate(fAcc0)
             deallocate(slope)
         end do
     end subroutine calc_channel_elevation
