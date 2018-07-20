@@ -1,24 +1,26 @@
 module mo_mrm_river_head
+  use mo_common_variables,     only : level0, nBasins
+  use mo_mrm_global_variables, only : L0_L11_remap, L11_bankfull_runoff_in, &
+                                      L0_slope, L0_channel_elevation
+  use mo_kind,                 only : i4, dp
+  use mo_common_constants,     only : nodata_dp
+  use mo_append,               only : append
+  use mo_netcdf,               only : NcVariable
 
-    use mo_common_variables,     only : level0, nBasins
-    use mo_mrm_global_variables, only : L0_L11_remap, L11_bankfull_runoff_in, &
-                                        L0_slope, L0_channel_elevation
-    use mo_kind,                 only : i4, dp
-    use mo_common_constants,     only : nodata_dp
-    use mo_append,               only : append
-    use mo_netcdf,               only : NcVariable
 
+  implicit none
 
-    implicit none
+  private
 
-    private
-
-    public ::  init_masked_zeros_l0 ! allocates memory
-    public :: calc_channel_elevation ! calculates the channel elevation from the bankfull river discharge
-    public :: calc_river_head ! calculates the river head
-  public :: avg_and_write_timestep ! calculates the monthly averages and writes the river heads to nc file
+  public ::  init_masked_zeros_l0 ! allocates memory
+  ! calculates the channel elevation from the bankfull river discharge
+  public :: calc_channel_elevation
+  public :: calc_river_head ! calculates the river head
+  ! calculates the monthly averages and writes the river heads to nc file
+  public :: avg_and_write_timestep
   public :: create_output ! creates the NetCDF file
-  private :: reset_sum ! resets the summation variable for the river head averages
+  ! resets the summation variable for the river head averages
+  private :: reset_sum
 
 
   ! All dims = nBasins
@@ -45,6 +47,7 @@ module mo_mrm_river_head
     call reset_sum(iBasin, data)
   end subroutine init_masked_zeros_l0
 
+
   subroutine reset_sum(iBasin, data)
     ! Sets all elements of data to 0.0 where mask0 is true
     integer(i4), intent(in) :: iBasin
@@ -61,79 +64,76 @@ module mo_mrm_river_head
   end subroutine reset_sum
 
 
-    subroutine calc_channel_elevation()
-        use mo_common_constants, only : nodata_i4
-        use mo_common_variables, only : nBasins, L0_elev
-        use mo_mrm_global_variables, only : L0_fDir, L0_fAcc, L0_channel_depth
-        real(dp), dimension(:,:), allocatable :: channel_dpth
-        real(dp), dimension(:,:), allocatable :: channel_elev
-        real(dp), dimension(:,:), allocatable :: slope
-        real(dp), dimension(:,:), allocatable :: elev0
-        integer(i4), dimension(:,:), allocatable :: fDir0
-        integer(i4), dimension(:,:), allocatable :: fAcc0
-        real(dp) n ! Manning's roughness coefficient
-        integer(i4) :: nrows0, ncols0
-        integer(i4) :: s0, e0
-        integer(i4) i, j, k
-        integer(i4) iBasin
+  subroutine calc_channel_elevation()
+    use mo_common_constants, only : nodata_i4
+    use mo_common_variables, only : nBasins, L0_elev
+    use mo_mrm_global_variables, only : L0_fDir, L0_fAcc, L0_channel_depth
+    real(dp), dimension(:,:), allocatable :: channel_dpth
+    real(dp), dimension(:,:), allocatable :: channel_elev
+    real(dp), dimension(:,:), allocatable :: slope
+    real(dp), dimension(:,:), allocatable :: elev0
+    integer(i4), dimension(:,:), allocatable :: fDir0
+    integer(i4), dimension(:,:), allocatable :: fAcc0
+    real(dp) n ! Manning's roughness coefficient
+    integer(i4) :: nrows0, ncols0
+    integer(i4) :: s0, e0
+    integer(i4) i, j, k
+    integer(i4) iBasin
 
-        n = .045_dp ! m^-1/3 s from Sutanudjaja et al. 2011
+    n = .045_dp ! m^-1/3 s from Sutanudjaja et al. 2011
 
-        do iBasin = 1, nBasins
-            nrows0 = level0(iBasin)%nrows
-            ncols0 = level0(iBasin)%ncols
-            s0 = level0(iBasin)%iStart
-            e0 = level0(iBasin)%iEnd
-            allocate(channel_dpth(nrows0, ncols0))
-            allocate(channel_elev(nrows0, ncols0))
-            allocate(elev0(nrows0, ncols0))
-            allocate(fDir0(nrows0, ncols0))
-            allocate(fAcc0(nrows0, ncols0))
-            allocate(slope(nrows0, ncols0))
-            channel_dpth(:,:) = nodata_dp
-            channel_elev(:,:) = nodata_dp
-            slope(:,:) = nodata_dp
+    do iBasin = 1, nBasins
+      nrows0 = level0(iBasin)%nrows
+      ncols0 = level0(iBasin)%ncols
+      s0 = level0(iBasin)%iStart
+      e0 = level0(iBasin)%iEnd
+      allocate(channel_dpth(nrows0, ncols0))
+      allocate(channel_elev(nrows0, ncols0))
+      allocate(elev0(nrows0, ncols0))
+      allocate(fDir0(nrows0, ncols0))
+      allocate(fAcc0(nrows0, ncols0))
+      allocate(slope(nrows0, ncols0))
+      channel_dpth(:,:) = nodata_dp
+      channel_elev(:,:) = nodata_dp
+      slope(:,:) = nodata_dp
 
-            elev0(:,:) = unpack(L0_elev(s0:e0), level0(iBasin)%mask, nodata_dp)
-            fDir0(:,:) = unpack(L0_fDir(s0:e0), level0(iBasin)%mask, nodata_i4)
-            fAcc0(:,:) = unpack(L0_fAcc(s0:e0), level0(iBasin)%mask, nodata_i4)
+      elev0(:,:) = unpack(L0_elev(s0:e0), level0(iBasin)%mask, nodata_dp)
+      fDir0(:,:) = unpack(L0_fDir(s0:e0), level0(iBasin)%mask, nodata_i4)
+      fAcc0(:,:) = unpack(L0_fAcc(s0:e0), level0(iBasin)%mask, nodata_i4)
 
-            do k = 1, level0(iBasin)%nCells
-                i = level0(iBasin)%CellCoor(k, 1)
-                j = level0(iBasin)%CellCoor(k, 2)
-                if (fAcc0(i,j) > 1) then
-                    slope(i,j) = calc_slope(iBasin, elev0, fDir0, i, j)
-                    channel_dpth(i,j) = &
-    ((n * L11_bankfull_runoff_in(L0_L11_remap(iBasin)%lowres_id_on_highres(i,j))) &
-    / (4.8 * slope(i,j)**.5))**.6
-                    channel_elev(i,j) = elev0(i,j) - channel_dpth(i,j)
-                end if
-            end do
+      do k = 1, level0(iBasin)%nCells
+        i = level0(iBasin)%CellCoor(k, 1)
+        j = level0(iBasin)%CellCoor(k, 2)
+        if (fAcc0(i,j) > 1) then
+          slope(i,j) = calc_slope(iBasin, elev0, fDir0, i, j)
+          channel_dpth(i,j) = ((n * &
+  L11_bankfull_runoff_in(L0_L11_remap(iBasin)%lowres_id_on_highres(i,j))) / &
+  (4.8 * slope(i,j)**.5))**.6
+          channel_elev(i,j) = elev0(i,j) - channel_dpth(i,j)
+        end if
+      end do
 
-            call append(L0_channel_depth, pack(channel_dpth(:,:), &
-                        level0(iBasin)%mask))
-            call append(L0_channel_elevation, pack(channel_elev(:,:), &
-                        level0(iBasin)%mask))
-            call append(L0_slope, pack(slope(:,:), &
-                        level0(iBasin)%mask))
+      call append(L0_channel_depth, pack(channel_dpth(:,:), &
+                  level0(iBasin)%mask))
+      call append(L0_channel_elevation, pack(channel_elev(:,:), &
+                  level0(iBasin)%mask))
+      call append(L0_slope, pack(slope(:,:), &
+                  level0(iBasin)%mask))
 
-            deallocate(channel_dpth)
-            deallocate(channel_elev)
-            deallocate(elev0)
-            deallocate(fDir0)
-            deallocate(fAcc0)
-            deallocate(slope)
-        end do
-    end subroutine calc_channel_elevation
+      deallocate(channel_dpth)
+      deallocate(channel_elev)
+      deallocate(elev0)
+      deallocate(fDir0)
+      deallocate(fAcc0)
+      deallocate(slope)
+    end do
+  end subroutine calc_channel_elevation
 
 
   subroutine calc_river_head(iBasin, L11_Qmod, river_head)
     integer(i4), intent(in) :: iBasin
-    real(dp), dimension(:), intent(in) :: L11_Qmod ! modelled discharge at each grid cell
+    real(dp), dimension(:), intent(in) :: L11_Qmod
     real(dp), dimension(:), allocatable, intent(inout) :: river_head
-    !real(dp), dimension(:,:), allocatable :: channel_elev
-    !real(dp), dimension(:,:), allocatable :: river_head_2d
-    !real(dp), dimension(:,:), allocatable :: slope
     real(dp) :: n ! Manning's roughness coefficient
     integer(i4) :: nrows0, ncols0
     integer(i4) :: s0, e0
@@ -152,66 +152,63 @@ module mo_mrm_river_head
       if (i >= 0 .and. i < 99999 .and. j  >= 0 .and. j < 99999) then
         L11_ind = L0_L11_remap(iBasin)%lowres_id_on_highres(i,j)
         ! TODO L11_Qmid(L11_ind) causes IEEE_UNDERFLOW_FLAG IEEE_DENORMAL
-        river_head(k) = river_head(k) + L0_channel_elevation(k) + (n * L11_Qmod(L11_ind) / &
-                        L11_bankfull_runoff_in(L11_ind) / L0_slope(k)**.5)**.6
+        river_head(k) = river_head(k) + L0_channel_elevation(k) + &
+            (n * L11_Qmod(L11_ind) / L11_bankfull_runoff_in(L11_ind) / &
+            L0_slope(k)**.5)**.6
       end if
     end do
 
     sum_counter(iBasin) = sum_counter(iBasin) + 1
-
   end subroutine calc_river_head
 
 
-    function calc_slope(iBasin, elev0, fDir0, i, j) result(slope)
-        use mo_common_variables, only: iFlag_cordinate_sys
-        use mo_mrm_net_startup,      only: cellLength, moveDownOneCell
-        integer(i4), intent(in) :: iBasin
-        integer(i4), intent(in) :: i, j
-        integer(i4), intent(in), dimension(:,:), allocatable :: fDir0
-        real(dp), intent(in), dimension(:,:), allocatable :: elev0
-        real(dp) :: slope, length
-        integer(i4) :: i_down, j_down
+  function calc_slope(iBasin, elev0, fDir0, i, j) result(slope)
+    use mo_common_variables, only: iFlag_cordinate_sys
+    use mo_mrm_net_startup,      only: cellLength, moveDownOneCell
+    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: i, j
+    integer(i4), intent(in), dimension(:,:), allocatable :: fDir0
+    real(dp), intent(in), dimension(:,:), allocatable :: elev0
+    real(dp) :: slope, length
+    integer(i4) :: i_down, j_down
 
-        call cellLength(iBasin, fDir0(i, j), i, j, &
-                        iFlag_cordinate_sys, length)
-        i_down = i
-        j_down = j
-        call moveDownOneCell(fDir0(i, j), i_down, j_down)
+    call cellLength(iBasin, fDir0(i, j), i, j, &
+                    iFlag_cordinate_sys, length)
+    i_down = i
+    j_down = j
+    call moveDownOneCell(fDir0(i, j), i_down, j_down)
 
-        slope = (elev0(i,j) - elev0(i_down, j_down)) / length
-        if(slope < 0.0001_dp .OR. slope > 20._dp .OR. isnan(slope)) then
-           slope = 0.0001_dp
-        end if
-    end function calc_slope
+    slope = (elev0(i,j) - elev0(i_down, j_down)) / length
+    if(slope < 0.0001_dp .OR. slope > 20._dp .OR. isnan(slope)) then
+      slope = 0.0001_dp
+    end if
+  end function calc_slope
 
 
   subroutine avg_and_write_timestep(iBasin, timestep, data)
-
     integer(i4), intent(in) :: iBasin
     integer(i4), intent(in) :: timestep
     real(dp), intent(inout), dimension(:) :: data
 
     call nc_time(iBasin)%setData(timestep, [time_counter(iBasin)])
     ! -> index along the time dimension of the netcdf variable
-    call nc_riverhead(iBasin)%setData(unpack(data / sum_counter(iBasin), level0(iBasin)%mask, &
-                                             nodata_dp), [1, 1, time_counter(iBasin)])
+    call nc_riverhead(iBasin)%setData(unpack(data / sum_counter(iBasin), &
+        level0(iBasin)%mask, nodata_dp), [1, 1, time_counter(iBasin)])
     time_counter(iBasin) = time_counter(iBasin) + 1
     call reset_sum(iBasin, data)
     sum_counter(iBasin) = 0
-
   end subroutine avg_and_write_timestep
 
 
   subroutine create_output(iBasin, OutPath)
-
     use mo_common_mhm_mrm_variables, only : evalPer
     use mo_netcdf, only : NcDataset, NcDimension
     use mo_string_utils, only : num2str
     use mo_julian, only : dec2date
     use mo_grid, only : geoCoordinates, mapCoordinates
     use mo_file, only : version
-    use mo_common_variables, only : project_details, setup_description, simulation_type, &
-      Conventions, contact, mHM_details, history
+    use mo_common_variables, only : project_details, setup_description, &
+        simulation_type, Conventions, contact, mHM_details, history
     use mo_message, only : message
 
     ! number of basin
@@ -314,7 +311,7 @@ module mo_mrm_river_head
     call nc%setAttribute( "history", trim(datetime) // ", " // history )
     call nc%setAttribute( "title", "mHMv"//trim(version)//" "//trim(simulation_type)//" outputs" )
     call nc%setAttribute( "creation_date", datetime )
-
   end subroutine create_output
+
 
 end module mo_mrm_river_head
