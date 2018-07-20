@@ -12,6 +12,8 @@
 
 MODULE mo_mrm_init
 
+    use mo_common_variables, only : dirOut
+
   ! This module sets the river network characteristics and routing order.
 
   ! Written  Luis Samaniego, Mar 2005
@@ -53,7 +55,10 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
+  ! Lennart Schueler May 2018 - added initialization for groundwater coupling
 
+
+  
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
@@ -68,15 +73,17 @@ CONTAINS
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : basin_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11
+                                        l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
+                                        L0_river_head_mon_sum
     use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
-                                 mrm_read_total_runoff
+                                 mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
     use mo_read_latlon, only : read_latlon
+    use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
 
     implicit none
 
@@ -245,11 +252,21 @@ CONTAINS
     ! discharge data
     call mrm_read_discharge()
 
+    if (gw_coupling) then
+        do iBasin = 1, nBasins
+            call init_masked_zeros_l0(iBasin, L0_river_head_mon_sum)
+            call mrm_read_bankfull_runoff(iBasin)
+            call create_output(iBasin, dirOut(iBasin))
+        end do
+        call calc_channel_elevation()
+    end if
+
     call message('')
     call message('  Finished Initialization of mRM')
 
   end subroutine mrm_init
 
+  
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================
@@ -335,7 +352,7 @@ CONTAINS
 
   subroutine config_output
 
-    use mo_common_variables, only : dirLCover, dirMorpho, dirOut, nBasins
+    use mo_common_variables, only : dirLCover, dirMorpho, nBasins
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm

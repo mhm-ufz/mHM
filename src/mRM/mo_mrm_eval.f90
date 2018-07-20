@@ -62,10 +62,11 @@ contains
                                         L11_C1, L11_C2, L11_L1_ID, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, &
                                         L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
                                         L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
-                                        outputFlxState_mrm, timeStep_model_outputs_mrm
+                                        outputFlxState_mrm, timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
+    use mo_mrm_river_head, only : calc_river_head, avg_and_write_timestep
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
 
@@ -97,7 +98,7 @@ contains
 
     integer(i4) :: day
 
-    integer(i4) :: month
+    integer(i4) :: month, prev_month
 
     integer(i4) :: year
 
@@ -142,6 +143,9 @@ contains
 
     ! flag for performing routing
     logical :: do_rout
+
+    ! flag for monthly mean of river head
+    logical :: is_new_month = .false.
 
 
     if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
@@ -194,7 +198,11 @@ contains
         ! set discharge timestep
         iDischargeTS = ceiling(real(tt, dp) / real(NTSTEPDAY, dp))
         ! calculate current timestep
+        is_new_month = .false.
+        prev_month = month
         call caldat(int(newTime), yy = year, mm = month, dd = day)
+        if (prev_month .ne. month) is_new_month = .true.
+
         ! initialize land cover year id
         Lcover_yID = LCyearId(year, iBasin)
         !
@@ -295,6 +303,16 @@ contains
                 L11_qMod(s11 : e11), &
                 mRM_runoff(tt, :) &
                 )
+
+        ! -------------------------------------------------------------------
+        ! groundwater coupling
+        ! -------------------------------------------------------------------
+            if (gw_coupling) then
+                call calc_river_head(iBasin, L11_Qmod, L0_river_head_mon_sum)
+                if (is_new_month) then
+                    call avg_and_write_timestep(iBasin, tt, L0_river_head_mon_sum)
+                end if
+            end if
         ! -------------------------------------------------------------------
         ! reset variables
         ! -------------------------------------------------------------------

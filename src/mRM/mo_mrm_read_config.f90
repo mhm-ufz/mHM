@@ -20,6 +20,7 @@ module mo_mrm_read_config
   public :: mrm_read_config
 
 contains
+
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -61,9 +62,9 @@ contains
     use mo_mrm_constants, only : maxNoGauges
     use mo_mrm_file, only : file_defOutput, udefOutput
     use mo_mrm_global_variables, only : InflowGauge, basinInfo_mRM, basin_mrm, &
-                                        dirGauges, dirTotalRunoff, filenameTotalRunoff, gauge, is_start, nGaugesTotal, &
-                                        nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
-                                        varnameTotalRunoff
+                                        dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
+                                        nGaugesTotal, nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
+                                        varnameTotalRunoff, gw_coupling
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
 
@@ -103,15 +104,19 @@ contains
 
     character(256), dimension(maxNoBasins) :: dir_Total_Runoff
 
+    character(256), dimension(maxNoBasins) :: dir_Bankfull_Runoff
+
+
     logical :: file_exists
 
     type(basinInfo_mRM), pointer :: basin_mrm_iBasin
 
 
     ! namelist spatial & temporal resolution, optmization information
-    namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff
+    namelist /mainconfig_mrm/ ALMA_convention, filenameTotalRunoff, varnameTotalRunoff, &
+             gw_coupling
     ! namelist directories
-    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff
+    namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
     namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
     ! namelist for inflow gauges
     namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
@@ -132,6 +137,7 @@ contains
     ALMA_convention = .false.
     filenameTotalRunoff = 'total_runoff'
     varnameTotalRunoff = 'total_runoff'
+    gw_coupling = .false.
 
     !===============================================================
     !  Read namelist main directories
@@ -152,6 +158,7 @@ contains
 
     dirGauges = dir_Gauges(1 : nBasins)
     dirTotalRunoff = dir_Total_Runoff(1 : nBasins)
+    dirBankfullRunoff = dir_Bankfull_Runoff(1:nBasins)
 
     !===============================================================
     ! READ EVALUATION GAUGES
@@ -352,6 +359,9 @@ contains
       call message('    FLUXES:')
       if (outputFlxState_mrm(1)) then
         call message('      routed streamflow      (L11_qMod)                [mm]')
+      end if
+      if (gw_coupling) then
+        call message('      river head             (river_head)              [m]')
       end if
     end if
 

@@ -45,7 +45,13 @@ module mo_mrm_global_variables
   character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
   character(256), public :: filenameTotalRunoff ! Filename of simulated total runoff file
   character(256), public :: varnameTotalRunoff ! variable name of total runoff
+  character(256), dimension(:), allocatable, public :: dirBankfullRunoff ! Directory where simulated bankfull runoff files are located
 
+  ! ------------------------------------------------------------------
+  ! CONSTANT 
+  ! ------------------------------------------------------------------
+  integer(i4), public :: nTstepDay ! Number of time intervals per day
+  !                                ! (was previously NAGG)
 
   ! -------------------------------------------------------------------
   ! GRID description
@@ -186,5 +192,19 @@ module mo_mrm_global_variables
   real(dp), public, dimension(:), allocatable :: L11_tsRout      ! [s]     Routing timestep
   real(dp), public, dimension(:), allocatable :: L11_C1          ! [-]     Routing parameter C1=f(K,xi, DT) (Chow, 25-41)
   real(dp), public, dimension(:), allocatable :: L11_C2          ! [-]     Routing parameter C2 (")
+  ! -------------------------------------------------------------------
+  ! GROUNDWATER COUPLING VARIABLES
+  ! -------------------------------------------------------------------
+  !
+  ! TODO this must be read from nml
+  logical :: gw_coupling
+  ! dim1 = number grid cells L1
+  real(dp), public, dimension(:), allocatable :: L11_bankfull_runoff_in
+  ! dim2 = number grid cells L0
+  real(dp), public, dimension(:), allocatable :: L0_channel_depth
+  real(dp), public, dimension(:), allocatable :: L0_channel_elevation
+  ! the cumulated river heads, for monthly average
+  real(dp), public, dimension(:), allocatable :: L0_river_head_mon_sum
+  real(dp), public, dimension(:), allocatable :: L0_slope
 
 end module mo_mrm_global_variables

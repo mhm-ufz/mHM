@@ -22,6 +22,7 @@
 module mo_read_forcing_nc
   implicit none
   public :: read_forcing_nc
+  public :: read_const_forcing_nc
   public :: read_weights_nc
   private
   !
@@ -256,6 +257,114 @@ contains
 
   end subroutine read_forcing_nc
 
+  subroutine read_const_forcing_nc(folder, nRows, nCols, varName, mask, data)
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         read_const_forcing_nc
+
+  !     PURPOSE
+  !>        \brief Reads time independent forcing input in NetCDF file format.
+
+  !>        \details Reads time independent netCDF forcing files.  \n
+  !>        First, the dimensions given are cross-checked with header.txt information. Second, the data of the
+  !>        specified period are read from the specified directory.
+  !>        If the optional lower and/or upper bound for the data values is given, the read data are checked for validity.
+  !>        The program is stopped if any value lies out of range.\n
+  !>        If the optinal argument nocheck is true, the data are not checked for coverage with the input mask.
+  !>        Additionally in this case an mask of vild data points can be received from the routine in maskout.
+
+  !     INTENT(IN)
+  !>        \param[in] "character(len=*) :: folder"        Name of the folder where data are stored
+  !>        \param[in] "integer(i4)      :: nRows"         Number of datapoints in longitudinal direction
+  !>        \param[in] "integer(i4)      :: nCols"         Number of datapoints in latitudinal  direction
+  !>        \param[in] "character(len=*) :: varName"       Name of variable name to read
+  !>        \param[in] "logical, dimension(:,:) :: mask"   mask of valid data fields
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !>        \param[out] "real(dp), dimension(:,:,:) :: data"     Data matrix
+  !>                                                             dim_1 = longitude, dim_2 = latitude
+
+  !     INTENT(IN), OPTIONAL
+  !         None
+  
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !>                                                                                                  data points 
+
+  !     RETURN
+  !         None
+
+  !     RESTRICTIONS
+  !>        \note Files have to be called like defined in mo_files. Furthermore the variable names have to be called
+  !>              like they are defined in the declaration of this subroutine. The NetCDF file has to have 2 dimensions:
+  !>              1. x, 2. y, It is expected that the variables (especially)within the NetCDF files contain an
+  !>              unit attribute. The timestep has to be equidistant.
+
+  !     EXAMPLE
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \author Lennart Schueler, heavily influenced by read_forcing_nc
+  !>        \date May 2018
+
+    use mo_kind,             only: i4, dp
+    use mo_message,          only: message
+    use mo_netcdf,           only: NcDataset, NcVariable, NcDimension
+    use mo_string_utils,     only: num2str
+    use mo_utils,            only: eq, ne
+
+    implicit none
+
+    character(len=*),                      intent(in)  :: folder  ! folder where data are stored
+    integer(i4),                           intent(in)  :: nRows   ! number of rows of data fields:
+    integer(i4),                           intent(in)  :: nCols   ! number of columns of data fields:
+    character(len=*),                      intent(in)  :: varName ! name of NetCDF variable
+    logical, dimension(:,:),               intent(in)  :: mask    ! mask of valid data fields
+    real(dp), dimension(:,:), allocatable, intent(out) :: data    ! data read in
+
+    ! local variables
+    type(NcDataset)                        :: nc           ! netcdf file
+    type(NcVariable)                       :: var          ! variables for data form netcdf
+    integer(i4), allocatable, dimension(:) :: var_shape    ! shape of NetCDF variable
+
+    character(256)                         :: fName        ! name of NetCDF file
+    real(dp)                               :: nodata_value ! data nodata value
+
+    fName = varName
+    fName = trim(folder) // trim(fName) // '.nc'
+    ! read the Dataset
+    nc = NcDataset(fname, "r")
+    ! get the variable
+    var = nc%getVariable(trim(varName))
+
+    ! get dimensions and check if plane is correct
+    var_shape = var%getShape()
+    if ( (var_shape(1) .ne. nRows) .or. (var_shape(2) .ne. nCols) ) then
+       stop '***ERROR: read_const_forcing_nc: mHM generated x and y are not matching NetCDF dimensions'
+    end if
+
+    ! determine no data value, use _FillValue first, fall back to missing_value
+    if (var%hasAttribute("_FillValue")) then
+      call var%getAttribute('_FillValue', nodata_value)
+    else if (var%hasAttribute("missing_value")) then
+      call var%getAttribute('missing_value', nodata_value)
+    else
+      stop '***ERROR: read_const_forcing_nc: there must be either the attribute "missing_value" or "_FillValue"'
+    end if
+
+    ! extract data and select time slice
+    call var%getData(data, start=(/1,1/), cnt=(/nRows,nCols/))
+
+  end subroutine read_const_forcing_nc
 
   ! ------------------------------------------------------------------
 
@@ -676,4 +785,3 @@ contains
   end subroutine get_time_vector_and_select
 
 end module mo_read_forcing_nc
-

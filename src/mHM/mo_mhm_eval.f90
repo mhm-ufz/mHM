@@ -119,12 +119,13 @@ CONTAINS
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
                                         L1_L11_Id, basin_mrm, level11, mRM_runoff, outputFlxState_mrm, &
-                                        timeStep_model_outputs_mrm
+                                        timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
-    use mo_mrm_write, only : mrm_write_output_fluxes
+    use mo_mrm_write, only : mrm_write_output_fluxes!, mrm_write_output_river_head
     use mo_utils, only : ge
+    use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
 #endif
 #ifdef pgiFortran154
     use mo_write_fluxes_states, only : newOutputDataset
@@ -607,6 +608,15 @@ CONTAINS
                   mRM_runoff(tt, :) &
                   )
             ! -------------------------------------------------------------------
+            ! groundwater coupling
+            ! -------------------------------------------------------------------
+            if (gw_coupling) then
+                call calc_river_head(iBasin, L11_Qmod, L0_river_head_mon_sum)
+                if (is_new_month .and. tt > 1) then
+                    call avg_and_write_timestep(iBasin, tt, L0_river_head_mon_sum)
+                end if
+            end if
+            ! -------------------------------------------------------------------
             ! reset variables
             ! -------------------------------------------------------------------
             if (processMatrix(8, 1) .eq. 1) then
@@ -667,6 +677,23 @@ CONTAINS
                   mask11, &
                   ! output variables
                   L11_qmod(s11 : e11))
+                if(gw_coupling) then
+                    !call mrm_write_output_river_head( &
+                    !     ! basin id
+                    !     ii, &
+                    !     ! output specification
+                    !     timeStep_model_outputs_mrm, &
+                    !     ! time specification
+                    !     warmingDays_mrm(ii), newTime, nTimeSteps, nTStepDay, &
+                    !     tt, &
+                    !     ! parse previous date to mRM writer
+                    !     day_counter, month_counter, year_counter, &
+                    !     timestep, &
+                    !     ! mask specification
+                    !     mask0, &
+                    !     ! output variables
+                    !     L0_river_head(s11:e11))
+                end if
         end if
 #endif
 
