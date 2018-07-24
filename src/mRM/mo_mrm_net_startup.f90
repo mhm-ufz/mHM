@@ -2348,10 +2348,10 @@ contains
     
     if(nNodes .GT. 1) then
         ! get L0 fields
-        iD0(:,:) = UNPACK(level0_iBasin%Id(iStart0:iEnd0), mask0, nodata_i4_tmp)
+        iD0(:,:) = UNPACK(level0_iBasin%Id(1:nCells0), mask0, nodata_i4_tmp)
         fDir0(:,:) = UNPACK(L0_fDir(iStart0:iEnd0), mask0, nodata_i4_tmp)
         fAcc0(:,:) = UNPACK(L0_fAcc(iStart0:iEnd0), mask0, nodata_i4_tmp)
-        cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(iStart0:iEnd0), mask0, nodata_dp_tmp)
+        cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(1:nCells0), mask0, nodata_dp_tmp)
 
         ! smoothing river slope
         slope_tmp = L0_slope(iStart0:iEnd0)

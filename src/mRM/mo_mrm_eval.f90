@@ -177,8 +177,8 @@ contains
       mask11 = level11(iBasin)%mask
       !
       ! initialize routing parameters (has to be called only for Routing option 2)
-      if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) call mrm_update_param(iBasin, &
-              parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
+      if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) &
+          call mrm_update_param(iBasin, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
       ! calculate NtimeSteps for this basin
       nTimeSteps = (simPer(iBasin)%julEnd - simPer(iBasin)%julStart + 1) * NTSTEPDAY
       ! initialize timestep
