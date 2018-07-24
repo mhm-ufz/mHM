@@ -1219,6 +1219,7 @@ contains
   ! Stephan Thober Aug 2015 - ported to mRM
   ! Stephan Thober Nov 2016 - only read flood plain area if processMatrix for routing equals 1
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Stephan Thober Jul 2018 - introduced cut off Length at 40 percentile to neglect short paths in headwaters for adaptive timesteps
 
   subroutine L11_stream_features(iBasin)
 
@@ -1228,6 +1229,7 @@ contains
     use mo_mrm_global_variables, only : L0_fDir, &
                                         L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
                                         L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
+    use mo_percentile, only: percentile
 
     implicit none
 
@@ -1311,7 +1313,7 @@ contains
     allocate (nLinkLength       (level11(iBasin)%nCells))
     allocate (nLinkAFloodPlain  (level11(iBasin)%nCells))
     allocate (nLinkSlope        (level11(iBasin)%nCells))
-
+    
     allocate (nodata_i4_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
     allocate (nodata_dp_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
 
@@ -1337,98 +1339,100 @@ contains
     nodata_i4_tmp(:, :) = nodata_i4
     nodata_dp_tmp(:, :) = nodata_dp
 
-    ! >>> CAUTION: only calculate link flood plain area if
-    ! >>> CAUTION: original routing is used
-    FParea : if (processMatrix(8, 1) .eq. 1_i4) then
-      ! for a single node model run
-      if(level11(iBasin)%nCells .GT. 1) then
-        ! get L0 fields
-        iD0(:, :) = UNPACK(level0_iBasin%Id, level0_iBasin%mask, nodata_i4_tmp)
-        elev0(:, :) = UNPACK(L0_elev (s0 : e0), &
-                level0_iBasin%mask, nodata_dp_tmp)
-        fDir0(:, :) = UNPACK(L0_fDir (s0 : e0), &
-                level0_iBasin%mask, nodata_i4_tmp)
-        cellarea0(:, :) = UNPACK(level0_iBasin%CellArea, level0_iBasin%mask, nodata_dp_tmp)
+    ! for a single node model run
+    if(level11(iBasin)%nCells .GT. 1) then
+      ! get L0 fields
+      iD0(:, :) = UNPACK(level0_iBasin%Id, level0_iBasin%mask, nodata_i4_tmp)
+      elev0(:, :) = UNPACK(L0_elev (s0 : e0), &
+          level0_iBasin%mask, nodata_dp_tmp)
+      fDir0(:, :) = UNPACK(L0_fDir (s0 : e0), &
+          level0_iBasin%mask, nodata_i4_tmp)
+      cellarea0(:, :) = UNPACK(level0_iBasin%CellArea, level0_iBasin%mask, nodata_dp_tmp)
 
-        ! get network vectors of L11
-        netPerm(:) = L11_netPerm (level11(iBasin)%iStart : level11(iBasin)%iEnd)
-        nLinkFromRow(:) = L11_fRow    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
-        nLinkFromCol(:) = L11_fCol    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
-        nLinkToRow(:) = L11_tRow    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
-        nLinkToCol(:) = L11_tCol    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
+      ! get network vectors of L11
+      netPerm(:) = L11_netPerm (level11(iBasin)%iStart : level11(iBasin)%iEnd)
+      nLinkFromRow(:) = L11_fRow    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
+      nLinkFromCol(:) = L11_fCol    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
+      nLinkToRow(:) = L11_tRow    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
+      nLinkToCol(:) = L11_tCol    (level11(iBasin)%iStart : level11(iBasin)%iEnd)
 
-        ! Flood plains:  stream network delineation
-        streamNet0(:, :) = nodata_i4
-        floodPlain0(:, :) = nodata_i4
+      ! Flood plains:  stream network delineation
+      streamNet0(:, :) = nodata_i4
+      floodPlain0(:, :) = nodata_i4
 
-        do rr = 1, nLinks
+      do rr = 1, nLinks
 
-          ii = netPerm(rr)
-          frow = nLinkFromRow(ii)
-          fcol = nLinkFromCol(ii)
+        ii = netPerm(rr)
+        frow = nLinkFromRow(ii)
+        fcol = nLinkFromCol(ii)
 
-          ! Init
+        ! Init
+        streamNet0(frow, fcol) = ii
+        floodPlain0(frow, fcol) = ii
+        stack = 0
+        append_chunk = 0
+        ns = 1
+        stack(ns, 1) = frow
+        stack(ns, 2) = fcol
+
+        call cellLength(iBasin, fDir0(frow, fcol), fRow, fCol, iFlag_cordinate_sys, nLinkLength(ii))
+        nLinkSlope(ii) = elev0(frow, fcol)
+
+        fId = iD0(frow, fcol)
+        tId = iD0(nLinkToRow(ii), nLinkToCol(ii))
+
+        do while (.NOT. (fId == tId))
+          ! Search flood plain from point(frow,fcol) upwards, keep co-ordinates in STACK
+          do while (ns > 0)
+            if (ns + 8 .gt. size(stack, 1)) then
+              call append(stack, append_chunk)
+            end if
+            call moveUp(elev0, fDir0, frow, fcol, stack, ns)
+            stack(1, 1) = 0
+            stack(1, 2) = 0
+            ! stack = cshift(stack, SHIFT = 1, DIM = 1)
+            ! substitute cshift <<<
+            dummy_1d = stack(1, :)
+            stack(: size(stack, dim = 1) - 1, :) = stack(2 :, :)
+            stack(size(stack, dim = 1), :) = dummy_1d
+            ! substitute cshift >>>
+            if (stack(1, 1) > 0 .and. stack(1, 2) > 0) floodPlain0(stack(1, 1), stack(1, 2)) = ii
+            ns = count(stack > 0) / 2
+          end do
+
+          ! move downstream
+          call moveDownOneCell(fDir0(frow, fcol), frow, fcol)
           streamNet0(frow, fcol) = ii
           floodPlain0(frow, fcol) = ii
+          fId = iD0(frow, fcol)
           stack = 0
-          append_chunk = 0
           ns = 1
           stack(ns, 1) = frow
           stack(ns, 2) = fcol
-
-          call cellLength(iBasin, fDir0(frow, fcol), fRow, fCol, iFlag_cordinate_sys, nLinkLength(ii))
-          nLinkSlope(ii) = elev0(frow, fcol)
-
-          fId = iD0(frow, fcol)
-          tId = iD0(nLinkToRow(ii), nLinkToCol(ii))
-
-          do while (.NOT. (fId == tId))
-            ! Search flood plain from point(frow,fcol) upwards, keep co-ordinates in STACK
-            do while (ns > 0)
-              if (ns + 8 .gt. size(stack, 1)) then
-                call append(stack, append_chunk)
-              end if
-              call moveUp(elev0, fDir0, frow, fcol, stack, ns)
-              stack(1, 1) = 0
-              stack(1, 2) = 0
-              ! stack = cshift(stack, SHIFT = 1, DIM = 1)
-              ! substitute cshift <<<
-              dummy_1d = stack(1, :)
-              stack(: size(stack, dim = 1) - 1, :) = stack(2 :, :)
-              stack(size(stack, dim = 1), :) = dummy_1d
-              ! substitute cshift >>>
-              if (stack(1, 1) > 0 .and. stack(1, 2) > 0) floodPlain0(stack(1, 1), stack(1, 2)) = ii
-              ns = count(stack > 0) / 2
-            end do
-
-            ! move downstream
-            call moveDownOneCell(fDir0(frow, fcol), frow, fcol)
-            streamNet0(frow, fcol) = ii
-            floodPlain0(frow, fcol) = ii
-            fId = iD0(frow, fcol)
-            stack = 0
-            ns = 1
-            stack(ns, 1) = frow
-            stack(ns, 2) = fcol
-            call cellLength(iBasin, fDir0(fRow, fCol), fRow, fCol, iFlag_cordinate_sys, length)
-            nLinkLength(ii) = nLinkLength(ii) + length
-
-          end do
-
-          ! stream bed slope
-          nLinkSlope(ii) = (nLinkSlope(ii) - elev0(frow, fcol)) / nLinkLength(ii)
-
-          if (nLinkSlope(ii) < 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
-
-          ! calculate area of floodplains (avoid overwriting)
-          nLinkAFloodPlain(ii) = sum (cellarea0(:, :), mask = (floodPlain0(:, :) == ii))
-          !  old > real( count( floodPlain0(:,:,) == i), dp ) * cellarea0
+          call cellLength(iBasin, fDir0(fRow, fCol), fRow, fCol, iFlag_cordinate_sys, length)
+          nLinkLength(ii) = nLinkLength(ii) + length
 
         end do
 
-        ! end of multi-node network design loop
-      end if
-    end if FParea
+        ! stream bed slope
+        nLinkSlope(ii) = (nLinkSlope(ii) - elev0(frow, fcol)) / nLinkLength(ii)
+
+        if (nLinkSlope(ii) < 0.0001_dp) nLinkSlope(ii) = 0.0001_dp
+
+        ! calculate area of floodplains (avoid overwriting)
+        nLinkAFloodPlain(ii) = sum (cellarea0(:, :), mask = (floodPlain0(:, :) == ii))
+        !  old > real( count( floodPlain0(:,:,) == i), dp ) * cellarea0
+
+      end do
+
+      ! end of multi-node network design loop
+    end if
+
+    ! cut off Length at 40 percentile to neglect short paths in headwaters
+    if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
+      length = percentile(nLinkLength(:), 40._dp)
+      nLinkLength(:) = merge(nLinkLength(:), length, (nLinkLength(:) .gt. length))
+    end if
 
     !--------------------------------------------------------
     ! Start padding up local variables to global variables
