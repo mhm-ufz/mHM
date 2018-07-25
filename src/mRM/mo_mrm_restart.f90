@@ -202,7 +202,7 @@ contains
 
     var = nc%setVariable("L1_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level1(iBasin)%Id(s1:e1), mask1, nodata_i4))
+    call var%setData(unpack(level1(iBasin)%Id(1:e1-s1+1), mask1, nodata_i4))
     call var%setAttribute("long_name", "cell IDs at level 1")
 
     var = nc%setVariable("L1_L11_Id", "i32", (/rows1, cols1/))
@@ -283,17 +283,17 @@ contains
     
     var = nc%setVariable("L11_rowCoor", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level11(iBasin)%cellCoor(s11:e11,1), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%cellCoor(1:e11-s11+1,1), mask11, nodata_i4))
     call var%setAttribute("long_name", "row coordinates at Level 11")
 
     var = nc%setVariable("L11_colCoor", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level11(iBasin)%cellCoor(s11:e11,2), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%cellCoor(1:e11-s11+1,2), mask11, nodata_i4))
     call var%setAttribute("long_name", "col coordinates at Level 11")
 
     var = nc%setVariable("L11_Id", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(level11(iBasin)%Id(s11:e11), mask11, nodata_i4))
+    call var%setData(unpack(level11(iBasin)%Id(1:e11-s11+1), mask11, nodata_i4))
     call var%setAttribute("long_name", "cell Ids at Level 11")
 
     ! var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
@@ -403,22 +403,22 @@ contains
 
     var = nc%setVariable("L0_draCell", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_draCell(s11:e11), mask0, nodata_i4))
+    call var%setData(unpack(L0_draCell(s0:e0), mask0, nodata_i4))
     call var%setAttribute("long_name", "Draining cell id at L11 of ith cell of L0")
 
     var = nc%setVariable("L0_streamNet", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_streamNet(s11:e11), mask0, nodata_i4))
+    call var%setData(unpack(L0_streamNet(s0:e0), mask0, nodata_i4))
     call var%setAttribute("long_name", "Stream network")
 
     var = nc%setVariable("L0_floodPlain", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_floodPlain(s11:e11), mask0, nodata_i4))
+    call var%setData(unpack(L0_floodPlain(s0:e0), mask0, nodata_i4))
     call var%setAttribute("long_name", "Floodplains of stream i")
 
     var = nc%setVariable("L0_draSC", "i32", (/rows0, cols0/))
     call var%setFillValue(nodata_i4)
-    call var%setData(unpack(L0_draSC(s11:e11), mask0, nodata_i4))
+    call var%setData(unpack(L0_draSC(s0:e0), mask0, nodata_i4))
     call var%setAttribute("long_name", "Floodplains of stream i")
 
     ! var = nc%setVariable("L0_L11_Id", "i32", (/rows0, cols0/))
