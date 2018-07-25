@@ -225,7 +225,7 @@ contains
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
-                                        L11_nOutlets, L11_rowOut, basin_mrm, level11
+        L11_nOutlets, L11_rowOut, basin_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -377,7 +377,7 @@ contains
         ! check whether new location is inside bound
         is_outlet = .False.
         if ((iRow .le. 0_i4) .or. (iRow .gt. nrows0) .or. &
-                (jCol .le. 0_i4) .or. (jCol .gt. ncols0)) then
+            (jCol .le. 0_i4) .or. (jCol .gt. ncols0)) then
           is_outlet = .True.
         else
           if (fdir0(iRow, jCol) .lt. 0) is_outlet = .True.
@@ -431,9 +431,9 @@ contains
         ! searching on side 4
         do jj = jl, jr
           if ((fAcc0(iu, jj) > fAccMax)  .and. &
-                  (fDir0(iu, jj) ==  32 .or.  &
-                          fDir0(iu, jj) ==  64 .or.  &
-                          fDir0(iu, jj) == 128)) then
+              (fDir0(iu, jj) ==  32 .or.  &
+              fDir0(iu, jj) ==  64 .or.  &
+              fDir0(iu, jj) == 128)) then
             fAccMax = fAcc0(iu, jj)
             idMax = id0(iu, jj)
             side = 4
@@ -443,9 +443,9 @@ contains
         ! searching on side 1
         do ii = iu, id
           if ((fAcc0(ii, jr) > fAccMax)  .and. &
-                  (fDir0(ii, jr) ==   1 .or.  &
-                          fDir0(ii, jr) ==   2 .or.  &
-                          fDir0(ii, jr) == 128)) then
+              (fDir0(ii, jr) ==   1 .or.  &
+              fDir0(ii, jr) ==   2 .or.  &
+              fDir0(ii, jr) == 128)) then
             fAccMax = fAcc0(ii, jr)
             idMax = id0(ii, jr)
             side = 1
@@ -455,9 +455,9 @@ contains
         ! searching on side 2
         do jj = jl, jr
           if ((fAcc0(id, jj) > fAccMax)  .and. &
-                  (fDir0(id, jj) ==   2 .or.  &
-                          fDir0(id, jj) ==   4 .or.  &
-                          fDir0(id, jj) ==   8)) then
+              (fDir0(id, jj) ==   2 .or.  &
+              fDir0(id, jj) ==   4 .or.  &
+              fDir0(id, jj) ==   8)) then
             fAccMax = fAcc0(id, jj)
             idMax = id0(id, jj)
             side = 2
@@ -467,9 +467,9 @@ contains
         ! searching on side 3
         do ii = iu, id
           if ((fAcc0(ii, jl) > fAccMax)  .and. &
-                  (fDir0(ii, jl) ==   8 .or.  &
-                          fDir0(ii, jl) ==  16 .or.  &
-                          fDir0(ii, jl) ==  32)) then
+              (fDir0(ii, jl) ==   8 .or.  &
+              fDir0(ii, jl) ==  16 .or.  &
+              fDir0(ii, jl) ==  32)) then
             fAccMax = fAcc0(ii, jl)
             idMax = id0(ii, jl)
             side = 3
@@ -723,7 +723,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_mrm_global_variables, only : L11_fDir, L11_fromN, L11_label, L11_nOutlets, L11_netPerm, L11_rOrder, L11_sink, L11_toN, &
-                                        level11
+        level11
 
     implicit none
 
@@ -884,7 +884,7 @@ contains
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
-                                        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
+        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -1018,8 +1018,8 @@ contains
             end do
             if (prevRow .eq. iRow .and. prevCol .eq. jCol) then
               call message('Something went wrong during L11_link_location, ', &
-                      'movedownonecell got stuck in infinite loop at cell (', num2str(iRow), ' ', &
-              num2str(jCol))
+                  'movedownonecell got stuck in infinite loop at cell (', num2str(iRow), ' ', &
+                  num2str(jCol))
               stop 1
             end if
           end do
@@ -1044,7 +1044,7 @@ contains
 
     ! free space
     deallocate (rowOut, colOut, nLinkFromN, netPerm, nLinkFromRow, &
-            nLinkFromCol, nLinkToRow, nLinkToCol, fDir0, draSC0)
+        nLinkFromCol, nLinkToRow, nLinkToCol, fDir0, draSC0)
 
   end subroutine L11_link_location
 
@@ -1085,7 +1085,7 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, basin_mrm, &
-                                        l0_l11_remap
+        l0_l11_remap
 
     implicit none
 
@@ -1131,13 +1131,13 @@ contains
     draCell0(:, :) = nodata_i4
 
     draSC0(:, :) = UNPACK(L0_draSC          (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+        level0_iBasin%mask, nodata_i4)
     fDir0(:, :) = UNPACK(L0_fDir           (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+        level0_iBasin%mask, nodata_i4)
     gaugeLoc0(:, :) = UNPACK(L0_gaugeLoc       (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+        level0_iBasin%mask, nodata_i4)
     InflowGaugeLoc0(:, :) = UNPACK(L0_InflowgaugeLoc (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+        level0_iBasin%mask, nodata_i4)
 
     do kk = 1, level0_iBasin%nCells
       ii = level0_iBasin%CellCoor(kk, 1)
@@ -1170,7 +1170,7 @@ contains
         do ll = 1, basin_mrm(iBasin)%nInflowGauges
           ! search for gaugeID in L0 grid and save ID on L11
           if (basin_mrm(iBasin)%InflowGaugeIdList(ll) .EQ. InflowGaugeLoc0(ii, jj)) &
-                  basin_mrm(iBasin)%InflowGaugeNodeList(ll) = L0_L11_remap(iBasin)%lowres_id_on_highres(ii, jj)
+              basin_mrm(iBasin)%InflowGaugeNodeList(ll) = L0_L11_remap(iBasin)%lowres_id_on_highres(ii, jj)
         end do
       end if
     end do
@@ -1227,8 +1227,8 @@ contains
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_variables, only : Grid, L0_Basin, L0_elev, iFlag_cordinate_sys, level0, processMatrix
     use mo_mrm_global_variables, only : L0_fDir, &
-                                        L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
-                                        L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
+        L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
+        L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
     use mo_percentile, only: percentile
 
     implicit none
@@ -1313,7 +1313,7 @@ contains
     allocate (nLinkLength       (level11(iBasin)%nCells))
     allocate (nLinkAFloodPlain  (level11(iBasin)%nCells))
     allocate (nLinkSlope        (level11(iBasin)%nCells))
-    
+
     allocate (nodata_i4_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
     allocate (nodata_dp_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
 
@@ -1456,9 +1456,9 @@ contains
 
     ! free space
     deallocate (&
-            iD0, elev0, fDir0, streamNet0, floodPlain0, &
-            cellarea0, stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol, &
-            nLinkLength, nLinkAFloodPlain, nLinkSlope, dummy_1d)
+        iD0, elev0, fDir0, streamNet0, floodPlain0, &
+        cellarea0, stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol, &
+        nLinkLength, nLinkAFloodPlain, nLinkSlope, dummy_1d)
     deallocate(nodata_i4_tmp, nodata_dp_tmp)
 
   end subroutine L11_stream_features
@@ -1500,7 +1500,7 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : Grid, L0_Basin, L0_LCover, level0, nBasins, nLCoverScene
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
-                                        L11_nLinkFracFPimp, L11_nOutlets, level11
+        L11_nLinkFracFPimp, L11_nOutlets, level11
 
     implicit none
 
@@ -1537,8 +1537,8 @@ contains
           if(nLinks .GT. 0) then
             do ii = 1, nLinks
               temp_array(ii, iiLC) = sum(level0_iBasin%CellArea(:), &
-                      mask = (L0_floodPlain(s0 : e0) == ii .and. L0_LCover(s0 : e0, iiLC) == LCClassImp)) &
-                      / nLinkAFloodPlain(ii)
+                  mask = (L0_floodPlain(s0 : e0) == ii .and. L0_LCover(s0 : e0, iiLC) == LCClassImp)) &
+                  / nLinkAFloodPlain(ii)
             end do
           end if
         end do
@@ -1614,9 +1614,9 @@ contains
     !E
     if   (jp                <= ncols) then
       if ((fdir0(ii, jp) == 16)                   .and. &
-              (le((elev0(ii, jp) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(ii, jp) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = ii
         ss(nn, 2) = jp
@@ -1626,11 +1626,11 @@ contains
 
     !SE
     if ((ip                <= nrows) .and. &
-            (jp                <= ncols)) then
+        (jp                <= ncols)) then
       if ((fdir0(ip, jp) == 32)                   .and. &
-              (le((elev0(ip, jp) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(ip, jp) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = ip
         ss(nn, 2) = jp
@@ -1640,11 +1640,11 @@ contains
 
     !S
     if ((ip               <= nrows)  .and. &
-            (jp               <= ncols)) then
+        (jp               <= ncols)) then
       if ((fdir0(ip, jj) == 64)                 .and. &
-              (le((elev0(ip, jj) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(ip, jj) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = ip
         ss(nn, 2) = jj
@@ -1654,12 +1654,12 @@ contains
 
     !SW
     if ((ip                <= nrows) .and. &
-            (jp                <= ncols) .and. &
-            (jm                >= 1)) then
+        (jp                <= ncols) .and. &
+        (jm                >= 1)) then
       if ((fdir0(ip, jm) == 128)                 .and. &
-              (le((elev0(ip, jm) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(ip, jm) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = ip
         ss(nn, 2) = jm
@@ -1669,11 +1669,11 @@ contains
 
     !W
     if ((jm                 >= 1) .and. &
-            (jp                 <= ncols)) then
+        (jp                 <= ncols)) then
       if ((fdir0(ii, jm)  == 1)                 .and. &
-              (le((elev0(ii, jm) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(ii, jm) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = ii
         ss(nn, 2) = jm
@@ -1683,12 +1683,12 @@ contains
 
     !NW
     if ((im                >= 1) .and. &
-            (jp                <= ncols) .and. &
-            (jm                >= 1))  then
+        (jp                <= ncols) .and. &
+        (jm                >= 1))  then
       if ((fdir0(im, jm) == 2)                 .and. &
-              (le((elev0(im, jm) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(im, jm) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = im
         ss(nn, 2) = jm
@@ -1698,11 +1698,11 @@ contains
 
     !N
     if ((im                >= 1) .and. &
-            (jp                 <= ncols)) then
+        (jp                 <= ncols)) then
       if ((fdir0(im, jj)  == 4)                 .and. &
-              (le((elev0(im, jj) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(im, jj) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = im
         ss(nn, 2) = jj
@@ -1712,11 +1712,11 @@ contains
 
     !NE
     if ((im                >= 1) .and. &
-            (jp                <= ncols))  then
+        (jp                <= ncols))  then
       if ((fdir0(im, jp) == 8)               .and. &
-              (le((elev0(im, jp) - elev0(fi, fj)), deltaH))  .and. &
-              (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
-              ) then
+          (le((elev0(im, jp) - elev0(fi, fj)), deltaH))  .and. &
+          (ge((elev0(ii, jp) - elev0(fi, fj)), 0.0_dp))        &
+          ) then
         nn = nn + 1
         ss(nn, 1) = im
         ss(nn, 2) = jp
@@ -1862,14 +1862,14 @@ contains
 
       ! estimate lat-lon points
       lat_1 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+          0.5_dp * level0_iBasin%cellsize
       long_1 = level0_iBasin%xllcorner + real((iRow - 1), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+          0.5_dp * level0_iBasin%cellsize
 
       lat_2 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol_to), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+          0.5_dp * level0_iBasin%cellsize
       long_2 = level0_iBasin%xllcorner + real((iRow_to - 1), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+          0.5_dp * level0_iBasin%cellsize
       ! get distance between two points
       call get_distance_two_lat_lon_points(lat_1, long_1, lat_2, long_2, length)
 
@@ -1992,10 +1992,10 @@ contains
 
   !     EXAMPLE
   !         None
-  
+
   !     LITERATURE
   !         None
-  
+
   !     HISTORY
   !>        \author Matthias Kelbling
   !>        \date   Aug 2017
@@ -2006,12 +2006,12 @@ contains
   subroutine L11_flow_accumulation(iBasin)
 
     use mo_mrm_global_variables, only: &
-      L11_fDir,          & !  IN: flow direction at L11 (standard notation)
-      L11_fromN,         &
-      L11_nOutlets,      &
-      L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
-      L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
-      L11_CellCoor
+        L11_fDir,          & !  IN: flow direction at L11 (standard notation)
+        L11_fromN,         &
+        L11_nOutlets,      &
+        L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
+        L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
+        L11_CellCoor
     use mo_common_variables, only : grid, l11_Basin
     use mo_mrm_global_variables, only : level11
     use mo_common_constants, only : nodata_i4, nodata_dp
@@ -2067,11 +2067,11 @@ contains
       do ii=1, nrows11
         if (fDir11(ii,jj) .eq. 0) then
           call calculate_L11_flow_accumulation(fDir = fDir11, &
-                                               fAcc = fAcc11, &
-                                               ii = ii, &
-                                               jj = jj, &
-                                               nrow = nrows11, &
-                                               ncol = ncols11)
+              fAcc = fAcc11, &
+              ii = ii, &
+              jj = jj, &
+              nrow = nrows11, &
+              ncol = ncols11)
         end if
       end do
     end do
@@ -2085,88 +2085,88 @@ contains
     ! Append
     call append( L11_fAcc, pack( fAcc11(:,:),mask11))
     call append( L11_LinkIn_fAcc, LinkIn_fAcc(:))
-  
+
     ! free space
     deallocate(fDir11, cellarea11, fAcc11, mask11, LinkIn_fAcc, CellCoor11)
 
   contains
 
-  recursive subroutine calculate_L11_flow_accumulation(fDir, fAcc, ii, jj, nrow, ncol)
+    recursive subroutine calculate_L11_flow_accumulation(fDir, fAcc, ii, jj, nrow, ncol)
 
-    implicit none
+      implicit none
 
-    integer(i4), intent(in)            :: fDir(:,:)      ! flow Direction
-    real(dp), intent (inout)           :: fAcc(:,:)      ! flow accumulation
-    integer(i4), intent(in)            :: ii, jj         ! row and col index
-    integer(i4), intent(in)            :: nrow, ncol     ! number of rows,cols in array
+      integer(i4), intent(in)            :: fDir(:,:)      ! flow Direction
+      real(dp), intent (inout)           :: fAcc(:,:)      ! flow accumulation
+      integer(i4), intent(in)            :: ii, jj         ! row and col index
+      integer(i4), intent(in)            :: nrow, ncol     ! number of rows,cols in array
 
-    ! Scan order:
-    !
-    !    6 7 8
-    !    5 x 1
-    !    4 3 2
-    !
-    ! Each:
-    ! 1. Check if cell is inflow cell to current grid
-    ! 2. If yes: Call calculate_subroutine and add result
+      ! Scan order:
+      !
+      !    6 7 8
+      !    5 x 1
+      !    4 3 2
+      !
+      ! Each:
+      ! 1. Check if cell is inflow cell to current grid
+      ! 2. If yes: Call calculate_subroutine and add result
 
-    if (jj+1 .le. ncol) then
-      if (fDir(ii,jj+1) .eq. 16_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj+1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj+1)
+      if (jj+1 .le. ncol) then
+        if (fDir(ii,jj+1) .eq. 16_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj+1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj+1)
+        end if
       end if
-    end if
 
-    if ((ii+1 .le. nrow) .and. (jj+1 .le. ncol)) then
-      if (fDir(ii+1,jj+1) .eq. 32_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj+1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj+1)
+      if ((ii+1 .le. nrow) .and. (jj+1 .le. ncol)) then
+        if (fDir(ii+1,jj+1) .eq. 32_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj+1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj+1)
+        end if
       end if
-    end if
 
-    if (ii+1 .le. nrow) then
-      if (fDir(ii+1,jj) .eq. 64_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj)
+      if (ii+1 .le. nrow) then
+        if (fDir(ii+1,jj) .eq. 64_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj)
+        end if
       end if
-    end if
 
-    if ((ii+1 .le. nrow) .and. (jj-1 .ge. 1)) then
-      if (fDir(ii+1,jj-1) .eq. 128_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj-1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj-1)
+      if ((ii+1 .le. nrow) .and. (jj-1 .ge. 1)) then
+        if (fDir(ii+1,jj-1) .eq. 128_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii+1, jj-1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii+1,jj-1)
+        end if
       end if
-    end if
 
-    if (jj-1 .ge. 1) then
-      if (fDir(ii,jj-1) .eq. 1_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj-1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj-1)
+      if (jj-1 .ge. 1) then
+        if (fDir(ii,jj-1) .eq. 1_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii, jj-1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii,jj-1)
+        end if
       end if
-    end if
 
-    if ((ii-1 .ge. 1) .and. (jj-1 .ge. 1)) then
-      if (fDir(ii-1,jj-1) .eq. 2_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj-1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj-1)
+      if ((ii-1 .ge. 1) .and. (jj-1 .ge. 1)) then
+        if (fDir(ii-1,jj-1) .eq. 2_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj-1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj-1)
+        end if
       end if
-    end if
 
-    if (ii-1 .ge. 1) then
-      if (fDir(ii-1,jj) .eq. 4_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj)
+      if (ii-1 .ge. 1) then
+        if (fDir(ii-1,jj) .eq. 4_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj)
+        end if
       end if
-    end if
 
-    if ((ii-1 .ge. 1) .and. (jj+1 .le. ncol)) then
-      if (fDir11(ii-1,jj+1) .eq. 8_i4) then
-        call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj+1, nrow, ncol)
-        fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj+1)
+      if ((ii-1 .ge. 1) .and. (jj+1 .le. ncol)) then
+        if (fDir11(ii-1,jj+1) .eq. 8_i4) then
+          call calculate_L11_flow_accumulation(fDir, fAcc, ii-1, jj+1, nrow, ncol)
+          fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj+1)
+        end if
       end if
-    end if    
-    
-  end subroutine calculate_L11_flow_accumulation
+
+    end subroutine calculate_L11_flow_accumulation
 
   end subroutine L11_flow_accumulation
 
@@ -2175,7 +2175,7 @@ contains
 
   !     NAME
   !         L11_calc_celerity
-  
+
   !     PURPOSE
   !>        \brief L11 celerity based on L0 elevation and L0 fAcc
 
@@ -2222,25 +2222,25 @@ contains
     use mo_mad, only: mad
     use mo_append, only: append
     use mo_mpr_global_variables, only: &
-         L0_slope               ! IN:    slope [%]
+        L0_slope               ! IN:    slope [%]
     use mo_common_variables, only: &
-         Grid,                &
-         L0_Basin,            & ! IN:    L0 Basin indexer
-         level0,              & ! IN:    level 0 grid
-         L0_LCover              ! IN:    Normal Landcover
+        Grid,                &
+        L0_Basin,            & ! IN:    L0 Basin indexer
+        level0,              & ! IN:    level 0 grid
+        L0_LCover              ! IN:    Normal Landcover
     use mo_mrm_global_variables, only: &
-         L0_fDir,             & ! IN:    flow direction (standard notation) L0
-         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
-         L0_streamNet,        & ! IN:    stream Network at Level 0
-         level11,             & ! IN:    level 11 grid
-         L11_fRow,            & ! IN:    from row in L0 grid 
-         L11_fCol,            & ! IN:    from col in L0 grid
-         L11_tRow,            & ! IN:    to row in L0 grid 
-         L11_tCol,            & ! IN:    to col in L0 grid 
-         L11_netPerm,         & ! IN:    routing order (permutation)
-         L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
-         L11_celerity,        & ! INOUT: averaged celerity
-         L0_celerity            ! INOUT
+        L0_fDir,             & ! IN:    flow direction (standard notation) L0
+        L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
+        L0_streamNet,        & ! IN:    stream Network at Level 0
+        level11,             & ! IN:    level 11 grid
+        L11_fRow,            & ! IN:    from row in L0 grid 
+        L11_fCol,            & ! IN:    from col in L0 grid
+        L11_tRow,            & ! IN:    to row in L0 grid 
+        L11_tCol,            & ! IN:    to col in L0 grid 
+        L11_netPerm,         & ! IN:    routing order (permutation)
+        L11_nOutlets,        & ! IN:    Number of Outlets/Sinks
+        L11_celerity,        & ! INOUT: averaged celerity
+        L0_celerity            ! INOUT
 
     implicit none
 
@@ -2349,87 +2349,87 @@ contains
     nodata_dp_tmp(:,:) = nodata_dp
 
     ! for a single node model run
-    
+
     if(nNodes .GT. 1) then
-        ! get L0 fields
-        iD0(:,:) = UNPACK(level0_iBasin%Id(1:nCells0), mask0, nodata_i4_tmp)
-        fDir0(:,:) = UNPACK(L0_fDir(iStart0:iEnd0), mask0, nodata_i4_tmp)
-        fAcc0(:,:) = UNPACK(L0_fAcc(iStart0:iEnd0), mask0, nodata_i4_tmp)
-        cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(1:nCells0), mask0, nodata_dp_tmp)
+      ! get L0 fields
+      iD0(:,:) = UNPACK(level0_iBasin%Id(1:nCells0), mask0, nodata_i4_tmp)
+      fDir0(:,:) = UNPACK(L0_fDir(iStart0:iEnd0), mask0, nodata_i4_tmp)
+      fAcc0(:,:) = UNPACK(L0_fAcc(iStart0:iEnd0), mask0, nodata_i4_tmp)
+      cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(1:nCells0), mask0, nodata_dp_tmp)
 
-        ! smoothing river slope
-        slope_tmp = L0_slope(iStart0:iEnd0)
-        where ( slope_tmp .lt. 0.1_dp ) slope_tmp = 0.1_dp
+      ! smoothing river slope
+      slope_tmp = L0_slope(iStart0:iEnd0)
+      where ( slope_tmp .lt. 0.1_dp ) slope_tmp = 0.1_dp
 
-        slopemask0(:) = (L0_streamNet(iStart0:iEnd0) .ne. nodata_i4)
+      slopemask0(:) = (L0_streamNet(iStart0:iEnd0) .ne. nodata_i4)
 
-        if( count(slopemask0) .GT. 1) then
-           slope_tmp = mad(arr = slope_tmp, z = 2.25_dp, mask = slopemask0, tout='u', mval=0.1_dp)
-        else
-           print *, "Number of L0-stream-cells <= 1, no slope-smoothing possible..."
-        end if
-        slope0(:,:) = UNPACK(slope_tmp,  mask0, nodata_dp_tmp )
-        ! end smoothing river slope
-        
-        ! get network vectors of L11 
-        netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
-        nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
-        nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
-        nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
-        nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
+      ! smooth river cells if there is more than one cell
+      if( count(slopemask0) .GT. 1) then
+        slope_tmp = mad(arr = slope_tmp, z = 2.25_dp, mask = slopemask0, tout='u', mval=0.1_dp)
+      end if
+      slope0(:,:) = UNPACK(slope_tmp,  mask0, nodata_dp_tmp )
 
-        do rr = 1, nLinks
+      ! get network vectors of L11 
+      netPerm(:)      = L11_netPerm ( iStart11 : iEnd11 )
+      nLinkFromRow(:) = L11_fRow    ( iStart11 : iEnd11 )
+      nLinkFromCol(:) = L11_fCol    ( iStart11 : iEnd11 )
+      nLinkToRow(:)   = L11_tRow    ( iStart11 : iEnd11 )
+      nLinkToCol(:)   = L11_tCol    ( iStart11 : iEnd11 )
 
-           ii   = netPerm(rr)
-           frow = nLinkFromRow(ii)
-           fcol = nLinkFromCol(ii)
+      do rr = 1, nLinks
 
-           ! Init
-           stack(:) = 0_dp
-           ns    = 1
+        ii   = netPerm(rr)
+        frow = nLinkFromRow(ii)
+        fcol = nLinkFromCol(ii)
 
-           fId = iD0( frow, fcol )
-           tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
-           do
-              L0_link_slope = slope0(frow, fcol) / 100._dp
+        ! Init
+        stack(:) = 0_dp
+        ns = 1
 
-              ! celerity parametrization
-              stack(ns) = param(1) * sqrt(L0_link_slope )
-              
-              celerity0(frow, fcol) = stack(ns)
-              ns = ns + 1                
-              fId = iD0(frow, fcol)
-              if( .NOT. (fID == tID)) then
-                call append(stack, append_chunk)
-              end if
-              if (fId == tId) exit
-              ! move downstream
-              call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
-           end do
+        fId = iD0( frow, fcol )
+        tId = iD0( nLinkToRow(ii) , nLinkToCol(ii) )
+        do
+          L0_link_slope = slope0(frow, fcol) / 100._dp
 
-           celerity11(ii) = size(stack) / sum(1/stack(:))
-           deallocate(stack)
-           allocate  (stack(1))
+          ! celerity parametrization
+          stack(ns) = param(1) * sqrt(L0_link_slope)
 
+          celerity0(frow, fcol) = stack(ns)
+          ns = ns + 1                
+          fId = iD0(frow, fcol)
+          if( .NOT. (fID == tID)) then
+            call append(stack, append_chunk)
+          else
+            exit
+          end if
+          ! move downstream
+          call moveDownOneCell( fDir0(frow,fcol), frow, fcol )
         end do
 
-     else
+        celerity11(ii) = size(stack) / sum(1/stack(:))
+        deallocate(stack)
+        allocate(stack(1))
 
-        print *, 'BUG ST: even in one cell, move along river network'
-        celerity11(:) =  size(L0_slope(iStart0:iEnd0)) / sum(1._dp/(param(1) * sqrt(L0_slope(iStart0:iEnd0))))
-        
-     end if
-     
-      ! Write celerity
-      L11_celerity(iStart11:iEnd11) = celerity11(:)
-      L0_celerity(iStart0:iEnd0) = PACK(celerity0(:,:), mask0)
+      end do
 
-     ! free space
-     deallocate (&
-          mask0, iD0, slope_tmp, slopemask0, &
-          slope0, fDir0, cellarea0,   &
-          stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
+    else
 
-   end subroutine L11_calc_celerity
+      ! There is only one cell, so no routing is taking place
+      ! set dummy value of 1 m / s
+      celerity11(:) =  1._dp
+
+    end if
+
+    ! Write celerity
+    L11_celerity(iStart11:iEnd11) = celerity11(:)
+    L0_celerity(iStart0:iEnd0) = PACK(celerity0(:,:), mask0)
+
+    ! free space
+    deallocate (&
+        mask0, iD0, slope_tmp, slopemask0, &
+        slope0, fDir0, cellarea0,   &
+        stack, netPerm, nLinkFromRow, nLinkFromCol, nLinkToRow, nLinkToCol) 
+
+  end subroutine L11_calc_celerity
 
 end module mo_mrm_net_startup

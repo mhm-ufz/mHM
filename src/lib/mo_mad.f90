@@ -365,15 +365,15 @@ CONTAINS
 
     select case(tout)
     case("u")
-      print *, "The threshold is set to", med, "+", thresh
+      ! print *, "The threshold is set to", med, "+", thresh
       where ((mad_val_dp .gt. (med+thresh)) &
            .and. maske) mad_val_dp = med+thresh
     case("l")
-      print *, "The threshold is set to", med, "-", thresh
+      ! print *, "The threshold is set to", med, "-", thresh
       where ((mad_val_dp .lt. (med-thresh)) &
            .and. maske) mad_val_dp = med-thresh
     case("b")
-      print *, "The threshold is set to", med, "+/-", thresh
+      ! print *, "The threshold is set to", med, "+/-", thresh
       where ((mad_val_dp .gt. (med+thresh)) &
            .and. maske) mad_val_dp = med+thresh
       where ((mad_val_dp .lt. (med-thresh)) &

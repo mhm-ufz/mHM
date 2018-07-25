@@ -63,7 +63,8 @@ contains
                                         L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
                                         L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
                                         outputFlxState_mrm, timeStep_model_outputs_mrm
-    use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
+    use mo_mrm_init, only : variables_default_init_routing
+    use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
     use mo_mrm_write, only : mrm_write_output_fluxes
