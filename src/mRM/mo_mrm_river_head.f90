@@ -135,14 +135,11 @@ module mo_mrm_river_head
     real(dp), dimension(:), intent(in) :: L11_Qmod
     real(dp), dimension(:), allocatable, intent(inout) :: river_head
     real(dp) :: n ! Manning's roughness coefficient
-    integer(i4) :: nrows0, ncols0
     integer(i4) :: s0, e0
     integer(i4) i, j, k, L11_ind
 
     n = .045_dp ! m^-1/3 s from Sutanudjaja et al. 2011
 
-    nrows0 = level0(iBasin)%nrows
-    ncols0 = level0(iBasin)%ncols
     s0 = level0(iBasin)%iStart
     e0 = level0(iBasin)%iEnd
 
@@ -179,7 +176,10 @@ module mo_mrm_river_head
     call moveDownOneCell(fDir0(i, j), i_down, j_down)
 
     slope = (elev0(i,j) - elev0(i_down, j_down)) / length
-    if(slope < 0.0001_dp .OR. slope > 20._dp .OR. isnan(slope)) then
+    ! TODO: as soon as current gfortran compiler is available on EVE,
+    ! use ieee_isnan from ieee_arithmetic module, instead of
+    ! slope /= slope
+    if(slope < 0.0001_dp .OR. slope > 20._dp .OR. slope /= slope) then
       slope = 0.0001_dp
     end if
   end function calc_slope
