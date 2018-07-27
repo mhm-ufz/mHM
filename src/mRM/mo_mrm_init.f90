@@ -12,6 +12,8 @@
 
 MODULE mo_mrm_init
 
+    use mo_common_variables, only : dirOut
+
   ! This module sets the river network characteristics and routing order.
 
   ! Written  Luis Samaniego, Mar 2005
@@ -52,8 +54,10 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober Sep 2015 - added L0_mask, L0_elev, and L0_LCover
   ! Stephan Thober May 2016 - added warning message in case no gauge is found in modelling domain
-  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Network
+  ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo  
+  ! Lennart Schueler May 2018 - added initialization for groundwater coupling
   ! Stephan Thober Jun 2018 - refactored for mpr_extract version
+
 
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
@@ -69,15 +73,17 @@ CONTAINS
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_global_variables, only : basin_mrm, &
-                                        l0_l11_remap, l1_l11_remap, level11
+                                        l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
+                                        L0_river_head_mon_sum
     use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
     use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
-                                 mrm_read_total_runoff
+                                 mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
     use mo_read_latlon, only : read_latlon
+    use mo_mrm_river_head, only: init_masked_zeros_l0, create_output, calc_channel_elevation
     use mo_mrm_mpr, only : mrm_init_param
 
     implicit none
@@ -144,40 +150,40 @@ CONTAINS
         call read_grid_info(iBasin, dirRestartIn(iBasin), "11", "mRM", level11(iBasin))
         call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
       else
-         if (iBasin .eq. 1) then
-            call L0_check_input_routing(L0_Basin(iBasin))
-            if (mrm_coupling_mode .eq. 0_i4) then
-               call L0_grid_setup(level0(L0_Basin(iBasin)))
-            end if
-         else if ((L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1))) then
-            call L0_check_input_routing(L0_Basin(iBasin))
-            if (mrm_coupling_mode .eq. 0_i4) then
-               call L0_grid_setup(level0(L0_Basin(iBasin)))
-            end if
-         end if
+        if (iBasin .eq. 1) then
+          call L0_check_input_routing(L0_Basin(iBasin))
+          if (mrm_coupling_mode .eq. 0_i4) then
+            call L0_grid_setup(level0(L0_Basin(iBasin)))
+          end if
+        else if ((L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1))) then
+          call L0_check_input_routing(L0_Basin(iBasin))
+          if (mrm_coupling_mode .eq. 0_i4) then
+            call L0_grid_setup(level0(L0_Basin(iBasin)))
+          end if
+        end if
 
-         if (mrm_coupling_mode .eq. 0_i4) then
-            call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
-                 level1(iBasin), l0_l1_remap(iBasin))
-         end if
-         call init_lowres_level(level0(L0_Basin(iBasin)), resolutionRouting(iBasin), &
-              level11(iBasin), l0_l11_remap(iBasin))
-         call init_lowres_level(level1(iBasin), resolutionRouting(iBasin), &
-              level11(iBasin), l1_l11_remap(iBasin))
-         call L11_L1_mapping(iBasin)
+        if (mrm_coupling_mode .eq. 0_i4) then
+          call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
+                  level1(iBasin), l0_l1_remap(iBasin))
+        end if
+        call init_lowres_level(level0(L0_Basin(iBasin)), resolutionRouting(iBasin), &
+                level11(iBasin), l0_l11_remap(iBasin))
+        call init_lowres_level(level1(iBasin), resolutionRouting(iBasin), &
+                level11(iBasin), l1_l11_remap(iBasin))
+        call L11_L1_mapping(iBasin)
 
-         if (ReadLatLon) then
-            ! read lat lon coordinates of each basin
-            call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
-         else
-            ! allocate the memory and set to nodata
-            allocate(level11(iBasin)%x(level11(iBasin)%nrows, level11(iBasin)%ncols))
-            allocate(level11(iBasin)%y(level11(iBasin)%nrows, level11(iBasin)%ncols))
-            level11(iBasin)%x = nodata_dp
-            level11(iBasin)%y = nodata_dp
-         end if
+        if (ReadLatLon) then
+          ! read lat lon coordinates of each basin
+          call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
+        else
+          ! allocate the memory and set to nodata
+          allocate(level11(iBasin)%x(level11(iBasin)%nrows, level11(iBasin)%ncols))
+          allocate(level11(iBasin)%y(level11(iBasin)%nrows, level11(iBasin)%ncols))
+          level11(iBasin)%x = nodata_dp
+          level11(iBasin)%y = nodata_dp
+        end if
       end if
-   end do
+    end do
 
     call set_basin_indices(level11)
     call set_basin_indices(level1)
@@ -226,7 +232,6 @@ CONTAINS
         call message('    WARNING: no gauge found within modelling domain')
       end if
     end if
-    
     ! mpr-like definiton of sealed floodplain fraction
     if ((processMatrix(8, 1) .eq. 1_i4) .and. (.not. read_restart)) then
       call L11_fraction_sealed_floodplain(2_i4, .true.)
@@ -247,11 +252,21 @@ CONTAINS
     ! discharge data
     call mrm_read_discharge()
 
+    if (gw_coupling) then
+        do iBasin = 1, nBasins
+            call init_masked_zeros_l0(iBasin, L0_river_head_mon_sum)
+            call mrm_read_bankfull_runoff(iBasin)
+            call create_output(iBasin, dirOut(iBasin))
+        end do
+        call calc_channel_elevation()
+    end if
+
     call message('')
     call message('  Finished Initialization of mRM')
 
   end subroutine mrm_init
 
+  
   !===============================================================
   ! PRINT STARTUP MESSAGE
   !===============================================================

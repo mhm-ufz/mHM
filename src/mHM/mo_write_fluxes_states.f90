@@ -248,7 +248,7 @@ contains
     integer(i4), intent(in) :: ibasin
 
     ! -> L1 mask to reconstruct the data
-    logical, target, intent(in), dimension(:, :) :: mask1
+    logical, pointer, intent(in), dimension(:, :) :: mask1
 
     integer(i4), intent(in) :: nCells
 

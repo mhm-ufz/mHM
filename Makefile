@@ -109,7 +109,7 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := intel
+compiler := gnu
 # Releases: debug, release
 release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -487,7 +487,11 @@ ifeq ($(openmp),true)
     ifneq (,$(findstring $(icompiler),$(gnucompilers)))
         iopenmp += -fopenmp
     else
-        iopenmp += -openmp
+        ifneq (,$(findstring $(icompiler),$(intelcompilers)))
+            iopenmp += -qopenmp
+        else
+            iopenmp += -openmp
+        endif
     endif
     DEFINES += -DOPENMP
 endif
@@ -800,7 +804,6 @@ ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)
     export LD_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
-    export DYLD_FALLBACK_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
 endif
 
 INCLUDES += $(addprefix -I,$(OBJPATH))

@@ -225,7 +225,7 @@ contains
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
-        L11_nOutlets, L11_rowOut, basin_mrm, level11
+                                        L11_nOutlets, L11_rowOut, basin_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -723,7 +723,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_mrm_global_variables, only : L11_fDir, L11_fromN, L11_label, L11_nOutlets, L11_netPerm, L11_rOrder, L11_sink, L11_toN, &
-        level11
+                                        level11
 
     implicit none
 
@@ -884,7 +884,7 @@ contains
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
-        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
+                                        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -1044,7 +1044,7 @@ contains
 
     ! free space
     deallocate (rowOut, colOut, nLinkFromN, netPerm, nLinkFromRow, &
-        nLinkFromCol, nLinkToRow, nLinkToCol, fDir0, draSC0)
+            nLinkFromCol, nLinkToRow, nLinkToCol, fDir0, draSC0)
 
   end subroutine L11_link_location
 
@@ -1085,7 +1085,7 @@ contains
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : Grid, L0_Basin, level0
     use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, basin_mrm, &
-        l0_l11_remap
+                                        l0_l11_remap
 
     implicit none
 
@@ -1131,13 +1131,13 @@ contains
     draCell0(:, :) = nodata_i4
 
     draSC0(:, :) = UNPACK(L0_draSC          (s0 : e0), &
-        level0_iBasin%mask, nodata_i4)
+            level0_iBasin%mask, nodata_i4)
     fDir0(:, :) = UNPACK(L0_fDir           (s0 : e0), &
-        level0_iBasin%mask, nodata_i4)
+            level0_iBasin%mask, nodata_i4)
     gaugeLoc0(:, :) = UNPACK(L0_gaugeLoc       (s0 : e0), &
-        level0_iBasin%mask, nodata_i4)
+            level0_iBasin%mask, nodata_i4)
     InflowGaugeLoc0(:, :) = UNPACK(L0_InflowgaugeLoc (s0 : e0), &
-        level0_iBasin%mask, nodata_i4)
+            level0_iBasin%mask, nodata_i4)
 
     do kk = 1, level0_iBasin%nCells
       ii = level0_iBasin%CellCoor(kk, 1)
@@ -1500,7 +1500,7 @@ contains
     use mo_common_constants, only : nodata_dp
     use mo_common_variables, only : Grid, L0_Basin, L0_LCover, level0, nBasins, nLCoverScene
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
-        L11_nLinkFracFPimp, L11_nOutlets, level11
+                                        L11_nLinkFracFPimp, L11_nOutlets, level11
 
     implicit none
 
@@ -1837,9 +1837,10 @@ contains
 
     real(dp) :: lat_1, long_1, lat_2, long_2
 
-    type(Grid) :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin
 
-    level0_iBasin = level0(L0_Basin(iBasin))
+
+    level0_iBasin => level0(L0_Basin(iBasin))
 
     ! regular X-Y cordinate system
     IF(iCoorSystem .EQ. 0) THEN
@@ -1862,14 +1863,14 @@ contains
 
       ! estimate lat-lon points
       lat_1 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol), dp) * level0_iBasin%cellsize + &
-          0.5_dp * level0_iBasin%cellsize
+              0.5_dp * level0_iBasin%cellsize
       long_1 = level0_iBasin%xllcorner + real((iRow - 1), dp) * level0_iBasin%cellsize + &
-          0.5_dp * level0_iBasin%cellsize
+              0.5_dp * level0_iBasin%cellsize
 
       lat_2 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol_to), dp) * level0_iBasin%cellsize + &
-          0.5_dp * level0_iBasin%cellsize
+              0.5_dp * level0_iBasin%cellsize
       long_2 = level0_iBasin%xllcorner + real((iRow_to - 1), dp) * level0_iBasin%cellsize + &
-          0.5_dp * level0_iBasin%cellsize
+              0.5_dp * level0_iBasin%cellsize
       ! get distance between two points
       call get_distance_two_lat_lon_points(lat_1, long_1, lat_2, long_2, length)
 

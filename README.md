@@ -7,9 +7,8 @@
 - The mHM comes with a [LICENSE][6] agreement, this includes also the GNU Lesser General Public License.
 - There is a list of [publications using mHM][7].
 
-**Please note:** The [GitLab repository](https://git.ufz.de/mhm/mhm) grants read access to the code of the release versions only.
+**Please note:** The [GitLab repository](https://git.ufz.de/mhm/mhm) grants read access to the code.
 If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:mhm-admin@ufz.de).
-The [repository on GitHub.com](https://github.com/mhm-ufz/mhm) will be always a mirror of the releases at [GitLab](https://git.ufz.de/mhm) and is not meant for development.
 
 ## Cite as
 
@@ -35,8 +34,8 @@ See also the [users manual][5] for detailed instructions to setup mHM.
 3. Explore the results in the [output directory](test_basin/), e.g. by using the NetCDF viewer `ncview`.
 
 
-[1]: https://git.ufz.de/mhm/mhm/tags/v5.9
-[2]: https://git.ufz.de/mhm/mhm/repository/v5.9/archive.zip
+[1]: https://git.ufz.de/mhm/mhm/tags/5.9
+[2]: https://git.ufz.de/mhm/mhm/repository/5.9/archive.zip
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
 [5]: doc/mhm_manual_v5.9.pdf
