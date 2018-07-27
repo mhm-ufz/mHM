@@ -303,7 +303,7 @@ contains
       call L11_calc_celerity( iBasin, param)
 
       ! Allocate and calculate K
-      K = L11_length(s11: e11) / L11_celerity(s11:e11)
+      K(:) = L11_length(s11: e11) / L11_celerity(s11:e11)
 
     end if
 
@@ -311,13 +311,10 @@ contains
     xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
     ! determine routing timestep
-    ! minval(K) 
     ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
 
     ! set min-wave traveltime to min given_TS
-    if (ind .lt. 1) then
-      ind = 1
-    end if
+    if (ind .lt. 1) ind = 1
     L11_TSrout(iBasin) = given_TS(ind)
 
     ! Muskingum parameters 

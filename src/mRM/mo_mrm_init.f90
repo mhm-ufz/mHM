@@ -174,6 +174,7 @@ CONTAINS
 
         if (ReadLatLon) then
           ! read lat lon coordinates of each basin
+          call read_latlon(iBasin, "lon", "lat", "level1", level1(iBasin))
           call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
         else
           ! allocate the memory and set to nodata

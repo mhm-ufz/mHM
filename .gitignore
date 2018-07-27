@@ -9,6 +9,7 @@
 *.nc
 test_basin/
 test_basin_2/
+*prog_for_check
 
 ### Python template
 # Byte-compiled / optimized / DLL files

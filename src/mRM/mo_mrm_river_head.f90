@@ -206,7 +206,11 @@ module mo_mrm_river_head
     use mo_string_utils, only : num2str
     use mo_julian, only : dec2date
     use mo_grid, only : geoCoordinates, mapCoordinates
+#ifdef MRM2MHM
     use mo_file, only : version
+#else
+    use mo_mrm_file, only : version
+#endif
     use mo_common_variables, only : project_details, setup_description, &
         simulation_type, Conventions, contact, mHM_details, history
     use mo_message, only : message
