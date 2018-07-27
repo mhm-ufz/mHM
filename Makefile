@@ -101,7 +101,7 @@ MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
 CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
 DOXCONFIG  := ./doc/doxygen-1.8.8.config # the doxygen config file
 #
-PROGNAME := mrm # mhm # Name of executable
+PROGNAME := mhm # mhm # Name of executable
 LIBNAME  := #libminpack.a # Name of library
 #
 # Options
@@ -185,7 +185,7 @@ static   := dynamic
 EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
 EXTRA_INCLUDES :=
-EXTRA_DEFINES  := # -DMRM2MHM
+EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   += #-Wl,--stack,12485760

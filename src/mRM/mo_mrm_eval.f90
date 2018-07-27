@@ -62,7 +62,7 @@ contains
                                         L11_C1, L11_C2, L11_L1_ID, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, &
                                         L11_nOutlets, L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, &
                                         L11_toN, L1_L11_ID, L1_total_runoff_in, basin_mrm, level11, mRM_runoff, &
-                                        outputFlxState_mrm, timeStep_model_outputs_mrm
+                                        outputFlxState_mrm, timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
@@ -99,7 +99,7 @@ contains
 
     integer(i4) :: day
 
-    integer(i4) :: month
+    integer(i4) :: month, prev_month
 
     integer(i4) :: year
 
@@ -140,11 +140,13 @@ contains
     ! inflowing discharge
     real(dp), allocatable, dimension(:) :: InflowDischarge
 
-    logical, allocatable, dimension(:, :) :: mask11
+    logical, pointer, dimension(:, :) :: mask11
 
     ! flag for performing routing
     logical :: do_rout
 
+    ! flag for monthly mean of river head
+    logical :: is_new_month = .false.
 
     if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
