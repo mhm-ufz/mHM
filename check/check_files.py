@@ -63,7 +63,7 @@ def compare_nc_files(new_file, ref_file):
     big_diff_cnt = 0
     for var_name in ds_ref.data_vars:
         if var_name in ds_new.data_vars:
-            if not ds_ref[var_name].equals(ds_ref[var_name]):
+            if not ds_new[var_name].equals(ds_ref[var_name]):
                 diff_cnt += 1
                 big_diff_cnt += compare_arrays(ds_new[var_name].values, ds_ref[var_name].values)
         else:
