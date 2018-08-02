@@ -79,6 +79,8 @@ CONTAINS
 
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! P Shrestha, S Thober Aug 2018 - resolved bug while printing River Network in
+  !                                 cases with multiple outlets.
 
   Subroutine write_configfile
 
@@ -100,7 +102,7 @@ CONTAINS
     use mo_common_variables, only : processMatrix
     use mo_mrm_global_variables, only : InflowGauge, L11_fromN, L11_label, L11_length, L11_netPerm, L11_rOrder, &
                                         L11_slope, L11_toN, L1_L11_ID, dirGauges, gauge, level11, nGaugesTotal, &
-                                        nInflowGaugesTotal
+                                        nInflowGaugesTotal, L11_nOutlets
 #endif
 
     implicit none
@@ -298,7 +300,7 @@ CONTAINS
                   '      [km]', &
                   '    [o/oo]'
           !
-          do j = level11(n)%iStart, level11(n)%iEnd - 1
+          do j = level11(n)%iStart, level11(n)%iEnd -  L11_nOutlets(n)
             i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
             write(uconfig, 106) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i), &
                     L11_length(i) / 1000.0_dp, L11_slope(i) * 1.0e3_dp
@@ -322,7 +324,7 @@ CONTAINS
                   '', &
                   ''
           !
-          do j = level11(n)%iStart, level11(n)%iEnd - 1
+          do j = level11(n)%iStart, level11(n)%iEnd -  L11_nOutlets(n)
             i = L11_netPerm(j) + level11(n)%iStart - 1 ! adjust permutation for multi-basin option
             write(uconfig, 136) i, L11_fromN(i), L11_toN(i), L11_rOrder(i), L11_label(i)
           end do
