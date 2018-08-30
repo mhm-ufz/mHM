@@ -6,7 +6,7 @@ ifneq (,$(findstring $(compiler),intel ifort ifort13))
     icompiler := intel18
 endif
 ifneq (,$(findstring $(compiler),nag nagfor))
-    icompiler := nag61
+    icompiler := nag62
 endif
 ifneq (,$(findstring $(compiler),pgi pgfortran pgfortran159))
     icompiler := pgi159
