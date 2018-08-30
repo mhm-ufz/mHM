@@ -399,6 +399,7 @@ CONTAINS
   ! Modifications:
   ! Stephan Thober May 2017 - updated documentation
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Oldrich Rakovec Aug 2018 - adding message about reading meteo_weights
 
   subroutine meteo_weights_wrapper(iBasin, read_meteo_weights, dataPath, dataOut1, lower, upper, ncvarName)
 
@@ -408,6 +409,7 @@ CONTAINS
     use mo_global_variables, only : level2
     use mo_read_forcing_nc, only : read_weights_nc
     use mo_spatial_agg_disagg_forcing, only : spatial_aggregation, spatial_disaggregation
+    use mo_message, only : message
 
     implicit none
 
@@ -467,6 +469,7 @@ CONTAINS
     mask2 = level2(iBasin)%mask
 
     if (read_meteo_weights) then
+      call message('  read_meteo_weights = .TRUE. ... Reading meteo weights ... ')
       if(present(lower) .AND. (.not. present(upper))) then
         CALL read_weights_nc(dataPath, nRows2, nCols2, ncvarName, L2_data, mask2, lower = lower)
       end if
