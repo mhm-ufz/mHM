@@ -78,8 +78,8 @@ else
     LDPATH := $(iLDPATH)
 endif
 
-# IMSL
-IMSLDIR := /usr/local/imsl/imsl/fnl700/rdhin111e64
+# IMSL; IMSL partitioning on EVE, access through: ssh imsl
+IMSLDIR := /opt/RogueWave/imsl/fnl-2018.0.0/rdh680in170x64
 
 # MKL
 MKLDIR := $(INTEL)/mkl
