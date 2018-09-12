@@ -84,10 +84,10 @@ IMSLDIR := /opt/RogueWave/imsl/fnl-2018.0.0/rdh680in170x64
 # MKL
 MKLDIR := $(INTEL)/mkl
 MKLINC := $(MKLDIR)/include/intel64/lp64
-MKLLIB := $(INTELDIR)/mkl/lib/intel64
+MKLLIB := $(INTELDIR)/mkl/lib/intel64_lin
 MKL95DIR := $(MKLDIR)
 MKL95INC := $(MKL95DIR)/include/intel64/lp64
-MKL95LIB := $(MKL95DIR)/lib/intel64
+MKL95LIB := $(MKL95DIR)/lib/intel64_lin
 
 # NETCDF
 ifeq ($(netcdf),netcdf3)
@@ -101,8 +101,8 @@ else
 endif
 
 # PROJ
-PROJ4DIR := 
-FPROJDIR := 
+PROJ4DIR := /usr/local/proj/4.7.0
+FPROJDIR := /usr/local/fproj/4.7.0_intel11.1.075
 
 # LAPACK
 LAPACKDIR   := /usr/local/lapack/3.5.0-1_gcc_4.8.1_CentOS6
@@ -127,9 +127,6 @@ endif
 # Check some dependices, e.g. IMSL needs intel11 on eve
 ifneq (,$(findstring $(system),eve))
     ifneq (,$(findstring $(imsl),vendor imsl))
-        ifneq ($(icompiler),intel11)
-            $(error Error: IMSL needs intel11.0.075, set 'compiler=intel11')
-        endif
         ifeq ($(imsl),vendor)
             ifeq (,$(findstring $(mkl),mkl mkl95))
                 $(error Error: IMSL vendor needs MKL, set 'mkl=mkl' or 'mkl=mkl95')

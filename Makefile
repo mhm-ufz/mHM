@@ -109,7 +109,7 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := intl
+compiler := intel
 # Releases: debug, release
 release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -464,7 +464,7 @@ ifneq (,$(findstring $(imsl),vendor imsl))
     ifeq (,$(findstring $(iOS),Darwin))
         iLIBS     += -z muldefs
         ifneq ($(istatic),static)
-            iLIBS += -i_dynamic
+            iLIBS += -shared-intel
         endif
     endif
 
