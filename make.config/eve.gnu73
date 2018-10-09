@@ -1,13 +1,13 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 6.4 with easybuild at eve.ufz.de
+# Setup file for Gnu compiler 7.3 with easybuild at eve.ufz.de
 #
 # Pre-requisites!!!
 # module purge
 # module use /global/apps/easybuildf1/modules/all
 # module load OpenFOAM
-# module load netCDF-Fortran/4.4.4-foss-2018a grib_api/1.24.0-foss-2018a openssl
+# module load netCDF-Fortran/4.4.4-foss-2018b grib_api/1.24.0-foss-2018b openssl
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -34,7 +34,7 @@
 # Define subirectories if another structure
 
 # Paths
-GNUDIR := /global/apps/easybuildf1/software/GCCcore/6.4.0
+GNUDIR := /global/apps/easybuildf1/software/GCCcore/7.3.0
 GNULIB := $(GNUDIR)/lib64
 GNUBIN := $(GNUDIR)/bin
 
@@ -84,11 +84,11 @@ MKL95DIR :=
 ifeq ($(netcdf),netcdf3)
     NCDIR :=
 else
-    ZLIB    := /global/apps/easybuildf1/software/zlib/1.2.11-GCCcore-6.4.0
-    SZLIB   := /global/apps/easybuildf1/software/Szip/2.1.1-GCCcore-6.4.0
-    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.1-foss-2018a
-    NCDIR   := /global/apps/easybuildf1/software/netCDF/4.6.0-foss-2018a
-    NCFDIR  := /global/apps/easybuildf1/software/netCDF-Fortran/4.4.4-foss-2018a
+    ZLIB    := /global/apps/easybuildf1/software/zlib/1.2.11-GCCcore-7.3.0
+    SZLIB   := /global/apps/easybuildf1/software/Szip/2.1.1-GCCcore-7.3.0
+    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.1-foss-2018b
+    NCDIR   := /global/apps/easybuildf1/software/netCDF/4.6.0-foss-2018b
+    NCFDIR  := /global/apps/easybuildf1/software/netCDF-Fortran/4.4.4-foss-2018b
 endif
 
 # PROJ
@@ -101,7 +101,7 @@ GFORTRANDIR := $(GNUDIR)
 GFORTRANLIB := $(GNULIB)
 
 # MPI
-MPIDIR := /global/apps/easybuildf1/software/OpenMPI/2.1.2-GCC-6.4.0-2.28/bin
+MPIDIR := /global/apps/easybuildf1/software/OpenMPI/3.1.1-GCC-7.3.0-2.30/bin
 #/usr/local/openmpi/1.8.2-1_gcc_4.8.1_CentOS6
 
 # Documentation
