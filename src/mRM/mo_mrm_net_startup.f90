@@ -1106,10 +1106,10 @@ contains
 
     integer(i4) :: iRow, jCol
 
-    type(Grid) :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin
 
 
-    level0_iBasin = level0(L0_Basin(iBasin))
+    level0_iBasin => level0(L0_Basin(iBasin))
     s0 = level0_iBasin%iStart
     e0 = level0_iBasin%iEnd
 
@@ -1279,10 +1279,10 @@ contains
 
     real(dp), dimension(:, :), allocatable :: nodata_dp_tmp
 
-    type(Grid) :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin
 
 
-    level0_iBasin = level0(L0_Basin(iBasin))
+    level0_iBasin => level0(L0_Basin(iBasin))
     s0 = level0_iBasin%iStart
     e0 = level0_iBasin%iEnd
     nLinks = level11(iBasin)%nCells - L11_nOutlets(iBasin)
@@ -1511,7 +1511,7 @@ contains
 
     integer(i4) :: ii, iBasin, iiLC, s0, e0
 
-    type(Grid) :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin
 
 
     ! initialization
@@ -1519,7 +1519,7 @@ contains
       allocate(temp_array(level11(iBasin)%nCells, nLCoverScene))
       temp_array = nodata_dp
       if (do_init) then
-        level0_iBasin = level0(L0_Basin(iBasin))
+        level0_iBasin => level0(L0_Basin(iBasin))
 
         s0 = level0_iBasin%iStart
         e0 = level0_iBasin%iEnd
