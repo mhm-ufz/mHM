@@ -372,13 +372,11 @@ contains
       ! Update fractions of sealed area fractions
       ! based on the sealing fraction[0-1] in cities
       !---------------------------------------------------------
+      ! a factor is applied to the sealed area, effectively reducing it
       fSealed1(:, 1, iiLC) = fracSealed_CityArea * fSealed1(:, 1, iiLC)
-      fPerm1(:) = fPerm1(:) + (1.0_dp - fracSealed_CityArea) * fSealed1(:, 1, iiLC)
-
-      ! to make sure everything happens smoothly
-      fForest1(:) = fForest1(:) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
-      fSealed1(:, 1, iiLC) = fSealed1(:, 1, iiLC) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
-      fPerm1(:) = fPerm1(:) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
+      ! the forest area is kept constant, but the permeable area is increased so that the
+      ! sum off all fractions equals 1 again
+      fPerm1(:) = 1.0_dp - fSealed1(:, 1, iiLC) - fForest1(:)
 
       ! ------------------------------------------------------------------
       ! snow parameters 
