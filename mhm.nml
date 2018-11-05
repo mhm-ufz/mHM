@@ -77,7 +77,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m]
@@ -567,7 +567,7 @@ eval_Per(2)%dEnd   = 31
 iFlag_soilDB = 0
 !
 !> [mm] soil depth down to which organic matter is possible
-tillageDepth = 200
+tillageDepth = 300
 !
 !> No. of soil horizons to be modeled
 nSoilHorizons_mHM =2
@@ -580,7 +580,7 @@ nSoilHorizons_mHM =2
 !>    Also check your tillage layer depth. It should conform with one of the below specified soil_Depth.
 !
 !> Soil_Horizon   Depth[mm]      ! depth of soil horizons w.r.t. ground surface (positive downwards)
-soil_Depth(1) = 200
+soil_Depth(1) = 300
 /
 
 !******************************************************************************************
@@ -647,7 +647,7 @@ dir_gridded_LAI(2)   = "test_basin/input/lai/"
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i
