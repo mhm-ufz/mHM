@@ -20,7 +20,6 @@ module mo_mpr_global_variables
 
   private
 
-  real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
   ! ------------------------------------------------------------------
   ! SOIL DATA
   ! ------------------------------------------------------------------

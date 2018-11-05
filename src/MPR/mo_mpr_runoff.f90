@@ -73,7 +73,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mpr_runoff(LCOVER0, mask0, SMs_FC0, slope_emp0, KsVar_H0, param, cell_id0, upp_row_L1, low_row_L1, &
-                       lef_col_L1, rig_col_L1, nL0_in_L1, c2TSTu, L1_HL1, L1_K0, L1_K1, L1_alpha)
+                       lef_col_L1, rig_col_L1, nL0_in_L1, L1_HL1, L1_K0, L1_K1, L1_alpha)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_upscaling_operators, only : upscale_arithmetic_mean
@@ -115,9 +115,6 @@ contains
 
     ! Number of L0 cells within a L1 cell
     integer(i4), dimension(:), intent(in) :: nL0_in_L1
-
-    ! unit transformations
-    real(dp), intent(in) :: c2TSTu
 
     ! [10^-3 m] Threshhold water depth
     real(dp), dimension(:), intent(out) :: L1_HL1
@@ -194,8 +191,6 @@ contains
     ! constraints and unit transformation
     L1_K0 = merge(L1_K1, L1_K0, L1_K0 .gt. L1_K1)
 
-    L1_K0 = c2TSTu / L1_K0
-    L1_K1 = c2TSTu / L1_K1
 
   end subroutine mpr_runoff
 

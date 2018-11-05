@@ -195,9 +195,11 @@ CONTAINS
   ! M.Cuneyd Demirel & Simon Stisen Jun 2017 - added PET correction based on LAI at PET process(5)
   ! Robert Schweppe, Stephan Thober Nov 2017 - moved call to MPR to mhm_eval 
   ! Robert Schweppe                 Jun 2018 - refactoring and reformatting
+  ! Robert Schweppe                 Nov 2018 - added c2TSTu for unit conversion (moved here from MPR)
 
   subroutine mHM(read_states, tt, time, processMatrix, horizon_depth, nCells1, nHorizons_mHM, ntimesteps_day, &
-                neutron_integral_AFast, global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
+                c2TSTu, neutron_integral_AFast, &
+                global_parameters, latitude, evap_coeff, fday_prec, fnight_prec, fday_pet, &
                 fnight_pet, fday_temp, fnight_temp, temp_weights, pet_weights, pre_weights, read_meteo_weights, pet_in, &
                 tmin_in, tmax_in, netrad_in, absvappres_in, windspeed_in, prec_in, temp_in, fSealed1, interc, snowpack, &
                 sealedStorage, soilMoisture, unsatStorage, satStorage, neutrons, pet_calc, aet_soil, aet_canopy, &
@@ -243,6 +245,9 @@ CONTAINS
 
     ! number of time intervals per day, transformed in dp
     real(dp), intent(in) :: ntimesteps_day
+
+    ! unit conversion
+    real(dp), intent(in) :: c2TSTu
 
     ! tabular for neutron flux approximation
     real(dp), dimension(:), intent(in) :: neutron_integral_AFast
@@ -560,8 +565,8 @@ CONTAINS
       call canopy_interc(pet_calc(k), interc_max(k), prec, & ! Intent IN
               interc(k), & ! Intent INOUT
               throughfall(k), aet_canopy(k))                                                      ! Intent OUT
-      call snow_accum_melt(deg_day_incr(k), deg_day_max(k), & ! Intent IN
-              deg_day_noprec(k), prec, temp, temp_thresh(k), throughfall(k), & ! Intent IN
+      call snow_accum_melt(deg_day_incr(k), deg_day_max(k) * c2TSTu, & ! Intent IN
+              deg_day_noprec(k) * c2TSTu, prec, temp, temp_thresh(k), throughfall(k), & ! Intent IN
               snowpack(k), & ! Intent INOUT
               deg_day(k), & ! Intent OUT
               melt(k), prec_effect(k), rain(k), snow(k))                                          ! Intent OUT
@@ -581,11 +586,11 @@ CONTAINS
       infiltration(k, :) = tmp_infiltration(:)
       soilMoisture(k, :) = tmp_soilMoisture(:)
       aet_soil(k, :) = tmp_aet_soil(:)
-      call runoff_unsat_zone(k1(k), kp(k), k0(k), alpha(k), karst_loss(k), & ! Intent IN
+      call runoff_unsat_zone(c2TSTu / k1(k), c2TSTu / kp(k), c2TSTu / k0(k), alpha(k), karst_loss(k), & ! Intent IN
               infiltration(k, nHorizons_mHM), unsat_thresh(k), & ! Intent IN
               satStorage(k), unsatStorage(k), & ! Intent INOUT
               slow_interflow(k), fast_interflow(k), perc(k))                                      ! Intent OUT
-      call runoff_sat_zone(k2(k), & ! Intent IN
+      call runoff_sat_zone(c2TSTu / k2(k), & ! Intent IN
               satStorage(k), & ! Intent INOUT
               baseflow(k))                                                                        ! Intent OUT
       call L1_total_runoff(fSealed1(k), fast_interflow(k), slow_interflow(k), baseflow(k), & ! Intent IN
