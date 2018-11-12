@@ -86,8 +86,8 @@ ifeq ($(netcdf),netcdf3)
 else
     ZLIB    := /global/apps/easybuildf1/software/zlib/1.2.11-GCCcore-7.3.0
     SZLIB   := /global/apps/easybuildf1/software/Szip/2.1.1-GCCcore-7.3.0
-    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.1-foss-2018b
-    NCDIR   := /global/apps/easybuildf1/software/netCDF/4.6.0-foss-2018b
+    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.2-foss-2018b
+    NCDIR   := /global/apps/easybuildf1/software/netCDF/4.6.1-foss-2018b
     NCFDIR  := /global/apps/easybuildf1/software/netCDF-Fortran/4.4.4-foss-2018b
 endif
 
@@ -101,7 +101,7 @@ GFORTRANDIR := $(GNUDIR)
 GFORTRANLIB := $(GNULIB)
 
 # MPI
-MPIDIR := /global/apps/easybuildf1/software/OpenMPI/3.1.1-GCC-7.3.0-2.30/bin
+MPIDIR := /global/apps/easybuildf1/software/OpenMPI/3.1.1-GCC-7.3.0-2.30
 #/usr/local/openmpi/1.8.2-1_gcc_4.8.1_CentOS6
 
 # Documentation
