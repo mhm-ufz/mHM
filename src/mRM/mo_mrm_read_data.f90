@@ -91,7 +91,7 @@ contains
 
     logical, dimension(:, :), allocatable :: mask_global
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iBasin => null()
 
 
     ! ************************************************

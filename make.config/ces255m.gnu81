@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for Gnu compiler 4.9 at Luis' iMac
+# Setup file for Gnu compiler 8.1 at Robert Schweppes Mac
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.
@@ -33,10 +33,10 @@ GNULIB := $(GNUDIR)/lib
 GNUBIN := $(GNUDIR)/bin
 
 # Compiling
-F90 := $(GNUBIN)/x86_64-apple-darwin17.5.0-gfortran
+F90 := $(GNUBIN)/gfortran
 FC  := $(F90)
-CC  := $(GNUDIR)/gcc
-CPP := $(GNUDIR)/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
+CC  := /usr/bin/gcc
+CPP := /usr/bin/cpp # could be   gcc -E -cpp   on Linux but does not work on Mac
 ifeq ($(release),debug)
     F90FLAGS += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
     FCFLAGS  += -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized
@@ -55,12 +55,6 @@ DEFINES  += -DGFORTRAN -DgFortran
 # Linking
 LIBS += -L$(GNULIB)
 RPATH += -Wl,-rpath,$(GNULIB)
-iLDPATH = $(GNUDIR)/lib/gcc/x86_64-apple-darwin17.5.0/8.1.0/
-ifneq ($(LDPATH),)
-    LDPATH += :$(iLDPATH)
-else
-    LDPATH := $(iLDPATH)
-endif
 
 # IMSL
 IMSLDIR :=
@@ -73,24 +67,23 @@ MKL95DIR :=
 ifeq ($(netcdf),netcdf3)
     NCDIR :=
 else
-    NCDIR   := /Users/ottor/miniconda3/pkgs/libnetcdf-4.6.1-2
-    NCFDIR  := /Users/ottor/miniconda3/pkgs/netcdf-fortran-4.4.4-7
-    HDF5LIB := /Users/ottor/miniconda3/pkgs/hdf5-1.10.1-2/lib/
-    CURLLIB := /Users/ottor/miniconda3/pkgs/curl-7.59.0-1/lib/
-    ZLIB    := /Users/ottor/miniconda3/pkgs/zlib-1.2.11-0/lib
-    SZLIB   := /Users/ottor/miniconda3/pkgs/szip-2.1.1/lib
+    NCDIR   := /usr/local
+    NCFDIR  := /usr/local/netcdf-fortran-4.4.4-gfortran
+    CURLLIB := /usr/lib
+    SZLIB   := /usr/local/lib
+    HDF5LIB := /usr/local/lib
 endif
 
 # PROJ
-PROJ4DIR := /Users/ottor/miniconda3/pkgs/proj4-5.0.1-0/
+PROJ4DIR := /usr/local/
 FPROJDIR := 
 
 # LAPACK
-LAPACKDIR   := /Users/ottor/miniconda3/pkgs/lapack-3.6.1-1/
+LAPACKDIR   := 
 GFORTRANDIR := $(GNUDIR)
 
 # MPI
-MPIDIR := /Users/ottor/miniconda3/pkgs/openmpi-3.1.0-0/
+MPIDIR :=
 
 # Documentation
 DOXYGENDIR := /usr/local/bin

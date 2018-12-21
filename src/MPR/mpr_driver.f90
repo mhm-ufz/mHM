@@ -71,6 +71,7 @@ program mpr_driver
           file_namelist_mpr_param, unamelist_mpr_param, &      ! filename of namelist: mhm model parameter
           file_namelist_mpr, unamelist_mpr ! file containing main configurations
   use mo_mpr_global_variables, only : c2TSTu
+  use mo_kind, only: dp
 
   implicit none
 
