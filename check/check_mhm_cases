@@ -327,6 +327,7 @@ for irelease in ${release} ; do
                 mkdir ${make_mrm_dir}
                 cd ${make_mrm_dir}
                 ln -s ../make.config
+                ln -s ../src
                 eval make -f ../${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= cleanclean ${devnull}
                 eval make -f ../${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= ${devnull}
                 mv ${mrm_exe} ..

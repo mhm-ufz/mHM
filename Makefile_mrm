@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ../src/lib ../src/common ../src/mRM ../src/common_mHM_mRM ../src/MPR # ./src/mHM # where are the source files
+SRCPATH    := src/lib src/common src/mRM src/common_mHM_mRM src/MPR # ./src/mHM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
