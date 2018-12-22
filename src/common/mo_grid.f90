@@ -83,7 +83,6 @@ contains
 
     ! STEPS :: 
 
-
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given basin
     ! 2) Pad each variable to its corresponding global one
@@ -544,3 +543,4 @@ contains
   end subroutine calculate_grid_properties
 
 end module mo_grid
+

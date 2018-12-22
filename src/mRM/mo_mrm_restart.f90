@@ -140,9 +140,9 @@ contains
     nc = NcDataset(fname, "w")
 
     ! call write_grid_info(level0(iBasin), "0", nc)
-    if (mrm_coupling_mode .eq. 0_i4) then
+    ! if (mrm_coupling_mode .eq. 0_i4) then
       call write_grid_info(level1(iBasin), "1", nc)
-    end if
+    ! end if
     call write_grid_info(level11(iBasin), "11", nc)
 
     nout = nc%setDimension("Noutlet", Noutlet)
