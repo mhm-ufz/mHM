@@ -259,7 +259,7 @@ Gridded LAI data must be provided on a daily time-step at the Level-0 resolution
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
 
 The file <code>mhm_output.nml</code> regulates how often (e.g. <code>timeStep_model_outputs = 24</code>) and which variables (fluxes and states) should be
-written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on varibales that are of actual interest, 
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
 because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
 
 \subsection mhmparameters Regionalised Parameters: Initial Values and Ranges

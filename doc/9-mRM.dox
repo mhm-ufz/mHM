@@ -1,0 +1,123 @@
+/**
+\page mRM mRM - the Multiscale Routing Model
+
+\section short_mRM Short Description
+
+This section provides information on how to run the routing model mRM
+as a stand-alone program outside of mHM. The general philosophy is as
+follows: mRM can be compiled and run in a similar way as mHM. Specific
+files for mRM can be found in the main path and are denoted as
+<filename>_mRM.<file_type>, where <filename>.<file_type> is the
+corresponding mHM file.
+
+\section intro_mRM Introduction to mRM
+
+Copy methods section from the manuscript,...
+
+For further analysis of the model, please refer to Thober et al. 2019
+
+\section start_mRM Getting Started
+
+For receiving mRM, installing NETCDF, and running mRM under CYGWIN on
+Windows, please follow Sections \ref NETCDF, \ref windows, and \ref compile.
+
+\subsection compile_mRM Compiling mRM
+
+The compilation of mRM can be achieved by running the *make* command
+on the **Makefile_mRM** file. This can be done in two ways:
+
+1. make -f Makefile_mRM
+2. renaming of Makefile_mRM to Makefile via
+
+    \code
+    mv Makefile_mRM Makefile
+    \endcode
+
+\subsection test_mRM Test mRM on Example Basin
+
+The received mHM distribution contains an example test basin in the
+folder
+
+\code
+test_basin/
+\endcode
+
+This folder also contains all necessary data to run mRM. After you
+compiled mRM, simply run the executable via
+
+\code
+./mrm
+\endcode
+
+Ouput will be written in the \code test_basin/output_b1 \endcode
+
+\subsection run_mRM Run your own Simulation
+
+As for mHM, there are three mRM configuration files. These are:
+
+- mrm.nml
+- mrm_output.nml
+- mrm_parameter.nml
+
+Please note that the information contained in these files can also be
+found in the respective files for mHM because mRM is part of mHM.
+
+\subsubsection mrmnml Main configuration: Path, Periods, Switches
+
+The file <code>mrm.nml</code> contains the main configuration for running mRM in your catchments. Since the comments should explain 
+each single setting, this section will only roughly describe the
+structure of the file. All mandatory namelists have to specified
+explicitly for both mHM and mRM. Namelists that are specific for mRM
+are denoted by <code>_mRM<\code>. Please keep in mind, that paths can be relative, absolute and even symbolic links.
+
+\li <b>project_description:<\b> Defines meta data that is written in
+the output netcdf files.
+\li <b>mainconfig:<\b> Defines number of basins and hydrology
+resolution.
+\li <b>mainconfig_mhm_mrm:<\b> Defines input paths for reading restart
+files, routing resolution, and optimization.
+\li <b>mainconfig_mrm:<\b> Defines file name, variable name, and data
+convention for runoff input field for mRM.
+\li <b>directories_general:<\b> Defines common input and output paths
+for mHM and mRM.
+\li <b>directories_mRM:<\b> Defines paths where gauge information and
+input runoff fields can be found.
+\li <b>processSelection:<\b> Only processCase seven is used for mRM,
+all other options are ignored.
+\li <b>LCover:<\b> defines information on LAI data.
+\li <b>time_periods:<\b> Defines simulation periods.
+\li <b>evaluation_gauges:<\b> Defines number of gauges per basin and
+file names containing gauge observations.
+\li <b>Optimization:<\b> Defines parameters for optimization.
+
+\subsection mrmoutputnml Output Configuration: Time Steps, States, Fluxes
+
+The file <code>mrm_outputs.nml</code> regulates how often (e.g. <code>timeStep_model_outputs_mrm = 24</code>) and which variables (fluxes and states) should be
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mRM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
+because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
+
+\subsection calib_mRM Calibration and Optimization
+
+The parameter calibration can be conducted in the same way as for
+mHM. Please see Section \ref calibration for details. Parameters contained in the
+**mrm_parameter.nml** are considered during the optimization.
+
+\section data_mRM Data preparation for mRM
+
+The data preparation for the static data for mRM is identical to that
+of mHM. It is described in the
+Chapter "Data preparation for mHM" in
+subsection \ref extractncsize, \ref extractncdata, \ref latlon, \ref
+morph (with the exception of soil map, hydrogeological map, LAI map),
+\ref gis (with the exception
+of aspect), \ref lcover, and \ref tables.
+
+Additionally, forcing data is required. The forcing for mRM is
+grid-scale runoff. This runoff needs to be provided in a netcdf file
+that follows the input format of mHM for forcing variables. The only
+difference to the forcing variables is that the variable and file name
+can be both provided in the <code>mrm.nml<\code> file in the namelist <code>mainconfig_mrm<\code>.
+
+Please see other details in Section \ref meteo.
+
+*/
