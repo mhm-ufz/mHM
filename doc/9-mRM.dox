@@ -11,7 +11,11 @@ files for mRM can be found in the main path and are denoted as
 <filename>_mRM.<file_type>, where <filename>.<file_type> is the
 corresponding mHM file.
 
-\section intro_mRM Introduction to mRM
+\subsection intro_mRM Introduction to mRM
+
+This Subsection provides a short description of the method used in
+mRM. For further details and an analysis over the European domain,
+please refer to Thober et al. 2019.
 
 \subsection findif Finite Difference Approximation of Kinematic Wave Equation
 
@@ -115,12 +119,99 @@ considers the flow in the main river reach, assuming that travel times
 in the main reach dominate the routing process in
 tributaries. 
 
+\subsection ada_time Adaptive Time Step (aTS) Implementation
+
+The aTS scheme uses an adaptive time step to calculate the linear
+coefficients in equation~9.3. The basic idea is that the
+time step should be such that water has not been transported further
+than \f$\Delta x\f$ during a single step. This condition is generally known
+as Courant-Friedrich-Lewy criterium, which is a necessary condition for
+numerical stability of finite difference schemes
+\cite Courant:1928ch. The condition can be expressed as:
+
+\f{equation}{
+ C_r = \frac{c \Delta t}{\Delta x} \le C_{max} = 1
+\f}
+
+where \f$C_{max}\f$ is the Courant number. aTS uses a Courant number
+of 1. The Courant condition couples the applied spatial resolution
+with the integration time step of the finite difference
+scheme. Celerities \f$c_i\f$ are typically in the order of a few
+m\,s\f$^{-1}\f$ The time step \f$\Delta t\f$ is chosen such
+that it does not deviate too much from the Courant number
+\f$C_{max}\f$ to keep computational
+demand to a minimum. This implies that \f$\Delta t\f$ ranges from a
+few minutes for high-resolution grids to a few hours for continental
+scale applications.
+
+In detail, aTS chooses \f$\Delta t\f$ from a set of prescribed values such
+that \f$c_i\Delta t/\Delta x\f$ is close to but less than 1 for all
+celerities \f$c_i\f$. The prescribed values range from one minute to one
+day, namely: 1 min, 2 min, 3 min, 4 min, 5 min, 6 min, 10 min,
+12 min, 15 min, 20 min, 30 min, 1 h, 2 h, 3 h, 4 h, 6 h, 8 h,
+12 h, and 1 day. The choice of these values is motivated from the fact
+that these represent multiples or dividers of hourly and daily time
+steps. These time steps allow in principle model applications from
+100 m to 100 km, for typical celerities around 1.5\,m\,s\f$^{-1}\f$.
+
+Note that the chosen time step depends only on the spatial resolution
+and is independent of the time resolution of the provided forcing. For
+example, applying aTS at 12\,km resolution using a celerity of \f$c\f$~=
+1.5\,m\,s\f$^{-1}\f$ gives \f$\Delta x/c\f$ of 2.2\,hours and, hence, a time
+step of two hours will be chosen. If mRM is forced with hourly input, it
+will aggregate the input over two consecutive time steps prior to the
+routing. The calculated streamflow is then distributed to the previous
+two time steps because these represent the mean flow over this
+period. If aTS is forced with daily input, it will use internally 12
+iterations of 2-hour time steps to route the water through the river
+network. In this case, aTS will also return the average of the
+calculated 12 streamflow values at each reach.
+
 \subsection rMC Regionalized Muskingum-Cunge parametrization
 
-include appendix A of the Routing paper
+The regionalized Muskingum-Cunge (rMC) parametrization implemented in
+the mesoscale Hydrologic Model mHM calculates the Muskingum coefficients
+\f$C_1\f$, \f$C_2\f$, and \f$C_3\f$ in equation (9.2) as a function of
+high-resolution river network properties. The coefficients \f$C_1\f$, \f$C_2\f$,
+and \f$C_3\f$ are parametrized as follows
 
+\f{equation}{
+     C_1 = \nu_2; \text{ } C_2 = \nu_1 - \nu_2; \text{ } C_3 = 1 - \nu_1, 
+\f}
 
-For further analysis of the model, please refer to Thober et al. 2019
+ where the parameters \f$\nu_1\f$ and \f$\nu_2\f$ are given as
+
+\f{eqnarray}{
+     \nu_1 &= \frac{\Delta t}{\beta (1 - \epsilon) + \frac{\Delta t}{2}};\\ 
+     \nu_2 &= \frac{\frac{\Delta t}{2} - \beta \epsilon}{\beta (1 - \epsilon) + \frac{\Delta t}{2}} \nonumber
+\f}
+ 
+ following the nomenclature of appendix~A2 in
+ \cite SKA2010. This formulation is identical to
+ equatio (9.3) of the present study, using
+ \f$\beta = \Delta x / c\f$ in the equation above and substituting this
+ equation into two equations above. The parameters
+ \f$\beta\f$ and \f$\epsilon\f$ are then conceptualized as
+
+ \f{eqnarray}{
+     \beta &= \gamma_1 + \gamma_2 L + \gamma_3 S + \gamma_4 C ;\\ 
+     \epsilon &= \gamma_5 \frac{S}{max(S)} , \nonumber
+ \f}
+
+ where $L$ is the length of the reach, $S$ is the slope of the reach,
+ and $C$ is the fraction of impervious land cover within the floodplains
+ (see table~4 in \cite KS2012). Overall, there are five global
+ parameters \f$\gamma_1\f$ to \f$\gamma_5\f$ in the above equation that
+ can be chosen by the user. The integration time step is fixed at one
+ hour. To guarantee the numerical stability of the parameterization, the
+ following upper and lower bounds are applied
+
+ \f{eqnarray}{
+   0 & < \epsilon \le 0.5,\\ 
+   \frac{\Delta t}{2(1-\epsilon)} & < \beta \le \frac{\Delta t}{2 \epsilon}, 
+ \f}
+ 
+ where \f$\Delta t\f$ is set to one hour. 
 
 \section start_mRM Getting Started
 
