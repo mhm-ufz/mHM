@@ -13,7 +13,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 
 set (NETCDF_F90 "YES")
 #on archlinus it is netCDF instead of NetCDF
-find_package(NetCDF REQUIRED)
+find_package(NetCDFF REQUIRED)
 include_directories(${NETCDF_INCLUDES})
 
 #if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
@@ -32,6 +32,7 @@ set(ADDITIONAL_GCC_FLAGS "-cpp")
 # Options
 add_definitions(${ADDITIONAL_GCC_FLAGS})
 add_definitions(-DMRM2MHM=.true.)
+add_definitions(${NETCDF_FLAGS})
 #add_definitions(-DpgiFortran=.false.)
 #add_definitions(-DMPR_STANDALONE=.false.)
 #add_definitions(-DABSOFT=.false.)
@@ -47,7 +48,6 @@ add_definitions(-DMRM2MHM=.true.)
 file(GLOB_RECURSE sources  src/*.f90 src/*.h)
 add_executable(mhm ${sources})
 
-#target_link_libraries(mhm ${NETCDF_LIBRARIES})
 target_link_libraries (mhm ${NETCDF_LIBRARIES})
 #target_link_libraries (mhm ${NETCDF_LIBRARIES_C})
 
