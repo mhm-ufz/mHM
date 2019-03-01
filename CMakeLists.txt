@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mhm Fortran)
 
+set(BUILD_WITH_INSTALL_RPATH true)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 #sometimes PkgConfig is not on systems like mac
 #there is a way to make it conditional, if it is there use this
@@ -12,10 +14,16 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 #pkg_check_modules(NetCDF REQUIRED)
 
 set (NETCDF_F90 "YES")
-#on archlinus it is netCDF instead of NetCDF
 find_package(NetCDFF REQUIRED)
 include_directories(${NETCDF_INCLUDES})
 
+#include(CHECK_Fortran_COMPILER_FLAG)
+#include(CheckFortranSourceCompiles)
+#include(CMakeCheckCompilerFlagCommonPatterns)
+include(CheckFortranCompilerFlag)
+
+CHECK_Fortran_COMPILER_FLAG("-cpp" CPP_FLAG)
+if (${CPP_FLAG})
 #if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 #    set(dialect "-ffree-form -std=f2008 -fimplicit-none")
 #    set(bounds "-fbounds-check")
@@ -28,6 +36,7 @@ include_directories(${NETCDF_INCLUDES})
 #set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
 #set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 set(ADDITIONAL_GCC_FLAGS "-cpp")
+endif(${CPP_FLAG})
 
 # Options
 add_definitions(${ADDITIONAL_GCC_FLAGS})
@@ -48,7 +57,12 @@ add_definitions(${NETCDF_FLAGS})
 file(GLOB_RECURSE sources  src/*.f90 src/*.h)
 add_executable(mhm ${sources})
 
-target_link_libraries (mhm ${NETCDF_LIBRARIES})
+target_link_libraries(mhm ${NETCDF_LIBRARIES})
+set_target_properties(mhm PROPERTIES INSTALL_RPATH $ENV{LD_LIBRARY_PATH})
+#message(STATUS "rpath variable $ENV{LD_LIBRARY_PATH}")
+#set_target_properties(mhm PROPERTIES SKIP_BUILD_RPATH false)
+#set_target_properties(mhm PROPERTIES INSTALL_RPATH_USE_LINKPATH true)
+#set_target_properties(mhm PROPERTIES BUILT_WITH_INSTALL_RPATH true)
 #target_link_libraries (mhm ${NETCDF_LIBRARIES_C})
 
 add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
