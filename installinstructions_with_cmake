@@ -10,6 +10,7 @@
 # Windows:
 # ********
 # install cygwin with dependencies
+# make
 # gcc-fortran
 # cmake (version >= 3.5)
 # libnetcdf-fortran-devel
@@ -46,5 +47,7 @@
 #    your tests. In case of the test setup it is the same, usually it is not
 # cd ..
 # cp build/mhm .
+# on Windows it is called mhm.exe. Run instead
+# cp build/mhm.exe .
 # now you might execute mHM.
 # ./mhm
