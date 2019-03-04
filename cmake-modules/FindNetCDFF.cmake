@@ -27,7 +27,8 @@ foreach(flag ${NETCDF_LDFLAGS_LIST})
 	if (flag MATCHES "^-l(.*)")
 		set(_pkg_search "${CMAKE_MATCH_1}")
 	else()
-		set(_add_flags "${CMAKE_MATCH_1}")
+		list(APPEND _link_flags "${flag}")
+		continue()
 	endif()
 
 	if(_search_paths)
@@ -40,7 +41,6 @@ foreach(flag ${NETCDF_LDFLAGS_LIST})
 		NAMES ${_pkg_search}
 		${_find_opts})
 	list(APPEND _libs "${pkgcfg_lib_NETCDF_${_pkg_search}}")
-	list(APPEND _link_flags "${_add_flags}")
 endforeach()
 
 set(NETCDF_LINK_LIBRARIES "${_libs}")

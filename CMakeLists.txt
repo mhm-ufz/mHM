@@ -39,9 +39,9 @@ set(ADDITIONAL_GCC_FLAGS "-cpp")
 endif(${CPP_FLAG})
 
 # Options
-add_definitions(${ADDITIONAL_GCC_FLAGS})
+#add_definitions(${ADDITIONAL_GCC_FLAGS})
 add_definitions(-DMRM2MHM=.true.)
-add_definitions(${NETCDF_FLAGS})
+#add_definitions(${NETCDF_CFLAGS_OTHER})
 #add_definitions(-DpgiFortran=.false.)
 #add_definitions(-DMPR_STANDALONE=.false.)
 #add_definitions(-DABSOFT=.false.)
@@ -51,14 +51,17 @@ add_definitions(${NETCDF_FLAGS})
 #configure_file(config.h.in config.h)
 
 #include_directories(${HDF5_INCLUDE_DIRS})
+#include_directories(${NETCDF_LINK_LIBRARIES})
 #
 # Compile.
 #
 file(GLOB_RECURSE sources  src/*.f90 src/*.h)
 add_executable(mhm ${sources})
 
-target_link_libraries(mhm ${NETCDF_LIBRARIES})
-set_target_properties(mhm PROPERTIES INSTALL_RPATH $ENV{LD_LIBRARY_PATH})
+target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES})
+set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER}")
+set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
+#set_target_properties(mhm PROPERTIES INSTALL_RPATH $ENV{LD_LIBRARY_PATH})
 #message(STATUS "rpath variable $ENV{LD_LIBRARY_PATH}")
 #set_target_properties(mhm PROPERTIES SKIP_BUILD_RPATH false)
 #set_target_properties(mhm PROPERTIES INSTALL_RPATH_USE_LINKPATH true)
