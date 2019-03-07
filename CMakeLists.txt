@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mhm Fortran)
 
-set(BUILD_WITH_INSTALL_RPATH true)
+#set(BUILD_WITH_INSTALL_RPATH true)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 #sometimes PkgConfig is not on systems like mac
@@ -61,6 +61,8 @@ add_executable(mhm ${sources})
 target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES})
 set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER}")
 set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
+set_target_properties(mhm PROPERTIES INSTALL_RPATH "${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}")
+set_target_properties(mhm PROPERTIES BUILD_WITH_INSTALL_RPATH ON)
 #set_target_properties(mhm PROPERTIES INSTALL_RPATH $ENV{LD_LIBRARY_PATH})
 #message(STATUS "rpath variable $ENV{LD_LIBRARY_PATH}")
 #set_target_properties(mhm PROPERTIES SKIP_BUILD_RPATH false)
