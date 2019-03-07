@@ -12,6 +12,9 @@ project(mhm Fortran)
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor
 set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND OFF CACHE STRING "build the module independend of the module system, so the build in the build tree works even after a module purge")
 message(STATUS "build independend of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND}")
+# set specific place where to search for the netCDF directory
+set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
+message(STATUS "search in additional directory ${CMAKE_NETCDF_DIR} for netCDF")
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files

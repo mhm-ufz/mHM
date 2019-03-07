@@ -40,7 +40,7 @@
 #find_package_handle_standard_args(NETCDF REQUIRED_VARS NETCDF_LIBRARIES)
 
 # The nf-config approach
-# nf-config is a readable file and a program existent on any system, although, on MacOS everything
+# nf-config is a readable file and a program existent on any system, although, on MacOS setups with brew everything
 # is commented except an "echo "nf-config is not implemented yet""...
 # executing "nf-config" writes out a description of every parameter of the file and "nf-config --all" prints how the
 # parameters are set
@@ -54,7 +54,7 @@
 # ${NETCDFF_CONFIG}.
 if (NOT FOUND_NETCDFF_MODULE)
 	find_program(NETCDFF_CONFIG nf-config
-	  HINTS NETCDF_DIR ENV NETCDF_DIR)
+		HINTS ${CMAKE_NETCDF_DIR})
 	message(STATUS "found ${NETCDFF_CONFIG}")
 	execute_process(COMMAND ${NETCDFF_CONFIG} --includedir OUTPUT_VARIABLE NETCDF_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE)
 	message(STATUS "netcdff includes ${NETCDF_INCLUDES}")
@@ -65,7 +65,7 @@ if (NOT FOUND_NETCDFF_MODULE)
 
 	if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND)
 		find_program(NETCDF_CONFIG nc-config
-		  HINTS NETCDF_DIR ENV NETCDF_DIR)
+		  HINTS ${CMAKE_NETCDF_DIR})
 		execute_process(COMMAND ${NETCDF_CONFIG} --libs OUTPUT_VARIABLE NETCDF_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
 		message(STATUS "netcdf library link flags ${NETCDF_LIBS}")
 	endif()
