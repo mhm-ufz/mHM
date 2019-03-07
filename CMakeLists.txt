@@ -65,9 +65,9 @@ set_target_properties(mhm PROPERTIES INSTALL_RPATH "${CMAKE_Fortran_IMPLICIT_LIN
 set_target_properties(mhm PROPERTIES BUILD_WITH_INSTALL_RPATH ON)
 #set_target_properties(mhm PROPERTIES INSTALL_RPATH $ENV{LD_LIBRARY_PATH})
 #message(STATUS "rpath variable $ENV{LD_LIBRARY_PATH}")
-#set_target_properties(mhm PROPERTIES SKIP_BUILD_RPATH false)
-#set_target_properties(mhm PROPERTIES INSTALL_RPATH_USE_LINKPATH true)
-#set_target_properties(mhm PROPERTIES BUILT_WITH_INSTALL_RPATH true)
+#set_target_properties(mhm PROPERTIES SKIP_BUILD_RPATH OFF)
+#set_target_properties(mhm PROPERTIES INSTALL_RPATH_USE_LINKPATH ON)
+#set_target_properties(mhm PROPERTIES BUILT_WITH_INSTALL_RPATH ON)
 #target_link_libraries (mhm ${NETCDF_LIBRARIES_C})
 
 add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
