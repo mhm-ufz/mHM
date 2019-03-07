@@ -1,0 +1,2 @@
+#-D CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON
+set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND ON CACHE STRING "build the module independend of the module system, so the build in the build tree works even after a module purge")

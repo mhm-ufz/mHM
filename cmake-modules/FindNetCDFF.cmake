@@ -28,18 +28,35 @@
 # with these parameters we are able to set the library, include directory and flag variables accordingly.
 #********************************************************************************************************
 
-find_program(NETCDF_CONFIG nf-config
+# Finds the program nf-config in different locations, including the $PATH, but also, if set, in NETCDF_DIR
+# that variable can be set via the cmake cache file, either after cmake was executed in the CMakeCache.txt
+# with a specific editor (or by hand), or while executing cmake via cache line variables or a cache line file.
+# If nf-config is found, it is written into the NETCDFF_CONFIG variable and can be executed afterwards using
+# ${NETCDFF_CONFIG}.
+find_program(NETCDFF_CONFIG nf-config
   HINTS NETCDF_DIR ENV NETCDF_DIR)
-message(STATUS "found ${NETCDF_CONFIG}")
-execute_process(COMMAND ${NETCDF_CONFIG} --includedir OUTPUT_VARIABLE NETCDF_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "found ${NETCDFF_CONFIG}")
+execute_process(COMMAND ${NETCDFF_CONFIG} --includedir OUTPUT_VARIABLE NETCDF_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(STATUS "netcdff includes ${NETCDF_INCLUDES}")
-execute_process(COMMAND ${NETCDF_CONFIG} --fflags OUTPUT_VARIABLE NETCDF_CFLAGS_OTHER OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${NETCDFF_CONFIG} --fflags OUTPUT_VARIABLE NETCDF_CFLAGS_OTHER OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(STATUS "netcdff netcdf link flags ${NETCDF_CFLAGS_OTHER}")
-execute_process(COMMAND ${NETCDF_CONFIG} --flibs OUTPUT_VARIABLE NETCDF_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${NETCDFF_CONFIG} --flibs OUTPUT_VARIABLE NETCDF_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(STATUS "netcdff netcdf library link flags ${NETCDF_LDFLAGS}")
 
-string(REPLACE " " ";" NETCDF_LDFLAGS_LIST ${NETCDF_LDFLAGS})
+if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND)
+        find_program(NETCDF_CONFIG nc-config
+          HINTS NETCDF_DIR ENV NETCDF_DIR)
+        execute_process(COMMAND ${NETCDF_CONFIG} --libs OUTPUT_VARIABLE NETCDF_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "netcdf library link flags ${NETCDF_LIBS}")
+endif()
+
+# In a clean cmake setup the libraries are included via the target_link_libraries and not
+# via flags. Cmake creates system dependend flags and rpaths using the libraries itself.
+# nf-config on the other hand gives us a list of flags, linking with -l and -L.
+# we cut the flag string into seperated flags and create libraries and other flags from it
+string(REPLACE " " ";" NETCDF_LDFLAGS_LIST "${NETCDF_LDFLAGS} ${NETCDF_LIBS}")
 foreach(flag ${NETCDF_LDFLAGS_LIST})
+        # message(STATUS "${flag}")
 	if (flag MATCHES "^-L(.*)")
 		list(APPEND _search_paths ${CMAKE_MATCH_1})
 		continue()
@@ -59,7 +76,8 @@ foreach(flag ${NETCDF_LDFLAGS_LIST})
 	endif()
 	find_library(pkgcfg_lib_NETCDF_${_pkg_search}
 		NAMES ${_pkg_search}
-		${_find_opts})
+		HINTS ENV LD_LIBRARY_PATH)
+        message(STATUS "found ${pkgcfg_lib_NETCDF_${_pkg_search}}")
 	list(APPEND _libs "${pkgcfg_lib_NETCDF_${_pkg_search}}")
 endforeach()
 
