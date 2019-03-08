@@ -23,34 +23,81 @@
 # Archlinux:
 # **********
 # sudo pacman -S git # (optional)
-# sudo apt-get -S gcc-libs netcdf-fortran cmake
+# sudo pacman -S gcc-libs netcdf-fortran cmake
 #
 # Module systems:
 # ***************
 # load modules gcc, netcdf-fortran, cmake
 # or load modules intel, netcdf-fortran, cmake
 # they will have system specific names, environments, etc. Use module spider to find the right packages and the
-# right dependencies
+# right dependencies, potentially use corresponding wiki pages
 # _eve_:
-# source gfortran...
+# from the source directory use a script provided in moduleLoadScripts, for example for the gnu 7.3 compiler:
+# source moduleLoadScripts/gfortran73
+#
+# MacOS:
+# ******
+# to be added
+#
+# Specific setups:
+##################
+# The hints here are for the replacement of the step "cmake .." in the installation instruction.
+# You can skip this part and continue with "Installation", if you do not have a module system
+# setup (like on clusters) or if you have installed all packages with a package manager
+# Module systems:
+# ***************
+# The executable can be build in a way that it runs independend of loaded modules in the end. The
+# module system though adds paths in the backround the user should not care about too much, so
+# the setup is a workaround. (This would be the case with any other building tool aswell)
+# It should be stable, anyway. If you want to have a module independend build in the end, instead of
+# just executing
+# cmake ..
+# either run
+# cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
+# or
+# cmake -C ../CMakeCacheFiles/eve ..
+#
+# None standard locations for the netcdf-library (i.e. standard setup Macs in CHS):
+# *********************************************************************************
+# find, where the nf-config file is located
+# for example:
+# find / -iname "*nf-config*" 2>/dev/null
+# (searches the root directory / for a file with a name containing the string "nf-config", not
+# taking into account upper and lower case, but writes the error messages like "permission denied" into
+# the void)
+# then, instead of running
+# cmake ..
+# if not using the standard compiler, set the fortran compiler variable to the wished compiler, i.e.
+# export FC=gfortran
+# then either run
+# cmake -DCMAKE_NETCDF_DIR:STRING=/path/to/nf-config/of/used/compiler
+# or copy ../CMakeCacheFiles/specificSetup to somewhere
+# cp ../CMakeCacheFiles/specificSetup .
+# (though, if you want to keep it, outside the build repository), edit it: add
+# there the path to your nf-config file, and run and after editing, run
+# cmake -C specificSetup ..
 
 # Installation:
 ###############
-# - change to a directory where you want to store the source code
-# - clone the corresponding mHM repository into a folder, i.e.
+# change to a directory where you want to store the source code
+# clone the corresponding mHM repository into a folder, i.e.
 # git clone -b nag_compilation https://git.ufz.de/mhm/mhm.git mHM_test/
-#   for cloning it into a folder mHM_test
+# for cloning it into a folder mHM_test
 # create a build directory where you want to store the build, i.e. inside the git source directory
 # cd mHM_test
 # mkdir build
 # change into the build directory
 # cd build
 # execute cmake with the path to the git source directory
+# Note: for specific setups like on
+# module systems or when the netcdf libraries are not located where the package manager would do so
+# and they are not saved in environment variabels (i.e. classical MacOS setups in CHS) have
+# a look to "Specific setups", above
 # cmake ..
 # if everything worked well a Makefile was created with the corresponding paths. Execute make
 # make
 # if this also worked fine an executable was created, which has to be moved or copied to the git source directory
-# note: one could automatically link the executably inside the git source directory which is not done for two reasons:
+# note: one could automatically link the executably with the cmake code inside the git source directory which is not done for two reasons:
 # 1. it should never be commited, nothing should be build inside the source directory which we did not do by hand
 # 2. the directory where mHM is executed usually is not the source directory but the directory where you want to run
 #    your tests. In case of the test setup it is the same, usually it is not
@@ -60,3 +107,13 @@
 # cp build/mhm.exe .
 # now you might execute mHM.
 # ./mhm
+#
+# Trouble shooting:
+# *****************
+# On brew setup MacOS systems there is no working nf-config by now. Execute
+# nf-config --all
+# and if it says something like "is not implemented yet" the issue is not solved yet but on my tracklist
+#
+# in any other case feel free to write an email to maren.kaluza@ufz.de
+# cmake is far from being my main task, so it will probably take a while until I can track a problem. I would
+# be happy having bug reports, anyhow.
