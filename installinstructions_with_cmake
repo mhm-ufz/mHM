@@ -24,6 +24,15 @@
 # **********
 # sudo pacman -S git # (optional)
 # sudo apt-get -S gcc-libs netcdf-fortran cmake
+#
+# Module systems:
+# ***************
+# load modules gcc, netcdf-fortran, cmake
+# or load modules intel, netcdf-fortran, cmake
+# they will have system specific names, environments, etc. Use module spider to find the right packages and the
+# right dependencies
+# _eve_:
+# source gfortran...
 
 # Installation:
 ###############
