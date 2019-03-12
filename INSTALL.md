@@ -67,7 +67,7 @@ or
 load modules intel, netcdf-fortran, cmake
 
 These modules will have system specific names, environments, etc.
-You may use the module `spider` to find the right packages and the
+You may use `module spider` to find the right packages and the
 right dependencies, potentially use corresponding wiki pages.
 
 #### On eve (the cluster at the UFZ):
@@ -88,7 +88,7 @@ The following hints can replace the step `cmake ..` in the installation instruct
 
 You can skip this part and continue with "Installation", if you do not have a module system
 setup (like on clusters) or if you have not installed all packages with a package manager,
-such as cygwin.
+such as cygwin or apt-get.
 
 ### Module systems:
 
@@ -149,7 +149,7 @@ Installation
     using the download link on <https://git.ufz.de/mhm/mhm/tree/nag_compilation>
     (the cloud symbol with the arrow on it).
 
-3. Create a build directory where you want to store the build, e.g. inside the Git source directory
+3. Create and change to a build directory where you want to store the build, e.g. inside the Git source directory
 
         cd mhm-nag_compilation
         mkdir build
@@ -158,38 +158,48 @@ Installation
 
         cd build
 
-    and execute `cmake` with the path to the Git source directory.
+4. Generate a system dependent makefile
+
+    Execute `cmake` with the path to the Git source directory as parameter.
+
+     cmake ..
+
+    If everything worked well a Makefile was created with the corresponding paths.
 
     *Note: have a look at "Specific setups" above in case you are using module systems,
     or when the netcdf libraries are not located where the package manager usually installs libraries, 
     or when they are not saved in environment variables (i.e., classical MacOS setups at CHS).*
 
-4. Make the build:
+5. Make the build:
 
-        cmake ..
-
-    If everything worked well a Makefile was created with the corresponding paths. Execute make:
+   Execute make:
 
         make
 
     If this also worked fine, an executable was created, which has to be moved or copied to the Git source directory.
 
-5. Execute the file:
+6. Execute the file:
 
         cd ..
         cp build/mhm .
 
-    On Windows the executable is called `mhm.exe` instead of `mhm`.
+    On Windows the executable is called `mhm.exe` instead of `mhm`. In that case
+    instead of `cp build/mhm .` execute 
+
+        cp build/mhm.exe .
+
     Now you might execute mHM:
 
         ./mhm
 
-*Note: one could automatically link the executable with the `cmake` code inside the Git source directory which is not done for two reasons:*
+*Note concerning the development of the cmake setup: one could automatically
+ link the executable with the `cmake` code inside the Git source directory
+  which is not done for two reasons:*
 
-- The executable depends on your local system, so it should never be commited and pushed to other users.
-    Nothing should be build inside the source directory which we did not do by hand.
-- The directory where mHM is executed usually is not the source directory but the directory where you want to run
-   your tests. In case of the test setup it is the same, usually it is not.
+- *The executable depends on your local system, so it should never be commited and pushed to other users.
+    Nothing should be build inside the source directory which we did not do by hand.*
+- *The directory where mHM is executed usually is not the source directory but the directory where you want to run
+   your tests. In case of the test setup it is the same, usually it is not.*
 
 Trouble shooting:
 =================
