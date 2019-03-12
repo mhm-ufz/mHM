@@ -37,7 +37,7 @@ on the internet where the files for the installation come from. Choose any serve
 located near your city and when in doubt, choose the first one in the list.
 In the next step you can find all available packages provided by cygwin, set
 the view to "full". In the search panel you can filter the packages 
-by the dependencies listed above (e.g., make). When you choose a
+by the dependencies listed above (e.g. make). When you choose a
 version, the newest one is usually a good choice if not marked as experimental.
 
 *Note for UFZ members:* Install cygwin locally, do not choose a location on the
@@ -60,11 +60,11 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
 ### Module systems:
 
-    load modules gcc, netcdf-fortran, cmake
+load modules gcc, netcdf-fortran, cmake
 
 or
 
-    load modules intel, netcdf-fortran, cmake
+load modules intel, netcdf-fortran, cmake
 
 These modules will have system specific names, environments, etc.
 You may use the module `spider` to find the right packages and the
