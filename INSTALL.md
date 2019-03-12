@@ -5,12 +5,12 @@ specific installation instructions can be found below
 
 - a fortran compiler
 - make (a tool to compile a program)
-- cmake (version >= 3.5) (a tool to create a system dependend makefile)
+- cmake (version >= 3.5) (a tool to create a system dependent makefile)
 - fitting netcdf-fortran libraries (libraries for the usage of the data format netcdf on which mhm depends)
 - (optional, but makes things much easier) git
 
 Git is a version-control system. If you want to contribute to a project, it is highly recommended to
-use Git. You can use Git to download (clone) the project to your local pc and have a look to the history or
+use Git. You can use Git to download (clone) the project to your local pc and have a look at the history or
 synchronize it without copying the whole repository again. You can also download the project folder without
 Git, but this would not allow you to pull updates from and push changes to our repository.
 
@@ -18,8 +18,11 @@ System dependend installation instructions:
 ===========================================
 ### Windows:
 [Cygwin](https://cygwin.com/) is an environment with a terminal that allows to compile and
-run programs of Unix-like systems. You can find further instructions to install cygwin on the webpage, aswell as
+run programs of Unix-like systems. You can find further instructions to install cygwin on the webpage, as well as
 instructions on how to install further dependencies after the installation.
+
+After the installation of cygwin and its dependencies mHM will be installed
+using cygwin. All commands and the execution of mHM only run in that environment.
 
 Install cygwin by executing the cygwin setup and choose the following dependencies:
 
@@ -159,7 +162,7 @@ Installation
 
     *Note: have a look at "Specific setups" above in case you are using module systems,
     or when the netcdf libraries are not located where the package manager usually installs libraries, 
-    or when they are not saved in environment variabels (i.e., classical MacOS setups at CHS).*
+    or when they are not saved in environment variables (i.e., classical MacOS setups at CHS).*
 
 4. Make the build:
 
@@ -181,7 +184,7 @@ Installation
 
         ./mhm
 
-*Note: one could automatically link the executably with the `cmake` code inside the Git source directory which is not done for two reasons:*
+*Note: one could automatically link the executable with the `cmake` code inside the Git source directory which is not done for two reasons:*
 
 - The executable depends on your local system, so it should never be commited and pushed to other users.
     Nothing should be build inside the source directory which we did not do by hand.
