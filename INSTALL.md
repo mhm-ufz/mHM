@@ -54,15 +54,15 @@ C:\cygwin64\home\$username
 
 Ubuntu, Mint and other apt-get based systems with matching repositories:
 ------------------------------------------------------------------------
-sudo apt-get install git # (optional)
+`sudo apt-get install git # (optional)`
 
-sudo apt-get install gfortran netcdf-bin libnetcdf-dev libnetcdff-dev cmake
+`sudo apt-get install gfortran netcdf-bin libnetcdf-dev libnetcdff-dev cmake`
 
 Archlinux:
 ----------
-sudo pacman -S git # (optional)
+`sudo pacman -S git # (optional)`
 
-sudo pacman -S gcc-libs netcdf-fortran cmake
+`sudo pacman -S gcc-libs netcdf-fortran cmake`
 
 Module systems:
 ---------------
