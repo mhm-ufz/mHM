@@ -60,11 +60,8 @@ Some cygwin versions create a new home directory for you. You may check e.g. her
 
 ### Module systems:
 
-load modules gcc, netcdf-fortran, cmake
-
-or
-
-load modules intel, netcdf-fortran, cmake
+If you are on a module system, load the modules gcc or intel depending on your
+favorite compiler. Then, load the modules netcdf-fortran and cmake. 
 
 These modules will have system specific names, environments, etc.
 You may use `module spider` to find the right packages and the
