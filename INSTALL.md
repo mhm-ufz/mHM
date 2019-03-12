@@ -16,8 +16,7 @@ git on your local pc.
 
 System dependend installation instructions:
 ===========================================
-Windows:
---------
+### Windows:
 cygwin is an environment with a terminal that allows to compile and
 run programs of Unix-like systems
 
@@ -38,7 +37,10 @@ libnetcdf-fortran-devel
 
 git (optional) (you can also install git without cygwin, and it is not required to install git at all, see above.)
 
-you can find these in a window appearing during the installation, after
+While installing cygwin you will have to choose a mirror. A mirror is a server
+on the internet where the files for the installation come from. Choose something
+located near to you and if you have no idea, choose the first. In the next step you
+can find the dependencies in a window appearing during the installation, after
 changing the category to full. Here you
 can enter the search term (e.g. make) in the search field. You can choose a
 version. The newest one, if not marked as experimental, is usually a good choice.
@@ -46,26 +48,23 @@ version. The newest one, if not marked as experimental, is usually a good choice
 Note for people at the ufz: Install cygwin locally, do not choose a location on the
 network for the installation
 
-cygwin creates a new home directory for you. You can find it in
+cygwin sometimes creates a new home directory for you. You may find it in
 
-C:\cygwin64\home\$username
+`C:\cygwin64\home\$username`
 
-(maybe this is not always the case, I tested it once)
+Depending on the setup it may also be your home directory.
 
-Ubuntu, Mint and other apt-get based systems with matching repositories:
-------------------------------------------------------------------------
+### Ubuntu, Mint and other apt-get based systems with matching repositories:
 `sudo apt-get install git # (optional)`
 
 `sudo apt-get install gfortran netcdf-bin libnetcdf-dev libnetcdff-dev cmake`
 
-Archlinux:
-----------
+### Archlinux:
 `sudo pacman -S git # (optional)`
 
 `sudo pacman -S gcc-libs netcdf-fortran cmake`
 
-Module systems:
----------------
+### Module systems:
 load modules gcc, netcdf-fortran, cmake
 
 or load modules intel, netcdf-fortran, cmake
@@ -73,13 +72,13 @@ or load modules intel, netcdf-fortran, cmake
 they will have system specific names, environments, etc. Use module spider to find the right packages and the
 right dependencies, potentially use corresponding wiki pages
 
-_eve_:
+#### on eve (the cluster at the ufz):
 
 from the source directory use a script provided in moduleLoadScripts, for example for the gnu 7.3 compiler:
+
 `source moduleLoadScripts/gfortran73`
 
-MacOS:
-------
+### MacOS:
 to be added
 
 Specific setups:
@@ -90,8 +89,7 @@ You can skip this part and continue with "Installation", if you do not have a mo
 setup (like on clusters) or if you have not installed all packages with a package manager
 or cygwin
 
-Module systems:
----------------
+### Module systems:
 The executable can be build in a way that it runs independend of loaded modules in the end. The
 module system though adds paths in the backround the user should not care about too much, so
 the setup is a workaround. (This would be the case with any other building tool aswell.)
@@ -108,10 +106,9 @@ or
 
 `cmake -C ../CMakeCacheFiles/eve ..`
 
-or change the variable CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND with ccmake to ON after running cmake ..
+or change the variable `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND` with ccmake to ON after running cmake ..
 
-None standard locations for the netcdf-library (e.g. standard setup Macs in CHS):
----------------------------------------------------------------------------------
+### None standard locations for the netcdf-library (e.g. standard setup Macs in CHS):
 find, where the nf-config file is located
 
 for example:
@@ -139,7 +136,7 @@ there the path to your nf-config file, and after editing, run
 
 `cmake -C specificSetup ..`
 
-or change the variable CMAKE_NETCDF_DIR to the path to the nf-config file with ccmake after running cmake ..
+or change the variable `CMAKE_NETCDF_DIR` to the path to the nf-config file with ccmake after running cmake ..
 
 Installation:
 =============
@@ -149,9 +146,9 @@ clone the corresponding mHM repository into a folder, either using git (if insta
 
 `git clone -b nag_compilation https://git.ufz.de/mhm/mhm.git mhm-nag_compilation/`
 
-for cloning it into a folder mhm-nag_compilation,
+for cloning it into a folder `mhm-nag_compilation`,
 
-or download and unpack it using the download link on https://git.ufz.de/mhm/mhm/tree/nag_compilation
+or download and unpack it using the download link on <https://git.ufz.de/mhm/mhm/tree/nag_compilation>
 you can find it, clicking onto the cloud symbol with the arrow in it.
 
 create a build directory where you want to store the build, e.g. inside the git source directory
@@ -197,14 +194,14 @@ note: one could automatically link the executably with the cmake code inside the
    your tests. In case of the test setup it is the same, usually it is not
 
 Trouble shooting:
------------------
+=================
 On brew/homebrew setup MacOS systems there is no working nf-config by now. Execute
 
 `nf-config --all`
 
 and if it says something like "is not implemented yet" the issue is not solved yet but on my tracklist
 
-in any other case feel free to write an email to maren.kaluza@ufz.de
+in any other case feel free to write an email to <maren.kaluza@ufz.de>
 
 cmake is far from being my main task, so it will probably take a while until I can track a problem. I would
 be happy having bug reports, anyhow.
