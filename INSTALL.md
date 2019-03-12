@@ -76,7 +76,7 @@ right dependencies, potentially use corresponding wiki pages
 _eve_:
 
 from the source directory use a script provided in moduleLoadScripts, for example for the gnu 7.3 compiler:
-source moduleLoadScripts/gfortran73
+`source moduleLoadScripts/gfortran73`
 
 MacOS:
 ------
@@ -98,15 +98,15 @@ the setup is a workaround. (This would be the case with any other building tool 
 It should be stable, anyway. If you want to have a module independend build in the end, instead of
 just executing
 
-cmake ..
+`cmake ..`
 
 either run
 
-cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
+`cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..`
 
 or
 
-cmake -C ../CMakeCacheFiles/eve ..
+`cmake -C ../CMakeCacheFiles/eve ..`
 
 or change the variable CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND with ccmake to ON after running cmake ..
 
@@ -116,32 +116,28 @@ find, where the nf-config file is located
 
 for example:
 
-find / -iname "*nf-config*" 2>/dev/null
+`find / -iname "*nf-config*" 2>/dev/null`
 
 (searches the root directory / for a file with a name containing the string "nf-config", not
 taking into account upper and lower case, but writes the error messages like "permission denied" into
 the void)
 
-then, instead of running
+then, instead of running `cmake ..` if not using the standard compiler, set the fortran compiler variable to the wished compiler, e.g.
 
-cmake ..
-
-if not using the standard compiler, set the fortran compiler variable to the wished compiler, e.g.
-
-export FC=gfortran
+`export FC=gfortran`
 
 then either run
 
-cmake -DCMAKE_NETCDF_DIR:STRING=/path/to/nf-config/of/used/compiler
+`cmake -DCMAKE_NETCDF_DIR:STRING=/path/to/nf-config/of/used/compiler`
 
 or copy ../CMakeCacheFiles/specificSetup to somewhere
 
-cp ../CMakeCacheFiles/specificSetup .
+`cp ../CMakeCacheFiles/specificSetup .`
 
 (though, if you want to keep it, rather choose a place outside the build repository), edit it: add
 there the path to your nf-config file, and after editing, run
 
-cmake -C specificSetup ..
+`cmake -C specificSetup ..`
 
 or change the variable CMAKE_NETCDF_DIR to the path to the nf-config file with ccmake after running cmake ..
 
@@ -151,7 +147,7 @@ change to a directory where you want to store the source code
 
 clone the corresponding mHM repository into a folder, either using git (if installed)
 
-git clone -b nag_compilation https://git.ufz.de/mhm/mhm.git mhm-nag_compilation/
+`git clone -b nag_compilation https://git.ufz.de/mhm/mhm.git mhm-nag_compilation/`
 
 for cloning it into a folder mhm-nag_compilation,
 
@@ -160,13 +156,13 @@ you can find it, clicking onto the cloud symbol with the arrow in it.
 
 create a build directory where you want to store the build, e.g. inside the git source directory
 
-cd mhm-nag_compilation
+`cd mhm-nag_compilation`
 
-mkdir build
+`mkdir build`
 
 change into the build directory
 
-cd build
+`cd build`
 
 execute cmake with the path to the git source directory
 
@@ -175,25 +171,25 @@ module systems or when the netcdf libraries are not located where the package ma
 and they are not saved in environment variabels (i.e. classical MacOS setups in CHS) have
 a look to "Specific setups", above
 
-cmake ..
+`cmake ..`
 
 if everything worked well a Makefile was created with the corresponding paths. Execute make
 
-make
+`make`
 
 if this also worked fine an executable was created, which has to be moved or copied to the git source directory
 
-cd ..
+`cd ..`
 
-cp build/mhm .
+`cp build/mhm .`
 
 on Windows it is called mhm.exe. Run instead
 
-cp build/mhm.exe .
+`cp build/mhm.exe .`
 
 now you might execute mHM.
 
-./mhm
+`./mhm`
 
 note: one could automatically link the executably with the cmake code inside the git source directory which is not done for two reasons:
 1. it should never be commited, nothing should be build inside the source directory which we did not do by hand
@@ -204,7 +200,7 @@ Trouble shooting:
 -----------------
 On brew/homebrew setup MacOS systems there is no working nf-config by now. Execute
 
-nf-config --all
+`nf-config --all`
 
 and if it says something like "is not implemented yet" the issue is not solved yet but on my tracklist
 
