@@ -1,0 +1,3 @@
+[submodule "deps/mrm"]
+	path = deps/mrm
+	url = https://git.ufz.de/mhm/mrm.git
