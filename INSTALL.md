@@ -198,6 +198,31 @@ Installation
 - *The directory where mHM is executed usually is not the source directory but the directory where you want to run
    your tests. In case of the test setup it is the same, usually it is not.*
 
+Building Realease or Debug versions:
+====================================
+If you want to set up specific versions of the build, you can
+create different folders for that. Assume a release and a debug
+version. Then a good idea would be to create one folder named
+ `debug` and one folder named `release`
+
+    mkdir release
+
+    mkdir debug
+
+inside the `release` folder one would execute
+
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+
+and inside the `debug` folder
+
+    cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+Executing
+
+    make
+
+in the corresponding folder would then always result in a release build or respectively in a debug build.
+
 Trouble shooting:
 =================
 
