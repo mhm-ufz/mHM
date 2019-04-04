@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mhm Fortran)
 
-# The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENDCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND" can be set before executing cmake via a cache command:
+# The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
 # or cache file: 
 # $cmake -C ../CMakeCacheFiles/eve ..
@@ -29,7 +29,10 @@ find_package(NetCDFF REQUIRED)
 # NETCDF_LINK_LIBRARIES : the absolute path to and with the libraries
 # NETCDF_CFLAGS_OTHER	: additional compilation flags
 # NETCDF_LDFLAGS_OTHER	: additional linking flags
-include_directories(${NETCDF_INCLUDES})
+# find if there is an MPI setup on the system and if so, set corresponding variables
+find_package(MPI)
+message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+include_directories(${NETCDF_INCLUDES} ${MPI_Fortran_INCLUDE_PATH})
 
 # ifort and gfortran need the flag -cpp to interpret definitions like -DMRM2MHM
 # the nag compiler is not able to interpret the flag -cpp but can interpret these definitions anyway
@@ -56,7 +59,7 @@ endif()
 #set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
 
 # Add definitions. These should later be set via the cache line file and only
-# have a defauld value here. These part only concerns user buld definitions like MRM2MHM
+# have a defauld value here. These part only concerns user build definitions like MRM2MHM
 add_definitions(-DMRM2MHM=.true.)
 #add_definitions(-DpgiFortran=.false.)
 #add_definitions(-DMPR_STANDALONE=.false.)
@@ -74,9 +77,13 @@ add_executable(mhm ${sources})
 
 # the libraries are added to the executable by the linker, using the full path and using the
 # rpath option, except the libraries are located in ${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}.
-target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES})
-set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER}")
-set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
+target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${CMAKE_Fortran_FLAGS} ${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER} ${MPI_Fortran_COMPILE_FLAGS}")
+set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS}")
+set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
+set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_DEBUG} -O3")
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
+message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
 # in the end without having the modules loaded. A workaround is provided using the variable
 # CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND
