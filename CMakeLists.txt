@@ -40,7 +40,7 @@ find_package(NetCDFF REQUIRED)
 if (CMAKE_WITH_MPI)
         # find if there is an MPI setup on the system and if so, set corresponding variables
         find_package(MPI)
-        if (${MPI_FOUND})
+        if (NOT ${MPI_Fortran_FOUND})
                 message(FATAL_ERROR "MPI required but not found")
         else()
                 message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
