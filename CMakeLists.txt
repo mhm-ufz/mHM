@@ -9,12 +9,20 @@ project(mhm Fortran)
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
 # or cache file: 
 # $cmake -C ../CMakeCacheFiles/eve ..
-# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor
+# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
 set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND OFF CACHE STRING "build the module independend of the module system, so the build in the build tree works even after a module purge")
 message(STATUS "build independend of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND}")
+
 # set specific place where to search for the netCDF directory
 set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
 message(STATUS "search in additional directory ${CMAKE_NETCDF_DIR} for netCDF")
+
+# The variable "CMAKE_WITH_MPI" can be set before executing cmake via a cache command:
+# $cmake -DCMAKE_WITH_MPI:STRING=ON ..
+# or in a cache file:
+# $cmake -C ../CMakeCacheFiles/example
+# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e. ccmake
+set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
@@ -29,9 +37,16 @@ find_package(NetCDFF REQUIRED)
 # NETCDF_LINK_LIBRARIES : the absolute path to and with the libraries
 # NETCDF_CFLAGS_OTHER	: additional compilation flags
 # NETCDF_LDFLAGS_OTHER	: additional linking flags
-# find if there is an MPI setup on the system and if so, set corresponding variables
-find_package(MPI)
-message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+if (CMAKE_WITH_MPI)
+        # find if there is an MPI setup on the system and if so, set corresponding variables
+        find_package(MPI)
+        if (${MPI_FOUND})
+                message(FATAL_ERROR "MPI required but not found")
+        else()
+                message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+        endif()
+endif()
+
 include_directories(${NETCDF_INCLUDES} ${MPI_Fortran_INCLUDE_PATH})
 
 # ifort and gfortran need the flag -cpp to interpret definitions like -DMRM2MHM

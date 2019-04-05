@@ -1,0 +1,2 @@
+#-D CMAKE_WITH_MPI:STRING=ON
+set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
