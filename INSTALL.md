@@ -1,7 +1,8 @@
 Dependencies:
 =============
 For Windows, some Linux distributions and soon also MacOS
-specific installation instructions can be found below
+specific installation instructions for the following list
+can be found below.
 
 - a fortran compiler
 - make (a tool to compile a program)
@@ -127,7 +128,8 @@ or copy the file `specificSetup` to some other place:
 
     cp ../CMakeCacheFiles/specificSetup .
 
-However, in case you want to keep it, rather than choosing a place outside the build repository, edit the file as follows:
+However, in case you want to keep it, you should choose a place
+outside the build repository. Edit the file as follows:
 add the path to your `nf-config` file, and after editing, run:
 
     cmake -C specificSetup ..
@@ -159,7 +161,7 @@ Installation
 
     Execute `cmake` with the path to the Git source directory as parameter.
 
-     cmake ..
+       cmake ..
 
     If everything worked well a Makefile was created with the corresponding paths.
 
