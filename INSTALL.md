@@ -140,15 +140,15 @@ Installation
 1. Change to a directory where you want to store the source code.
 2. Clone the corresponding mHM repository into a folder, either using Git (if installed):
 
-        git clone -b nag_compilation https://git.ufz.de/mhm/mhm.git mhm-nag_compilation/
+        git clone -b cmake https://git.ufz.de/mhm/mhm.git mhm-cmake/
 
-    for cloning it into a folder `mhm-nag_compilation`, or download and unpack it
-    using the download link on <https://git.ufz.de/mhm/mhm/tree/nag_compilation>
+    for cloning it into a folder `mhm-cmake`, or download and unpack it
+    using the download link on <https://git.ufz.de/mhm/mhm/tree/cmake>
     (the cloud symbol with the arrow on it).
 
 3. Create and change to a build directory where you want to store the build, e.g. inside the Git source directory
 
-        cd mhm-nag_compilation
+        cd mhm-cmake
         mkdir build
 
     Change into the build directory:
