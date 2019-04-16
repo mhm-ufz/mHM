@@ -60,15 +60,6 @@ if (CPP_FLAG)
 	set(ADDITIONAL_GCC_FLAGS "-cpp")
 endif()
 
-# copied from another cmake file, maybe interesting later
-#if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-#    set(dialect "-ffree-form -std=f2008 -fimplicit-none")
-#    set(bounds "-fbounds-check")
-#endif()
-#if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-#    set(dialect "-stand f08 -free -implicitnone")
-#    set(bounds "-check bounds")
-#endif()
 #
 #set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
 #set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
@@ -95,9 +86,17 @@ add_executable(mhm ${sources})
 target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${CMAKE_Fortran_FLAGS} ${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER} ${MPI_Fortran_COMPILE_FLAGS}")
 set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS}")
-set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
-set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_DEBUG} -O3")
-set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
+# set compiling flags for debug and realese version
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
+	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
+	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3")
+endif()
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
+	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -debug -check all")
+	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
+endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
 # in the end without having the modules loaded. A workaround is provided using the variable

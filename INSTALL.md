@@ -73,7 +73,7 @@ right dependencies, potentially use corresponding wiki pages.
 From the source directory use a script provided in `moduleLoadScripts`,
 for example for the GNU 7.3 compiler:
 
-    source moduleLoadScripts/gfortran73
+    source moduleLoadScripts/eve.gfortran73
 
 ### MacOS:
 
