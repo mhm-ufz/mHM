@@ -29,6 +29,8 @@ module mo_common_mHM_mRM_variables
   !                                ! 2 = specific coupling to mHM (mHM and mRM)
 
   integer(i4), public :: timeStep                   ! [h] simulation time step (= TS) in [h]
+  real(dp), public :: c2TSTu            !       Unit transformation = timeStep/24
+
   real(dp), dimension(:), allocatable, public :: resolutionRouting          ! [m or degree] resolution of routing - Level 11
   logical, public :: read_restart               ! flag
 

@@ -70,7 +70,6 @@ program mpr_driver
   use mo_mpr_file, only : &
           file_namelist_mpr_param, unamelist_mpr_param, &      ! filename of namelist: mhm model parameter
           file_namelist_mpr, unamelist_mpr ! file containing main configurations
-  use mo_mpr_global_variables, only : c2TSTu
   use mo_kind, only: dp
 
   implicit none
@@ -86,8 +85,6 @@ program mpr_driver
 
   call read_data()
 
-  ! TODO: this might become part of the namelist in MPR-STANDALONE?!
-  c2TSTu = 1.0_dp / 24.0_dp
   call mpr_initialize()
 
   ! -----------------------------------------------------------------------
