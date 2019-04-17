@@ -25,6 +25,8 @@ message(STATUS "search in additional directory ${CMAKE_NETCDF_DIR} for netCDF")
 set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
 # same with OpenMP
 set(CMAKE_WITH_OpenMP OFF CACHE STRING "build the module with OpenMP parallelization")
+# same with lapack
+set(CMAKE_WITH_LAPACK OFF CACHE STRING "build the module with lapack library")
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
@@ -55,6 +57,14 @@ if (CMAKE_WITH_OpenMP)
 	include(FindOpenMP)
 	if (NOT ${OpenMP_Fortran_FOUND})
 		message(FATAL_ERROR "OpenMP required but not found")
+	endif()
+endif()
+
+if (CMAKE_WITH_LAPACK)
+	# find if there is an OpenMP setup on the system and if so, set corresponding variables
+	include(FindLAPACK)
+	if (NOT ${LAPACK_FOUND})
+		message(FATAL_ERROR "lapack required but not found")
 	endif()
 endif()
 
@@ -104,9 +114,9 @@ add_executable(mhm ${sources})
 
 # the libraries are added to the executable by the linker, using the full path and using the
 # rpath option, except the libraries are located in ${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}.
-target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES} ${OpenMP_Fortran_LIBRARIES})
+target_link_libraries(mhm ${NETCDF_LINK_LIBRARIES} ${MPI_Fortran_LIBRARIES} ${OpenMP_Fortran_LIBRARIES} ${LAPACK_LIBRARIES})
 set_property(TARGET mhm PROPERTY COMPILE_FLAGS "${CMAKE_Fortran_FLAGS} ${ADDITIONAL_GCC_FLAGS} ${NETCDF_CFLAGS_OTHER} ${MPI_Fortran_COMPILE_FLAGS} ${OpenMP_Fortran_FLAGS}")
-set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS}")
+set_property(TARGET mhm PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER} ${MPI_Fortran_LINK_FLAGS} ${OpenMP_Fortran_FLAGS} ${LAPACK_LINKER_FLAGS}")
 # set compiling flags for debug and realese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
