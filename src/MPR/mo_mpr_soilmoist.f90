@@ -247,7 +247,6 @@ contains
     Ks = 0.0_dp
     Db = 0.0_dp
     if(allocated(Ks_non_till)) Ks_non_till = 0.0_dp
-    ! TODO:  is it necessary to loop over 1:maxval, isn't it required to only loop over existing classes?!
     max_LCover = maxval(LCOVER0)
     ! select case according to a given soil database flag
     SELECT CASE(iFlag_soilDB)
@@ -284,13 +283,12 @@ contains
               ! Effect of organic matter content
               ! This is taken into account in a simplified form by using
               ! the ratio of(Bd / BdOM)
-              Ks_tmp = Ks_tmp * (DbM(i, j) / Db(i, j, L))
-              Ks(i, j, L) = Ks_tmp
+              Ks(i, j, L) = Ks(i, j, L) * (DbM(i, j) / Db(i, j, L))
               ! estimated SMs_till & van Genuchten's shape parameter (n)
               call Genuchten(thetaS_till(i, j, L), Genu_Mual_n, Genu_Mual_alpha, &
                       param(4 : 9), sand(i, j), clay(i, j), Db(i, j, L))
               ! estimating field capacity
-              call field_cap(thetaFC_till(i, j, L), Ks_tmp, thetaS_till(i, j, L), Genu_Mual_n)
+              call field_cap(thetaFC_till(i, j, L), Ks(i, j, L), thetaS_till(i, j, L), Genu_Mual_n)
               ! estimating permanent wilting point
               call PWP(Genu_Mual_n, Genu_Mual_alpha, thetaS_till(i, j, L), thetaPW_till(i, j, L))
             end do
@@ -301,7 +299,7 @@ contains
                     param(4 : 9), sand(i, j), clay(i, j), DbM(i, j))
             ! estimate field capacity
             call field_cap(thetaFC(i, j - tmp_minSoilHorizon), &
-                    Ks_tmp, thetaS(i, j - tmp_minSoilHorizon), Genu_Mual_n)
+                    Ks(i, j, 1), thetaS(i, j - tmp_minSoilHorizon), Genu_Mual_n)
             ! estimate permanent wilting point
             call PWP(Genu_Mual_n, Genu_Mual_alpha, thetaS(i, j - tmp_minSoilHorizon), &
                     thetaPW(i, j - tmp_minSoilHorizon))
