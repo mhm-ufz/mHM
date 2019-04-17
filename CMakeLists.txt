@@ -37,6 +37,7 @@ find_package(NetCDFF REQUIRED)
 # NETCDF_LINK_LIBRARIES : the absolute path to and with the libraries
 # NETCDF_CFLAGS_OTHER	: additional compilation flags
 # NETCDF_LDFLAGS_OTHER	: additional linking flags
+
 if (CMAKE_WITH_MPI)
         # find if there is an MPI setup on the system and if so, set corresponding variables
         find_package(MPI)
@@ -60,17 +61,27 @@ if (CPP_FLAG)
 	set(ADDITIONAL_GCC_FLAGS "-cpp")
 endif()
 
-#
-#set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${bounds}")
-#set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${dialect}")
+# this function adds definitions but also creates a corresponding CMAKE variable with CACHE STRING
+# i.e.:
+# The variable "${defCMakeName}" can be set before executing cmake via a cache command cmake -D...
+# or in a cache file:
+# $cmake -C ../CMakeCacheFiles/example
+# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e. ccmake
+# cmake ..
+function(cpp_definitions defName defCMakeName value cacheString)
+	set(${defCMakeName} "${value}" CACHE STRING "${cacheString}")
+	if (${defCMakeName})
+		add_definitions("${defName}")
+	endif()
+endfunction()
 
 # Add definitions. These should later be set via the cache line file and only
-# have a defauld value here. These part only concerns user build definitions like MRM2MHM
-add_definitions(-DMRM2MHM=.true.)
-#add_definitions(-DpgiFortran=.false.)
-#add_definitions(-DMPR_STANDALONE=.false.)
-#add_definitions(-DABSOFT=.false.)
-#add_definitions(-D=.false.)
+# have a default value here. These part only concerns user build definitions like MRM2MHM
+#add_definitions(-DMRM2MHM=.true.)
+cpp_definitions("-DMRM2MHM" "CMAKE_MRM2MHM" "ON" "If set to ON the model runs with mRM")
+cpp_definitions("-DpgiFortran" "CMAKE_pgiFortran" "OFF" "Code exchange for pgi compiler dependent issues")
+cpp_definitions("-DMPR_STANDALONE" "CMAKE_MPR_STANDALONE" "OFF" "If set to ON, only MPR is compiled")
+cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If you you are developer, you might edit this string in CMakeLists.txt")
 
 # Compile.
 #
@@ -91,6 +102,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3")
+	cpp_definitions("-DGFORTRAN" "CMAKE_GFORTRAN" "ON" "Code exchange for gfortran compiler dependent issues")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -nofixed -assume byterecl -fp-model source -m64 -assume realloc-lhs ") # precise -> source: suppress warning, computation identical
@@ -115,3 +127,4 @@ endif()
 # hand, only for the test basins the executable would not be copied or linked to a predictable location. So it may be a good
 # idea to not copy it with the cmake setup
 #add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
+
