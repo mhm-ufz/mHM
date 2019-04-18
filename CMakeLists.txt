@@ -42,6 +42,7 @@ find_package(NetCDFF REQUIRED)
 # NETCDF_CFLAGS_OTHER	: additional compilation flags
 # NETCDF_LDFLAGS_OTHER	: additional linking flags
 
+# if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
 if (CMAKE_WITH_MPI)
         # find if there is an MPI setup on the system and if so, set corresponding variables
         find_package(MPI)
@@ -54,15 +55,15 @@ endif()
 
 if (CMAKE_WITH_OpenMP)
 	# find if there is an OpenMP setup on the system and if so, set corresponding variables
-	include(FindOpenMP)
+        find_package(OpenMP)
 	if (NOT ${OpenMP_Fortran_FOUND})
 		message(FATAL_ERROR "OpenMP required but not found")
 	endif()
 endif()
 
 if (CMAKE_WITH_LAPACK)
-	# find if there is an OpenMP setup on the system and if so, set corresponding variables
-	include(FindLAPACK)
+	# find if there is an LAPACK library on the system and if so, set corresponding variables
+        find_package(LAPACK)
 	if (NOT ${LAPACK_FOUND})
 		message(FATAL_ERROR "lapack required but not found")
 	endif()
