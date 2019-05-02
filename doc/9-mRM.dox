@@ -1,8 +1,7 @@
 /**
-\page mRM mRM - the Multiscale Routing Model: Running the stand-alone
-version of the routing model
+\page mRM mRM - the Multiscale Routing Model: Running the stand-alone version of the routing model
 
-\section short_mRM Short Description
+\section intro_mRM Introduction to mRM
 
 This section provides information on how to run the routing model mRM
 as a stand-alone program outside of mHM. The general philosophy is as
@@ -10,9 +9,7 @@ follows: mRM can be compiled and run in a similar way as mHM. Specific
 files for mRM can be found in the main path and are denoted as
 <filename>_mRM.<file_type>, where <filename>.<file_type> is the
 corresponding mHM file.
-
-\subsection intro_mRM Introduction to mRM
-
+ 
 This Subsection provides a short description of the method used in
 mRM. For further details and an analysis over the European domain,
 please refer to Thober et al. 2019.
