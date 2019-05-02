@@ -562,7 +562,7 @@ CONTAINS
                       tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
               if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
-                timestep_rout = timestep * nint(tsRoutFactor, i4)
+                timestep_rout = timestep * nint(tsRoutFactorIn, i4)
                 do_rout = .True.
               end if
             end if
