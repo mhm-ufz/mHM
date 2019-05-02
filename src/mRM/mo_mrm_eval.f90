@@ -126,10 +126,8 @@ contains
     real(dp) :: tsRoutFactorIn
 
     ! timestep of runoff to rout [h]
-    ! - identical to timestep of input if
-    ! tsRoutFactor is less than 1
-    ! - tsRoutFactor * timestep if
-    ! tsRoutFactor is greater than 1
+    ! - identical to timestep of input if tsRoutFactor is less than 1
+    ! - tsRoutFactor * timestep if tsRoutFactor is greater than 1
     integer(i4) :: timestep_rout
 
     real(dp) :: newTime
@@ -259,7 +257,7 @@ contains
                     tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
             if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
               InflowDischarge = InflowDischarge / tsRoutFactorIn
-              timestep_rout = nint(real(timestep, dp) * tsRoutFactor)
+              timestep_rout = nint(real(timestep, dp) * tsRoutFactorIn)
               do_rout = .True.
             end if
           end if
