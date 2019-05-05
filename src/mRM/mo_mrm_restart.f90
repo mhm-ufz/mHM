@@ -49,17 +49,20 @@ contains
   ! Stephan Thober    Nov 2016 - added L11_TSrout, ProcessMatrix
   ! Matthias Kelbling Aug 2017 - added L11_fAcc, L0_slope, L0_celerity, L11_celerity, L11_meandering
   ! Robert Schweppe   Jun 2018 - refactoring and reformatting
-  ! Stephan Thboer    Jun 2018 - including varying celerity functionality
+  ! Stephan Thober    Jun 2018 - including varying celerity functionality
+  ! Stephan Thober    May 2019 - added L0 info required for Process 3
   
   subroutine mrm_write_restart(iBasin, OutPath)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, l1_l11_remap, nLCoverScene, processMatrix
+    use mo_common_variables, only : level0, level1, l1_l11_remap, nLCoverScene, processMatrix
     use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
-    use mo_mrm_global_variables, only : L1_L11_Id, &
+    use mo_mpr_global_variables, only : L0_slope
+    use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
+                                        L1_L11_Id, &
                                         L11_C1, L11_C2, L11_K, L11_L1_Id, L11_Qmod, &
                                         L11_TSrout, L11_aFloodPlain, L11_colOut, L11_colOut, L11_fCol, L11_fDir, &
                                         L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
@@ -83,6 +86,15 @@ contains
 
     ! number of outlets at Level 0
     integer(i4) :: Noutlet
+
+    ! start index at level 0
+    integer(i4) :: s0
+
+    ! end index at level 0
+    integer(i4) :: e0
+
+    ! mask at level 0
+    logical, dimension(:, :), allocatable :: mask0
 
     ! start index at level 1
     integer(i4) :: s1
@@ -116,7 +128,7 @@ contains
 
     type(NcDataset) :: nc
 
-    type(NcDimension) :: rows1, cols1, rows11, cols11, it11, lcscenes, nout
+    type(NcDimension) :: rows0, cols0, rows1, cols1, rows11, cols11, it11, lcscenes, nout
 
     type(NcDimension) :: links, nts, nproc
 
@@ -125,6 +137,9 @@ contains
 
     ! get Level1 and Level11 information about the basin
     noutlet = basin_mrm(iBasin)%L0_noutlet
+    s0 = level0(iBasin)%iStart
+    e0 = level0(iBasin)%iEnd
+    mask0 = level0(iBasin)%mask
     s1 = level1(iBasin)%iStart
     e1 = level1(iBasin)%iEnd
     mask1 = level1(iBasin)%mask
@@ -142,15 +157,13 @@ contains
 
     nc = NcDataset(fname, "w")
 
-    ! call write_grid_info(level0(iBasin), "0", nc)
-    ! if (mrm_coupling_mode .eq. 0_i4) then
-      call write_grid_info(level1(iBasin), "1", nc)
-    ! end if
+    call write_grid_info(level0(iBasin), "0", nc)
+    call write_grid_info(level1(iBasin), "1", nc)
     call write_grid_info(level11(iBasin), "11", nc)
 
     nout = nc%setDimension("Noutlet", Noutlet)
-    ! rows0 = nc%getDimension("nrows0")
-    ! cols0 = nc%getDimension("ncols0")
+    rows0 = nc%getDimension("nrows0")
+    cols0 = nc%getDimension("ncols0")
     rows1 = nc%getDimension("nrows1")
     cols1 = nc%getDimension("ncols1")
     rows11 = nc%getDimension("nrows11")
@@ -167,6 +180,30 @@ contains
     call var%setFillValue(nodata_i4)
     call var%setData(processMatrix(:, 1))
     call var%setAttribute("long_name", "Process Matrix")
+
+    ! add L0 variables if processmatrix is equal to 3
+    if (processMatrix(8, 1) .eq. 3_i4) then
+      ! add L0_fdir, L0_fAcc, L0_slope, L0_streamnet
+      var = nc%setVariable("L0_fDir", "i32", (/rows0, cols0/))
+      call var%setFillValue(nodata_i4)
+      call var%setData(unpack(L0_fdir(s0:e0), mask0, nodata_i4))
+      call var%setAttribute("long_name", "flow direction at level 0")
+      
+      var = nc%setVariable("L0_fAcc", "i32", (/rows0, cols0/))
+      call var%setFillValue(nodata_i4)
+      call var%setData(unpack(L0_fAcc(s0:e0), mask0, nodata_i4))
+      call var%setAttribute("long_name", "flow accumulation at level 0")
+
+      var = nc%setVariable("L0_slope", "f64", (/rows0, cols0/))
+      call var%setFillValue(nodata_dp)
+      call var%setData(unpack(L0_slope(s0:e0), mask0, nodata_dp))
+      call var%setAttribute("long_name", "slope at level 0")
+
+      var = nc%setVariable("L0_streamnet", "i32", (/rows0, cols0/))
+      call var%setFillValue(nodata_i4)
+      call var%setData(unpack(L0_streamnet(s0:e0), mask0, nodata_i4))
+      call var%setAttribute("long_name", "streamnet at level 0")
+    end if
 
     var = nc%setVariable("L1_Id", "i32", (/rows1, cols1/))
     call var%setFillValue(nodata_i4)
@@ -545,16 +582,19 @@ contains
   ! David Schaefer Mar 2016 - mo_netcdf
   ! Stephan Thober Nov 2016 - added L11_TSrout, ProcessMatrix
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Stephan Thober May 2019 - added L0 info required for Process 3
 
   subroutine mrm_read_restart_config(iBasin, InPath)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, nBasins, processMatrix
+    use mo_common_variables, only : level0, level1, nBasins, processMatrix
     use mo_kind, only : dp, i4
     use mo_message, only : message
-    use mo_mrm_global_variables, only : L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
-                                        L11_fDir, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
+    use mo_mpr_global_variables, only : L0_slope
+    use mo_mrm_global_variables, only : L0_fdir, L0_fAcc, L0_streamnet, &
+                                        L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
+                                        L11_fDir, L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
                                         L11_rOrder, L11_rowOut, L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, &
                                         L1_L11_Id, basin_mrm, level11
     use mo_netcdf, only : NcDataset, NcVariable
@@ -570,6 +610,9 @@ contains
 
     character(256) :: fname
 
+    ! Mask at Level 0
+    logical, allocatable, dimension(:, :) :: mask0
+
     ! Mask at Level 1
     logical, allocatable, dimension(:, :) :: mask1
 
@@ -584,6 +627,7 @@ contains
 
     ! dummy, 1 dimension DP
     real(dp), allocatable, dimension(:) :: dummyD1
+    real(dp), allocatable, dimension(:, :) :: dummyD2
 
     type(NcDataset) :: nc
 
@@ -595,6 +639,7 @@ contains
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get basin info at L11 mask
+    mask0 = level0(iBasin)%mask
     mask1 = level1(iBasin)%mask
     mask11 = level11(iBasin)%mask
 
@@ -615,6 +660,28 @@ contains
       stop 'ERROR: mrm_read_restart_config'
     end if
     deallocate(dummyI1)
+
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! Read L0 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    if (processMatrix(8, 1) .eq. 3_i4) then
+      ! add L0_fdir, L0_fAcc, L0_slope, L0_streamnet
+      var = nc%getVariable("L0_fDir")
+      call var%getData(dummyI2)
+      call append(L0_fdir, pack(dummyI2, mask0))
+      
+      var = nc%getVariable("L0_fAcc")
+      call var%getData(dummyI2)
+      call append(L0_fAcc, pack(dummyI2, mask0))
+
+      var = nc%getVariable("L0_slope")
+      call var%getData(dummyD2)
+      call append(L0_Slope, pack(dummyD2, mask0))
+
+      var = nc%getVariable("L0_streamnet")
+      call var%getData(dummyI2)
+      call append(L0_streamnet, pack(dummyI2, mask0))
+    end if
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ! Read L1 variables <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -646,6 +713,11 @@ contains
     call append(L11_fDir, pack(dummyI2, mask11))
     ! append Number of Outlets at Level 11 (where facc == 0 )
     call append(L11_nOutlets, count((dummyI2 .eq. 0_i4)))
+
+    ! Flow accumulation
+    var = nc%getVariable("L11_fAcc")
+    call var%getData(dummyD2)
+    call append(L11_fAcc, pack(dummyD2, mask11))
 
     ! Grid vertical location of the Outlet
     var = nc%getVariable("L11_rowOut")

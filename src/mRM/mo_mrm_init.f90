@@ -57,6 +57,7 @@ CONTAINS
   ! Matthias Kelbling Aug 2017 - added L11_flow_accumulation to Initialize Stream Netwo  
   ! Lennart Schueler May 2018 - added initialization for groundwater coupling
   ! Stephan Thober Jun 2018 - refactored for mpr_extract version
+  ! Stephan Thober May 2019 - added init of level0 in case of read restart
 
 
   subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
@@ -144,6 +145,8 @@ CONTAINS
     do iBasin = 1, nBasins
       if (read_restart) then
         ! this reads the basin properties
+        if (.not. allocated(level0)) allocate(level0(nBasins))
+        call read_grid_info(iBasin, dirRestartIn(iBasin), "0", "mRM", level0(iBasin))
         if (mrm_coupling_mode .eq. 0_i4) then
           call read_grid_info(iBasin, dirRestartIn(iBasin), "1", "mRM", level1(iBasin))
         end if
@@ -188,6 +191,7 @@ CONTAINS
 
     call set_basin_indices(level11)
     call set_basin_indices(level1)
+    call set_basin_indices(level0)
 
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND AUXILLIARY VARIABLES
