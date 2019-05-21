@@ -149,6 +149,7 @@ CONTAINS
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+  ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
 
   subroutine read_grid_info(iBasin, InPath, level_name, fname_part, new_grid)
 
@@ -207,9 +208,9 @@ CONTAINS
     call nc%getAttribute("cellsize_L" // trim(level_name), new_grid%cellsize)
     call nc%getAttribute("nCells_L" // trim(level_name), new_grid%nCells)
 
-    allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
-    allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
-    allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
+    if (.not. allocated(new_grid%mask)) allocate(new_grid%mask(new_grid%nrows, new_grid%ncols))
+    if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
+    if (.not. allocated(new_grid%y)) allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
     ! read L1 mask
     var = nc%getVariable("L" // trim(level_name) // "_basin_mask")
     ! read integer
@@ -225,7 +226,8 @@ CONTAINS
 
     var = nc%getVariable("L" // trim(level_name) // "_basin_cellarea")
     call var%getData(dummyD2)
-    new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
+    if (.not. allocated(new_grid%CellArea)) new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
+    ! new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
 
     call nc%close()
 

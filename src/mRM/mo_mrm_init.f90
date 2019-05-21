@@ -145,7 +145,7 @@ CONTAINS
     do iBasin = 1, nBasins
       if (read_restart) then
         ! this reads the basin properties
-        if (.not. allocated(level0)) allocate(level0(nBasins))
+        if (.not. allocated(level0)) allocate(level0(nBasins)) 
         call read_grid_info(iBasin, dirRestartIn(iBasin), "0", "mRM", level0(iBasin))
         if (mrm_coupling_mode .eq. 0_i4) then
           call read_grid_info(iBasin, dirRestartIn(iBasin), "1", "mRM", level1(iBasin))
