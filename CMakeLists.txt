@@ -1,17 +1,17 @@
 # This cmake file is not meant to be edited for a special setup.
 # For special setups use cache line files or command line options, as described a few
-# lines ahead concerning module independend builds
+# lines ahead concerning module INDEPENDENT builds
 cmake_minimum_required(VERSION 3.5)
 
 project(mhm Fortran)
 
-# The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND" can be set before executing cmake via a cache command:
-# $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
+# The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
+# $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 # or cache file: 
 # $cmake -C ../CMakeCacheFiles/eve ..
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
-set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND OFF CACHE STRING "build the module independend of the module system, so the build in the build tree works even after a module purge")
-message(STATUS "build independend of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND}")
+set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT OFF CACHE STRING "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
+message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT}")
 
 # set specific place where to search for the netCDF directory
 set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
@@ -133,11 +133,11 @@ endif()
 message(STATUS "the following debug flags will be used: ${CMAKE_Fortran_FLAGS_DEBUG}")
 # Usually that works fine, except, one is on a module system and tries to execute the executable
 # in the end without having the modules loaded. A workaround is provided using the variable
-# CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND
+# CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT
 # if this variable is set to ON (do not set the variable inside of this cmake file), then the
 # paths are added to the INSTALL_RPATH, and via the second command also to the build.
 # It is a bit of a mess and workaround though.
-if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND)
+if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
         set_target_properties(mhm PROPERTIES INSTALL_RPATH "${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}")
         set_target_properties(mhm PROPERTIES BUILD_WITH_INSTALL_RPATH ON)
 endif()

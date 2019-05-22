@@ -115,13 +115,13 @@ It should be stable, anyway.
 
 In case you want to have a module-independent build, instead of just executing `cmake ..`, either run
 
-    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
+    cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 
 or
 
     cmake -C ../CMakeCacheFiles/eve ..
 
-or change the variable `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND` with `ccmake` to `ON` after running `cmake ..`.
+or change the variable `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT` with `ccmake` to `ON` after running `cmake ..`.
 
 ### Non-standard locations for the netcdf-library (e.g. standard setup Macs in CHS):
 
