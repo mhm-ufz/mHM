@@ -12,7 +12,7 @@ process. It might be helpful to first read the section 'Installation'. The
 section 'Specific setups' then helps to adjust the commands for a build on
 the specific system.
 
-The section 'Installation' then is a step by step guide to install mHM in the
+The section 'Installation' then is a step-by-step guide to install mHM in the
 command line.
 
 Dependencies:
