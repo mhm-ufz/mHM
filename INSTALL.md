@@ -243,13 +243,19 @@ in the corresponding folder would then always result in a release build or respe
 Troubleshooting:
 ================
 
+**cmake** is far from being my main task, so it will probably take a while until I can track a problem.
+Nonetheless, I would be happy having bug reports. Feel free to write an email to <mailto:maren.kaluza@ufz.de> if there are any bugs, remarks or questions.
+
+### MacOS, homebrew
+
 On brew/homebrew setup MacOS systems a working nf-config is not yet available at this time. Execute:
 
     nf-config --all
 
 and if it says something like "is not implemented yet" the issue is not solved yet. But it is on my tracklist.
 
-In any other case feel free to write an email to <mailto:maren.kaluza@ufz.de>.
+### cygwin
 
-**cmake** is far from being my main task, so it will probably take a while until I can track a problem.
-Nonetheless, I would be happy having bug reports.
+If libraries are not found, the problem can be:
+- you accidentally tried to use commands within the cmd shell and not within the cygwin shell
+- your cygwin setup might be broken. Try deinstalling, following the instructions <https://cygwin.com/faq/faq.html#faq.setup.uninstall-service>, and reinstalling again.
