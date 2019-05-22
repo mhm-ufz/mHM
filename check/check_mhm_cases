@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-set -x
+#set -x
 #
 # -------------------------------------------------------------------------------------------
 # BRIEF
@@ -169,7 +169,7 @@ function cleanup ()
 
     # everything in case_?? dirs
     case_dirs=$(\ls -d case_*)
-    rmfiles="dds_results.out ${mhm_exe} ${mrm_exe}  ${mhm_exe_omp} cdo.*.terminal mhm_terminal.*.out diff*.*.terminal"
+    rmfiles="dds_results.out ${mhm_exe} ${mhm_exe_omp} cdo.*.terminal mhm_terminal.*.out diff*.*.terminal"
     rmdirs="output_b1 output_b2"
 
     # using brace expansion
@@ -183,7 +183,6 @@ function cleanup ()
     cd ..
     if [[ "${compiler}z" == "z" ]] ; then compiler=$(echo ${compilers} | cut -f 1 -d ' ') ; fi
     eval make -f ${makefile} system=${system} compiler=${compiler} PROGNAME=${mhm_exe} cleanclean ${devnull}
-    eval make -f ${makefile_mrm} system=${system} compiler=${compiler} PROGNAME=${mrm_exe} cleanclean ${devnull}
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -192,11 +191,8 @@ function cleanup ()
 
 # name of the mhm executable
 mhm_exe='mhm_for_check'
-mrm_exe='mrm_for_check'
-mrm_src="./src/lib ./src/common ./src/mRM ./src/common_mHM_mRM ./src/MPR"
 check_prog='prog_for_check'
 makefile=Makefile
-makefile_mrm=Makefile_mrm
 makeconfig=make.config
 
 # switches
@@ -322,24 +318,11 @@ for irelease in ${release} ; do
                 echo '         OpenMP:   False'
                 eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= cleanclean ${devnull}
                 eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp= ${devnull}
-                make_mrm_dir=make_${compiler}_${irelease}_${system}
-                if [[ -d ${make_mrm_dir} ]]; then rm -r ${make_mrm_dir}; fi
-                mkdir ${make_mrm_dir}
-                cd ${make_mrm_dir}
-                ln -s ../make.config
-                ln -s ../src
-                eval make -f ../${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= cleanclean ${devnull}
-                eval make -f ../${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= ${devnull}
-                mv ${mrm_exe} ..
-                cd ..
-                rm -r ${make_mrm_dir}
             else
                 echo '         OpenMP:   True'
                 echo '         Threads:  '${thread}
                 eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true cleanclean ${devnull}
                 eval make -f ${makefile} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mhm_exe} openmp=true ${devnull}
-                eval make -f ${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= openmp=true cleanclean ${devnull}
-                eval make -f ${makefile_mrm} ${mjobs} system=${system} compiler=${compiler} release=${irelease} PROGNAME=${mrm_exe} openmp= openmp=true ${devnull}
                 export OMP_NUM_THREADS=${thread}
             fi
 
@@ -357,13 +340,7 @@ for irelease in ${release} ; do
                 cd ${case_dir}
 
                 if [[ -f ${check_prog} ]] ; then rm ${check_prog} ; fi
-                if [[ ${case_dir/mrm/} == ${case_dir} ]]; then
-                    # remove old exe and link recently compiled
-                    ln -s ../../${mhm_exe} ${check_prog}
-                else
-                    ln -s ../../${mrm_exe} ${check_prog}
-                fi
-                    
+                ln -s ../../${mhm_exe} ${check_prog}
 
 		# create the empty dirs, which git does not support
                 if [[ ! -d 'output_b1' ]] ; then mkdir 'output_b1' ; fi
@@ -384,7 +361,7 @@ for irelease in ${release} ; do
 
                 # mhm was running till the end?
                 set +e
-                found=$(grep '\(mRM\|mHM\): Finished!' mhm_terminal.${pid}.out)
+                found=$(grep '\(mHM\): Finished!' mhm_terminal.${pid}.out)
                 set -e
 
                 if [[ "${found/Finished}z" != "${found}z" ]] ; then
