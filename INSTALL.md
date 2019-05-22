@@ -1,3 +1,20 @@
+How to read this instruction:
+=============================
+The section 'Dependencies' lists the general requirements
+for the installation. The
+section 'System-dependent installation instructions' gives some instructions on
+how to install these dependencies on Windows, some Linux-distributions and
+soon MacOS.
+
+The section 'Specific setups' can be skipped in most cases. If you are using
+a module system or MacOS there are some additional hints for the installation
+process. It might be helpful to first read the section 'Installation'. The
+section 'Specific setups' then helps to adjust the commands for a build on
+the specific system.
+
+The section 'Installation' then is a step by step guide to install mHM in the
+command line.
+
 Dependencies:
 =============
 For Windows, some Linux distributions and soon also MacOS
@@ -6,8 +23,8 @@ can be found below.
 
 - a fortran compiler
 - make (a tool to compile a program)
-- cmake (version >= 3.5) (a tool to create a system dependent makefile)
-- fitting netcdf-fortran libraries (libraries for the usage of the data format netcdf on which mhm depends)
+- cmake (version >= 3.5) (a tool to create a system-dependent makefile)
+- fitting netcdf-fortran libraries (libraries for the use of the data format netcdf on which mhm depends)
 - (optional, but makes things much easier) git
 
 Git is a version-control system. If you want to contribute to a project, it is highly recommended to
@@ -15,7 +32,7 @@ use Git. You can use Git to download (clone) the project to your local pc and ha
 synchronize it without copying the whole repository again. You can also download the project folder without
 Git, but this would not allow you to pull updates from and push changes to our repository.
 
-System dependend installation instructions:
+System-dependent installation instructions:
 ===========================================
 ### Windows:
 [Cygwin](https://cygwin.com/) is an environment with a terminal that allows to compile and
@@ -41,7 +58,7 @@ the view to "full". In the search panel you can filter the packages
 by the dependencies listed above (e.g. make). When you choose a
 version, the newest one is usually a good choice if not marked as experimental.
 
-*Note for UFZ members:* Install cygwin locally, do not choose a location on the
+*Note for UFZ members:* Install cygwin locally (on your own computer), do not choose a location on the
 network for the installation.
 
 Some cygwin versions create a new home directory for you. You may check e.g. here:
@@ -89,13 +106,14 @@ setup (like on clusters) or if you have not installed all packages with a packag
 such as cygwin or apt-get.
 
 ### Module systems:
+If you are okay with loading the needed modules as described in the section 'Module systems' above before executing the program you can skip this step and continue with 'Installation'.
 
-The executable can be build in a way that it runs independend of loaded modules in the end. The
+The executable can be built in such a way that it does not require any modules to be loaded. The
 module system, though, adds system paths in the backround the user should not care about too much, so
 the setup is a workaround. (This would be the case with any other building tool aswell.)
 It should be stable, anyway.
 
-In case you want to have a module-independend build, instead of just executing `cmake ..`, either run
+In case you want to have a module-independent build, instead of just executing `cmake ..`, either run
 
     cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND:STRING=ON ..
 
@@ -105,18 +123,17 @@ or
 
 or change the variable `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDEND` with `ccmake` to `ON` after running `cmake ..`.
 
-### None standard locations for the netcdf-library (e.g. standard setup Macs in CHS):
+### Non-standard locations for the netcdf-library (e.g. standard setup Macs in CHS):
 
 Find the location of the `nf-config` file, for example by using:
 
     find / -iname "*nf-config*" 2>/dev/null
 
-This searches the root directory `/` for a file with a name containing the string "nf-config", not
-taking into account upper and lower case. It writes error messages like "permission denied" into
+This searches the root directory `/` for a file with a name containing the string "nf-config" (case-insensitive). It writes error messages like "permission denied" into
 the void.
 
 Then, instead of running `cmake ..` if not using the standard compiler,
-set the fortran compiler variable to the wished compiler, e.g.
+set the fortran compiler variable to the desired compiler, e.g.
 
     export FC=gfortran
 
@@ -157,9 +174,9 @@ Installation
 
         cd build
 
-4. Generate a system dependent makefile
+4. Generate a system-dependent makefile
 
-    Execute `cmake` with the path to the Git source directory as parameter.
+    Execute `cmake` with the path to the Git source directory as parameter. (If you followed the instructions above, the path is `..` )
 
        cmake ..
 
@@ -196,16 +213,14 @@ Installation
   which is not done for two reasons:*
 
 - *The executable depends on your local system, so it should never be commited and pushed to other users.
-    Nothing should be build inside the source directory which we did not do by hand.*
+    Nothing should be built inside the source directory automatically.*
 - *The directory where mHM is executed usually is not the source directory but the directory where you want to run
    your tests. In case of the test setup it is the same, usually it is not.*
 
 Building Realease or Debug versions:
 ====================================
 If you want to set up specific versions of the build, you can
-create different folders for that. Assume a release and a debug
-version. Then a good idea would be to create one folder named
- `debug` and one folder named `release`
+create different folders for that. In case a release and a debug version need to be set up, it makes sense to create two folders named `debug` and `release`. 
 
     mkdir release
 
@@ -225,10 +240,10 @@ Executing
 
 in the corresponding folder would then always result in a release build or respectively in a debug build.
 
-Trouble shooting:
-=================
+Troubleshooting:
+================
 
-On brew/homebrew setup MacOS systems there is no working `nf-config` by now. Execute:
+On brew/homebrew setup MacOS systems a working nf-config is not yet available at this time. Execute:
 
     nf-config --all
 
@@ -237,4 +252,4 @@ and if it says something like "is not implemented yet" the issue is not solved y
 In any other case feel free to write an email to <mailto:maren.kaluza@ufz.de>.
 
 **cmake** is far from being my main task, so it will probably take a while until I can track a problem.
-I would be happy having bug reports, anyhow.
+Nonetheless, I would be happy having bug reports.
