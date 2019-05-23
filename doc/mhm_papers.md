@@ -1,4 +1,5 @@
 # Publications using mHM
+- Wanders N., Thober S., Kumar R., Pan M., Sheffield J., Samaniego L., Wood E.F. (2019): Development and Evaluation of a Pan-European Multimodel Seasonal Hydrological Forecasting System, J. Hydrometeor., 20, 99–115, https://doi.org/10.1175/JHM-D-18-0040.1
 - Hanel, M., Rakovec, O., Markonis, Y., Maca, P., Samaniego, L., Kysely, J., Kumar, R. (2018): Revisiting the recent European droughts from a long-term perspective, Scientific Reports, https://doi.org/10.1038/s41598-018-27464-4
 - Demirel, M.C., Mai, J., Mendiguren, G., Koch, J., Samaniego, L., Stisen, S. (2018): Combining satellite data and appropriate objective functions for improved spatial pattern performance of a distributed hydrologic model, Hydrol. Earth Syst. Sci. 22 (2), 1299 - 1315, https://www.hydrol-earth-syst-sci.net/22/1299/2018/
 - Koch, J., Demirel, M. C., and Stisen, S. (2018): The SPAtial EFficiency metric (SPAEF): multiple-component evaluation of spatial patterns for optimization of hydrological models, Geosci. Model Dev., 11, 1873-1886, https://doi.org/10.5194/gmd-11-1873-2018/
