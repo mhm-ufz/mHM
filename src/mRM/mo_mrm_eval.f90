@@ -146,6 +146,9 @@ contains
     ! flag for monthly mean of river head
     logical :: is_new_month = .false.
 
+    ! initialize variables
+    month = 0_i4
+    
     if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
       stop 1
