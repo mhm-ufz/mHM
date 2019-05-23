@@ -571,7 +571,11 @@ ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
         $(error Error: NETCDF path '$(NCDIR)' not found.)
     endif
     NCINC ?= $(strip $(NCDIR))/include
-    NCLIB ?= $(strip $(NCDIR))/lib
+    ifeq (,$(findstring $(icompiler),gnu73 gnu64))
+        NCLIB ?= $(strip $(NCDIR))/lib
+    else
+        NCLIB ?= $(strip $(NCDIR))/lib64
+    endif
 
     INCLUDES += -I$(NCINC)
     ifneq ($(ABSOFT),)

@@ -284,6 +284,17 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
     set +e
     ipython=$(which python 2> /dev/null)
     set -e
+
+    echo '   try to load module foss for gnu compilers and intel license ...'
+    module load intel
+    module use /software/easybuild-E5-2690v4/modules/all/Core
+    if [[ $(hostname | cut -d . -f 1) == 'frontend1' ]] ; then
+        module load foss/2018a
+    elif [[ $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+        module load foss/2018b
+    else
+	echo "Host not specified!"
+    fi
 fi
 
 # rm coloured ls
@@ -340,7 +351,7 @@ for irelease in ${release} ; do
                 cd ${case_dir}
 
                 if [[ -f ${check_prog} ]] ; then rm ${check_prog} ; fi
-                ln -s ../../${mhm_exe} ${check_prog}
+                ln -sf ../../${mhm_exe} ${check_prog}
 
 		# create the empty dirs, which git does not support
                 if [[ ! -d 'output_b1' ]] ; then mkdir 'output_b1' ; fi
