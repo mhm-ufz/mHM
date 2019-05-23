@@ -258,4 +258,5 @@ and if it says something like "is not implemented yet" the issue is not solved y
 
 If libraries are not found, the problem can be:
 - you accidentally tried to use commands within the cmd shell and not within the cygwin shell
-- your cygwin setup might be broken. Try deinstalling, following the instructions <https://cygwin.com/faq/faq.html#faq.setup.uninstall-service>, and reinstalling again.
+- your cygwin setup might be broken. Try deinstalling, following the instructions <https://cygwin.com/faq/faq.html#faq.setup.uninstall-service>, and reinstalling again. During
+reinstallation only install the required dependencies.
