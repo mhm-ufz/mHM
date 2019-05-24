@@ -26,6 +26,13 @@ The model code can be cited as:
 Please see the file [DEPENDENCIES][8] for external software required to run mHM.
 See also the [users manual][5] for detailed instructions to setup mHM.
 
+## Receive mHM
+
+The git repository of mHM uses submodules. To include these in the clone command, please use:
+
+'''
+git clone --recurse-submodules https://git.ufz.de/mhm/mhm <local-path>
+'''
 
 ## Quick start
 
