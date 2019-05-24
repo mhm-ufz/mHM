@@ -56,6 +56,7 @@ CONTAINS
   ! Zink M. Demirel C. Mar 2017 - Added Jarvis soil water stress function at SM process(3)
   ! Robert Schweppe    Feb 2018 - Removed all L0 references
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
+  ! Stephan Thober     May 2019 - where statement for gnu73 to translate level0 mask
 
 
   subroutine write_grid_info(grid_in, level_name, nc)
@@ -73,6 +74,9 @@ CONTAINS
     ! level_id
     character(*), intent(in) :: level_name
 
+    ! dummy for gnu73
+    integer(i4), allocatable :: dummy(:, :)
+
     ! NcDataset to write information to
     type(NcDataset), intent(inout) :: nc
 
@@ -88,7 +92,12 @@ CONTAINS
     var = nc%setVariable("L" // trim(level_name) // "_basin_mask", "i32", (/rows, cols/))
     call var%setFillValue(nodata_i4)
     ! transform from logical to i32
-    call var%setData(merge(1_i4, 0_i4, grid_in%mask))
+    ! ST: where statement is used because gnu73 does not properly translate with merge
+    allocate(dummy(size(grid_in%mask, 1), size(grid_in%mask, 2)))
+    dummy = 0_i4
+    where(grid_in%mask) dummy = 1_i4
+    call var%setData(dummy)
+    deallocate(dummy)
     call var%setAttribute("long_name", "Mask at level " // trim(level_name))
 
     var = nc%setVariable("L" // trim(level_name) // "_basin_lat", "f64", (/rows, cols/))
