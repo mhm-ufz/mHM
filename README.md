@@ -30,9 +30,9 @@ See also the [users manual][5] for detailed instructions to setup mHM.
 
 The git repository of mHM uses submodules. To include these in the clone command, please use:
 
-'''
+```
 git clone --recurse-submodules https://git.ufz.de/mhm/mhm <local-path>
-'''
+```
 
 ## Quick start
 
