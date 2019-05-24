@@ -286,11 +286,9 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
     set -e
 
     echo '   try to load module foss for gnu compilers and intel license ...'
-    module load intel
-    module use /software/easybuild-E5-2690v4/modules/all/Core
-    if [[ $(hostname | cut -d . -f 1) == 'frontend1' ]] ; then
-        module load foss/2018a
-    elif [[ $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+    if [[ $(hostname | cut -d . -f 1) == 'frontend1' || $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+        module load intel
+        module use /software/easybuild-E5-2690v4/modules/all/Core
         module load foss/2018b
     else
 	echo "Host not specified!"
