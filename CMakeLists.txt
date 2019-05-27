@@ -109,7 +109,9 @@ cpp_definitions("-DABSOFT" "CMAKE_ABSOFT" "OFF" "Documentation to be added. If y
 # This is not recommended but wished by some members of our working group. With this command
 # all files in src with the ending f90 or h are written into sources, and therefore linked
 # together to the executable, if relevant or not
-file(GLOB_RECURSE sources  src/*.f90 src/*.h)
+file(GLOB_RECURSE sources
+src/*.f90 deps/mrm/src/mRM/*.f90 deps/mrm/src/common/*.f90  deps/mrm/src/common_mHM_mRM/*.f90
+src/*.F90 deps/mrm/src/mRM/*.F90 deps/mrm/src/common/*.F90  deps/mrm/src/common_mHM_mRM/*.F90)
 # this command is able to create dependencies, compile and add the sources in the right order
 add_executable(mhm ${sources})
 
