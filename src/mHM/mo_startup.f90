@@ -143,13 +143,13 @@ CONTAINS
 
   subroutine constants_init
 
-    use mo_common_mHM_mRM_variables, only : timestep
+    use mo_common_mHM_mRM_variables, only : timestep, c2TSTu
     use mo_common_variables, only : processMatrix
     use mo_file, only : file_namelist_mhm_param
     use mo_global_variables, only : neutron_integral_AFast
     use mo_message, only : message
     use mo_mpr_file, only : file_hydrogeoclass
-    use mo_mpr_global_variables, only : GeoUnitList, c2TSTu
+    use mo_mpr_global_variables, only : GeoUnitList
     use mo_neutrons, only : TabularIntegralAFast
     use mo_string_utils, only : num2str
 

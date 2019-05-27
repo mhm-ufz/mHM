@@ -68,6 +68,7 @@ case 07 :: Q + TWS BASIN AVERAGE OPTIMIZATION ACTIVATED
 case 08 :: NEUTRON OPTIMIZATION ACTIVATED
 case 09 :: ADAPTIVE TIMESTEPPING IN ROUTING, RESTART WRITING, PET: Hargreaves-Samani
 case 10 :: SOIL MOISTURE ET: Jarvis SM-dependent ET reduction &soil texture dependent root fraction
+case_mrm 01 :: check mRM stand alone version
 
 
 # -------------------------------------------------------------------------------------------

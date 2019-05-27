@@ -826,6 +826,11 @@ contains
       processMatrix(8, 3) = sum(processMatrix(1 : 8, 2))
       call append(global_parameters, dummy_2d_dp_2)
       call append(global_parameters_name, (/'dummy'/))
+    case(3)
+      processMatrix(8, 2) = 1_i4
+      processMatrix(8, 3) = sum(processMatrix(1 : 8, 2))
+      call append(global_parameters, dummy_2d_dp_2)
+      call append(global_parameters_name, (/'dummy'/))
     case DEFAULT
       call message()
       call message('***ERROR: Process description for process "routing" does not exist!')

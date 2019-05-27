@@ -26,7 +26,7 @@ import argparse
 # default input directory
 IN_DIR = '../test_basin/input'
 # default output directory
-OUT_DIR = '../../MPR/reference/test_basin/input'
+OUT_DIR = '../../MPR/reference/test_basin/input/temp'
 # all file types scanned in input directory
 POSSIBLE_SUFFIXES = ['.nc', '.asc']
 # all folders scanned in input directory
@@ -204,6 +204,7 @@ class MyAsciiToNetcdfConverter(object):
                 # update coord by unique values occuring in additional index col
                 self.iterators = {key: lookup_data.index.get_level_values(value).unique().values for key, value in
                                   self.iterate.items()}
+                # TODO: the horizon coord needs to get the value of the lower boundary of each layer
                 coords.update(self.iterators)
                 self.data = xr.Dataset({col_name.split('[')[0]: xr.DataArray(data=self._convert_raw(lookup_data[col_name]),
                                                                              coords=coords,
@@ -221,7 +222,7 @@ class MyAsciiToNetcdfConverter(object):
                                          coords=coords,
                                          dims=list(coords.keys()),
                                          name=self.name,
-                                         attrs=self.attrs)
+                                         attrs=self.attrs).sortby(['lon', 'lat'])
 
         else:
             self.data = xr.DataArray(data=self.raw_data,
@@ -229,7 +230,7 @@ class MyAsciiToNetcdfConverter(object):
                                      dims=['lat', 'lon'],
                                      name=self.name,
                                      attrs=self.attrs,
-                                     )
+                                     ).sortby(['lon', 'lat'])
         self.data.lon.attrs = lon_attrs
         self.data.lat.attrs = lat_attrs
 

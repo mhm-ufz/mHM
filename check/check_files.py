@@ -11,7 +11,7 @@ Created     : 07.05.18 15:10
 
 # IMPORTS
 import xarray as xr
-from numpy import allclose, loadtxt, array_equal
+from numpy import allclose, loadtxt, array_equal, amax
 import argparse
 import textwrap
 
@@ -65,7 +65,10 @@ def compare_nc_files(new_file, ref_file):
         if var_name in ds_new.data_vars:
             if not ds_new[var_name].equals(ds_ref[var_name]):
                 diff_cnt += 1
-                big_diff_cnt += compare_arrays(ds_new[var_name].values, ds_ref[var_name].values)
+                comp_cnt = compare_arrays(ds_new[var_name].values, ds_ref[var_name].values)
+                if comp_cnt > 0:
+                    print('difference found for variable {}'.format(var_name))
+                big_diff_cnt += comp_cnt
         else:
             print(var_name, 'is not contained in reference')
             diff_cnt += 1

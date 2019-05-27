@@ -84,9 +84,9 @@ MKL95DIR :=
 ifeq ($(netcdf),netcdf3)
     NCDIR :=
 else
-    ZLIB    := /global/apps/easybuildf1/software/zlib/1.2.11-GCCcore-6.4.0
-    SZLIB   := /global/apps/easybuildf1/software/Szip/2.1.1-GCCcore-6.4.0
-    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.1-foss-2018a
+    ZLIB    := /global/apps/easybuildf1/software/zlib/1.2.11-GCCcore-6.4.0/lib
+    SZLIB   := /global/apps/easybuildf1/software/Szip/2.1.1-GCCcore-6.4.0/lib
+    HDF5LIB := /global/apps/easybuildf1/software/HDF5/1.10.1-foss-2018a/lib
     NCDIR   := /global/apps/easybuildf1/software/netCDF/4.6.0-foss-2018a
     NCFDIR  := /global/apps/easybuildf1/software/netCDF-Fortran/4.4.4-foss-2018a
 endif

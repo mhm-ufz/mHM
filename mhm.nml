@@ -31,6 +31,7 @@
 ! S. Thober, B. Guse       May 2018  - added weighted NSE
 ! Lennart Schueler         May 2018  - added new paths for bankfull discharge for gw coupling
 ! Lennart Schueler         Jun 2018  - added flag for writing river head output
+! Stephan Thober           May 2019  - added adaptive timestep scheme for routing with varying celerity
 
 !******************************************************************************************
 ! PROJECT DESCRIPTION (mandatory)
@@ -182,6 +183,7 @@ opti_method = 1
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 opti_function = 10
 /
+
 !******************************************************************************************
 ! main config for mRM (mRM-related)
 !******************************************************************************************
@@ -424,8 +426,9 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-!> 2 - adaptive timestep
-processCase(8) = 2
+!> 2 - adaptive timestep, constant celerity
+!> 3 - adaptive timestep, spatially varying celerity
+processCase(8) = 3
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
 processCase(9) = 1
@@ -486,23 +489,23 @@ LCoverfName(2)     = 'lc_1991.asc'
 !>    the effective modeling period of 2001/01/01 to 2003/12/31.
 !-----------------------------------------------------------------------------
 warming_Days(1)    = 0
-warming_Days(2)    = 181
+warming_Days(2)    = 180
 !> first year of wanted simulation period
 eval_Per(1)%yStart = 1990
-eval_Per(2)%yStart = 1990
+eval_Per(2)%yStart = 1993
 !> first month of wanted simulation period
-eval_Per(1)%mStart = 07
-eval_Per(2)%mStart = 07
-!> first day of wanted simulation period
+eval_Per(1)%mStart = 01
+eval_Per(2)%mStart = 01
+!> first day   of wanted simulation period
 eval_Per(1)%dStart = 01
 eval_Per(2)%dStart = 01
-!> last year of wanted simulation period
-eval_Per(1)%yEnd   = 1991
-eval_Per(2)%yEnd   = 1991
-!> last month of wanted simulation period
-eval_Per(1)%mEnd   = 6
-eval_Per(2)%mEnd   = 6
-!> last day of wanted simulation period
+!> last year   of wanted simulation period
+eval_Per(1)%yEnd   = 1993
+eval_Per(2)%yEnd   = 1993
+!> last month  of wanted simulation period
+eval_Per(1)%mEnd   = 12
+eval_Per(2)%mEnd   = 12
+!> last day    of wanted simulation period
 eval_Per(1)%dEnd   = 31
 eval_Per(2)%dEnd   = 31
 /
@@ -618,6 +621,7 @@ timeStep_LAI_input = 0
 inputFormat_gridded_LAI = "nc"
 /
 
+!
 !******************************************************************************************
 ! LCover information (MPR-related)
 !******************************************************************************************
