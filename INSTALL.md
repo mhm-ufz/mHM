@@ -159,7 +159,7 @@ Installation
 1. Change to a directory where you want to store the source code.
 2. Clone the corresponding mHM repository into a folder, either using Git (if installed):
 
-        git clone https://git.ufz.de/mhm/mhm.git mhm/
+        git clone --recurse-submodules https://git.ufz.de/mhm/mhm.git mhm/
 
     for cloning it into a folder `mhm`, or download and unpack it
     using the download link on <https://git.ufz.de/mhm/mhm>
