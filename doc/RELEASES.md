@@ -4,13 +4,26 @@
 
 ### New Features:
 
-- new routing process introduced `processCase(8) = 3` (see Thober et al, 2019, GMDD, in press) for more details
-- mRM is completely decoupled from mHM and mRM now resides in `deps/mrm` as an independent submodule (see more information on handling submodules in https://git.ufz.de/howto/gitlab
-)
+- New routing process introduced `processCase(8) = 3` [see Thober et al, 2019, GMDD, in press](https://doi.org/10.5194/gmd-2019-13) for more details
+- mRM is decoupled from mHM and mRM now resides in `deps/mrm` as an independent submodule [more information on handling submodules](https://git.ufz.de/howto/gitlab)
 - new option to compile mHM with cmake is provided, see more details under [cmake manual][1].
 
-
 [1]:INSTALL.md
+
+### Bugs resolved from release 5.9:
+
+- Enable use of i8 for time_data in common/mo_read_forcing_nc.f90,
+  otherwise netcdf time stamps with initial dates prior to 1900 were
+  wrong (due to overflow)
+
+### Known bugs:
+
+None.
+
+### Restrictions:
+
+- For `gfortran` compilers mHM supports only v4.8 and higher.
+- If you wish to use features connected to ground albedo neutrons (`processCase(9)`), please contact [Martin Schrön](mailto:martin.schroen@ufz.de).
 
 
 ## mHM v5.9 (July 2018)
