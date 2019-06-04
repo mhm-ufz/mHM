@@ -1,5 +1,17 @@
 # mHM RELEASE NOTES
 
+## mHM v5.10 (June 2019)
+
+### New Features:
+
+- new routing process introduced `processCase(8) = 3` (see Thober et al, 2019, GMDD, in press) for more details
+- mRM is completely decoupled from mHM and mRM now resides in `deps/mrm` as an independent submodule (see more information on handling submodules in https://git.ufz.de/howto/gitlab
+)
+- new option to compile mHM with cmake is provided, see more details under [cmake manual][1].
+
+
+[1]:INSTALL.md
+
 
 ## mHM v5.9 (July 2018)
 
