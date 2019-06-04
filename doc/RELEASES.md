@@ -18,7 +18,8 @@
 
 ### Known bugs:
 
-None.
+- Adaptive routing does not allow to run without at least 1 gauge specification
+- Incompatibility of Finalparam.nml format between Intel and GNU
 
 ### Restrictions:
 
