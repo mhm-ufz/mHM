@@ -1,6 +1,6 @@
 # The mesoscale Hydrological Model -- mHM
 
-- The current release is **[mHM v5.9][1]**.
+- The current release is **[mHM v5.10][1]**.
 - The latest mHM release notes can be found in the file [RELEASES][3] or [online][4].
 - General information can be found on the [mHM website](http://www.ufz.de/mhm/).
 - All the details of the code can be found in the [user manual][5].
@@ -25,6 +25,7 @@ The model code can be cited as:
 
 Please see the file [DEPENDENCIES][8] for external software required to run mHM.
 See also the [users manual][5] for detailed instructions to setup mHM.
+As from June 2019, new option to compile mHM with cmake is provided, see more details under [cmake manual][9].
 
 
 ## Quick start
@@ -42,3 +43,4 @@ See also the [users manual][5] for detailed instructions to setup mHM.
 [6]: LICENSE
 [7]: doc/mhm_papers.md
 [8]: doc/DEPENDENCIES.md
+[9]: INSTALL.md
