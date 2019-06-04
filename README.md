@@ -19,7 +19,7 @@ Please refer to the main model by citing Samaniego et al. (2010) and Kumar et al
 
 The model code can be cited as:
 
-- **mHM:** Luis Samaniego et al. (2017), mesoscale Hydrologic Model, doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
+- **mHM:** Luis Samaniego et al. (2019), mesoscale Hydrologic Model, doi:10.5281/zenodo.1069202, https://doi.org/10.5281/zenodo.1069202
 
 ## Install
 
@@ -42,11 +42,11 @@ git clone --recurse-submodules https://git.ufz.de/mhm/mhm <local-path>
 3. Explore the results in the [output directory](test_basin/), e.g. by using the NetCDF viewer `ncview`.
 
 
-[1]: https://git.ufz.de/mhm/mhm/tags/5.9
-[2]: https://git.ufz.de/mhm/mhm/repository/5.9/archive.zip
+[1]: https://git.ufz.de/mhm/mhm/tags/5.10
+[2]: https://git.ufz.de/mhm/mhm/repository/5.10/archive.zip
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
-[5]: doc/mhm_manual_v5.9.pdf
+[5]: doc/mhm_manual_v5.10.pdf
 [6]: LICENSE
 [7]: doc/mhm_papers.md
 [8]: doc/DEPENDENCIES.md
