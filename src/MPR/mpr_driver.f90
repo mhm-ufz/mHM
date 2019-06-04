@@ -13,7 +13,7 @@
 
 !>       \version 0.1
 
-!>       \copyright (c)2005-2018, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
+!>       \copyright (c)2005-2019, Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ.
 !>       All rights reserved.
 
 !>       This code is a property of:

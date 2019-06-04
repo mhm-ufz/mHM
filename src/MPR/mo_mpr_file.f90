@@ -17,7 +17,7 @@ MODULE mo_mpr_file
   !> Current mHM model version
   CHARACTER(len = *), PARAMETER :: version = '0.1'                         ! Version
   !> Time of current mHM model version release
-  CHARACTER(len = *), PARAMETER :: version_date = 'Jun 2018'                    ! Release date
+  CHARACTER(len = *), PARAMETER :: version_date = 'Jun 2019'                    ! Release date
   !> Driver file
   CHARACTER(len = *), PARAMETER :: file_main = 'mpr_driver.f90'              ! Driver
   !> Namelist file name
