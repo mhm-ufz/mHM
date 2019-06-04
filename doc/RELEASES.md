@@ -6,9 +6,11 @@
 
 - New routing process introduced `processCase(8) = 3` [see Thober et al, 2019, GMDD, in press](https://doi.org/10.5194/gmd-2019-13) for more details
 - mRM is decoupled from mHM and mRM now resides in `deps/mrm` as an independent submodule [more information on handling submodules](https://git.ufz.de/howto/gitlab)
-- new option to compile mHM with cmake is provided, see more details under [cmake manual][1].
+- New option to compile mHM with cmake is provided, see more details under [cmake manual][1].
+- Visualization/animation R script (producing PDF and GIF) of mHM netcdf files included under post-proc [animate1.R][2]
 
 [1]:INSTALL.md
+[2]:post-proc/animate1.R
 
 ### Bugs resolved from release 5.9:
 
