@@ -73,7 +73,7 @@ contains
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
   subroutine mpr_runoff(LCOVER0, mask0, SMs_FC0, slope_emp0, KsVar_H0, param, cell_id0, upp_row_L1, low_row_L1, &
-                       lef_col_L1, rig_col_L1, nL0_in_L1, c2TSTu, L1_HL1, L1_K0, L1_K1, L1_alpha)
+                       lef_col_L1, rig_col_L1, nL0_in_L1, L1_HL1, L1_K0, L1_K1, L1_alpha)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_upscaling_operators, only : upscale_arithmetic_mean
@@ -116,9 +116,6 @@ contains
     ! Number of L0 cells within a L1 cell
     integer(i4), dimension(:), intent(in) :: nL0_in_L1
 
-    ! unit transformations
-    real(dp), intent(in) :: c2TSTu
-
     ! [10^-3 m] Threshhold water depth
     real(dp), dimension(:), intent(out) :: L1_HL1
 
@@ -138,7 +135,7 @@ contains
     !-----------------------------
     ! FAST INTERFLOW
     !-----------------------------
-    ! HL1 = f(soil properties; No refrence found)
+    ! HL1 = f(soil properties; No reference found)
     ! Based on the saturation deficit from the field capacity status
     ! seems more reasonable and intutative.
     ! NOTE: This value for the sandy soils will have higher value of HL1, as compared to 
@@ -147,9 +144,9 @@ contains
     L1_HL1 = upscale_arithmetic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, tmp)
 
-    ! 1/K0 = f(terrian slope) [Booij, et. al.(2005), JoH]
-    ! Steeper slopes resists (1/K0) fast water flows lesser as 
-    ! compared to that on the flater slope areas. 
+    ! 1/K0 = f(terrain slope) [Booij, et. al.(2005), JoH]
+    ! Steeper slopes resists (1/K0) fast water flows lesser as
+    ! compared to that on the flater slope areas.
     ! Assuming that above relationship holds for all kind of land cover classes
 
     ! In the forested area surface resistance to fast interflow is higher as compared
@@ -176,16 +173,16 @@ contains
     L1_K1 = upscale_arithmetic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, &
             Lef_col_L1, Rig_col_L1, cell_id0, mask0, nodata_dp, tmp)
 
-    ! minimum value of K1 is 1-day 
+    ! minimum value of K1 is 1-day
     L1_K1 = merge(2.0_dp, L1_K1, L1_K1 .lt. 2.0_dp)
 
 
     ! alpha = f(soil type; variabitity of Ks)
-    ! Lower the alpha (exponent of slow interflow) means lower amount of 
-    ! water released from the storage to contribute for slow interflow. 
+    ! Lower the alpha (exponent of slow interflow) means lower amount of
+    ! water released from the storage to contribute for slow interflow.
     ! For instance sandy soils will have lower value of alpha as comapred to
     ! the clayey soils.
-    ! This assumption is quite realistic in physical sense... 
+    ! This assumption is quite realistic in physical sense...
     tmp = merge(param(5) * (1.0_dp / KsVar_H0) * (1.0_dp / (1.0_dp + SMs_FC0)), &
             nodata_dp, cell_id0 .ne. nodata_i4)
     L1_alpha = upscale_arithmetic_mean(nL0_in_L1, Upp_row_L1, Low_row_L1, Lef_col_L1, &
@@ -194,8 +191,6 @@ contains
     ! constraints and unit transformation
     L1_K0 = merge(L1_K1, L1_K0, L1_K0 .gt. L1_K1)
 
-    L1_K0 = c2TSTu / L1_K0
-    L1_K1 = c2TSTu / L1_K1
 
   end subroutine mpr_runoff
 

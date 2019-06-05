@@ -1,4 +1,17 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+# Exclusions
+*.g90
+*.o
+*.mod
+*.a
+*.so
+*.nc
+test_basin/
+test_basin_2/
+*prog_for_check
+*terminal
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -16,7 +29,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/

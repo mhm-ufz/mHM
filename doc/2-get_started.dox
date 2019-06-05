@@ -6,10 +6,8 @@ This chapter will introduce the structure of mHM technically.
 \section receive Receive mHM
 
 As from June 2018, the current release of mHM is available through a code repository provided by the version control system GitLab
-(<a href="https://git.ufz.de/mhm/mhm">https://git.ufz.de/mhm/mhm</a>). Access GitLab for external users can be granted upon request
-through email to mhm-admin@ufz.de. Additionally, a mirror of the current release is available on GitHub without registration needed
-(<a href="https://github.com/mhm-ufz/mhm">https://github.com/mhm-ufz/mhm</a>). Note that our repository on GibHub.com will be always
-a mirror of the current release at GitLab.
+(<a href="https://git.ufz.de/mhm/mhm">https://git.ufz.de/mhm/mhm</a>). If you like to contribute to the code developement,
+external accounts be granted upon request through email to mhm-admin@ufz.de.
 
 \section NETCDF Install NETCDF
 
@@ -142,6 +140,11 @@ Compile. Note that it is possible that some tests fail during the make check acc
 
 \section windows Run mHM under CYGWIN on Windows
 
+As from June 2019, we encourage users to make use of cmake guide:\n
+<a href="https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md">https://git.ufz.de/mhm/mhm/blob/develop/INSTALL.md</a>
+
+Further CYGWIN related details might be obsolete.
+
 A NETCDF installation under Windows7 and Windows10 has only been tested using CYGWIN (https://www.cygwin.com/). When executing the CYGWIN setup, the following packages have to be installed (as of May 2018, screenshots kindly provided by Mehmet Cuneyd Demirel):
 
 First, the following netcdf packages have to be installed (\ref fig_cygwin_netcdf):
@@ -208,6 +211,7 @@ In between two compilations, it might be useful to apply the command <code>make 
 (without using old temporary files).
 
 
+
 \section test Test mHM on Example Basin
 
 The mHM distribution usually comes with an example test basin located in 
@@ -259,7 +263,7 @@ Gridded LAI data must be provided on a daily time-step at the Level-0 resolution
 \subsection mhmoutputnml Output Configuration: Time Steps, States, Fluxes
 
 The file <code>mhm_output.nml</code> regulates how often (e.g. <code>timeStep_model_outputs = 24</code>) and which variables (fluxes and states) should be
-written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on varibales that are of actual interest, 
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mHM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
 because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
 
 \subsection mhmparameters Regionalised Parameters: Initial Values and Ranges

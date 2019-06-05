@@ -1,0 +1,320 @@
+/**
+\page mRM mRM - the Multiscale Routing Model: Running the stand-alone version of the routing model
+
+\section intro_mRM Introduction to mRM
+
+This section provides information on how to run the routing model mRM
+as a stand-alone program outside of mHM. The general philosophy is as
+follows: mRM can be compiled and run in a similar way as mHM. Specific
+files for mRM can be found in the main path and are denoted as
+<filename>_mRM.<file_type>, where <filename>.<file_type> is the
+corresponding mHM file.
+ 
+This Subsection provides a short description of the method used in
+mRM. For further details and an analysis over the European domain,
+please refer to Thober et al. 2019.
+
+\subsection findif Finite Difference Approximation of Kinematic Wave Equation
+
+The multiscale Routing Model mRM uses the kinematic wave equation to
+describe the water flow within a stream as
+
+\f{equation}{
+\frac{\partial Q}{\partial t} + c \frac{\partial Q}{\partial x} = 0
+\f}
+
+where \f$Q\f$ (m\f$^3\f$\,s\f$^{-1}\f$) is streamflow, \f$x\f$ (m) the space dimension,
+\f$t\f$ (s) the time dimension, and \f$c\f$ (m\,s\f$^{-1}\f$) the celerity. The
+kinematic wave equation is a simplification of the Saint-Venant
+equations. The derivation is based on the assumption
+that the continuity equation is sufficient to describe the movement of
+flood waves. In detail, a constant river bed slope and time-invariant
+celerity \f$c\f$ have to be assumed. mRM employs
+the classical finite difference weighted approximation on a four points
+scheme to solve the equation above. A short derivation is as follows:
+
+The partial derivatives within the above equation are represented as
+finite differences between four values, that means on two locations at
+two points in time:
+
+\f{eqnarray*}{
+   \frac{\partial Q}{\partial t} & \approx \frac{\epsilon \left(Q(x_j,t_{i+1})
+     - Q(x_j, t_i)\right) + (1 -
+   \epsilon)\left(Q(x_{j+1}, t_{i+1})-Q(x_{j+1}, t_i)\right)}{\Delta t} , \\
+   \frac{\partial Q}{\partial x} & \approx \frac{\varphi
+     \left(Q(x_{j+1}, t_{i+1})
+     - Q(x_j, t_{i+1})\right) + (1 -
+   \varphi)\left(Q(x_{j+1}, t_i)-Q(x_j, t_i)\right)}{\Delta x} , \nonumber
+\f}
+
+where \f$j\f$ denotes the spatial location (i.e., reach id) and \f$i\f$ denotes
+the timestep. \f$\epsilon\f$ is a space-weighting factor and \f$\varphi\f$ is a
+time-weighting factor. mRM uses a rectangular grid to represent the
+river network with a river reach in the model connecting two center grid
+locations. Different spatial locations are separated by \f$\Delta x\f$ and
+time steps by \f$\Delta t\f$. The two weighting factors, \f$\epsilon\f$ and
+\f$\varphi\f$, can be chosen between 0 and 1, but the numerical solution
+becomes unstable for \f$\epsilon >\f$ 0.5. The
+numerical diffusion depends linearly on \f$\epsilon\f$,
+with 0 implying full numerical diffusion and 0.5 no numerical diffusion,
+respectively.
+
+Setting \f$\varphi\f$ to 0.5, which represents a time-centered scheme, and
+substituting the above equation into
+equation (9.1) results in the classical linear equation:
+
+\f{equation}{
+ Q(x_{j+1}, t_{i+1}) = C_1 Q(x_j, t_{i+1}) + C_2 Q(x_j, t_i) + C_3
+ Q(x_{j+1}, t_i) ,
+\f}
+with the coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ being:
+\f{eqnarray}{
+   C_1 & = \frac{-2 \Delta x \epsilon + c \Delta t}{2 \Delta x (1 -
+     \epsilon) + c \Delta t} , \nonumber \\
+   C_2 & = \frac{2 \Delta x \epsilon + c \Delta t}{2 \Delta x (1 -
+     \epsilon) + c \Delta t} , \\
+   C_3 & = \frac{2 \Delta x (1 - \epsilon) - c \Delta t}{2 \Delta x (1 -
+     \epsilon) + c \Delta t} . \nonumber
+\f}
+The coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ add up to one. The spatial
+resolution at which mRM is applied is called
+``routing'' resolution in the following.
+
+\subsection slope_to_c Stream Celerity Parametrization based on Terrain Slope
+
+Two parametrizations of equation (9.3) are available in
+mRM: firstly the regionalized Muskingum-Cunge (rMC) parametrization with
+a fixed time step, and
+secondly a parametrization using spatially varying
+celerities in combination with an adaptive time step (aTS). A short
+summary of the former is presented in Subsection \ref rMC and is referred to
+as rMC in the following. The latter is described in detail in this and
+the next section and is referred to as aTS scheme.
+
+The aTS calculates stream celerity as a function of terrain slope using
+a simple relationship:
+
+\f{equation}{
+ c_i = \gamma \sqrt{s_i},
+\f}
+where \f$c_i\f$, \f$s_i\f$ and \f$\gamma\f$ are celerity, terrain slope and a free
+model parameter, respectively, and \f$i\f$ is the grid cell index. 
+
+The above equation is applied at the resolution of the Digital
+Elevation Model (DEM), from which terrain slope is derived. A median
+absolute deviation (MAD) filter is applied to the
+high resolution slope data along the path of the main river with a
+threshold value of 2.25 to correct for outliers. Large slope outliers
+happen easily in DEMs, for example, when the river flows in a valley
+and one grid cell represents the valley while the next grid cell
+represents the hill top. A minimum river bed slope of 0.1% is
+further assumed. The celerities are then upscaled to the routing
+resolution, i.e., the resolution at which the kinematic wave equation
+is solved. The upscaling is by averaging with
+the harmonic mean, the correct averaging operator for celerities (or
+speed). The upscaling considers also only those high-resolution grid
+cells that align with the path of the main river because aTS only
+considers the flow in the main river reach, assuming that travel times
+in the main reach dominate the routing process in
+tributaries. 
+
+\subsection ada_time Adaptive Time Step (aTS) Implementation
+
+The aTS scheme uses an adaptive time step to calculate the linear
+coefficients in equation (9.2). The basic idea is that the
+time step should be such that water has not been transported further
+than \f$\Delta x\f$ during a single step. This condition is generally known
+as Courant-Friedrich-Lewy criterium, which is a necessary condition for
+numerical stability of finite difference schemes
+\cite Courant:1928ch. The condition can be expressed as:
+
+\f{equation}{
+ C_r = \frac{c \Delta t}{\Delta x} \le C_{max} = 1
+\f}
+
+where \f$C_{max}\f$ is the Courant number. aTS uses a Courant number
+of 1. The Courant condition couples the applied spatial resolution
+with the integration time step of the finite difference
+scheme. Celerities \f$c_i\f$ are typically in the order of a few
+m s\f$^{-1}\f$ The time step \f$\Delta t\f$ is chosen such
+that it does not deviate too much from the Courant number
+\f$C_{max}\f$ to keep computational
+demand to a minimum. This implies that \f$\Delta t\f$ ranges from a
+few minutes for high-resolution grids to a few hours for continental
+scale applications.
+
+In detail, aTS chooses \f$\Delta t\f$ from a set of prescribed values such
+that \f$c_i\Delta t/\Delta x\f$ is close to but less than 1 for all
+celerities \f$c_i\f$. The prescribed values range from one minute to one
+day, namely: 1 min, 2 min, 3 min, 4 min, 5 min, 6 min, 10 min,
+12 min, 15 min, 20 min, 30 min, 1 h, 2 h, 3 h, 4 h, 6 h, 8 h,
+12 h, and 1 day. The choice of these values is motivated from the fact
+that these represent multiples or dividers of hourly and daily time
+steps. These time steps allow in principle model applications from
+100 m to 100 km, for typical celerities around 1.5 m s\f$^{-1}\f$.
+
+Note that the chosen time step depends only on the spatial resolution
+and is independent of the time resolution of the provided forcing. For
+example, applying aTS at 12 km resolution using a celerity of \f$c\f$~=
+1.5 m s\f$^{-1}\f$ gives \f$\Delta x/c\f$ of 2.2 hours and, hence, a time
+step of two hours will be chosen. If mRM is forced with hourly input, it
+will aggregate the input over two consecutive time steps prior to the
+routing. The calculated streamflow is then distributed to the previous
+two time steps because these represent the mean flow over this
+period. If aTS is forced with daily input, it will use internally 12
+iterations of 2-hour time steps to route the water through the river
+network. In this case, aTS will also return the average of the
+calculated 12 streamflow values at each reach.
+
+\subsection rMC Regionalized Muskingum-Cunge parametrization
+
+The regionalized Muskingum-Cunge (rMC) parametrization implemented in
+the mesoscale Hydrologic Model mHM calculates the Muskingum coefficients
+\f$C_1\f$, \f$C_2\f$, and \f$C_3\f$ in equation (9.2) as a function of
+high-resolution river network properties. The coefficients \f$C_1\f$, \f$C_2\f$,
+and \f$C_3\f$ are parametrized as follows
+
+\f{equation}{
+     C_1 = \nu_2; C_2 = \nu_1 - \nu_2; C_3 = 1 - \nu_1, 
+\f}
+
+ where the parameters \f$\nu_1\f$ and \f$\nu_2\f$ are given as
+
+\f{eqnarray}{
+     \nu_1 &= \frac{\Delta t}{\beta (1 - \epsilon) + \frac{\Delta t}{2}};\\ 
+     \nu_2 &= \frac{\frac{\Delta t}{2} - \beta \epsilon}{\beta (1 - \epsilon) + \frac{\Delta t}{2}} \nonumber
+\f}
+ 
+ following the nomenclature of appendix A2 in
+ \cite SKA2010. This formulation is identical to
+ equatio (9.3) of the present study, using
+ \f$\beta = \Delta x / c\f$ in the equation above and substituting this
+ equation into two equations above. The parameters
+ \f$\beta\f$ and \f$\epsilon\f$ are then conceptualized as
+
+ \f{eqnarray}{
+     \beta &= \gamma_1 + \gamma_2 L + \gamma_3 S + \gamma_4 C ;\\ 
+     \epsilon &= \gamma_5 \frac{S}{max(S)} , \nonumber
+ \f}
+
+ where \f$L\f$ is the length of the reach, \f$S\f$ is the slope of the reach,
+ and \f$C\f$ is the fraction of impervious land cover within the floodplains
+ (see table 4 in \cite KS2012). Overall, there are five global
+ parameters \f$\gamma_1\f$ to \f$\gamma_5\f$ in the above equation that
+ can be chosen by the user. The integration time step is fixed at one
+ hour. To guarantee the numerical stability of the parameterization, the
+ following upper and lower bounds are applied
+
+ \f{eqnarray}{
+   0 & < \epsilon \le 0.5,\\ 
+   \frac{\Delta t}{2(1-\epsilon)} & < \beta \le \frac{\Delta t}{2 \epsilon}, 
+ \f}
+ 
+ where \f$\Delta t\f$ is set to one hour. 
+
+\section start_mRM Getting Started
+
+For receiving mRM, installing NETCDF, and running mRM under CYGWIN on
+Windows, please follow Sections \ref NETCDF, \ref windows, and \ref compile.
+
+\subsection compile_mRM Compiling mRM
+
+The compilation of mRM can be achieved by running the *make* command
+on the **Makefile_mRM** file. This can be done in two ways:
+
+1. make -f Makefile_mRM
+2. renaming of Makefile_mRM to Makefile via
+
+    \code
+    mv Makefile_mRM Makefile
+    \endcode
+
+\subsection test_mRM Test mRM on Example Basin
+
+The received mHM distribution contains an example test basin in the
+folder
+
+\code
+test_basin/
+\endcode
+
+This folder also contains all necessary data to run mRM. After you
+compiled mRM, simply run the executable via
+
+\code
+./mrm
+\endcode
+
+Ouput will be written in the \code test_basin/output_b1 \endcode
+
+\subsection run_mRM Run your own Simulation
+
+As for mHM, there are three mRM configuration files. These are:
+
+- mrm.nml
+- mrm_output.nml
+- mrm_parameter.nml
+
+Please note that the information contained in these files can also be
+found in the respective files for mHM because mRM is part of mHM.
+
+\subsubsection mrmnml Main configuration: Path, Periods, Switches
+
+The file <code>mrm.nml</code> contains the main configuration for running mRM in your catchments. Since the comments should explain 
+each single setting, this section will only roughly describe the
+structure of the file. All mandatory namelists have to specified
+explicitly for both mHM and mRM. Namelists that are specific for mRM
+are denoted by <code>_mRM</code>. Please keep in mind, that paths can be relative, absolute and even symbolic links.
+
+\li <b>project_description:</b> Defines meta data that is written in
+the output netcdf files.
+\li <b>mainconfig:</b> Defines number of basins and hydrology
+resolution.
+\li <b>mainconfig_mhm_mrm:</b> Defines input paths for reading restart
+files, routing resolution, and optimization.
+\li <b>mainconfig_mrm:</b> Defines file name, variable name, and data
+convention for runoff input field for mRM.
+\li <b>directories_general:</b> Defines common input and output paths
+for mHM and mRM.
+\li <b>directories_mRM:</b> Defines paths where gauge information and
+input runoff fields can be found.
+\li <b>processSelection:</b> Only processCase seven is used for mRM,
+all other options are ignored.
+\li <b>LCover:</b> defines information on LAI data.
+\li <b>time_periods:</b> Defines simulation periods.
+\li <b>evaluation_gauges:</b> Defines number of gauges per basin and
+file names containing gauge observations.
+\li <b>Optimization:</b> Defines parameters for optimization.
+
+\subsection mrmoutputnml Output Configuration: Time Steps, States, Fluxes
+
+The file <code>mrm_outputs.nml</code> regulates how often (e.g. <code>timeStep_model_outputs_mrm = 24</code>) and which variables (fluxes and states) should be
+written to the final netcdf file <code>[OUTPUT_DIRECTORY]/mRM_Fluxes_States.nc</code>. We recommend to only switch on variables that are of actual interest, 
+because the file size will greatly increase with the number of containing variables. During calibration (see \ref calibration) no output file will be written.
+
+\subsection calib_mRM Calibration and Optimization
+
+The parameter calibration can be conducted in the same way as for
+mHM. Please see Section \ref calibration and Section \ref paramopt for
+details. Parameters contained in the **mrm_parameter.nml** are
+considered during the optimization.
+
+\section data_mRM Data preparation for mRM
+
+The data preparation for the static data for mRM is identical to that
+of mHM. It is described in the
+Chapter "Data preparation for mHM" in
+subsection \ref extractncsize, \ref extractncdata, \ref latlon, \ref
+morph (with the exception of soil map, hydrogeological map, LAI map),
+\ref gis (with the exception
+of aspect), \ref lcover, and \ref tables.
+
+Additionally, forcing data is required. The forcing for mRM is
+grid-scale runoff. This runoff needs to be provided in a netcdf file
+that follows the input format of mHM for forcing variables. The only
+difference to the forcing variables is that the variable and file name
+can be both provided in the <code>mrm.nml</code> file in the namelist <code>mainconfig_mrm</code>.
+
+Please see other details in Section \ref meteo.
+
+*/

@@ -94,14 +94,14 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/common_mHM_mRM ./src/MPR ./src/mHM # where are the source files
+SRCPATH    := ./src/lib ./src/MPR ./src/mHM ./deps/mrm/src/common ./deps/mrm/src/mRM ./deps/mrm/src/common_mHM_mRM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
 CHECKPATH  := .             # path for $(CHECKPATH)/test* and $(CHECKPATH)/check* directories if target is check
 DOXCONFIG  := ./doc/doxygen-1.8.8.config # the doxygen config file
 #
-PROGNAME := mhm # Name of executable
+PROGNAME := mhm # mhm # Name of executable
 LIBNAME  := #libminpack.a # Name of library
 #
 # Options
@@ -109,7 +109,7 @@ LIBNAME  := #libminpack.a # Name of library
 system   := eve
 # Compiler: intelX, gnuX, nagX, sunX, where X stands for version number, e.g. intel13;
 #   look at $(MAKEDPATH)/$(system).alias for shortcuts or type 'make info'
-compiler := intel
+compiler := gnu
 # Releases: debug, release
 release  := release
 # Netcdf versions (Network Common Data Form): netcdf3, netcdf4, [anything else]
@@ -123,7 +123,7 @@ proj     :=
 # IMSL (IMSL Numerical Libraries): vendor, imsl, [anything else]
 imsl     :=
 # OpenMP parallelization: true, [anything else]
-openmp   := false
+openmp   := 
 # MPI parallelization - experimental: true, [anything else]
 mpi      :=
 # Linking: static, shared, dynamic (last two are equal)
@@ -184,8 +184,8 @@ static   := dynamic
 # Special compilation flags
 EXTRA_FCFLAGS  := 
 EXTRA_F90FLAGS := #-C=undefined
-EXTRA_DEFINES  := -DMRM2MHM #-DMPR_STANDALONE
 EXTRA_INCLUDES :=
+EXTRA_DEFINES  := -DMRM2MHM
 EXTRA_LDFLAGS  += #-Wl,--stack,12485760
 EXTRA_LIBS     :=
 EXTRA_CFLAGS   += #-Wl,--stack,12485760
@@ -389,6 +389,7 @@ RANLIB   := ranlib
 
 # Set path where all the .mod, .o, etc. files will be written, set before include $(MAKEINC)
 OBJPATH := $(addsuffix /.$(strip $(icompiler)).$(strip $(release)), $(SRCPATH))
+
 # Mac OS X is special, there is (almost) no static linking.
 # Mac OS X does not work with -rpath. Set DYLD_LIBRARY_PATH if needed.
 iOS := $(shell uname -s)
@@ -464,7 +465,7 @@ ifneq (,$(findstring $(imsl),vendor imsl))
     ifeq (,$(findstring $(iOS),Darwin))
         iLIBS     += -z muldefs
         ifneq ($(istatic),static)
-            iLIBS += -i_dynamic
+            iLIBS += -shared-intel
         endif
     endif
 
@@ -486,7 +487,11 @@ ifeq ($(openmp),true)
     ifneq (,$(findstring $(icompiler),$(gnucompilers)))
         iopenmp += -fopenmp
     else
-        iopenmp += -openmp
+        ifneq (,$(findstring $(icompiler),$(intelcompilers)))
+            iopenmp += -qopenmp
+        else
+            iopenmp += -openmp
+        endif
     endif
     DEFINES += -DOPENMP
 endif
@@ -500,7 +505,7 @@ ifneq ($(openmp),true)
         ifneq (,$(findstring $(icompiler),$(gnucompilers)))
             LDFLAGS += -fopenmp
         else
-            LDFLAGS += -openmp
+            LDFLAGS += -qopenmp
         endif
     endif
 endif
@@ -566,7 +571,11 @@ ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
         $(error Error: NETCDF path '$(NCDIR)' not found.)
     endif
     NCINC ?= $(strip $(NCDIR))/include
-    NCLIB ?= $(strip $(NCDIR))/lib
+    ifeq (,$(findstring $(icompiler),gnu73 gnu64))
+        NCLIB ?= $(strip $(NCDIR))/lib
+    else
+        NCLIB ?= $(strip $(NCDIR))/lib64
+    endif
 
     INCLUDES += -I$(NCINC)
     ifneq ($(ABSOFT),)
@@ -799,7 +808,6 @@ ifneq ($(LDPATH),)
     empty:=
     space:= $(empty) $(empty)
     export LD_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
-    export DYLD_FALLBACK_LIBRARY_PATH=$(subst $(space),$(empty),$(LDPATH))
 endif
 
 INCLUDES += $(addprefix -I,$(OBJPATH))

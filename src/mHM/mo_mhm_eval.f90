@@ -84,7 +84,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
-                                            warmingDays
+                                            warmingDays, c2TSTu
     use mo_common_variables, only : level1, nBasins, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
                                     L1_absvappress, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, &
@@ -119,12 +119,14 @@ CONTAINS
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
                                         L1_L11_Id, basin_mrm, level11, mRM_runoff, outputFlxState_mrm, &
-                                        timeStep_model_outputs_mrm
-    use mo_mrm_init, only : mrm_update_param, variables_default_init_routing
+                                        timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
+    use mo_mrm_init, only : variables_default_init_routing
+    use mo_mrm_mpr, only : mrm_update_param
     use mo_mrm_restart, only : mrm_read_restart_states
     use mo_mrm_routing, only : mrm_routing
     use mo_mrm_write, only : mrm_write_output_fluxes
     use mo_utils, only : ge
+    use mo_mrm_river_head, only: calc_river_head, avg_and_write_timestep
 #endif
 #ifdef pgiFortran154
     use mo_write_fluxes_states, only : newOutputDataset
@@ -184,7 +186,7 @@ CONTAINS
 
     integer(i4) :: s_meteo, e_meteo
 
-    logical, dimension(:, :), allocatable :: mask1
+    logical, dimension(:, :), pointer :: mask1
 
     integer(i4) :: day, month, year, hour, prev_day, prev_month, prev_year
 
@@ -236,7 +238,7 @@ CONTAINS
     ! inflowing discharge
     real(dp), allocatable, dimension(:) :: InflowDischarge
 
-    logical, allocatable, dimension(:, :) :: mask11
+    logical, pointer, dimension(:, :) :: mask11
 
     ! flag for performing routing
     logical :: do_rout
@@ -330,7 +332,7 @@ CONTAINS
 
       ! get basin information
       nCells = level1(iBasin)%nCells
-      mask1 = level1(iBasin)%mask
+      mask1 => level1(iBasin)%mask
       s1 = level1(iBasin)%iStart
       e1 = level1(iBasin)%iEnd
 
@@ -342,11 +344,11 @@ CONTAINS
         ! get basin information at L11 and L110 if routing is activated
         s11 = level11(iBasin)%iStart
         e11 = level11(iBasin)%iEnd
-        mask11 = level11(iBasin)%mask
+        mask11 => level11(iBasin)%mask
 
         ! initialize routing parameters (has to be called for routing option 2)
-        if (processMatrix(8, 1) .eq. 2) call mrm_update_param(iBasin, &
-                parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
+        if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) &
+            call mrm_update_param(iBasin, parameterset(processMatrix(8, 3) - processMatrix(8, 2) + 1 : processMatrix(8, 3)))
         ! initialize variable for runoff for routing
         allocate(RunToRout(e1 - s1 + 1))
         RunToRout = 0._dp
@@ -468,7 +470,7 @@ CONTAINS
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
                 tt, newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
-                nCells, nSoilHorizons_mHM, real(nTstepDay, dp), & ! IN C
+                nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
                 pack(level1(iBasin)%y, level1(iBasin)%mask), & ! IN L1
@@ -527,7 +529,8 @@ CONTAINS
             InflowDischarge = InflowGauge%Q(iDischargeTS, :) ! inflow discharge in [m3 s-1]
             timestep_rout = timestep
             !
-          else if (processMatrix(8, 1) .eq. 2) then
+          else if ((processMatrix(8, 1) .eq. 2) .or. &
+                   (processMatrix(8, 1) .eq. 3)) then
             ! >>>
             ! >>> adaptive timestep
             ! >>>
@@ -559,7 +562,7 @@ CONTAINS
                       tsRoutFactorIn = mod(tt, nint(tsRoutFactorIn))
               if ((mod(tt, nint(tsRoutFactorIn)) .eq. 0_i4) .or. (tt .eq. nTimeSteps)) then
                 InflowDischarge = InflowDischarge / tsRoutFactorIn
-                timestep_rout = timestep * nint(tsRoutFactor, i4)
+                timestep_rout = timestep * nint(tsRoutFactorIn, i4)
                 do_rout = .True.
               end if
             end if
@@ -607,13 +610,22 @@ CONTAINS
                   mRM_runoff(tt, :) &
                   )
             ! -------------------------------------------------------------------
+            ! groundwater coupling
+            ! -------------------------------------------------------------------
+            if (gw_coupling) then
+                call calc_river_head(iBasin, L11_Qmod, L0_river_head_mon_sum)
+                if (is_new_month .and. tt > 1) then
+                    call avg_and_write_timestep(iBasin, tt, L0_river_head_mon_sum)
+                end if
+            end if
+            ! -------------------------------------------------------------------
             ! reset variables
             ! -------------------------------------------------------------------
             if (processMatrix(8, 1) .eq. 1) then
               ! reset Input variables
               InflowDischarge = 0._dp
               RunToRout = 0._dp
-            else if (processMatrix(8, 1) .eq. 2) then
+            else if ((processMatrix(8, 1) .eq. 2) .or. (processMatrix(8, 1) .eq. 3)) then
               if ((.not. (tsRoutFactorIn .lt. 1._dp)) .and. do_rout) then
                 do jj = 1, nint(tsRoutFactorIn)
                   mRM_runoff(tt - jj + 1, :) = mRM_runoff(tt, :)
@@ -667,6 +679,23 @@ CONTAINS
                   mask11, &
                   ! output variables
                   L11_qmod(s11 : e11))
+                if(gw_coupling) then
+                    !call mrm_write_output_river_head( &
+                    !     ! basin id
+                    !     ii, &
+                    !     ! output specification
+                    !     timeStep_model_outputs_mrm, &
+                    !     ! time specification
+                    !     warmingDays_mrm(ii), newTime, nTimeSteps, nTStepDay, &
+                    !     tt, &
+                    !     ! parse previous date to mRM writer
+                    !     day_counter, month_counter, year_counter, &
+                    !     timestep, &
+                    !     ! mask specification
+                    !     mask0, &
+                    !     ! output variables
+                    !     L0_river_head(s11:e11))
+                end if
         end if
 #endif
 

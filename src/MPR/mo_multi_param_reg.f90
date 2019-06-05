@@ -129,7 +129,7 @@ contains
     use mo_common_variables, only : global_parameters, processMatrix
     use mo_message, only : message
     use mo_mpr_SMhorizons, only : mpr_SMhorizons
-    use mo_mpr_global_variables, only : HorizonDepth_mHM, c2TSTu, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
+    use mo_mpr_global_variables, only : HorizonDepth_mHM, fracSealed_CityArea, iFlag_soilDB, nSoilHorizons_mHM, &
                                         soilDB
     use mo_mpr_pet, only : bulksurface_resistance, pet_correctbyASP, pet_correctbyLAI, priestley_taylor_alpha
     use mo_mpr_runoff, only : mpr_runoff
@@ -372,13 +372,11 @@ contains
       ! Update fractions of sealed area fractions
       ! based on the sealing fraction[0-1] in cities
       !---------------------------------------------------------
+      ! a factor is applied to the sealed area, effectively reducing it
       fSealed1(:, 1, iiLC) = fracSealed_CityArea * fSealed1(:, 1, iiLC)
-      fPerm1(:) = fPerm1(:) + (1.0_dp - fracSealed_CityArea) * fSealed1(:, 1, iiLC)
-
-      ! to make sure everything happens smoothly
-      fForest1(:) = fForest1(:) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
-      fSealed1(:, 1, iiLC) = fSealed1(:, 1, iiLC) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
-      fPerm1(:) = fPerm1(:) / (fForest1(:) + fSealed1(:, 1, iiLC) + fPerm1(:))
+      ! the forest area is kept constant, but the permeable area is increased so that the
+      ! sum off all fractions equals 1 again
+      fPerm1(:) = 1.0_dp - fSealed1(:, 1, iiLC) - fForest1(:)
 
       ! ------------------------------------------------------------------
       ! snow parameters 
@@ -389,7 +387,7 @@ contains
         iStart = processMatrix(2, 3) - processMatrix(2, 2) + 1
         iEnd = processMatrix(2, 3)
 
-        call snow_acc_melt_param(param(iStart : iEnd), c2TSTu, & ! intent(in)
+        call snow_acc_melt_param(param(iStart : iEnd), & ! intent(in)
                 fForest1, fSealed1(:, 1, iiLC), fPerm1, & ! intent(in)
                 tempThresh1(:, 1, iiLC), degDayNoPre1(:, 1, iiLC), & ! intent(out)
                 degDayInc1(:, 1, iiLC), degDayMax1(:, 1, iiLC) & ! intent(out)
@@ -540,7 +538,7 @@ contains
         ! because it is in the loop unnecessarily
         call mpr_runoff(LCover0(:, iiLC), mask0, SMs_FC0, slope_emp0, &
                 KsVar_H0, param(iStart : iEnd), Id0, upper_bound1, lower_bound1, &
-                left_bound1, right_bound1, n_subcells1, c2TSTu, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
+                left_bound1, right_bound1, n_subcells1, unsatThresh1(:, 1, 1), kFastFlow1(:, 1, iiLC), &
                 kSlowFlow1(:, 1, 1), alpha1(:, 1, 1))
       case DEFAULT
         call message()
@@ -647,7 +645,6 @@ contains
       ! correction and unit conversion
       ! if percolation is ON: correct K2 such that it is at least k1
       if (processMatrix(7, 1) .gt. 0) kBaseFlow1 = merge(kSlowFlow1, kBaseFlow1, kBaseFlow1 .lt. kSlowFlow1)
-      kBaseFlow1 = c2TSTu / kBaseFlow1
       !
     case DEFAULT
       call message()
@@ -764,7 +761,6 @@ contains
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(8) :: param"    eight global parameters
-  !>       \param[in] "real(dp) :: c2TSTu"                 - unit transformation coefficient
   !>       \param[in] "real(dp), dimension(:) :: fForest1" [1] fraction of forest cover
   !>       \param[in] "real(dp), dimension(:) :: fIperm1"  [1] fraction of sealed area
   !>       \param[in] "real(dp), dimension(:) :: fPerm1"   [1] fraction of permeable area
@@ -810,15 +806,12 @@ contains
   ! Stephan Thober Dec 2013 - changed intent(inout) to intent(out)
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine snow_acc_melt_param(param, c2TSTu, fForest1, fIperm1, fPerm1, tempThresh1, degDayNoPre1, degDayInc1, &
+  subroutine snow_acc_melt_param(param, fForest1, fIperm1, fPerm1, tempThresh1, degDayNoPre1, degDayInc1, &
                                 degDayMax1)
     implicit none
 
     ! eight global parameters
     real(dp), dimension(8), intent(in) :: param
-
-    ! - unit transformation coefficient
-    real(dp), intent(in) :: c2TSTu
 
     ! [1] fraction of forest cover
     real(dp), dimension(:), intent(in) :: fForest1
@@ -859,11 +852,11 @@ contains
     degDayNoPre1 = (&
             tmp_degreeDayFactor_forest * fForest1 + &
                     tmp_degreeDayFactor_impervious * fIperm1 + &
-                    tmp_degreeDayFactor_pervious * fPerm1) * c2TSTu
+                    tmp_degreeDayFactor_pervious * fPerm1)
     degDayMax1 = (&
             tmp_maxDegreeDayFactor_forest * fForest1 + &
                     tmp_maxDegreeDayFactor_impervious * fIperm1 + &
-                    tmp_maxDegreeDayFactor_pervious * fPerm1) * c2TSTu
+                    tmp_maxDegreeDayFactor_pervious * fPerm1)
 
   end subroutine snow_acc_melt_param
 
@@ -960,7 +953,7 @@ contains
   subroutine karstic_layer(param, geoUnit0, mask0, SMs_FC0, KsVar_V0, Id0, n_subcells1, upper_bound1, lower_bound1, &
                           left_bound1, right_bound1, karstLoss1, L1_Kp)
 
-    use mo_mpr_global_variables, only : GeoUnitList, c2TSTu, geoUnitKar
+    use mo_mpr_global_variables, only : GeoUnitList, geoUnitKar
     use mo_upscaling_operators, only : L0_fractionalCover_in_Lx, upscale_arithmetic_mean
     !$ use omp_lib
 
@@ -1031,9 +1024,6 @@ contains
 
     ! minimum constrains
     L1_Kp = merge(2.0_dp, L1_Kp, L1_Kp .lt. 2.0_dp)
-    !
-    ! Unit conversion
-    L1_Kp = c2TSTu / L1_Kp
 
     nGeoUnits = size(geoUnitlist, 1)
 
