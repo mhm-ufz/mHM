@@ -35,7 +35,7 @@ As from June 2019, new option to compile mHM with cmake is provided, see more de
 3. Explore the results in the [output directory](test_basin/), e.g. by using the NetCDF viewer `ncview`.
 
 
-[1]: https://git.ufz.de/mhm/mhm/tags/5.10
+[1]: https://git.ufz.de/mhm/mhm/tree/5.10
 [2]: https://git.ufz.de/mhm/mhm/repository/5.10/archive.zip
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
