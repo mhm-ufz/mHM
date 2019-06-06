@@ -137,6 +137,7 @@ PROGRAM mhm_driver
 
 #endif
   !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
+  USE mpi_f08
 
   IMPLICIT NONE
 
@@ -152,6 +153,19 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
+  integer             :: ierror
+  integer(i4)         :: nproc
+  integer(i4)         :: rank
+  type(MPI_Comm)      :: comm                ! MPI communicator
+
+! Initialize MPI
+  call MPI_Init(ierror)
+  call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
+  ! find number of processes nproc
+  call MPI_Comm_size(comm, nproc, ierror)
+  ! find the number the process is referred to, called rank
+  call MPI_Comm_rank(comm, rank, ierror)
+  write(*,*) 'MPI!', rank, nproc
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -388,5 +402,7 @@ PROGRAM mhm_driver
   call message('Finished at ', trim(message_text), '.')
   call message()
   call finish('mHM', 'Finished!')
+
+  call MPI_Finalize(ierror)
 
 END PROGRAM mhm_driver
