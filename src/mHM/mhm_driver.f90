@@ -104,7 +104,9 @@ PROGRAM mhm_driver
           dirOut, &      ! directories
           nbasins, &      ! number of basins
           domainMeta, &
+#ifdef MPI
           comm, &
+#endif
           processMatrix, &      ! basin information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
   USE mo_kind, ONLY : i4, dp                         ! number precision
@@ -139,7 +141,9 @@ PROGRAM mhm_driver
 
 #endif
   !$ USE omp_lib, ONLY : OMP_GET_NUM_THREADS           ! OpenMP routines
+#ifdef MPI
   USE mpi_f08
+#endif
 
   IMPLICIT NONE
 
@@ -160,6 +164,7 @@ PROGRAM mhm_driver
   integer(i4)         :: rank
 
 ! Initialize MPI
+#ifdef MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
   ! find number of processes nproc
@@ -167,6 +172,7 @@ PROGRAM mhm_driver
   ! find the number the process is referred to, called rank
   call MPI_Comm_rank(comm, rank, ierror)
   write(*,*) 'MPI!', rank, nproc
+#endif
   ! --------------------------------------------------------------------------
   ! START
   ! --------------------------------------------------------------------------
@@ -406,6 +412,8 @@ PROGRAM mhm_driver
   call message()
   call finish('mHM', 'Finished!')
 
+#ifdef MPI
   call MPI_Finalize(ierror)
+#endif
 
 END PROGRAM mhm_driver

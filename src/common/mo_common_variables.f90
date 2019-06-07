@@ -18,7 +18,9 @@
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp
+#ifdef MPI
   USE mpi_f08
+#endif
   implicit none
 
   ! -------------------------------------------------------------------
@@ -125,9 +127,11 @@ module mo_common_variables
   !                                                                          ! dim1=number grid cells, dim2=Number of land cover scenes
   !                                                                          ! target variable for coupling to mRM
 
+#ifdef MPI
   ! -------------------------------------------------------------------
   ! MPI variables
   type(MPI_Comm)      :: comm                ! MPI communicator
+#endif
   ! -------------------------------------------------------------------
   ! 
   ! -------------------------------------------------------------------

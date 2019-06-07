@@ -51,6 +51,7 @@ if (CMAKE_WITH_MPI)
         else()
                 message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
         endif()
+	add_definitions("-DMPI")
 endif()
 
 if (CMAKE_WITH_OpenMP)

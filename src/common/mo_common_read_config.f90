@@ -54,7 +54,7 @@ CONTAINS
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, nBasins, domainMeta, nLcoverScene, &
                                     nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
-                                    setup_description, simulation_type, write_restart, comm
+                                    setup_description, simulation_type, write_restart
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
@@ -135,7 +135,7 @@ CONTAINS
       stop 1
     end if
 
-    call init_domain_variable(comm, nBasins, domainMeta)
+    call init_domain_variable(nBasins, domainMeta)
 
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
@@ -360,17 +360,21 @@ CONTAINS
 
   end subroutine set_land_cover_scenes_id
 
-  subroutine init_domain_variable(comm, nBasins, domainMeta)
+  subroutine init_domain_variable(nBasins, domainMeta)
     use mo_common_variables, only: domain_meta
+#ifdef MPI
+    use mo_common_variables, only: comm
     use mpi_f08
+#endif
     integer(i4),       intent(in)    :: nBasins
-    type(MPI_Comm),    intent(in)    :: comm                ! MPI communicator
     type(domain_meta), intent(inout) :: domainMeta
 
     integer             :: ierror
     integer(i4)         :: nproc
     integer(i4)         :: rank
+    integer(i4)         :: iDomain
 
+#ifdef MPI
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
@@ -391,6 +395,13 @@ CONTAINS
       allocate(domainMeta%indices(domainMeta%nDomains))
       domainMeta%indices(1) = 2
     end if
+#else
+    domainMeta%nDomains = nBasins
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainMeta%indices(iDomain) = iDomain
+    end do
+#endif
 
   end subroutine init_domain_variable
 
