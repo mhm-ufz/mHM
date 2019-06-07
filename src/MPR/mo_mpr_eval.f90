@@ -70,7 +70,7 @@ CONTAINS
 
   SUBROUTINE mpr_eval(parameterset)
 
-    use mo_common_variables, only : L0_Basin, L0_LCover, l0_l1_remap, level0, level1, nBasins
+    use mo_common_variables, only : L0_Basin, L0_LCover, l0_l1_remap, level0, level1, domainMeta
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
                                         L0_slope_emp, L0_soilId, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
@@ -89,7 +89,7 @@ CONTAINS
     real(dp), dimension(:), intent(in), optional :: parameterset
 
     ! Counters
-    integer(i4) :: iBasin, itimer
+    integer(i4) :: iDomain, itimer
 
     ! start and end index at level 0 for current basin
     integer(i4) :: s0, e0
@@ -108,22 +108,22 @@ CONTAINS
     !----------------------------------------
     ! loop over basins
     !----------------------------------------
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! get basin information
-      s0 = level0(L0_Basin(iBasin))%iStart
-      e0 = level0(L0_Basin(iBasin))%iEnd
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      s0 = level0(L0_Basin(iDomain))%iStart
+      e0 = level0(L0_Basin(iDomain))%iEnd
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
-      call mpr(level0(L0_Basin(iBasin))%mask, L0_geoUnit(s0 : e0), &
+      call mpr(level0(L0_Basin(iDomain))%mask, L0_geoUnit(s0 : e0), &
               L0_soilId(s0 : e0, :), L0_asp(s0 : e0), L0_gridded_LAI(s0 : e0, :), &
               L0_LCover(s0 : e0, :), L0_slope_emp(s0 : e0), &
-              pack(level0(L0_Basin(iBasin))%y, level0(L0_Basin(iBasin))%mask), &
-              level0(L0_Basin(iBasin))%Id, &
-              l0_l1_remap(iBasin)%upper_bound, l0_l1_remap(iBasin)%lower_bound, &
-              l0_l1_remap(iBasin)%left_bound, l0_l1_remap(iBasin)%right_bound, &
-              l0_l1_remap(iBasin)%n_subcells, &
+              pack(level0(L0_Basin(iDomain))%y, level0(L0_Basin(iDomain))%mask), &
+              level0(L0_Basin(iDomain))%Id, &
+              l0_l1_remap(iDomain)%upper_bound, l0_l1_remap(iDomain)%lower_bound, &
+              l0_l1_remap(iDomain)%left_bound, l0_l1_remap(iDomain)%right_bound, &
+              l0_l1_remap(iDomain)%n_subcells, &
               L1_fSealed(s1 : e1, :, :), &
               L1_alpha(s1 : e1, :, :), L1_degDayInc(s1 : e1, :, :), L1_degDayMax(s1 : e1, :, :), &
               L1_degDayNoPre(s1 : e1, :, :), L1_fAsp(s1 : e1, :, :), L1_HarSamCoeff(s1 : e1, :, :), &

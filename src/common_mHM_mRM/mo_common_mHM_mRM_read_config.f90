@@ -54,7 +54,7 @@ CONTAINS
                                             read_restart, resolutionRouting, sa_temp, sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays
     use mo_common_read_config, only : set_land_cover_scenes_id
-    use mo_common_variables, only : LCfilename, nBasins, period
+    use mo_common_variables, only : LCfilename, domainMeta, period
     use mo_julian, only : caldat, julday
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -68,7 +68,7 @@ CONTAINS
 
     integer(i4) :: jday
 
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     integer(i4), dimension(maxNoBasins) :: warming_Days
 
@@ -100,11 +100,13 @@ CONTAINS
     call position_nml('mainconfig_mhm_mrm', unamelist)
     read(unamelist, nml = mainconfig_mhm_mrm)
 
-    allocate(resolutionRouting(nBasins))
-    allocate(dirRestartIn(nBasins))
-    dirRestartIn = dir_RestartIn(1 : nBasins)
-
-    resolutionRouting = resolution_Routing(1 : nBasins)
+    allocate(resolutionRouting(domainMeta%nDomains))
+    allocate(dirRestartIn(domainMeta%nDomains))
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      dirRestartIn(iDomain) = dir_RestartIn(domainID)
+      resolutionRouting(iDomain) = resolution_Routing(domainID)
+    end do
 
     ! check for optimize and read restart
     if ((read_restart) .and. (optimize)) then
@@ -124,47 +126,55 @@ CONTAINS
     nTStepDay = 24_i4 / timeStep            ! # of time steps per day
 
     ! allocate time periods
-    allocate(simPer(nBasins))
-    allocate(evalPer(nBasins))
-    allocate(warmingDays(nBasins))
-    allocate(warmPer(nBasins))
+    allocate(simPer(domainMeta%nDomains))
+    allocate(evalPer(domainMeta%nDomains))
+    allocate(warmingDays(domainMeta%nDomains))
+    allocate(warmPer(domainMeta%nDomains))
 
     !===============================================================
     !  read simulation time periods incl. warming days
     !===============================================================
     call position_nml('time_periods', unamelist)
     read(unamelist, nml = time_periods)
-    warmingDays = warming_Days(1 : nBasins)
-    evalPer = eval_Per(1 : nBasins)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      warmingDays(iDomain) = warming_Days(domainID)
+      ! this will be a procedure subroutine
+      ! therefore inout first, in second
+      call period_copy_period_data(evalPer(iDomain), eval_Per(domainID))
+    end do
+    ! evalPer = eval_Per(1 : domainMeta%nDomains)
 
     !===============================================================
     !  determine simulation time period incl. warming days for each
-    !  basin
+    !  domain
     !===============================================================
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
       ! julian days for evaluation period
-      jday = julday(dd = evalPer(iBasin)%dStart, mm = evalPer(iBasin)%mStart, yy = evalPer(iBasin)%yStart)
-      evalPer(iBasin)%julStart = jday
+      jday = julday(dd = evalPer(iDomain)%dStart, mm = evalPer(iDomain)%mStart, yy = evalPer(iDomain)%yStart)
+      evalPer(iDomain)%julStart = jday
 
-      jday = julday(dd = evalPer(iBasin)%dEnd, mm = evalPer(iBasin)%mEnd, yy = evalPer(iBasin)%yEnd)
-      evalPer(iBasin)%julEnd = jday
+      jday = julday(dd = evalPer(iDomain)%dEnd, mm = evalPer(iDomain)%mEnd, yy = evalPer(iDomain)%yEnd)
+      evalPer(iDomain)%julEnd = jday
 
       ! determine warming period
-      warmPer(iBasin)%julStart = evalPer(iBasin)%julStart - warmingDays(iBasin)
-      warmPer(iBasin)%julEnd = evalPer(iBasin)%julStart - 1
+      warmPer(iDomain)%julStart = evalPer(iDomain)%julStart - warmingDays(iDomain)
+      warmPer(iDomain)%julEnd = evalPer(iDomain)%julStart - 1
 
-      call caldat(warmPer(iBasin)%julStart, dd = warmPer(iBasin)%dStart, mm = warmPer(iBasin)%mStart, yy = warmPer(iBasin)%yStart)
-      call caldat(warmPer(iBasin)%julEnd, dd = warmPer(iBasin)%dEnd, mm = warmPer(iBasin)%mEnd, yy = warmPer(iBasin)%yEnd)
+      call caldat(warmPer(iDomain)%julStart, dd = warmPer(iDomain)%dStart, mm = warmPer(iDomain)%mStart, &
+                  yy = warmPer(iDomain)%yStart)
+      call caldat(warmPer(iDomain)%julEnd, dd = warmPer(iDomain)%dEnd, mm = warmPer(iDomain)%mEnd, &
+                  yy = warmPer(iDomain)%yEnd)
 
       ! simulation Period = warming Period + evaluation Period
-      simPer(iBasin)%dStart = warmPer(iBasin)%dStart
-      simPer(iBasin)%mStart = warmPer(iBasin)%mStart
-      simPer(iBasin)%yStart = warmPer(iBasin)%yStart
-      simPer(iBasin)%julStart = warmPer(iBasin)%julStart
-      simPer(iBasin)%dEnd = evalPer(iBasin)%dEnd
-      simPer(iBasin)%mEnd = evalPer(iBasin)%mEnd
-      simPer(iBasin)%yEnd = evalPer(iBasin)%yEnd
-      simPer(iBasin)%julEnd = evalPer(iBasin)%julEnd
+      simPer(iDomain)%dStart = warmPer(iDomain)%dStart
+      simPer(iDomain)%mStart = warmPer(iDomain)%mStart
+      simPer(iDomain)%yStart = warmPer(iDomain)%yStart
+      simPer(iDomain)%julStart = warmPer(iDomain)%julStart
+      simPer(iDomain)%dEnd = evalPer(iDomain)%dEnd
+      simPer(iDomain)%mEnd = evalPer(iDomain)%mEnd
+      simPer(iDomain)%yEnd = evalPer(iDomain)%yEnd
+      simPer(iDomain)%julEnd = evalPer(iDomain)%julEnd
     end do
 
     call set_land_cover_scenes_id(simPer, LCyearId, LCfilename)
@@ -260,7 +270,7 @@ CONTAINS
   subroutine common_check_resolution(do_message, allow_subgrid_routing)
 
     use mo_common_mHM_mRM_variables, only : resolutionRouting
-    use mo_common_variables, only : nBasins, resolutionHydrology
+    use mo_common_variables, only : domainMeta, resolutionHydrology
     use mo_message, only : message
     use mo_string_utils, only : num2str
 
@@ -270,7 +280,7 @@ CONTAINS
 
     logical, intent(in) :: allow_subgrid_routing
 
-    integer(i4) :: ii
+    integer(i4) :: iDomain, domainID
 
     ! conversion factor L11 to L1
     real(dp) :: cellFactorRbyH
@@ -279,15 +289,16 @@ CONTAINS
     !===============================================================
     ! check matching of resolutions: hydrology, forcing and routing
     !===============================================================
-    do ii = 1, nBasins
-      cellFactorRbyH = resolutionRouting(ii) / resolutionHydrology(ii)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      cellFactorRbyH = resolutionRouting(iDomain) / resolutionHydrology(iDomain)
       if (do_message) then
         call message()
-        call message('Basin ', trim(adjustl(num2str(ii))), ': ')
-        call message('resolution Hydrology (basin ', trim(adjustl(num2str(ii))), ')     = ', &
-                trim(adjustl(num2str(resolutionHydrology(ii)))))
-        call message('resolution Routing (basin ', trim(adjustl(num2str(ii))), ')       = ', &
-                trim(adjustl(num2str(resolutionRouting(ii)))))
+        call message('domain ', trim(adjustl(num2str(domainID))), ': ')
+        call message('resolution Hydrology (domain ', trim(adjustl(num2str(domainID))), ')     = ', &
+                trim(adjustl(num2str(resolutionHydrology(iDomain)))))
+        call message('resolution Routing (domain ', trim(adjustl(num2str(domainID))), ')       = ', &
+                trim(adjustl(num2str(resolutionRouting(iDomain)))))
       end if
       !
       if(nint(cellFactorRbyH * 100.0_dp) .eq. 100) then
@@ -315,4 +326,21 @@ CONTAINS
 
   end subroutine common_check_resolution
 
+  ! ToDo: make this a procedure of period
+  subroutine period_copy_period_data(toPeriod, fromPeriod)
+    use mo_common_variables, only : period
+    type(period), intent(inout) :: toPeriod
+    type(period), intent(in)    :: fromPeriod
+
+    toPeriod%dStart   = fromPeriod%dStart    ! first day
+    toPeriod%mStart   = fromPeriod%mStart    ! first month
+    toPeriod%yStart   = fromPeriod%yStart    ! first year
+    toPeriod%dEnd     = fromPeriod%dEnd      ! last  day
+    toPeriod%mEnd     = fromPeriod%mEnd      ! last  month
+    toPeriod%yEnd     = fromPeriod%yEnd      ! last  year
+    toPeriod%julStart = 0 ! first julian day
+    toPeriod%julEnd   = 0 ! last  julian day
+    toPeriod%nObs     = 0 ! total number of observations
+
+  end subroutine period_copy_period_data
 END MODULE mo_common_mHM_mRM_read_config

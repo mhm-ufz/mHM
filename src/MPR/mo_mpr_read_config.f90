@@ -56,7 +56,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : eps_dp, maxNoBasins, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
-    use mo_common_variables, only : global_parameters, global_parameters_name, nBasins, processMatrix
+    use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix
     use mo_message, only : message
     use mo_mpr_constants, only : maxGeoUnit, &
                                  maxNoSoilHorizons
@@ -344,8 +344,8 @@ contains
       call position_nml('directories_MPR', unamelist)
       read(unamelist, nml = directories_MPR)
 
-      allocate(dirgridded_LAI(nBasins))
-      dirgridded_LAI = dir_gridded_LAI(1 : nBasins)
+      allocate(dirgridded_LAI(domainMeta%nDomains))
+      dirgridded_LAI = dir_gridded_LAI(1 : domainMeta%nDomains)
 
       if (timeStep_LAI_input .GT. 1) then
         call message()

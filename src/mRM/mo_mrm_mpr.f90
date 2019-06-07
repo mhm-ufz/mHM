@@ -131,7 +131,7 @@ contains
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"           Basin number
+  !>       \param[in] "integer(i4) :: iDomain"           Basin number
   !>       \param[in] "real(dp), dimension(:) :: param" input parameter (param(1) is celerity in m/s)
 
   !    HISTORY
@@ -141,11 +141,11 @@ contains
 
   ! Modifications:
 
-  subroutine mrm_init_param(iBasin, param)
+  subroutine mrm_init_param(iDomain, param)
 
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : resolutionRouting, timeStep, optimize
-    use mo_common_variables, only : iFlag_cordinate_sys, nBasins, processMatrix
+    use mo_common_variables, only : iFlag_cordinate_sys, domainMeta, processMatrix
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_constants, only : given_TS
@@ -157,7 +157,7 @@ contains
     implicit none
 
     ! Basin number
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! input parameter (param(1) is celerity in m/s)
     real(dp), dimension(:), intent(in) :: param
@@ -177,20 +177,20 @@ contains
     ! Number of cells within 
 
     ! initialize indices
-    s11 = level11(iBasin)%iStart
-    e11 = level11(iBasin)%iEnd
+    s11 = level11(iDomain)%iStart
+    e11 = level11(iDomain)%iEnd
 
     ! temporal resolution of routing
-    if (iBasin .eq. 1 .and. .not. allocated(L11_tsRout)) then
-      allocate(L11_tsRout(nBasins))
+    if (iDomain .eq. 1 .and. .not. allocated(L11_tsRout)) then
+      allocate(L11_tsRout(domainMeta%nDomains))
       L11_TSrout = 0._dp
     end if
 
     if (processMatrix(8, 1) .eq. 1) then
        L11_tsRout = timestep * HourSecs
 
-       if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-            (basin_mrm(iBasin)%nInflowGauges .gt. 0)) then
+       if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iDomain)), 0.0_dp) .and. &
+            (basin_mrm(iDomain)%nInflowGauges .gt. 0)) then
           call message('***WARNING: routing timestep is not a multiple of 24 h.')
           call message('            Inflowgauge timeseries is averaged over values')
           call message('            of different days, small mismatches at')
@@ -200,17 +200,17 @@ contains
     else 
 
       ! called for initialization
-      call mrm_update_param(iBasin, param)
+      call mrm_update_param(iDomain, param)
 
     end if
 
     call message('')
-    call message('    Basin: '//num2str(iBasin, '(i3)'))
-    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iBasin), '(f7.0)'))
-    call message('      routing factor:......... '//num2str(L11_tsRout(iBasin) / (timestep * HourSecs), '(f5.2)'))
+    call message('    Basin: '//num2str(iDomain, '(i3)'))
+    call message('      routing resolution [s]:. '//num2str(L11_tsRout(iDomain), '(f7.0)'))
+    call message('      routing factor:......... '//num2str(L11_tsRout(iDomain) / (timestep * HourSecs), '(f5.2)'))
 
-    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iBasin)), 0.0_dp) .and. &
-        (basin_mrm(iBasin)%nInflowGauges .gt. 0)) then
+    if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iDomain)), 0.0_dp) .and. &
+        (basin_mrm(iDomain)%nInflowGauges .gt. 0)) then
        call message('***WARNING: routing timestep is not a multiple of 24 h.')
        call message('            Inflowgauge timeseries is averaged over values')
        call message('            of different days, small mismatches at')
@@ -228,7 +228,7 @@ contains
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"           Basin number
+  !>       \param[in] "integer(i4) :: iDomain"           Basin number
   !>       \param[in] "real(dp), dimension(1) :: param" celerity parameter [m s-1]
 
   !    HISTORY
@@ -238,7 +238,7 @@ contains
 
   ! Modifications:
 
-  subroutine mrm_update_param(iBasin, param)
+  subroutine mrm_update_param(iDomain, param)
 
     use mo_kind, only: i4, dp
     use mo_common_variables, only: processMatrix, iFlag_cordinate_sys
@@ -263,7 +263,7 @@ contains
     implicit none
 
     ! Basin number
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! celerity parameter [m s-1]
     real(dp), intent(in), dimension(1) :: param
@@ -286,9 +286,9 @@ contains
     real(dp) :: xi
 
     ! get basin information
-    s11 = level11(iBasin)%iStart
-    e11 = level11(iBasin)%iEnd
-    Nnodes = level11(iBasin)%nCells
+    s11 = level11(iDomain)%iStart
+    e11 = level11(iDomain)%iEnd
+    Nnodes = level11(iDomain)%nCells
 
     allocate(K(nNodes))
     
@@ -300,7 +300,7 @@ contains
     else if (ProcessMatrix(8, 1) .eq. 3_i4) then
 
       ! [s] wave travel time parameter
-      call L11_calc_celerity( iBasin, param)
+      call L11_calc_celerity( iDomain, param)
 
       ! Allocate and calculate K
       K(:) = L11_length(s11: e11) / L11_celerity(s11:e11)
@@ -311,15 +311,15 @@ contains
     xi = abs(rout_space_weight) ! set weighting factor to 0._dp
 
     ! determine routing timestep
-    ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iBasin)))))
+    ind = locate(given_TS, minval(K(1:(nNodes-L11_nOutlets(iDomain)))))
 
     ! set min-wave traveltime to min given_TS
     if (ind .lt. 1) ind = 1
-    L11_TSrout(iBasin) = given_TS(ind)
+    L11_TSrout(iDomain) = given_TS(ind)
 
     ! Muskingum parameters 
-    L11_C1(s11:e11) = L11_TSrout(iBasin) / ( K(:) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iBasin) )
-    L11_C2(s11:e11) = 1.0_dp - L11_C1(s11:e11) * K(:) / L11_TSrout(iBasin)
+    L11_C1(s11:e11) = L11_TSrout(iDomain) / ( K(:) * (1.0_dp - xi) + 0.5_dp * L11_TSrout(iDomain) )
+    L11_C2(s11:e11) = 1.0_dp - L11_C1(s11:e11) * K(:) / L11_TSrout(iDomain)
     
     deallocate(K)
 

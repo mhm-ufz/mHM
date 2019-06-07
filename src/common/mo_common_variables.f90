@@ -18,6 +18,7 @@
 module mo_common_variables
 
   use mo_kind, only : i4, i8, dp
+  USE mpi_f08
   implicit none
 
   ! -------------------------------------------------------------------
@@ -125,8 +126,19 @@ module mo_common_variables
   !                                                                          ! target variable for coupling to mRM
 
   ! -------------------------------------------------------------------
+  ! MPI variables
+  type(MPI_Comm)      :: comm                ! MPI communicator
+  ! -------------------------------------------------------------------
+  ! 
+  ! -------------------------------------------------------------------
   ! BASIN general description
   ! -------------------------------------------------------------------
+  type domain_meta
+    integer(i4)                            :: nDomains
+    integer(i4), dimension(:), allocatable :: indices
+  end type domain_meta
+
+  type(domain_meta), public :: domainMeta
   integer(i4), public :: nBasins ! Number of basins for multi-basin optimization
   integer(i4), public :: nuniquel0Basins ! Number of unique basins for L0
 

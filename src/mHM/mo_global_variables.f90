@@ -24,7 +24,7 @@ MODULE mo_global_variables
   !           Rohini Kumar,       Aug 2013 - name changed from "L0_LAI" to "L0_LCover_LAI"
   !           Rohini Kumar,       Aug 2013 - added dirSoil_LUT and dirGeology_LUT
   !           Luis Samaniego,     Nov 2013 - documentation of dimensions
-  !           Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in basin
+  !           Matthias Zink,      Nov 2013 - added "InflowGauge" and inflow gauge variabels in Domain
   !           Rohini Kumar,       May 2014 - added options for the model run cordinate system
   !           Stephan Thober,     Jun 2014 - added timeStep_model_inputs and readPer
   !           Stephan Thober,     Jun 2014 - added perform_mpr, updated restart flags
@@ -32,7 +32,7 @@ MODULE mo_global_variables
   !           Matthias Zink,      Dec 2014 - adopted inflow gauges to ignore headwater cells
   !           Matthias Zink,      Mar 2015 - added optional soil mositure readin: dirSoil_moisture, L1_sm
   !           Stephan Thober,     Aug 2015 - moved routing related variables to mRM
-  !           Oldrich Rakovec,    Oct 2015 - added definition of basin averaged TWS data
+  !           Oldrich Rakovec,    Oct 2015 - added definition of Domain averaged TWS data
   !           Rohini Kumar,       Mar 2016 - new variables for handling different soil databases
   !           Johann Brenner,     Feb 2017 - added optional evapotranspiration readin: dirEvapotranspiration, L1_et
   !           Zink M. Demirel C., Mar 2017 - added Jarvis soil water stress variable for SM process(3) 
@@ -67,7 +67,7 @@ MODULE mo_global_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirPrecipitation   ! Directory where precipitation files are located
   character(256), dimension(:), allocatable, public :: dirTemperature     ! Directory where temperature files are located
   character(256), dimension(:), allocatable, public :: dirMinTemperature  ! Directory where minimum temp. files are located
@@ -87,7 +87,7 @@ MODULE mo_global_variables
   integer(i4), public, parameter :: routingStates = 2  ! [-]   Routing states (2=current, 1=past)
 
   ! ------------------------------------------------------------------
-  ! BASIN AVERAGED TOTAL WATER STORAGE DATA
+  ! Domain AVERAGED TOTAL WATER STORAGE DATA
   ! ------------------------------------------------------------------
   type TWSstructure
     integer(i4), dimension(:), allocatable :: basinId            ! Basin Id

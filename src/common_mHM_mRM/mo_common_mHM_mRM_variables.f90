@@ -48,7 +48,7 @@ module mo_common_mHM_mRM_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirRestartIn! Directory where input of restart is read from
 
   ! -------------------------------------------------------------------

@@ -203,7 +203,7 @@ CONTAINS
   FUNCTION objective_sm_kge_catchment_avg(parameterset, eval)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
@@ -219,7 +219,7 @@ CONTAINS
     real(dp) :: objective_sm_kge_catchment_avg
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! time loop counter
     integer(i4) :: iTime
@@ -259,12 +259,12 @@ CONTAINS
     objective_sm_kge_catchment_avg = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! get basin information
-      ncells1 = level1(iBasin)%ncells
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      ncells1 = level1(iDomain)%ncells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times             (size(sm_opti, dim = 2)))
@@ -301,9 +301,9 @@ CONTAINS
 
 
       ! calculate average soil moisture KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
-              ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / real(nBasins, dp))**6
+              ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / real(domainMeta%nDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -364,7 +364,7 @@ CONTAINS
 
   FUNCTION objective_sm_corr(parameterset, eval)
 
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_moment, only : correlation
@@ -378,8 +378,8 @@ CONTAINS
 
     real(dp) :: objective_sm_corr
 
-    ! basin loop counter
-    integer(i4) :: iBasin
+    ! domain loop counter
+    integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
@@ -409,14 +409,14 @@ CONTAINS
     objective_sm_corr = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_corr_basin = 0.0_dp
       ! get basin information
-      ncells1 = level1(iBasin)%ncells
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      ncells1 = level1(iDomain)%ncells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       invalid_cells = 0.0_dp
       ! temporal correlation is calculated on individual gridd cells
@@ -441,9 +441,9 @@ CONTAINS
 
 
       ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_sm_corr = objective_sm_corr + &
-              ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(nBasins, dp))**6
+              ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
     end do
 
     objective_sm_corr = objective_sm_corr**onesixth
@@ -500,7 +500,7 @@ CONTAINS
   FUNCTION objective_sm_pd(parameterset, eval)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_spatialsimilarity, only : PD
@@ -516,7 +516,7 @@ CONTAINS
     real(dp) :: objective_sm_pd
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! time loop counter
     integer(i4) :: iTime
@@ -556,14 +556,14 @@ CONTAINS
     objective_sm_pd = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! get basin information
-      mask1 = level1(iBasin)%mask
-      ncols1 = level1(iBasin)%ncols
-      nrows1 = level1(iBasin)%nrows
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      mask1 = level1(iDomain)%mask
+      ncols1 = level1(iDomain)%ncols
+      nrows1 = level1(iDomain)%nrows
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times    (size(sm_opti, dim = 2)))
@@ -585,9 +585,9 @@ CONTAINS
       end do
 
       if (count(mask_times) > 0_i4) then
-        ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(nBasin,dp))**6
+        ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
         objective_sm_pd = objective_sm_pd + &
-                ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / real(nBasins, dp))**6
+                ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / real(domainMeta%nDomains, dp))**6
       else
         call message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
         stop
@@ -652,7 +652,7 @@ CONTAINS
 
   FUNCTION objective_sm_sse_standard_score(parameterset, eval)
 
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : SSE
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
@@ -668,7 +668,7 @@ CONTAINS
     real(dp) :: objective_sm_sse_standard_score
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
@@ -698,14 +698,14 @@ CONTAINS
     objective_sm_sse_standard_score = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_sse_standard_score_basin = 0.0_dp
       ! get basin information
-      nCells1 = level1(iBasin)%nCells
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      nCells1 = level1(iDomain)%nCells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       invalid_cells = 0.0_dp
       ! standard_score signal is calculated on individual grid cells
@@ -730,9 +730,9 @@ CONTAINS
       end if
 
       ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_sm_sse_standard_score = objective_sm_sse_standard_score + &
-              (objective_sm_sse_standard_score_basin / real(nBasins, dp))**6
+              (objective_sm_sse_standard_score_basin / real(domainMeta%nDomains, dp))**6
     end do
 
     objective_sm_sse_standard_score = objective_sm_sse_standard_score**onesixth
@@ -773,7 +773,7 @@ CONTAINS
 
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : nBasins
+    use mo_common_variables, only : domainMeta
     use mo_errormeasures, only : rmse
     use mo_julian, only : caldat
     use mo_message, only : message
@@ -803,11 +803,11 @@ CONTAINS
     real(dp), allocatable, dimension(:, :) :: tws
 
     ! basin counter, month counters
-    integer(i4) :: ii, pp, mmm
+    integer(i4) :: domainID, iDomain, pp, mmm
 
     integer(i4) :: year, month, day
 
-    real(dp), dimension(nBasins) :: initTime
+    real(dp), dimension(domainMeta%nDomains) :: initTime
 
     ! simulated tws
     real(dp), dimension(:), allocatable :: tws_sim
@@ -832,7 +832,7 @@ CONTAINS
 
     logical, DIMENSION(:), allocatable :: tws_obs_m_mask
 
-    ! rmse_tws(nBasins)
+    ! rmse_tws(domainMeta%nDomains)
     real(dp), dimension(:), allocatable :: rmse_tws
 
     ! obj. functions
@@ -865,25 +865,26 @@ CONTAINS
     !--------------------------------------------
 
     ! allocate
-    allocate(rmse_tws(nBasins))
+    allocate(rmse_tws(domainMeta%nDomains))
     rmse_tws(:) = nodata_dp
 
-    do ii = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
       ! extract tws the same way as runoff using mrm
-      call extract_basin_avg_tws(ii, tws, tws_sim, tws_obs, tws_obs_mask)
+      call extract_basin_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
 
       ! check for potentially 2 years of data
       if (count(tws_obs_mask) .lt.  365 * 2) then
-        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(ii))), &
+        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(domainID))), &
                 ' less than 2 years: this is not recommended')
       end if
 
       ! get initial time of the evaluation period
-      initTime(ii) = real(evalPer(ii)%julStart, dp)
+      initTime(iDomain) = real(evalPer(iDomain)%julStart, dp)
 
       ! get calendar days, months, year
-      call caldat(int(initTime(ii)), yy = year, mm = month, dd = day)
+      call caldat(int(initTime(iDomain)), yy = year, mm = month, dd = day)
 
       ! calculate monthly averages from daily values of the model
       call day2mon_average(tws_sim, year, month, day, tws_sim_m, misval = nodata_dp)
@@ -924,7 +925,7 @@ CONTAINS
       ! calculate standard score
       tws_obs_m_anom = classified_standard_score(tws_obs_m, month_classes, mask = tws_obs_m_mask)
       tws_sim_m_anom = classified_standard_score(tws_sim_m, month_classes, mask = tws_obs_m_mask)
-      rmse_tws(ii) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_m_mask)
+      rmse_tws(iDomain) = rmse(tws_sim_m_anom, tws_obs_m_anom, mask = tws_obs_m_mask)
 
       deallocate (month_classes)
       deallocate (tws_obs_m)
@@ -957,7 +958,7 @@ CONTAINS
       ! check for potentially 2 years of data
       pp = count(runoff_agg .ge. 0.0_dp)
       if (pp .lt.  365 * 2) then
-        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(ii))), &
+        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(domainID))), &
         ' less than 2 years: this is not recommended')
       end if
       ! calculate KGE for each basin:
@@ -1031,7 +1032,7 @@ CONTAINS
   FUNCTION objective_neutrons_kge_catchment_avg(parameterset, eval)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_neutronsdata, L1_neutronsdata_mask
     use mo_message, only : message
@@ -1047,7 +1048,7 @@ CONTAINS
     real(dp) :: objective_neutrons_kge_catchment_avg
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! time loop counter
     integer(i4) :: iTime
@@ -1078,11 +1079,11 @@ CONTAINS
     objective_neutrons_kge_catchment_avg = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! get basin information
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times             (size(neutrons_opti, dim = 2)))
@@ -1110,9 +1111,10 @@ CONTAINS
       end do
 
       ! calculate average neutrons KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg + &
-              ((1.0_dp - KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask = mask_times)) / real(nBasins, dp))**6
+        ((1.0_dp - KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask = mask_times)) / &
+                                                                      real(domainMeta%nDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -1175,7 +1177,7 @@ CONTAINS
   FUNCTION objective_et_kge_catchment_avg(parameterset, eval)
 
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : KGE
     use mo_global_variables, only : L1_et, L1_et_mask
     use mo_message, only : message
@@ -1191,7 +1193,7 @@ CONTAINS
     real(dp) :: objective_et_kge_catchment_avg
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) ::iDomain
 
     ! time loop counter
     integer(i4) :: iTime
@@ -1222,11 +1224,11 @@ CONTAINS
     objective_et_kge_catchment_avg = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! get basin information
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times             (size(et_opti, dim = 2)))
@@ -1255,10 +1257,10 @@ CONTAINS
       end do
 
       ! calculate average ET KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
 
       objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
-              ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / real(nBasins, dp))**6
+              ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / real(domainMeta%nDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -1302,7 +1304,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_sm_corr(parameterset, eval)
 
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_global_variables, only : L1_sm, L1_sm_mask
     use mo_message, only : message
     use mo_moment, only : correlation
@@ -1332,7 +1334,7 @@ CONTAINS
     real(dp), allocatable, dimension(:, :) :: runoff
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
@@ -1379,14 +1381,14 @@ CONTAINS
     objective_sm = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_basin = 0.0_dp
       ! get basin information
-      nCells1 = level1(iBasin)%nCells
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      nCells1 = level1(iDomain)%nCells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
 
       ! correlation signal is calculated on individual grid cells
@@ -1412,9 +1414,9 @@ CONTAINS
       end if
 
       ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_sm = objective_sm + &
-              ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(nBasins, dp))**6
+              ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -1487,7 +1489,7 @@ CONTAINS
 
   FUNCTION objective_kge_q_et(parameterset, eval)
 
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : kge
     use mo_global_variables, only : L1_et, L1_et_mask
     use mo_message, only : message
@@ -1516,7 +1518,7 @@ CONTAINS
     real(dp), allocatable, dimension(:, :) :: runoff
 
     ! basin loop counter
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
@@ -1563,14 +1565,14 @@ CONTAINS
     objective_et = 0.0_dp
 
     ! loop over basin - for applying power law later on
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_et_basin = 0.0_dp
       ! get basin information
-      nCells1 = level1(iBasin)%nCells
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      nCells1 = level1(iDomain)%nCells
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
 
       ! correlation signal is calculated on individual grid cells
@@ -1596,9 +1598,9 @@ CONTAINS
       end if
 
       ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(nBasin,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
       objective_et = objective_et + &
-              ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(nBasins, dp))**6
+              ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -1670,7 +1672,7 @@ CONTAINS
 
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer
-    use mo_common_variables, only : level1, nBasins
+    use mo_common_variables, only : level1, domainMeta
     use mo_errormeasures, only : rmse
     use mo_global_variables, only : L1_et, L1_et_mask, timeStep_et_input
     use mo_julian, only : caldat
@@ -1707,11 +1709,11 @@ CONTAINS
     integer(i4) :: s1, e1
 
     ! basin counter, month counters
-    integer(i4) :: iBasin, pp, mmm
+    integer(i4) :: iDomain, pp, mmm
 
     integer(i4) :: year, month, day
 
-    real(dp), dimension(nBasins) :: initTime
+    real(dp), dimension(domainMeta%nDomains) :: initTime
 
     ! total number of months
     integer(i4) :: nMonths
@@ -1747,7 +1749,7 @@ CONTAINS
     logical, dimension(:), allocatable :: mask_times
 
 #ifdef MRM2MHM
-    ! rmse_et(nBasins)
+    ! rmse_et(domainMeta%nDomains)
     real(dp), dimension(:), allocatable :: kge_q
 
     ! gauges counter
@@ -1775,13 +1777,13 @@ CONTAINS
     !--------------------------------------------
 
     ! allocate
-    allocate(rmse_et(nBasins))
+    allocate(rmse_et(domainMeta%nDomains))
     rmse_et(:) = nodata_dp
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
       ! get basin info
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
 
       ! allocate
       allocate(mask_times             (size(et_opti, dim = 2)))
@@ -1810,10 +1812,10 @@ CONTAINS
       end do
 
       ! get initial time of the evaluation period
-      initTime(iBasin) = real(evalPer(iBasin)%julStart, dp)
+      initTime(iDomain) = real(evalPer(iDomain)%julStart, dp)
 
       ! get calendar days, months, year
-      call caldat(int(initTime(iBasin)), yy = year, mm = month, dd = day)
+      call caldat(int(initTime(iDomain)), yy = year, mm = month, dd = day)
 
       ! if evapotranspiration input daily
       select case(timeStep_et_input)
@@ -1872,7 +1874,7 @@ CONTAINS
       ! calculate standard score
       et_obs_m_anom = classified_standard_score(et_obs_m, month_classes, mask = et_obs_m_mask)
       et_sim_m_anom = classified_standard_score(et_sim_m, month_classes, mask = et_obs_m_mask)
-      rmse_et(iBasin) = rmse(et_sim_m_anom, et_obs_m_anom, mask = et_obs_m_mask)
+      rmse_et(iDomain) = rmse(et_sim_m_anom, et_obs_m_anom, mask = et_obs_m_mask)
 
       deallocate (month_classes)
       deallocate (et_obs_m)

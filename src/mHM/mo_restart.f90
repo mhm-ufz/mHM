@@ -325,7 +325,7 @@ CONTAINS
   ! Stephan Thober Nov  2016 - moved processMatrix to common variables
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_restart_states(iBasin, InPath)
+  subroutine read_restart_states(iBasin, domainID, InPath)
 
     use mo_common_variables, only : LC_year_end, LC_year_start, level1, nLCoverScene, processMatrix
     use mo_global_variables, only : L1_Inter, L1_Throughfall, L1_aETCanopy, &
@@ -347,6 +347,8 @@ CONTAINS
 
     ! number of basin
     integer(i4), intent(in) :: iBasin
+
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InPath
@@ -381,7 +383,7 @@ CONTAINS
     type(NcDimension) :: nc_dim
 
 
-    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc'
+    Fname = trim(InPath) // 'mHM_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc'
     ! call message('    Reading states from ', trim(adjustl(Fname)),' ...')
 
     ! get basin information at level 1

@@ -10,7 +10,7 @@ module mo_optimization_utils
       real(dp), dimension(:), intent(in) :: parameterset
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
+      real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nDomains
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
     end subroutine

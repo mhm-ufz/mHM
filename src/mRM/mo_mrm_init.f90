@@ -68,7 +68,7 @@ CONTAINS
                                             resolutionRouting
     use mo_common_read_config, only : common_read_config
     use mo_common_restart, only : read_grid_info
-    use mo_common_variables, only : L0_Basin, global_parameters, l0_l1_remap, level0, level1, nBasins, &
+    use mo_common_variables, only : L0_Basin, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_basin_indices
     use mo_kind, only : i4
@@ -96,7 +96,7 @@ CONTAINS
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
 
-    integer(i4) :: iBasin, gauge_counter
+    integer(i4) :: domainID, iDomain, gauge_counter
 
     logical :: ReadLatLon
 
@@ -120,8 +120,8 @@ CONTAINS
     ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
     if (mrm_coupling_mode .eq. 0_i4) then
       call check_optimization_settings()
-      allocate(l0_l1_remap(nBasins))
-      allocate(level1(nBasins))
+      allocate(l0_l1_remap(domainMeta%nDomains))
+      allocate(level1(domainMeta%nDomains))
       !-----------------------------------------------------------
       ! CONFIG OUTPUT
       !-----------------------------------------------------------
@@ -131,9 +131,9 @@ CONTAINS
     ! ----------------------------------------------------------
     ! READ DATA
     ! ----------------------------------------------------------
-    allocate(level11(nBasins))
-    allocate(l0_l11_remap(nBasins))
-    allocate(l1_l11_remap(nBasins))
+    allocate(level11(domainMeta%nDomains))
+    allocate(l0_l11_remap(domainMeta%nDomains))
+    allocate(l1_l11_remap(domainMeta%nDomains))
 
     if (.not. read_restart) then
       ! read all (still) necessary level 0 data
@@ -142,49 +142,51 @@ CONTAINS
       if (processMatrix(8, 1) .eq. 3_i4) call mrm_read_L0_data(mrm_coupling_mode .eq. 0_i4, ReadLatLon, .false.)
     end if
 
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
       if (read_restart) then
-        ! this reads the basin properties
-        if (.not. allocated(level0)) allocate(level0(nBasins)) 
-        call read_grid_info(L0_Basin(iBasin), dirRestartIn(iBasin), "0", "mRM", level0(L0_Basin(iBasin)))
+        ! this reads the domain properties
+        if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
+        ! ToDo: L0_Basin, parallel
+        call read_grid_info(domainMeta%indices(L0_Basin(iDomain)), dirRestartIn(iDomain), "0", "mRM", level0(L0_Basin(iDomain)))
         if (mrm_coupling_mode .eq. 0_i4) then
-          call read_grid_info(iBasin, dirRestartIn(iBasin), "1", "mRM", level1(iBasin))
+          call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mRM", level1(iDomain))
         end if
-        call read_grid_info(iBasin, dirRestartIn(iBasin), "11", "mRM", level11(iBasin))
-        call mrm_read_restart_config(iBasin, dirRestartIn(iBasin))
+        call read_grid_info(domainID, dirRestartIn(iDomain), "11", "mRM", level11(iDomain))
+        call mrm_read_restart_config(iDomain, dirRestartIn(iDomain))
       else
-        if (iBasin .eq. 1) then
-          call L0_check_input_routing(L0_Basin(iBasin))
+        if (iDomain .eq. 1) then
+          call L0_check_input_routing(L0_Basin(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iBasin)))
+            call L0_grid_setup(level0(L0_Basin(iDomain)))
           end if
-        else if ((L0_Basin(iBasin) .ne. L0_Basin(iBasin - 1))) then
-          call L0_check_input_routing(L0_Basin(iBasin))
+        else if ((L0_Basin(iDomain) .ne. L0_Basin(iDomain - 1))) then
+          call L0_check_input_routing(L0_Basin(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iBasin)))
+            call L0_grid_setup(level0(L0_Basin(iDomain)))
           end if
         end if
 
         if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(L0_Basin(iBasin)), resolutionHydrology(iBasin), &
-                  level1(iBasin), l0_l1_remap(iBasin))
+          call init_lowres_level(level0(L0_Basin(iDomain)), resolutionHydrology(iDomain), &
+                  level1(iDomain), l0_l1_remap(iDomain))
         end if
-        call init_lowres_level(level0(L0_Basin(iBasin)), resolutionRouting(iBasin), &
-                level11(iBasin), l0_l11_remap(iBasin))
-        call init_lowres_level(level1(iBasin), resolutionRouting(iBasin), &
-                level11(iBasin), l1_l11_remap(iBasin))
-        call L11_L1_mapping(iBasin)
+        call init_lowres_level(level0(L0_Basin(iDomain)), resolutionRouting(iDomain), &
+                level11(iDomain), l0_l11_remap(iDomain))
+        call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
+                level11(iDomain), l1_l11_remap(iDomain))
+        call L11_L1_mapping(iDomain)
 
         if (ReadLatLon) then
-          ! read lat lon coordinates of each basin
-          call read_latlon(iBasin, "lon", "lat", "level1", level1(iBasin))
-          call read_latlon(iBasin, "lon_l11", "lat_l11", "level11", level11(iBasin))
+          ! read lat lon coordinates of each domain
+          call read_latlon(iDomain, "lon", "lat", "level1", level1(iDomain))
+          call read_latlon(iDomain, "lon_l11", "lat_l11", "level11", level11(iDomain))
         else
           ! allocate the memory and set to nodata
-          allocate(level11(iBasin)%x(level11(iBasin)%nrows, level11(iBasin)%ncols))
-          allocate(level11(iBasin)%y(level11(iBasin)%nrows, level11(iBasin)%ncols))
-          level11(iBasin)%x = nodata_dp
-          level11(iBasin)%y = nodata_dp
+          allocate(level11(iDomain)%x(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          allocate(level11(iDomain)%y(level11(iDomain)%nrows, level11(iDomain)%ncols))
+          level11(iDomain)%x = nodata_dp
+          level11(iDomain)%y = nodata_dp
         end if
       end if
     end do
@@ -196,40 +198,40 @@ CONTAINS
     ! ----------------------------------------------------------
     ! INITIALIZE STATES AND AUXILLIARY VARIABLES
     ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
-      call variables_alloc_routing(iBasin)
+    do iDomain = 1, domainMeta%nDomains
+      call variables_alloc_routing(iDomain)
     end do
 
     ! ----------------------------------------------------------
     ! INITIALIZE STREAM NETWORK
     ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
       if (.not. read_restart) then
-        call L11_flow_direction(iBasin)
-        call L11_flow_accumulation(iBasin)
-        call L11_set_network_topology(iBasin)
-        call L11_routing_order(iBasin)
-        call L11_link_location(iBasin)
-        call L11_set_drain_outlet_gauges(iBasin)
+        call L11_flow_direction(iDomain)
+        call L11_flow_accumulation(iDomain)
+        call L11_set_network_topology(iDomain)
+        call L11_routing_order(iDomain)
+        call L11_link_location(iDomain)
+        call L11_set_drain_outlet_gauges(iDomain)
         ! stream characteristics
-        call L11_stream_features(iBasin)
+        call L11_stream_features(iDomain)
       end if
     end do
 
     ! ----------------------------------------------------------
     ! INITIALIZE PARAMETERS
     ! ----------------------------------------------------------
-    do iBasin = 1, nBasins
+    do iDomain = 1, domainMeta%nDomains
       iStart = processMatrix(8, 3) - processMatrix(8, 2) + 1
       iEnd = processMatrix(8, 3)
-      call mrm_init_param(iBasin, global_parameters(iStart : iEnd, 3))
+      call mrm_init_param(iDomain, global_parameters(iStart : iEnd, 3))
     end do
 
     ! check whether there are gauges within the modelling domain
     if (allocated(basin_mrm)) then
       gauge_counter = 0
-      do iBasin = 1, nBasins
-        if (.not. all(basin_mrm(iBasin)%gaugeNodeList .eq. nodata_i4)) then
+      do iDomain = 1, domainMeta%nDomains
+        if (.not. all(basin_mrm(iDomain)%gaugeNodeList .eq. nodata_i4)) then
           gauge_counter = gauge_counter + 1
         end if
       end do
@@ -251,18 +253,18 @@ CONTAINS
     ! -------------------------------------------------------
     ! read simulated runoff at level 1
     if (mrm_coupling_mode .eq. 0_i4) then
-      do iBasin = 1, nBasins
-        call mrm_read_total_runoff(iBasin)
+      do iDomain = 1, domainMeta%nDomains
+        call mrm_read_total_runoff(iDomain)
       end do
     end if
     ! discharge data
     call mrm_read_discharge()
 
     if (gw_coupling) then
-        do iBasin = 1, nBasins
-            call init_masked_zeros_l0(iBasin, L0_river_head_mon_sum)
-            call mrm_read_bankfull_runoff(iBasin)
-            call create_output(iBasin, dirOut(iBasin))
+        do iDomain = 1, domainMeta%nDomains
+            call init_masked_zeros_l0(iDomain, L0_river_head_mon_sum)
+            call mrm_read_bankfull_runoff(iDomain)
+            call create_output(iDomain, dirOut(iDomain))
         end do
         call calc_channel_elevation()
     end if
@@ -358,7 +360,7 @@ CONTAINS
 
   subroutine config_output
 
-    use mo_common_variables, only : dirLCover, dirMorpho, dirOut, nBasins
+    use mo_common_variables, only : dirLCover, dirMorpho, dirOut, domainMeta
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
@@ -368,7 +370,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4) :: iBasin
+    integer(i4) :: domainID, iDomain
 
     integer(i4) :: jj
 
@@ -380,27 +382,28 @@ CONTAINS
     call message('Read namelist file: ', trim(file_defOutput), ' (if it is given)')
 
     call message()
-    call message('  # of basins:         ', trim(num2str(nbasins)))
+    call message('  # of domains:         ', trim(num2str(domainMeta%nDomains)))
     call message()
     call message('  Input data directories:')
-    do iBasin = 1, nbasins
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
       call message('  --------------')
-      call message('      BASIN                   ', num2str(iBasin, '(I3)'))
+      call message('      DOMAIN                   ', num2str(domainID, '(I3)'))
       call message('  --------------')
-      call message('    Morphological directory:    ', trim(dirMorpho(iBasin)))
-      call message('    Land cover directory:       ', trim(dirLCover(iBasin)))
-      call message('    Discharge directory:        ', trim(dirGauges(iBasin)))
-      call message('    Output directory:           ', trim(dirOut(iBasin)))
+      call message('    Morphological directory:    ', trim(dirMorpho(iDomain)))
+      call message('    Land cover directory:       ', trim(dirLCover(iDomain)))
+      call message('    Discharge directory:        ', trim(dirGauges(iDomain)))
+      call message('    Output directory:           ', trim(dirOut(iDomain)))
       call message('    Evaluation gauge            ', 'ID')
-      do jj = 1, basin_mrm(iBasin)%nGauges
+      do jj = 1, basin_mrm(iDomain)%nGauges
         call message('    ', trim(adjustl(num2str(jj))), '                           ', &
-                trim(adjustl(num2str(basin_mrm(iBasin)%gaugeIdList(jj)))))
+                trim(adjustl(num2str(basin_mrm(iDomain)%gaugeIdList(jj)))))
       end do
-      if (basin_mrm(iBasin)%nInflowGauges .GT. 0) then
+      if (basin_mrm(iDomain)%nInflowGauges .GT. 0) then
         call message('    Inflow gauge              ', 'ID')
-        do jj = 1, basin_mrm(iBasin)%nInflowGauges
+        do jj = 1, basin_mrm(iDomain)%nInflowGauges
           call message('    ', trim(adjustl(num2str(jj))), '                         ', &
-                  trim(adjustl(num2str(basin_mrm(iBasin)%InflowGaugeIdList(jj)))))
+                  trim(adjustl(num2str(basin_mrm(iDomain)%InflowGaugeIdList(jj)))))
         end do
       end if
     end do
@@ -510,14 +513,14 @@ CONTAINS
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Basin_iBasin, '(I5)'))
-        call message(' Error: flow direction has missing value within the valid masked area at cell in basin ', &
+        call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Basin_iBasin, '(I5)'))
-        call message(' Error: flow accumulation has missing values within the valid masked area at cell in basin ', &
+        call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -539,7 +542,7 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"
+  !>       \param[in] "integer(i4) :: iDomain"
 
   !    HISTORY
   !>       \authors Robert Schweppe
@@ -548,7 +551,7 @@ CONTAINS
 
   ! Modifications:
 
-  subroutine variables_alloc_routing(iBasin)
+  subroutine variables_alloc_routing(iDomain)
 
     use mo_append, only : append
     use mo_kind, only : dp, i4
@@ -560,7 +563,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     real(dp), dimension(:), allocatable :: dummy_Vector11
 
@@ -568,8 +571,8 @@ CONTAINS
 
 
     ! dummy vector and matrix
-    allocate(dummy_Vector11   (level11(iBasin)%nCells))
-    allocate(dummy_Matrix11_IT(level11(iBasin)%nCells, nRoutingStates))
+    allocate(dummy_Vector11   (level11(iDomain)%nCells))
+    allocate(dummy_Matrix11_IT(level11(iDomain)%nCells, nRoutingStates))
 
     ! simulated discharge at each node
     dummy_Vector11(:) = 0.0_dp
@@ -609,7 +612,7 @@ CONTAINS
 
     ! celerity at level 0
     if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
-    allocate(dummy_Vector11(level0(L0_Basin(iBasin))%ncells))
+    allocate(dummy_Vector11(level0(L0_Basin(iDomain))%ncells))
     dummy_Vector11(:) = 0.0_dp
     call append(L0_celerity, dummy_Vector11)
 

@@ -40,7 +40,7 @@ module mo_mrm_global_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirGauges ! Directory where discharge files are located
   character(256), dimension(:), allocatable, public :: dirTotalRunoff ! Directory where simulated total runoff files are located
   character(256), public :: filenameTotalRunoff ! Filename of simulated total runoff file

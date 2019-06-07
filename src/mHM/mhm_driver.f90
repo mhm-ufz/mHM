@@ -103,6 +103,8 @@ PROGRAM mhm_driver
           dirMorpho, dirLCover, &                                         ! directories
           dirOut, &      ! directories
           nbasins, &      ! number of basins
+          domainMeta, &
+          comm, &
           processMatrix, &      ! basin information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
   USE mo_kind, ONLY : i4, dp                         ! number precision
@@ -144,7 +146,7 @@ PROGRAM mhm_driver
   ! local
   integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
-  integer(i4) :: iBasin               ! Counters
+  integer(i4) :: domainID, iDomain               ! Counters
   integer(i4) :: iTimer           ! Current timer number
   integer(i4) :: nTimeSteps
   real(dp) :: funcbest         ! best objective function achivied during optimization
@@ -156,7 +158,6 @@ PROGRAM mhm_driver
   integer             :: ierror
   integer(i4)         :: nproc
   integer(i4)         :: rank
-  type(MPI_Comm)      :: comm                ! MPI communicator
 
 ! Initialize MPI
   call MPI_Init(ierror)
@@ -211,28 +212,29 @@ PROGRAM mhm_driver
   call message('# of basins:         ', trim(num2str(nbasins)))
   call message()
   call message('  Input data directories:')
-  do iBasin = 1, nbasins
+  do iDomain = 1, domainMeta%nDomains
+    domainID = domainMeta%indices(iDomain)
     call message('  --------------')
-    call message('      BASIN                   ', num2str(iBasin, '(I3)'))
+    call message('      DOMAIN                  ', num2str(domainID, '(I3)'))
     call message('  --------------')
-    call message('    Morphological directory:    ', trim(dirMorpho(iBasin)))
-    call message('    Land cover directory:       ', trim(dirLCover(iBasin)))
-    call message('    Precipitation directory:    ', trim(dirPrecipitation(iBasin)))
-    call message('    Temperature directory:      ', trim(dirTemperature(iBasin)))
+    call message('    Morphological directory:    ', trim(dirMorpho(iDomain)))
+    call message('    Land cover directory:       ', trim(dirLCover(iDomain)))
+    call message('    Precipitation directory:    ', trim(dirPrecipitation(iDomain)))
+    call message('    Temperature directory:      ', trim(dirTemperature(iDomain)))
     select case (processMatrix(5, 1))
     case(-1 : 0) ! PET is input
-      call message('    PET directory:              ', trim(dirReferenceET(iBasin)))
+      call message('    PET directory:              ', trim(dirReferenceET(iDomain)))
     case(1) ! Hargreaves-Samani
-      call message('    Min. temperature directory: ', trim(dirMinTemperature(iBasin)))
-      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iBasin)))
+      call message('    Min. temperature directory: ', trim(dirMinTemperature(iDomain)))
+      call message('    Max. temperature directory: ', trim(dirMaxTemperature(iDomain)))
     case(2) ! Priestely-Taylor
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
     case(3) ! Penman-Monteith
-      call message('    Net radiation directory:    ', trim(dirNetRadiation(iBasin)))
-      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iBasin)))
-      call message('    Windspeed directory:        ', trim(dirwindspeed(iBasin)))
+      call message('    Net radiation directory:    ', trim(dirNetRadiation(iDomain)))
+      call message('    Abs. vap. press. directory: ', trim(dirabsVapPressure(iDomain)))
+      call message('    Windspeed directory:        ', trim(dirwindspeed(iDomain)))
     end select
-    call message('    Output directory:           ', trim(dirOut(iBasin)))
+    call message('    Output directory:           ', trim(dirOut(iDomain)))
 
     call message('')
   end do
@@ -266,11 +268,12 @@ PROGRAM mhm_driver
   call message('  Read forcing and optional data ...')
   call timer_start(itimer)
 
-  do iBasin = 1, nbasins
+  do iDomain = 1, domainMeta%nDomains
+    domainID = domainMeta%indices(iDomain)
     ! read meteorology now, if optimization is switched on
     ! meteorological forcings (reading, upscaling or downscaling)
-    if (timestep_model_inputs(iBasin) .eq. 0_i4) then
-      call prepare_meteo_forcings_data(iBasin, 1)
+    if (timestep_model_inputs(iDomain) .eq. 0_i4) then
+      call prepare_meteo_forcings_data(iDomain, domainID, 1)
     end if
 
     ! read optional optional data if necessary
@@ -278,18 +281,18 @@ PROGRAM mhm_driver
       select case (opti_function)
       case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
-        call read_soil_moisture(iBasin)
+        call read_soil_moisture(iDomain)
       case(17)
         ! read optional spatio-temporal neutrons data
-        call read_neutrons(iBasin)
+        call read_neutrons(iDomain)
       case(27, 29, 30)
         ! read optional spatio-temporal evapotranspiration data
-        call read_evapotranspiration(iBasin)
+        call read_evapotranspiration(iDomain)
       case(15)
         ! read optional basin average TWS data at once, therefore only read it
         ! the last iteration of the basin loop to ensure same time for all basins
         ! note: this is similar to how the runoff is read using mrm below
-        if (iBasin == nbasins) then
+        if (iDomain == nbasins) then
           call read_basin_avg_TWS()
         end if
       end select
@@ -391,7 +394,7 @@ PROGRAM mhm_driver
   ! call timer_stop(itimer)
   ! call message('    in ', trim(num2str(timer_get(itimer),'(F9.3)')), ' seconds.')
 
-  nTimeSteps = maxval(simPer(1 : nBasins)%julEnd - simPer(1 : nBasins)%julStart + 1) * nTstepDay
+  nTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
   call date_and_time(values = datetime)
   call message()
   message_text = 'Done ' // trim(num2str(nTimeSteps, '(I10)')) // " time steps."

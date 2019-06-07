@@ -91,7 +91,7 @@ CONTAINS
     use mo_common_constants, only : maxNoBasins, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
-    use mo_common_variables, only : nBasins, processMatrix
+    use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
     use mo_global_variables, only : basin_avg_TWS_obs, dirEvapotranspiration, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
@@ -112,7 +112,7 @@ CONTAINS
 
     integer, intent(in) :: unamelist
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
     integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
 
@@ -173,19 +173,19 @@ CONTAINS
     !===============================================================
     call open_nml(file_namelist, unamelist, quiet = .true.)
 
-    allocate(dirPrecipitation(nBasins))
-    allocate(dirTemperature(nBasins))
-    allocate(dirwindspeed(nBasins))
-    allocate(dirabsVapPressure(nBasins))
-    allocate(dirReferenceET(nBasins))
-    allocate(dirMinTemperature(nBasins))
-    allocate(dirMaxTemperature(nBasins))
-    allocate(dirNetRadiation(nBasins))
-    allocate(dirSoil_Moisture(nBasins))
-    allocate(dirNeutrons(nBasins))
-    allocate(fileTWS(nBasins))
+    allocate(dirPrecipitation(domainMeta%nDomains))
+    allocate(dirTemperature(domainMeta%nDomains))
+    allocate(dirwindspeed(domainMeta%nDomains))
+    allocate(dirabsVapPressure(domainMeta%nDomains))
+    allocate(dirReferenceET(domainMeta%nDomains))
+    allocate(dirMinTemperature(domainMeta%nDomains))
+    allocate(dirMaxTemperature(domainMeta%nDomains))
+    allocate(dirNetRadiation(domainMeta%nDomains))
+    allocate(dirSoil_Moisture(domainMeta%nDomains))
+    allocate(dirNeutrons(domainMeta%nDomains))
+    allocate(fileTWS(domainMeta%nDomains))
     ! allocate time periods
-    allocate(timestep_model_inputs(nBasins))
+    allocate(timestep_model_inputs(domainMeta%nDomains))
 
     !===============================================================
     !  Read namelist for mainpaths
@@ -193,15 +193,19 @@ CONTAINS
     call position_nml('directories_mHM', unamelist)
     read(unamelist, nml = directories_mHM)
 
-    dirPrecipitation = dir_Precipitation(1 : nBasins)
-    dirTemperature = dir_Temperature(1 : nBasins)
-    dirReferenceET = dir_ReferenceET(1 : nBasins)
-    dirMinTemperature = dir_MinTemperature(1 : nBasins)
-    dirMaxTemperature = dir_MaxTemperature(1 : nBasins)
-    dirNetRadiation = dir_NetRadiation(1 : nBasins)
-    dirwindspeed = dir_windspeed(1 : nBasins)
-    dirabsVapPressure = dir_absVapPressure(1 : nBasins)
-    timestep_model_inputs = time_step_model_inputs(1 : nBasins)
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+
+      dirPrecipitation(iDomain) = dir_Precipitation(domainID)
+      dirTemperature(iDomain) = dir_Temperature(domainID)
+      dirReferenceET(iDomain) = dir_ReferenceET(domainID)
+      dirMinTemperature(iDomain) = dir_MinTemperature(domainID)
+      dirMaxTemperature(iDomain) = dir_MaxTemperature(domainID)
+      dirNetRadiation(iDomain) = dir_NetRadiation(domainID)
+      dirwindspeed(iDomain) = dir_windspeed(domainID)
+      dirabsVapPressure(iDomain) = dir_absVapPressure(domainID)
+      timestep_model_inputs(iDomain) = time_step_model_inputs(domainID)
+    end do
 
     ! consistency check for timestep_model_inputs
     if (any(timestep_model_inputs .ne. 0) .and. &
@@ -227,7 +231,10 @@ CONTAINS
         ! soil moisture
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirSoil_moisture = dir_Soil_moisture(1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          dirSoil_moisture(iDomain) = dir_Soil_moisture(domainID)
+        end do
         if (nSoilHorizons_sm_input .GT. nSoilHorizons_mHM) then
           call message()
           call message('***ERROR: Number of soil horizons representative for input soil moisture exceeded')
@@ -238,34 +245,44 @@ CONTAINS
         ! neutrons
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirNeutrons = dir_neutrons(1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          dirNeutrons(iDomain) = dir_neutrons(domainID)
+        end do
         timeStep_neutrons_input = -1 ! TODO: daily, hard-coded, to be flexibilized
       case(27, 29, 30)
         ! evapotranspiration
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        dirEvapotranspiration = dir_evapotranspiration(1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
+        end do
       case(15)
         ! basin average TWS data
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
-        fileTWS = file_TWS (1 : nBasins)
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          fileTWS(iDomain) = file_TWS (domainID)
+        end do
 
-        allocate(basin_avg_TWS_obs%basinId(nBasins)); basin_avg_TWS_obs%basinId = nodata_i4
-        allocate(basin_avg_TWS_obs%fName  (nBasins)); basin_avg_TWS_obs%fName(:) = num2str(nodata_i4)
+        allocate(basin_avg_TWS_obs%basinId(domainMeta%nDomains)); basin_avg_TWS_obs%basinId = nodata_i4
+        allocate(basin_avg_TWS_obs%fName  (domainMeta%nDomains)); basin_avg_TWS_obs%fName(:) = num2str(nodata_i4)
 
-        do iBasin = 1, nBasins
-          if (trim(fileTWS(iBasin)) .EQ. trim(num2str(nodata_i4))) then
+        do iDomain = 1, domainMeta%nDomains
+          domainID = domainMeta%indices(iDomain)
+          if (trim(fileTWS(iDomain)) .EQ. trim(num2str(nodata_i4))) then
             call message()
             call message('***ERROR: mhm.nml: Filename of evaluation TWS data ', &
-                    ' for subbasin ', trim(adjustl(num2str(iBasin))), &
+                    ' for subdomain ', trim(adjustl(num2str(domainID))), &
                     ' is not defined!')
             call message('          Error occured in namelist: evaluation_tws')
             stop 1
           end if
 
-          basin_avg_TWS_obs%basinId(iBasin) = iBasin
-          basin_avg_TWS_obs%fname(iBasin) = trim(file_TWS(iBasin))
+          basin_avg_TWS_obs%basinId(iDomain) = iDomain
+          basin_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
       end select
     end if

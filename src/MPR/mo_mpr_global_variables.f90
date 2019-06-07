@@ -39,7 +39,7 @@ module mo_mpr_global_variables
     integer(i4), dimension(:), allocatable :: id                 !            Soil Id
     integer(i4), dimension(:), allocatable :: nHorizons          !            Number of horizons
     integer(i4), dimension(:), allocatable :: is_present         !            Wether this soil type is present in
-    !                                                                !            this basin or not
+    !                                                                !            this domain or not
     real(dp), dimension(:, :), allocatable :: UD                 ! [mm]       Upper Bound of depth
     real(dp), dimension(:, :), allocatable :: LD                 ! [mm]       Lower Bound of depth
     real(dp), dimension(:, :), allocatable :: clay               ! [%]        Clay content
@@ -110,7 +110,7 @@ module mo_mpr_global_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirgridded_LAI     ! Directory where gridded LAI is located
   ! used when timeStep_LAI_input < 0
 

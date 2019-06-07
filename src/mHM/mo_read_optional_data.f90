@@ -39,7 +39,7 @@ CONTAINS
   !>       read if one of the corresponding objective functions is chosen.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain" Basin Id
 
   !    HISTORY
   !>       \authors Matthias Zink
@@ -49,7 +49,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_soil_moisture(iBasin)
+  subroutine read_soil_moisture(iDomain)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -64,7 +64,7 @@ CONTAINS
     implicit none
 
     ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -92,16 +92,16 @@ CONTAINS
 
 
     ! get basic basin information at level-1
-    nrows1 = level1(iBasin)%nrows
-    ncols1 = level1(iBasin)%ncols
-    ncells1 = level1(iBasin)%ncells
-    mask1 = level1(iBasin)%mask
+    nrows1 = level1(iDomain)%nrows
+    ncols1 = level1(iDomain)%ncols
+    ncells1 = level1(iDomain)%ncells
+    mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(iBasin))), ' ...')
+    call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirSoil_moisture(iBasin), nRows1, nCols1, 'sm', mask1, L1_data, &
-            target_period = evalPer(iBasin), nctimestep = timeStep_sm_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(dirSoil_moisture(iDomain), nRows1, nCols1, 'sm', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = timeStep_sm_input, nocheck = .TRUE., maskout = L1_mask)
     ! pack variables
     nTimeSteps_L1_sm = size(L1_data, 3)
     allocate(L1_data_packed(nCells1, nTimeSteps_L1_sm))
@@ -116,7 +116,7 @@ CONTAINS
     call append(L1_sm_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
 
     ! for multi basin calibration number of time steps may vary for different basins
-    if (iBasin .GT. 1) nTimeSteps_L1_sm = size(L1_sm, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_sm = size(L1_sm, 2)
 
     !free space
     deallocate(L1_data, L1_data_packed)
@@ -150,7 +150,7 @@ CONTAINS
     use mo_append, only : paste
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
-    use mo_common_variables, only : nBasins
+    use mo_common_variables, only : domainMeta
     use mo_file, only : utws
     use mo_global_variables, only : basin_avg_TWS_obs, basin_avg_TWS_sim, nMeasPerDay_TWS
     use mo_message, only : message
@@ -159,7 +159,7 @@ CONTAINS
 
     implicit none
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
     integer(i4) :: maxTimeSteps
 
@@ -176,21 +176,22 @@ CONTAINS
     ! ************************************************
     ! INITIALIZE TWS
     ! ************************************************
-    maxTimeSteps = maxval(simPer(1 : nBasins)%julEnd - simPer(1 : nBasins)%julStart + 1) * nTstepDay
-    allocate(basin_avg_TWS_sim(maxTimeSteps, nBasins))
+    maxTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
+    allocate(basin_avg_TWS_sim(maxTimeSteps, domainMeta%nDomains))
     basin_avg_TWS_sim = nodata_dp
 
     ! ************************************************
     ! READ basin average TWS TIME SERIES
     ! ************************************************
     !
-    do iBasin = 1, nBasins
-      call message('  Reading basin average TWS for basin:     ', trim(adjustl(num2str(iBasin))), ' ...')
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      call message('  Reading basin average TWS for basin:     ', trim(adjustl(num2str(domainID))), ' ...')
 
       ! get start and end dates
-      start_tmp = (/evalPer(iBasin)%yStart, evalPer(iBasin)%mStart, evalPer(iBasin)%dStart/)
-      end_tmp = (/evalPer(iBasin)%yEnd, evalPer(iBasin)%mEnd, evalPer(iBasin)%dEnd  /)
-      fName = trim(adjustl(basin_avg_TWS_obs%fname(iBasin)))
+      start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
+      end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
+      fName = trim(adjustl(basin_avg_TWS_obs%fname(iDomain)))
       call read_timeseries(trim(fName), utws, &
               start_tmp, end_tmp, optimize, opti_function, &
               data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
@@ -216,7 +217,7 @@ CONTAINS
   !>       read if one of the corresponding objective functions is chosen.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain" Basin Id
 
   !    HISTORY
   !>       \authors Martin Schroen
@@ -226,7 +227,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_neutrons(iBasin)
+  subroutine read_neutrons(iDomain)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -243,7 +244,7 @@ CONTAINS
     implicit none
 
     ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -271,16 +272,16 @@ CONTAINS
 
 
     ! get basic basin information at level-1
-    nrows1 = level1(iBasin)%nrows
-    ncols1 = level1(iBasin)%ncols
-    ncells1 = level1(iBasin)%ncells
-    mask1 = level1(iBasin)%mask
+    nrows1 = level1(iDomain)%nrows
+    ncols1 = level1(iDomain)%ncols
+    ncells1 = level1(iDomain)%ncells
+    mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading neutrons for basin:           ', trim(adjustl(num2str(iBasin))), ' ...')
+    call message('  Reading neutrons for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirNeutrons(iBasin), nRows1, nCols1, 'neutrons', mask1, L1_data, &
-            target_period = evalPer(iBasin), nctimestep = timeStep_neutrons_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(dirNeutrons(iDomain), nRows1, nCols1, 'neutrons', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = timeStep_neutrons_input, nocheck = .TRUE., maskout = L1_mask)
     ! pack variables
     nTimeSteps_L1_neutrons = size(L1_data, 3)
     allocate(L1_data_packed(nCells1, nTimeSteps_L1_neutrons))
@@ -295,7 +296,7 @@ CONTAINS
     call append(L1_neutronsdata_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
 
     ! for multi basin calibration number of time steps may vary for different basins
-    if (iBasin .GT. 1) nTimeSteps_L1_neutrons = size(L1_neutronsdata, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_neutrons = size(L1_neutronsdata, 2)
 
     !free space
     deallocate(L1_data, L1_data_packed)
@@ -320,7 +321,7 @@ CONTAINS
   !>       read if one of the corresponding objective functions is chosen.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin" Basin Id
+  !>       \param[in] "integer(i4) :: iDomain" Basin Id
 
   !    HISTORY
   !>       \authors Johannes Brenner
@@ -330,7 +331,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_evapotranspiration(iBasin)
+  subroutine read_evapotranspiration(iDomain)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -346,7 +347,7 @@ CONTAINS
     implicit none
 
     ! Basin Id
-    integer(i4), intent(in) :: iBasin
+    integer(i4), intent(in) :: iDomain
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -374,16 +375,16 @@ CONTAINS
 
 
     ! get basic basin information at level-1
-    nrows1 = level1(iBasin)%nrows
-    ncols1 = level1(iBasin)%ncols
-    ncells1 = level1(iBasin)%ncells
-    mask1 = level1(iBasin)%mask
+    nrows1 = level1(iDomain)%nrows
+    ncols1 = level1(iDomain)%ncols
+    ncells1 = level1(iDomain)%ncells
+    mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading evapotranspiration for basin:           ', trim(adjustl(num2str(iBasin))), ' ...')
+    call message('  Reading evapotranspiration for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
     call timer_start(1)
-    call read_forcing_nc(dirEvapotranspiration(iBasin), nRows1, nCols1, 'et', mask1, L1_data, &
-            target_period = evalPer(iBasin), nctimestep = timeStep_et_input, nocheck = .TRUE., maskout = L1_mask)
+    call read_forcing_nc(dirEvapotranspiration(iDomain), nRows1, nCols1, 'et', mask1, L1_data, &
+            target_period = evalPer(iDomain), nctimestep = timeStep_et_input, nocheck = .TRUE., maskout = L1_mask)
 
     ! pack variables
     nTimeSteps_L1_et = size(L1_data, 3)
@@ -399,7 +400,7 @@ CONTAINS
     call append(L1_et_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
 
     ! for multi basin calibration number of time steps may vary for different basins
-    if (iBasin .GT. 1) nTimeSteps_L1_et = size(L1_et, 2)
+    if (iDomain .GT. 1) nTimeSteps_L1_et = size(L1_et, 2)
 
     !free space
     deallocate(L1_data, L1_data_packed)
