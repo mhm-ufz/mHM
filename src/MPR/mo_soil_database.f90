@@ -277,6 +277,21 @@ CONTAINS
 
       ! soil database for the horizon specific case
     CASE(1)
+
+      allocate(soilDB%RZdepth(1))
+      allocate(soilDB%UD(1, 1))
+      allocate(soilDB%LD(1, 1))
+      allocate(soilDB%depth(1, 1))
+      allocate(soilDB%thetaS_till(1, 1, 1))
+      allocate(soilDB%thetaS(1, 1))
+      allocate(soilDB%thetaFC_till(1, 1, 1))
+      allocate(soilDB%thetaFC(1, 1))
+      allocate(soilDB%thetaPW_till(1, 1, 1))
+      allocate(soilDB%thetaPW(1, 1))
+      allocate(soilDB%Db(1, 1, 1))
+      allocate(soilDB%Ks(1, 1, 1))
+
+
       open(usoil_database, file = filename, status = 'old', action = 'read')
       read(usoil_database, *) dummy, nSoilTypes
       dummy = dummy // ''   ! only to avoid warning
@@ -485,7 +500,7 @@ CONTAINS
     CASE(1)
       ! right now nothing is done here
       ! *** reserved for future changes
-      return
+      allocate(soilDB%Wd(1,1,1)) 
 
     CASE DEFAULT
       call message()
