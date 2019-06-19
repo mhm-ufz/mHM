@@ -139,6 +139,7 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   type domain_meta
     integer(i4)                            :: nDomains
+    integer(i4)                            :: overallNumberOfDomains
     integer(i4), dimension(:), allocatable :: indices
   end type domain_meta
 

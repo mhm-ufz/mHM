@@ -49,7 +49,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_soil_moisture(iDomain)
+  subroutine read_soil_moisture(iDomain, domainID)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -63,8 +63,11 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
+    ! Basin Id on process
     integer(i4), intent(in) :: iDomain
+
+    ! Basin Id
+    integer(i4), intent(in) :: domainID
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -98,7 +101,7 @@ CONTAINS
     mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
+    call message('  Reading soil moisture for basin:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
     call read_forcing_nc(dirSoil_moisture(iDomain), nRows1, nCols1, 'sm', mask1, L1_data, &
             target_period = evalPer(iDomain), nctimestep = timeStep_sm_input, nocheck = .TRUE., maskout = L1_mask)
@@ -115,7 +118,7 @@ CONTAINS
     call append(L1_sm, L1_data_packed(:, :), fill_value = nodata_dp)
     call append(L1_sm_mask, L1_mask_packed(:, :), fill_value = .FALSE.)
 
-    ! for multi basin calibration number of time steps may vary for different basins
+    ! for multi domain calibration number of time steps may vary for different domain
     if (iDomain .GT. 1) nTimeSteps_L1_sm = size(L1_sm, 2)
 
     !free space
@@ -227,7 +230,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_neutrons(iDomain)
+  subroutine read_neutrons(iDomain, domainID)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -245,6 +248,9 @@ CONTAINS
 
     ! Basin Id
     integer(i4), intent(in) :: iDomain
+
+    ! Basin Id
+    integer(i4), intent(in) :: domainID
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -278,7 +284,7 @@ CONTAINS
     mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading neutrons for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
+    call message('  Reading neutrons for basin:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
     call read_forcing_nc(dirNeutrons(iDomain), nRows1, nCols1, 'neutrons', mask1, L1_data, &
             target_period = evalPer(iDomain), nctimestep = timeStep_neutrons_input, nocheck = .TRUE., maskout = L1_mask)
@@ -331,7 +337,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_evapotranspiration(iDomain)
+  subroutine read_evapotranspiration(iDomain, domainID)
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
@@ -348,6 +354,9 @@ CONTAINS
 
     ! Basin Id
     integer(i4), intent(in) :: iDomain
+
+    ! Basin Id
+    integer(i4), intent(in) :: domainID
 
     ! loop  vars packing L1_data to L1_data_packed
     integer(i4) :: t
@@ -381,7 +390,7 @@ CONTAINS
     mask1 = level1(iDomain)%mask
 
     !  basin characteristics and read meteo header
-    call message('  Reading evapotranspiration for basin:           ', trim(adjustl(num2str(iDomain))), ' ...')
+    call message('  Reading evapotranspiration for basin:           ', trim(adjustl(num2str(domainID))), ' ...')
     call timer_start(1)
     call read_forcing_nc(dirEvapotranspiration(iDomain), nRows1, nCols1, 'et', mask1, L1_data, &
             target_period = evalPer(iDomain), nctimestep = timeStep_et_input, nocheck = .TRUE., maskout = L1_mask)

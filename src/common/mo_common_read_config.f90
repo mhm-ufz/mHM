@@ -374,6 +374,7 @@ CONTAINS
     integer(i4)         :: rank
     integer(i4)         :: iDomain
 
+    domainMeta%overAllNumberOfDomains = nBasins
 #ifdef MPI
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
@@ -384,17 +385,24 @@ CONTAINS
       allocate(domainMeta%indices(domainMeta%nDomains))
       domainMeta%indices(1) = 1
 !      domainMeta%indices(2) = 2
+!      domainMeta%indices(2) = 2
     end if
     if (rank == 1) then
       domainMeta%nDomains = 1
       allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 2
+      domainMeta%indices(1) = 1
     end if
-    if (rank > 1) then
+    if (rank == 2) then
       domainMeta%nDomains = 1
       allocate(domainMeta%indices(domainMeta%nDomains))
       domainMeta%indices(1) = 2
     end if
+    if (rank > 2) then
+      domainMeta%nDomains = 1
+      allocate(domainMeta%indices(domainMeta%nDomains))
+      domainMeta%indices(1) = 2
+    end if
+
 #else
     domainMeta%nDomains = nBasins
     allocate(domainMeta%indices(domainMeta%nDomains))

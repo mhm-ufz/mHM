@@ -132,7 +132,12 @@ PROGRAM mhm_driver
           write_configfile, &      ! Writing Configuration file
           write_optifile, &      ! Writing optimized parameter set and objective
           write_optinamelist     ! Writing optimized parameter set to a namelist
-  USE mo_objective_function, ONLY : objective                 ! objective functions and likelihoods
+  USE mo_objective_function, ONLY : &
+#ifdef MPI
+          objective_subprocess, &
+          objective_master, &
+#endif
+          objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, only : single_objective_runoff
@@ -251,6 +256,9 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ AND INITIALIZE
   ! --------------------------------------------------------------------------
+#ifdef MPI
+  if ((.not. optimize) .or. (optimize .and. rank > 0)) then
+#endif
   itimer = 1
   call message()
 
@@ -287,18 +295,18 @@ PROGRAM mhm_driver
       select case (opti_function)
       case(10 : 13, 28)
         ! read optional spatio-temporal soil mositure data
-        call read_soil_moisture(iDomain)
+        call read_soil_moisture(iDomain, domainID)
       case(17)
         ! read optional spatio-temporal neutrons data
-        call read_neutrons(iDomain)
+        call read_neutrons(iDomain, domainID)
       case(27, 29, 30)
         ! read optional spatio-temporal evapotranspiration data
-        call read_evapotranspiration(iDomain)
+        call read_evapotranspiration(iDomain, domainID)
       case(15)
         ! read optional basin average TWS data at once, therefore only read it
         ! the last iteration of the basin loop to ensure same time for all basins
         ! note: this is similar to how the runoff is read using mrm below
-        if (iDomain == nbasins) then
+        if (iDomain == domainMeta%nDomains) then
           call read_basin_avg_TWS()
         end if
       end select
@@ -322,6 +330,9 @@ PROGRAM mhm_driver
   !this call may be moved to another position as it writes the master config out file for all basins
   call write_configfile()
 
+#ifdef MPI
+  end if
+#endif
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
@@ -340,18 +351,32 @@ PROGRAM mhm_driver
      case(10 : 13, 15, 17, 27, 28, 29, 30)
       ! call optimization for other variables
       obj_func => objective
+#ifdef MPI
+      if (rank == 0) then
+        obj_func => objective_master
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+      else
+        call objective_subprocess(eval)
+      end if
+#else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
     case default
       call message('***ERROR: mhm_driver: The given objective function number ', &
               trim(adjustl(num2str(opti_function))), ' in mhm.nml is not valid!')
       stop 1
     end select
-
+#ifdef MPI
+  if (rank == 0) then
+#endif
     ! write a file with final objective function and the best parameter set
     call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
     ! write a file with final best parameter set in a namlist format
     call write_optinamelist(processMatrix, global_parameters, maskpara, global_parameters_name(:))
     deallocate(maskpara)
+#ifdef MPI
+  end if
+#endif
   else
 
     ! --------------------------------------------------------------------------
@@ -367,6 +392,9 @@ PROGRAM mhm_driver
 
   end if
 
+#ifdef MPI
+  if ((.not. optimize) .or. (optimize .and. rank > 0)) then
+#endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
   ! --------------------------------------------------------------------------
@@ -388,6 +416,9 @@ PROGRAM mhm_driver
   if (processMatrix(8, 1) .ne. 0) call mrm_write()
 #endif
 
+#ifdef MPI
+  end if
+#endif
 
   ! --------------------------------------------------------------------------
   ! FINISH UP

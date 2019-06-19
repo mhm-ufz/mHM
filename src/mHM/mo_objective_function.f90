@@ -40,7 +40,7 @@ MODULE mo_objective_function
 
   PRIVATE
 
-  PUBLIC :: objective ! objective function wrapper for soil moisture only
+  PUBLIC :: objective, objective_master, objective_subprocess ! objective function wrapper for soil moisture only
 
   ! ------------------------------------------------------------------
 
@@ -158,6 +158,274 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !    NAME
+  !        objective_master
+
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions.
+
+  !>       \details The functions sends the parameterset to the subprocess, receives
+  !>       the partial objective and calculates the final objective
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1"
+
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
+
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Juliane Mai
+
+  !>       \date Dec 2012
+
+  ! Modifications:
+  ! Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Maren Kaluza Jun 2019 - parallel version
+
+#ifdef MPI
+  FUNCTION objective_master(parameterset, eval, arg1, arg2, arg3)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_mHM_mRM_variables, only : opti_function
+    use mo_common_variables, only : comm
+    use mo_message, only : message
+    use mpi_f08
+
+    implicit none
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: parameterset
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp), optional, intent(in) :: arg1
+
+    real(dp), optional, intent(out) :: arg2
+
+    real(dp), optional, intent(out) :: arg3
+
+    REAL(dp) :: objective_master
+
+    ! for sixth root
+    REAL(dp) :: partial_objective
+
+    real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+
+    integer(i4) :: iproc, nproc
+
+    integer(i4) :: ierror
+
+    type(MPI_Status) :: status
+
+
+    if (present(arg1) .or. present(arg2) .or. present(arg3)) then
+      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
+      stop 1
+    end if
+
+    ! set these to nan so compiler does not complain
+    if (present(arg2)) then
+      arg2 = nodata_dp
+    end if
+    if (present(arg3)) then
+      arg3 = nodata_dp
+    end if
+
+    call distribute_parameterset(parameterset)
+    select case (opti_function)
+    case (10 : 13, 17, 27 : 29)
+      call MPI_Comm_size(comm, nproc, ierror)
+      objective_master = 0.0_dp
+      do iproc = 1, nproc - 1
+        call MPI_Recv(partial_objective, 1, MPI_DOUBLE_PRECISION, iproc, 0, comm, status, ierror)
+        objective_master = objective_master + partial_objective
+      end do
+      objective_master = objective_master**onesixth
+    case (15)
+      ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+      call message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
+      stop
+    case (30)
+      ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+      objective_master = objective_kge_q_rmse_et(parameterset, eval)
+      call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
+
+  ! Maren Kaluza Jun 2019 - parallel version
+    case default
+      call message("Error objective_master: opti_function not implemented yet.")
+      stop 1
+    end select
+
+  END FUNCTION objective_master
+
+  ! ------------------------------------------------------------------
+
+  !    NAME
+  !        objective_subprocess
+
+  !    PURPOSE
+  !>       \brief Wrapper for objective functions.
+
+  !>       \details The function receives the parameterset from the master
+  !>       process, selects the objective function case defined in a namelist,
+  !>       i.e. the global variable \e opti\_function.
+  !>       It returns the partial objective function value for a specific parameter set.
+
+  !    INTENT(IN)
+  !>       \param[in] "REAL(dp), DIMENSION(:) :: parameterset"
+  !>       \param[in] "procedure(eval_interface) :: eval"
+
+  !    INTENT(IN), OPTIONAL
+  !>       \param[in] "real(dp), optional :: arg1"
+
+  !    INTENT(OUT), OPTIONAL
+  !>       \param[out] "real(dp), optional :: arg2"
+  !>       \param[out] "real(dp), optional :: arg3"
+
+  !    RETURN
+  !>       \return real(dp) :: objective &mdash; objective function value
+  !>       (which will be e.g. minimized by an optimization routine like DDS)
+
+  !    HISTORY
+  !>       \authors Juliane Mai
+
+  !>       \date Dec 2012
+
+  ! Modifications:
+  ! Stephan Thober Oct 2015 - moved all runoff related objective functions to mRM
+  ! Robert Schweppe Jun 2018 - refactoring and reformatting
+  ! Maren Kaluza Jun 2019 - parallel version
+
+  subroutine objective_subprocess(eval, arg1, arg2, arg3)
+
+    use mo_common_constants, only : nodata_dp
+    use mo_common_mHM_mRM_variables, only : opti_function
+    use mo_common_variables, only : comm
+    use mo_message, only : message
+    use mpi_f08
+
+    implicit none
+
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+
+    real(dp), optional, intent(in) :: arg1
+
+    real(dp), optional, intent(out) :: arg2
+
+    real(dp), optional, intent(out) :: arg3
+
+    REAL(dp) :: partial_objective
+
+    REAL(dp), DIMENSION(:), allocatable :: parameterset
+
+    integer(i4) :: ierror
+
+    if (present(arg1) .or. present(arg2) .or. present(arg3)) then
+      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
+      stop 1
+    end if
+
+    ! set these to nan so compiler does not complain
+    if (present(arg2)) then
+      arg2 = nodata_dp
+    end if
+    if (present(arg3)) then
+      arg3 = nodata_dp
+    end if
+    call get_parameterset(parameterset)
+    select case (opti_function)
+    case (10)
+      ! KGE of catchment average SM
+      partial_objective = objective_sm_kge_catchment_avg(parameterset, eval)
+    case (11)
+      ! pattern dissimilarity (PD) of SM fields
+      partial_objective = objective_sm_pd(parameterset, eval)
+    case (12)
+      ! sum of squared errors of standard_score SM
+      partial_objective = objective_sm_sse_standard_score(parameterset, eval)
+    case (13)
+      ! soil moisture correlation - temporal
+      partial_objective = objective_sm_corr(parameterset, eval)
+    case (15)
+      ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+      ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
+      stop
+    case (17)
+      ! KGE of catchment average SM
+      partial_objective = objective_neutrons_kge_catchment_avg(parameterset, eval)
+    case (27)
+      ! KGE of catchment average ET
+      partial_objective = objective_et_kge_catchment_avg(parameterset, eval)
+    case (28)
+      !  KGE for Q + SSE for SM (standarized scored)
+      partial_objective = objective_kge_q_sm_corr(parameterset, eval)
+    case (29)
+      !  KGE for Q + KGE of catchment average ET
+      partial_objective = objective_kge_q_et(parameterset, eval)
+    case (30)
+      ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+      partial_objective = objective_kge_q_rmse_et(parameterset, eval)
+      stop
+
+    case default
+      call message("Error objective_subprocess: opti_function not implemented yet.")
+      stop 1
+    end select
+
+    select case (opti_function)
+    case (10 : 13, 17, 27 : 29)
+      call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,comm,ierror)
+    case default
+      call message("Error objective_subprocess: this part should not be executed -> error in the code.")
+      stop 1
+    end select
+
+    deallocate(parameterset)
+
+  END subroutine objective_subprocess
+
+  subroutine distribute_parameterset(parameterset)
+    use mpi_f08
+    use mo_common_variables, only : comm
+    real(dp), dimension(:),    intent(in) :: parameterset
+
+    integer(i4) :: nproc, iproc, dimen
+    integer(i4) :: ierror
+
+    call MPI_Comm_size(comm, nproc, ierror)
+    dimen = size(parameterset(:))
+    do iproc = 1, nproc-1
+      call MPI_Send(dimen, 1, &
+                    MPI_INTEGER,iproc,0,comm,ierror)
+      call MPI_Send(parameterset(:),dimen, &
+                    MPI_DOUBLE_PRECISION,iproc,0,comm,ierror)
+    end do
+  end subroutine distribute_parameterset
+
+  subroutine get_parameterset(parameterset)
+    use mpi_f08
+    use mo_common_variables, only : comm
+    real(dp), dimension(:), allocatable, intent(inout) :: parameterset
+
+    integer(i4) :: dimen
+    integer(i4) :: ierror
+    type(MPI_Status) :: status
+
+    call MPI_Recv(dimen, 1, MPI_INTEGER, 0, 0, comm, status, ierror)
+    allocate(parameterset(dimen))
+    call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, comm, status, ierror)
+  end subroutine get_parameterset
+#endif
+  ! ------------------------------------------------------------------
+
+  !    NAME
   !        objective_sm_kge_catchment_avg
 
   !    PURPOSE
@@ -235,9 +503,10 @@ CONTAINS
 
     ! number of invalid timesteps
     real(dp) :: invalid_times
-
+#ifndef MPI
     ! for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! spatial average of observed soil moisture
     real(dp), dimension(:), allocatable :: sm_catch_avg_basin
@@ -295,15 +564,16 @@ CONTAINS
       ! user information about invalid times
       if (invalid_times .GT. 0.5_dp) then
         call message('   WARNING: objective_sm: Detected invalid timesteps (.LT. 10 valid data points).')
-        call message('                          Fraction of invlauid timestpes: ', &
+        call message('                          Fraction of invalid timesteps: ', &
                 num2str(invalid_times / real(n_time_steps, dp), '(F4.2)'))
       end if
 
 
       ! calculate average soil moisture KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
-              ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / real(domainMeta%nDomains, dp))**6
+              ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / &
+                        real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -311,7 +581,9 @@ CONTAINS
       deallocate(sm_opti_catch_avg_basin)
     end do
 
+#ifndef MPI
     objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg**onesixth
+#endif
 
     call message('    objective_sm_kge_catchment_avg = ', num2str(objective_sm_kge_catchment_avg, '(F9.5)'))
 
@@ -396,7 +668,9 @@ CONTAINS
     ! basins wise objectives
     real(dp) :: objective_sm_corr_basin
 
+#ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! simulated soil moisture
     ! (dim1=ncells, dim2=time)
@@ -435,18 +709,19 @@ CONTAINS
       ! user information about invalid cells
       if (invalid_cells .GT. 0.5_dp) then
         call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
-        call message('                          Fraction of invlauid cells: ', &
+        call message('                          Fraction of invalid cells: ', &
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
 
       ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_corr = objective_sm_corr + &
-              ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
+              ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
-
+#ifndef MPI
     objective_sm_corr = objective_sm_corr**onesixth
+#endif
 
     call message('    objective_sm_corr = ', num2str(objective_sm_corr, '(F9.5)'))
 
@@ -528,7 +803,9 @@ CONTAINS
     integer(i4) :: s1, e1
 
     ! for sixth root
+#ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! matrices of SM from vectorized arrays
     real(dp), dimension(:, :), allocatable :: mat1, mat2
@@ -585,9 +862,10 @@ CONTAINS
       end do
 
       if (count(mask_times) > 0_i4) then
-        ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+        ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
         objective_sm_pd = objective_sm_pd + &
-                ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / real(domainMeta%nDomains, dp))**6
+                ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
+                                                    real(domainMeta%overallNumberOfDomains, dp))**6
       else
         call message('***ERROR: mo_objective_funtion: objective_sm_pd: No soil moisture observations available!')
         stop
@@ -601,7 +879,9 @@ CONTAINS
       deallocate(mask_sm)
     end do
 
+#ifndef MPI
     objective_sm_pd = objective_sm_pd**onesixth
+#endif
 
     call message('    objective_sm_pd = ', num2str(objective_sm_pd, '(F9.5)'))
 
@@ -685,7 +965,9 @@ CONTAINS
     ! basins wise objectives
     real(dp) :: objective_sm_sse_standard_score_basin
 
+#ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! simulated soil moisture
     ! (dim1=ncells, dim2=time)
@@ -725,17 +1007,19 @@ CONTAINS
       ! user information about invalid cells
       if (invalid_cells .GT. 0.5_dp) then
         call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
-        call message('                          Fraction of invlauid cells: ', &
+        call message('                          Fraction of invalid cells: ', &
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
       ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_sse_standard_score = objective_sm_sse_standard_score + &
-              (objective_sm_sse_standard_score_basin / real(domainMeta%nDomains, dp))**6
+              (objective_sm_sse_standard_score_basin / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
+#ifndef MPI
     objective_sm_sse_standard_score = objective_sm_sse_standard_score**onesixth
+#endif
 
     call message('    objective_sm_sse_standard_score = ', num2str(objective_sm_sse_standard_score, '(E12.5)'))
 
@@ -1057,7 +1341,9 @@ CONTAINS
     integer(i4) :: s1, e1
 
     ! for sixth root
+#ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! spatial average of observed neutrons
     real(dp), dimension(:), allocatable :: neutrons_catch_avg_basin
@@ -1111,10 +1397,10 @@ CONTAINS
       end do
 
       ! calculate average neutrons KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg + &
         ((1.0_dp - KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask = mask_times)) / &
-                                                                      real(domainMeta%nDomains, dp))**6
+                                                                      real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -1123,7 +1409,9 @@ CONTAINS
 
     end do
 
+#ifndef MPI
     objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg**onesixth
+#endif
 
     call message('    objective_neutrons_kge_catchment_avg = ', num2str(objective_neutrons_kge_catchment_avg, '(F9.5)'))
 
@@ -1202,7 +1490,9 @@ CONTAINS
     integer(i4) :: s1, e1
 
     ! for sixth root
+#ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
+#endif
 
     ! spatial average of observed et
     real(dp), dimension(:), allocatable :: et_catch_avg_basin
@@ -1257,10 +1547,11 @@ CONTAINS
       end do
 
       ! calculate average ET KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
 
       objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
-              ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / real(domainMeta%nDomains, dp))**6
+              ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / &
+                                        real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
@@ -1268,7 +1559,9 @@ CONTAINS
       deallocate(et_opti_catch_avg_basin)
     end do
 
+#ifndef MPI
     objective_et_kge_catchment_avg = objective_et_kge_catchment_avg**onesixth
+#endif
 
     call message('    objective_et_kge_catchment_avg = ', num2str(objective_et_kge_catchment_avg, '(F9.5)'))
 
@@ -1409,14 +1702,14 @@ CONTAINS
       ! user information about invalid cells
       if (invalid_cells .GT. 0.5_dp) then
         call message('   WARNING: objective_sm: Detected invalid cells in study area (.LT. 10 valid data points).')
-        call message('                          Fraction of invlauid cells: ', &
+        call message('                          Fraction of invalid cells: ', &
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
       ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm = objective_sm + &
-              ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
+              ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -1451,7 +1744,14 @@ CONTAINS
 #endif
 
     ! equal weighted compromise objective functions for discharge and soilmoisture
+    ! ToDo: why do we use the sixth root of of objective_sm and objective_kge
+    ! only to take the power to 6 here again, when we never need the
+    ! intermediate results?
+#ifdef MPI
+    objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6)
+#else
     objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6)**onesixth
+#endif
     !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
     call message('    objective_kge_q_sm_corr = ', num2str(objective_kge_q_sm_corr, '(F9.5)'))
@@ -1593,14 +1893,14 @@ CONTAINS
       ! user information about invalid cells
       if (invalid_cells .GT. 0.5_dp) then
         call message('   WARNING: objective_et: Detected invalid cells in study area (.LT. 10 valid data points).')
-        call message('                          Fraction of invlauid cells: ', &
+        call message('                          Fraction of invalid cells: ', &
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
       ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%nDomains,dp))**6
+      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_et = objective_et + &
-              ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(domainMeta%nDomains, dp))**6
+              ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -1635,7 +1935,14 @@ CONTAINS
 #endif
 
     ! equal weighted compromise objective functions for discharge and soilmoisture
+    ! ToDo: why do we use the sixth root of of objective_sm and objective_kge
+    ! only to take the power to 6 here again, when we never need the
+    ! intermediate results?
+#ifdef MPI
+    objective_kge_q_et = (objective_et**6 + objective_q**6)
+#else
     objective_kge_q_et = (objective_et**6 + objective_q**6)**onesixth
+#endif
     !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
     call message('    objective_kge_q_et = ', num2str(objective_kge_q_et, '(F9.5)'))
