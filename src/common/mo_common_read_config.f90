@@ -374,7 +374,7 @@ CONTAINS
     integer(i4)         :: rank
     integer(i4)         :: iDomain
 
-    domainMeta%overAllNumberOfDomains = nBasins
+    domainMeta%overAllNumberOfDomains = 1
 #ifdef MPI
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)

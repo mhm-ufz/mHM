@@ -78,7 +78,7 @@ iFlag_cordinate_sys = 0
 !> IF routing process is ON then give nBasins = 1, for this case, mHM will internally
 !> discard gauging station information.
 !-----------------------------------------------------------------------------
-nBasins             = 2
+nBasins             = 1
 !-----------------------------------------------------------------------------
 !> resolution of Level-1 hydrological simulations in mHM [m or degree] per basin
 !> NOTE: if iFlag_cordinate_sys = 0, then resolution_Hydrology is in [m]
@@ -131,7 +131,7 @@ read_restart  = .FALSE.
 !> flag for optimization: .TRUE.: optimization
 !>                    or .FALSE.: no optimazition
 !-----------------------------------------------------------------------------
-optimize = .FALSE.
+optimize = .TRUE.
 !> Optimization shall be restarted from ./mo_<opti_method>.restart file, which
 !> should be located next to the mhm executable (mhm)
 optimize_restart = .FALSE.
@@ -651,7 +651,7 @@ dir_gridded_LAI(2)   = "test_basin/input/lai/"
 !> Gauges for model evaluation
 !
 !> Total number of gauges (sum of all gauges in all subbains)
-nGaugesTotal = 2
+nGaugesTotal = 1
 !> structure of gauge_id(i,j) & gauge_filename(i,j):
 !> 1st dimension is the number of the subbasin i
 !> 2nd dimension is the number of the gauge j within the subbasin i

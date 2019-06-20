@@ -137,12 +137,18 @@ CONTAINS
   !                   Juliane Mai,                  Aug 2012 - optional argument funcbest added
   !                   Juliane Mai,                  Nov 2012 - masked parameter
   !                   Juliane Mai,                  Dec 2012 - history output
-
+#ifdef MPI
+  function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, comm, funcbest, history)
+#else
   function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
+#endif
 
     use mo_kind, only : i4, i8, dp
     use mo_xor4096, only : xor4096, xor4096g
     use mo_optimization_utils, only : eval_interface, objective_interface
+#ifdef MPI
+    use mpi_f08
+#endif
 
     implicit none
 
@@ -157,6 +163,9 @@ CONTAINS
     logical, optional, intent(in) :: maxit    ! Maximization or minimization of function
     logical, dimension(:), optional, intent(in) :: mask     ! parameter to be optimized (true or false)
     character(len = *), optional, intent(in) :: tmp_file    ! file for temporal output
+#ifdef MPI
+    type(MPI_Comm), optional, intent(in)  :: comm                ! MPI communicator
+#endif
     real(dp), optional, intent(out) :: funcbest ! Best value of the function.
     real(dp), dimension(:), optional, intent(out), &
             allocatable :: history  ! History of objective function values
@@ -178,7 +187,11 @@ CONTAINS
     integer, dimension(8) :: sdate                  ! date_and_time return
     logical, dimension(size(pini)) :: maske                  ! parameter to be optimized (true or false)
     integer(i4), dimension(:), allocatable :: truepara               ! parameter to be optimized (their indexes)
-
+#ifdef MPI
+    integer(i4) :: ierror
+    logical :: do_obj_loop
+    integer(i4) :: iproc, nproc
+#endif
 
     ! Check input
     pnum = size(pini)
@@ -255,6 +268,13 @@ CONTAINS
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
     DDS = pini
     print *, imaxit
+#ifdef MPI
+    call MPI_Comm_size(comm, nproc, ierror)
+    do iproc = 1, nproc-1
+      do_obj_loop = .true.
+      call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+    end do
+#endif
     of_new = imaxit * obj_func(pini, eval)
     of_best = of_new
     if (present(history)) history(1) = of_new
@@ -302,6 +322,13 @@ CONTAINS
 
       ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
       ! Evaluate obj function value for test
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .true.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
       of_new = imaxit * obj_func(pnew, eval)                       ! imaxit handles min(=1) and max(=-1) problems
       ! update current best solution
       if (of_new <= of_best) then
@@ -324,6 +351,13 @@ CONTAINS
 
     end do
     if (present(funcbest)) funcbest = of_best
+#ifdef MPI
+    call MPI_Comm_size(comm, nproc, ierror)
+    do iproc = 1, nproc-1
+      do_obj_loop = .false.
+      call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+    end do
+#endif
 
   end function DDS
 

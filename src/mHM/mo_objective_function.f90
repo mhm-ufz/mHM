@@ -197,6 +197,7 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : opti_function
     use mo_common_variables, only : comm
     use mo_message, only : message
+    use mo_string_utils, only : num2str
     use mpi_f08
 
     implicit none
@@ -257,9 +258,16 @@ CONTAINS
       objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
 
-  ! Maren Kaluza Jun 2019 - parallel version
     case default
       call message("Error objective_master: opti_function not implemented yet.")
+      stop 1
+    end select
+
+    select case (opti_function)
+    case(10)
+      call message('    objective_sm_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
+    case default
+      call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
       stop 1
     end select
 
@@ -327,67 +335,77 @@ CONTAINS
 
     integer(i4) :: ierror
 
-    if (present(arg1) .or. present(arg2) .or. present(arg3)) then
-      call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
-      stop 1
-    end if
+    type(MPI_Status) :: status
 
-    ! set these to nan so compiler does not complain
-    if (present(arg2)) then
-      arg2 = nodata_dp
-    end if
-    if (present(arg3)) then
-      arg3 = nodata_dp
-    end if
-    call get_parameterset(parameterset)
-    select case (opti_function)
-    case (10)
-      ! KGE of catchment average SM
-      partial_objective = objective_sm_kge_catchment_avg(parameterset, eval)
-    case (11)
-      ! pattern dissimilarity (PD) of SM fields
-      partial_objective = objective_sm_pd(parameterset, eval)
-    case (12)
-      ! sum of squared errors of standard_score SM
-      partial_objective = objective_sm_sse_standard_score(parameterset, eval)
-    case (13)
-      ! soil moisture correlation - temporal
-      partial_objective = objective_sm_corr(parameterset, eval)
-    case (15)
-      ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
-      ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
-      stop
-    case (17)
-      ! KGE of catchment average SM
-      partial_objective = objective_neutrons_kge_catchment_avg(parameterset, eval)
-    case (27)
-      ! KGE of catchment average ET
-      partial_objective = objective_et_kge_catchment_avg(parameterset, eval)
-    case (28)
-      !  KGE for Q + SSE for SM (standarized scored)
-      partial_objective = objective_kge_q_sm_corr(parameterset, eval)
-    case (29)
-      !  KGE for Q + KGE of catchment average ET
-      partial_objective = objective_kge_q_et(parameterset, eval)
-    case (30)
-      ! KGE for Q * RMSE for basin_avg ET (standarized scored)
-      partial_objective = objective_kge_q_rmse_et(parameterset, eval)
-      stop
+    logical :: do_obj_loop
 
-    case default
-      call message("Error objective_subprocess: opti_function not implemented yet.")
-      stop 1
-    end select
+    do ! a do loop without condition runs until exit
+      call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, comm, status, ierror)
+      
+      if (.not. do_obj_loop) exit
 
-    select case (opti_function)
-    case (10 : 13, 17, 27 : 29)
-      call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,comm,ierror)
-    case default
-      call message("Error objective_subprocess: this part should not be executed -> error in the code.")
-      stop 1
-    end select
+      if (present(arg1) .or. present(arg2) .or. present(arg3)) then
+        call message("Error mo_objective_function: Received unexpected argument, check optimization settings")
+        stop 1
+      end if
 
-    deallocate(parameterset)
+      ! set these to nan so compiler does not complain
+      if (present(arg2)) then
+        arg2 = nodata_dp
+      end if
+      if (present(arg3)) then
+        arg3 = nodata_dp
+      end if
+      call get_parameterset(parameterset)
+      select case (opti_function)
+      case (10)
+        ! KGE of catchment average SM
+        partial_objective = objective_sm_kge_catchment_avg(parameterset, eval)
+      case (11)
+        ! pattern dissimilarity (PD) of SM fields
+        partial_objective = objective_sm_pd(parameterset, eval)
+      case (12)
+        ! sum of squared errors of standard_score SM
+        partial_objective = objective_sm_sse_standard_score(parameterset, eval)
+      case (13)
+        ! soil moisture correlation - temporal
+        partial_objective = objective_sm_corr(parameterset, eval)
+      case (15)
+        ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+        ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
+        stop
+      case (17)
+        ! KGE of catchment average SM
+        partial_objective = objective_neutrons_kge_catchment_avg(parameterset, eval)
+      case (27)
+        ! KGE of catchment average ET
+        partial_objective = objective_et_kge_catchment_avg(parameterset, eval)
+      case (28)
+        !  KGE for Q + SSE for SM (standarized scored)
+        partial_objective = objective_kge_q_sm_corr(parameterset, eval)
+      case (29)
+        !  KGE for Q + KGE of catchment average ET
+        partial_objective = objective_kge_q_et(parameterset, eval)
+      case (30)
+        ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+        partial_objective = objective_kge_q_rmse_et(parameterset, eval)
+        stop
+
+      case default
+        call message("Error objective_subprocess: opti_function not implemented yet.")
+        stop 1
+      end select
+
+      select case (opti_function)
+      case (10 : 13, 17, 27 : 29)
+        call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,comm,ierror)
+      case default
+        call message("Error objective_subprocess: this part should not be executed -> error in the code.")
+        stop 1
+      end select
+
+      deallocate(parameterset)
+    end do
 
   END subroutine objective_subprocess
 
@@ -583,9 +601,10 @@ CONTAINS
 
 #ifndef MPI
     objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg**onesixth
-#endif
 
     call message('    objective_sm_kge_catchment_avg = ', num2str(objective_sm_kge_catchment_avg, '(F9.5)'))
+#endif
+
 
   END FUNCTION objective_sm_kge_catchment_avg
 
