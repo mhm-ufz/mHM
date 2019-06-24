@@ -262,6 +262,9 @@ contains
               mymaxn = int(nIterations, i8), myseed = iseed, myngs = sce_ngs, mynpg = sce_npg, mynps = sce_nps, &
               parallel = .false., mymask = local_maskpara, &
               restart = optimize_restart, restart_file = 'mo_sce.restart', &
+#ifdef MPI
+              comm = comm, &
+#endif
               tmp_file = tFile, popul_file = pFile, &
               bestf = funcbest)
     case default

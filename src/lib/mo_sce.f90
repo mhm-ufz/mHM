@@ -233,6 +233,9 @@ CONTAINS
           tmp_file, popul_file, & ! Optional IN
           popul_file_append, & ! Optional IN
           parallel, restart, restart_file, & ! OPTIONAL IN
+#ifdef MPI
+          comm, &
+#endif
           bestf, neval, history                                & ! Optional OUT
           ) result(bestx)
 
@@ -244,6 +247,9 @@ CONTAINS
     use iso_fortran_env, only : output_unit, error_unit
     use mo_utils, only : is_finite, special_value
     use mo_optimization_utils, only : eval_interface, objective_interface
+#ifdef MPI
+    use mpi_f08
+#endif
 
     implicit none
     !
@@ -309,6 +315,9 @@ CONTAINS
     !                                                               !     DEAFULT: .false.
     logical, optional, intent(in) :: restart     ! if .true., start from restart file
     character(len = *), optional, intent(in) :: restart_file ! restart file name (default: mo_sce.restart)
+#ifdef MPI
+    type(MPI_Comm), optional, intent(in)  :: comm                ! MPI communicator
+#endif
     real(dp), optional, intent(out) :: bestf       ! function value of bestx(.)
     integer(i8), optional, intent(out) :: neval       ! number of function evaluations
     real(dp), optional, dimension(:), allocatable, intent(out) :: history     ! history of best function values after each iteration
@@ -420,6 +429,11 @@ CONTAINS
     logical :: ipopul_file_append
     integer(i4) :: nonan              ! # of non-NaN in history_tmp
     real(dp), dimension(:), allocatable :: htmp               ! tmp storage for history_tmp
+#ifdef MPI
+    integer(i4) :: ierror
+    logical :: do_obj_loop
+    integer(i4) :: iproc, nproc
+#endif
 
     namelist /restartnml1/ &
             bestx, dummy_bl, dummy_bu, maxn, maxit, kstop, pcento, peps, ngs, npg, nps, nspl, &
@@ -447,11 +461,21 @@ CONTAINS
 
     if (.not. irestart) then
 
+#ifdef MPI
+      parall = .false.
+      if (present(parallel)) then
+        if (parallel) then
+          !ToDo: more reasonable warning, also with message and more consistent
+          write(*, *) 'Warning, sce: no openMP parallelization with MPI at this point'
+        end if
+      end if
+#else
       if (present(parallel)) then
         parall = parallel
       else
         parall = .false.
       end if
+#endif
 
       if (parall) then
         ! OpenMP or not
@@ -696,6 +720,13 @@ CONTAINS
       !--------------------------------------------------
       ! function evaluation will be counted later...
       if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .true.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
       if (.not. maxit) then
         fpini = functn(pini, eval)
         history_tmp(1) = fpini
@@ -740,6 +771,13 @@ CONTAINS
           x(1, ii) = xx(ii)
         end do
         if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+        call MPI_Comm_size(comm, nproc, ierror)
+        do iproc = 1, nproc-1
+          do_obj_loop = .true.
+          call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+        end do
+#endif
         if (.not. maxit) then
           xf(1) = functn(xx, eval)
         else
@@ -770,6 +808,13 @@ CONTAINS
             x(ii, jj) = xx(jj)
           end do
           if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+          call MPI_Comm_size(comm, nproc, ierror)
+          do iproc = 1, nproc-1
+            do_obj_loop = .true.
+            call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+          end do
+#endif
           if (.not. maxit) then
             xf(ii) = functn(xx, eval)
             history_tmp(ii) = xf(ii) ! min(history_tmp(ii-1),xf(ii)) --> will be sorted later
@@ -796,6 +841,13 @@ CONTAINS
             x(ii, jj) = xx(jj)
           end do
           if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+          call MPI_Comm_size(comm, nproc, ierror)
+          do iproc = 1, nproc-1
+            do_obj_loop = .true.
+            call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+          end do
+#endif
           if (.not. maxit) then
             xf(ii) = functn(xx, eval)
             icall = icall + 1_i8
@@ -888,6 +940,13 @@ CONTAINS
         ! -----------------------
         ! Abort subroutine
         ! -----------------------
+#ifdef MPI
+        call MPI_Comm_size(comm, nproc, ierror)
+        do iproc = 1, nproc-1
+          do_obj_loop = .false.
+          call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+        end do
+#endif
         return
       end if
       !
@@ -902,6 +961,13 @@ CONTAINS
         ! -----------------------
         ! Abort subroutine
         ! -----------------------
+#ifdef MPI
+        call MPI_Comm_size(comm, nproc, ierror)
+        do iproc = 1, nproc-1
+          do_obj_loop = .false.
+          call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+        end do
+#endif
         return
       end if
       !
@@ -1063,8 +1129,13 @@ CONTAINS
             icall_merk = icall
             iicall = icall
             ihistory_tmp = history_tmp
+#ifdef MPI
+            call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
+                    iicall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, ihistory_tmp, idot, comm)
+#else
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
                     iicall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, ihistory_tmp, idot)
+#endif
             history_tmp(icall + 1 : icall + (iicall - icall_merk)) = ihistory_tmp(icall_merk + 1 : iicall)
             icall = icall + (iicall - icall_merk)
             !
@@ -1186,8 +1257,13 @@ CONTAINS
             end if
             !
             !  use the sub-complex to generate new point(s)
+#ifdef MPI
+            call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
+                    icall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, history_tmp, idot, comm)
+#else
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
                     icall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, history_tmp, idot)
+#endif
             !
             !  if the sub-complex is accepted, replace the new sub-complex
             !  into the complex
@@ -1288,6 +1364,13 @@ CONTAINS
         ! -----------------------
         ! Abort subroutine
         ! -----------------------
+#ifdef MPI
+        call MPI_Comm_size(comm, nproc, ierror)
+        do iproc = 1, nproc-1
+          do_obj_loop = .false.
+          call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+        end do
+#endif
         return
       end if
       !
@@ -1307,6 +1390,13 @@ CONTAINS
           ! -----------------------
           ! Abort subroutine
           ! -----------------------
+#ifdef MPI
+          call MPI_Comm_size(comm, nproc, ierror)
+          do iproc = 1, nproc-1
+            do_obj_loop = .false.
+            call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+          end do
+#endif
           return
         end if
       end if
@@ -1323,6 +1413,13 @@ CONTAINS
         ! -----------------------
         ! Abort subroutine
         ! -----------------------
+#ifdef MPI
+        call MPI_Comm_size(comm, nproc, ierror)
+        do iproc = 1, nproc-1
+          do_obj_loop = .false.
+          call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+        end do
+#endif
         return
       end if
       !
@@ -1358,6 +1455,13 @@ CONTAINS
 
     call set_optional()
 
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .false.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
   contains
 
     subroutine write_best_intermediate(to_file)
@@ -1745,7 +1849,11 @@ CONTAINS
   end subroutine getpnt
 
   subroutine cce(s, sf, bl, bu, maskpara, xnstd, icall, maxn, maxit, save_state_gauss, functn, eval, &
-          alpha, beta, history, idot)
+          alpha, beta, history, idot &
+#ifdef MPI
+          , comm &
+#endif
+          )
     !
     !  algorithm generate a new point(s) from a sub-complex
     !
@@ -1757,6 +1865,9 @@ CONTAINS
     use iso_fortran_env, only : output_unit
     use mo_utils, only : is_finite
     use mo_optimization_utils, only : eval_interface, objective_interface
+#ifdef MPI
+    use mpi_f08
+#endif
 
     implicit none
 
@@ -1778,6 +1889,9 @@ CONTAINS
     real(dp), intent(in) :: beta    ! parameter for contraction steps
     real(dp), dimension(maxn), intent(inout) :: history ! history of best function value
     logical, intent(in) :: idot    ! if true: progress report with '.'
+#ifdef MPI
+    type(MPI_Comm), optional, intent(in)  :: comm                ! MPI communicator
+#endif
     !
     ! local variables
     integer(i4) :: nn      ! number of parameters
@@ -1794,6 +1908,11 @@ CONTAINS
     real(dp), dimension(size(s, 2)) :: snew    ! new point generated from the simplex
     real(dp) :: fw      ! function value of the worst point
     real(dp) :: fnew    ! function value of the new point
+#ifdef MPI
+    integer(i4) :: ierror
+    logical :: do_obj_loop
+    integer(i4) :: iproc, nproc
+#endif
 
     nps = size(s, 1)
     nn = size(s, 2)
@@ -1841,6 +1960,13 @@ CONTAINS
     !
     ! compute the function value at snew
     if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .true.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
     if (.not. maxit) then
       fnew = functn(snew, eval)
       icall = icall + 1_i8
@@ -1867,6 +1993,13 @@ CONTAINS
       !
       ! compute the function value of the contracted point
       if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .true.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
       if (.not. maxit) then
         fnew = functn(snew, eval)
         icall = icall + 1_i8
@@ -1891,6 +2024,13 @@ CONTAINS
         !
         ! compute the function value at the random point
         if (idot) write(output_unit, '(A1)') '.'
+#ifdef MPI
+      call MPI_Comm_size(comm, nproc, ierror)
+      do iproc = 1, nproc-1
+        do_obj_loop = .true.
+        call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
+      end do
+#endif
         if (.not. maxit) then
           fnew = functn(snew, eval)
           icall = icall + 1_i8
