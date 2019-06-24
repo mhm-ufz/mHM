@@ -213,7 +213,7 @@ contains
 
       basin_mrm_iBasin%nGauges = NoGauges_basin(domainID)
 
-      do iGauge = 1, NoGauges_basin(iDomain)
+      do iGauge = 1, NoGauges_basin(domainID)
         ! check if NoGauges_basin has a valid value
         if (Gauge_id(domainID, iGauge) .EQ. nodata_i4) then
           call message()

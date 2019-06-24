@@ -224,6 +224,8 @@ contains
 
     real(dp), dimension(nColPars) :: COSMIC_L31
 
+    integer(i4) :: iDomain, domainID
+
 
     ! namelist directories
     namelist /directories_MPR/ dir_gridded_LAI
@@ -345,7 +347,10 @@ contains
       read(unamelist, nml = directories_MPR)
 
       allocate(dirgridded_LAI(domainMeta%nDomains))
-      dirgridded_LAI = dir_gridded_LAI(1 : domainMeta%nDomains)
+      do iDomain = 1, domainMeta%nDomains
+        domainID = domainMeta%indices(iDomain)
+        dirgridded_LAI(iDomain) = dir_gridded_LAI(domainID)
+      end do
 
       if (timeStep_LAI_input .GT. 1) then
         call message()

@@ -152,13 +152,13 @@ CONTAINS
 
       level0_iBasin => level0(L0_Basin(iDomain))
 
-      call message('    Reading data for basin: ', trim(adjustl(num2str(iDomain))), ' ...')
+      call message('    Reading data for basin: ', trim(adjustl(num2str(domainID))), ' ...')
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
         if (L0_Basin(iDomain) .eq. L0_Basin(iDomain - 1)) then
           !
           call message('      Using data of domain ', &
-                  trim(adjustl(num2str(L0_Basin(iDomain)))), ' for domain: ',&
+                  trim(adjustl(num2str(domainMeta%indices(L0_Basin(iDomain))))), ' for domain: ',&
                   trim(adjustl(num2str(domainID))), '...')
           ! DO NOT read L0 data
           cycle
