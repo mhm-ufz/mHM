@@ -266,6 +266,20 @@ CONTAINS
     select case (opti_function)
     case(10)
       call message('    objective_sm_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
+    case(11)
+      call message('    objective_sm_pd = ', num2str(objective_master, '(F9.5)'))
+    case(12)
+      call message('    objective_sm_sse_standard_score = ', num2str(objective_master, '(E12.5)'))
+    case(13)
+      call message('    objective_sm_corr = ', num2str(objective_master, '(F9.5)'))
+    case(17)
+      call message('    objective_neutrons_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
+    case(27)
+      call message('    objective_et_kge_catchment_avg = ', num2str(objective_master, '(F9.5)'))
+    case(28)
+      call message('    objective_kge_q_sm_corr = ', num2str(objective_master, '(F9.5)'))
+    case(29)
+      call message('    objective_kge_q_et = ', num2str(objective_master, '(F9.5)'))
     case default
       call message("Error objective_master: opti_function not implemented yet, this part of the code should never execute.")
       stop 1
@@ -740,9 +754,9 @@ CONTAINS
     end do
 #ifndef MPI
     objective_sm_corr = objective_sm_corr**onesixth
-#endif
 
     call message('    objective_sm_corr = ', num2str(objective_sm_corr, '(F9.5)'))
+#endif
 
   END FUNCTION objective_sm_corr
 
@@ -900,9 +914,9 @@ CONTAINS
 
 #ifndef MPI
     objective_sm_pd = objective_sm_pd**onesixth
-#endif
 
     call message('    objective_sm_pd = ', num2str(objective_sm_pd, '(F9.5)'))
+#endif
 
   END FUNCTION objective_sm_pd
 
@@ -1038,9 +1052,9 @@ CONTAINS
 
 #ifndef MPI
     objective_sm_sse_standard_score = objective_sm_sse_standard_score**onesixth
-#endif
 
     call message('    objective_sm_sse_standard_score = ', num2str(objective_sm_sse_standard_score, '(E12.5)'))
+#endif
 
   END FUNCTION objective_sm_sse_standard_score
 
@@ -1430,9 +1444,9 @@ CONTAINS
 
 #ifndef MPI
     objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg**onesixth
-#endif
 
     call message('    objective_neutrons_kge_catchment_avg = ', num2str(objective_neutrons_kge_catchment_avg, '(F9.5)'))
+#endif
 
   END FUNCTION objective_neutrons_kge_catchment_avg
 
@@ -1580,9 +1594,9 @@ CONTAINS
 
 #ifndef MPI
     objective_et_kge_catchment_avg = objective_et_kge_catchment_avg**onesixth
-#endif
 
     call message('    objective_et_kge_catchment_avg = ', num2str(objective_et_kge_catchment_avg, '(F9.5)'))
+#endif
 
   END FUNCTION objective_et_kge_catchment_avg
 
@@ -1770,10 +1784,10 @@ CONTAINS
     objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6)
 #else
     objective_kge_q_sm_corr = (objective_sm**6 + objective_kge**6)**onesixth
-#endif
-    !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
     call message('    objective_kge_q_sm_corr = ', num2str(objective_kge_q_sm_corr, '(F9.5)'))
+#endif
+    !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
   END FUNCTION objective_kge_q_sm_corr
 
@@ -1961,10 +1975,10 @@ CONTAINS
     objective_kge_q_et = (objective_et**6 + objective_q**6)
 #else
     objective_kge_q_et = (objective_et**6 + objective_q**6)**onesixth
-#endif
-    !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
     call message('    objective_kge_q_et = ', num2str(objective_kge_q_et, '(F9.5)'))
+#endif
+    !    print*, "1-SM 2-Q : ", 1.0_dp-objective_sm, 1.0_dp-objective_kge ! MZMZMZMZ
 
   END FUNCTION objective_kge_q_et
 
