@@ -538,11 +538,9 @@ CONTAINS
 
     character(256) :: fName
 
-    character(3) :: flag
-
     character(len = 28), dimension(nProcesses) :: Process_descr
 
-    integer(i4) :: err
+    integer(i4) :: err, flag
 
     integer(i4) :: iProc, iPar, iPar_start
 
@@ -568,7 +566,7 @@ CONTAINS
     end if
 
     write(uopti_nml, *) '!global_parameters'
-    write(uopti_nml, *) '!PARAMETER                       lower_bound  upper_bound          value   FLAG  SCALING'
+    write(uopti_nml, '( A47,T50,3(A20,2x),2(A8,x) )') "!PARAMETER", "lower_bound", "upper_bound", "value", "FLAG", "SCALING"
 
     iPar_start = 1
     do iProc = 1, nProcesses
@@ -621,6 +619,9 @@ CONTAINS
         if (processMatrix(iProc, 1) .eq. 2) then
           write(uopti_nml, *) '&routing2'
         end if
+        if (processMatrix(iProc, 1) .eq. 3) then
+          write(uopti_nml, *) '&routing3'
+        end if
       case(9)
         if (processMatrix(iProc, 1) .eq. 1) then
           write(uopti_nml, *) '&geoparameter'
@@ -634,16 +635,17 @@ CONTAINS
       do iPar = iPar_Start, processMatrix(iProc, 3)
 
         if (maskpara(iPar)) then
-          flag = ' 1 '
+          flag = 1
         else
-          flag = ' 0 '
+          flag = 0
         end if
 
-        write(uopti_nml, *) trim(adjustl(parameters_name(iPar))), ' = ', &
-                parameters(iPar, 1), ' , ', &
-                parameters(iPar, 2), ' , ', &
-                parameters(iPar, 3), ' , ', &
-                flag, ', 1 '
+        write(uopti_nml, '( A47," = ",T50,3(f20.12,", "),I8,",       1" )') &
+                trim(adjustl(parameters_name(iPar))), &
+                parameters(iPar, 1), &
+                parameters(iPar, 2), &
+                parameters(iPar, 3), &
+                flag
       end do
 
       iPar_Start = processMatrix(iProc, 3) + 1
