@@ -1606,7 +1606,7 @@ CONTAINS
       allocate(djf_mask(nrunoff))
       djf_mask = .false.
 
-      iDomain = gauge%basinId(gg)
+      iDomain = gauge%domainId(gg)
       do tt = 1, nrunoff
         current_time = evalPer(iDomain)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
         call dec2date(current_time, mm = month)
@@ -2108,7 +2108,7 @@ CONTAINS
     end if
 
     ! extract domain Id from gauge Id
-    iDomain = gauge%basinId(gaugeId)
+    iDomain = gauge%domainId(gaugeId)
 
     ! get length of evaluation period times TPD_obs
     length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_obs

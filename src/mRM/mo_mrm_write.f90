@@ -275,10 +275,10 @@ contains
     write(uconfig, 107) ' Gauge No.', '  domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
     do i = 1, nGaugesTotal
       if(any(gauge%Q(:, i) > nodata_dp)) then
-        write(uconfig, 108) i, gauge%basinId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
+        write(uconfig, 108) i, gauge%domainId(i), maxval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp), &
                 minval(gauge%Q(:, i), gauge%Q(:, i) > nodata_dp)
       else
-        write(uconfig, 108) i, gauge%basinId(i), nodata_dp, nodata_dp
+        write(uconfig, 108) i, gauge%domainId(i), nodata_dp, nodata_dp
       end if
     end do
     ! inflow gauge data
@@ -287,10 +287,10 @@ contains
       write(uconfig, 107) ' Gauge No.', '  domain Id', '     Qmax[m3/s]', '     Qmin[m3/s]'
       do i = 1, nInflowGaugesTotal
         if(all(InflowGauge%Q(:, i) > nodata_dp)) then
-          write(uconfig, 108) i, InflowGauge%basinId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
+          write(uconfig, 108) i, InflowGauge%domainId(i), maxval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp), &
                   minval(InflowGauge%Q(:, i), InflowGauge%Q(:, i) > nodata_dp)
         else
-          write(uconfig, 108) i, InflowGauge%basinId(i), nodata_dp, nodata_dp
+          write(uconfig, 108) i, InflowGauge%domainId(i), nodata_dp, nodata_dp
         end if
       end do
     end if

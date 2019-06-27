@@ -77,7 +77,7 @@ CONTAINS
   ! Matthias Zink                Mar  2015 - added optional soil moisture read in for calibration
   ! Matthias Cuntz               Jul  2015 - removed adjustl from trim(adjustl()) of Geoparams for PGI compatibilty
   ! Stephan Thober               Aug  2015 - added read_config_routing and read_routing_params from mRM
-  ! Oldrich Rakovec              Oct  2015 - added reading of the basin average TWS data
+  ! Oldrich Rakovec              Oct  2015 - added reading of the domain average TWS data
   ! Rohini Kumar                 Mar  2016 - options to handle different soil databases
   ! Stephan Thober               Nov  2016 - moved nProcesses and processMatrix to common variables
   ! Rohini Kumar                 Dec  2016 - option to handle monthly mean gridded fields of LAI
@@ -259,7 +259,7 @@ CONTAINS
           dirEvapotranspiration(iDomain) = dir_evapotranspiration(domainID)
         end do
       case(15)
-        ! basin average TWS data
+        ! domain average TWS data
         call position_nml('optional_data', unamelist)
         read(unamelist, nml = optional_data)
         do iDomain = 1, domainMeta%nDomains

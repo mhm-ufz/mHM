@@ -131,7 +131,7 @@ contains
       call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
 
       if (do_readlatlon) then
-        ! read lat lon coordinates of each basin
+        ! read lat lon coordinates of each domain
         call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iBasin)
       end if
 
@@ -208,7 +208,7 @@ contains
           call append(L0_gaugeLoc, pack(data_i4_2d, level0_iBasin%mask))
 
           ! inflow gauges
-          ! if no inflow gauge for this subbasin exists still matirx with dim of subbasin has to be paded
+          ! if no inflow gauge for this subdomain exists still matirx with dim of subdomain has to be paded
           if (basin_mrm(iDomain)%nInflowGauges .GT. 0_i4) then
             ! Input data check
             do iGauge = 1, basin_mrm(iDomain)%nInflowGauges
@@ -297,8 +297,8 @@ contains
 
     ! READ GAUGE DATA
     do iGauge = 1, nGaugesTotal
-      ! get basin id
-      iDomain = gauge%basinId(iGauge)
+      ! get domain id
+      iDomain = gauge%domainId(iGauge)
       ! get start and end dates
       start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
       end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
@@ -314,15 +314,15 @@ contains
     !
     ! inflow gauge
     !
-    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of basin 1 and initialization
+    ! in mhm call InflowGauge%Q has to be initialized -- dummy allocation with period of domain 1 and initialization
     if (nInflowGaugesTotal .EQ. 0) then
       allocate(data_dp_1d(maxval(simPer(:)%julEnd - simPer(:)%julStart + 1)))
       data_dp_1d = nodata_dp
       call paste(InflowGauge%Q, data_dp_1d, nodata_dp)
     else
       do iGauge = 1, nInflowGaugesTotal
-        ! get basin id
-        iDomain = InflowGauge%basinId(iGauge)
+        ! get domain id
+        iDomain = InflowGauge%domainId(iGauge)
         ! get start and end dates
         start_tmp = (/simPer(iDomain)%yStart, simPer(iDomain)%mStart, simPer(iDomain)%dStart/)
         end_tmp = (/simPer(iDomain)%yEnd, simPer(iDomain)%mEnd, simPer(iDomain)%dEnd  /)
@@ -360,7 +360,7 @@ contains
   !>       and then routed through the stream network.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" basin id
+  !>       \param[in] "integer(i4) :: iDomain" domain id
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -384,7 +384,7 @@ contains
 
     implicit none
 
-    ! basin id
+    ! domain id
     integer(i4), intent(in) :: iDomain
 
     integer(i4) :: tt
@@ -442,7 +442,7 @@ contains
   !>         the script in mhm/post_proc/bankfull_discharge.py
   
   !     INTENT(IN)
-  !>        \param[in] "integer(i4)               :: iDomain"  basin id
+  !>        \param[in] "integer(i4)               :: iDomain"  domain id
 
   !     INTENT(INOUT)
   !         None
@@ -481,7 +481,7 @@ contains
     use mo_common_mHM_mRM_variables, only: timestep
     use mo_read_forcing_nc, only: read_const_forcing_nc
     use mo_mrm_global_variables, only: &
-         dirBankfullRunoff, &   ! directory of bankfull_runoff file for each basin
+         dirBankfullRunoff, &   ! directory of bankfull_runoff file for each domain
          L11_bankfull_runoff_in ! bankfull runoff at L1
     use mo_common_variables, only: ALMA_convention
 

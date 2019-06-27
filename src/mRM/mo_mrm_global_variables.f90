@@ -74,7 +74,7 @@ module mo_mrm_global_variables
   integer(i4), public :: nMeasPerDay ! Number of observations per day,
   !                                  ! e.g. 24 -> hourly discharge, 1 -> daily discharge
   type gaugingStation
-    integer(i4), dimension(:), allocatable :: basinId ! domain Id
+    integer(i4), dimension(:), allocatable :: domainId ! domain Id
     integer(i4), dimension(:), allocatable :: gaugeId ! Gauge Id (e.g. 0000444)
     character(256), dimension(:), allocatable :: fname ! Name runoff file
     real(dp), dimension(:, :), allocatable :: Q ! [m3 s-1] observed daily mean discharge (simPer)
