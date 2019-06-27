@@ -93,7 +93,7 @@ CONTAINS
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
     use mo_file, only : file_defOutput, udefOutput
-    use mo_global_variables, only : basin_avg_TWS_obs, dirEvapotranspiration, &
+    use mo_global_variables, only : domain_avg_TWS_obs, dirEvapotranspiration, &
                                     dirMaxTemperature, dirMinTemperature, dirNetRadiation, dirNeutrons, dirPrecipitation, &
                                     dirReferenceET, dirSoil_moisture, dirTemperature, dirabsVapPressure, dirwindspeed, &
                                     evap_coeff, fday_pet, fday_prec, fday_temp, fileTWS, fnight_pet, fnight_prec, &
@@ -267,8 +267,8 @@ CONTAINS
           fileTWS(iDomain) = file_TWS (domainID)
         end do
 
-        allocate(basin_avg_TWS_obs%basinId(domainMeta%nDomains)); basin_avg_TWS_obs%basinId = nodata_i4
-        allocate(basin_avg_TWS_obs%fName  (domainMeta%nDomains)); basin_avg_TWS_obs%fName(:) = num2str(nodata_i4)
+        allocate(domain_avg_TWS_obs%basinId(domainMeta%nDomains)); domain_avg_TWS_obs%basinId = nodata_i4
+        allocate(domain_avg_TWS_obs%fName  (domainMeta%nDomains)); domain_avg_TWS_obs%fName(:) = num2str(nodata_i4)
 
         do iDomain = 1, domainMeta%nDomains
           domainID = domainMeta%indices(iDomain)
@@ -281,8 +281,8 @@ CONTAINS
             stop 1
           end if
 
-          basin_avg_TWS_obs%basinId(iDomain) = iDomain
-          basin_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
+          domain_avg_TWS_obs%basinId(iDomain) = iDomain
+          domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
       end select
     end if

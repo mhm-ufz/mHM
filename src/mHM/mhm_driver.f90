@@ -112,8 +112,8 @@ PROGRAM mhm_driver
   USE mo_message, ONLY : message, message_text          ! For print out
   USE mo_meteo_forcings, ONLY : prepare_meteo_forcings_data
   USE mo_mhm_eval, ONLY : mhm_eval
-  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, basin_avg_TWS reader
-          read_basin_avg_TWS, &
+  USE mo_read_optional_data, ONLY : read_soil_moisture, &      ! optional soil moisture reader, domain_avg_TWS reader
+          read_domain_avg_TWS, &
           read_neutrons, &
           read_evapotranspiration
   USE mo_common_read_config, ONLY : common_read_config                    ! Read main configuration files
@@ -306,7 +306,7 @@ PROGRAM mhm_driver
         ! the last iteration of the domain loop to ensure same time for all domains
         ! note: this is similar to how the runoff is read using mrm below
         if (iDomain == domainMeta%nDomains) then
-          call read_basin_avg_TWS()
+          call read_domain_avg_TWS()
         end if
       end select
     end if

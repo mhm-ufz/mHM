@@ -43,7 +43,7 @@ CONTAINS
   !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       returns soil moisture time series for all
   !>       grid cells (of multiple Domains concatenated),DIMENSION [nCells, nTimeSteps]
-  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" returns Domain averaged total water storage
+  !>       \param[out] "real(dp), dimension(:, :), optional :: domain_avg_tws" returns Domain averaged total water storage
   !>       time series, DIMENSION [nTimeSteps, nDomains]
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       returns evapotranspiration time series for
@@ -80,7 +80,7 @@ CONTAINS
   ! Robert Schweppe      Dec 2017 - extracted call to mpr from inside mhm
   ! Robert Schweppe      Jun 2018 - refactoring and reformatting
 
-  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
+  SUBROUTINE mhm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
@@ -91,7 +91,7 @@ CONTAINS
                                     L1_netrad, L1_neutrons, L1_percol, L1_pet, L1_pet_calc, L1_pet_weights, L1_pre, &
                                     L1_preEffect, L1_pre_weights, L1_rain, L1_runoffSeal, L1_satSTW, L1_sealSTW, &
                                     L1_slowRunoff, L1_snow, L1_snowPack, L1_soilMoist, L1_temp, L1_temp_weights, L1_tmax, &
-                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, basin_avg_TWS_sim, evap_coeff, &
+                                    L1_tmin, L1_total_runoff, L1_unsatSTW, L1_windspeed, domain_avg_TWS_sim, evap_coeff, &
                                     fday_pet, fday_prec, fday_temp, fnight_pet, fnight_prec, fnight_temp, &
                                     nSoilHorizons_sm_input, nTimeSteps_L1_et, nTimeSteps_L1_neutrons, nTimeSteps_L1_sm, &
                                     neutron_integral_AFast, outputFlxState, read_meteo_weights, timeStep_et_input, &
@@ -145,7 +145,7 @@ CONTAINS
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
     ! returns Domain averaged total water storage time series, DIMENSION [nTimeSteps, nDomains]
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws
 
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
@@ -358,7 +358,7 @@ CONTAINS
 #endif
 
       ! allocate space for local tws field
-      if (present(basin_avg_tws)) then
+      if (present(domain_avg_tws)) then
         allocate(TWS_field(s1 : e1))
         TWS_field(s1 : e1) = nodata_dp
       end if
@@ -819,14 +819,14 @@ CONTAINS
 
         !----------------------------------------------------------------------
         ! FOR TOTAL WATER STORAGE
-        if(present(basin_avg_tws)) then
+        if(present(domain_avg_tws)) then
           area_Domain = sum(level1(iDomain)%CellArea) * 1.E-6_dp
           TWS_field(s1 : e1) = L1_inter(s1 : e1) + L1_snowPack(s1 : e1) + L1_sealSTW(s1 : e1) + &
                   L1_unsatSTW(s1 : e1) + L1_satSTW(s1 : e1)
           do gg = 1, nSoilHorizons_mHM
             TWS_field(s1 : e1) = TWS_field(s1 : e1) + L1_soilMoist (s1 : e1, gg)
           end do
-          basin_avg_TWS_sim(tt, iDomain) = (dot_product(TWS_field (s1 : e1), level1(iDomain)%CellArea * 1.E-6_dp) / area_Domain)
+          domain_avg_TWS_sim(tt, iDomain) = (dot_product(TWS_field (s1 : e1), level1(iDomain)%CellArea * 1.E-6_dp) / area_Domain)
         end if
         !----------------------------------------------------------------------
 
@@ -922,7 +922,7 @@ CONTAINS
     ! =========================================================================
     ! SET TWS OUTPUT VARIABLE
     ! =========================================================================
-    if(present(basin_avg_tws)) basin_avg_tws = basin_avg_TWS_sim
+    if(present(domain_avg_tws)) domain_avg_tws = domain_avg_TWS_sim
 
   end SUBROUTINE mhm_eval
 

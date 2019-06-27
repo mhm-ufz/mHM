@@ -18,7 +18,7 @@ MODULE mo_read_optional_data
 
   PRIVATE
 
-  PUBLIC :: read_soil_moisture, read_basin_avg_TWS, read_neutrons, read_evapotranspiration
+  PUBLIC :: read_soil_moisture, read_domain_avg_TWS, read_neutrons, read_evapotranspiration
 
   ! ------------------------------------------------------------------
 
@@ -132,13 +132,13 @@ CONTAINS
   ! ---------------------------------------------------------------------------
 
   !    NAME
-  !        read_basin_avg_TWS
+  !        read_domain_avg_TWS
 
   !    PURPOSE
   !>       \brief Read domain average TWS timeseries from file, the same way runoff is read
 
   !>       \details Read domain average TWS timeseries
-  !>       Allocate global basin_avg_TWS variable that contains the simulated values after the simulation.
+  !>       Allocate global domain_avg_TWS variable that contains the simulated values after the simulation.
 
   !    HISTORY
   !>       \authors Oldrich Rakovec
@@ -148,14 +148,14 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine read_basin_avg_TWS
+  subroutine read_domain_avg_TWS
 
     use mo_append, only : paste
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : evalPer, nTstepDay, opti_function, optimize, simPer
     use mo_common_variables, only : domainMeta
     use mo_file, only : utws
-    use mo_global_variables, only : basin_avg_TWS_obs, basin_avg_TWS_sim, nMeasPerDay_TWS
+    use mo_global_variables, only : domain_avg_TWS_obs, domain_avg_TWS_sim, nMeasPerDay_TWS
     use mo_message, only : message
     use mo_read_timeseries, only : read_timeseries
     use mo_string_utils, only : num2str
@@ -180,8 +180,8 @@ CONTAINS
     ! INITIALIZE TWS
     ! ************************************************
     maxTimeSteps = maxval(simPer(1 : domainMeta%nDomains)%julEnd - simPer(1 : domainMeta%nDomains)%julStart + 1) * nTstepDay
-    allocate(basin_avg_TWS_sim(maxTimeSteps, domainMeta%nDomains))
-    basin_avg_TWS_sim = nodata_dp
+    allocate(domain_avg_TWS_sim(maxTimeSteps, domainMeta%nDomains))
+    domain_avg_TWS_sim = nodata_dp
 
     ! ************************************************
     ! READ domain average TWS TIME SERIES
@@ -194,16 +194,16 @@ CONTAINS
       ! get start and end dates
       start_tmp = (/evalPer(iDomain)%yStart, evalPer(iDomain)%mStart, evalPer(iDomain)%dStart/)
       end_tmp = (/evalPer(iDomain)%yEnd, evalPer(iDomain)%mEnd, evalPer(iDomain)%dEnd  /)
-      fName = trim(adjustl(basin_avg_TWS_obs%fname(iDomain)))
+      fName = trim(adjustl(domain_avg_TWS_obs%fname(iDomain)))
       call read_timeseries(trim(fName), utws, &
               start_tmp, end_tmp, optimize, opti_function, &
               data_dp_1d, mask = mask_1d, nMeasPerDay = nMeasPerDay_TWS)
       data_dp_1d = merge(data_dp_1d, nodata_dp, mask_1d)
-      call paste(basin_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
+      call paste(domain_avg_TWS_obs%TWS, data_dp_1d, nodata_dp)
       deallocate (data_dp_1d)
     end do
 
-  end subroutine read_basin_avg_TWS
+  end subroutine read_domain_avg_TWS
 
   ! ------------------------------------------------------------------
 

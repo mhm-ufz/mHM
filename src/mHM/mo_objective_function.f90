@@ -13,7 +13,7 @@
 !>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
 !>       of soil moisture
 !>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
-!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and domain average
+!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average
 !>       (standard score) TWS
 !>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
 !>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
@@ -23,7 +23,7 @@
 !>       \date Dec 2012
 
 ! Modifications:
-! Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_basin_avg_tws routine
+! Oldrich Rakovec Oct 2015 - added obj. func. 15 (objective_kge_q_rmse_tws) and extract_domain_avg_tws routine, former basin_avg
 ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
 MODULE mo_objective_function
@@ -133,7 +133,7 @@ CONTAINS
       ! soil moisture correlation - temporal
       objective = objective_sm_corr(parameterset, eval)
     case (15)
-      ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+      ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
       objective = objective_kge_q_rmse_tws(parameterset, eval)
     case (17)
       ! KGE of catchment average SM
@@ -148,7 +148,7 @@ CONTAINS
       !  KGE for Q + KGE of catchment average ET
       objective = objective_kge_q_et(parameterset, eval)
     case (30)
-      ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+      ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective = objective_kge_q_rmse_et(parameterset, eval)
 
     case default
@@ -253,11 +253,11 @@ CONTAINS
       end do
       objective_master = objective_master**onesixth
     case (15)
-      ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+      ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
       call message("case 15, objective_kge_q_rmse_tws not implemented in parallel yet")
       stop
     case (30)
-      ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+      ! KGE for Q * RMSE for domain_avg ET (standarized scored)
       objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
 
@@ -388,7 +388,7 @@ CONTAINS
         ! soil moisture correlation - temporal
         partial_objective = objective_sm_corr(parameterset, eval)
       case (15)
-        ! KGE for Q * RMSE for basin_avg TWS (standarized scored)
+        ! KGE for Q * RMSE for domain_avg TWS (standarized scored)
         ! partial_objective = objective_kge_q_rmse_tws(parameterset, eval)
         stop
       case (17)
@@ -404,7 +404,7 @@ CONTAINS
         !  KGE for Q + KGE of catchment average ET
         partial_objective = objective_kge_q_et(parameterset, eval)
       case (30)
-        ! KGE for Q * RMSE for basin_avg ET (standarized scored)
+        ! KGE for Q * RMSE for domain_avg ET (standarized scored)
         partial_objective = objective_kge_q_rmse_et(parameterset, eval)
         stop
 
@@ -1068,9 +1068,9 @@ CONTAINS
   !        objective_kge_q_rmse_tws
 
   !    PURPOSE
-  !>       \brief Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+  !>       \brief Objective function of KGE for runoff and RMSE for domain_avg TWS (standarized scores)
 
-  !>       \details Objective function of KGE for runoff and RMSE for basin_avg TWS (standarized scores)
+  !>       \details Objective function of KGE for runoff and RMSE for domain_avg TWS (standarized scores)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -1178,7 +1178,7 @@ CONTAINS
 #endif
 
     ! obtain hourly values of runoff and tws:
-    call eval(parameterset, runoff = runoff, basin_avg_tws = tws)
+    call eval(parameterset, runoff = runoff, domain_avg_tws = tws)
 
     !--------------------------------------------
     !! TWS
@@ -1192,7 +1192,7 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
 
       ! extract tws the same way as runoff using mrm
-      call extract_basin_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
+      call extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
 
       ! check for potentially 2 years of data
       if (count(tws_obs_mask) .lt.  365 * 2) then
@@ -1991,9 +1991,9 @@ CONTAINS
   !        objective_kge_q_rmse_et
 
   !    PURPOSE
-  !>       \brief Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
+  !>       \brief Objective function of KGE for runoff and RMSE for domain_avg ET (standarized scores)
 
-  !>       \details Objective function of KGE for runoff and RMSE for basin_avg ET (standarized scores)
+  !>       \details Objective function of KGE for runoff and RMSE for domain_avg ET (standarized scores)
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: parameterset"
@@ -2280,7 +2280,7 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !    NAME
-  !        extract_basin_avg_tws
+  !        extract_domain_avg_tws
 
   !    PURPOSE
   !>       \brief extracts domain average tws data from global variables
@@ -2310,11 +2310,11 @@ CONTAINS
   ! Stephan Thober Oct 2015 - moved subroutine to objective_function_sm
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine extract_basin_avg_tws(basinId, tws, tws_sim, tws_obs, tws_obs_mask)
+  subroutine extract_domain_avg_tws(basinId, tws, tws_sim, tws_obs, tws_obs_mask)
 
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
-    use mo_global_variables, only : basin_avg_TWS_obs, nMeasPerDay_TWS
+    use mo_global_variables, only : domain_avg_TWS_obs, nMeasPerDay_TWS
     use mo_message, only : message
 
     implicit none
@@ -2368,7 +2368,7 @@ CONTAINS
     end if
 
     ! extract domain Id
-    iBasin = basin_avg_TWS_obs%basinId(basinId)
+    iBasin = domain_avg_TWS_obs%basinId(basinId)
 
     ! get length of evaluation period times TPD_obs
     length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
@@ -2376,7 +2376,7 @@ CONTAINS
     ! extract measurements
     if (allocated(tws_obs)) deallocate(tws_obs)
     allocate(tws_obs(length))
-    tws_obs = basin_avg_TWS_obs%TWS(1 : length, basinId)
+    tws_obs = domain_avg_TWS_obs%TWS(1 : length, basinId)
 
     ! create mask of observed tws
     if (allocated(tws_obs_mask)) deallocate(tws_obs_mask)
@@ -2398,7 +2398,7 @@ CONTAINS
     ! clean up
     deallocate(dummy)
 
-  end subroutine extract_basin_avg_tws
+  end subroutine extract_domain_avg_tws
 
 
 END MODULE mo_objective_function

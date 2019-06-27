@@ -36,7 +36,7 @@ contains
   !>       \param[out] "real(dp), dimension(:, :), optional :: runoff"        returns runoff time series, DIMENSION
   !>       [nTimeSteps, nGaugesTotal]
   !>       \param[out] "real(dp), dimension(:, :), optional :: sm_opti"       dim1=ncells, dim2=time
-  !>       \param[out] "real(dp), dimension(:, :), optional :: basin_avg_tws" dim1=time dim2=nDomains
+  !>       \param[out] "real(dp), dimension(:, :), optional :: domain_avg_tws" dim1=time dim2=nDomains
   !>       \param[out] "real(dp), dimension(:, :), optional :: neutrons_opti" dim1=ncells, dim2=time
   !>       \param[out] "real(dp), dimension(:, :), optional :: et_opti"       dim1=ncells, dim2=time
 
@@ -49,7 +49,7 @@ contains
   ! Stephan Thober Nov 2016 - implemented second routing process i.e. adaptive timestep
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine mrm_eval(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
+  subroutine mrm_eval(parameterset, runoff, sm_opti, domain_avg_tws, neutrons_opti, et_opti)
 
     use mo_common_constants, only : HourSecs
     use mo_common_mHM_mRM_variables, only : LCYearId, dirRestartIn, nTStepDay, optimize, read_restart, resolutionRouting, simPer, &
@@ -83,7 +83,7 @@ contains
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti
 
     ! dim1=time dim2=nDomains
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: domain_avg_tws
 
     ! dim1=ncells, dim2=time
     real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti
@@ -149,7 +149,7 @@ contains
     ! initialize variables
     month = 0_i4
     
-    if (present(sm_opti) .or. present(basin_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
+    if (present(sm_opti) .or. present(domain_avg_tws) .or. present(neutrons_opti) .or. present(et_opti)) then
       call message("Error during initialization of mrm_eval, incorrect call from optimization routine.")
       stop 1
     end if
