@@ -60,7 +60,7 @@ CONTAINS
 
     real(dp), dimension(:, :), allocatable :: data_dp_2d
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
 
     ! ************************************************
@@ -72,7 +72,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(L0_Domain(iDomain))
 
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
@@ -94,11 +94,11 @@ CONTAINS
       ! Header (to check consistency)
       fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
       call read_header_ascii(trim(fName), udem, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, level0_iBasin%nodata_value)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, level0_iDomain%nodata_value)
 
       ! check for L0 and L1 scale consistency
-      if(resolutionHydrology(iDomain) .LT. level0_iBasin%cellsize) then
+      if(resolutionHydrology(iDomain) .LT. level0_iDomain%cellsize) then
         call message()
         call message('***ERROR: resolutionHydrology (L1) should be smaller than the input data resolution (L0)')
         call message('          check set-up (in mhm.nml) for domain: ', trim(adjustl(num2str(domainID))), ' ...')
@@ -108,17 +108,17 @@ CONTAINS
       ! DEM + overall mask creation
       fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_dem))
       call read_spatial_data_ascii(trim(fName), udem, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, level0_iBasin%mask)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, level0_iDomain%mask)
 
       ! put global nodata value into array (probably not all grid cells have values)
-      data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iBasin%mask)
+      data_dp_2d = merge(data_dp_2d, nodata_dp, level0_iDomain%mask)
       ! put data in variable
-      call append(L0_elev, pack(data_dp_2d, level0_iBasin%mask))
+      call append(L0_elev, pack(data_dp_2d, level0_iDomain%mask))
       ! deallocate arrays
       deallocate(data_dp_2d)
 
-      level0_iBasin%nCells = count(level0_iBasin%mask)
+      level0_iDomain%nCells = count(level0_iDomain%mask)
 
     end do
 
@@ -165,13 +165,13 @@ CONTAINS
 
     logical, dimension(:, :), allocatable :: mask_2d
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(L0_Domain(iDomain))
 
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
@@ -191,11 +191,11 @@ CONTAINS
       do iVar = 1, nLCoverScene
         fName = trim(adjustl(dirLCover(iDomain))) // trim(adjustl(LCfilename(iVar)))
         call read_spatial_data_ascii(trim(fName), ulcoverclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iBasin%mask), nodata_i4)
+        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do
       call append(L0_LCover, dataMatrix_i4)

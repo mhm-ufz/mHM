@@ -284,7 +284,7 @@ contains
     ! flag whether outlet is found
     logical :: is_outlet
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
     !--------------------------------------------------------
@@ -294,7 +294,7 @@ contains
     !--------------------------------------------------------
     ! initialize
     Noutlet = 0_i4
-    level0_iBasin => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(L0_Domain(iDomain))
     !------------------------------------------------------------------
     !                Set Flow Direction at Level 11
     !                       Searching order
@@ -307,14 +307,14 @@ contains
     ! flow direction at level-11
 
     ! allocate
-    nrows0 = level0_iBasin%nrows
-    ncols0 = level0_iBasin%ncols
-    nCells0 = level0_iBasin%ncells
+    nrows0 = level0_iDomain%nrows
+    ncols0 = level0_iDomain%ncols
+    nCells0 = level0_iDomain%ncells
     nrows11 = level11(iDomain)%nrows
     ncols11 = level11(iDomain)%ncols
     nNodes = level11(iDomain)%ncells
-    s0 = level0_iBasin%iStart
-    e0 = level0_iBasin%iEnd
+    s0 = level0_iDomain%iStart
+    e0 = level0_iDomain%iEnd
 
     allocate (iD0         (nrows0, ncols0))
     allocate (fAcc0       (nrows0, ncols0))
@@ -337,13 +337,13 @@ contains
 
 
     ! get iD, fAcc, fDir at L0
-    iD0(:, :) = UNPACK(level0_iBasin%Id, level0_iBasin%mask, nodata_i4)
-    fAcc0(:, :) = UNPACK(L0_fAcc (s0 : e0), level0_iBasin%mask, nodata_i4)
-    fDir0(:, :) = UNPACK(L0_fDir (s0 : e0), level0_iBasin%mask, nodata_i4)
+    iD0(:, :) = UNPACK(level0_iDomain%Id, level0_iDomain%mask, nodata_i4)
+    fAcc0(:, :) = UNPACK(L0_fAcc (s0 : e0), level0_iDomain%mask, nodata_i4)
+    fDir0(:, :) = UNPACK(L0_fDir (s0 : e0), level0_iDomain%mask, nodata_i4)
 
     ! case where routing and input data scale is similar
     IF(nCells0 .EQ. nNodes) THEN
-      oLoc(1, :) = maxloc(fAcc0, level0_iBasin%mask)
+      oLoc(1, :) = maxloc(fAcc0, level0_iDomain%mask)
       kk = L0_L11_remap(iDomain)%lowres_id_on_highres(oLoc(1, 1), oLoc(1, 2))
       ! for a single node model run
       if(nCells0 .EQ. 1) then
@@ -360,8 +360,8 @@ contains
         colOut(kk) = jj
       end do
       do kk = 1, ncells0
-        ii = level0_iBasin%CellCoor(kk, 1)
-        jj = level0_iBasin%CellCoor(kk, 2)
+        ii = level0_iDomain%CellCoor(kk, 1)
+        jj = level0_iDomain%CellCoor(kk, 2)
         draSC0(ii, jj) = kk
       end do
 
@@ -371,8 +371,8 @@ contains
       ! ST: find all cells whose downstream cells are outside the domain
       ! =======================================================================
       do ii = 1, nCells0
-        iRow = level0_iBasin%CellCoor(ii, 1)
-        jCol = level0_iBasin%CellCoor(ii, 2)
+        iRow = level0_iDomain%CellCoor(ii, 1)
+        jCol = level0_iDomain%CellCoor(ii, 2)
         call moveDownOneCell(fDir0(iRow, jCol), iRow, jCol)
         ! check whether new location is inside bound
         is_outlet = .False.
@@ -387,9 +387,9 @@ contains
           Noutlet = Noutlet + 1_i4
           ! cell is an outlet
           if (Noutlet .eq. 1) then
-            oLoc(1, :) = level0_iBasin%CellCoor(ii, :)
+            oLoc(1, :) = level0_iDomain%CellCoor(ii, :)
           else
-            call append(oLoc, level0_iBasin%CellCoor(ii : ii, :))
+            call append(oLoc, level0_iDomain%CellCoor(ii : ii, :))
           end if
           ! drain this cell into corresponding L11 cell
           kk = L0_L11_remap(iDomain)%lowres_id_on_highres(oLoc(Noutlet, 1), oLoc(Noutlet, 2))
@@ -477,8 +477,8 @@ contains
         end do
 
         ! set location of the cell-outlet (row, col) in L0
-        ii = level0_iBasin%CellCoor(idMax, 1)
-        jj = level0_iBasin%CellCoor(idMax, 2)
+        ii = level0_iDomain%CellCoor(idMax, 1)
+        jj = level0_iDomain%CellCoor(idMax, 2)
         rowOut(kk) = ii
         colOut(kk) = jj
         draSC0(ii, jj) = kk
@@ -553,9 +553,9 @@ contains
     ! L0 data sets
     ! check whether L0 data is shared
     if (iDomain .eq. 1) then
-      call append(L0_draSC, PACK (draSC0(:, :), level0_iBasin%mask))
+      call append(L0_draSC, PACK (draSC0(:, :), level0_iDomain%mask))
     else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
-      call append(L0_draSC, PACK (draSC0(:, :), level0_iBasin%mask))
+      call append(L0_draSC, PACK (draSC0(:, :), level0_iDomain%mask))
     end if
 
     domain_mrm(iDomain)%L0_Noutlet = Noutlet
@@ -929,12 +929,12 @@ contains
     ! flag for finding outlet
     logical :: is_outlet
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iBasin => level0(L0_Domain(iDomain))
-    s0 = level0_iBasin%iStart
-    e0 = level0_iBasin%iEnd
+    level0_iDomain => level0(L0_Domain(iDomain))
+    s0 = level0_iDomain%iStart
+    e0 = level0_iDomain%iEnd
 
     nOutlets = L11_nOutlets(iDomain)
 
@@ -951,8 +951,8 @@ contains
     allocate (nLinkFromCol  (level11(iDomain)%nCells))
     allocate (nLinkToRow    (level11(iDomain)%nCells))
     allocate (nLinkToCol    (level11(iDomain)%nCells))
-    allocate (fDir0         (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (draSC0        (level0_iBasin%nrows, level0_iBasin%ncols))
+    allocate (fDir0         (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (draSC0        (level0_iDomain%nrows, level0_iDomain%ncols))
 
     ! initialize
     rowOut = nodata_i4
@@ -969,8 +969,8 @@ contains
     ! for a single node model run
     if(level11(iDomain)%nCells .GT. 1) then
       ! get fDir at L0
-      fDir0(:, :) = UNPACK(L0_fDir  (s0 : e0), level0_iBasin%mask, nodata_i4)
-      draSC0(:, :) = UNPACK(L0_draSC (s0 : e0), level0_iBasin%mask, nodata_i4)
+      fDir0(:, :) = UNPACK(L0_fDir  (s0 : e0), level0_iDomain%mask, nodata_i4)
+      draSC0(:, :) = UNPACK(L0_draSC (s0 : e0), level0_iDomain%mask, nodata_i4)
 
       ! get network vectors of L11 
       nLinkFromN(:) = L11_fromN   (level11(iDomain)%iStart : level11(iDomain)%iEnd)
@@ -1108,20 +1108,20 @@ contains
 
     integer(i4) :: iRow, jCol
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iBasin => level0(L0_Domain(iDomain))
-    s0 = level0_iBasin%iStart
-    e0 = level0_iBasin%iEnd
+    level0_iDomain => level0(L0_Domain(iDomain))
+    s0 = level0_iDomain%iStart
+    e0 = level0_iDomain%iEnd
 
 
     ! allocate
-    allocate (draSC0          (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (fDir0           (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (gaugeLoc0       (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (InflowGaugeLoc0 (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (draCell0        (level0_iBasin%nrows, level0_iBasin%ncols))
+    allocate (draSC0          (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (fDir0           (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (gaugeLoc0       (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (InflowGaugeLoc0 (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (draCell0        (level0_iDomain%nrows, level0_iDomain%ncols))
 
     ! initialize
     draSC0(:, :) = nodata_i4
@@ -1131,17 +1131,17 @@ contains
     draCell0(:, :) = nodata_i4
 
     draSC0(:, :) = UNPACK(L0_draSC          (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+            level0_iDomain%mask, nodata_i4)
     fDir0(:, :) = UNPACK(L0_fDir           (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+            level0_iDomain%mask, nodata_i4)
     gaugeLoc0(:, :) = UNPACK(L0_gaugeLoc       (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+            level0_iDomain%mask, nodata_i4)
     InflowGaugeLoc0(:, :) = UNPACK(L0_InflowgaugeLoc (s0 : e0), &
-            level0_iBasin%mask, nodata_i4)
+            level0_iDomain%mask, nodata_i4)
 
-    do kk = 1, level0_iBasin%nCells
-      ii = level0_iBasin%CellCoor(kk, 1)
-      jj = level0_iBasin%CellCoor(kk, 2)
+    do kk = 1, level0_iDomain%nCells
+      ii = level0_iDomain%CellCoor(kk, 1)
+      jj = level0_iDomain%CellCoor(kk, 2)
       iSc = draSC0(ii, jj)
       ! find drainage path
       iRow = ii
@@ -1181,9 +1181,9 @@ contains
     ! L0 data sets
     ! check whether L0 data is shared
     if (iDomain .eq. 1) then
-      call append(L0_draCell, PACK(draCell0(:, :), level0_iBasin%mask))
+      call append(L0_draCell, PACK(draCell0(:, :), level0_iDomain%mask))
     else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
-      call append(L0_draCell, PACK(draCell0(:, :), level0_iBasin%mask))
+      call append(L0_draCell, PACK(draCell0(:, :), level0_iDomain%mask))
     end if
 
     ! free space
@@ -1283,22 +1283,22 @@ contains
 
     real(dp), dimension(:, :), allocatable :: nodata_dp_tmp
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iBasin => level0(L0_Domain(iDomain))
-    s0 = level0_iBasin%iStart
-    e0 = level0_iBasin%iEnd
+    level0_iDomain => level0(L0_Domain(iDomain))
+    s0 = level0_iDomain%iStart
+    e0 = level0_iDomain%iEnd
     nLinks = level11(iDomain)%nCells - L11_nOutlets(iDomain)
 
 
     ! allocate
-    allocate (iD0           (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (elev0         (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (fDir0         (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (cellarea0     (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (streamNet0    (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (floodPlain0   (level0_iBasin%nrows, level0_iBasin%ncols))
+    allocate (iD0           (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (elev0         (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (fDir0         (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (cellarea0     (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (streamNet0    (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (floodPlain0   (level0_iDomain%nrows, level0_iDomain%ncols))
 
     !  Routing network vectors have nNodes size instead of nLinks to
     !  avoid the need of having two extra indices to identify a Domain.
@@ -1314,8 +1314,8 @@ contains
     allocate (nLinkAFloodPlain  (level11(iDomain)%nCells))
     allocate (nLinkSlope        (level11(iDomain)%nCells))
 
-    allocate (nodata_i4_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
-    allocate (nodata_dp_tmp      (level0_iBasin%nrows, level0_iBasin%ncols))
+    allocate (nodata_i4_tmp      (level0_iDomain%nrows, level0_iDomain%ncols))
+    allocate (nodata_dp_tmp      (level0_iDomain%nrows, level0_iDomain%ncols))
 
     ! initialize
     iD0(:, :) = nodata_i4
@@ -1342,12 +1342,12 @@ contains
     ! for a single node model run
     if(level11(iDomain)%nCells .GT. 1) then
       ! get L0 fields
-      iD0(:, :) = UNPACK(level0_iBasin%Id, level0_iBasin%mask, nodata_i4_tmp)
+      iD0(:, :) = UNPACK(level0_iDomain%Id, level0_iDomain%mask, nodata_i4_tmp)
       elev0(:, :) = UNPACK(L0_elev (s0 : e0), &
-          level0_iBasin%mask, nodata_dp_tmp)
+          level0_iDomain%mask, nodata_dp_tmp)
       fDir0(:, :) = UNPACK(L0_fDir (s0 : e0), &
-          level0_iBasin%mask, nodata_i4_tmp)
-      cellarea0(:, :) = UNPACK(level0_iBasin%CellArea, level0_iBasin%mask, nodata_dp_tmp)
+          level0_iDomain%mask, nodata_i4_tmp)
+      cellarea0(:, :) = UNPACK(level0_iDomain%CellArea, level0_iDomain%mask, nodata_dp_tmp)
 
       ! get network vectors of L11
       netPerm(:) = L11_netPerm (level11(iDomain)%iStart : level11(iDomain)%iEnd)
@@ -1441,11 +1441,11 @@ contains
     ! L0 data sets
     ! check whether L0 data is shared
     if (iDomain .eq. 1) then
-      call append(L0_streamNet, PACK (streamNet0(:, :), level0_iBasin%mask))
-      call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iBasin%mask))
+      call append(L0_streamNet, PACK (streamNet0(:, :), level0_iDomain%mask))
+      call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iDomain%mask))
     else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
-      call append(L0_streamNet, PACK (streamNet0(:, :), level0_iBasin%mask))
-      call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iBasin%mask))
+      call append(L0_streamNet, PACK (streamNet0(:, :), level0_iDomain%mask))
+      call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iDomain%mask))
     end if
 
 
@@ -1517,7 +1517,7 @@ contains
 
     integer(i4) :: ii, iDomain, iiLC, s0, e0
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
     ! initialization
@@ -1525,10 +1525,10 @@ contains
       allocate(temp_array(level11(iDomain)%nCells, nLCoverScene))
       temp_array = nodata_dp
       if (do_init) then
-        level0_iBasin => level0(L0_Domain(iDomain))
+        level0_iDomain => level0(L0_Domain(iDomain))
 
-        s0 = level0_iBasin%iStart
-        e0 = level0_iBasin%iEnd
+        s0 = level0_iDomain%iStart
+        e0 = level0_iDomain%iEnd
         nLinks = level11(iDomain)%nCells + 1 - L11_nOutlets(iDomain)
         nLinkAFloodPlain => L11_aFloodPlain(level11(iDomain)%iStart : level11(iDomain)%iEnd)
 
@@ -1536,7 +1536,7 @@ contains
           ! for a single node model run
           if(nLinks .GT. 0) then
             do ii = 1, nLinks
-              temp_array(ii, iiLC) = sum(level0_iBasin%CellArea(:), &
+              temp_array(ii, iiLC) = sum(level0_iDomain%CellArea(:), &
                   mask = (L0_floodPlain(s0 : e0) == ii .and. L0_LCover(s0 : e0, iiLC) == LCClassImp)) &
                   / nLinkAFloodPlain(ii)
             end do
@@ -1837,10 +1837,10 @@ contains
 
     real(dp) :: lat_1, long_1, lat_2, long_2
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iBasin => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(L0_Domain(iDomain))
 
     ! regular X-Y cordinate system
     IF(iCoorSystem .EQ. 0) THEN
@@ -1851,7 +1851,7 @@ contains
       case(2, 8, 32, 128)      ! SE, SW, NW, NE
         length = SQRT2_dp
       end select
-      length = length * level0_iBasin%cellsize
+      length = length * level0_iDomain%cellsize
 
       ! regular lat-lon cordinate system
     ELSE IF(iCoorSystem .EQ. 1) THEN
@@ -1862,15 +1862,15 @@ contains
       call moveDownOneCell(fDir, iRow_to, jCol_to)
 
       ! estimate lat-lon points
-      lat_1 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
-      long_1 = level0_iBasin%xllcorner + real((iRow - 1), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+      lat_1 = level0_iDomain%yllcorner + real((level0_iDomain%ncols - jCol), dp) * level0_iDomain%cellsize + &
+              0.5_dp * level0_iDomain%cellsize
+      long_1 = level0_iDomain%xllcorner + real((iRow - 1), dp) * level0_iDomain%cellsize + &
+              0.5_dp * level0_iDomain%cellsize
 
-      lat_2 = level0_iBasin%yllcorner + real((level0_iBasin%ncols - jCol_to), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
-      long_2 = level0_iBasin%xllcorner + real((iRow_to - 1), dp) * level0_iBasin%cellsize + &
-              0.5_dp * level0_iBasin%cellsize
+      lat_2 = level0_iDomain%yllcorner + real((level0_iDomain%ncols - jCol_to), dp) * level0_iDomain%cellsize + &
+              0.5_dp * level0_iDomain%cellsize
+      long_2 = level0_iDomain%xllcorner + real((iRow_to - 1), dp) * level0_iDomain%cellsize + &
+              0.5_dp * level0_iDomain%cellsize
       ! get distance between two points
       call get_distance_two_lat_lon_points(lat_1, long_1, lat_2, long_2, length)
 
@@ -2259,17 +2259,17 @@ contains
     real(dp)                                 :: cellsize0
     logical,     dimension(:),   allocatable :: slopemask0
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
     type(Grid), pointer :: level11_iBasin
 
     ! level-0 information
-    level0_iBasin => level0(L0_Domain(iDomain))
-    nrows0 = level0_iBasin%nrows
-    ncols0 = level0_iBasin%ncols
-    nCells0 = level0_iBasin%ncells
-    iStart0 = level0_iBasin%iStart
-    iEnd0 = level0_iBasin%iEnd
-    mask0 = level0_iBasin%mask
+    level0_iDomain => level0(L0_Domain(iDomain))
+    nrows0 = level0_iDomain%nrows
+    ncols0 = level0_iDomain%ncols
+    nCells0 = level0_iDomain%ncells
+    iStart0 = level0_iDomain%iStart
+    iEnd0 = level0_iDomain%iEnd
+    mask0 = level0_iDomain%mask
 
     ! level-11 information
     iStart11 = level11(iDomain)%iStart
@@ -2329,10 +2329,10 @@ contains
 
     if(nNodes .GT. 1) then
       ! get L0 fields
-      iD0(:,:) = UNPACK(level0_iBasin%Id(1:nCells0), mask0, nodata_i4_tmp)
+      iD0(:,:) = UNPACK(level0_iDomain%Id(1:nCells0), mask0, nodata_i4_tmp)
       fDir0(:,:) = UNPACK(L0_fDir(iStart0:iEnd0), mask0, nodata_i4_tmp)
       fAcc0(:,:) = UNPACK(L0_fAcc(iStart0:iEnd0), mask0, nodata_i4_tmp)
-      cellarea0(:,:) = UNPACK(level0_iBasin%cellarea(1:nCells0), mask0, nodata_dp_tmp)
+      cellarea0(:,:) = UNPACK(level0_iDomain%cellarea(1:nCells0), mask0, nodata_dp_tmp)
 
       ! smoothing river slope
       slope_tmp = L0_slope(iStart0:iEnd0)

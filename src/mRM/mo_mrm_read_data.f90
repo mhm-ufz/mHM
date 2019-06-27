@@ -91,7 +91,7 @@ contains
 
     logical, dimension(:, :), allocatable :: mask_global
 
-    type(Grid), pointer :: level0_iBasin => null()
+    type(Grid), pointer :: level0_iDomain => null()
 
 
     ! ************************************************
@@ -114,7 +114,7 @@ contains
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(L0_Domain(iDomain))
 
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
@@ -132,7 +132,7 @@ contains
 
       if (do_readlatlon) then
         ! read lat lon coordinates of each domain
-        call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iBasin)
+        call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
       end if
 
       ! read fAcc, fDir, gaugeLoc
@@ -156,8 +156,8 @@ contains
           !
           ! reading and transposing
           call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
 
           ! put global nodata value into array (probably not all grid cells have values)
           data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
@@ -168,12 +168,12 @@ contains
        if ((iVar .eq. 4) .and. (processMatrix(8, 1) .eq. 3)) then
           ! reading
           call read_spatial_data_ascii(trim(fName), nunit, &
-               level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-               level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, mask_2d)
+               level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+               level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
           ! put global nodata value into array (probably not all grid cells have values)
           data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
           ! put data in variable
-          call append(L0_slope, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
 
           ! deallocate arrays
           deallocate(data_dp_2d, mask_2d)
@@ -183,13 +183,13 @@ contains
         ! put data into global L0 variable
         select case (iVar)
         case(1) ! flow accumulation
-          call append(L0_fAcc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_fAcc, pack(data_i4_2d, level0_iDomain%mask))
         case(2) ! flow direction
           ! rotate flow direction and any other variable with directions
           ! NOTE: ONLY when ASCII files are read
           call rotate_fdir_variable(data_i4_2d)
           ! append
-          call append(L0_fDir, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_fDir, pack(data_i4_2d, level0_iDomain%mask))
         case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges
           ! Input data check
@@ -205,7 +205,7 @@ contains
             end if
           end do
 
-          call append(L0_gaugeLoc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_gaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
           ! inflow gauges
           ! if no inflow gauge for this subdomain exists still matirx with dim of subdomain has to be paded
@@ -225,7 +225,7 @@ contains
             end do
           end if
 
-          call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iBasin%mask))
+          call append(L0_InflowGaugeLoc, pack(data_i4_2d, level0_iDomain%mask))
 
         end select
         !
@@ -274,7 +274,7 @@ contains
 
     integer(i4) :: iGauge
 
-    integer(i4) :: i, iDomain
+    integer(i4) :: iDomain
 
     integer(i4) :: maxTimeSteps
 

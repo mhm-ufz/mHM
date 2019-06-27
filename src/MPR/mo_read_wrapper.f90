@@ -110,7 +110,7 @@ CONTAINS
 
     integer(i4), dimension(:), allocatable :: dummy_i4
 
-    type(Grid), pointer :: level0_iBasin
+    type(Grid), pointer :: level0_iDomain
 
     real(dp), parameter :: slope_minVal = 0.01_dp
 
@@ -150,7 +150,7 @@ CONTAINS
     domains: do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(L0_Domain(iDomain))
 
       call message('    Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       ! check whether L0 data is shared
@@ -184,17 +184,17 @@ CONTAINS
 
         ! reading
         call read_spatial_data_ascii(trim(fName), nunit, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_dp_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_dp_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_dp_2d = merge(data_dp_2d, nodata_dp, mask_2d)
         ! put data in variable
         select case (iVar)
         case(1) ! slope
-          call append(L0_slope, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_slope, pack(data_dp_2d, level0_iDomain%mask))
 
         case(2) ! aspect
-          call append(L0_asp, pack(data_dp_2d, level0_iBasin%mask))
+          call append(L0_asp, pack(data_dp_2d, level0_iDomain%mask))
         end select
         ! deallocate arrays
         deallocate(data_dp_2d, mask_2d)
@@ -221,11 +221,11 @@ CONTAINS
           fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(fName))
         end if
         call read_spatial_data_ascii(trim(fName), usoilclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iBasin%mask), nodata_i4)
+        call paste(dataMatrix_i4, pack(data_i4_2d, level0_iDomain%mask), nodata_i4)
         deallocate(data_i4_2d)
       end do
       call append(L0_soilId, dataMatrix_i4)
@@ -235,35 +235,35 @@ CONTAINS
       fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_hydrogeoclass))
       ! reading and transposing
       call read_spatial_data_ascii(trim(fName), uhydrogeoclass, &
-              level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-              level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+              level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+              level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
       ! put global nodata value into array (probably not all grid cells have values)
       data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-      call append(L0_geoUnit, pack(data_i4_2d, level0_iBasin%mask))
+      call append(L0_geoUnit, pack(data_i4_2d, level0_iDomain%mask))
       deallocate(data_i4_2d, mask_2d)
 
       ! LAI values
       call message('      Reading LAI ...')
       select case (timeStep_LAI_input)
       case(1) ! long term mean monthly gridded fields
-        call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%mask)
+        call prepare_gridded_mean_monthly_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask)
 
       case(0) ! long term mean monthly values per class with LUT
         nLAI = YearMonths_i4
         fName = trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_laiclass))
         ! reading and transposing
         call read_spatial_data_ascii(trim(fName), ulaiclass, &
-                level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%xllcorner, &
-                level0_iBasin%yllcorner, level0_iBasin%cellsize, data_i4_2d, mask_2d)
+                level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%xllcorner, &
+                level0_iDomain%yllcorner, level0_iDomain%cellsize, data_i4_2d, mask_2d)
         ! put global nodata value into array (probably not all grid cells have values)
         data_i4_2d = merge(data_i4_2d, nodata_i4, mask_2d)
-        allocate(dummy_i4(count(level0_iBasin%mask)))
-        dummy_i4 = pack(data_i4_2d, level0_iBasin%mask)
+        allocate(dummy_i4(count(level0_iDomain%mask)))
+        dummy_i4 = pack(data_i4_2d, level0_iDomain%mask)
         deallocate(data_i4_2d, mask_2d)
 
         call check_consistency_lut_map(dummy_i4, LAIUnitList, file_laiclass)
 
-        allocate(data_dp_2d(count(level0_iBasin%mask), nLAI))
+        allocate(data_dp_2d(count(level0_iDomain%mask), nLAI))
         do iMon = 1, nLAI
           ! determine LAIs per month
           do ll = 1, size(LAILUT, dim = 1)
@@ -276,14 +276,14 @@ CONTAINS
         L0_gridded_LAI(:, :) = merge(1.00E-10_dp, L0_gridded_LAI(:, :), L0_gridded_LAI(:, :) .LT. 1.00E-10_dp)
         L0_gridded_LAI(:, :) = merge(30.0_dp, L0_gridded_LAI(:, :), L0_gridded_LAI(:, :) .GT. 30.0_dp)
       case(-3 : -1) ! daily, monthly or yearly gridded fields (time-series)
-        call prepare_gridded_daily_LAI_data(iDomain, level0_iBasin%nrows, level0_iBasin%ncols, level0_iBasin%mask, &
+        call prepare_gridded_daily_LAI_data(iDomain, level0_iDomain%nrows, level0_iDomain%ncols, level0_iDomain%mask, &
         LAIPer(iDomain))
 
       end select
 
       ! read lat lon coordinates of each domain
       call message('      Reading latitude/logitude ...')
-      call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iBasin)
+      call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iDomain)
 
       call timer_stop(itimer)
       call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
