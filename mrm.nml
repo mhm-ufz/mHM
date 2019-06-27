@@ -88,8 +88,8 @@ resolution_Hydrology(2) = 24000
 !> the index must MONOTONICALLY increase. Index can be repeated. e.g., 1,1,2,2,3
 !> but not 1,2,1. The correct way should be: 1,1,2.
 !-----------------------------------------------------------------------------
-L0Basin(1) = 1
-L0Basin(2) = 2
+L0Domain(1) = 1
+L0Domain(2) = 2
 !-----------------------------------------------------------------------------
 !> flag for writing restart output
 !-----------------------------------------------------------------------------
