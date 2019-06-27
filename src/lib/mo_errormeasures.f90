@@ -761,7 +761,7 @@ MODULE mo_errormeasures
   !         NASH, J., & SUTCLIFFE, J. (1970). River flow forecasting through conceptual models part I: A discussion of
   !                  principles. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6
   !         Hundecha and Bardossy (2004). Modeling of the effect of land use changes on the runoff generation of a river
-  !                  basin through parameter regionalization of a watershed model, Journal of Hydrology, 292, 281-295
+  !                  domain through parameter regionalization of a watershed model, Journal of Hydrology, 292, 281-295
 
   !     HISTORY
   !         Written,  Stephan Thober, Bjoern Guse, May 2018

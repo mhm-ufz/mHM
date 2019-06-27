@@ -3,7 +3,7 @@
 !>       \brief Distributed precipitation-runoff model mHM
 
 !>       \details This is the main driver of mHM, which calls
-!>       one instance of mHM for a multiple basins and a given period.
+!>       one instance of mHM for a multiple domains and a given period.
 !>       \image html  mhm5-logo.png "Typical mHM cell"
 !>       \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 
@@ -67,7 +67,7 @@
 ! Luis Samaniego                Jul 2015 - added temporal directories for optimization
 ! Stephan Thober                Aug 2015 - removed routing related variables
 ! Stephan Thober                Oct 2015 - reorganized optimization (now compatible with mRM)
-! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of basin averaged TWS and objective function 15
+! Oldrich Rakovec, Rohini Kumar Oct 2015 - added reading of domain averaged TWS and objective function 15
 !                                          for simultaneous calibration based on runoff and TWS
 ! Rohini Kumar                  Mar 2016 - options to handle different soil databases modified MPR to included
 !                                          soil horizon specific properties/parameters
@@ -102,12 +102,11 @@ PROGRAM mhm_driver
           dirConfigOut, &
           dirMorpho, dirLCover, &                                         ! directories
           dirOut, &      ! directories
-          nbasins, &      ! number of basins
           domainMeta, &
 #ifdef MPI
           comm, &
 #endif
-          processMatrix, &      ! basin information,  processMatrix
+          processMatrix, &      ! domain information,  processMatrix
           global_parameters, global_parameters_name      ! mhm parameters (gamma) and their clear names
   USE mo_kind, ONLY : i4, dp                         ! number precision
   USE mo_message, ONLY : message, message_text          ! For print out
@@ -220,7 +219,7 @@ PROGRAM mhm_driver
   call check_optimization_settings()
 
   call message()
-  call message('# of basins:         ', trim(num2str(nbasins)))
+  call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
   call message('  Input data directories:')
   do iDomain = 1, domainMeta%nDomains
@@ -265,14 +264,14 @@ PROGRAM mhm_driver
   call message('  Read data ...')
   call timer_start(itimer)
   ! for DEM, slope, ... define nGvar local
-  ! read_data has a basin loop inside
+  ! read_data has a domain loop inside
   call read_data(simPer)
   call timer_stop(itimer)
   call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-  ! read data for every basin
+  ! read data for every domain
   itimer = itimer + 1
-  call message('  Initialize basins ...')
+  call message('  Initialize domains ...')
   call timer_start(itimer)
   call mhm_initialize()
   call timer_stop(itimer)
@@ -303,8 +302,8 @@ PROGRAM mhm_driver
         ! read optional spatio-temporal evapotranspiration data
         call read_evapotranspiration(iDomain, domainID)
       case(15)
-        ! read optional basin average TWS data at once, therefore only read it
-        ! the last iteration of the basin loop to ensure same time for all basins
+        ! read optional domain average TWS data at once, therefore only read it
+        ! the last iteration of the domain loop to ensure same time for all domains
         ! note: this is similar to how the runoff is read using mrm below
         if (iDomain == domainMeta%nDomains) then
           call read_basin_avg_TWS()
@@ -327,7 +326,7 @@ PROGRAM mhm_driver
   mrm_coupling_mode = -1_i4
 #endif
 
-  !this call may be moved to another position as it writes the master config out file for all basins
+  !this call may be moved to another position as it writes the master config out file for all domains
   call write_configfile()
 
 #ifdef MPI

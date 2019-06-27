@@ -37,7 +37,7 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin.
+  !>       \details Initialize main mHM variables for a given domain.
   !>       Calls the following procedures in this order:
   !>       - Constant initialization.
   !>       - Generate soil database.
@@ -81,7 +81,7 @@ CONTAINS
     integer(i4) :: iDomain
 
 
-    ! soilDB common for all basins
+    ! soilDB common for all domains
     call generate_soil_database()
 
     allocate(level1(domainMeta%nDomains))
@@ -151,7 +151,7 @@ CONTAINS
 
     implicit none
 
-    ! basin id
+    ! domain id
     integer(i4), intent(in) :: iDomain
 
     integer(i4) :: k, n, nH
@@ -163,7 +163,7 @@ CONTAINS
       ! elevation [m]
       if (abs(L0_elev(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: elevation has missing value within the valid masked area at cell in basin ', &
+        call message(' Error: elevation has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -171,7 +171,7 @@ CONTAINS
       ! slope [%]
       if (abs(L0_slope(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: slope has missing value within the valid masked area at cell in basin ', &
+        call message(' Error: slope has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -179,7 +179,7 @@ CONTAINS
       ! aspect [degree]
       if (abs(L0_asp(k) - nodata_dp) .lt. eps_dp) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: aspect has missing values within the valid masked area at cell in basin ', &
+        call message(' Error: aspect has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -191,7 +191,7 @@ CONTAINS
       do n = 1, nH
         if (L0_soilId(k, n) .eq. nodata_i4) then
           message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: soil id has missing values within the valid masked area at cell in basin and horizon ', &
+          call message(' Error: soil id has missing values within the valid masked area at cell in domain and horizon ', &
                   trim(message_text))
           stop
         end if
@@ -200,7 +200,7 @@ CONTAINS
       ! geological-Id [-]
       if (L0_geoUnit(k) .eq. nodata_i4) then
         message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)'))
-        call message(' Error: geological formation id has missing values within the valid masked area at cell in basin ', &
+        call message(' Error: geological formation id has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
@@ -209,7 +209,7 @@ CONTAINS
       do  n = 1, nLCoverScene
         if (L0_LCover(k, n) .eq. nodata_i4) then
           message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(iDomain, '(I5)')) // ',' // trim(num2str(n, '(I5)'))
-          call message(' Error: land cover id has missing values within the valid masked area at cell in basin and scene ', &
+          call message(' Error: land cover id has missing values within the valid masked area at cell in domain and scene ', &
                   trim(message_text))
           stop
         end if
@@ -219,7 +219,7 @@ CONTAINS
       if(timeStep_LAI_input .EQ. 0) then
         if (eq(L0_gridded_LAI(k, 1), nodata_dp)) then
           message_text = trim(num2str(k, '(G5.3)')) // ',' // trim(num2str(iDomain, '(I5)'))
-          call message(' Error: gridded LAI has missing values within the valid masked area at cell in basin ', &
+          call message(' Error: gridded LAI has missing values within the valid masked area at cell in domain ', &
                   trim(message_text))
           stop
         end if
@@ -249,7 +249,7 @@ CONTAINS
   !>       mo_set_netcdf_restart
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain" basin id
+  !>       \param[in] "integer(i4) :: iDomain" domain id
 
   !    HISTORY
   !>       \authors Rohini Kumar
@@ -278,7 +278,7 @@ CONTAINS
 
     implicit none
 
-    ! basin id
+    ! domain id
     integer(i4), intent(in) :: iDomain
 
     real(dp), dimension(:), allocatable :: slope_emp
@@ -291,7 +291,7 @@ CONTAINS
 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     !------------------------------------------------------
@@ -377,7 +377,7 @@ CONTAINS
   !>       \brief Allocation of space for mHM related L1 and L11 variables.
 
   !>       \details Allocation of space for mHM related L1 and L11 variables (e.g., states,
-  !>       fluxes, and parameters) for a given basin. Variables allocated here is
+  !>       fluxes, and parameters) for a given domain. Variables allocated here is
   !>       defined in them mo_global_variables.f90 file. After allocating any variable
   !>       in this routine, initalize them in the following variables_default_init
   !>       subroutine:

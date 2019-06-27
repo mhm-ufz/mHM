@@ -71,18 +71,18 @@ CONTAINS
   !        write_mpr_restart_files
 
   !    PURPOSE
-  !>       \brief write restart files for each basin
+  !>       \brief write restart files for each domain
 
-  !>       \details write restart files for each basin. For each basin
+  !>       \details write restart files for each domain. For each domain
   !>       three restart files are written. These are xxx_states.nc,
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       basin index). If a variable is added here, it should also be added
+  !>       domain index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
   !>       ADDITIONAL INFORMATION
   !>       write_restart
 
   !    INTENT(IN)
-  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each basin
+  !>       \param[in] "character(256), dimension(:) :: OutPath" Output Path for each domain
 
   !    HISTORY
   !>       \authors Stephan Thober
@@ -98,7 +98,7 @@ CONTAINS
   subroutine write_mpr_restart_files(OutPath)
 
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level1, nLCoverScene
+    use mo_common_variables, only : level1, nLCoverScene, domainMeta
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mpr_global_variables, only : nLAI, nSoilHorizons_mHM
@@ -109,10 +109,10 @@ CONTAINS
 
     character(256) :: Fname
 
-    ! Output Path for each basin
+    ! Output Path for each domain
     character(256), dimension(:), intent(in) :: OutPath
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain, domainID
 
     ! start index at level 1
     integer(i4) :: s1
@@ -128,16 +128,17 @@ CONTAINS
     type(NcDimension) :: rows1, cols1, soil1, lcscenes, lais
 
 
-    basin_loop : do iBasin = 1, size(OutPath)
+    domain_loop : do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
 
-      ! write restart file for iBasin
-      Fname = trim(OutPath(iBasin)) // "mHM_restart_" // trim(num2str(iBasin, "(i3.3)")) // ".nc"
+      ! write restart file for iDomain
+      Fname = trim(OutPath(iDomain)) // "mHM_restart_" // trim(num2str(domainID, "(i3.3)")) // ".nc"
       ! print a message
       call message("    Writing Restart-file: ", trim(adjustl(Fname)), " ...")
 
       nc = NcDataset(fname, "w")
 
-      call write_grid_info(level1(iBasin), "1", nc)
+      call write_grid_info(level1(iDomain), "1", nc)
 
       rows1 = nc%getDimension("nrows1")
       cols1 = nc%getDimension("ncols1")
@@ -148,15 +149,15 @@ CONTAINS
 
       ! for appending and intialization
       allocate(mask1(rows1%getLength(), cols1%getLength()))
-      s1 = level1(iBasin)%iStart
-      e1 = level1(iBasin)%iEnd
-      mask1 = level1(iBasin)%mask
+      s1 = level1(iDomain)%iStart
+      e1 = level1(iDomain)%iEnd
+      mask1 = level1(iDomain)%mask
 
       call write_eff_params(mask1, s1, e1, rows1, cols1, soil1, lcscenes, lais, nc)
       deallocate(mask1)
       call nc%close()
 
-    end do basin_loop
+    end do domain_loop
 
   end subroutine write_mpr_restart_files
 

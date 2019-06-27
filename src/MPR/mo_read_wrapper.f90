@@ -31,7 +31,7 @@ CONTAINS
 
   !>       \details The namelists are already read by read_config call.
   !>       All LUTs are read from their respective directory and information within those
-  !>       files are shared across all basins to be modeled.
+  !>       files are shared across all domains to be modeled.
 
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "type(period), dimension(:), optional :: LAIPer"
@@ -147,12 +147,12 @@ CONTAINS
       call read_lai_lut(trim(fName), ulailut, nLAIclass, LAIUnitList, LAILUT)
     end if
 
-    basins: do iDomain = 1, domainMeta%nDomains
+    domains: do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
       level0_iBasin => level0(L0_Basin(iDomain))
 
-      call message('    Reading data for basin: ', trim(adjustl(num2str(domainID))), ' ...')
+      call message('    Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
         if (L0_Basin(iDomain) .eq. L0_Basin(iDomain - 1)) then
@@ -281,14 +281,14 @@ CONTAINS
 
       end select
 
-      ! read lat lon coordinates of each basin
+      ! read lat lon coordinates of each domain
       call message('      Reading latitude/logitude ...')
       call read_latlon(iDomain, "lon_l0", "lat_l0", "level0", level0_iBasin)
 
       call timer_stop(itimer)
       call message('    in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')
 
-    end do basins
+    end do domains
     itimer = 1
     call timer_stop(itimer)
     call message('  in ', trim(num2str(timer_get(itimer), '(F9.3)')), ' seconds.')

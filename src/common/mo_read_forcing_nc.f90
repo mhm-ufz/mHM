@@ -219,7 +219,7 @@ contains
       ! neglect checking for nodata values if optional nocheck is given
       if (checking) then
         if (any(eq(data(:, :, i), nodata_value) .and. (mask))) then
-          call message('***ERROR: read_forcing_nc: nodata value within basin ')
+          call message('***ERROR: read_forcing_nc: nodata value within domain ')
           call message('          boundary in variable: ', trim(varName))
           call message('          at timestep         : ', trim(num2str(i)))
           stop
@@ -517,7 +517,7 @@ contains
         ! neglect checking for naodata values if optional nocheck is given
         if (checking) then
           if (any(eq(data(:, :, i, j), nodata_value) .and. (mask))) then
-            call message('***ERROR: read_forcing_nc: nodata value within basin ')
+            call message('***ERROR: read_forcing_nc: nodata value within domain ')
             call message('          boundary in variable: ', trim(varName))
             call message('          at hour         : ', trim(num2str(i)))
             stop

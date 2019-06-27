@@ -60,7 +60,7 @@ CONTAINS
   ! Stephan Thober       Aug 2015 - moved writing of daily discharge to mo_write_routing, included routing related variables from mRM
   ! David Schaefer       Aug 2015 - changed to new netcdf-writing scheme
   ! Stephan Thober       Sep 2015 - updated mrm_routing call
-  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for basin averaged TWS
+  ! O. Rakovec, R. Kumar Oct 2015 - added optional output for domain averaged TWS
   ! Rohini Kumar         Mar 2016 - changes for handling multiple soil database options
   ! Stephan Thober       Nov 2016 - added two options for routing
   ! Rohini Kuamr         Dec  2016 - option to handle monthly mean gridded fields of LAI
@@ -91,10 +91,10 @@ CONTAINS
     ! Counters
     integer(i4) :: iDomain, itimer
 
-    ! start and end index at level 0 for current basin
+    ! start and end index at level 0 for current domain
     integer(i4) :: s0, e0
 
-    ! start and end index at level 1 for current basin
+    ! start and end index at level 1 for current domain
     integer(i4) :: s1, e1
 
 
@@ -106,11 +106,11 @@ CONTAINS
     call timer_start(itimer)
 
     !----------------------------------------
-    ! loop over basins
+    ! loop over domains
     !----------------------------------------
     do iDomain = 1, domainMeta%nDomains
 
-      ! get basin information
+      ! get domain information
       s0 = level0(L0_Basin(iDomain))%iStart
       e0 = level0(L0_Basin(iDomain))%iEnd
       s1 = level1(iDomain)%iStart

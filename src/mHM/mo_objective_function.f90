@@ -13,7 +13,7 @@
 !>       (12) SO: SM:       Sum of squared errors (SSE) of spatially distributed standard score (normalization)
 !>       of soil moisture
 !>       (13) SO: SM:       1.0 - average temporal correlation of spatially distributed soil moisture
-!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and basin average
+!>       (15) SO: Q + TWS:  [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and domain average
 !>       (standard score) TWS
 !>       (17) SO: N:        1.0 - KGE of spatio-temporal neutron data, catchment-average
 !>       (27) SO: ET:       1.0 - KGE of catchment average evapotranspiration
@@ -477,13 +477,13 @@ CONTAINS
   !>       \f$ r \f$ = Pearson product-moment correlation coefficient
   !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
   !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
-  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       is calculated and the objective function for a given domain \f$ i \f$ is
   !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
   !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
   !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
 
@@ -521,7 +521,7 @@ CONTAINS
 
     real(dp) :: objective_sm_kge_catchment_avg
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! time loop counter
@@ -530,7 +530,7 @@ CONTAINS
     ! number of time steps in simulated SM
     integer(i4) :: n_time_steps
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! ncells1 of level 1
@@ -562,10 +562,10 @@ CONTAINS
     ! initialize some variables
     objective_sm_kge_catchment_avg = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get basin information
+      ! get domain information
       ncells1 = level1(iDomain)%ncells
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -604,8 +604,8 @@ CONTAINS
       end if
 
 
-      ! calculate average soil moisture KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average soil moisture KGE over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
               ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / &
                         real(domainMeta%overallNumberOfDomains, dp))**6
@@ -650,7 +650,7 @@ CONTAINS
   !>       \f[ \phi_{i} = \frac{1}{K} \cdot \sum_{j=1}^K r_j \f]
   !>       where \f$ K \f$ denotes the number of valid cells in the study domain.
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 }. \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
 
@@ -692,7 +692,7 @@ CONTAINS
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! ncells1 of level 1
@@ -701,7 +701,7 @@ CONTAINS
     ! number of invalid cells in catchment
     real(dp) :: invalid_cells
 
-    ! basins wise objectives
+    ! domains wise objectives
     real(dp) :: objective_sm_corr_basin
 
 #ifndef MPI
@@ -718,12 +718,12 @@ CONTAINS
     ! initialize some variables
     objective_sm_corr = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_corr_basin = 0.0_dp
-      ! get basin information
+      ! get domain information
       ncells1 = level1(iDomain)%ncells
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -750,8 +750,8 @@ CONTAINS
       end if
 
 
-      ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average soil moisture correlation over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_corr = objective_sm_corr + &
               ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
@@ -787,7 +787,7 @@ CONTAINS
   !>       \f[ \phi_{i} = \frac{1}{T} \cdot \sum_{t=1}^T E_t \f]
   !>       where \f$ T \f$ denotes the number of time steps.
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - \phi_{i})/N)^6 } . \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
@@ -826,7 +826,7 @@ CONTAINS
     ! objective function value
     real(dp) :: objective_sm_pd
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! time loop counter
@@ -835,7 +835,7 @@ CONTAINS
     ! level 1 number of culomns and rows
     integer(i4) :: nrows1, ncols1
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! for sixth root
@@ -868,10 +868,10 @@ CONTAINS
     ! initialize some variables
     objective_sm_pd = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get basin information
+      ! get domain information
       mask1 = level1(iDomain)%mask
       ncols1 = level1(iDomain)%ncols
       nrows1 = level1(iDomain)%nrows
@@ -898,7 +898,7 @@ CONTAINS
       end do
 
       if (count(mask_times) > 0_i4) then
-        ! calculate avergae PD over all basins with power law -basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+        ! calculate avergae PD over all domains with power law -domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
         objective_sm_pd = objective_sm_pd + &
                 ((1.0_dp - sum(pd_time_series, mask = mask_times) / real(count(mask_times), dp)) / &
                                                     real(domainMeta%overallNumberOfDomains, dp))**6
@@ -946,7 +946,7 @@ CONTAINS
   !>       \f$ SM_{sim}  \f$ = simulated soil moisture.
   !>       \f$ K  \f$ = valid elements in study domain.
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum(\phi_{i}/N)^6 }.  \f]
   !>       The observed data L1_sm, L1_sm_mask are global in this module.
 
@@ -983,13 +983,13 @@ CONTAINS
 
     real(dp) :: objective_sm_sse_standard_score
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! ncells1 of level 1
@@ -998,7 +998,7 @@ CONTAINS
     ! number of invalid cells in catchment
     real(dp) :: invalid_cells
 
-    ! basins wise objectives
+    ! domains wise objectives
     real(dp) :: objective_sm_sse_standard_score_basin
 
 #ifndef MPI
@@ -1015,12 +1015,12 @@ CONTAINS
     ! initialize some variables
     objective_sm_sse_standard_score = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_sse_standard_score_basin = 0.0_dp
-      ! get basin information
+      ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -1047,8 +1047,8 @@ CONTAINS
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
-      ! calculate average soil moisture correlation over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average soil moisture correlation over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_sse_standard_score = objective_sm_sse_standard_score + &
               (objective_sm_sse_standard_score_basin / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
@@ -1122,7 +1122,7 @@ CONTAINS
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: tws
 
-    ! basin counter, month counters
+    ! domain counter, month counters
     integer(i4) :: domainID, iDomain, pp, mmm
 
     integer(i4) :: year, month, day
@@ -1196,7 +1196,7 @@ CONTAINS
 
       ! check for potentially 2 years of data
       if (count(tws_obs_mask) .lt.  365 * 2) then
-        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(domainID))), &
+        call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
                 ' less than 2 years: this is not recommended')
       end if
 
@@ -1215,7 +1215,7 @@ CONTAINS
       ! calculate monthly averages from daily values of the observations, which already have removed the long-term mean
       call day2mon_average(tws_obs, year, month, day, tws_obs_m, misval = nodata_dp)
 
-      ! get number of months for given basin
+      ! get number of months for given domain
       nMonths = size(tws_obs_m)
 
       allocate (month_classes(nMonths))
@@ -1278,10 +1278,10 @@ CONTAINS
       ! check for potentially 2 years of data
       pp = count(runoff_agg .ge. 0.0_dp)
       if (pp .lt.  365 * 2) then
-        call message('objective_kge_q_rmse_tws: Length of TWS data of Basin ', trim(adjustl(num2str(domainID))), &
+        call message('objective_kge_q_rmse_tws: Length of TWS data of domain ', trim(adjustl(num2str(domainID))), &
         ' less than 2 years: this is not recommended')
       end if
-      ! calculate KGE for each basin:
+      ! calculate KGE for each domain:
       kge_q(gg) = kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
       deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
 
@@ -1322,13 +1322,13 @@ CONTAINS
   !>       \f$ r \f$ = Pearson product-moment CORRELATION coefficient
   !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
   !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
-  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       is calculated and the objective function for a given domain \f$ i \f$ is
   !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
   !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
   !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_neutronsdata, L1_neutronsdata_mask are global in this module.
 
@@ -1367,13 +1367,13 @@ CONTAINS
 
     real(dp) :: objective_neutrons_kge_catchment_avg
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! time loop counter
     integer(i4) :: iTime
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! for sixth root
@@ -1400,10 +1400,10 @@ CONTAINS
     ! initialize some variables
     objective_neutrons_kge_catchment_avg = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get basin information
+      ! get domain information
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
@@ -1432,8 +1432,8 @@ CONTAINS
         neutrons_opti_catch_avg_basin(iTime) = average(neutrons_opti(s1 : e1, iTime), mask = L1_neutronsdata_mask(s1 : e1, iTime))
       end do
 
-      ! calculate average neutrons KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average neutrons KGE over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg + &
         ((1.0_dp - KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask = mask_times)) / &
                                                                       real(domainMeta%overallNumberOfDomains, dp))**6
@@ -1472,13 +1472,13 @@ CONTAINS
   !>       \f$ r \f$ = Pearson product-moment correlation coefficient
   !>       \f$ \alpha \f$ = ratio of simulated mean to observed mean SM
   !>       \f$ \beta  \f$ = ratio of similated standard deviation to observed standard deviation
-  !>       is calculated and the objective function for a given basin \f$ i \f$ is
+  !>       is calculated and the objective function for a given domain \f$ i \f$ is
   !>       \f[ \phi_{i} = 1.0 - KGE_{i} \f]
   !>       \f$ \phi_{i} \f$ is the objective since we always apply minimization methods.
   !>       The minimal value of \f$ \phi_{i} \f$ is 0 for the optimal KGE of 1.0.
 
   !>       Finally, the overall objective function value \f$ OF \f$ is estimated based on the power-6
-  !>       norm to combine the \f$ \phi_{i} \f$ from all basins \f$ N \f$.
+  !>       norm to combine the \f$ \phi_{i} \f$ from all domains \f$ N \f$.
   !>       \f[ OF = \sqrt[6]{\sum((1.0 - KGE_{i})/N)^6 }.  \f]
   !>       The observed data L1_et, L1_et_mask are global in this module.
 
@@ -1516,13 +1516,13 @@ CONTAINS
 
     real(dp) :: objective_et_kge_catchment_avg
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) ::iDomain
 
     ! time loop counter
     integer(i4) :: iTime
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! for sixth root
@@ -1549,10 +1549,10 @@ CONTAINS
     ! initialize some variables
     objective_et_kge_catchment_avg = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
-      ! get basin information
+      ! get domain information
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
@@ -1582,8 +1582,8 @@ CONTAINS
         et_opti_catch_avg_basin(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
       end do
 
-      ! calculate average ET KGE over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average ET KGE over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
 
       objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
               ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / &
@@ -1662,19 +1662,19 @@ CONTAINS
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! ncells1 of level 1
     integer(i4) :: ncells1
 
-    ! basins wise objectives
+    ! domains wise objectives
     real(dp) :: objective_sm_basin
 
     ! simulated soil moisture
@@ -1709,12 +1709,12 @@ CONTAINS
     ! initialize some variables
     objective_sm = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_sm_basin = 0.0_dp
-      ! get basin information
+      ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -1742,8 +1742,8 @@ CONTAINS
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
-      ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average soil moisture objective over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm = objective_sm + &
               ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
@@ -1853,19 +1853,19 @@ CONTAINS
     ! dim1=nTimeSteps, dim2=nGauges
     real(dp), allocatable, dimension(:, :) :: runoff
 
-    ! basin loop counter
+    ! domain loop counter
     integer(i4) :: iDomain
 
     ! cell loop counter
     integer(i4) :: iCell
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
     ! ncells1 of level 1
     integer(i4) :: nCells1
 
-    ! basins wise objectives
+    ! domains wise objectives
     real(dp) :: objective_et_basin
 
     ! simulated evapotranspiration
@@ -1900,12 +1900,12 @@ CONTAINS
     ! initialize some variables
     objective_et = 0.0_dp
 
-    ! loop over basin - for applying power law later on
+    ! loop over domain - for applying power law later on
     do iDomain = 1, domainMeta%nDomains
 
       ! init
       objective_et_basin = 0.0_dp
-      ! get basin information
+      ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
@@ -1933,8 +1933,8 @@ CONTAINS
                 num2str(invalid_cells / real(nCells1, dp), '(F4.2)'))
       end if
 
-      ! calculate average soil moisture objective over all basins with power law
-      ! basins are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
+      ! calculate average soil moisture objective over all domains with power law
+      ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_et = objective_et + &
               ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
@@ -2048,10 +2048,10 @@ CONTAINS
     ! time loop counter
     integer(i4) :: iTime
 
-    ! start and end index for the current basin
+    ! start and end index for the current domain
     integer(i4) :: s1, e1
 
-    ! basin counter, month counters
+    ! domain counter, month counters
     integer(i4) :: iDomain, pp, mmm
 
     integer(i4) :: year, month, day
@@ -2111,7 +2111,7 @@ CONTAINS
 #endif
 
     ! obtain simulation values of runoff (hourly) and ET
-    ! for ET only valid cells (basins concatenated)
+    ! for ET only valid cells (domains concatenated)
     ! et_opti: aggregate ET to needed time step for optimization (see timeStep_et_input)
     call eval(parameterset, runoff = runoff, et_opti = et_opti)
 
@@ -2124,7 +2124,7 @@ CONTAINS
     rmse_et(:) = nodata_dp
 
     do iDomain = 1, domainMeta%nDomains
-      ! get basin info
+      ! get domain info
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
@@ -2188,7 +2188,7 @@ CONTAINS
       et_sim_m(:) = et_sim_m(:) - mean(et_sim_m(:))
       ! remove mean from observed time series
       et_obs_m(:) = et_obs_m(:) - mean(et_obs_m(:))
-      ! get number of months for given basin
+      ! get number of months for given domain
       nMonths = size(et_obs_m)
       allocate (month_classes(nMonths))
       allocate (et_obs_m_mask(nMonths))
@@ -2247,14 +2247,14 @@ CONTAINS
       ! extract runoff
       call extract_runoff(gg, runoff, runoff_agg, runoff_obs, runoff_obs_mask)
 
-      ! check for whether to proceed with this basin or not
+      ! check for whether to proceed with this domain or not
       ! potentially 3 years of data
       !pp = count(runoff_agg .ge. 0.0_dp )
       !if (pp .lt.  365*3 ) then
       !    deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
       !    cycle
       ! else
-      ! calculate KGE for each basin:
+      ! calculate KGE for each domain:
       kge_q(gg) = kge(runoff_obs, runoff_agg, mask = runoff_obs_mask)
       deallocate (runoff_agg, runoff_obs, runoff_obs_mask)
       ! end if
@@ -2283,9 +2283,9 @@ CONTAINS
   !        extract_basin_avg_tws
 
   !    PURPOSE
-  !>       \brief extracts basin average tws data from global variables
+  !>       \brief extracts domain average tws data from global variables
 
-  !>       \details extracts simulated and measured basin average tws from global variables,
+  !>       \details extracts simulated and measured domain average tws from global variables,
   !>       such that they overlay exactly. For measured tws, only the tws
   !>       during the evaluation period are cut, not succeeding nodata values.
   !>       For simulated tws, warming days as well as succeeding nodata values
@@ -2293,8 +2293,8 @@ CONTAINS
   !>       see use in this module above
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: basinId"           current basin Id
-  !>       \param[in] "real(dp), dimension(:, :) :: tws" simulated basin average tws
+  !>       \param[in] "integer(i4) :: basinId"           current domain Id
+  !>       \param[in] "real(dp), dimension(:, :) :: tws" simulated domain average tws
 
   !    INTENT(OUT)
   !>       \param[out] "real(dp), dimension(:) :: tws_sim"     aggregated simulated
@@ -2319,10 +2319,10 @@ CONTAINS
 
     implicit none
 
-    ! current basin Id
+    ! current domain Id
     integer(i4), intent(in) :: basinId
 
-    ! simulated basin average tws
+    ! simulated domain average tws
     real(dp), dimension(:, :), intent(in) :: tws
 
     ! aggregated simulated
@@ -2334,7 +2334,7 @@ CONTAINS
     ! mask of no data values
     logical, dimension(:), allocatable, intent(out) :: tws_obs_mask
 
-    ! basin id
+    ! domain id
     integer(i4) :: iBasin
 
     ! timestep counter
@@ -2367,7 +2367,7 @@ CONTAINS
       stop
     end if
 
-    ! extract basin Id
+    ! extract domain Id
     iBasin = basin_avg_TWS_obs%basinId(basinId)
 
     ! get length of evaluation period times TPD_obs

@@ -46,7 +46,7 @@ module mo_common_variables
   ! ------------------------------------------------------------------
   ! DIRECTORIES
   ! ------------------------------------------------------------------
-  ! has the dimension of nBasins
+  ! has the dimension of nDomains
   character(256), dimension(:), allocatable, public :: dirRestartOut ! Directory where output of restart is written
   character(256), public :: dirConfigOut
   character(256), public :: dirCommonFiles ! directory where common input files should be located
@@ -74,7 +74,7 @@ module mo_common_variables
   ! GRID description
   ! -------------------------------------------------------------------
   type Grid
-    ! general basin information
+    ! general domain information
     integer(i4) :: ncols     ! Number of columns
     integer(i4) :: nrows     ! Number of rows
     integer(i4) :: nCells     ! Number of rows
@@ -86,8 +86,8 @@ module mo_common_variables
     real(dp), dimension(:, :), allocatable :: y  ! 2d latitude  array (unmasked version is needed for output anyway)
     logical, dimension(:, :), allocatable :: mask  ! the mask for valid cells in the original grid (nrows*ncols)
     ! for referencing values in the nValidCells vector
-    integer(i4) :: iStart          ! Starting cell index of a given basin
-    integer(i4) :: iEnd            ! Ending cell index of a given basin
+    integer(i4) :: iStart          ! Starting cell index of a given domain
+    integer(i4) :: iEnd            ! Ending cell index of a given domain
     ! dimension(nCells, (x,y) )
     integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
     real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
@@ -135,7 +135,7 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   ! 
   ! -------------------------------------------------------------------
-  ! BASIN general description
+  ! DOMAIN general description
   ! -------------------------------------------------------------------
   type domain_meta
     integer(i4)                            :: nDomains
@@ -144,8 +144,8 @@ module mo_common_variables
   end type domain_meta
 
   type(domain_meta), public :: domainMeta
-  integer(i4), public :: nBasins ! Number of basins for multi-basin optimization
-  integer(i4), public :: nuniquel0Basins ! Number of unique basins for L0
+  integer(i4), public :: nBasins ! Number of domains for multi-domain optimization
+  integer(i4), public :: nuniquel0Basins ! Number of unique domains for L0
 
   ! -----------------------------------------------------------------
   ! LAND COVER DATA

@@ -89,7 +89,7 @@ CONTAINS
     use mo_common_variables, only : L0_Basin, LC_year_end, &
                                     LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
-                                    nBasins, domainMeta, nLCoverScene, resolutionHydrology, write_restart
+                                    domainMeta, nLCoverScene, resolutionHydrology, write_restart
     use mo_file, only : version
     use mo_global_variables, only : dirPrecipitation, dirReferenceET, &
                                     dirTemperature
@@ -130,7 +130,7 @@ CONTAINS
     write(uconfig, 100)
     write(uconfig, 201) '         M A I N  mHM  C O N F I G U R A T I O N  I N F O R M A T I O N         '
     write(uconfig, 100)
-    write(uconfig, 103) 'Number of domain            ', nBasins
+    write(uconfig, 103) 'Number of domain            ', domainMeta%overallNumberOfDomains
 #ifdef MRM2MHM
     if (processMatrix(8, 1) .ne. 0) then
       write(uconfig, 103) 'Total No. of gauges         ', nGaugesTotal

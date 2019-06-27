@@ -1545,8 +1545,8 @@ CONTAINS
     ! total number of gauges
     integer(i4) :: nGaugesTotal
 
-    ! basin ID of gauge
-    integer(i4) :: iBasin
+    ! domain ID of gauge
+    integer(i4) :: iDomain
 
     ! measured runoff
     real(dp), dimension(:), allocatable :: runoff_obs
@@ -1606,9 +1606,9 @@ CONTAINS
       allocate(djf_mask(nrunoff))
       djf_mask = .false.
 
-      iBasin = gauge%basinId(gg)
+      iDomain = gauge%basinId(gg)
       do tt = 1, nrunoff
-        current_time = evalPer(iBasin)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
+        current_time = evalPer(iDomain)%julStart + (tt - 1) * 1.0_dp / real(nMeasPerDay, dp)
         call dec2date(current_time, mm = month)
         if ((month == 1 .or. month == 2 .or. month == 12) .and. runoff_obs_mask(tt)) djf_mask(tt) = .True.
       end do
@@ -2074,8 +2074,8 @@ CONTAINS
     ! mask of no data values
     logical, dimension(:), allocatable, intent(out) :: runoff_obs_mask
 
-    ! basin id
-    integer(i4) :: iBasin
+    ! domain id
+    integer(i4) :: iDomain
 
     ! timestep counter
     integer(i4) :: tt
@@ -2107,11 +2107,11 @@ CONTAINS
       stop
     end if
 
-    ! extract basin Id from gauge Id
-    iBasin = gauge%basinId(gaugeId)
+    ! extract domain Id from gauge Id
+    iDomain = gauge%basinId(gaugeId)
 
     ! get length of evaluation period times TPD_obs
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_obs
 
     ! extract measurements
     if (allocated(runoff_obs)) deallocate(runoff_obs)
@@ -2128,11 +2128,11 @@ CONTAINS
     if (allocated(runoff_agg)) deallocate(runoff_agg)
     allocate(runoff_agg(length))
     ! remove warming days
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_sim
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_sim
     allocate(dummy(length))
-    dummy = runoff(warmingDays(iBasin) * TPD_sim + 1 : warmingDays(iBasin) * TPD_sim + length, gaugeId)
+    dummy = runoff(warmingDays(iDomain) * TPD_sim + 1 : warmingDays(iDomain) * TPD_sim + length, gaugeId)
     ! aggregate runoff
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomain)%julEnd - evalPer(iDomain)%julStart + 1) * TPD_obs
     forall(tt = 1 : length) runoff_agg(tt) = sum(dummy((tt - 1) * factor + 1 : tt * factor)) / &
             real(factor, dp)
     ! clean up

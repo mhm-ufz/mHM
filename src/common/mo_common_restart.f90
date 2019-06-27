@@ -29,12 +29,12 @@ CONTAINS
   !        write_grid_info
 
   !    PURPOSE
-  !>       \brief write restart files for each basin
+  !>       \brief write restart files for each domain
 
-  !>       \details write restart files for each basin. For each basin
+  !>       \details write restart files for each domain. For each domain
   !>       three restart files are written. These are xxx_states.nc,
   !>       xxx_L11_config.nc, and xxx_config.nc (xxx being the three digit
-  !>       basin index). If a variable is added here, it should also be added
+  !>       domain index). If a variable is added here, it should also be added
   !>       in the read restart routines below.
 
   !    INTENT(IN)
@@ -140,7 +140,7 @@ CONTAINS
   !>       contained in module mo_startup.
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iBasin"      number of basin
+  !>       \param[in] "integer(i4) :: iDomain"      number of domain
   !>       \param[in] "character(256) :: InPath"   Input Path including trailing slash
   !>       \param[in] "character(*) :: level_name" level_name (id)
   !>       \param[in] "character(*) :: fname_part" filename part (either "mHM" or "mRM")
@@ -160,7 +160,7 @@ CONTAINS
   ! Robert Schweppe    Jun 2018 - refactoring and reformatting
   ! Stephan Thober     May 2019 - added allocation check for mask and cellArea because cellArea needs to be read by mRM, but mask is created before by mHM
 
-  subroutine read_grid_info(iBasin, InPath, level_name, fname_part, new_grid)
+  subroutine read_grid_info(domainID, InPath, level_name, fname_part, new_grid)
 
     use mo_common_variables, only : Grid
     use mo_kind, only : dp, i4
@@ -170,8 +170,8 @@ CONTAINS
 
     implicit none
 
-    ! number of basin
-    integer(i4), intent(in) :: iBasin
+    ! number of domain
+    integer(i4), intent(in) :: domainID
 
     ! Input Path including trailing slash
     character(256), intent(in) :: InPath
@@ -201,7 +201,7 @@ CONTAINS
 
 
     ! read config
-    fname = trim(InPath) // trim(fname_part) // '_restart_' // trim(num2str(iBasin, '(i3.3)')) // '.nc' ! '_restart.nc'
+    fname = trim(InPath) // trim(fname_part) // '_restart_' // trim(num2str(domainID, '(i3.3)')) // '.nc' ! '_restart.nc'
     call message('    Reading config from     ', trim(adjustl(Fname)), ' ...')
 
     nc = NcDataset(fname, "r")

@@ -84,7 +84,7 @@ contains
     ! STEPS :: 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! grid properties
@@ -209,17 +209,17 @@ contains
 
     type(Grid), intent(inout), dimension(:) :: grids
 
-    integer(i4) :: iBasin
+    integer(i4) :: iDomain
 
 
-    do iBasin = 1, size(grids)
+    do iDomain = 1, size(grids)
       ! Saving indices of mask and packed data
-      if(iBasin .eq. 1_i4) then
-        grids(iBasin)%iStart = 1_i4
+      if(iDomain .eq. 1_i4) then
+        grids(iDomain)%iStart = 1_i4
       else
-        grids(iBasin)%iStart = grids(iBasin - 1_i4)%iEnd + 1_i4
+        grids(iDomain)%iStart = grids(iDomain - 1_i4)%iEnd + 1_i4
       end if
-      grids(iBasin)%iEnd = grids(iBasin)%iStart + grids(iBasin)%nCells - 1_i4
+      grids(iDomain)%iEnd = grids(iDomain)%iStart + grids(iDomain)%nCells - 1_i4
     end do
 
   end subroutine set_basin_indices
@@ -278,7 +278,7 @@ contains
 
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! level-0 information
@@ -341,7 +341,7 @@ contains
   !    PURPOSE
   !>       \brief Generate map coordinates
 
-  !>       \details Generate map coordinate arrays for given basin and level
+  !>       \details Generate map coordinate arrays for given domain and level
 
   !    INTENT(IN)
   !>       \param[in] "type(Grid) :: level" -> grid reference
@@ -403,7 +403,7 @@ contains
   !    PURPOSE
   !>       \brief Generate geographic coordinates
 
-  !>       \details Generate geographic coordinate arrays for given basin and level
+  !>       \details Generate geographic coordinate arrays for given domain and level
 
   !    INTENT(IN)
   !>       \param[in] "type(Grid) :: level" -> grid reference
