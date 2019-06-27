@@ -58,7 +58,7 @@ contains
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, &
                             file_gaugeloc, ufacc, ufdir, ugaugeloc
-    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, basin_mrm
+    use mo_mrm_global_variables, only : L0_InflowGaugeLoc, L0_fAcc, L0_fDir, L0_gaugeLoc, domain_mrm
     use mo_read_latlon, only : read_latlon
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -193,11 +193,11 @@ contains
         case(3) ! location of evaluation and inflow gauging stations
           ! evaluation gauges
           ! Input data check
-          do iGauge = 1, basin_mrm(iDomain)%nGauges
+          do iGauge = 1, domain_mrm(iDomain)%nGauges
             ! If gaugeId is found in gauging location file?
-            if (.not. any(data_i4_2d .EQ. basin_mrm(iDomain)%gaugeIdList(iGauge))) then
+            if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%gaugeIdList(iGauge))) then
               call message()
-              call message('***ERROR: Gauge ID "', trim(adjustl(num2str(basin_mrm(iDomain)%gaugeIdList(iGauge)))), &
+              call message('***ERROR: Gauge ID "', trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(iGauge)))), &
                       '" not found in ')
               call message('          Gauge location input file: ', &
                       trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))
@@ -209,14 +209,14 @@ contains
 
           ! inflow gauges
           ! if no inflow gauge for this subdomain exists still matirx with dim of subdomain has to be paded
-          if (basin_mrm(iDomain)%nInflowGauges .GT. 0_i4) then
+          if (domain_mrm(iDomain)%nInflowGauges .GT. 0_i4) then
             ! Input data check
-            do iGauge = 1, basin_mrm(iDomain)%nInflowGauges
+            do iGauge = 1, domain_mrm(iDomain)%nInflowGauges
               ! If InflowGaugeId is found in gauging location file?
-              if (.not. any(data_i4_2d .EQ. basin_mrm(iDomain)%InflowGaugeIdList(iGauge))) then
+              if (.not. any(data_i4_2d .EQ. domain_mrm(iDomain)%InflowGaugeIdList(iGauge))) then
                 call message()
                 call message('***ERROR: Inflow Gauge ID "', &
-                        trim(adjustl(num2str(basin_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
+                        trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(iGauge)))), &
                         '" not found in ')
                 call message('          Gauge location input file: ', &
                         trim(adjustl(dirMorpho(iDomain))) // trim(adjustl(file_gaugeloc)))

@@ -73,7 +73,7 @@ CONTAINS
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_basin_indices
     use mo_kind, only : i4
     use mo_message, only : message
-    use mo_mrm_global_variables, only : basin_mrm, &
+    use mo_mrm_global_variables, only : domain_mrm, &
                                         l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
                                         L0_river_head_mon_sum
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
@@ -228,10 +228,10 @@ CONTAINS
     end do
 
     ! check whether there are gauges within the modelling domain
-    if (allocated(basin_mrm)) then
+    if (allocated(domain_mrm)) then
       gauge_counter = 0
       do iDomain = 1, domainMeta%nDomains
-        if (.not. all(basin_mrm(iDomain)%gaugeNodeList .eq. nodata_i4)) then
+        if (.not. all(domain_mrm(iDomain)%gaugeNodeList .eq. nodata_i4)) then
           gauge_counter = gauge_counter + 1
         end if
       end do
@@ -364,7 +364,7 @@ CONTAINS
     use mo_kind, only : i4
     use mo_message, only : message
     use mo_mrm_file, only : file_defOutput, file_namelist_mrm, file_namelist_param_mrm
-    use mo_mrm_global_variables, only : basin_mrm, &
+    use mo_mrm_global_variables, only : domain_mrm, &
                                         dirGauges
     use mo_string_utils, only : num2str
 
@@ -395,15 +395,15 @@ CONTAINS
       call message('    Discharge directory:        ', trim(dirGauges(iDomain)))
       call message('    Output directory:           ', trim(dirOut(iDomain)))
       call message('    Evaluation gauge            ', 'ID')
-      do jj = 1, basin_mrm(iDomain)%nGauges
+      do jj = 1, domain_mrm(iDomain)%nGauges
         call message('    ', trim(adjustl(num2str(jj))), '                           ', &
-                trim(adjustl(num2str(basin_mrm(iDomain)%gaugeIdList(jj)))))
+                trim(adjustl(num2str(domain_mrm(iDomain)%gaugeIdList(jj)))))
       end do
-      if (basin_mrm(iDomain)%nInflowGauges .GT. 0) then
+      if (domain_mrm(iDomain)%nInflowGauges .GT. 0) then
         call message('    Inflow gauge              ', 'ID')
-        do jj = 1, basin_mrm(iDomain)%nInflowGauges
+        do jj = 1, domain_mrm(iDomain)%nInflowGauges
           call message('    ', trim(adjustl(num2str(jj))), '                         ', &
-                  trim(adjustl(num2str(basin_mrm(iDomain)%InflowGaugeIdList(jj)))))
+                  trim(adjustl(num2str(domain_mrm(iDomain)%InflowGaugeIdList(jj)))))
         end do
       end if
     end do

@@ -86,7 +86,7 @@ module mo_mrm_global_variables
   ! -------------------------------------------------------------------
   ! DOMAIN general description
   ! -------------------------------------------------------------------
-  type basinInfo_mRM
+  type domainInfo_mRM
     ! dim1 = maximum number of gauges in a given domain
     ! discharge measurement gauges
     integer(i4) :: nGauges        ! Number of gauges within a domain
@@ -106,10 +106,10 @@ module mo_mrm_global_variables
     integer(i4) :: L0_Noutlet
     integer(i4), dimension(:), allocatable :: L0_rowOutlet   ! Outlet locations in L0
     integer(i4), dimension(:), allocatable :: L0_colOutlet   ! Outlet locations in L0
-  end type basinInfo_mRM
+  end type domainInfo_mRM
 
-  ! dim1 = basinId
-  type(basinInfo_mRM), dimension(:), allocatable, public, target :: basin_mrm ! domain structure
+  ! dim1 = domainId
+  type(domainInfo_mRM), dimension(:), allocatable, public, target :: domain_mrm ! domain structure
   ! -------------------------------------------------------------------
   ! L0 DOMAIN description -> those are needed within the mrm_net_startup routines only
   ! TODO: deallocate when net_startup is done

@@ -118,7 +118,7 @@ CONTAINS
     use mo_mrm_global_variables, only : InflowGauge, L11_C1, L11_C2, &
                                         L11_L1_Id, L11_TSrout, L11_fromN, L11_length, L11_nLinkFracFPimp, L11_nOutlets, &
                                         L11_netPerm, L11_qMod, L11_qOUT, L11_qTIN, L11_qTR, L11_slope, L11_toN, &
-                                        L1_L11_Id, basin_mrm, level11, mRM_runoff, outputFlxState_mrm, &
+                                        L1_L11_Id, domain_mrm, level11, mRM_runoff, outputFlxState_mrm, &
                                         timeStep_model_outputs_mrm, gw_coupling, L0_river_head_mon_sum
     use mo_mrm_init, only : variables_default_init_routing
     use mo_mrm_mpr, only : mrm_update_param
@@ -589,14 +589,14 @@ CONTAINS
                   timestep_rout, & ! timestep of runoff to rout [h]
                   tsRoutFactorIn, & ! simulate timestep in [h]
                   level11(iDomain)%nCells, & ! number of Nodes
-                  basin_mrm(iDomain)%nInflowGauges, &
-                  basin_mrm(iDomain)%InflowGaugeIndexList(:), &
-                  basin_mrm(iDomain)%InflowGaugeHeadwater(:), &
-                  basin_mrm(iDomain)%InflowGaugeNodeList(:), &
+                  domain_mrm(iDomain)%nInflowGauges, &
+                  domain_mrm(iDomain)%InflowGaugeIndexList(:), &
+                  domain_mrm(iDomain)%InflowGaugeHeadwater(:), &
+                  domain_mrm(iDomain)%InflowGaugeNodeList(:), &
                   InflowDischarge, &
-                  basin_mrm(iDomain)%nGauges, &
-                  basin_mrm(iDomain)%gaugeIndexList(:), &
-                  basin_mrm(iDomain)%gaugeNodeList(:), &
+                  domain_mrm(iDomain)%nGauges, &
+                  domain_mrm(iDomain)%gaugeIndexList(:), &
+                  domain_mrm(iDomain)%gaugeNodeList(:), &
                   ge(resolutionRouting(iDomain), resolutionHydrology(iDomain)), &
                   ! original routing specific input variables
                   L11_length(s11 : e11 - 1), & ! link length

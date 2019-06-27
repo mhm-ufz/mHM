@@ -60,7 +60,7 @@ contains
 
     use mo_common_mhm_mrm_variables, only : evalPer, mrm_coupling_mode, nTstepDay, simPer, warmingDays
     use mo_common_variables, only : dirRestartOut, domainMeta, write_restart
-    use mo_mrm_global_variables, only : basin_mrm, &
+    use mo_mrm_global_variables, only : domain_mrm, &
                                         gauge, mRM_runoff, nGaugesTotal
     use mo_mrm_restart, only : mrm_write_restart
 
@@ -119,9 +119,9 @@ contains
         iE = tt + NTSTEPDAY - 1
         iDay = iDay + 1
         ! over gauges
-        do gg = 1, basin_mrm(iDomain)%nGauges
-          d_Qmod(iDay, basin_mrm(iDomain)%gaugeIndexList(gg)) = &
-                  sum(mRM_runoff(iS : iE, basin_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
+        do gg = 1, domain_mrm(iDomain)%nGauges
+          d_Qmod(iDay, domain_mrm(iDomain)%gaugeIndexList(gg)) = &
+                  sum(mRM_runoff(iS : iE, domain_mrm(iDomain)%gaugeIndexList(gg))) / real(NTSTEPDAY, dp)
         end do
         !
       end do
@@ -169,7 +169,7 @@ contains
     use mo_message, only : message
     use mo_mrm_file, only : version
     use mo_mrm_global_variables, only : InflowGauge, L11_L1_Id, L11_fromN, L11_label, &
-                                        L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, basin_mrm, &
+                                        L11_length, L11_netPerm, L11_rOrder, L11_slope, L11_toN, L1_L11_Id, domain_mrm, &
                                         dirGauges, dirTotalRunoff, gauge, level11, nGaugesTotal, nInflowGaugesTotal
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
@@ -299,7 +299,7 @@ contains
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       write(uconfig, 103) 'domain No.                   ', domainID, &
-              'No. of gauges               ', basin_mrm(iDomain)%nGauges
+              'No. of gauges               ', domain_mrm(iDomain)%nGauges
 
       write(uconfig, 222)   'Directory list'
 
@@ -480,7 +480,7 @@ contains
     use mo_julian, only : dec2date
     use mo_message, only : message
     use mo_mrm_file, only : file_daily_discharge, ncfile_discharge, udaily_discharge
-    use mo_mrm_global_variables, only : basin_mrm, gauge
+    use mo_mrm_global_variables, only : domain_mrm, gauge
     use mo_ncwrite, only : var2nc
     use mo_string_utils, only : num2str
     use mo_utils, only : ge
@@ -518,10 +518,10 @@ contains
     ! domain loop
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      if(basin_mrm(iDomain)%nGauges .lt. 1) cycle
+      if(domain_mrm(iDomain)%nGauges .lt. 1) cycle
 
       ! estimate igauge_end
-      igauge_end = igauge_start + basin_mrm(iDomain)%nGauges - 1
+      igauge_end = igauge_start + domain_mrm(iDomain)%nGauges - 1
 
       ! check the existance of file
       fName = trim(adjustl(dirOut(iDomain))) // trim(adjustl(file_daily_discharge))
@@ -533,13 +533,13 @@ contains
       end if
 
       ! header
-      write(formHeader, *) '( 4a8, ', basin_mrm(iDomain)%nGauges, '(2X, a5, i10.10, 2X, a5, i10.10) )'
+      write(formHeader, *) '( 4a8, ', domain_mrm(iDomain)%nGauges, '(2X, a5, i10.10, 2X, a5, i10.10) )'
       write(udaily_discharge, formHeader) 'No', 'Day', 'Mon', 'Year', &
               ('Qobs_', gauge%gaugeId(gg), &
                       'Qsim_', gauge%gaugeId(gg), gg = igauge_start, igauge_end)
 
       ! form data
-      write(formData, *) '( 4I8, ', basin_mrm(iDomain)%nGauges, '(2X,   f15.7 , 2X,  f15.7  ) )'
+      write(formData, *) '( 4I8, ', domain_mrm(iDomain)%nGauges, '(2X,   f15.7 , 2X,  f15.7  ) )'
 
       ! write data
       newTime = real(evalPer(iDomain)%julStart, dp) - 0.5_dp

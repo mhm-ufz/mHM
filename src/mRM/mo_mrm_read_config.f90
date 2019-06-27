@@ -61,7 +61,7 @@ contains
     use mo_message, only : message
     use mo_mrm_constants, only : maxNoGauges
     use mo_mrm_file, only : file_defOutput, udefOutput
-    use mo_mrm_global_variables, only : InflowGauge, basinInfo_mRM, basin_mrm, &
+    use mo_mrm_global_variables, only : InflowGauge, domainInfo_mRM, domain_mrm, &
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
                                         nGaugesTotal, nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
                                         varnameTotalRunoff, gw_coupling
@@ -109,7 +109,7 @@ contains
 
     logical :: file_exists
 
-    type(basinInfo_mRM), pointer :: basin_mrm_iBasin
+    type(domainInfo_mRM), pointer :: domain_mrm_iDomain
 
 
     ! namelist spatial & temporal resolution, optmization information
@@ -181,7 +181,7 @@ contains
     allocate(gauge%gaugeId(nGaugesTotal)) ; gauge%gaugeId = nodata_i4
     allocate(gauge%domainId(nGaugesTotal)) ; gauge%domainId = nodata_i4
     allocate(gauge%fName  (nGaugesTotal)) ; gauge%fName(1) = num2str(nodata_i4)
-    allocate(basin_mrm(domainMeta%nDomains))
+    allocate(domain_mrm(domainMeta%nDomains))
 
     ! ToDo: make smarter
     nGaugesTotal = 0
@@ -193,15 +193,15 @@ contains
     idx = 0
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      basin_mrm_iBasin => basin_mrm(iDomain)
+      domain_mrm_iDomain => domain_mrm(iDomain)
       ! initialize
-      basin_mrm_iBasin%nGauges = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeIdList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeIdList = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeIndexList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeIndexList = nodata_i4
-      allocate(basin_mrm_iBasin%gaugeNodeList(maxval(NoGauges_basin(:))))
-      basin_mrm_iBasin%gaugeNodeList = nodata_i4
+      domain_mrm_iDomain%nGauges = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeIdList(maxval(NoGauges_basin(:))))
+      domain_mrm_iDomain%gaugeIdList = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeIndexList(maxval(NoGauges_basin(:))))
+      domain_mrm_iDomain%gaugeIndexList = nodata_i4
+      allocate(domain_mrm_iDomain%gaugeNodeList(maxval(NoGauges_basin(:))))
+      domain_mrm_iDomain%gaugeNodeList = nodata_i4
       ! check if NoGauges_basin has a valid value
       if (NoGauges_basin(domainID) .EQ. nodata_i4) then
         call message()
@@ -211,7 +211,7 @@ contains
         stop 1
       end if
 
-      basin_mrm_iBasin%nGauges = NoGauges_basin(domainID)
+      domain_mrm_iDomain%nGauges = NoGauges_basin(domainID)
 
       do iGauge = 1, NoGauges_basin(domainID)
         ! check if NoGauges_basin has a valid value
@@ -236,8 +236,8 @@ contains
         gauge%domainId(idx) = iDomain
         gauge%gaugeId(idx) = Gauge_id(domainID, iGauge)
         gauge%fname(idx) = trim(dirGauges(iDomain)) // trim(gauge_filename(domainID, iGauge))
-        basin_mrm_iBasin%gaugeIdList(iGauge) = Gauge_id(domainID, iGauge)
-        basin_mrm_iBasin%gaugeIndexList(iGauge) = idx
+        domain_mrm_iDomain%gaugeIdList(iGauge) = Gauge_id(domainID, iGauge)
+        domain_mrm_iDomain%gaugeIndexList(iGauge) = idx
       end do
     end do
 
@@ -282,24 +282,24 @@ contains
     idx = 0
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      basin_mrm_iBasin => basin_mrm(iDomain)
+      domain_mrm_iDomain => domain_mrm(iDomain)
 
-      allocate(basin_mrm_iBasin%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(basin_mrm_iBasin%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_basin(:)))))
       ! dummy initialization
-      basin_mrm_iBasin%nInflowGauges = 0
-      basin_mrm_iBasin%InflowGaugeIdList = nodata_i4
-      basin_mrm_iBasin%InflowGaugeHeadwater = .FALSE.
-      basin_mrm_iBasin%InflowGaugeIndexList = nodata_i4
-      basin_mrm_iBasin%InflowGaugeNodeList = nodata_i4
+      domain_mrm_iDomain%nInflowGauges = 0
+      domain_mrm_iDomain%InflowGaugeIdList = nodata_i4
+      domain_mrm_iDomain%InflowGaugeHeadwater = .FALSE.
+      domain_mrm_iDomain%InflowGaugeIndexList = nodata_i4
+      domain_mrm_iDomain%InflowGaugeNodeList = nodata_i4
       ! no inflow gauge for subdomain i
       if (NoInflowGauges_basin(domainID) .EQ. nodata_i4) then
         NoInflowGauges_basin(domainID) = 0
       end if
 
-      basin_mrm_iBasin%nInflowGauges = NoInflowGauges_basin(domainID)
+      domain_mrm_iDomain%nInflowGauges = NoInflowGauges_basin(domainID)
 
       do iGauge = 1, NoInflowGauges_basin(domainID)
         ! check if NoInflowGauges_basin has a valid value
@@ -323,9 +323,9 @@ contains
         InflowGauge%domainId(idx) = iDomain
         InflowGauge%gaugeId(idx) = InflowGauge_id(domainID, iGauge)
         InflowGauge%fname(idx) = trim(dirGauges(domainID)) // trim(InflowGauge_filename(domainID, iGauge))
-        basin_mrm_iBasin%InflowGaugeIdList(iGauge) = InflowGauge_id(domainID, iGauge)
-        basin_mrm_iBasin%InflowGaugeHeadwater(iGauge) = InflowGauge_Headwater(domainID, iGauge)
-        basin_mrm_iBasin%InflowGaugeIndexList(iGauge) = idx
+        domain_mrm_iDomain%InflowGaugeIdList(iGauge) = InflowGauge_id(domainID, iGauge)
+        domain_mrm_iDomain%InflowGaugeHeadwater(iGauge) = InflowGauge_Headwater(domainID, iGauge)
+        domain_mrm_iDomain%InflowGaugeIndexList(iGauge) = idx
       end do
     end do
 

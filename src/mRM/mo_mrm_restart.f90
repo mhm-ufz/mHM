@@ -68,7 +68,7 @@ contains
                                         L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nLinkFracFPimp, &
                                         L11_netPerm, L11_qOUT, L11_qTIN, L11_qTR, L11_rOrder, L11_rowOut, L11_rowOut, &
                                         L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, L11_xi, L11_celerity, &
-                                        level11, basin_mrm
+                                        level11, domain_mrm
     use mo_netcdf, only : NcDataset, NcDimension, NcVariable
     use mo_string_utils, only : num2str
 
@@ -139,7 +139,7 @@ contains
 
 
     ! get Level1 and Level11 information about the Domain
-    noutlet = basin_mrm(L0_Domain(iDomain))%L0_noutlet
+    noutlet = domain_mrm(L0_Domain(iDomain))%L0_noutlet
     s0 = level0(L0_Domain(iDomain))%iStart
     e0 = level0(L0_Domain(iDomain))%iEnd
     mask0 = level0(L0_Domain(iDomain))%mask
@@ -392,17 +392,17 @@ contains
     call var%setAttribute("long_name", "Mapping of L1 Id on L11")
 
     var = nc%setVariable("gaugeNodeList", "i32", &
-            (/nc%setDimension("Ngauges", size(basin_mrm(iDomain)%gaugeNodeList(:)))/) &
+            (/nc%setDimension("Ngauges", size(domain_mrm(iDomain)%gaugeNodeList(:)))/) &
             )
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm(iDomain)%gaugeNodeList(:))
+    call var%setData(domain_mrm(iDomain)%gaugeNodeList(:))
     call var%setAttribute("long_name", "cell ID of gauges")
 
     var = nc%setVariable("InflowGaugeNodeList", "i32", &
-            (/nc%setDimension("nInflowGauges", size(basin_mrm(iDomain)%InflowGaugeNodeList(:)))/) &
+            (/nc%setDimension("nInflowGauges", size(domain_mrm(iDomain)%InflowGaugeNodeList(:)))/) &
             )
     call var%setFillValue(nodata_i4)
-    call var%setData(basin_mrm(iDomain)%InflowGaugeNodeList(:))
+    call var%setData(domain_mrm(iDomain)%InflowGaugeNodeList(:))
     call var%setAttribute("long_name", "cell ID of gauges")
 
     if (processMatrix(8, 1) .eq. 3) then
@@ -601,7 +601,7 @@ contains
                                         L11_L1_Id, L11_TSrout, L11_aFloodPlain, L11_colOut, L11_fCol, &
                                         L11_fDir, L11_fAcc, L11_fRow, L11_fromN, L11_label, L11_length, L11_nOutlets, L11_netPerm, &
                                         L11_rOrder, L11_rowOut, L11_sink, L11_slope, L11_tCol, L11_tRow, L11_toN, &
-                                        L1_L11_Id, basin_mrm, level11
+                                        L1_L11_Id, domain_mrm, level11
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_string_utils, only : num2str
 
@@ -792,13 +792,13 @@ contains
     ! read gaugenodelist
     var = nc%getVariable("gaugeNodeList")
     call var%getData(dummyI1)
-    basin_mrm(iDomain)%gaugeNodeList(:) = dummyI1
+    domain_mrm(iDomain)%gaugeNodeList(:) = dummyI1
 
     ! read InflowGaugeNodelist
-    if (basin_mrm(iDomain)%nInflowGauges > 0) then
+    if (domain_mrm(iDomain)%nInflowGauges > 0) then
       var = nc%getVariable("InflowGaugeNodeList")
       call var%getData(dummyI1)
-      basin_mrm(iDomain)%InflowgaugeNodeList(:) = dummyI1
+      domain_mrm(iDomain)%InflowgaugeNodeList(:) = dummyI1
     end if
 
     ! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

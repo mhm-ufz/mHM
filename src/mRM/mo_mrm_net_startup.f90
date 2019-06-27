@@ -225,7 +225,7 @@ contains
     use mo_common_variables, only : Grid, L0_Domain, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
-                                        L11_nOutlets, L11_rowOut, basin_mrm, level11
+                                        L11_nOutlets, L11_rowOut, domain_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -544,11 +544,11 @@ contains
     !--------------------------------------------------------
 
     ! allocate space for row and col Outlet
-    allocate(basin_mrm(iDomain)%L0_rowOutlet(1))
-    allocate(basin_mrm(iDomain)%L0_colOutlet(1))
-    basin_mrm(iDomain)%L0_Noutlet = nodata_i4
-    basin_mrm(iDomain)%L0_rowOutlet = nodata_i4
-    basin_mrm(iDomain)%L0_colOutlet = nodata_i4
+    allocate(domain_mrm(iDomain)%L0_rowOutlet(1))
+    allocate(domain_mrm(iDomain)%L0_colOutlet(1))
+    domain_mrm(iDomain)%L0_Noutlet = nodata_i4
+    domain_mrm(iDomain)%L0_rowOutlet = nodata_i4
+    domain_mrm(iDomain)%L0_colOutlet = nodata_i4
 
     ! L0 data sets
     ! check whether L0 data is shared
@@ -558,20 +558,20 @@ contains
       call append(L0_draSC, PACK (draSC0(:, :), level0_iBasin%mask))
     end if
 
-    basin_mrm(iDomain)%L0_Noutlet = Noutlet
+    domain_mrm(iDomain)%L0_Noutlet = Noutlet
     ! set L0 outlet coordinates
-    old_Noutlet = size(basin_mrm(iDomain)%L0_rowOutlet, dim = 1)
+    old_Noutlet = size(domain_mrm(iDomain)%L0_rowOutlet, dim = 1)
     if (Noutlet .le. old_Noutlet) then
-      basin_mrm(iDomain)%L0_rowOutlet(: Noutlet) = oLoc(:, 1)
-      basin_mrm(iDomain)%L0_colOutlet(: Noutlet) = oLoc(:, 2)
+      domain_mrm(iDomain)%L0_rowOutlet(: Noutlet) = oLoc(:, 1)
+      domain_mrm(iDomain)%L0_colOutlet(: Noutlet) = oLoc(:, 2)
     else
       ! store up to size of old_Noutlet
-      basin_mrm(iDomain)%L0_rowOutlet(: old_Noutlet) = oLoc(: old_Noutlet, 1)
-      basin_mrm(iDomain)%L0_colOutlet(: old_Noutlet) = oLoc(: old_Noutlet, 2)
-      ! enlarge rowOutlet and colOutlet in basin_mrm structure
-      !TODO: do other basins also need to be enlarged accordingly???
-      call append(basin_mrm(iDomain)%L0_rowOutlet, oLoc(old_Noutlet + 1 :, 1))
-      call append(basin_mrm(iDomain)%L0_colOutlet, oLoc(old_Noutlet + 1 :, 2))
+      domain_mrm(iDomain)%L0_rowOutlet(: old_Noutlet) = oLoc(: old_Noutlet, 1)
+      domain_mrm(iDomain)%L0_colOutlet(: old_Noutlet) = oLoc(: old_Noutlet, 2)
+      ! enlarge rowOutlet and colOutlet in domain_mrm structure
+      !TODO: do other domains also need to be enlarged accordingly???
+      call append(domain_mrm(iDomain)%L0_rowOutlet, oLoc(old_Noutlet + 1 :, 1))
+      call append(domain_mrm(iDomain)%L0_colOutlet, oLoc(old_Noutlet + 1 :, 2))
     end if
 
     ! L11 data sets
@@ -884,7 +884,7 @@ contains
     use mo_common_variables, only : Grid, L0_Domain, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
-                                        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, basin_mrm, level11
+                                        L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, domain_mrm, level11
     use mo_string_utils, only : num2str
 
     implicit none
@@ -980,8 +980,8 @@ contains
 
       ! finding main outlet (row, col) in L0
       allocate(oLoc(Noutlets, 2))
-      oLoc(:, 1) = basin_mrm(iDomain)%L0_rowOutlet(: Noutlets)
-      oLoc(:, 2) = basin_mrm(iDomain)%L0_colOutlet(: Noutlets)
+      oLoc(:, 1) = domain_mrm(iDomain)%L0_rowOutlet(: Noutlets)
+      oLoc(:, 2) = domain_mrm(iDomain)%L0_colOutlet(: Noutlets)
 
       ! Location of the stream-joint cells  (row, col)
       do rr = 1, nLinks
@@ -1084,7 +1084,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : Grid, L0_Domain, level0
-    use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, basin_mrm, &
+    use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, domain_mrm, &
                                         l0_l11_remap
 
     implicit none
@@ -1157,20 +1157,20 @@ contains
       ! the routing cell at level-11
       if (gaugeLoc0(ii, jj) .NE. nodata_i4) then
         ! evaluation gauges
-        do ll = 1, basin_mrm(iDomain)%nGauges
+        do ll = 1, domain_mrm(iDomain)%nGauges
           ! search for gaugeID in L0 grid and save ID on L11
-          if (basin_mrm(iDomain)%gaugeIdList(ll) .EQ. gaugeLoc0(ii, jj)) then
-            basin_mrm(iDomain)%gaugeNodeList(ll) = L0_L11_remap(iDomain)%lowres_id_on_highres(ii, jj)
+          if (domain_mrm(iDomain)%gaugeIdList(ll) .EQ. gaugeLoc0(ii, jj)) then
+            domain_mrm(iDomain)%gaugeNodeList(ll) = L0_L11_remap(iDomain)%lowres_id_on_highres(ii, jj)
           end if
         end do
       end if
 
       if (InflowGaugeLoc0(ii, jj) .NE. nodata_i4) then
         ! inflow gauges
-        do ll = 1, basin_mrm(iDomain)%nInflowGauges
+        do ll = 1, domain_mrm(iDomain)%nInflowGauges
           ! search for gaugeID in L0 grid and save ID on L11
-          if (basin_mrm(iDomain)%InflowGaugeIdList(ll) .EQ. InflowGaugeLoc0(ii, jj)) &
-              basin_mrm(iDomain)%InflowGaugeNodeList(ll) = L0_L11_remap(iDomain)%lowres_id_on_highres(ii, jj)
+          if (domain_mrm(iDomain)%InflowGaugeIdList(ll) .EQ. InflowGaugeLoc0(ii, jj)) &
+              domain_mrm(iDomain)%InflowGaugeNodeList(ll) = L0_L11_remap(iDomain)%lowres_id_on_highres(ii, jj)
         end do
       end if
     end do

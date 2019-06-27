@@ -149,7 +149,7 @@ contains
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mrm_constants, only : given_TS
-    use mo_mrm_global_variables, only : level11, L11_tsRout, basin_mrm, L11_celerity
+    use mo_mrm_global_variables, only : level11, L11_tsRout, domain_mrm, L11_celerity
     use mo_string_utils, only : num2str
     use mo_utils, only : locate, notequal
     use mo_mrm_net_startup, only : L11_calc_celerity
@@ -190,7 +190,7 @@ contains
        L11_tsRout = timestep * HourSecs
 
        if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iDomain)), 0.0_dp) .and. &
-            (basin_mrm(iDomain)%nInflowGauges .gt. 0)) then
+            (domain_mrm(iDomain)%nInflowGauges .gt. 0)) then
           call message('***WARNING: routing timestep is not a multiple of 24 h.')
           call message('            Inflowgauge timeseries is averaged over values')
           call message('            of different days, small mismatches at')
@@ -210,7 +210,7 @@ contains
     call message('      routing factor:......... '//num2str(L11_tsRout(iDomain) / (timestep * HourSecs), '(f5.2)'))
 
     if ( NOTEQUAL(mod(HourSecs * 24.0_dp, L11_tsRout(iDomain)), 0.0_dp) .and. &
-        (basin_mrm(iDomain)%nInflowGauges .gt. 0)) then
+        (domain_mrm(iDomain)%nInflowGauges .gt. 0)) then
        call message('***WARNING: routing timestep is not a multiple of 24 h.')
        call message('            Inflowgauge timeseries is averaged over values')
        call message('            of different days, small mismatches at')
