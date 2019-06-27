@@ -40,7 +40,10 @@ MODULE mo_objective_function
 
   PRIVATE
 
-  PUBLIC :: objective, objective_master, objective_subprocess ! objective function wrapper for soil moisture only
+  PUBLIC :: objective
+#ifdef MPI
+  PUBLIC :: objective_master, objective_subprocess ! objective function wrapper for soil moisture only
+#endif
 
   ! ------------------------------------------------------------------
 
