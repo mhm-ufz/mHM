@@ -36,7 +36,7 @@ CONTAINS
   !    PURPOSE
   !>       \brief Initialize main mHM variables
 
-  !>       \details Initialize main mHM variables for a given basin.
+  !>       \details Initialize main mHM variables for a given domain.
   !>       Calls the following procedures in this order:
   !>       - Constant initialization.
   !>       - Generate soil database.
@@ -97,7 +97,7 @@ CONTAINS
       domainID = domainMeta%indices(iDomain)
 
       if (read_restart) then
-        ! this reads only the basin properties
+        ! this reads only the domain properties
         call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mHM", level1(iDomain))
         ! Parameter fields have to be allocated in any case
         call init_eff_params(level1(iDomain)%nCells)
@@ -194,7 +194,7 @@ CONTAINS
   !>       3)  append variable of intrest to global ones
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"       Basin Id
+  !>       \param[in] "integer(i4) :: iDomain"       domain Id
   !>       \param[in] "type(Grid) :: level0_iDomain"
 
   !    INTENT(INOUT)
@@ -220,7 +220,7 @@ CONTAINS
 
     implicit none
 
-    ! Basin Id
+    ! domain Id
     integer(i4), intent(in) :: iDomain
 
     type(Grid), intent(in) :: level0_iDomain
@@ -236,7 +236,7 @@ CONTAINS
     character(256) :: fName
 
     !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given basin
+    ! 1) Estimate each variable locally for a given domain
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! read header file
@@ -254,7 +254,7 @@ CONTAINS
             (abs(xllcorner2 - level2_iDomain%xllcorner) .gt. tiny(1.0_dp))     .or. &
             (abs(yllcorner2 - level2_iDomain%yllcorner) .gt. tiny(1.0_dp))     .or. &
             (abs(cellsize2 - level2_iDomain%cellsize)  .gt. tiny(1.0_dp))) then
-      call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in basin ', &
+      call message('   ***ERROR: subroutine L2_variable_init: size mismatch in grid file for level2 in domain ', &
               trim(adjustl(num2str(iDomain))), '!')
       call message('  Expected to have following properties (based on L0):')
       call message('... rows:     ', trim(adjustl(num2str(level2_iDomain%nrows))), ', ')

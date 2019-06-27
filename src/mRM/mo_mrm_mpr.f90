@@ -131,7 +131,7 @@ contains
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"           Basin number
+  !>       \param[in] "integer(i4) :: iDomain"           domain number
   !>       \param[in] "real(dp), dimension(:) :: param" input parameter (param(1) is celerity in m/s)
 
   !    HISTORY
@@ -156,7 +156,7 @@ contains
 
     implicit none
 
-    ! Basin number
+    ! domain number
     integer(i4), intent(in) :: iDomain
 
     ! input parameter (param(1) is celerity in m/s)
@@ -205,7 +205,7 @@ contains
     end if
 
     call message('')
-    call message('    Basin: '//num2str(iDomain, '(i3)'))
+    call message('    domain: '//num2str(iDomain, '(i3)'))
     call message('      routing resolution [s]:. '//num2str(L11_tsRout(iDomain), '(f7.0)'))
     call message('      routing factor:......... '//num2str(L11_tsRout(iDomain) / (timestep * HourSecs), '(f5.2)'))
 
@@ -228,7 +228,7 @@ contains
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: iDomain"           Basin number
+  !>       \param[in] "integer(i4) :: iDomain"           domain number
   !>       \param[in] "real(dp), dimension(1) :: param" celerity parameter [m s-1]
 
   !    HISTORY
@@ -262,7 +262,7 @@ contains
     
     implicit none
 
-    ! Basin number
+    ! domain number
     integer(i4), intent(in) :: iDomain
 
     ! celerity parameter [m s-1]
@@ -285,7 +285,7 @@ contains
     ! [1] Muskingum diffusion parameter (attenuation)
     real(dp) :: xi
 
-    ! get basin information
+    ! get domain information
     s11 = level11(iDomain)%iStart
     e11 = level11(iDomain)%iEnd
     Nnodes = level11(iDomain)%nCells

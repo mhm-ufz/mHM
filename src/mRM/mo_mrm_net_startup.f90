@@ -2260,7 +2260,6 @@ contains
     logical,     dimension(:),   allocatable :: slopemask0
 
     type(Grid), pointer :: level0_iDomain
-    type(Grid), pointer :: level11_iBasin
 
     ! level-0 information
     level0_iDomain => level0(L0_Domain(iDomain))

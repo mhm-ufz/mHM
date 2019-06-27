@@ -3,7 +3,7 @@
 !>       \brief Distributed precipitation-runoff model mHM
 
 !>       \details This is the main driver of mHM, which calls
-!>       one instance of mHM for a multiple basins and a given period.
+!>       one instance of mHM for a multiple domains and a given period.
 !>       \image html  mhm5-logo.png "Typical mHM cell"
 !>       \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
 

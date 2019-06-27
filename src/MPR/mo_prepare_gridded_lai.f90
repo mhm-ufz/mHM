@@ -47,7 +47,7 @@ CONTAINS
   !>       \param[in] "logical, dimension(:, :) :: mask"
 
   !    INTENT(IN), OPTIONAL
-  !>       \param[in] "type(period), optional :: LAIPer_iBasin"
+  !>       \param[in] "type(period), optional :: LAIPer_iDomain"
 
   !    HISTORY
   !>       \authors John Craven & Rohini Kumar
@@ -58,7 +58,7 @@ CONTAINS
   ! Matthias Cuntz & Juliane Mai Nov 2014 - use meteo reading routines 
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iBasin)
+  subroutine prepare_gridded_daily_LAI_data(iDomain, nrows, ncols, mask, LAIPer_iDomain)
 
     use mo_append, only : append
     use mo_common_variables, only : period
@@ -73,7 +73,7 @@ CONTAINS
 
     logical, dimension(:, :), intent(in) :: mask
 
-    type(period), intent(in), optional :: LAIPer_iBasin
+    type(period), intent(in), optional :: LAIPer_iDomain
 
     integer(i4) :: ncells, iLAI
 
@@ -90,7 +90,7 @@ CONTAINS
     ! netcdf file input option
     CASE('nc')
       CALL read_forcing_nc(dirgridded_LAI(iDomain), nRows, nCols, &
-              'lai', mask, LAI0_3D, target_period = LAIPer_iBasin, &
+              'lai', mask, LAI0_3D, target_period = LAIPer_iDomain, &
               lower = 1.00E-10_dp, upper = 30.0_dp, nctimestep = timeStep_LAI_input)
     CASE DEFAULT
       call message()

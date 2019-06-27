@@ -484,7 +484,7 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: L0Domain_iBasin"
+  !>       \param[in] "integer(i4) :: L0Domain_iDomain"
 
   !    HISTORY
   !>       \authors Robert Schweppe
@@ -493,7 +493,7 @@ CONTAINS
 
   ! Modifications:
 
-  subroutine L0_check_input_routing(L0Domain_iBasin)
+  subroutine L0_check_input_routing(L0Domain_iDomain)
 
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
@@ -504,22 +504,22 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in) :: L0Domain_iBasin
+    integer(i4), intent(in) :: L0Domain_iDomain
 
     integer(i4) :: k
 
 
-    do k = level0(L0Domain_iBasin)%iStart, level0(L0Domain_iBasin)%iEnd
+    do k = level0(L0Domain_iDomain)%iStart, level0(L0Domain_iDomain)%iEnd
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iBasin, '(I5)'))
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
         call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iBasin, '(I5)'))
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iDomain, '(I5)'))
         call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
