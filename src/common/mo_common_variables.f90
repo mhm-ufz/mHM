@@ -39,7 +39,7 @@ module mo_common_variables
   ! -------------------------------------------------------------------
   integer(i4), public :: iFlag_cordinate_sys        ! options model for the run cordinate system
   real(dp), dimension(:), allocatable, public :: resolutionHydrology        ! [m or degree] resolution of hydrology - Level 1
-  integer(i4), dimension(:), allocatable, public :: L0_Basin
+  integer(i4), dimension(:), allocatable, public :: L0_Domain
   integer(i4), dimension(:), allocatable, public :: L11_Basin
   logical, public :: write_restart              ! flag
 

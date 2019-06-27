@@ -70,7 +70,7 @@ CONTAINS
 
   subroutine mpr_initialize
 
-    use mo_common_variables, only : L0_Basin, l0_l1_remap, level0, level1, domainMeta, resolutionHydrology
+    use mo_common_variables, only : L0_Domain, l0_l1_remap, level0, level1, domainMeta, resolutionHydrology
     use mo_grid, only : init_lowres_level, set_basin_indices
     use mo_kind, only : i4
     use mo_read_latlon, only : read_latlon
@@ -90,16 +90,16 @@ CONTAINS
     ! L0 and L1 initialization
     do iDomain = 1, domainMeta%nDomains
       if (iDomain .eq. 1) then
-        call L0_check_input(L0_Basin(iDomain))
-        call L0_variable_init(L0_Basin(iDomain))
+        call L0_check_input(L0_Domain(iDomain))
+        call L0_variable_init(L0_Domain(iDomain))
       ! ToDo: adopt to parallel
-      else if (L0_Basin(iDomain) .ne. L0_Basin(iDomain - 1)) then
+      else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
         ! this needs only be done if there is new input
-        call L0_check_input(L0_Basin(iDomain))
-        call L0_variable_init(L0_Basin(iDomain))
+        call L0_check_input(L0_Domain(iDomain))
+        call L0_variable_init(L0_Domain(iDomain))
       end if
 
-      call init_lowres_level(level0(L0_Basin(iDomain)), resolutionHydrology(iDomain), &
+      call init_lowres_level(level0(L0_Domain(iDomain)), resolutionHydrology(iDomain), &
       level1(iDomain), l0_l1_remap(iDomain))
       ! read lat lon coordinates for level 1
       call read_latlon(iDomain, "lon", "lat", "level1", level1(iDomain))

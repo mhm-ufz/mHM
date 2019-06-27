@@ -52,7 +52,7 @@ contains
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4, nodata_dp
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_Basin, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
+    use mo_common_variables, only : Grid, L0_Domain, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
     use mo_mpr_global_variables, only: L0_slope
     use mo_message, only : message
@@ -114,14 +114,14 @@ contains
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iBasin => level0(L0_Basin(iDomain))
+      level0_iBasin => level0(L0_Domain(iDomain))
 
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
-        if (L0_Basin(iDomain) .eq. L0_Basin(iDomain - 1)) then
+        if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
           !
           call message('      Using data of domain ', &
-                  trim(adjustl(num2str(domainMeta%indices(L0_Basin(iDomain))))), ' for domain: ',&
+                  trim(adjustl(num2str(domainMeta%indices(L0_Domain(iDomain))))), ' for domain: ',&
                   trim(adjustl(num2str(domainID))), '...')
           cycle
           !

@@ -50,7 +50,7 @@ CONTAINS
   subroutine common_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNLcovers, maxNoBasins
-    use mo_common_variables, only : Conventions, L0_Basin, LC_year_end, LC_year_start, LCfilename, contact, &
+    use mo_common_variables, only : Conventions, L0_Domain, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
@@ -82,7 +82,7 @@ CONTAINS
 
     real(dp), dimension(maxNoBasins) :: resolution_Hydrology
 
-    integer(i4), dimension(maxNoBasins) :: L0Basin
+    integer(i4), dimension(maxNoBasins) :: L0Domain
 
     ! starting year LCover
     integer(i4), dimension(maxNLCovers) :: LCoverYearStart
@@ -105,7 +105,7 @@ CONTAINS
             dir_Out, dir_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Basin, write_restart
+    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Domain, write_restart
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -144,25 +144,25 @@ CONTAINS
     allocate(dirLCover(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
-    allocate(L0_Basin(domainMeta%nDomains))
+    allocate(L0_Domain(domainMeta%nDomains))
 
     nuniquel0Basins = 0_i4
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
       ! if a domain uses the same L0 data as a previous one, write
-      ! the index into L0_Basin
-      ! ToDo: switch L0_Basin with L0_data_from as type part of domainMeta
-      newDomainID = L0Basin(domainID)
-      L0_Basin(iDomain) = iDomain
+      ! the index into L0_Domain
+      ! ToDo: switch L0_Domain with L0_data_from as type part of domainMeta
+      newDomainID = L0Domain(domainID)
+      L0_Domain(iDomain) = iDomain
       do i = 1, iDomain - 1
         if (newDomainID == domainMeta%indices(i)) then
-          L0_Basin(iDomain) = i
+          L0_Domain(iDomain) = i
           cycle 
         end if
       end do
       nuniquel0Basins = nuniquel0Basins + 1_i4
-     ! L0_Basin(iDomain) = L0Basin(domainID)
+     ! L0_Domain(iDomain) = L0Domain(domainID)
     end do
 
     ! check for possible options
@@ -175,7 +175,7 @@ CONTAINS
   !  nuniquel0Basins = 0_i4
   !  do iDomain = 1, domainMeta%nDomains
   !    if (iDomain .gt. 1) then
-  !      if (L0_Basin(iDomain) .eq. L0_Basin(iDomain - 1)) then
+  !      if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
   !        cycle
   !      end if
   !    end if

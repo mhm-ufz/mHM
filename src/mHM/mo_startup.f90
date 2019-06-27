@@ -71,7 +71,7 @@ CONTAINS
 
     use mo_common_mHM_mRM_variables, only : dirRestartIn, read_restart
     use mo_common_restart, only : read_grid_info
-    use mo_common_variables, only : L0_Basin, level0, level1, domainMeta
+    use mo_common_variables, only : L0_Domain, level0, level1, domainMeta
     use mo_global_variables, only : level2
     use mo_grid, only : set_basin_indices
     use mo_init_states, only : variables_alloc
@@ -108,7 +108,7 @@ CONTAINS
       call variables_alloc(level1(iDomain)%nCells)
 
       ! L2 inialization
-      call L2_variable_init(iDomain, level0(L0_Basin(iDomain)), level2(iDomain))
+      call L2_variable_init(iDomain, level0(L0_Domain(iDomain)), level2(iDomain))
 
     end do
 

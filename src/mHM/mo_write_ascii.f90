@@ -86,7 +86,7 @@ CONTAINS
 
     use mo_common_file, only : file_config, uconfig
     use mo_common_mHM_mRM_variables, only : LCyearId, SimPer, evalPer, read_restart, timeStep, warmPer
-    use mo_common_variables, only : L0_Basin, LC_year_end, &
+    use mo_common_variables, only : L0_Domain, LC_year_end, &
                                     LC_year_start, LCfilename, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     global_parameters, global_parameters_name, iFlag_cordinate_sys, level0, level1, &
                                     domainMeta, nLCoverScene, resolutionHydrology, write_restart
@@ -139,7 +139,7 @@ CONTAINS
     write(uconfig, 103)    'Time Step [h]               ', timeStep
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(L0_Basin(iDomain))%nCells
+      write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L0             ', level0(L0_Domain(iDomain))%nCells
       write(uconfig, 103) 'Domain  ', domainID, 'No. of cells L1             ', level1(iDomain)%nCells
 #ifdef MRM2MHM
       if (processMatrix(8, 1) .ne. 0) then

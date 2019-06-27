@@ -68,7 +68,7 @@ CONTAINS
                                             resolutionRouting
     use mo_common_read_config, only : common_read_config
     use mo_common_restart, only : read_grid_info
-    use mo_common_variables, only : L0_Basin, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
+    use mo_common_variables, only : L0_Domain, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_basin_indices
     use mo_kind, only : i4
@@ -147,8 +147,8 @@ CONTAINS
       if (read_restart) then
         ! this reads the domain properties
         if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
-        ! ToDo: L0_Basin, parallel
-        call read_grid_info(domainMeta%indices(L0_Basin(iDomain)), dirRestartIn(iDomain), "0", "mRM", level0(L0_Basin(iDomain)))
+        ! ToDo: L0_Domain, parallel
+        call read_grid_info(domainMeta%indices(L0_Domain(iDomain)), dirRestartIn(iDomain), "0", "mRM", level0(L0_Domain(iDomain)))
         if (mrm_coupling_mode .eq. 0_i4) then
           call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mRM", level1(iDomain))
         end if
@@ -156,22 +156,22 @@ CONTAINS
         call mrm_read_restart_config(iDomain, dirRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
-          call L0_check_input_routing(L0_Basin(iDomain))
+          call L0_check_input_routing(L0_Domain(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iDomain)))
+            call L0_grid_setup(level0(L0_Domain(iDomain)))
           end if
-        else if ((L0_Basin(iDomain) .ne. L0_Basin(iDomain - 1))) then
-          call L0_check_input_routing(L0_Basin(iDomain))
+        else if ((L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1))) then
+          call L0_check_input_routing(L0_Domain(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Basin(iDomain)))
+            call L0_grid_setup(level0(L0_Domain(iDomain)))
           end if
         end if
 
         if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(L0_Basin(iDomain)), resolutionHydrology(iDomain), &
+          call init_lowres_level(level0(L0_Domain(iDomain)), resolutionHydrology(iDomain), &
                   level1(iDomain), l0_l1_remap(iDomain))
         end if
-        call init_lowres_level(level0(L0_Basin(iDomain)), resolutionRouting(iDomain), &
+        call init_lowres_level(level0(L0_Domain(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
                 level11(iDomain), l1_l11_remap(iDomain))
@@ -484,7 +484,7 @@ CONTAINS
   !>       \details TODO: add description
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: L0Basin_iBasin"
+  !>       \param[in] "integer(i4) :: L0Domain_iBasin"
 
   !    HISTORY
   !>       \authors Robert Schweppe
@@ -493,7 +493,7 @@ CONTAINS
 
   ! Modifications:
 
-  subroutine L0_check_input_routing(L0Basin_iBasin)
+  subroutine L0_check_input_routing(L0Domain_iBasin)
 
     use mo_common_constants, only : nodata_i4
     use mo_common_variables, only : level0
@@ -504,22 +504,22 @@ CONTAINS
 
     implicit none
 
-    integer(i4), intent(in) :: L0Basin_iBasin
+    integer(i4), intent(in) :: L0Domain_iBasin
 
     integer(i4) :: k
 
 
-    do k = level0(L0Basin_iBasin)%iStart, level0(L0Basin_iBasin)%iEnd
+    do k = level0(L0Domain_iBasin)%iStart, level0(L0Domain_iBasin)%iEnd
       ! flow direction [-]
       if (L0_fDir(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Basin_iBasin, '(I5)'))
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iBasin, '(I5)'))
         call message(' Error: flow direction has missing value within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
       end if
       ! flow accumulation [-]
       if (L0_fAcc(k) .eq. nodata_i4) then
-        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Basin_iBasin, '(I5)'))
+        message_text = trim(num2str(k, '(I5)')) // ',' // trim(num2str(L0Domain_iBasin, '(I5)'))
         call message(' Error: flow accumulation has missing values within the valid masked area at cell in domain ', &
                 trim(message_text))
         stop
@@ -556,7 +556,7 @@ CONTAINS
     use mo_append, only : append
     use mo_kind, only : dp, i4
     use mo_mrm_constants, only : nRoutingStates
-    use mo_common_variables, only : level0, L0_Basin
+    use mo_common_variables, only : level0, L0_Domain
     use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, &
          L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi, &
          level11, L11_celerity, L0_celerity
@@ -612,7 +612,7 @@ CONTAINS
 
     ! celerity at level 0
     if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
-    allocate(dummy_Vector11(level0(L0_Basin(iDomain))%ncells))
+    allocate(dummy_Vector11(level0(L0_Domain(iDomain))%ncells))
     dummy_Vector11(:) = 0.0_dp
     call append(L0_celerity, dummy_Vector11)
 
