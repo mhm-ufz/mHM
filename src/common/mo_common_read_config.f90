@@ -52,7 +52,7 @@ CONTAINS
     use mo_common_constants, only : maxNLcovers, maxNoBasins
     use mo_common_variables, only : Conventions, L0_Basin, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
-                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, nBasins, domainMeta, nLcoverScene, &
+                                    fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
     use mo_message, only : message
@@ -93,7 +93,7 @@ CONTAINS
     ! filename of Lcover file
     character(256), dimension(maxNLCovers) :: LCoverfName
 
-    integer(i4) :: i, newDomainID,domainID, iDomain
+    integer(i4) :: i, newDomainID, domainID, iDomain, nDomains
 
 
     ! define namelists
@@ -105,7 +105,7 @@ CONTAINS
             dir_Out, dir_RestartOut, &
             file_LatLon
     ! namelist spatial & temporal resolution, optimization information
-    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nBasins, L0Basin, write_restart
+    namelist /mainconfig/ iFlag_cordinate_sys, resolution_Hydrology, nDomains, L0Basin, write_restart
     ! namelist process selection
     namelist /processSelection/ processCase
 
@@ -129,13 +129,13 @@ CONTAINS
     call position_nml('mainconfig', unamelist)
     read(unamelist, nml = mainconfig)
 
-    if (nBasins .GT. maxNoBasins) then
+    call init_domain_variable(nDomains, domainMeta)
+
+    if (nDomains .GT. maxNoBasins) then
       call message()
       call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoBasins)), '!')
       stop 1
     end if
-
-    call init_domain_variable(nBasins, domainMeta)
 
     ! allocate patharray sizes
     allocate(resolutionHydrology(domainMeta%nDomains))
@@ -360,13 +360,13 @@ CONTAINS
 
   end subroutine set_land_cover_scenes_id
 
-  subroutine init_domain_variable(nBasins, domainMeta)
+  subroutine init_domain_variable(nDomains, domainMeta)
     use mo_common_variables, only: domain_meta
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
 #endif
-    integer(i4),       intent(in)    :: nBasins
+    integer(i4),       intent(in)    :: nDomains
     type(domain_meta), intent(inout) :: domainMeta
 
     integer             :: ierror
@@ -404,7 +404,7 @@ CONTAINS
     end if
 
 #else
-    domainMeta%nDomains = nBasins
+    domainMeta%nDomains = nDomains
     allocate(domainMeta%indices(domainMeta%nDomains))
     do iDomain = 1, domainMeta%nDomains
       domainMeta%indices(iDomain) = iDomain
