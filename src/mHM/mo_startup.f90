@@ -73,7 +73,7 @@ CONTAINS
     use mo_common_restart, only : read_grid_info
     use mo_common_variables, only : L0_Domain, level0, level1, domainMeta
     use mo_global_variables, only : level2
-    use mo_grid, only : set_basin_indices
+    use mo_grid, only : set_domain_indices
     use mo_init_states, only : variables_alloc
     use mo_kind, only : i4
     use mo_mpr_startup, only : init_eff_params, mpr_initialize
@@ -114,10 +114,10 @@ CONTAINS
 
     ! if no restart, this is done already in MPR
     if (read_restart) then
-      call set_basin_indices(level1)
+      call set_domain_indices(level1)
     end if
 
-    call set_basin_indices(level2)
+    call set_domain_indices(level2)
 
   end subroutine mhm_initialize
 

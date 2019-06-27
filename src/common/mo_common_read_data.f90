@@ -45,7 +45,7 @@ CONTAINS
     use mo_common_file, only : file_dem, udem
     use mo_common_variables, only : Grid, L0_Domain, L0_elev, dirMorpho, level0, domainMeta, nuniqueL0Domains, &
                                     resolutionHydrology
-    use mo_grid, only : set_basin_indices
+    use mo_grid, only : set_domain_indices
     use mo_message, only : message
     use mo_read_spatial_data, only : read_header_ascii, read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -122,7 +122,7 @@ CONTAINS
 
     end do
 
-    call set_basin_indices(level0)
+    call set_domain_indices(level0)
 
   end subroutine read_dem
 

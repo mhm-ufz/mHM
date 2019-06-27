@@ -17,7 +17,7 @@ module mo_grid
 
   PRIVATE
 
-  PUBLIC :: init_lowres_level, set_basin_indices, L0_grid_setup, &
+  PUBLIC :: init_lowres_level, set_domain_indices, L0_grid_setup, &
           mapCoordinates, geoCoordinates
 contains
   ! ------------------------------------------------------------------
@@ -184,7 +184,7 @@ contains
   end subroutine init_lowres_level
 
   !    NAME
-  !        set_basin_indices
+  !        set_domain_indices
 
   !    PURPOSE
   !>       \brief TODO: add description
@@ -201,7 +201,7 @@ contains
 
   ! Modifications:
 
-  subroutine set_basin_indices(grids)
+  subroutine set_domain_indices(grids)
 
     use mo_common_variables, only : Grid
 
@@ -222,7 +222,7 @@ contains
       grids(iDomain)%iEnd = grids(iDomain)%iStart + grids(iDomain)%nCells - 1_i4
     end do
 
-  end subroutine set_basin_indices
+  end subroutine set_domain_indices
 
   ! ------------------------------------------------------------------
 

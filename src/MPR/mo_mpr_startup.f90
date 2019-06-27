@@ -71,7 +71,7 @@ CONTAINS
   subroutine mpr_initialize
 
     use mo_common_variables, only : L0_Domain, l0_l1_remap, level0, level1, domainMeta, resolutionHydrology
-    use mo_grid, only : init_lowres_level, set_basin_indices
+    use mo_grid, only : init_lowres_level, set_domain_indices
     use mo_kind, only : i4
     use mo_read_latlon, only : read_latlon
     use mo_soil_database, only : generate_soil_database
@@ -109,7 +109,7 @@ CONTAINS
 
     end do
 
-    call set_basin_indices(level1)
+    call set_domain_indices(level1)
 
   end subroutine mpr_initialize
 
