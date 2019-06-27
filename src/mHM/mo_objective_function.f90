@@ -544,10 +544,10 @@ CONTAINS
 #endif
 
     ! spatial average of observed soil moisture
-    real(dp), dimension(:), allocatable :: sm_catch_avg_basin
+    real(dp), dimension(:), allocatable :: sm_catch_avg_domain
 
     ! spatial avergae of modeled  soil moisture
-    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_basin
+    real(dp), dimension(:), allocatable :: sm_opti_catch_avg_domain
 
     ! simulated soil moisture
     ! (dim1=ncells, dim2=time)
@@ -572,13 +572,13 @@ CONTAINS
 
       ! allocate
       allocate(mask_times             (size(sm_opti, dim = 2)))
-      allocate(sm_catch_avg_basin     (size(sm_opti, dim = 2)))
-      allocate(sm_opti_catch_avg_basin(size(sm_opti, dim = 2)))
+      allocate(sm_catch_avg_domain     (size(sm_opti, dim = 2)))
+      allocate(sm_opti_catch_avg_domain(size(sm_opti, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
-      sm_catch_avg_basin = nodata_dp
-      sm_opti_catch_avg_basin = nodata_dp
+      sm_catch_avg_domain = nodata_dp
+      sm_opti_catch_avg_domain = nodata_dp
 
       invalid_times = 0.0_dp
       ! calculate catchment average soil moisture
@@ -592,8 +592,8 @@ CONTAINS
           mask_times(iTime) = .FALSE.
           cycle
         end if
-        sm_catch_avg_basin(iTime) = average(L1_sm(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
-        sm_opti_catch_avg_basin(iTime) = average(sm_opti(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
+        sm_catch_avg_domain(iTime) = average(L1_sm(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
+        sm_opti_catch_avg_domain(iTime) = average(sm_opti(s1 : e1, iTime), mask = L1_sm_mask(s1 : e1, iTime))
       end do
 
       ! user information about invalid times
@@ -607,13 +607,13 @@ CONTAINS
       ! calculate average soil moisture KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_kge_catchment_avg = objective_sm_kge_catchment_avg + &
-              ((1.0_dp - KGE(sm_catch_avg_basin, sm_opti_catch_avg_basin, mask = mask_times)) / &
+              ((1.0_dp - KGE(sm_catch_avg_domain, sm_opti_catch_avg_domain, mask = mask_times)) / &
                         real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
-      deallocate(sm_catch_avg_basin)
-      deallocate(sm_opti_catch_avg_basin)
+      deallocate(sm_catch_avg_domain)
+      deallocate(sm_opti_catch_avg_domain)
     end do
 
 #ifndef MPI
@@ -702,7 +702,7 @@ CONTAINS
     real(dp) :: invalid_cells
 
     ! domains wise objectives
-    real(dp) :: objective_sm_corr_basin
+    real(dp) :: objective_sm_corr_domain
 
 #ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
@@ -722,7 +722,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! init
-      objective_sm_corr_basin = 0.0_dp
+      objective_sm_corr_domain = 0.0_dp
       ! get domain information
       ncells1 = level1(iDomain)%ncells
       s1 = level1(iDomain)%iStart
@@ -738,7 +738,7 @@ CONTAINS
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
-        objective_sm_corr_basin = objective_sm_corr_basin + &
+        objective_sm_corr_domain = objective_sm_corr_domain + &
                 correlation(L1_sm(iCell, :), sm_opti(iCell, :), mask = L1_sm_mask(iCell, :))
       end do
 
@@ -753,7 +753,7 @@ CONTAINS
       ! calculate average soil moisture correlation over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_corr = objective_sm_corr + &
-              ((1.0_dp - objective_sm_corr_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
+              ((1.0_dp - objective_sm_corr_domain / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 #ifndef MPI
     objective_sm_corr = objective_sm_corr**onesixth
@@ -999,7 +999,7 @@ CONTAINS
     real(dp) :: invalid_cells
 
     ! domains wise objectives
-    real(dp) :: objective_sm_sse_standard_score_basin
+    real(dp) :: objective_sm_sse_standard_score_domain
 
 #ifndef MPI
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
@@ -1019,7 +1019,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! init
-      objective_sm_sse_standard_score_basin = 0.0_dp
+      objective_sm_sse_standard_score_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
@@ -1034,7 +1034,7 @@ CONTAINS
           invalid_cells = invalid_cells + 1.0_dp
           cycle
         end if
-        objective_sm_sse_standard_score_basin = objective_sm_sse_standard_score_basin + &
+        objective_sm_sse_standard_score_domain = objective_sm_sse_standard_score_domain + &
                 SSE(standard_score(L1_sm(iCell, :), mask = L1_sm_mask(iCell, :)), &
                         standard_score(sm_opti(iCell, :), mask = L1_sm_mask(iCell, :)), mask = L1_sm_mask(iCell, :))
 
@@ -1050,7 +1050,7 @@ CONTAINS
       ! calculate average soil moisture correlation over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm_sse_standard_score = objective_sm_sse_standard_score + &
-              (objective_sm_sse_standard_score_basin / real(domainMeta%overallNumberOfDomains, dp))**6
+              (objective_sm_sse_standard_score_domain / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
 #ifndef MPI
@@ -1382,10 +1382,10 @@ CONTAINS
 #endif
 
     ! spatial average of observed neutrons
-    real(dp), dimension(:), allocatable :: neutrons_catch_avg_basin
+    real(dp), dimension(:), allocatable :: neutrons_catch_avg_domain
 
     ! spatial avergae of modeled  neutrons
-    real(dp), dimension(:), allocatable :: neutrons_opti_catch_avg_basin
+    real(dp), dimension(:), allocatable :: neutrons_opti_catch_avg_domain
 
     ! simulated neutrons
     ! (dim1=ncells, dim2=time)
@@ -1409,13 +1409,13 @@ CONTAINS
 
       ! allocate
       allocate(mask_times             (size(neutrons_opti, dim = 2)))
-      allocate(neutrons_catch_avg_basin     (size(neutrons_opti, dim = 2)))
-      allocate(neutrons_opti_catch_avg_basin(size(neutrons_opti, dim = 2)))
+      allocate(neutrons_catch_avg_domain     (size(neutrons_opti, dim = 2)))
+      allocate(neutrons_opti_catch_avg_domain(size(neutrons_opti, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
-      neutrons_catch_avg_basin = nodata_dp
-      neutrons_opti_catch_avg_basin = nodata_dp
+      neutrons_catch_avg_domain = nodata_dp
+      neutrons_opti_catch_avg_domain = nodata_dp
 
       ! calculate catchment average soil moisture
       do iTime = 1, size(neutrons_opti, dim = 2)
@@ -1428,20 +1428,20 @@ CONTAINS
           mask_times(iTime) = .FALSE.
           cycle
         end if
-        neutrons_catch_avg_basin(iTime) = average(L1_neutronsdata(s1 : e1, iTime), mask = L1_neutronsdata_mask(s1 : e1, iTime))
-        neutrons_opti_catch_avg_basin(iTime) = average(neutrons_opti(s1 : e1, iTime), mask = L1_neutronsdata_mask(s1 : e1, iTime))
+        neutrons_catch_avg_domain(iTime) = average(L1_neutronsdata(s1 : e1, iTime), mask = L1_neutronsdata_mask(s1 : e1, iTime))
+        neutrons_opti_catch_avg_domain(iTime) = average(neutrons_opti(s1 : e1, iTime), mask = L1_neutronsdata_mask(s1 : e1, iTime))
       end do
 
       ! calculate average neutrons KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_neutrons_kge_catchment_avg = objective_neutrons_kge_catchment_avg + &
-        ((1.0_dp - KGE(neutrons_catch_avg_basin, neutrons_opti_catch_avg_basin, mask = mask_times)) / &
+        ((1.0_dp - KGE(neutrons_catch_avg_domain, neutrons_opti_catch_avg_domain, mask = mask_times)) / &
                                                                       real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
-      deallocate(neutrons_catch_avg_basin)
-      deallocate(neutrons_opti_catch_avg_basin)
+      deallocate(neutrons_catch_avg_domain)
+      deallocate(neutrons_opti_catch_avg_domain)
 
     end do
 
@@ -1531,10 +1531,10 @@ CONTAINS
 #endif
 
     ! spatial average of observed et
-    real(dp), dimension(:), allocatable :: et_catch_avg_basin
+    real(dp), dimension(:), allocatable :: et_catch_avg_domain
 
     ! spatial avergae of modeled  et
-    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
 
     ! simulated et
     ! (dim1=ncells, dim2=time)
@@ -1558,13 +1558,13 @@ CONTAINS
 
       ! allocate
       allocate(mask_times             (size(et_opti, dim = 2)))
-      allocate(et_catch_avg_basin     (size(et_opti, dim = 2)))
-      allocate(et_opti_catch_avg_basin(size(et_opti, dim = 2)))
+      allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
+      allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
-      et_catch_avg_basin = nodata_dp
-      et_opti_catch_avg_basin = nodata_dp
+      et_catch_avg_domain = nodata_dp
+      et_opti_catch_avg_domain = nodata_dp
 
       ! calculate catchment average evapotranspiration
       do iTime = 1, size(et_opti, dim = 2)
@@ -1578,21 +1578,21 @@ CONTAINS
           cycle
         end if
 
-        et_catch_avg_basin(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
-        et_opti_catch_avg_basin(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+        et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+        et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
       end do
 
       ! calculate average ET KGE over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
 
       objective_et_kge_catchment_avg = objective_et_kge_catchment_avg + &
-              ((1.0_dp - KGE(et_catch_avg_basin, et_opti_catch_avg_basin, mask = mask_times)) / &
+              ((1.0_dp - KGE(et_catch_avg_domain, et_opti_catch_avg_domain, mask = mask_times)) / &
                                         real(domainMeta%overallNumberOfDomains, dp))**6
 
       ! deallocate
       deallocate(mask_times)
-      deallocate(et_catch_avg_basin)
-      deallocate(et_opti_catch_avg_basin)
+      deallocate(et_catch_avg_domain)
+      deallocate(et_opti_catch_avg_domain)
     end do
 
 #ifndef MPI
@@ -1675,7 +1675,7 @@ CONTAINS
     integer(i4) :: ncells1
 
     ! domains wise objectives
-    real(dp) :: objective_sm_basin
+    real(dp) :: objective_sm_domain
 
     ! simulated soil moisture
     ! (dim1=ncells, dim2=time)
@@ -1713,7 +1713,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! init
-      objective_sm_basin = 0.0_dp
+      objective_sm_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
@@ -1731,7 +1731,7 @@ CONTAINS
         end if
 
         ! calculate ojective function
-        objective_sm_basin = objective_sm_basin + &
+        objective_sm_domain = objective_sm_domain + &
                 correlation(L1_sm(iCell, :), sm_opti(iCell, :), mask = L1_sm_mask(iCell, :))
       end do
 
@@ -1745,7 +1745,7 @@ CONTAINS
       ! calculate average soil moisture objective over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_sm = objective_sm + &
-              ((1.0_dp - objective_sm_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
+              ((1.0_dp - objective_sm_domain / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -1866,7 +1866,7 @@ CONTAINS
     integer(i4) :: nCells1
 
     ! domains wise objectives
-    real(dp) :: objective_et_basin
+    real(dp) :: objective_et_domain
 
     ! simulated evapotranspiration
     ! (dim1=ncells, dim2=time)
@@ -1904,7 +1904,7 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! init
-      objective_et_basin = 0.0_dp
+      objective_et_domain = 0.0_dp
       ! get domain information
       nCells1 = level1(iDomain)%nCells
       s1 = level1(iDomain)%iStart
@@ -1922,7 +1922,7 @@ CONTAINS
         end if
 
         ! calculate ojective function
-        objective_et_basin = objective_et_basin + &
+        objective_et_domain = objective_et_domain + &
                 kge(L1_et(iCell, :), et_opti(iCell, :), mask = L1_et_mask(iCell, :))
       end do
 
@@ -1936,7 +1936,7 @@ CONTAINS
       ! calculate average soil moisture objective over all domains with power law
       ! domains are weighted equally ( 1 / real(domainMeta%overallNumberOfDomains,dp))**6
       objective_et = objective_et + &
-              ((1.0_dp - objective_et_basin / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
+              ((1.0_dp - objective_et_domain / real(nCells1, dp)) / real(domainMeta%overallNumberOfDomains, dp))**6
     end do
 
     ! compromise solution - sixth root
@@ -2079,10 +2079,10 @@ CONTAINS
     real(dp) :: rmse_et_avg, kge_q_avg
 
     ! spatial average of observed et
-    real(dp), dimension(:), allocatable :: et_catch_avg_basin
+    real(dp), dimension(:), allocatable :: et_catch_avg_domain
 
     ! spatial avergae of modeled  et
-    real(dp), dimension(:), allocatable :: et_opti_catch_avg_basin
+    real(dp), dimension(:), allocatable :: et_opti_catch_avg_domain
 
     ! simulated et
     ! (dim1=ncells, dim2=time)
@@ -2130,13 +2130,13 @@ CONTAINS
 
       ! allocate
       allocate(mask_times             (size(et_opti, dim = 2)))
-      allocate(et_catch_avg_basin     (size(et_opti, dim = 2)))
-      allocate(et_opti_catch_avg_basin(size(et_opti, dim = 2)))
+      allocate(et_catch_avg_domain     (size(et_opti, dim = 2)))
+      allocate(et_opti_catch_avg_domain(size(et_opti, dim = 2)))
 
       ! initalize
       mask_times = .TRUE.
-      et_catch_avg_basin = nodata_dp
-      et_opti_catch_avg_basin = nodata_dp
+      et_catch_avg_domain = nodata_dp
+      et_opti_catch_avg_domain = nodata_dp
 
       ! calculate catchment average evapotranspiration
       do iTime = 1, size(et_opti, dim = 2)
@@ -2149,9 +2149,9 @@ CONTAINS
           cycle
         end if
         ! spatial average of observed ET
-        et_catch_avg_basin(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+        et_catch_avg_domain(iTime) = average(L1_et(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
         ! spatial avergae of modeled ET
-        et_opti_catch_avg_basin(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
+        et_opti_catch_avg_domain(iTime) = average(et_opti(s1 : e1, iTime), mask = L1_et_mask(s1 : e1, iTime))
       end do
 
       ! get initial time of the evaluation period
@@ -2166,18 +2166,18 @@ CONTAINS
         ! daily: aggregate to monthly mean
       case(-1)
         ! calculate monthly averages from daily values of the model
-        call day2mon_average(et_opti_catch_avg_basin, year, month, day, et_sim_m, misval = nodata_dp)
+        call day2mon_average(et_opti_catch_avg_domain, year, month, day, et_sim_m, misval = nodata_dp)
         ! calculate monthly averages from daily values of the observations
-        call day2mon_average(et_catch_avg_basin, year, month, day, et_obs_m, misval = nodata_dp)
+        call day2mon_average(et_catch_avg_domain, year, month, day, et_obs_m, misval = nodata_dp)
         !
         ! monthly: proceed without action
       case(-2)
         ! simulation
         allocate(et_sim_m(size(et_opti, dim = 2)))
-        et_sim_m = et_opti_catch_avg_basin
+        et_sim_m = et_opti_catch_avg_domain
         ! observation
         allocate(et_obs_m(size(et_opti, dim = 2)))
-        et_obs_m = et_catch_avg_basin
+        et_obs_m = et_catch_avg_domain
 
         ! yearly: ERROR stop program
       case(-3)
