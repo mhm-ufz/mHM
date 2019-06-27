@@ -879,7 +879,7 @@ CONTAINS
   !>       \details The runoff ratio is defined as
   !>       \f[ runoff_ratio = \frac{\sum_{t=1}^{N} q_t}{\sum_{t=1}^{N} p_t}\f]
   !>       where \f$p_t\f$ and \f$q_t\f$ are precipitation and discharge, respectively.
-  !>       Therefore, precipitation over the entire basin is required and both discharge and precipitation
+  !>       Therefore, precipitation over the entire domain is required and both discharge and precipitation
   !>       have to be converted to the same units [mm/d].
 
   !>       Input discharge is given in [m**3/s] as this is mHM default while precipitation has to be given
@@ -903,7 +903,7 @@ CONTAINS
 
   !    INTENT(IN)
   !>       \param[in] "real(dp), dimension(:) :: data" array of data   [m**3/s]
-  !>       \param[in] "real(dp) :: basin_area"         area of basin   [km**2]
+  !>       \param[in] "real(dp) :: domain_area"         area of domain   [km**2]
 
   !    INTENT(IN), OPTIONAL
   !>       \param[in] "logical, dimension(size(data, 1)), optional :: mask"           mask for data points given
@@ -922,7 +922,7 @@ CONTAINS
   ! Modifications:
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  FUNCTION RunoffRatio(data, basin_area, mask, precip_series, precip_sum, log_data)
+  FUNCTION RunoffRatio(data, domain_area, mask, precip_series, precip_sum, log_data)
 
     use mo_message, only : message
 
@@ -931,8 +931,8 @@ CONTAINS
     ! array of data   [m**3/s]
     real(dp), dimension(:), intent(in) :: data
 
-    ! area of basin   [km**2]
-    real(dp), intent(in) :: basin_area
+    ! area of domain   [km**2]
+    real(dp), intent(in) :: domain_area
 
     ! mask for data points given
     logical, dimension(size(data, 1)), optional, intent(in) :: mask
@@ -995,9 +995,9 @@ CONTAINS
     ! => [m**3/(s km**2) * 86.4 ] = [mm/d]
     ! => discharge value [m**3/s] / catchment area [km**2] * 86.4 [km**2 s/m**3 * mm/d]
     if (log_dat) then
-      sum_discharge = sum(log(data) * 86.4_dp / basin_area, mask = maske)
+      sum_discharge = sum(log(data) * 86.4_dp / domain_area, mask = maske)
     else
-      sum_discharge = sum(data * 86.4_dp / basin_area, mask = maske)
+      sum_discharge = sum(data * 86.4_dp / domain_area, mask = maske)
     end if
 
     if (present(precip_sum)) then
