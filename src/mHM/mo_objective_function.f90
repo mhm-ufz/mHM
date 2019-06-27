@@ -2368,7 +2368,7 @@ CONTAINS
     end if
 
     ! extract domain Id
-    iBasin = domain_avg_TWS_obs%basinId(basinId)
+    iBasin = domain_avg_TWS_obs%domainId(basinId)
 
     ! get length of evaluation period times TPD_obs
     length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs

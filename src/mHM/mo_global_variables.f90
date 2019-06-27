@@ -90,13 +90,13 @@ MODULE mo_global_variables
   ! Domain AVERAGED TOTAL WATER STORAGE DATA
   ! ------------------------------------------------------------------
   type TWSstructure
-    integer(i4), dimension(:), allocatable :: basinId            ! Basin Id
+    integer(i4), dimension(:), allocatable :: domainId            ! domain Id
     character(256), dimension(:), allocatable :: fname              ! file name
     real(dp), dimension(:, :), allocatable :: TWS                ! [mm]
   end type TWSstructure
-  type(TWSstructure), public :: domain_avg_TWS_obs   ! [mm] basin average TWS observational data
+  type(TWSstructure), public :: domain_avg_TWS_obs   ! [mm] domain average TWS observational data
 
-  real(dp), public, dimension(:, :), allocatable :: domain_avg_TWS_sim  ! variable containing basin average TWS for each basin
+  real(dp), public, dimension(:, :), allocatable :: domain_avg_TWS_sim  ! variable containing domain average TWS for each domain
   integer(i4), public :: nMeasPerDay_TWS    ! Number of WTS observations per day,
   !                                                                      ! e.g. 24 -> hourly, 1 -> daily
 

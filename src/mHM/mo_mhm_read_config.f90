@@ -267,7 +267,7 @@ CONTAINS
           fileTWS(iDomain) = file_TWS (domainID)
         end do
 
-        allocate(domain_avg_TWS_obs%basinId(domainMeta%nDomains)); domain_avg_TWS_obs%basinId = nodata_i4
+        allocate(domain_avg_TWS_obs%domainId(domainMeta%nDomains)); domain_avg_TWS_obs%domainId = nodata_i4
         allocate(domain_avg_TWS_obs%fName  (domainMeta%nDomains)); domain_avg_TWS_obs%fName(:) = num2str(nodata_i4)
 
         do iDomain = 1, domainMeta%nDomains
@@ -281,7 +281,7 @@ CONTAINS
             stop 1
           end if
 
-          domain_avg_TWS_obs%basinId(iDomain) = iDomain
+          domain_avg_TWS_obs%domainId(iDomain) = iDomain
           domain_avg_TWS_obs%fname(iDomain) = trim(file_TWS(iDomain))
         end do
       end select
