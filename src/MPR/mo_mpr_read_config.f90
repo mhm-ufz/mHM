@@ -54,7 +54,7 @@ contains
   subroutine mpr_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param)
 
     use mo_append, only : append
-    use mo_common_constants, only : eps_dp, maxNoBasins, nColPars, nodata_dp
+    use mo_common_constants, only : eps_dp, maxNoDomains, nColPars, nodata_dp
     use mo_common_functions, only : in_bound
     use mo_common_variables, only : global_parameters, global_parameters_name, domainMeta, processMatrix
     use mo_message, only : message
@@ -84,7 +84,7 @@ contains
 
     ! directory of gridded LAI data
     ! used when timeStep_LAI_input<0
-    character(256), dimension(maxNoBasins) :: dir_gridded_LAI
+    character(256), dimension(maxNoDomains) :: dir_gridded_LAI
 
     character(256) :: dummy
 

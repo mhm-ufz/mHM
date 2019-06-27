@@ -88,7 +88,7 @@ CONTAINS
 
   subroutine mhm_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNoBasins, nodata_i4
+    use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
     use mo_common_mhm_mrm_variables, only : opti_function, optimize
     use mo_common_variables, only : domainMeta, processMatrix
@@ -114,35 +114,35 @@ CONTAINS
 
     integer(i4) :: iDomain, domainID
 
-    integer(i4), dimension(maxNoBasins) :: time_step_model_inputs
+    integer(i4), dimension(maxNoDomains) :: time_step_model_inputs
 
-    character(256), dimension(maxNoBasins) :: dir_Precipitation
+    character(256), dimension(maxNoDomains) :: dir_Precipitation
 
-    character(256), dimension(maxNoBasins) :: dir_Temperature
+    character(256), dimension(maxNoDomains) :: dir_Temperature
 
-    character(256), dimension(maxNoBasins) :: dir_MinTemperature
+    character(256), dimension(maxNoDomains) :: dir_MinTemperature
 
-    character(256), dimension(maxNoBasins) :: dir_MaxTemperature
+    character(256), dimension(maxNoDomains) :: dir_MaxTemperature
 
-    character(256), dimension(maxNoBasins) :: dir_NetRadiation
+    character(256), dimension(maxNoDomains) :: dir_NetRadiation
 
-    character(256), dimension(maxNoBasins) :: dir_windspeed
+    character(256), dimension(maxNoDomains) :: dir_windspeed
 
-    character(256), dimension(maxNoBasins) :: dir_absVapPressure
+    character(256), dimension(maxNoDomains) :: dir_absVapPressure
 
-    character(256), dimension(maxNoBasins) :: dir_ReferenceET
+    character(256), dimension(maxNoDomains) :: dir_ReferenceET
 
     ! soil moisture input
-    character(256), dimension(maxNoBasins) :: dir_soil_moisture
+    character(256), dimension(maxNoDomains) :: dir_soil_moisture
 
     ! total water storage input file
-    character(256), dimension(maxNoBasins) :: file_TWS
+    character(256), dimension(maxNoDomains) :: file_TWS
 
     ! ground albedo neutron input
-    character(256), dimension(maxNoBasins) :: dir_neutrons
+    character(256), dimension(maxNoDomains) :: dir_neutrons
 
     ! ground albedo neutron input
-    character(256), dimension(maxNoBasins) :: dir_evapotranspiration
+    character(256), dimension(maxNoDomains) :: dir_evapotranspiration
 
 
     ! define namelists

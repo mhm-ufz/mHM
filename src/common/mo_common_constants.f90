@@ -34,7 +34,7 @@ MODULE mo_common_constants
 
   ! hydrologic modeling
   integer(i4), public, parameter :: nColPars = 5_i4      ! number of properties of the global variables
-  integer(i4), public, parameter :: maxNoBasins = 50_i4     ! maximum number of allowed basins
+  integer(i4), public, parameter :: maxNoDomains = 50_i4     ! maximum number of allowed domains
   integer(i4), public, parameter :: maxNLcovers = 50_i4     ! maximum number of allowed LCover scenes
 
   ! temporal

@@ -49,7 +49,7 @@ CONTAINS
 
   subroutine common_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNLcovers, maxNoBasins
+    use mo_common_constants, only : maxNLcovers, maxNoDomains
     use mo_common_variables, only : Conventions, L0_Domain, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
@@ -70,19 +70,19 @@ CONTAINS
     ! Choosen process description number
     integer(i4), dimension(nProcesses) :: processCase
 
-    character(256), dimension(maxNoBasins) :: dir_Morpho
+    character(256), dimension(maxNoDomains) :: dir_Morpho
 
-    character(256), dimension(maxNoBasins) :: dir_RestartOut
+    character(256), dimension(maxNoDomains) :: dir_RestartOut
 
-    character(256), dimension(maxNoBasins) :: dir_LCover
+    character(256), dimension(maxNoDomains) :: dir_LCover
 
-    character(256), dimension(maxNoBasins) :: dir_Out
+    character(256), dimension(maxNoDomains) :: dir_Out
 
-    character(256), dimension(maxNoBasins) :: file_LatLon
+    character(256), dimension(maxNoDomains) :: file_LatLon
 
-    real(dp), dimension(maxNoBasins) :: resolution_Hydrology
+    real(dp), dimension(maxNoDomains) :: resolution_Hydrology
 
-    integer(i4), dimension(maxNoBasins) :: L0Domain
+    integer(i4), dimension(maxNoDomains) :: L0Domain
 
     ! starting year LCover
     integer(i4), dimension(maxNLCovers) :: LCoverYearStart
@@ -131,9 +131,9 @@ CONTAINS
 
     call init_domain_variable(nDomains, domainMeta)
 
-    if (nDomains .GT. maxNoBasins) then
+    if (nDomains .GT. maxNoDomains) then
       call message()
-      call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoBasins)), '!')
+      call message('***ERROR: Number of domains is resticted to ', trim(num2str(maxNoDomains)), '!')
       stop 1
     end if
 

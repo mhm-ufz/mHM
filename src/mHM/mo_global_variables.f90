@@ -41,9 +41,9 @@ MODULE mo_global_variables
   !           Robert Schweppe,    Dec 2017 - expanded dimensions of effective parameters
   !           Robert Schweppe,    Dec 2017 - merged duplicated variables with mrm into common variables
 
-  USE mo_kind, ONLY : i4, i8, dp
+  USE mo_kind, ONLY : i4, dp
   USE mo_mhm_constants, ONLY : nOutFlxState
-  USE mo_common_constants, ONLY : YearMonths, maxNoBasins, maxNLCovers
+  USE mo_common_constants, ONLY : YearMonths
   use mo_common_variables, only : Grid
 
   IMPLICIT NONE

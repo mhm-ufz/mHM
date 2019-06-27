@@ -48,7 +48,7 @@ CONTAINS
 
   subroutine common_mHM_mRM_read_config(file_namelist, unamelist)
 
-    use mo_common_constants, only : maxNoBasins
+    use mo_common_constants, only : maxNoDomains
     use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, dirRestartIn, evalPer, mcmc_error_params, mcmc_opti, nIterations, &
                                             nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
                                             read_restart, resolutionRouting, sa_temp, sce_ngs, sce_npg, sce_nps, seed, &
@@ -70,13 +70,13 @@ CONTAINS
 
     integer(i4) :: domainID, iDomain
 
-    integer(i4), dimension(maxNoBasins) :: warming_Days
+    integer(i4), dimension(maxNoDomains) :: warming_Days
 
-    type(period), dimension(maxNoBasins) :: eval_Per
+    type(period), dimension(maxNoDomains) :: eval_Per
 
-    real(dp), dimension(maxNoBasins) :: resolution_Routing
+    real(dp), dimension(maxNoDomains) :: resolution_Routing
 
-    character(256), dimension(maxNoBasins) :: dir_RestartIn
+    character(256), dimension(maxNoDomains) :: dir_RestartIn
 
 
     ! namelist spatial & temporal resolution, otmization information

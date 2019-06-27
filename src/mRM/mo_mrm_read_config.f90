@@ -55,7 +55,7 @@ contains
 
   subroutine mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, do_message, readLatLon)
 
-    use mo_common_constants, only : maxNoBasins, nodata_i4
+    use mo_common_constants, only : maxNoDomains, nodata_i4
     use mo_common_mHM_mRM_read_config, only : common_check_resolution
     use mo_common_variables, only : ALMA_convention, domainMeta, processMatrix
     use mo_message, only : message
@@ -80,19 +80,19 @@ contains
     ! - flag for reading LatLon file
     logical, intent(out) :: readLatLon
 
-    integer(i4), dimension(maxNoBasins) :: NoGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoGauges_basin
 
-    integer(i4), dimension(maxNoBasins, maxNoGauges) :: Gauge_id
+    integer(i4), dimension(maxNoDomains, maxNoGauges) :: Gauge_id
 
-    character(256), dimension(maxNoBasins, maxNoGauges) :: Gauge_filename
+    character(256), dimension(maxNoDomains, maxNoGauges) :: Gauge_filename
 
-    integer(i4), dimension(maxNoBasins) :: NoInflowGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoInflowGauges_basin
 
-    integer(i4), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_id
+    integer(i4), dimension(maxNoDomains, maxNoGauges) :: InflowGauge_id
 
-    character(256), dimension(maxNoBasins, maxNoGauges) :: InflowGauge_filename
+    character(256), dimension(maxNoDomains, maxNoGauges) :: InflowGauge_filename
 
-    logical, dimension(maxNoBasins, maxNoGauges) :: InflowGauge_Headwater
+    logical, dimension(maxNoDomains, maxNoGauges) :: InflowGauge_Headwater
 
     integer(i4) :: domainID, iDomain
 
@@ -100,11 +100,11 @@ contains
 
     integer(i4) :: idx
 
-    character(256), dimension(maxNoBasins) :: dir_Gauges
+    character(256), dimension(maxNoDomains) :: dir_Gauges
 
-    character(256), dimension(maxNoBasins) :: dir_Total_Runoff
+    character(256), dimension(maxNoDomains) :: dir_Total_Runoff
 
-    character(256), dimension(maxNoBasins) :: dir_Bankfull_Runoff
+    character(256), dimension(maxNoDomains) :: dir_Bankfull_Runoff
 
 
     logical :: file_exists
