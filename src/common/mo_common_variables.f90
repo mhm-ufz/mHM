@@ -144,7 +144,7 @@ module mo_common_variables
   end type domain_meta
 
   type(domain_meta), public :: domainMeta
-  integer(i4), public :: nuniquel0Basins ! Number of unique domains for L0
+  integer(i4), public :: nuniqueL0Domains ! Number of unique domains for L0
 
   ! -----------------------------------------------------------------
   ! LAND COVER DATA

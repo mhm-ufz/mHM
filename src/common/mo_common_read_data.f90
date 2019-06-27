@@ -43,7 +43,7 @@ CONTAINS
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_dem, udem
-    use mo_common_variables, only : Grid, L0_Domain, L0_elev, dirMorpho, level0, domainMeta, nuniquel0Basins, &
+    use mo_common_variables, only : Grid, L0_Domain, L0_elev, dirMorpho, level0, domainMeta, nuniqueL0Domains, &
                                     resolutionHydrology
     use mo_grid, only : set_basin_indices
     use mo_message, only : message
@@ -67,7 +67,7 @@ CONTAINS
     ! READ SPATIAL DATA FOR EACH DOMAIN
     ! ************************************************
     ! allocate necessary variables at Level0
-    allocate(level0(nuniquel0Basins))
+    allocate(level0(nuniqueL0Domains))
 
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)

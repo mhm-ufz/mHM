@@ -53,7 +53,7 @@ CONTAINS
     use mo_common_variables, only : Conventions, L0_Domain, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
-                                    nProcesses, nuniquel0Basins, processMatrix, project_details, resolutionHydrology, &
+                                    nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
                                     setup_description, simulation_type, write_restart
     use mo_message, only : message
     use mo_nml, only : close_nml, open_nml, position_nml
@@ -146,7 +146,7 @@ CONTAINS
     allocate(fileLatLon(domainMeta%nDomains))
     allocate(L0_Domain(domainMeta%nDomains))
 
-    nuniquel0Basins = 0_i4
+    nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
@@ -161,7 +161,7 @@ CONTAINS
           cycle 
         end if
       end do
-      nuniquel0Basins = nuniquel0Basins + 1_i4
+      nuniqueL0Domains = nuniqueL0Domains + 1_i4
      ! L0_Domain(iDomain) = L0Domain(domainID)
     end do
 
@@ -172,14 +172,14 @@ CONTAINS
       stop 1
     end if
 
-  !  nuniquel0Basins = 0_i4
+  !  nuniqueL0Domains = 0_i4
   !  do iDomain = 1, domainMeta%nDomains
   !    if (iDomain .gt. 1) then
   !      if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
   !        cycle
   !      end if
   !    end if
-  !    nuniquel0Basins = nuniquel0Basins + 1_i4
+  !    nuniqueL0Domains = nuniqueL0Domains + 1_i4
   !  end do
 
 
