@@ -490,7 +490,7 @@ nInflowGaugesTotal = 0
 !
 !> domain 1
 !> number of gauges for subdomain (1)
-NoInflowGauges_basin(1)   = 0
+NoInflowGauges_domain(1)   = 0
 !> id of inflow gauge(1) for subdomain(1) --> (1,1)
 InflowGauge_id(1,1)       = -9
 !> name of file with timeseries of inflow gauge(1) for subdomain(1) --> (1,1)

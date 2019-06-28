@@ -659,7 +659,7 @@ nGaugesTotal = 1
 !
 !> domain 1
 !> number of gauges for subdomain (1)
-NoGauges_basin(1)   = 1
+NoGauges_domain(1)   = 1
 !> in subdomain(1), this is the id of gauge(1)  --> (1,1)
 Gauge_id(1,1)       = 398
 !> name of file with timeseries for subdomain(1) at gauge(1) --> (1,1)
@@ -667,7 +667,7 @@ gauge_filename(1,1) = "00398.txt"
 !
 !> domain 2
 !> number of gauges for subdomain (2)
-NoGauges_basin(2)       = 1
+NoGauges_domain(2)       = 1
 !> in subdomain(2), this is the id of gauge(1) --> (2,1)
 Gauge_id(2,1)           = 45
 !> name of file with timeseries for subdomain(2) at gauge(1) --> (2,1)
@@ -688,7 +688,7 @@ nInflowGaugesTotal = 0
 !
 !> domain 1
 !> number of gauges for subdomain (1)
-NoInflowGauges_basin(1)   = 0
+NoInflowGauges_domain(1)   = 0
 !> id of inflow gauge(1) for subdomain(1) --> (1,1)
 InflowGauge_id(1,1)       = -9
 !> name of file with timeseries of inflow gauge(1) for subdomain(1) --> (1,1)

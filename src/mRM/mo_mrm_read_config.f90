@@ -80,13 +80,13 @@ contains
     ! - flag for reading LatLon file
     logical, intent(out) :: readLatLon
 
-    integer(i4), dimension(maxNoDomains) :: NoGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoGauges_domain
 
     integer(i4), dimension(maxNoDomains, maxNoGauges) :: Gauge_id
 
     character(256), dimension(maxNoDomains, maxNoGauges) :: Gauge_filename
 
-    integer(i4), dimension(maxNoDomains) :: NoInflowGauges_basin
+    integer(i4), dimension(maxNoDomains) :: NoInflowGauges_domain
 
     integer(i4), dimension(maxNoDomains, maxNoGauges) :: InflowGauge_id
 
@@ -117,9 +117,9 @@ contains
              gw_coupling
     ! namelist directories
     namelist /directories_mRM/ dir_Gauges, dir_Total_Runoff, dir_Bankfull_Runoff
-    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_basin, Gauge_id, gauge_filename
+    namelist /evaluation_gauges/ nGaugesTotal, NoGauges_domain, Gauge_id, gauge_filename
     ! namelist for inflow gauges
-    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_basin, InflowGauge_id, &
+    namelist /inflow_gauges/ nInflowGaugesTotal, NoInflowGauges_domain, InflowGauge_id, &
             InflowGauge_filename, InflowGauge_Headwater
     ! name list regarding output
     namelist /NLoutputResults/timeStep_model_outputs_mrm, outputFlxState_mrm
@@ -129,7 +129,7 @@ contains
     !===============================================================
     is_start = .True.
     nGaugesTotal = nodata_i4
-    NoGauges_basin = nodata_i4
+    NoGauges_domain = nodata_i4
     Gauge_id = nodata_i4
     gauge_filename = num2str(nodata_i4)
 
@@ -187,7 +187,7 @@ contains
     nGaugesTotal = 0
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
-      nGaugesTotal = nGaugesTotal + NoGauges_basin(domainID)
+      nGaugesTotal = nGaugesTotal + NoGauges_domain(domainID)
     end do
     ! End ToDo
     idx = 0
@@ -196,14 +196,14 @@ contains
       domain_mrm_iDomain => domain_mrm(iDomain)
       ! initialize
       domain_mrm_iDomain%nGauges = nodata_i4
-      allocate(domain_mrm_iDomain%gaugeIdList(maxval(NoGauges_basin(:))))
+      allocate(domain_mrm_iDomain%gaugeIdList(maxval(NoGauges_domain(:))))
       domain_mrm_iDomain%gaugeIdList = nodata_i4
-      allocate(domain_mrm_iDomain%gaugeIndexList(maxval(NoGauges_basin(:))))
+      allocate(domain_mrm_iDomain%gaugeIndexList(maxval(NoGauges_domain(:))))
       domain_mrm_iDomain%gaugeIndexList = nodata_i4
-      allocate(domain_mrm_iDomain%gaugeNodeList(maxval(NoGauges_basin(:))))
+      allocate(domain_mrm_iDomain%gaugeNodeList(maxval(NoGauges_domain(:))))
       domain_mrm_iDomain%gaugeNodeList = nodata_i4
-      ! check if NoGauges_basin has a valid value
-      if (NoGauges_basin(domainID) .EQ. nodata_i4) then
+      ! check if NoGauges_domain has a valid value
+      if (NoGauges_domain(domainID) .EQ. nodata_i4) then
         call message()
         call message('***ERROR: ', trim(file_namelist), ': Number of evaluation gauges for subdomain ', &
                 trim(adjustl(num2str(domainID))), ' is not defined!')
@@ -211,10 +211,10 @@ contains
         stop 1
       end if
 
-      domain_mrm_iDomain%nGauges = NoGauges_basin(domainID)
+      domain_mrm_iDomain%nGauges = NoGauges_domain(domainID)
 
-      do iGauge = 1, NoGauges_basin(domainID)
-        ! check if NoGauges_basin has a valid value
+      do iGauge = 1, NoGauges_domain(domainID)
+        ! check if NoGauges_domain has a valid value
         if (Gauge_id(domainID, iGauge) .EQ. nodata_i4) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ': ID ', &
@@ -255,7 +255,7 @@ contains
     !===============================================================
 
     nInflowGaugesTotal = 0
-    NoInflowGauges_basin = 0
+    NoInflowGauges_domain = 0
     InflowGauge_id = nodata_i4
     InflowGauge_filename = num2str(nodata_i4)
 
@@ -284,10 +284,10 @@ contains
       domainID = domainMeta%indices(iDomain)
       domain_mrm_iDomain => domain_mrm(iDomain)
 
-      allocate(domain_mrm_iDomain%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(domain_mrm_iDomain%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(domain_mrm_iDomain%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_basin(:)))))
-      allocate(domain_mrm_iDomain%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_basin(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIdList    (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeHeadwater (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeIndexList (max(1, maxval(NoInflowGauges_domain(:)))))
+      allocate(domain_mrm_iDomain%InflowGaugeNodeList  (max(1, maxval(NoInflowGauges_domain(:)))))
       ! dummy initialization
       domain_mrm_iDomain%nInflowGauges = 0
       domain_mrm_iDomain%InflowGaugeIdList = nodata_i4
@@ -295,14 +295,14 @@ contains
       domain_mrm_iDomain%InflowGaugeIndexList = nodata_i4
       domain_mrm_iDomain%InflowGaugeNodeList = nodata_i4
       ! no inflow gauge for subdomain i
-      if (NoInflowGauges_basin(domainID) .EQ. nodata_i4) then
-        NoInflowGauges_basin(domainID) = 0
+      if (NoInflowGauges_domain(domainID) .EQ. nodata_i4) then
+        NoInflowGauges_domain(domainID) = 0
       end if
 
-      domain_mrm_iDomain%nInflowGauges = NoInflowGauges_basin(domainID)
+      domain_mrm_iDomain%nInflowGauges = NoInflowGauges_domain(domainID)
 
-      do iGauge = 1, NoInflowGauges_basin(domainID)
-        ! check if NoInflowGauges_basin has a valid value
+      do iGauge = 1, NoInflowGauges_domain(domainID)
+        ! check if NoInflowGauges_domain has a valid value
         if (InflowGauge_id(domainID, iGauge) .EQ. nodata_i4) then
           call message()
           call message('***ERROR: ', trim(file_namelist), ':ID of inflow gauge ', &
