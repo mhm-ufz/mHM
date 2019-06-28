@@ -20,13 +20,54 @@ MODULE mo_mrm_init
 
   IMPLICIT NONE
 
-  public :: mrm_init
+  public :: mrm_init, mrm_configuration
   public :: variables_default_init_routing
 
   private
 
 CONTAINS
 
+subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
+    use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
+    use mo_mrm_read_config, only : mrm_read_config
+    use mo_common_read_config, only : common_read_config
+    use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
+    use mo_kind, only : i4
+    use mo_message, only : message
+    implicit none
+
+    character(*), intent(in) :: file_namelist, file_namelist_param
+
+    integer, intent(in) :: unamelist, unamelist_param
+
+    logical, intent(out) :: ReadLatLon
+
+    write(0,*) mrm_coupling_mode
+    if (mrm_coupling_mode .eq. 0_i4) then
+      call common_read_config(file_namelist, unamelist)
+      call common_mHM_mRM_read_config(file_namelist, unamelist)
+      !-----------------------------------------------------------
+      ! PRINT STARTUP MESSAGE
+      !-----------------------------------------------------------
+      call print_startup_message(file_namelist, file_namelist_param)
+    else
+      call message('')
+      call message('  Inititalize mRM')
+    end if
+
+    ! read config for mrm, readlatlon is set here depending on whether output is needed
+    call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
+            (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
+
+    ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
+    if (mrm_coupling_mode .eq. 0_i4) then
+      call check_optimization_settings()
+      !-----------------------------------------------------------
+      ! CONFIG OUTPUT
+      !-----------------------------------------------------------
+      call config_output()
+    end if
+end subroutine mrm_configuration
   ! ------------------------------------------------------------------
 
   !    NAME
@@ -60,13 +101,11 @@ CONTAINS
   ! Stephan Thober May 2019 - added init of level0 in case of read restart
 
 
-  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param)
+  subroutine mrm_init(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
 
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_mHM_mRM_read_config, only : check_optimization_settings, common_mHM_mRM_read_config
     use mo_common_mHM_mRM_variables, only : dirRestartIn, mrm_coupling_mode, read_restart, &
                                             resolutionRouting
-    use mo_common_read_config, only : common_read_config
     use mo_common_restart, only : read_grid_info
     use mo_common_variables, only : L0_Domain, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology
@@ -79,7 +118,6 @@ CONTAINS
     use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
-    use mo_mrm_read_config, only : mrm_read_config
     use mo_mrm_read_data, only : mrm_read_L0_data, mrm_read_discharge, &
                                  mrm_read_total_runoff, mrm_read_bankfull_runoff
     use mo_mrm_restart, only : mrm_read_restart_config
@@ -93,39 +131,20 @@ CONTAINS
 
     integer, intent(in) :: unamelist, unamelist_param
 
+    logical, optional, intent(inout) :: ReadLatLon
+
     ! start and end index for routing parameters
     integer(i4) :: iStart, iEnd
 
     integer(i4) :: domainID, iDomain, gauge_counter
 
-    logical :: ReadLatLon
 
-
+#ifndef MRM2MHM
+    call mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
+#endif
     if (mrm_coupling_mode .eq. 0_i4) then
-      call common_read_config(file_namelist, unamelist)
-      call common_mHM_mRM_read_config(file_namelist, unamelist)
-      !-----------------------------------------------------------
-      ! PRINT STARTUP MESSAGE
-      !-----------------------------------------------------------
-      call print_startup_message(file_namelist, file_namelist_param)
-    else
-      call message('')
-      call message('  Inititalize mRM')
-    end if
-
-    ! read config for mrm, readlatlon is set here depending on whether output is needed
-    call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
-            (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
-
-    ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
-    if (mrm_coupling_mode .eq. 0_i4) then
-      call check_optimization_settings()
       allocate(l0_l1_remap(domainMeta%nDomains))
       allocate(level1(domainMeta%nDomains))
-      !-----------------------------------------------------------
-      ! CONFIG OUTPUT
-      !-----------------------------------------------------------
-      call config_output()
     end if
 
     ! ----------------------------------------------------------

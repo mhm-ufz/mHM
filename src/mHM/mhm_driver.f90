@@ -140,7 +140,7 @@ PROGRAM mhm_driver
   USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
   USE mo_mrm_objective_function_runoff, only : single_objective_runoff
-  USE mo_mrm_init, ONLY : mrm_init
+  USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
   USE mo_mrm_write, only : mrm_write
 
 #endif
@@ -163,12 +163,16 @@ PROGRAM mhm_driver
   procedure(mhm_eval), pointer :: eval
   procedure(objective), pointer :: obj_func
 
+#ifdef MRM2MHM
+  logical :: ReadLatLon
+#endif
+
+#ifdef MPI
   integer             :: ierror
   integer(i4)         :: nproc
   integer(i4)         :: rank
 
 ! Initialize MPI
-#ifdef MPI
   call MPI_Init(ierror)
   call MPI_Comm_dup(MPI_COMM_WORLD, comm, ierror)
   ! find number of processes nproc
@@ -217,7 +221,11 @@ PROGRAM mhm_driver
   call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
   call check_optimization_settings()
-
+#ifdef MRM2MHM
+  mrm_coupling_mode = 2_i4
+  call mrm_configuration(file_namelist_mhm, unamelist_mhm, &
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon)
+#endif
   call message()
   call message('# of domains:         ', trim(num2str(domainMeta%overallNumberOfDomains)))
   call message()
@@ -319,9 +327,8 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ and INITIALISE mRM ROUTING
   ! --------------------------------------------------------------------------
-  mrm_coupling_mode = 2_i4
   if (processMatrix(8, 1) .ne. 0_i4) call mrm_init(file_namelist_mhm, unamelist_mhm, &
-          file_namelist_mhm_param, unamelist_mhm_param)
+          file_namelist_mhm_param, unamelist_mhm_param, ReadLatLon=ReadLatLon)
 #else
   mrm_coupling_mode = -1_i4
 #endif
