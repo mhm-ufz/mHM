@@ -2293,7 +2293,7 @@ CONTAINS
   !>       see use in this module above
 
   !    INTENT(IN)
-  !>       \param[in] "integer(i4) :: basinId"           current domain Id
+  !>       \param[in] "integer(i4) :: iDomain"           current domain Id
   !>       \param[in] "real(dp), dimension(:, :) :: tws" simulated domain average tws
 
   !    INTENT(OUT)
@@ -2310,7 +2310,8 @@ CONTAINS
   ! Stephan Thober Oct 2015 - moved subroutine to objective_function_sm
   ! Robert Schweppe Jun 2018 - refactoring and reformatting
 
-  subroutine extract_domain_avg_tws(basinId, tws, tws_sim, tws_obs, tws_obs_mask)
+  !ToDo: check with someone if change was correct
+  subroutine extract_domain_avg_tws(iDomain, tws, tws_sim, tws_obs, tws_obs_mask)
 
     use mo_common_constants, only : eps_dp, nodata_dp
     use mo_common_mhm_mrm_variables, only : evalPer, nTstepDay, warmingDays
@@ -2320,7 +2321,7 @@ CONTAINS
     implicit none
 
     ! current domain Id
-    integer(i4), intent(in) :: basinId
+    integer(i4), intent(in) :: iDomain
 
     ! simulated domain average tws
     real(dp), dimension(:, :), intent(in) :: tws
@@ -2335,7 +2336,7 @@ CONTAINS
     logical, dimension(:), allocatable, intent(out) :: tws_obs_mask
 
     ! domain id
-    integer(i4) :: iBasin
+    integer(i4) :: iDomainTWS
 
     ! timestep counter
     integer(i4) :: tt
@@ -2368,15 +2369,15 @@ CONTAINS
     end if
 
     ! extract domain Id
-    iBasin = domain_avg_TWS_obs%domainId(basinId)
+    iDomainTWS = domain_avg_TWS_obs%domainId(iDomain)
 
     ! get length of evaluation period times TPD_obs
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_obs
 
     ! extract measurements
     if (allocated(tws_obs)) deallocate(tws_obs)
     allocate(tws_obs(length))
-    tws_obs = domain_avg_TWS_obs%TWS(1 : length, basinId)
+    tws_obs = domain_avg_TWS_obs%TWS(1 : length, iDomain)
 
     ! create mask of observed tws
     if (allocated(tws_obs_mask)) deallocate(tws_obs_mask)
@@ -2388,11 +2389,11 @@ CONTAINS
     if (allocated(tws_sim)) deallocate(tws_sim)
     allocate(tws_sim(length))
     ! remove warming days
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_sim
+    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_sim
     allocate(dummy(length))
-    dummy = tws(warmingDays(iBasin) * TPD_sim + 1 : warmingDays(iBasin) * TPD_sim + length, basinId)
+    dummy = tws(warmingDays(iDomainTWS) * TPD_sim + 1 : warmingDays(iDomainTWS) * TPD_sim + length, iDomain)
     ! aggregate tws
-    length = (evalPer(iBasin)%julEnd - evalPer(iBasin)%julStart + 1) * TPD_obs
+    length = (evalPer(iDomainTWS)%julEnd - evalPer(iDomainTWS)%julStart + 1) * TPD_obs
     forall(tt = 1 : length) tws_sim(tt) = sum(dummy((tt - 1) * factor + 1 : tt * factor)) / &
             real(factor, dp)
     ! clean up
