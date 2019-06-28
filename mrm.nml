@@ -152,7 +152,7 @@ opti_method = 1
 !> (12) SO: SM: Sum of squared errors (SSE) of spatially distributed standard score (normalization) of soil moisture
 !> (13) SO: SM: 1.0 - average temporal correlation of spatially distributed soil moisture
 !> (14) SO: Q:  sum[((1.0-KGE_i)/ nGauges)**6]**(1/6) > combination of KGE of every gauging station based on a power-6 norm
-!> (15) SO: Q + basin_avg_TWS: [1.0-KGE(Q)]*RMSE(basin_avg_TWS) - objective function using Q and domain average (standard score) TWS
+!> (15) SO: Q + domain_avg_TWS: [1.0-KGE(Q)]*RMSE(domain_avg_TWS) - objective function using Q and domain average (standard score) TWS
 !> (16) (reserved) please use the next number when implementing a new one
 !>      MO: Q:  1st objective: (1) = 1.0 - NSE
 !>          Q:  2nd objective: (2) = 1.0 - lnNSE
@@ -174,7 +174,7 @@ opti_method = 1
 !> (28) SO: Q + SM: weighted OF using SM (OF12) and Q (OF14) equally weighted
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
 !> (29) SO: Q + ET: weighted OF using ET (OF27) and Q (OF14) equally weighted
-!> (30) SO: Q + basin_avg_ET: [1.0-KGE(Q)]*RMSE(basin_avg_ET) - objective function using Q and domain average ET (standard score)$
+!> (30) SO: Q + domain_avg_ET: [1.0-KGE(Q)]*RMSE(domain_avg_ET) - objective function using Q and domain average ET (standard score)$
 !> (31) SO: Q: 1  - weighted NSE (NSE is weighted with observed discharge)
 
 !> further functions can be implemented in mo_objective_function and mo_mrm_objective_function
