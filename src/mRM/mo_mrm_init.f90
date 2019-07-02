@@ -42,7 +42,6 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
 
     logical, intent(out) :: ReadLatLon
 
-    write(0,*) mrm_coupling_mode
     if (mrm_coupling_mode .eq. 0_i4) then
       call common_read_config(file_namelist, unamelist)
       call common_mHM_mRM_read_config(file_namelist, unamelist)
@@ -58,7 +57,7 @@ subroutine mrm_configuration(file_namelist, unamelist, file_namelist_param, unam
     ! read config for mrm, readlatlon is set here depending on whether output is needed
     call mrm_read_config(file_namelist, unamelist, file_namelist_param, unamelist_param, &
             (mrm_coupling_mode .eq. 0_i4), ReadLatLon)
-
+ 
     ! this was moved here, because it depends on global_parameters that are only set in mrm_read_config
     if (mrm_coupling_mode .eq. 0_i4) then
       call check_optimization_settings()

@@ -380,27 +380,24 @@ CONTAINS
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
-    if (rank == 0) then
+!    if (rank == 0) then
+!      domainMeta%nDomains = 1
+!      allocate(domainMeta%indices(domainMeta%nDomains))
+!      domainMeta%indices(1) = 1
+!      domainMeta%indices(2) = 2
+!      domainMeta%indices(2) = 2
+!    end if
+    do iDomain = 1 , 43
+      if (rank == iDomain - 1) then
+        domainMeta%nDomains = 1
+        allocate(domainMeta%indices(domainMeta%nDomains))
+        domainMeta%indices(1) = iDomain
+      end if
+    end do
+    if (rank > 42) then
       domainMeta%nDomains = 1
       allocate(domainMeta%indices(domainMeta%nDomains))
       domainMeta%indices(1) = 1
-!      domainMeta%indices(2) = 2
-!      domainMeta%indices(2) = 2
-    end if
-    if (rank == 1) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 1
-    end if
-    if (rank == 2) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 2
-    end if
-    if (rank > 2) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 2
     end if
 
 #else

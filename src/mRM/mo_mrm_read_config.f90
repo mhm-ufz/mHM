@@ -180,7 +180,10 @@ contains
 
     allocate(gauge%gaugeId(nGaugesTotal)) ; gauge%gaugeId = nodata_i4
     allocate(gauge%domainId(nGaugesTotal)) ; gauge%domainId = nodata_i4
-    allocate(gauge%fName  (nGaugesTotal)) ; gauge%fName(1) = num2str(nodata_i4)
+    allocate(gauge%fName  (nGaugesTotal))
+    if (nGaugesTotal > 0) then
+      gauge%fName(1) = num2str(nodata_i4)
+    end if
     allocate(domain_mrm(domainMeta%nDomains))
 
     ! ToDo: make smarter
