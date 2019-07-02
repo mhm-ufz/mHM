@@ -450,6 +450,7 @@ PROGRAM mhm_driver
   call finish('mHM', 'Finished!')
 
 #ifdef MPI
+  write(*,*) 'MPI!', rank, nproc
   call MPI_Finalize(ierror)
 #endif
 
