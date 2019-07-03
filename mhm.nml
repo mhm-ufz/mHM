@@ -107,9 +107,9 @@ write_restart = .TRUE.
 !-----------------------------------------------------------------------------
 !> Number in brackets indicates domain number.
 !> directory where restart input is located
-dir_RestartIn(1)     = "test_basin/restart/"
+dir_RestartIn(1)     = "test_domain/restart/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "test_basin_2/restart/"
+dir_RestartIn(2)     = "test_domain_2/restart/"
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per domain
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -224,35 +224,35 @@ gw_coupling = .false.
 &directories_general
 !> all directories are common to all domains
 !> config run out file common to all modeled domains should be written to directory
-dirConfigOut = "test_basin/"
+dirConfigOut = "test_domain/"
 !
 !> directory where common input files should be located for all modeled domains
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_basin/input/morph/"
+dirCommonFiles = "test_domain/input/morph/"
 !
 !**** for Domain 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_basin/input/morph/"
+dir_Morpho(1)        = "test_domain/input/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_basin/input/luse/"
+dir_LCover(1)        = "test_domain/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_basin/restart/"
+dir_RestartOut(1)    = "test_domain/restart/"
 !> directory where output should be written
-dir_Out(1)           = "test_basin/output_b1/"
+dir_Out(1)           = "test_domain/output_b1/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
+file_LatLon(1)       = "test_domain/input/latlon/latlon_1.nc"
 
 ! **** for Domain 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "test_basin_2/input/morph/"
+dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
-dir_LCover(2)        = "test_basin_2/input/luse/"
+dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin_2/restart/"
+dir_RestartOut(2)    = "test_domain_2/restart/"
 !> directory where output should be written
-dir_Out(2)           = "test_basin_2/output/"
+dir_Out(2)           = "test_domain_2/output/"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
+file_LatLon(2)       = "test_domain_2/input/latlon/latlon.nc"
 /
 !******************************************************************************************
 ! directories (mHM-related)
@@ -269,8 +269,8 @@ inputFormat_meteo_forcings = "nc"
 !
 !**** for Domain 1
 !> directory where meteorological input is located
-dir_Precipitation(1) = "test_basin/input/meteo/pre/"
-dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
+dir_Precipitation(1) = "test_domain/input/meteo/pre/"
+dir_Temperature(1)   = "test_domain/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -278,20 +278,20 @@ dir_Temperature(1)   = "test_basin/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !> if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(1)     = "test_basin/input/meteo/pet/"
+dir_ReferenceET(1)     = "test_domain/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(1)  = "test_basin/input/meteo/"
-dir_MaxTemperature(1)  = "test_basin/input/meteo/"
+dir_MinTemperature(1)  = "test_domain/input/meteo/"
+dir_MaxTemperature(1)  = "test_domain/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(1)    = "test_basin/input/meteo/"
+dir_NetRadiation(1)    = "test_domain/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(1)  = "test_basin/input/meteo/"
-dir_windspeed(1)       = "test_basin/input/meteo/"
+dir_absVapPressure(1)  = "test_domain/input/meteo/"
+dir_windspeed(1)       = "test_domain/input/meteo/"
 !
 !**** for Domain 2
 !> directory where meteorological input is located
-dir_Precipitation(2) = "test_basin_2/input/meteo/pre/"
-dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
+dir_Precipitation(2) = "test_domain_2/input/meteo/pre/"
+dir_Temperature(2)   = "test_domain_2/input/meteo/tavg/"
 !> paths depending on PET process (processCase(5))
 !>  -1 - PET is input, LAI driven correction
 !>   0 - PET is input, aspect driven correction
@@ -299,15 +299,15 @@ dir_Temperature(2)   = "test_basin_2/input/meteo/tavg/"
 !>   2 - Priestley-Taylor mehtod
 !>   3 - Penman-Monteith method
 !>   if processCase(5) == 0  input directory of pet has to be specified
-dir_ReferenceET(2)     = "test_basin_2/input/meteo/pet/"
+dir_ReferenceET(2)     = "test_domain_2/input/meteo/pet/"
 !> if processCase(5) == 1  input directory of minimum and maximum temperature has to be specified
-dir_MinTemperature(2)  = "test_basin_2/input/meteo/"
-dir_MaxTemperature(2)  = "test_basin_2/input/meteo/"
+dir_MinTemperature(2)  = "test_domain_2/input/meteo/"
+dir_MaxTemperature(2)  = "test_domain_2/input/meteo/"
 !> if processCase(5) == 2  input directory of minimum and maximum temperature has to be specified
-dir_NetRadiation(2)    = "test_basin_2/input/meteo/"
+dir_NetRadiation(2)    = "test_domain_2/input/meteo/"
 !> if processCase(5) == 3  input directory of absolute vapour pressure (eabs) and windspeed has to be specified
-dir_absVapPressure(2)  = "test_basin_2/input/meteo/"
-dir_windspeed(2)       = "test_basin_2/input/meteo/"
+dir_absVapPressure(2)  = "test_domain_2/input/meteo/"
+dir_windspeed(2)       = "test_domain_2/input/meteo/"
 !> switch to control read input frequency of the gridded meteo input,
 !> i.e. precipitation, potential evapotransiration, and temperature
 !>      >0: after each <timeStep_model_inputs> days
@@ -330,14 +330,14 @@ time_step_model_inputs(2) = 0
 !-----------------------------------------------------
 !
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_basin/input/gauge/"
-dir_Gauges(2)        = "test_basin_2/input/gauge/"
+dir_Gauges(1)        = "test_domain/input/gauge/"
+dir_Gauges(2)        = "test_domain_2/input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
-dir_Total_Runoff(1) = 'test_basin/output_b1/'
-dir_Total_Runoff(2) = 'test_basin_2/output/'
+dir_Total_Runoff(1) = 'test_domain/output_b1/'
+dir_Total_Runoff(2) = 'test_domain_2/output/'
 !> directory where runoff at bankfull conditions can be found (only for coupling to groundwater model)
-dir_Bankfull_Runoff(1) = 'test_basin/input/optional_data/'
-dir_Bankfull_Runoff(2) = 'test_basin_2/input/optional_data/'
+dir_Bankfull_Runoff(1) = 'test_domain/input/optional_data/'
+dir_Bankfull_Runoff(2) = 'test_domain_2/input/optional_data/'
 /
 
 !******************************************************************************************
@@ -353,7 +353,7 @@ dir_Bankfull_Runoff(2) = 'test_basin_2/input/optional_data/'
 !
 !> directory to soil moisture data
 ! expected file name: sm.nc, expected variable name: sm
-dir_soil_moisture(1)   = "test_basin/input/optional_data/"
+dir_soil_moisture(1)   = "test_domain/input/optional_data/"
 !> number of mHM soil layers (nSoilHorizons_mHM) which the soil moisture
 !> input is representative for (counted top to down)
 nSoilHorizons_sm_input = 1
@@ -366,18 +366,18 @@ timeStep_sm_input = -2
 !
 !> domain average total water storage (tws)
 !> file name including path with timeseries of GRACE-based data
-file_tws(1) = "test_basin/input/optional_data/tws_basin_1.txt"
-file_tws(2) = "test_basin/input/optional_data/tws_basin_2.txt"
+file_tws(1) = "test_domain/input/optional_data/tws_domain_1.txt"
+file_tws(2) = "test_domain/input/optional_data/tws_domain_2.txt"
 !
 !> directory to neutron data
 ! expected file name: neutrons.nc, expected variable name: neutrons
-dir_neutrons(1)        = "test_basin/input/optional_data/"
+dir_neutrons(1)        = "test_domain/input/optional_data/"
 
 !> evapotranspiration data
 !
 !> directory to evapotranspiration data
 ! expected file name: et.nc, expected variable name: et
-dir_evapotranspiration(1)   = "test_basin/input/optional_data/"
+dir_evapotranspiration(1)   = "test_domain/input/optional_data/"
 
 !> time stepping of the soil moisture input
 !>     -1: daily   ET values
@@ -636,9 +636,9 @@ fracSealed_cityArea = 0.6
 ! this is only needed for timeStep_LAI_input != 0
 &directories_MPR
 !> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
+dir_gridded_LAI(1)   = "test_domain/input/lai/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_basin/input/lai/"
+dir_gridded_LAI(2)   = "test_domain/input/lai/"
 /
 
 !******************************************************************************************

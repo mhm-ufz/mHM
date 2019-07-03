@@ -104,9 +104,9 @@ write_restart = .TRUE.
 !-----------------------------------------------------------------------------
 !> Number in brackets indicates domain number.
 !> directory where restart input is located
-dir_RestartIn(1)     = "test_basin/restart/"
+dir_RestartIn(1)     = "test_domain/restart/"
 !> directory where restart input is located
-dir_RestartIn(2)     = "test_basin_2/restart/"
+dir_RestartIn(2)     = "test_domain_2/restart/"
 !-----------------------------------------------------------------------------
 !> resolution of Level-11 discharge routing [m or degree] per domain
 !> this  level-11 discharge routing resolution must be >= and multiple of the
@@ -223,31 +223,31 @@ dirConfigOut = "./"
 !
 !> directory where common input files should be located for all modeled domains
 !> (only for *_classdefinition files)
-dirCommonFiles = "test_basin/input/morph/"
+dirCommonFiles = "test_domain/input/morph/"
 !
 !**** for domain 1
 !> directory where morphological files are located
-dir_Morpho(1)        = "test_basin/input/morph/"
+dir_Morpho(1)        = "test_domain/input/morph/"
 !> directory where land cover files are located
-dir_LCover(1)        = "test_basin/input/luse/"
+dir_LCover(1)        = "test_domain/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(1)    = "test_basin/output_b1/b1_"
+dir_RestartOut(1)    = "test_domain/output_b1/b1_"
 !> directory where output should be written
-dir_Out(1)           = "test_basin/output_b1/b1_"
+dir_Out(1)           = "test_domain/output_b1/b1_"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(1)       = "test_basin/input/latlon/latlon_1.nc"
+file_LatLon(1)       = "test_domain/input/latlon/latlon_1.nc"
 
 ! **** for domain 2
 !> directory where morphological files are located
-dir_Morpho(2)        = "test_basin_2/input/morph/"
+dir_Morpho(2)        = "test_domain_2/input/morph/"
 !> directory where land cover files are located
-dir_LCover(2)        = "test_basin_2/input/luse/"
+dir_LCover(2)        = "test_domain_2/input/luse/"
 !> directory where restart output should be written
-dir_RestartOut(2)    = "test_basin/output_b1/b2_"
+dir_RestartOut(2)    = "test_domain/output_b1/b2_"
 !> directory where output should be written
-dir_Out(2)           = "test_basin/output_b1/b2_"
+dir_Out(2)           = "test_domain/output_b1/b2_"
 !> file containing latitude and longitude on the resolution_Hydrology
-file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
+file_LatLon(2)       = "test_domain_2/input/latlon/latlon.nc"
 /
 !******************************************************************************************
 ! directories (mRM-related)
@@ -259,11 +259,11 @@ file_LatLon(2)       = "test_basin_2/input/latlon/latlon.nc"
 !-----------------------------------------------------
 !
 !> directory where discharge files are located
-dir_Gauges(1)        = "test_basin/input/gauge/"
-dir_Gauges(2)        = "test_basin_2/input/gauge/"
+dir_Gauges(1)        = "test_domain/input/gauge/"
+dir_Gauges(2)        = "test_domain_2/input/gauge/"
 !> directory where simulated runoff can be found (only required if coupling mode equals 0)
-dir_Total_Runoff(1) = 'test_basin/input/total_runoff/'
-dir_Total_Runoff(2) = 'test_basin_2/input/total_runoff/'
+dir_Total_Runoff(1) = 'test_domain/input/total_runoff/'
+dir_Total_Runoff(2) = 'test_domain_2/input/total_runoff/'
 /
 
 !******************************************************************************************
@@ -438,9 +438,9 @@ fracSealed_cityArea = 0.6
 ! this is only needed for timeStep_LAI_input != 0
 &directories_MPR
 !> directory where gridded LAI files are located
-dir_gridded_LAI(1)   = "test_basin/input/lai/"
+dir_gridded_LAI(1)   = "test_domain/input/lai/"
 !> directory where gridded LAI files are located
-dir_gridded_LAI(2)   = "test_basin/input/lai/"
+dir_gridded_LAI(2)   = "test_domain/input/lai/"
 /
 
 !******************************************************************************************
