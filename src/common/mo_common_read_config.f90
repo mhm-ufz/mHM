@@ -362,6 +362,7 @@ CONTAINS
 
   subroutine init_domain_variable(nDomains, domainMeta)
     use mo_common_variables, only: domain_meta
+    use mo_common_mHM_mRM_variables, only: optimize
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
@@ -374,30 +375,51 @@ CONTAINS
     integer(i4)         :: rank
     integer(i4)         :: iDomain
 
-    domainMeta%overAllNumberOfDomains = 1
+    domainMeta%overAllNumberOfDomains = nDomains
 #ifdef MPI
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
-!    if (rank == 0) then
-!      domainMeta%nDomains = 1
-!      allocate(domainMeta%indices(domainMeta%nDomains))
-!      domainMeta%indices(1) = 1
-!      domainMeta%indices(2) = 2
-!      domainMeta%indices(2) = 2
-!    end if
-    do iDomain = 1 , 43
-      if (rank == iDomain - 1) then
+    if (optimize) then
+      if (nproc < domainMeta%overAllNumberOfDomains + 1) then
+        !ToDo: message
+        write(*,*) "Warning: not all domains will be simulated"
+      end if
+      if (rank == 0) then
         domainMeta%nDomains = 1
         allocate(domainMeta%indices(domainMeta%nDomains))
         domainMeta%indices(1) = 1
       end if
-    end do
-    if (rank > 42) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 1
+      do iDomain = 1 , domainMeta%overallNumberOfDomains
+        if (rank == iDomain) then
+          domainMeta%nDomains = 1
+          allocate(domainMeta%indices(domainMeta%nDomains))
+          domainMeta%indices(1) = iDomain
+        end if
+      end do
+      if (rank > domainMeta%overallNumberOfDomains) then
+        domainMeta%nDomains = 1
+        allocate(domainMeta%indices(domainMeta%nDomains))
+        domainMeta%indices(1) = 1
+      end if
+    else
+      if (nproc < domainMeta%overAllNumberOfDomains) then
+        !ToDo: message
+        write(*,*) "Warning: not all domains will be simulated"
+      end if
+      do iDomain = 1 , domainMeta%overallNumberOfDomains
+        if (rank == iDomain - 1) then
+          domainMeta%nDomains = 1
+          allocate(domainMeta%indices(domainMeta%nDomains))
+          domainMeta%indices(1) = iDomain
+        end if
+      end do
+      if (rank > domainMeta%overallNumberOfDomains - 1) then
+        domainMeta%nDomains = 1
+        allocate(domainMeta%indices(domainMeta%nDomains))
+        domainMeta%indices(1) = 1
+      end if
     end if
 
 #else
