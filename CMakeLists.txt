@@ -146,7 +146,7 @@ endif()
 #set_target_properties(mhm PROPERTIES INSTALL_RPATH_USE_LINKPATH ON)
 
 # possibility to create symlinks to the build or to the source directory, so a copy of mhm does not have to be done. On the other
-# hand, only for the test basins the executable would not be copied or linked to a predictable location. So it may be a good
+# hand, only for the test domains the executable would not be copied or linked to a predictable location. So it may be a good
 # idea to not copy it with the cmake setup
 #add_custom_target(link_namelists ALL "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_CURRENT_SOURCE_DIR}/mhm.nml" "${CMAKE_CURRENT_BINARY_DIR}/mhm.nml")
 
