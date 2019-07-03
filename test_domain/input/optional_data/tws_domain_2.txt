@@ -1,4 +1,4 @@
-TWS data of basin 1
+TWS data of domain 1
 nodata   -9999
 n       1       measurements per day [1, 1440]
 start  1988 01 01 00 00   (YYYY MM DD HH MM)
