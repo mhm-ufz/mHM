@@ -70,7 +70,7 @@ CONTAINS
 
   SUBROUTINE mpr_eval(parameterset)
 
-    use mo_common_variables, only : L0_Domain, L0_LCover, l0_l1_remap, level0, level1, domainMeta
+    use mo_common_variables, only : L0_LCover, l0_l1_remap, level0, level1, domainMeta
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_asp, L0_geoUnit, L0_gridded_LAI, &
                                         L0_slope_emp, L0_soilId, L1_HarSamCoeff, L1_PrieTayAlpha, L1_aeroResist, &
@@ -111,16 +111,16 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
 
       ! get domain information
-      s0 = level0(L0_Domain(iDomain))%iStart
-      e0 = level0(L0_Domain(iDomain))%iEnd
+      s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
+      e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
       s1 = level1(iDomain)%iStart
       e1 = level1(iDomain)%iEnd
 
-      call mpr(level0(L0_Domain(iDomain))%mask, L0_geoUnit(s0 : e0), &
+      call mpr(level0(domainMeta%L0DataFrom(iDomain))%mask, L0_geoUnit(s0 : e0), &
               L0_soilId(s0 : e0, :), L0_asp(s0 : e0), L0_gridded_LAI(s0 : e0, :), &
               L0_LCover(s0 : e0, :), L0_slope_emp(s0 : e0), &
-              pack(level0(L0_Domain(iDomain))%y, level0(L0_Domain(iDomain))%mask), &
-              level0(L0_Domain(iDomain))%Id, &
+              pack(level0(domainMeta%L0DataFrom(iDomain))%y, level0(domainMeta%L0DataFrom(iDomain))%mask), &
+              level0(domainMeta%L0DataFrom(iDomain))%Id, &
               l0_l1_remap(iDomain)%upper_bound, l0_l1_remap(iDomain)%lower_bound, &
               l0_l1_remap(iDomain)%left_bound, l0_l1_remap(iDomain)%right_bound, &
               l0_l1_remap(iDomain)%n_subcells, &

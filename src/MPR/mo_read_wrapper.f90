@@ -65,7 +65,7 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : YearMonths_i4, nodata_dp, nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_Domain, dirCommonFiles, dirMorpho, &
+    use mo_common_variables, only : Grid, dirCommonFiles, dirMorpho, &
                                     global_parameters, level0, domainMeta, period, processMatrix
     use mo_message, only : message
     use mo_mpr_file, only : file_aspect, file_geolut, file_hydrogeoclass, &
@@ -150,20 +150,19 @@ CONTAINS
     domains: do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iDomain => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
       call message('    Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
       ! check whether L0 data is shared
-      if (iDomain .gt. 1) then
-        if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
-          !
-          call message('      Using data of domain ', &
-                  trim(adjustl(num2str(domainMeta%indices(L0_Domain(iDomain))))), ' for domain: ',&
-                  trim(adjustl(num2str(domainID))), '...')
-          ! DO NOT read L0 data
-          cycle
+      ! ToDo: check change
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        !
+        call message('      Using data of domain ', &
+                trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        ! DO NOT read L0 data
+        cycle
 
-        end if
       end if
 
       itimer = 2

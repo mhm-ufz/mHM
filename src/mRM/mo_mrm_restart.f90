@@ -56,8 +56,7 @@ contains
 
     use mo_common_constants, only : nodata_dp, nodata_i4
     use mo_common_restart, only : write_grid_info
-    use mo_common_variables, only : level0, level1, l1_l11_remap, nLCoverScene, processMatrix, L0_Domain
-    use mo_common_mHM_mRM_variables, only : mrm_coupling_mode
+    use mo_common_variables, only : level0, level1, nLCoverScene, processMatrix, domainMeta
     use mo_message, only : message
     use mo_mrm_constants, only : nRoutingStates
     use mo_mpr_global_variables, only : L0_slope
@@ -139,10 +138,10 @@ contains
 
 
     ! get Level1 and Level11 information about the Domain
-    noutlet = domain_mrm(L0_Domain(iDomain))%L0_noutlet
-    s0 = level0(L0_Domain(iDomain))%iStart
-    e0 = level0(L0_Domain(iDomain))%iEnd
-    mask0 = level0(L0_Domain(iDomain))%mask
+    noutlet = domain_mrm(domainMeta%L0DataFrom(iDomain))%L0_noutlet
+    s0 = level0(domainMeta%L0DataFrom(iDomain))%iStart
+    e0 = level0(domainMeta%L0DataFrom(iDomain))%iEnd
+    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
     s1 = level1(iDomain)%iStart
     e1 = level1(iDomain)%iEnd
     mask1 = level1(iDomain)%mask
@@ -160,7 +159,7 @@ contains
 
     nc = NcDataset(fname, "w")
 
-    call write_grid_info(level0(L0_Domain(iDomain)), "0", nc)
+    call write_grid_info(level0(domainMeta%L0DataFrom(iDomain)), "0", nc)
     call write_grid_info(level1(iDomain), "1", nc)
     call write_grid_info(level11(iDomain), "11", nc)
 
@@ -593,7 +592,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : level0, level1, domainMeta, processMatrix, L0_Domain
+    use mo_common_variables, only : level0, level1, domainMeta, processMatrix, domainMeta
     use mo_kind, only : dp, i4
     use mo_message, only : message
     use mo_mpr_global_variables, only : L0_slope
@@ -644,7 +643,7 @@ contains
     call message('        Reading mRM restart file:  ', trim(adjustl(Fname)), ' ...')
 
     ! get Domain info at L11 mask
-    mask0 = level0(L0_Domain(iDomain))%mask
+    mask0 = level0(domainMeta%L0DataFrom(iDomain))%mask
     mask1 = level1(iDomain)%mask
     mask11 = level11(iDomain)%mask
 

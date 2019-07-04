@@ -50,7 +50,7 @@ CONTAINS
   subroutine common_read_config(file_namelist, unamelist)
 
     use mo_common_constants, only : maxNLcovers, maxNoDomains
-    use mo_common_variables, only : Conventions, L0_Domain, LC_year_end, LC_year_start, LCfilename, contact, &
+    use mo_common_variables, only : Conventions, LC_year_end, LC_year_start, LCfilename, contact, &
                                     dirCommonFiles, dirConfigOut, dirLCover, dirMorpho, dirOut, dirRestartOut, &
                                     fileLatLon, history, iFlag_cordinate_sys, mHM_details, domainMeta, nLcoverScene, &
                                     nProcesses, nuniqueL0Domains, processMatrix, project_details, resolutionHydrology, &
@@ -144,25 +144,25 @@ CONTAINS
     allocate(dirLCover(domainMeta%nDomains))
     allocate(dirOut(domainMeta%nDomains))
     allocate(fileLatLon(domainMeta%nDomains))
-    allocate(L0_Domain(domainMeta%nDomains))
+    allocate(domainMeta%L0DataFrom(domainMeta%nDomains))
 
     nuniqueL0Domains = 0_i4
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
       resolutionHydrology(iDomain) = resolution_Hydrology(domainID)
       ! if a domain uses the same L0 data as a previous one, write
-      ! the index into L0_Domain
-      ! ToDo: switch L0_Domain with L0_data_from as type part of domainMeta
+      ! the index into domainMeta%L0DataFrom
+      ! ToDo: Check if change is correct
       newDomainID = L0Domain(domainID)
-      L0_Domain(iDomain) = iDomain
+      domainMeta%L0DataFrom(iDomain) = iDomain
       do i = 1, iDomain - 1
         if (newDomainID == domainMeta%indices(i)) then
-          L0_Domain(iDomain) = i
+          domainMeta%L0DataFrom(iDomain) = i
           cycle 
         end if
       end do
       nuniqueL0Domains = nuniqueL0Domains + 1_i4
-     ! L0_Domain(iDomain) = L0Domain(domainID)
+     ! domainMeta%L0DataFrom(iDomain) = L0Domain(domainID)
     end do
 
     ! check for possible options

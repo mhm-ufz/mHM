@@ -141,6 +141,7 @@ module mo_common_variables
     integer(i4)                            :: nDomains
     integer(i4)                            :: overallNumberOfDomains  ! Number of domains for multi-domain optimization
     integer(i4), dimension(:), allocatable :: indices
+    integer(i4), dimension(:), allocatable :: L0DataFrom
   end type domain_meta
 
   type(domain_meta), public :: domainMeta

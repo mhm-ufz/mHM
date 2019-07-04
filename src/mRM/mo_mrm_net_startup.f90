@@ -222,7 +222,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, L0_Domain, level0
+    use mo_common_variables, only : Grid, domainMeta, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fAcc, L0_fDir, L0_l11_remap, L11_colOut, L11_fDir, &
                                         L11_nOutlets, L11_rowOut, domain_mrm, level11
@@ -294,7 +294,7 @@ contains
     !--------------------------------------------------------
     ! initialize
     Noutlet = 0_i4
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     !------------------------------------------------------------------
     !                Set Flow Direction at Level 11
     !                       Searching order
@@ -552,9 +552,10 @@ contains
 
     ! L0 data sets
     ! check whether L0 data is shared
+    !ToDo: check if change is correct
     if (iDomain .eq. 1) then
       call append(L0_draSC, PACK (draSC0(:, :), level0_iDomain%mask))
-    else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
+    else if (domainMeta%L0DataFrom(iDomain) == iDomain) then
       call append(L0_draSC, PACK (draSC0(:, :), level0_iDomain%mask))
     end if
 
@@ -881,7 +882,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, L0_Domain, level0
+    use mo_common_variables, only : Grid, domainMeta, level0
     use mo_message, only : message
     use mo_mrm_global_variables, only : L0_draSC, L0_fDir, L11_colOut, L11_fCol, L11_fRow, L11_fromN, &
                                         L11_nOutlets, L11_netPerm, L11_rowOut, L11_tCol, L11_tRow, domain_mrm, level11
@@ -932,7 +933,7 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     s0 = level0_iDomain%iStart
     e0 = level0_iDomain%iEnd
 
@@ -1083,7 +1084,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
-    use mo_common_variables, only : Grid, L0_Domain, level0
+    use mo_common_variables, only : Grid, domainMeta, level0
     use mo_mrm_global_variables, only : L0_InflowgaugeLoc, L0_draCell, L0_draSC, L0_fDir, L0_gaugeLoc, domain_mrm, &
                                         l0_l11_remap
 
@@ -1111,7 +1112,7 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     s0 = level0_iDomain%iStart
     e0 = level0_iDomain%iEnd
 
@@ -1180,9 +1181,10 @@ contains
     !--------------------------------------------------------
     ! L0 data sets
     ! check whether L0 data is shared
+    ! ToDo: check if change is correct
     if (iDomain .eq. 1) then
       call append(L0_draCell, PACK(draCell0(:, :), level0_iDomain%mask))
-    else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
+    else if (domainMeta%L0DataFrom(iDomain) == iDomain) then
       call append(L0_draCell, PACK(draCell0(:, :), level0_iDomain%mask))
     end if
 
@@ -1225,7 +1227,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp, nodata_i4
-    use mo_common_variables, only : Grid, L0_Domain, L0_elev, iFlag_cordinate_sys, level0, processMatrix
+    use mo_common_variables, only : Grid, domainMeta, L0_elev, iFlag_cordinate_sys, level0, processMatrix
     use mo_mrm_global_variables, only : L0_fDir, &
         L0_floodPlain, L0_streamNet, L11_aFloodPlain, L11_fCol, L11_fRow, L11_length, &
         L11_nOutlets, L11_netPerm, L11_slope, L11_tCol, L11_tRow, level11
@@ -1286,7 +1288,7 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     s0 = level0_iDomain%iStart
     e0 = level0_iDomain%iEnd
     nLinks = level11(iDomain)%nCells - L11_nOutlets(iDomain)
@@ -1440,10 +1442,11 @@ contains
 
     ! L0 data sets
     ! check whether L0 data is shared
+    ! ToDo: check if change is correct
     if (iDomain .eq. 1) then
       call append(L0_streamNet, PACK (streamNet0(:, :), level0_iDomain%mask))
       call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iDomain%mask))
-    else if (L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1)) then
+    else if (domainMeta%L0DataFrom(iDomain) == iDomain) then
       call append(L0_streamNet, PACK (streamNet0(:, :), level0_iDomain%mask))
       call append(L0_floodPlain, PACK (floodPlain0(:, :), level0_iDomain%mask))
     end if
@@ -1498,7 +1501,7 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
-    use mo_common_variables, only : Grid, L0_Domain, L0_LCover, level0, domainMeta, nLCoverScene
+    use mo_common_variables, only : Grid, domainMeta, L0_LCover, level0, domainMeta, nLCoverScene
     use mo_mrm_global_variables, only : L0_floodPlain, L11_aFloodPlain, &
                                         L11_nLinkFracFPimp, L11_nOutlets, level11
 
@@ -1525,7 +1528,7 @@ contains
       allocate(temp_array(level11(iDomain)%nCells, nLCoverScene))
       temp_array = nodata_dp
       if (do_init) then
-        level0_iDomain => level0(L0_Domain(iDomain))
+        level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
         s0 = level0_iDomain%iStart
         e0 = level0_iDomain%iEnd
@@ -1816,7 +1819,7 @@ contains
 
   subroutine cellLength(iDomain, fDir, iRow, jCol, iCoorSystem, length)
 
-    use mo_common_variables, only : Grid, L0_Domain, level0
+    use mo_common_variables, only : Grid, domainMeta, level0
     use mo_constants, only : SQRT2_dp
 
     implicit none
@@ -1840,7 +1843,7 @@ contains
     type(Grid), pointer :: level0_iDomain => null()
 
 
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
     ! regular X-Y cordinate system
     IF(iCoorSystem .EQ. 0) THEN
@@ -2202,9 +2205,8 @@ contains
         L0_slope               ! IN:    slope [%]
     use mo_common_variables, only: &
         Grid,                &
-        L0_Domain,            & ! IN:    L0 Domain indexer
-        level0,              & ! IN:    level 0 grid
-        L0_LCover              ! IN:    Normal Landcover
+        domainMeta,          & ! IN:    for L0 Domain indexer
+        level0                 ! IN:    level 0 grid
     use mo_mrm_global_variables, only: &
         L0_fDir,             & ! IN:    flow direction (standard notation) L0
         L0_fAcc,             & ! IN:    flow accumulation (number of cells)?
@@ -2256,13 +2258,12 @@ contains
 
     integer(i4), dimension(:,:), allocatable :: nodata_i4_tmp
     real(dp),    dimension(:,:), allocatable :: nodata_dp_tmp
-    real(dp)                                 :: cellsize0
     logical,     dimension(:),   allocatable :: slopemask0
 
     type(Grid), pointer :: level0_iDomain
 
     ! level-0 information
-    level0_iDomain => level0(L0_Domain(iDomain))
+    level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
     nrows0 = level0_iDomain%nrows
     ncols0 = level0_iDomain%ncols
     nCells0 = level0_iDomain%ncells

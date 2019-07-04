@@ -50,11 +50,10 @@ contains
   subroutine mrm_read_L0_data(do_reinit, do_readlatlon, do_readlcover)
 
     use mo_append, only : append
-    use mo_common_constants, only : nodata_i4, nodata_dp
+    use mo_common_constants, only : nodata_i4
     use mo_common_read_data, only : read_dem, read_lcover
-    use mo_common_variables, only : Grid, L0_Domain, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
+    use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
-    use mo_mpr_global_variables, only: L0_slope
     use mo_message, only : message
     use mo_mrm_file, only : file_facc, file_fdir, &
                             file_gaugeloc, ufacc, ufdir, ugaugeloc
@@ -82,8 +81,6 @@ contains
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
-
-    real(dp), dimension(:, :), allocatable :: data_dp_2d
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
@@ -114,18 +111,17 @@ contains
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iDomain => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
+      ! ToDo: check if change is correct
       ! check whether L0 data is shared
-      if (iDomain .gt. 1) then
-        if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
-          !
-          call message('      Using data of domain ', &
-                  trim(adjustl(num2str(domainMeta%indices(L0_Domain(iDomain))))), ' for domain: ',&
-                  trim(adjustl(num2str(domainID))), '...')
-          cycle
-          !
-        end if
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        !
+        call message('      Using data of domain ', &
+                trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        cycle
+        !
       end if
       !
       call message('      Reading data for domain: ', trim(adjustl(num2str(domainID))), ' ...')
@@ -477,13 +473,10 @@ contains
   !         \date    May 2018
 
     use mo_mrm_global_variables, only: level11
-    use mo_common_constants, only: HourSecs
-    use mo_common_mHM_mRM_variables, only: timestep
     use mo_read_forcing_nc, only: read_const_forcing_nc
     use mo_mrm_global_variables, only: &
          dirBankfullRunoff, &   ! directory of bankfull_runoff file for each domain
          L11_bankfull_runoff_in ! bankfull runoff at L1
-    use mo_common_variables, only: ALMA_convention
 
     implicit none
 

@@ -106,7 +106,7 @@ end subroutine mrm_configuration
     use mo_common_mHM_mRM_variables, only : dirRestartIn, mrm_coupling_mode, read_restart, &
                                             resolutionRouting
     use mo_common_restart, only : read_grid_info
-    use mo_common_variables, only : L0_Domain, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
+    use mo_common_variables, only : domainMeta, global_parameters, l0_l1_remap, level0, level1, domainMeta, &
                                     processMatrix, resolutionHydrology
     use mo_grid, only : L0_grid_setup, init_lowres_level, set_domain_indices
     use mo_kind, only : i4
@@ -166,7 +166,8 @@ end subroutine mrm_configuration
         ! this reads the domain properties
         if (.not. allocated(level0)) allocate(level0(domainMeta%nDomains)) 
         ! ToDo: L0_Domain, parallel
-        call read_grid_info(domainMeta%indices(L0_Domain(iDomain)), dirRestartIn(iDomain), "0", "mRM", level0(L0_Domain(iDomain)))
+        call read_grid_info(domainMeta%indices(domainMeta%L0DataFrom(iDomain)), dirRestartIn(iDomain), &
+                                                     "0", "mRM", level0(domainMeta%L0DataFrom(iDomain)))
         if (mrm_coupling_mode .eq. 0_i4) then
           call read_grid_info(domainID, dirRestartIn(iDomain), "1", "mRM", level1(iDomain))
         end if
@@ -174,22 +175,22 @@ end subroutine mrm_configuration
         call mrm_read_restart_config(iDomain, dirRestartIn(iDomain))
       else
         if (iDomain .eq. 1) then
-          call L0_check_input_routing(L0_Domain(iDomain))
+          call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Domain(iDomain)))
+            call L0_grid_setup(level0(domainMeta%L0DataFrom(iDomain)))
           end if
-        else if ((L0_Domain(iDomain) .ne. L0_Domain(iDomain - 1))) then
-          call L0_check_input_routing(L0_Domain(iDomain))
+        else if ((domainMeta%L0DataFrom(iDomain) == iDomain)) then
+          call L0_check_input_routing(domainMeta%L0DataFrom(iDomain))
           if (mrm_coupling_mode .eq. 0_i4) then
-            call L0_grid_setup(level0(L0_Domain(iDomain)))
+            call L0_grid_setup(level0(domainMeta%L0DataFrom(iDomain)))
           end if
         end if
 
         if (mrm_coupling_mode .eq. 0_i4) then
-          call init_lowres_level(level0(L0_Domain(iDomain)), resolutionHydrology(iDomain), &
+          call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionHydrology(iDomain), &
                   level1(iDomain), l0_l1_remap(iDomain))
         end if
-        call init_lowres_level(level0(L0_Domain(iDomain)), resolutionRouting(iDomain), &
+        call init_lowres_level(level0(domainMeta%L0DataFrom(iDomain)), resolutionRouting(iDomain), &
                 level11(iDomain), l0_l11_remap(iDomain))
         call init_lowres_level(level1(iDomain), resolutionRouting(iDomain), &
                 level11(iDomain), l1_l11_remap(iDomain))
@@ -574,7 +575,7 @@ end subroutine mrm_configuration
     use mo_append, only : append
     use mo_kind, only : dp, i4
     use mo_mrm_constants, only : nRoutingStates
-    use mo_common_variables, only : level0, L0_Domain
+    use mo_common_variables, only : level0, domainMeta
     use mo_mrm_global_variables, only : L11_C1, L11_C2, L11_K, &
          L11_Qmod, L11_qOUT, L11_qTIN, L11_qTR, L11_xi, &
          level11, L11_celerity, L0_celerity
@@ -630,7 +631,7 @@ end subroutine mrm_configuration
 
     ! celerity at level 0
     if (allocated(dummy_Vector11)) deallocate(dummy_Vector11)
-    allocate(dummy_Vector11(level0(L0_Domain(iDomain))%ncells))
+    allocate(dummy_Vector11(level0(domainMeta%L0DataFrom(iDomain))%ncells))
     dummy_Vector11(:) = 0.0_dp
     call append(L0_celerity, dummy_Vector11)
 

@@ -43,7 +43,7 @@ CONTAINS
     use mo_append, only : append
     use mo_common_constants, only : nodata_dp
     use mo_common_file, only : file_dem, udem
-    use mo_common_variables, only : Grid, L0_Domain, L0_elev, dirMorpho, level0, domainMeta, nuniqueL0Domains, &
+    use mo_common_variables, only : Grid,  L0_elev, dirMorpho, level0, domainMeta, nuniqueL0Domains, &
                                     resolutionHydrology
     use mo_grid, only : set_domain_indices
     use mo_message, only : message
@@ -72,15 +72,15 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iDomain => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
       ! check whether L0 data is shared
       if (iDomain .gt. 1) then
         ! ToDo: check change
-        if (L0_Domain(iDomain) < iDomain) then
+        if (domainMeta%L0DataFrom(iDomain) < iDomain) then
           !
           call message('      Using dem of domain ', &
-                  trim(adjustl(num2str(domainMeta%indices(L0_Domain(iDomain))))), ' for domain: ',&
+                  trim(adjustl(num2str(domainMeta%indices(domainMeta%L0DataFrom(iDomain))))), ' for domain: ',&
                   trim(adjustl(num2str(iDomain))), '...')
 
           ! DO NOT read L0 data
@@ -146,7 +146,7 @@ CONTAINS
     use mo_append, only : append, paste
     use mo_common_constants, only : nodata_i4
     use mo_common_file, only : ulcoverclass
-    use mo_common_variables, only : Grid, L0_Domain, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
+    use mo_common_variables, only : Grid, L0_LCover, LCfilename, dirLCover, level0, domainMeta, nLCoverScene
     use mo_message, only : message
     use mo_read_spatial_data, only : read_spatial_data_ascii
     use mo_string_utils, only : num2str
@@ -171,18 +171,17 @@ CONTAINS
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
 
-      level0_iDomain => level0(L0_Domain(iDomain))
+      level0_iDomain => level0(domainMeta%L0DataFrom(iDomain))
 
       ! check whether L0 data is shared
-      if (iDomain .gt. 1) then
-        if (L0_Domain(iDomain) .eq. L0_Domain(iDomain - 1)) then
-          call message('      Using lcover of domain ', &
-                  trim(adjustl(num2str(L0_Domain(iDomain)))), ' for domain: ',&
-                  trim(adjustl(num2str(domainID))), '...')
-          ! DO NOT read L0 data
-          cycle
+      ! ToDo: check change
+      if (domainMeta%L0DataFrom(iDomain) < iDomain) then
+        call message('      Using lcover of domain ', &
+                trim(adjustl(num2str(domainMeta%L0DataFrom(iDomain)))), ' for domain: ',&
+                trim(adjustl(num2str(domainID))), '...')
+        ! DO NOT read L0 data
+        cycle
 
-        end if
       end if
 
       call message('      Reading lcover for domain: ', trim(adjustl(num2str(domainID))), ' ...')
