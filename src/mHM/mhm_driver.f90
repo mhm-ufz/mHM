@@ -155,7 +155,7 @@ PROGRAM mhm_driver
   integer(i4), dimension(8) :: datetime         ! Date and time
   !$ integer(i4)                        :: n_threads        ! OpenMP number of parallel threads
   integer(i4) :: domainID, iDomain               ! Counters
-  integer(i4) :: iTimer           ! Current timer number
+  integer(i4) :: itimer           ! Current timer number
   integer(i4) :: nTimeSteps
   real(dp) :: funcbest         ! best objective function achivied during optimization
   logical, dimension(:), allocatable :: maskpara ! true  = parameter will be optimized, = parameter(i,4) = 1
@@ -263,10 +263,10 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! READ AND INITIALIZE
   ! --------------------------------------------------------------------------
-#ifdef MPI
-  if ((.not. optimize) .or. (optimize .and. rank > 0)) then
-#endif
   itimer = 1
+#ifdef MPI
+  if (rank > 0) then
+#endif
   call message()
 
   call message('  Read data ...')
@@ -342,7 +342,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   ! RUN OR OPTIMIZE
   ! --------------------------------------------------------------------------
-  iTimer = iTimer + 1
+  itimer = itimer + 1
   call message()
   if (optimize) then
     eval => mhm_eval
@@ -385,21 +385,27 @@ PROGRAM mhm_driver
 #endif
   else
 
-    ! --------------------------------------------------------------------------
-    ! call mHM
-    ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
-    ! get other model outputs  (i.e. gridded fields of model output)
-    ! --------------------------------------------------------------------------
-    call message('  Run mHM')
-    call timer_start(iTimer)
-    call mhm_eval(global_parameters(:, 3))
-    call timer_stop(itimer)
-    call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+#ifdef MPI
+    if (rank > 0) then
+#endif
+      ! --------------------------------------------------------------------------
+      ! call mHM
+      ! get runoff timeseries if possible (i.e. when processMatrix(8,1) > 0)
+      ! get other model outputs  (i.e. gridded fields of model output)
+      ! --------------------------------------------------------------------------
+      call message('  Run mHM')
+      call timer_start(itimer)
+      call mhm_eval(global_parameters(:, 3))
+      call timer_stop(itimer)
+      call message('    in ', trim(num2str(timer_get(itimer), '(F12.3)')), ' seconds.')
+#ifdef MPI
+    endif
+#endif
 
   end if
 
 #ifdef MPI
-  if ((.not. optimize) .or. (optimize .and. rank > 0)) then
+  if (rank > 0) then
 #endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
