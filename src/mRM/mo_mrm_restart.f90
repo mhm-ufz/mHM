@@ -277,7 +277,7 @@ contains
     ! ----------------------------------------------------------
     ! L11 config set
     ! ----------------------------------------------------------
-    var = nc%setVariable("L11_basin_Mask", "i32", (/rows11, cols11/))
+    var = nc%setVariable("L11_domain_Mask", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(merge(1_i4, 0_i4,  mask11))
     call var%setAttribute("long_name", "Mask at Level 11")
@@ -426,7 +426,7 @@ contains
   !>       \brief read routing states
 
   !>       \details This subroutine reads the routing states from
-  !>       mRM_states_<basin_id>.nc that has to be in the given
+  !>       mRM_states_<domain_id>.nc that has to be in the given
   !>       path directory. This subroutine has to be called directly
   !>       each time the mHM_eval or mRM_eval is called such that the
   !>       the states are always the same at the first simulation time

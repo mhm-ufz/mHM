@@ -89,7 +89,7 @@ CONTAINS
     cols = nc%setDimension("ncols" // trim(level_name), grid_in%ncols)
 
     ! now set everything related to the grid
-    var = nc%setVariable("L" // trim(level_name) // "_basin_mask", "i32", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_mask", "i32", (/rows, cols/))
     call var%setFillValue(nodata_i4)
     ! transform from logical to i32
     ! ST: where statement is used because gnu73 does not properly translate with merge
@@ -100,17 +100,17 @@ CONTAINS
     deallocate(dummy)
     call var%setAttribute("long_name", "Mask at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_lat", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_lat", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(grid_in%y)
     call var%setAttribute("long_name", "Latitude at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_lon", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_lon", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(grid_in%x)
     call var%setAttribute("long_name", "Longitude at level " // trim(level_name))
 
-    var = nc%setVariable("L" // trim(level_name) // "_basin_cellarea", "f64", (/rows, cols/))
+    var = nc%setVariable("L" // trim(level_name) // "_domain_cellarea", "f64", (/rows, cols/))
     call var%setFillValue(nodata_dp)
     call var%setData(unpack(grid_in%CellArea * 1.0E-6_dp, grid_in%mask, nodata_dp))
     call var%setAttribute("long_name", "Cell area at level " // trim(level_name))
@@ -221,19 +221,19 @@ CONTAINS
     if (.not. allocated(new_grid%x)) allocate(new_grid%x(new_grid%nrows, new_grid%ncols))
     if (.not. allocated(new_grid%y)) allocate(new_grid%y(new_grid%nrows, new_grid%ncols))
     ! read L1 mask
-    var = nc%getVariable("L" // trim(level_name) // "_basin_mask")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_mask")
     ! read integer
     call var%getData(dummyI2)
     ! transform to logical
     new_grid%mask = (dummyI2 .eq. 1_i4)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_lat")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_lat")
     call var%getData(new_grid%y)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_lon")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_lon")
     call var%getData(new_grid%x)
 
-    var = nc%getVariable("L" // trim(level_name) // "_basin_cellarea")
+    var = nc%getVariable("L" // trim(level_name) // "_domain_cellarea")
     call var%getData(dummyD2)
     if (.not. allocated(new_grid%CellArea)) new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
     ! new_grid%CellArea = pack(dummyD2 / 1.0E-6_dp, new_grid%mask)
