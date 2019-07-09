@@ -87,7 +87,7 @@ module mo_common_variables
     integer(i4) :: iEnd            ! Ending cell index of a given basin
     ! dimension(nCells, (x,y) )
     integer(i4), dimension(:, :), allocatable :: CellCoor  ! this is only used for mRM
-    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sqkm
+    real(dp), dimension(:), allocatable :: CellArea  ! area of the cell in sq m
     integer(i4), dimension(:), allocatable :: Id
 
   end type Grid

@@ -105,6 +105,9 @@ contains
     ! number of rows at level 11
     integer(i4) :: nrows11
 
+    ! dummy variable for writing L11_sink
+    integer(i4), allocatable :: dummy(:)
+
     ! mask at level 11
     logical, dimension(:, :), allocatable :: mask11
 
@@ -256,6 +259,11 @@ contains
     call var%setData(unpack(L11_fDir(s11 : e11), mask11, nodata_i4))
     call var%setAttribute("long_name", "flow Direction at Level 11")
 
+    var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
+    call var%setFillValue(nodata_dp)
+    call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
+    call var%setAttribute("long_name", "flow accumulation at Level 11")
+    
     var = nc%setVariable("L11_rowOut", "i32", (/rows11, cols11/))
     call var%setFillValue(nodata_i4)
     call var%setData(unpack(L11_rowOut(s11 : e11), mask11, nodata_i4))
@@ -288,7 +296,14 @@ contains
 
     var = nc%setVariable("L11_sink", "i32", (/links/))
     call var%setFillValue(nodata_i4)
-    call var%setData(merge(1_i4, 0_i4, L11_sink(s11 : e11)))
+    allocate(dummy(e11 - s11 + 1))
+    dummy = 0_i4
+    where(L11_sink(s11 : e11))
+      dummy = 1_i4
+    end where
+    ! call var%setData(merge(1_i4, 0_i4, L11_sink(s11 : e11)))
+    call var%setData(dummy)
+    deallocate(dummy)
     call var%setAttribute("long_name", ".true. if sink node reached at Level 11")
 
     var = nc%setVariable("L11_netPerm", "i32", (/links/))
@@ -351,11 +366,6 @@ contains
     call var%setAttribute("long_name", "cell ID of gauges")
 
     if (processMatrix(8, 1) .eq. 3) then
-      ! var = nc%setVariable("L11_fAcc", "f64", (/rows11, cols11/))
-      ! call var%setFillValue(nodata_dp)
-      ! call var%setData(unpack(L11_fAcc(s11:e11), mask11, nodata_dp))
-      ! call var%setAttribute("long_name", "flow accumulation at Level 11")
-
       var = nc%setVariable("L11_celerity", "f64", (/links/))   ! celerity
       call var%setFillValue(nodata_dp)
       call var%setData(L11_celerity(s11:e11))

@@ -2008,12 +2008,7 @@ contains
 
     use mo_mrm_global_variables, only: &
         L11_fDir,          & !  IN: flow direction at L11 (standard notation)
-        L11_fromN,         &
-        L11_nOutlets,      &
-        L11_fAcc,          & ! OUT: flow accumulation at L11 [km^2]
-        L11_LinkIn_fAcc,   & ! OUT: fAcc Inflow per Link, for L11_calc_celerity
-        L11_CellCoor
-    use mo_common_variables, only : grid, l11_Basin
+        L11_fAcc             ! OUT: flow accumulation at L11 [km^2]
     use mo_mrm_global_variables, only : level11
     use mo_common_constants, only : nodata_i4, nodata_dp
     use mo_append, only : append
@@ -2024,44 +2019,30 @@ contains
     integer(i4), intent(in)                   :: iBasin
     real(dp),    dimension(:,:), allocatable  :: fAcc11             ! L11_fAcc array
     integer(i4)                               :: ii, jj             ! row and col index
-    integer(i4)                               :: iStart11, iEnd11   ! Vec. position iBasin - fAcc
+    integer(i4)                               :: s11, e11           ! Vec. position iBasin - fAcc
     integer(i4)                               :: nrows11, ncols11   ! array size basin
-    integer(i4)                               :: nNodes
     integer(i4), dimension(:,:), allocatable  :: fDir11             ! L11_fDir array
-    real(dp),    dimension(:,:), allocatable  :: cellarea11         ! L11_cellArea array
     logical,     dimension(:,:), allocatable  :: mask11             ! Basin mask
-    real(dp),    dimension(:),   allocatable  :: LinkIn_fAcc        ! fAcc inflow per Link
-    integer(i4), dimension(:,:), allocatable  :: CellCoor11
-    integer(i4), dimension(:),   allocatable  :: fromN11
 
-    type(grid) :: level11_iBasin 
-
-    ! get basin information
-    level11_iBasin = level11(L11_Basin(iBasin))
+    ! initialize basin info
+    nrows11 = level11(iBasin)%nrows
+    ncols11 = level11(iBasin)%ncols
+    s11 = level11(iBasin)%iStart
+    e11 = level11(iBasin)%iEnd
+    mask11 = level11(iBasin)%mask
 
     ! allocate arrays
     allocate(fDir11      (nrows11, ncols11))
-    allocate(cellarea11  (nrows11, ncols11))
     allocate(fAcc11      (nrows11, ncols11))
-    allocate(LinkIn_fAcc (nNodes))
-    allocate(fromN11     (nNodes))
-    allocate(CellCoor11  (nNodes , 2))
 
     ! initialize
     fDir11(:,:)     = nodata_i4
-    cellarea11(:,:) = nodata_dp
-    LinkIn_fAcc(:)  = nodata_dp
-    CellCoor11(:,:) = nodata_i4
-    fromN11(:)      = nodata_i4
 
     ! get data
-    fDir11(:,:)     = UNPACK( L11_fDir     (iStart11:iEnd11),  mask11, nodata_i4 )
-    cellarea11(:,:) = UNPACK( level11_iBasin%cellarea (iStart11:iEnd11),  mask11, nodata_dp )
-    CellCoor11(:,:) = L11_cellCoor(iStart11:iEnd11, :)
-    fromN11(:)      = L11_fromN(iStart11:iEnd11)
+    fDir11(:,:)  = UNPACK( L11_fDir(s11:e11),  mask11, nodata_i4 )
 
-    ! initialize fAcc11
-    fAcc11          = cellarea11
+    ! initialize fAcc11 with cell area
+    fAcc11 = UNPACK( level11(iBasin)%cellarea * 1.e-6,  mask11, nodata_dp )
 
     ! For each sink call "calculate_L11_flow_accumulation"
     do jj=1, ncols11
@@ -2077,18 +2058,11 @@ contains
       end do
     end do
 
-    ! Transfer to LinkIn_fAcc
-    do jj=1, (nNodes - L11_nOutlets(iBasin))
-      ii = fromN11(jj)
-      LinkIn_fAcc(jj) = fAcc11(CellCoor11(ii, 1), CellCoor11(ii, 2))
-    end do
-
     ! Append
-    call append( L11_fAcc, pack( fAcc11(:,:),mask11))
-    call append( L11_LinkIn_fAcc, LinkIn_fAcc(:))
+    call append( L11_fAcc, pack(fAcc11(:,:),mask11))
 
     ! free space
-    deallocate(fDir11, cellarea11, fAcc11, mask11, LinkIn_fAcc, CellCoor11)
+    deallocate(fDir11, fAcc11, mask11)
 
   contains
 
@@ -2166,6 +2140,8 @@ contains
           fAcc(ii,jj) = fAcc(ii,jj) + fAcc(ii-1,jj+1)
         end if
       end if
+
+      ! print *, ii, jj, nrow, ncol, fAcc(ii, jj)
 
     end subroutine calculate_L11_flow_accumulation
 

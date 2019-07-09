@@ -75,7 +75,7 @@ CONTAINS
     use mo_mrm_global_variables, only : basin_mrm, &
                                         l0_l11_remap, l1_l11_remap, level11, gw_coupling, &
                                         L0_river_head_mon_sum
-    use mo_mrm_net_startup, only : L11_flow_direction, L11_fraction_sealed_floodplain, &
+    use mo_mrm_net_startup, only : L11_flow_direction, L11_flow_accumulation, L11_fraction_sealed_floodplain, &
                                    L11_link_location, L11_routing_order, L11_set_drain_outlet_gauges, &
                                    L11_set_network_topology, L11_stream_features, l11_l1_mapping
     use mo_mrm_read_config, only : mrm_read_config
@@ -202,6 +202,7 @@ CONTAINS
     do iBasin = 1, nBasins
       if (.not. read_restart) then
         call L11_flow_direction(iBasin)
+        call L11_flow_accumulation(iBasin)
         call L11_set_network_topology(iBasin)
         call L11_routing_order(iBasin)
         call L11_link_location(iBasin)
