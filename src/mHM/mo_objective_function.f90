@@ -198,7 +198,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_variables, only : comm
+    use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mo_string_utils, only : num2str
     use mpi_f08
@@ -245,10 +245,10 @@ CONTAINS
     call distribute_parameterset(parameterset)
     select case (opti_function)
     case (10 : 13, 17, 27 : 29)
-      call MPI_Comm_size(comm, nproc, ierror)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
       objective_master = 0.0_dp
       do iproc = 1, nproc - 1
-        call MPI_Recv(partial_objective, 1, MPI_DOUBLE_PRECISION, iproc, 0, comm, status, ierror)
+        call MPI_Recv(partial_objective, 1, MPI_DOUBLE_PRECISION, iproc, 0, domainMeta%comMaster, status, ierror)
         objective_master = objective_master + partial_objective
       end do
       objective_master = objective_master**onesixth
@@ -332,7 +332,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : opti_function
-    use mo_common_variables, only : comm
+    use mo_common_variables, only : domainMeta
     use mo_message, only : message
     use mpi_f08
 
@@ -357,7 +357,7 @@ CONTAINS
     logical :: do_obj_loop
 
     do ! a do loop without condition runs until exit
-      call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, comm, status, ierror)
+      call MPI_Recv(do_obj_loop, 1, MPI_LOGICAL, 0, 0, domainMeta%comMaster, status, ierror)
       
       if (.not. do_obj_loop) exit
 
@@ -415,7 +415,7 @@ CONTAINS
 
       select case (opti_function)
       case (10 : 13, 17, 27 : 29)
-        call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,comm,ierror)
+        call MPI_Send(partial_objective,1, MPI_DOUBLE_PRECISION,0,0,domainMeta%comMaster,ierror)
       case default
         call message("Error objective_subprocess: this part should not be executed -> error in the code.")
         stop 1
@@ -428,34 +428,34 @@ CONTAINS
 
   subroutine distribute_parameterset(parameterset)
     use mpi_f08
-    use mo_common_variables, only : comm
+    use mo_common_variables, only : domainMeta
     real(dp), dimension(:),    intent(in) :: parameterset
 
     integer(i4) :: nproc, iproc, dimen
     integer(i4) :: ierror
 
-    call MPI_Comm_size(comm, nproc, ierror)
+    call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
     dimen = size(parameterset(:))
     do iproc = 1, nproc-1
       call MPI_Send(dimen, 1, &
-                    MPI_INTEGER,iproc,0,comm,ierror)
+                    MPI_INTEGER,iproc,0,domainMeta%comMaster,ierror)
       call MPI_Send(parameterset(:),dimen, &
-                    MPI_DOUBLE_PRECISION,iproc,0,comm,ierror)
+                    MPI_DOUBLE_PRECISION,iproc,0,domainMeta%comMaster,ierror)
     end do
   end subroutine distribute_parameterset
 
   subroutine get_parameterset(parameterset)
     use mpi_f08
-    use mo_common_variables, only : comm
+    use mo_common_variables, only : domainMeta
     real(dp), dimension(:), allocatable, intent(inout) :: parameterset
 
     integer(i4) :: dimen
     integer(i4) :: ierror
     type(MPI_Status) :: status
 
-    call MPI_Recv(dimen, 1, MPI_INTEGER, 0, 0, comm, status, ierror)
+    call MPI_Recv(dimen, 1, MPI_INTEGER, 0, 0, domainMeta%comMaster, status, ierror)
     allocate(parameterset(dimen))
-    call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, comm, status, ierror)
+    call MPI_Recv(parameterset, dimen, MPI_DOUBLE_PRECISION, 0, 0, domainMeta%comMaster, status, ierror)
   end subroutine get_parameterset
 #endif
   ! ------------------------------------------------------------------

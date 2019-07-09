@@ -362,7 +362,6 @@ CONTAINS
 
   subroutine init_domain_variable(nDomains, domainMeta)
     use mo_common_variables, only: domain_meta
-    use mo_common_mHM_mRM_variables, only: optimize
 #ifdef MPI
     use mo_common_variables, only: comm
     use mpi_f08
@@ -374,35 +373,67 @@ CONTAINS
     integer(i4)         :: nproc
     integer(i4)         :: rank
     integer(i4)         :: iDomain
+    integer(i4)         :: colDomain, colMasters
 
-    domainMeta%overAllNumberOfDomains = nDomains
+    domainMeta%overallNumberOfDomains = nDomains
 #ifdef MPI
     ! find number of processes nproc
     call MPI_Comm_size(comm, nproc, ierror)
     ! find the number the process is referred to, called rank
     call MPI_Comm_rank(comm, rank, ierror)
-    if (nproc < domainMeta%overAllNumberOfDomains + 1) then
+    if (nproc < 2) then
+      stop 'at least 2 processes are required'
+    end if
+    if (nproc > domainMeta%overallNumberOfDomains + 1) then
       !ToDo: message
-      write(*,*) "Warning: not all domains will be simulated"
-    end if
-    if (rank == 0) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 1
-    end if
-    do iDomain = 1 , domainMeta%overallNumberOfDomains
-      if (rank == iDomain) then
-        domainMeta%nDomains = 1
+      domainMeta%nDomains = 0
+      ! master reads only metadata of all domains
+      if (rank == 0) then
+        domainMeta%nDomains = domainMeta%overallNumberOfDomains
         allocate(domainMeta%indices(domainMeta%nDomains))
-        domainMeta%indices(1) = iDomain
+        do iDomain = 1, domainMeta%nDomains
+          domainMeta%indices(iDomain) = iDomain
+        end do
+        colMasters = 1
+        domainMeta%isMaster = .true.
+      ! all other nodes only read metadata but also data of assigned domains
+      else
+        if (rank < domainMeta%overallNumberOfDomains + 1) then
+          colMasters = 1
+          domainMeta%isMaster = .true.
+          domainMeta%nDomains = 1
+          allocate(domainMeta%indices(domainMeta%nDomains))
+          domainMeta%indices(1) = rank
+        else
+          colMasters = 0
+          domainMeta%isMaster = .false.
+          domainMeta%nDomains = 1
+          allocate(domainMeta%indices(domainMeta%nDomains))
+          ! ToDo : temporary solution, this should either not read data at all
+          ! or data corresponding to the master process
+          domainMeta%indices(1) = 1
+        end if
       end if
-    end do
-    if (rank > domainMeta%overallNumberOfDomains) then
-      domainMeta%nDomains = 1
-      allocate(domainMeta%indices(domainMeta%nDomains))
-      domainMeta%indices(1) = 1
-    end if
-
+      call MPI_Comm_split(comm, colMasters, rank, domainMeta%comMaster, ierror)
+      call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+    else
+      ! in case of more domains than processes, distribute domains round robin
+      ! onto the processes
+      call MPI_Comm_dup(comm, domainMeta%comMaster, ierror)
+      domainMeta%isMaster = .true.
+      domainMeta%nDomains = 0
+      ! master reads only metadata of all domains
+      if (rank == 0) then
+        domainMeta%nDomains = domainMeta%overallNumberOfDomains
+        allocate(domainMeta%indices(domainMeta%nDomains))
+        do iDomain = 1, domainMeta%nDomains
+          domainMeta%indices(iDomain) = iDomain
+        end do
+      ! all other nodes only read metadata but also data of assigned domains
+      else
+        call distributeDomainsRoundRobin(nproc, rank, domainMeta)
+      end if
+    end if ! round robin
 #else
     domainMeta%nDomains = nDomains
     allocate(domainMeta%indices(domainMeta%nDomains))
@@ -412,5 +443,30 @@ CONTAINS
 #endif
 
   end subroutine init_domain_variable
+
+#ifdef MPI
+  subroutine distributeDomainsRoundRobin(nproc, rank, domainMeta)
+    use mo_common_variables, only: domain_meta
+    integer(i4),       intent(in)    :: nproc
+    integer(i4),       intent(in)    :: rank
+    type(domain_meta), intent(inout) :: domainMeta
+    
+    integer(i4) :: iDomain, iProcDomain
+
+    do iDomain = 1 , domainMeta%overallNumberOfDomains
+      if (rank == (modulo(iDomain + nproc - 2, (nproc - 1)) + 1)) then
+        domainMeta%nDomains = domainMeta%nDomains + 1
+      end if
+    end do
+    allocate(domainMeta%indices(domainMeta%nDomains))
+    iProcDomain = 0
+    do iDomain = 1 , domainMeta%overallNumberOfDomains
+      if (rank == (modulo(iDomain + nproc - 2, (nproc - 1)) + 1)) then
+        iProcDomain = iProcDomain + 1
+        domainMeta%indices(iProcDomain) = iDomain
+      end if
+    end do
+  end subroutine distributeDomainsRoundRobin
+#endif
 
 END MODULE mo_common_read_config

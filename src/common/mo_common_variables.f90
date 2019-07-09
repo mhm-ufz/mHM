@@ -142,6 +142,12 @@ module mo_common_variables
     integer(i4)                            :: overallNumberOfDomains  ! Number of domains for multi-domain optimization
     integer(i4), dimension(:), allocatable :: indices
     integer(i4), dimension(:), allocatable :: L0DataFrom
+#ifdef MPI
+    logical                                :: isMaster  ! true if the process is master proc in comLocal
+    type(MPI_Comm)                         :: comMaster ! the communicater the domains are using to send messages to each other
+                                                        ! here are all processes wich have rank 0 in comLocal
+    type(MPI_Comm)                         :: comLocal  ! the communicater the domain internal communication takes place
+#endif
   end type domain_meta
 
   type(domain_meta), public :: domainMeta

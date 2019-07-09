@@ -55,7 +55,7 @@ contains
                                             optimize_restart, sa_temp, sce_ngs, sce_npg, sce_nps, seed
     use mo_common_variables, only : global_parameters
 #ifdef MPI
-    use mo_common_variables, only : comm
+    use mo_common_variables, only : domainMeta
 #endif
     use mo_dds, only : dds
     use mo_finish, only : finish
@@ -219,7 +219,7 @@ contains
 #ifdef MPI
       local_parameters(:, 3) = dds(eval, objective, local_parameters(:, 3), local_parameters(:, 1 : 2), &
               maxiter = int(nIterations, i8), r = dds_r, seed = iseed, &
-              tmp_file = tFile, comm = comm, mask = local_maskpara, &
+              tmp_file = tFile, comm = domainMeta%comMaster, mask = local_maskpara, &
               funcbest = funcbest)
 #else
       local_parameters(:, 3) = dds(eval, objective, local_parameters(:, 3), local_parameters(:, 1 : 2), &
@@ -263,7 +263,7 @@ contains
               parallel = .false., mymask = local_maskpara, &
               restart = optimize_restart, restart_file = 'mo_sce.restart', &
 #ifdef MPI
-              comm = comm, &
+              comm = domainMeta%comMaster, &
 #endif
               tmp_file = tFile, popul_file = pFile, &
               bestf = funcbest)

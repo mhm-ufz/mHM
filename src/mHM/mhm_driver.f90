@@ -170,7 +170,7 @@ PROGRAM mhm_driver
 #ifdef MPI
   integer             :: ierror
   integer(i4)         :: nproc
-  integer(i4)         :: rank
+  integer(i4)         :: rank, oldrank
 
 ! Initialize MPI
   call MPI_Init(ierror)
@@ -179,7 +179,8 @@ PROGRAM mhm_driver
   call MPI_Comm_size(comm, nproc, ierror)
   ! find the number the process is referred to, called rank
   call MPI_Comm_rank(comm, rank, ierror)
-  write(*,*) 'MPI!', rank, nproc
+  oldrank = rank
+  write(*,*) 'MPI!, comm', rank, nproc
 #endif
   ! --------------------------------------------------------------------------
   ! START
@@ -217,6 +218,11 @@ PROGRAM mhm_driver
   call message('Read namelist file: ', trim(file_namelist_mhm_param))
   call message('Read namelist file: ', trim(file_defOutput))
   call common_read_config(file_namelist_mhm, unamelist_mhm)
+#ifdef MPI
+  call MPI_Comm_size(domainMeta%comMaster, nproc, ierror)
+  ! find the number the process is referred to, called rank
+  call MPI_Comm_rank(domainMeta%comMaster, rank, ierror)
+#endif
   call mpr_read_config(file_namelist_mhm, unamelist_mhm, file_namelist_mhm_param, unamelist_mhm_param)
   call common_mHM_mRM_read_config(file_namelist_mhm, unamelist_mhm)
   call mhm_read_config(file_namelist_mhm, unamelist_mhm)
@@ -265,7 +271,7 @@ PROGRAM mhm_driver
   ! --------------------------------------------------------------------------
   itimer = 1
 #ifdef MPI
-  if (rank > 0) then
+  if (rank > 0 .and. domainMeta%isMaster) then
 #endif
   call message()
 
@@ -358,10 +364,10 @@ PROGRAM mhm_driver
       ! call optimization for other variables
       obj_func => objective
 #ifdef MPI
-      if (rank == 0) then
+      if (rank == 0 .and. domainMeta%isMaster) then
         obj_func => objective_master
         call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
-      else
+      else if (domainMeta%isMaster) then
         call objective_subprocess(eval)
       end if
 #else
@@ -373,7 +379,7 @@ PROGRAM mhm_driver
       stop 1
     end select
 #ifdef MPI
-  if (rank == 0) then
+  if (rank == 0 .and. domainMeta%isMaster) then
 #endif
     ! write a file with final objective function and the best parameter set
     call write_optifile(funcbest, global_parameters(:, 3), global_parameters_name(:))
@@ -386,7 +392,7 @@ PROGRAM mhm_driver
   else
 
 #ifdef MPI
-    if (rank > 0) then
+    if (rank > 0 .and. domainMeta%isMaster) then
 #endif
       ! --------------------------------------------------------------------------
       ! call mHM
@@ -405,7 +411,7 @@ PROGRAM mhm_driver
   end if
 
 #ifdef MPI
-  if (rank > 0) then
+  if (rank > 0 .and. domainMeta%isMaster) then
 #endif
   ! --------------------------------------------------------------------------
   ! WRITE RESTART files
@@ -456,7 +462,10 @@ PROGRAM mhm_driver
   call finish('mHM', 'Finished!')
 
 #ifdef MPI
-  write(*,*) 'MPI!', rank, nproc
+  ! find number of processes nproc
+  call MPI_Comm_size(comm, nproc, ierror)
+  call MPI_Comm_rank(comm, rank, ierror)
+  write(*,*) 'MPI finished', rank, nproc
   call MPI_Finalize(ierror)
 #endif
 
