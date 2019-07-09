@@ -94,7 +94,7 @@ SHELL = /bin/bash
 #
 
 # . is current directory, .. is parent directory
-SRCPATH    := ./src/lib ./src/common ./src/mRM ./src/common_mHM_mRM ./src/MPR ./src/mHM # where are the source files
+SRCPATH    := ./src/lib ./src/MPR ./src/mHM ./deps/mrm/src/common ./deps/mrm/src/mRM ./deps/mrm/src/common_mHM_mRM # where are the source files
 PROGPATH   := .             # where shall be the executable
 CONFIGPATH := make.config   # where are the $(system).$(compiler) files
 MAKEDPATH  := $(CONFIGPATH) # where is the make.d.sh script
@@ -571,7 +571,11 @@ ifneq (,$(findstring $(netcdf),netcdf3 netcdf4))
         $(error Error: NETCDF path '$(NCDIR)' not found.)
     endif
     NCINC ?= $(strip $(NCDIR))/include
-    NCLIB ?= $(strip $(NCDIR))/lib
+    ifeq (,$(findstring $(icompiler),gnu73 gnu64))
+        NCLIB ?= $(strip $(NCDIR))/lib
+    else
+        NCLIB ?= $(strip $(NCDIR))/lib64
+    endif
 
     INCLUDES += -I$(NCINC)
     ifneq ($(ABSOFT),)

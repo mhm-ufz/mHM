@@ -288,6 +288,18 @@ if [[ ${system} == "eve" || ${system} == "eve2" ]] ; then
     set +e
     ipython=$(which python 2> /dev/null)
     set -e
+
+
+    echo '   try to load module foss for gnu compilers and intel license ...'
+    module load intel
+    module use /software/easybuild-E5-2690v4/modules/all/Core
+    if [[ $(hostname | cut -d . -f 1) == 'frontend1' ]] ; then
+        module load foss/2018a
+    elif [[ $(hostname | cut -d . -f 1) == 'frontend2' ]] ; then
+        module load foss/2018b
+    else
+	echo "Host not specified!"
+    fi
 fi
 
 # rm coloured ls
@@ -359,9 +371,9 @@ for irelease in ${release} ; do
                 if [[ -f ${check_prog} ]] ; then rm ${check_prog} ; fi
                 if [[ ${case_dir/mrm/} == ${case_dir} ]]; then
                     # remove old exe and link recently compiled
-                    ln -s ../../${mhm_exe} ${check_prog}
+                    ln -sf ../../${mhm_exe} ${check_prog}
                 else
-                    ln -s ../../${mrm_exe} ${check_prog}
+                    ln -sf ../../${mrm_exe} ${check_prog}
                 fi
                     
 

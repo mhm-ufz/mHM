@@ -31,6 +31,7 @@
 ! S. Thober, B. Guse       May 2018  - added weighted NSE
 ! Lennart Schueler         May 2018  - added new paths for bankfull discharge for gw coupling
 ! Lennart Schueler         Jun 2018  - added flag for writing river head output
+! Stephan Thober           May 2019  - added adaptive timestep scheme for routing with varying celerity
 
 !******************************************************************************************
 ! PROJECT DESCRIPTION (mandatory)
@@ -425,7 +426,8 @@ processCase(7) = 1
 !> routing
 !> 0 - deactivated
 !> 1 - Muskingum approach
-!> 2 - adaptive timestep
+!> 2 - adaptive timestep, constant celerity
+!> 3 - adaptive timestep, spatially varying celerity
 processCase(8) = 2
 !> baseflow
 !> 1 - recession parameters (not regionalized yet)
