@@ -84,7 +84,7 @@ CONTAINS
 
     use mo_common_constants, only : nodata_dp
     use mo_common_mHM_mRM_variables, only : LCyearId, dirRestartIn, nTstepDay, optimize, readPer, read_restart, simPer, timeStep, &
-                                            warmingDays
+                                            warmingDays, c2TSTu
     use mo_common_variables, only : level1, nBasins, processMatrix
     use mo_global_variables, only : L1_Throughfall, L1_aETCanopy, L1_aETSealed, L1_aETSoil, &
                                     L1_absvappress, L1_baseflow, L1_fastRunoff, L1_infilSoil, L1_inter, L1_melt, &
@@ -470,7 +470,7 @@ CONTAINS
         ! --------------------------------------------------------------------------
         call mhm(read_restart, & ! IN C
                 tt, newTime - 0.5_dp, processMatrix, HorizonDepth_mHM, & ! IN C
-                nCells, nSoilHorizons_mHM, real(nTstepDay, dp), & ! IN C
+                nCells, nSoilHorizons_mHM, real(nTstepDay, dp), c2TSTu,  & ! IN C
                 neutron_integral_AFast, & ! IN C
                 parameterset, & ! IN
                 pack(level1(iBasin)%y, level1(iBasin)%mask), & ! IN L1
