@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 #
-# Setup file for NAG compiler 6.2 at eve.ufz.de
+# Setup file for NAG compiler 6.0 at eve.ufz.de
 #
 # LICENSE
 #    This file is part of the UFZ makefile project.  
@@ -28,7 +28,7 @@
 # Define subdirectories if another structure
 
 # Paths
-NAGDIR := /opt/nag/6.2-6223
+NAGDIR := /usr/local/src/xxx-compiler/NAG_Fortran-amd64-6.0
 NAGLIB := $(NAGDIR)/lib
 NAGBIN := $(NAGDIR)/bin
 
