@@ -70,6 +70,7 @@ module mo_mrm_global_variables
   ! GAUGED station data
   ! -----------------------------------------------------------------
   integer(i4), public :: nGaugesTotal ! Number of evaluation gauges for all domains 
+  integer(i4), public :: nGaugesLocal ! Number of evaluation gauges for all domains on a subprocess
   integer(i4), public :: nInflowGaugesTotal ! Number of evaluation gauges for all domains 
   integer(i4), public :: nMeasPerDay ! Number of observations per day,
   !                                  ! e.g. 24 -> hourly discharge, 1 -> daily discharge

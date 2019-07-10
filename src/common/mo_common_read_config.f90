@@ -385,7 +385,6 @@ CONTAINS
       stop 'at least 2 processes are required'
     end if
     if (nproc > domainMeta%overallNumberOfDomains + 1) then
-      !ToDo: message
       domainMeta%nDomains = 0
       ! master reads only metadata of all domains
       if (rank == 0) then

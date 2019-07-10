@@ -63,7 +63,8 @@ contains
     use mo_mrm_file, only : file_defOutput, udefOutput
     use mo_mrm_global_variables, only : InflowGauge, domainInfo_mRM, domain_mrm, &
                                         dirGauges, dirTotalRunoff, filenameTotalRunoff, dirBankfullRunoff, gauge, is_start, &
-                                        nGaugesTotal, nInflowGaugesTotal, outputFlxState_mrm, timeStep_model_outputs_mrm, &
+                                        nGaugesTotal, nGaugesLocal, nInflowGaugesTotal, outputFlxState_mrm, &
+                                        timeStep_model_outputs_mrm, &
                                         varnameTotalRunoff, gw_coupling
     use mo_nml, only : close_nml, open_nml, position_nml
     use mo_string_utils, only : num2str
@@ -178,21 +179,22 @@ contains
       stop 1
     end if
 
-    allocate(gauge%gaugeId(nGaugesTotal)) ; gauge%gaugeId = nodata_i4
-    allocate(gauge%domainId(nGaugesTotal)) ; gauge%domainId = nodata_i4
-    allocate(gauge%fName  (nGaugesTotal))
-    if (nGaugesTotal > 0) then
+    ! ToDo: make smarter
+    nGaugesLocal = 0
+    do iDomain = 1, domainMeta%nDomains
+      domainID = domainMeta%indices(iDomain)
+      nGaugesLocal = nGaugesLocal + NoGauges_domain(domainID)
+    end do
+    ! End ToDo
+
+    allocate(gauge%gaugeId(nGaugesLocal)) ; gauge%gaugeId = nodata_i4
+    allocate(gauge%domainId(nGaugesLocal)) ; gauge%domainId = nodata_i4
+    allocate(gauge%fName  (nGaugesLocal))
+    if (nGaugesLocal > 0) then
       gauge%fName(1) = num2str(nodata_i4)
     end if
     allocate(domain_mrm(domainMeta%nDomains))
 
-    ! ToDo: make smarter
-    nGaugesTotal = 0
-    do iDomain = 1, domainMeta%nDomains
-      domainID = domainMeta%indices(iDomain)
-      nGaugesTotal = nGaugesTotal + NoGauges_domain(domainID)
-    end do
-    ! End ToDo
     idx = 0
     do iDomain = 1, domainMeta%nDomains
       domainID = domainMeta%indices(iDomain)
@@ -244,10 +246,10 @@ contains
       end do
     end do
 
-    if (nGaugesTotal .NE. idx) then
+    if (nGaugesLocal .NE. idx) then
       call message()
       call message('***ERROR: ', trim(file_namelist), ': Total number of evaluation gauges (', &
-              trim(adjustl(num2str(nGaugesTotal))), &
+              trim(adjustl(num2str(nGaugesLocal))), &
               ') different from sum of gauges in subdomains (', trim(adjustl(num2str(idx))), ')!')
       call message('          Error occured in namelist: evaluation_gauges')
       stop

@@ -217,9 +217,9 @@ CONTAINS
 
     REAL(dp) :: objective_master
 
-    ! for sixth root
     REAL(dp) :: partial_objective
 
+    ! for sixth root
     real(dp), parameter :: onesixth = 1.0_dp / 6.0_dp
 
     integer(i4) :: iproc, nproc
@@ -258,7 +258,7 @@ CONTAINS
       stop
     case (30)
       ! KGE for Q * RMSE for domain_avg ET (standarized scored)
-      objective_master = objective_kge_q_rmse_et(parameterset, eval)
+      ! objective_master = objective_kge_q_rmse_et(parameterset, eval)
       call message("case 30, objective_kge_q_rmse_et not implemented in parallel yet")
 
     case default

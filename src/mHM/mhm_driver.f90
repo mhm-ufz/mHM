@@ -139,7 +139,12 @@ PROGRAM mhm_driver
           objective                 ! objective functions and likelihoods
   USE mo_optimization, ONLY : optimization
 #ifdef MRM2MHM
-  USE mo_mrm_objective_function_runoff, only : single_objective_runoff
+  USE mo_mrm_objective_function_runoff, ONLY : &
+#ifdef MPI
+          single_objective_runoff_master, &
+          single_objective_runoff_subprocess, &
+#endif
+          single_objective_runoff
   USE mo_mrm_init, ONLY : mrm_init, mrm_configuration
   USE mo_mrm_write, only : mrm_write
 
@@ -358,7 +363,16 @@ PROGRAM mhm_driver
      case(1 : 9, 14, 31)
       ! call optimization against only runoff (no other variables)
       obj_func => single_objective_runoff
+#ifdef MPI
+      if (rank == 0 .and. domainMeta%isMaster) then
+        obj_func => single_objective_runoff_master
+        call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+      else if (domainMeta%isMaster) then
+        call single_objective_runoff_subprocess(eval)
+      end if
+#else
       call optimization(eval, obj_func, dirConfigOut, funcBest, maskpara)
+#endif
 #endif
      case(10 : 13, 15, 17, 27, 28, 29, 30)
       ! call optimization for other variables
