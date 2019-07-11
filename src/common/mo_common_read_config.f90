@@ -391,7 +391,7 @@ CONTAINS
       if (rank == iDomain - 1) then
         domainMeta%nDomains = 1
         allocate(domainMeta%indices(domainMeta%nDomains))
-        domainMeta%indices(1) = iDomain
+        domainMeta%indices(1) = 1
       end if
     end do
     if (rank > 42) then
