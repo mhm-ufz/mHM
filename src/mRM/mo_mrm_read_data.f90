@@ -51,6 +51,10 @@ contains
 
     use mo_append, only : append
     use mo_common_constants, only : nodata_i4
+#ifndef MRM2MHM
+    use mo_common_constants, only : nodata_dp
+    use mo_mpr_global_variables, only: L0_slope
+#endif
     use mo_common_read_data, only : read_dem, read_lcover
     use mo_common_variables, only : Grid, L0_LCover, dirMorpho, level0, domainMeta, processMatrix
     use mo_mpr_file, only: file_slope, uslope
@@ -81,6 +85,10 @@ contains
     integer(i4) :: nunit
 
     integer(i4), dimension(:, :), allocatable :: data_i4_2d
+
+#ifndef MRM2MHM
+    real(dp), dimension(:, :), allocatable :: data_dp_2d
+#endif
 
     integer(i4), dimension(:, :), allocatable :: dataMatrix_i4
 
