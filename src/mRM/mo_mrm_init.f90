@@ -138,9 +138,6 @@ end subroutine mrm_configuration
     integer(i4) :: domainID, iDomain, gauge_counter
 
 
-#ifndef MRM2MHM
-    call mrm_configuration(file_namelist, unamelist, file_namelist_param, unamelist_param, ReadLatLon)
-#endif
     if (mrm_coupling_mode .eq. 0_i4) then
       allocate(l0_l1_remap(domainMeta%nDomains))
       allocate(level1(domainMeta%nDomains))

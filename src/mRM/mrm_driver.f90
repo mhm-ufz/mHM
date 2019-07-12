@@ -20,7 +20,7 @@ program mrm_driver
   use mo_kind, only : dp, i4
   use mo_message, only : message
   use mo_mrm_eval, only : mrm_eval
-  use mo_mrm_init, only : mrm_init
+  use mo_mrm_init, only : mrm_init, mrm_configuration
   use mo_mrm_objective_function_runoff, only : single_objective_runoff
   use mo_mrm_write, only : mrm_write, mrm_write_optifile, mrm_write_optinamelist
   use mo_optimization, only : optimization
@@ -39,11 +39,16 @@ program mrm_driver
   procedure(mrm_eval), pointer :: eval
   procedure(single_objective_runoff), pointer :: obj_func
 
+  logical :: ReadLatLon
+
   ! --------------------------------------------------------------------------
   ! INITIALIZE
   ! --------------------------------------------------------------------------
   mrm_coupling_mode = 0_i4
-  call mrm_init(file_namelist_mrm, unamelist_mrm, file_namelist_param_mrm, unamelist_param_mrm)
+  call mrm_configuration(file_namelist_mrm, unamelist_mrm, &
+                         file_namelist_param_mrm, unamelist_param_mrm, ReadLatLon)
+  call mrm_init(file_namelist_mrm, unamelist_mrm, &
+                         file_namelist_param_mrm, unamelist_param_mrm, ReadLatLon = ReadLatLon)
   ! Start timings
   print*, 'start timer'
   call timers_init
